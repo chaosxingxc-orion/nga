@@ -2,7 +2,7 @@
 
 > 本报告引用的全部来源。arXiv 论文按发表日期排序（日期取自 arXiv 摘要页的首次提交日期）；文档、仓库与网页按类别列出。所有数字在正文中都标注了来源；正文中"未核实、已删除"的说法在 README §方法论中说明。
 
-## 11.1 arXiv 论文（共 244 篇）
+## 11.1 arXiv 论文（共 263 篇）
 
 | ID | 日期 | 标题 |
 | --- | --- | --- |
@@ -38,9 +38,11 @@
 | [2509.20820](https://arxiv.org/abs/2509.20820) | 2025-09-25 | Distilling Many-Shot In-Context Learning into a Cheat Sheet |
 | [2510.06084](https://arxiv.org/abs/2510.06084) | 2025-10-07 | Spectrum Tuning: Post-Training for Distributional Coverage and In-Context Steerability |
 | [2510.16092](https://arxiv.org/abs/2510.16092) | 2025-10-17 | Compressing Many-Shots in In-Context Learning |
+| [2510.22691](https://arxiv.org/abs/2510.22691) | 2025-10-26 | SALSA: Single-pass Autoregressive LLM Structured Classification |
 | [2511.09008](https://arxiv.org/abs/2511.09008) | 2025-11-12 | A Neurosymbolic Approach to Natural Language Formalization and Verification |
 | [2511.21038](https://arxiv.org/abs/2511.21038) | 2025-11-26 | Semantic Anchors in In-Context Learning: Why Small LLMs Cannot Flip Their Labels |
 | [2512.04408](https://arxiv.org/abs/2512.04408) | 2025-12-04 | Executable Governance for AI: Translating Policies into Rules Using LLMs |
+| [2512.12677](https://arxiv.org/abs/2512.12677) | 2025-12-14 | Fine-Tuning Causal LLMs for Text Classification: Embedding-Based vs. Instruction-Based Approaches |
 | [2512.17325](https://arxiv.org/abs/2512.17325) | 2025-12-19 | Task Schema and Binding: A Double Dissociation Study of In-Context Learning |
 | [2512.22258](https://arxiv.org/abs/2512.22258) | 2025-12-24 | Logic Sketch Prompting (LSP): A Deterministic and Interpretable Prompting Method |
 | [2601.10156](https://arxiv.org/abs/2601.10156) | 2026-01-15 | ToolSafe: Enhancing Tool Invocation Safety of LLM-based agents via Proactive Step-level Guardrail and Feedback |
@@ -112,17 +114,23 @@
 | [2609.33401](https://arxiv.org/abs/2609.33401) | 2026-09-27 | Evaluating System One Models for Agent Security Decisions: Reliability, Calibration, and Selective Automation |
 | [2609.33609](https://arxiv.org/abs/2609.33609) | 2026-09-27 | You Only Edit Once: Incentivizing In-Context Capability of LLMs via Local Demonstration Refinement |
 | [2609.33671](https://arxiv.org/abs/2609.33671) | 2026-09-27 | COGNIT-Guard: Calibrated Standalone Direct-Decision Guardrails with Heterogeneous CPU-NPU Confidence Cascading under Explicit Latency and False-Positive Constraints |
+| [2609.33843](https://arxiv.org/abs/2609.33843) | 2026-09-27 | Laya as a Typed Probabilistic Assessor: An Independent Reproduction and a Preregistered Study of Calibration and Selective Escalation |
 | [2609.33971](https://arxiv.org/abs/2609.33971) | 2026-09-27 | Do System One Decisions Add Up? A Study of Probabilistic Coherence |
+| [2609.37470](https://arxiv.org/abs/2609.37470) | 2026-09-27 | Probability Contracts: Accuracy, Coherence, and Decisions Across LLM Interfaces |
 | [2610.13999](https://arxiv.org/abs/2610.13999) | 2026-09-27 | SemTree: Judge-Aware Semantic Decision Trees for Inspectable and Repairable Rule Decisions |
 | [2609.34227](https://arxiv.org/abs/2609.34227) | 2026-09-28 | When Does Selection Replace Extraction? A Pre-Registered Test of Agent Memory with a Typed Decision Model |
 | [2609.34862](https://arxiv.org/abs/2609.34862) | 2026-09-28 | JEV as a Judge for Agent Trace Security: An Empirical Comparison with Generative LLM Judges |
 | [2609.36059](https://arxiv.org/abs/2609.36059) | 2026-09-28 | Mnemon: Raw Records, Fast Judgments, Slow Thoughts |
+| [2609.36115](https://arxiv.org/abs/2609.36115) | 2026-09-28 | Koa-decision: Fast and Consistent Structured Decision Making with Generative LLMs |
+| [2609.36116](https://arxiv.org/abs/2609.36116) | 2026-09-28 | Dyad: Extending Large Language Models with Native Typed Decision-Making |
 | [2609.36265](https://arxiv.org/abs/2609.36265) | 2026-09-28 | In-Context Learning Amplifies a Latent Symbolic Circuit |
 | [2609.36399](https://arxiv.org/abs/2609.36399) | 2026-09-28 | Calibrated to Whom? Persona and Language Effects on Cultural Values in JEV |
 | [2609.37647](https://arxiv.org/abs/2609.37647) | 2026-09-29 | Evaluating and Benchmarking the System One Model Jev |
 | [2609.37832](https://arxiv.org/abs/2609.37832) | 2026-09-29 | Can a Cacheable Decision Model Follow Rules? |
+| [2610.00346](https://arxiv.org/abs/2610.00346) | 2026-09-29 | Benchmarking System One decision models against trained classifiers and language models for automated decision gates |
 | [2609.38827](https://arxiv.org/abs/2609.38827) | 2026-09-30 | More Choices, Fewer Decisions: Ordinal-Scale Bias in JEV-like Direct-Decision Models |
 | [2609.38850](https://arxiv.org/abs/2609.38850) | 2026-09-30 | OpenJev-RLCD: A Working RLCD Implementation |
+| [2609.39111](https://arxiv.org/abs/2609.39111) | 2026-09-30 | Bongard: Training Machine Intuition |
 | [2609.39496](https://arxiv.org/abs/2609.39496) | 2026-09-30 | When the Right Answer Is Missing: An Arithmetic-Dependent Rejection Bottleneck in Jev |
 | [2610.00437](https://arxiv.org/abs/2610.00437) | 2026-09-30 | JevSpawn: Adaptive Agentic Inference through Compositional Action Spaces |
 | [2610.00526](https://arxiv.org/abs/2610.00526) | 2026-09-30 | Rules Amortize, Pairings Don't: Linguistic Structure Determines What Latent Task Representations Can Replace In-Context Learning |
@@ -134,6 +142,8 @@
 | [2610.02046](https://arxiv.org/abs/2610.02046) | 2026-10-01 | Prune First, Decide Fast: Scalable Semantic Query Processing with JEVDB |
 | [2610.02076](https://arxiv.org/abs/2610.02076) | 2026-10-01 | LLM-as-Jev: LLMs Are Already Jev-Style Decision Models -- When and How to Fine-Tune Them |
 | [2610.02267](https://arxiv.org/abs/2610.02267) | 2026-10-01 | Fast Models, Slow Evidence: A Paired and Self-Audited Evaluation of System-1 Decision Models for LLM Agent Harnesses |
+| [2610.02486](https://arxiv.org/abs/2610.02486) | 2026-10-01 | From Retrieval to Typed Decisions: Calibrated System One Models from Biomedical Sentence Encoders |
+| [2610.02516](https://arxiv.org/abs/2610.02516) | 2026-10-01 | Student-Guided Teacher Distillation for Efficient LLM Task Routing: Positioning Against Jev-Style System-1 Classifiers |
 | [2610.02586](https://arxiv.org/abs/2610.02586) | 2026-10-01 | Labels Override Definitions in Jev-Style Typed Decision Models |
 | [2610.03073](https://arxiv.org/abs/2610.03073) | 2026-10-02 | SecJev: Bringing Security Expertise to System One Decision Models |
 | [2610.03324](https://arxiv.org/abs/2610.03324) | 2026-10-02 | To Jev or Not? Evaluating the Accuracy and Efficiency of Structured Decision Models for Hate-Speech Moderation |
@@ -156,6 +166,7 @@
 | [2610.10615](https://arxiv.org/abs/2610.10615) | 2026-10-07 | JevForest: Path Voting for Budgeted Feature Acquisition |
 | [2610.10978](https://arxiv.org/abs/2610.10978) | 2026-10-07 | Probabilistic Sensing, Deterministic Authority: Admitting Model-Produced Observations into Sufficiency-Checked Governance Contracts |
 | [2610.11135](https://arxiv.org/abs/2610.11135) | 2026-10-08 | Can a System-One LLM Perform Knowledge Tracing When Few or No Learners Are Logged? |
+| [2610.11316](https://arxiv.org/abs/2610.11316) | 2026-10-08 | MetaEncoder: Exploring the Limit of Bi-Encoders for Multimodal System One Decision Making with Natural Language Interface |
 | [2610.11379](https://arxiv.org/abs/2610.11379) | 2026-10-08 | FastJEV: Understanding Redundancy for Compact JEV Inference |
 | [2610.11392](https://arxiv.org/abs/2610.11392) | 2026-10-08 | TypedBench: A Benchmark for Calibration, Framing Sensitivity, and Cost in System One Decision Models |
 | [2610.11692](https://arxiv.org/abs/2610.11692) | 2026-10-08 | Can Jev be Your Q or Policy in Reinforcement Learning? |
@@ -171,7 +182,9 @@
 | [2610.15501](https://arxiv.org/abs/2610.15501) | 2026-10-11 | Large Decision Models: Repurposing Large Language Models as Single-Pass Decision Makers |
 | [2610.15537](https://arxiv.org/abs/2610.15537) | 2026-10-11 | Poisoned into Action: Context Attacks on Typed Decision Workflows |
 | [2610.15710](https://arxiv.org/abs/2610.15710) | 2026-10-11 | Suggested Is Not Superseded: A Pre-Registered Evaluation of a System-One Model as a Memory-Retirement Gate |
+| [2610.15742](https://arxiv.org/abs/2610.15742) | 2026-10-11 | RSAJEV: Training-Free Abstaining Prototype Memory for Eliminating Silent Hallucination in JEV-Based Remote Sensing Classification |
 | [2610.16191](https://arxiv.org/abs/2610.16191) | 2026-10-12 | Correct Choices, Failed Sequences: Choice2Seq Benchmarks Correctness Retention Across Output Interfaces |
+| [2610.16550](https://arxiv.org/abs/2610.16550) | 2026-10-12 | CT0: Cybersecurity Transformer |
 | [2610.16655](https://arxiv.org/abs/2610.16655) | 2026-10-12 | Does a Hosted Decision Model Respect Irrelevant Alternatives? A Pre-Registered Test of Option-Set Dependence in Jev |
 | [2610.16967](https://arxiv.org/abs/2610.16967) | 2026-10-12 | Proactive Physical AI through Continuous Observation and Timely Intervention |
 | [2610.17096](https://arxiv.org/abs/2610.17096) | 2026-10-12 | Towards Universal Calibration for In-Context Classification |
@@ -195,8 +208,10 @@
 | [2610.19596](https://arxiv.org/abs/2610.19596) | 2026-10-14 | JevCoder: When Does Decision Delegation Pay Off in Code Repair? |
 | [2610.19619](https://arxiv.org/abs/2610.19619) | 2026-10-14 | Are AI Decision Models Biased? A Case Study of Jev |
 | [2610.19644](https://arxiv.org/abs/2610.19644) | 2026-10-14 | Selective Reasoning for Typed Decision Models: When to Start, Read, and Stop |
+| [2610.19811](https://arxiv.org/abs/2610.19811) | 2026-10-14 | Calibration and Risk-Budgeted Decisions with System One Models |
 | [2610.19856](https://arxiv.org/abs/2610.19856) | 2026-10-14 | Lost in the Fallback: How Reliably Do Typed Decision Models Use Fallback Options? |
 | [2610.20665](https://arxiv.org/abs/2610.20665) | 2026-10-14 | The World Won't Wait: Evaluating and Teaching Agents Under a Live Clock |
+| [2610.20778](https://arxiv.org/abs/2610.20778) | 2026-10-14 | Verdict: Encode Once, Decide Many |
 | [2610.20907](https://arxiv.org/abs/2610.20907) | 2026-10-14 | From Detection to Decision: Calibration and Deferral for Prompt-Injection Detection |
 | [2610.20927](https://arxiv.org/abs/2610.20927) | 2026-10-14 | Prune the Summary, Not the History: Source-Judged Compaction for Long-Horizon Agents |
 | [2610.20951](https://arxiv.org/abs/2610.20951) | 2026-10-14 | LEV: Thinking Fast and Deep with Looped Decision Models |
@@ -210,13 +225,16 @@
 | [2610.22526](https://arxiv.org/abs/2610.22526) | 2026-10-15 | Literal Lock-In: How Test Language Shifts Literal Attraction in Typed Decision Models on Bengali Idioms |
 | [2610.23170](https://arxiv.org/abs/2610.23170) | 2026-10-16 | Chinese Decision: A Family of Language Models for Single-Pass Probabilistic Decision-Making |
 | [2610.23804](https://arxiv.org/abs/2610.23804) | 2026-10-16 | Jarvis: Coordination Deserves a Brain of Its Own in Agentic Interactive Models |
+| [2610.24358](https://arxiv.org/abs/2610.24358) | 2026-10-17 | DKnown-Jev: Fine-Tuning and Evaluation of a JEV-Style Model for Tasks Involving Normative Knowledge |
 | [2610.24649](https://arxiv.org/abs/2610.24649) | 2026-10-17 | Good Judgment, Bad Advice: Decision-Model Controllers Raise Agent Cost Without Improving Success |
 | [2610.24871](https://arxiv.org/abs/2610.24871) | 2026-10-17 | Bellman Language Models: Solving the Recurring Decisions of LLM Agents |
 | [2610.24929](https://arxiv.org/abs/2610.24929) | 2026-10-18 | What Can't Jev Decide? Probing the Limits of One-Pass Decision Models |
 | [2610.25456](https://arxiv.org/abs/2610.25456) | 2026-10-18 | System X: An LLM Decision Model That Replies from Its Own KV Cache |
 | [2610.25474](https://arxiv.org/abs/2610.25474) | 2026-10-18 | P(Yes): 15$\times$ Improvements via Test-Time Scaling of Decision Models |
+| [2610.25553](https://arxiv.org/abs/2610.25553) | 2026-10-18 | Narrow Decision Models: A System-1 Architecture for Calibrated, Typed Decisions |
 | [2610.25760](https://arxiv.org/abs/2610.25760) | 2026-10-19 | Computation, Not Memory: Chain-of-Thought and State Tracking in LLM Agents |
 | [2610.25768](https://arxiv.org/abs/2610.25768) | 2026-10-19 | Truncated Reasoning Under a Budget: Evaluating System-1 Models as Decision-Makers |
+| [2610.25784](https://arxiv.org/abs/2610.25784) | 2026-10-19 | UniJev: Separating Accuracy from Calibration in Trimodal System One Decision Models |
 | [2610.25947](https://arxiv.org/abs/2610.25947) | 2026-10-19 | Claim Laundering: When Agent Decision Models Trust Records Over Reality |
 | [2610.25985](https://arxiv.org/abs/2610.25985) | 2026-10-19 | NIOCIS: Typed-Decision Next-Hop Routing with Node-Conditioned Option Spaces for Tool-Use Agents |
 | [2610.26035](https://arxiv.org/abs/2610.26035) | 2026-10-19 | Decision4Rec: A Jev-Inspired Framework of Decision Models on Knowledge and Active Graphs for Multi-Agent Recommender Systems |
@@ -224,6 +242,7 @@
 | [2610.26793](https://arxiv.org/abs/2610.26793) | 2026-10-19 | SOMA: Continuous Monitoring and Intervention for System Two Reasoning with System One Models |
 | [2610.26797](https://arxiv.org/abs/2610.26797) | 2026-10-19 | Teacher Supervision, Fixed Representations and Calibration: Exact Risk Calculations for Candidate-Scoring Decision Models |
 | [2610.27301](https://arxiv.org/abs/2610.27301) | 2026-10-19 | Evaluating Context Compaction on the Questions That Come Later |
+| [2610.27746](https://arxiv.org/abs/2610.27746) | 2026-10-20 | S$^2$-MAS: A Society-Scale Multi-Agent Simulation Framework with 500 Million Household Persona Agents |
 | [2610.28116](https://arxiv.org/abs/2610.28116) | 2026-10-20 | AgenTest: Mining Business Rules to Test LLM Agents for Business Logic Bugs |
 | [2610.28522](https://arxiv.org/abs/2610.28522) | 2026-10-20 | DecisionPivot: A Diagnostic Benchmark for Decision Models in LLM Systems |
 | [2610.28577](https://arxiv.org/abs/2610.28577) | 2026-10-20 | Cache Engineering for Agents |
