@@ -79,12 +79,13 @@
 
 ### 12.4.2 本地副本（/mnt/cephfs/xingchao）
 
-下载在后台按"小→大"顺序进行，状态以清单为准（`/mnt/cephfs/xingchao/manifests/jev/hf_manifest.jsonl`、`github_manifest.tsv`、`hf_probe.json`）。本节写作时（2026-10-28 凌晨）：
+镜像范围在 2026-10-28 按用户决定收窄为**全部公开数据集 + 一个基座（Qwen3.8-27B）**；模型权重不再成批下载。状态以清单为准（`/mnt/cephfs/xingchao/manifests/jev/hf_manifest.jsonl`、`github_manifest.tsv`、`hf_probe.json`）。本节更新时（2026-10-28 上午）：
 
 - 目录约定：数据集 `datasets/jev/<org>__<name>`、模型 `models/jev/<org>__<name>`、GitHub 仓库 `repos/jev/<org>__<repo>`（浅克隆）；每个完成的 HF 仓库写 `.complete`（含修订号与时间）。
-- 下载队列共 118 个 HF 仓库，按"小文件先"排序，分五层（探测到的总量）：A 数据集 24 个约 43 GB（其中 OneJev-Data 17.7 GB、DecisionRobust 19.9 GB）；B ≤9B 的决策模型与适配器 58 个约 272 GB；C Qwen3.5 / Qwen3 基座 12 个约 100 GB（0.6B–9B，Qwen3.5 的 Base 与 Instruct 各一份）；D 编码器对照 8 个约 12 GB（Laya 三种、ufakzeka、Von 等）；E 12B–35B 模型 16 个约 739 GB（Gemma-4-12B/31B-it、Qwen3.8-27B、Qwen3.6-27B、Qwen3.5-35B-A3B、kev-27b、pplx-decider、OneJev-27B、StartLux-27B 两种、Eikos-27B、Mapika 12b/31b/35b 等）。排除：GGUF / MLX / ONNX 重复格式、`fstandhartinger/jevbench`（不存在）、gated 仓库（RLCDAlignBench、system-x、prompt-injection）。
-- 带宽约束：代理每连接约 10 KB/s，并行 96 连接约 2.5 MB/s，即约 9 GB/小时。A–D 层合计约 427 GB 需要约两天，E 层约 739 GB 再需要三天以上；队列按大小排序，所以小数据集与 ≤4B 模型最先到位，27B 以上权重最后，若中途停止则 E 层多数不会完成。
-- 54 个被引用的 GitHub 仓库做浅克隆（含 Kev、Nimble、Open-Jev、OneJev、StartLux、Mapika、tev1、qwen-rlcd、openjev-rlcd、FunDM、PACT、UniJev、Intern-Decision、eikos、jevlike、this-that、jevbench、decision-index、AnyJev、SemIf、CLM、laya、verdict 等）。
+- **数据集**：探测到 24 个公开 HF 数据集约 43 GB，已完成 21 个（约 3.4 GB，含 kev-suites、this-that 两个基准、DecisionPivot、Open-Jev / v1.1、JEVal、decision-bench、WebJev、imajev-bench 等），正在下载 `Praveenrajus/jev-bench`，随后是两个大件 `OmniJev/OneJev-Data`（17.7 GB）与 `yflantmy/DecisionRobust`（19.9 GB）。排除：`fstandhartinger/jevbench`（不存在）、gated 仓库（RLCDAlignBench、system-x、prompt-injection）。
+- **模型**：收窄前已落地 32 个 ≤9B 的决策模型 / 适配器与对照（约 14 GB：Nimble-9B-v3、Laya 三种、Open-Jev 适配器、decider-0.8b、Decision-2.0-Kai-0.6B、Qwen3-0.6B、JevAny-Qwen3.8-27B-LoRA 等）；队列里只剩 `Qwen/Qwen3.8-27B`（55.6 GB safetensors，Apache-2.0），在数据集之后开始。Qwen3.5 的 0.8B–9B 基座（Base + Instruct 共 8 个约 60 GB）**未入队**，若 scale-up 实验需要再补。
+- 带宽约束：代理每连接约 10 KB/s，96 并行约 2.5 MB/s；小文件多的仓库实际只有约 1.5 GB/小时，大文件接近 9 GB/小时。剩余约 93 GB 预计一天左右。
+- **GitHub**：54 个被引用仓库中 49 个浅克隆完成（约 1.9 GB）；`jaredpalmer/kev` 只拿到 37 MB 的部分检出，`StartLuxLabs/StartLux-Decision`、`Mapika/decider`、`togethercomputer/tev1` 的 pack 在代理下反复截断，`PACT` 因缺 git-lfs 只有源码无权重。这四个仓库的代码仍可按文件从 raw 地址取回，但没有 git 历史。
 
 ## 12.5 基座选型规律
 
@@ -98,7 +99,7 @@
 | **非主流骨干各有一个代表** | 循环预训练 Ouro-1.4B / 2.6B（SanSi、LEV）；编码器-解码器 T5Gemma 2 4B-4B（Bongard）；NeoHorse-1-4B（JEV 重排）；MiniCPM5-1B/2B、Qwen3.6-35B-A3B（Our Own Jev）；Muse-Glimmer 30B（MetaEncoder）；自有 182M 基座（ufakzeka-karar） |
 | **编码器只作对照** | Laya（ModernBERT-large 421M / mmBERT-base 322M）、Verdict-MQ 395M、SBERT2S1（Sentence-Transformers 家族）、NDM-Block、this-that、GLiNER2.5-Decide、CLM；benchmark 结论是"有任务标签时微调 DeBERTa-v3-large 在除一项外每个标注基准上准确率最高"（[2610.00346](https://arxiv.org/abs/2610.00346)），但这条路线不在我们方向内 |
 
-对"在小尺寸 Qwen 类模型上继续训练"这一目标，文献给出的事实边界是：（1）Qwen3.5 全系是 DeltaNet 混合，分支隔离只能按行训练或前缀分叉（08 章）；（2）Qwen3 纯注意力系列上所有结构性方法都已有实现与数字；（3）0.6B–4B 上"冻结 + LoRA + 复用输出层"是每篇论文都用的起点，且小模型决策训练后校准**不迁移**（jevlike 域外、Nimble 金融）。
+对"在小尺寸 Qwen 类模型上继续训练"这一目标，文献给出的事实边界是：（1）Qwen3.5 全系是 DeltaNet 混合，分支隔离只能按行训练或前缀分叉（08 章）；（2）Qwen3 纯注意力系列上所有结构性方法都已有实现与数字；（3）0.6B–4B 上"冻结 + LoRA + 复用输出层"是每篇论文都用的起点，且小模型决策训练后校准**不迁移**（jevlike 域外、Nimble 金融）。（4）Qwen3.8 只有 27B 一个稠密尺寸（其余为 MoE），因此"从小到大"只能用 Qwen3.5-0.8B / 2B / 4B / 9B 做小端、27B 做大端；三代 27B 形状相同、0.8B–9B 与 27B 同族同比例（每 4 层 1 层全注意力，08 章 §8.2 的配置表），架构上是一条干净的阶梯，但小端与大端跨了一代预训练，这一差异没有任何文献控制过。
 
 ## 12.6 学习视角的盲区
 
@@ -108,3 +109,4 @@
 4. **决策微调与 ICL 的关系仍是零文献**（09 章一级盲区 1）。从学习视角看，这等价于"LoRA 决策训练是否改变了注意力对上下文示例的使用"，现有消融只看准确率与 ECE。
 5. **数据构成的效应量最大，但没有"数据配方"的研究。** 对比策展、自提问、Agent 自身轨迹三种构造各有一篇，没有同骨干比较；中文、业务规则、非技术人员撰写的输入三类数据为空。
 6. **混合骨干上的训练时隔离仍无数字**（08 章），而所有可证实有大效应量的"算法"改动都是依赖掩码的结构改动。这把"选 Qwen3.5 还是 Qwen3"从工程问题变成了学习算法问题。
+7. **SFT 的泛化边界没有在单遍模型上被受控测量。** 14 章按七个层次核对后，同族新来源上的迁移证据充分，而新 schema、新符号操作、先验偏移、校准迁移四层只有负面或缺失的证据；"SFT 对 RL 的分布外对照"在单遍决策模型上为零篇。

@@ -2,7 +2,7 @@
 
 > 本报告引用的全部来源。arXiv 论文按发表日期排序（日期取自 arXiv 摘要页的首次提交日期）；文档、仓库与网页按类别列出。所有数字在正文中都标注了来源；正文中"未核实、已删除"的说法在 README §方法论中说明。
 
-## 11.1 arXiv 论文（共 263 篇）
+## 11.1 arXiv 论文（共 267 篇）
 
 | ID | 日期 | 标题 |
 | --- | --- | --- |
@@ -26,8 +26,10 @@
 | [2410.08328](https://arxiv.org/abs/2410.08328) | 2024-10-10 | Agents Thinking Fast and Slow: A Talker-Reasoner Architecture |
 | [2411.19379](https://arxiv.org/abs/2411.19379) | 2024-11-28 | Marconi: Prefix Caching for the Era of Hybrid LLMs |
 | [2412.08972](https://arxiv.org/abs/2412.08972) | 2024-12-12 | RuleArena: A Benchmark for Rule-Guided Reasoning with LLMs in Real-World Scenarios |
+| [2501.17161](https://arxiv.org/abs/2501.17161) | 2025-01-28 | SFT Memorizes, RL Generalizes: A Comparative Study of Foundation Model Post-training |
 | [2502.14628](https://arxiv.org/abs/2502.14628) | 2025-02-20 | PEARL: Towards Permutation-Resilient LLMs |
 | [2502.18695](https://arxiv.org/abs/2502.18695) | 2025-02-25 | Policy-as-Prompt: Rethinking Content Moderation in the Age of Large Language Models |
+| [2503.02623](https://arxiv.org/abs/2503.02623) | 2025-03-04 | Rewarding Doubt: A Reinforcement Learning Approach to Calibrated Confidence Expression of Large Language Models |
 | [2505.14313](https://arxiv.org/abs/2505.14313) | 2025-05-20 | Teaching Small Language Models to Learn Logic through Meta-Learning |
 | [2505.19766](https://arxiv.org/abs/2505.19766) | 2025-05-26 | PAM: Training Policy-Aligned Moderation Filters at Scale |
 | [2506.06266](https://arxiv.org/abs/2506.06266) | 2025-06-06 | Cartridges: Lightweight and general-purpose long context representations via self-study |
@@ -84,6 +86,7 @@
 | [2610.00025](https://arxiv.org/abs/2610.00025) | 2026-09-01 | Measuring the Microtask Eligibility Gap: When Is an Off-the-Shelf SLM Enough for an Agent Harness? |
 | [2609.05707](https://arxiv.org/abs/2609.05707) | 2026-09-04 | Intra-Prompt Parallel Decoding for Common-Context Question Answering |
 | [2610.00054](https://arxiv.org/abs/2610.00054) | 2026-09-04 | The First Token Is Not the Verdict: Hidden Costs of Reading LLM Judges Without Generating |
+| [2609.11310](https://arxiv.org/abs/2609.11310) | 2026-09-10 | Your Model Already Knows Don't Teach It, Learn to Ask It: Soft Prompting for Few-Shot Adaptation of Vision-Language Models |
 | [2609.14726](https://arxiv.org/abs/2609.14726) | 2026-09-13 | CALICO: A Human-Centered, Codebook-Aligned System for Annotation |
 | [2609.23136](https://arxiv.org/abs/2609.23136) | 2026-09-19 | Intent Interpretation at RIC Timescales: Jev Decision Models versus Large Language Models in 6G Open RAN |
 | [2609.23742](https://arxiv.org/abs/2609.23742) | 2026-09-20 | Constrained Decoding Eliminates Structural Failures in Small LLMs but Reveals a Scale-Dependent Semantic Gap |
@@ -258,6 +261,7 @@
 | [2610.32648](https://arxiv.org/abs/2610.32648) | 2026-10-23 | StateMirror: Pre-Execution Detection of Hallucinated Tool Calls in Coding Agents |
 | [2610.32955](https://arxiv.org/abs/2610.32955) | 2026-10-23 | Measure Before You Train: Typed Decision Models vs. a Classical Baseline vs. a Generative LLM for Routing a Personal Multilingual Inbox |
 | [2610.33258](https://arxiv.org/abs/2610.33258) | 2026-10-23 | Two Uncertainties Are Not One: Disagreement versus Decision-Risk in Cheap Structured Content Moderation |
+| [2610.33493](https://arxiv.org/abs/2610.33493) | 2026-10-24 | Small Edits, Shifting Decisions: Benchmarking LLM Accuracy and Reliability on French Input Variants |
 | [2610.33766](https://arxiv.org/abs/2610.33766) | 2026-10-24 | StateWise: Teaching Language Models to Track and Obey Evolving Constraints in Multi-Turn Dialogue |
 | [2610.33775](https://arxiv.org/abs/2610.33775) | 2026-10-24 | The Hitchhiker's Guide to System 1 Models: Fast Decision-Making Beyond LLMS |
 | [2610.33876](https://arxiv.org/abs/2610.33876) | 2026-10-24 | FlashScript: Compiling Recurring Agent Workflows into Reusable Neuro-Symbolic Programs |
