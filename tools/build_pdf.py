@@ -36,8 +36,10 @@ blockquote { margin: 4pt 0 6pt 0; padding: 3pt 8pt; border-left: 2.5pt solid #99
 code { font-family: "DejaVu Sans Mono", monospace; font-size: 7.8pt; background: #f0f0f0; padding: 0 2px; }
 pre { font-family: "DejaVu Sans Mono", monospace; font-size: 7.6pt; background: #f4f4f4; padding: 5pt; white-space: pre-wrap; word-break: break-all; }
 table { border-collapse: collapse; width: 100%; margin: 4pt 0 7pt 0; font-size: 7.6pt; line-height: 1.3; page-break-inside: auto; }
+table.wide { font-size: 7.1pt; }
 tr { page-break-inside: avoid; }
-th, td { border: 0.5pt solid #888; padding: 2pt 3pt; vertical-align: top; word-break: break-word; }
+th, td { border: 0.5pt solid #888; padding: 2pt 3pt; vertical-align: top;
+         overflow-wrap: anywhere; word-break: normal; min-width: 2.4em; }
 th { background: #e8e8e8; font-weight: bold; }
 a { color: #0b4d8c; text-decoration: none; }
 strong { font-weight: bold; }
@@ -61,6 +63,27 @@ def slug(text, used):
         s = f'{base}-{n}'
     used.add(s)
     return s
+
+
+WIDE_COLS = 7
+
+
+def widen_tables(html):
+    """Tag tables of WIDE_COLS or more columns so CSS can shrink their type.
+
+    The overflow this guards against is real: before `overflow-wrap: anywhere`
+    the nine-column recipe matrix in S1.2.2 ran 29.6 mm past the right margin,
+    because WeasyPrint ignores `word-break: break-word` when it computes a
+    column's min-content width. `tools/check_overflow.py` is the regression test.
+    """
+    def tag(m):
+        head = re.search(r'<tr>.*?</tr>', m.group(0), flags=re.S)
+        cols = len(re.findall(r'<t[hd][\s>]', head.group(0))) if head else 0
+        if cols < WIDE_COLS:
+            return m.group(0)
+        return m.group(0).replace('<table>', '<table class="wide">', 1)
+
+    return re.sub(r'<table>.*?</table>', tag, html, flags=re.S)
 
 
 def chapter_files():
@@ -89,7 +112,16 @@ def convert(path, used, first):
         return f'{extra}<h{level} id="{sid}"{cls}>{text}</h{level}>'
 
     html = re.sub(r'<h([12])>(.*?)</h\1>', heading, html, flags=re.S)
+    html = widen_tables(html)
     return html, toc
+
+
+def cover_html():
+    today = datetime.date.today().isoformat()
+    return (f'<div class="cover"><h1>下一代 Agent 技术路线调研</h1>'
+            f'<p>Jev 类快思考模型（System One）与快 / 慢协同框架</p>'
+            f'<p>调研报告 · 仅分析与调研，不含训练方案</p>'
+            f'<p>生成日期：{today}</p></div>')
 
 
 def main():
@@ -99,11 +131,7 @@ def main():
         html, t = convert(f, used, first=(i == 0))
         parts.append(html)
         toc.extend(t)
-    today = datetime.date.today().isoformat()
-    cover = (f'<div class="cover"><h1>下一代 Agent 技术路线调研</h1>'
-             f'<p>Jev 类快思考模型（System One）与快 / 慢协同框架</p>'
-             f'<p>调研报告 · 仅分析与调研，不含训练方案</p>'
-             f'<p>生成日期：{today}</p></div>')
+    cover = cover_html()
     toc_html = '<div id="toc"><h1 class="first">目录</h1><ul>' + ''.join(
         f'<li class="lvl{l}"><a href="#{s}">{t}</a></li>' for l, t, s in toc) + '</ul></div>'
     body = cover + toc_html + ''.join(parts)
