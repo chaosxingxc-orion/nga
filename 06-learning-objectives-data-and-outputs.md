@@ -97,6 +97,41 @@
 - 带宽约束：代理每连接约 10 KB/s，96 并行约 2.5 MB/s；小文件多的仓库实际只有约 1.5 GB/小时，大文件接近 9 GB/小时。本轮共 120 GB，用时约一天。**镜像任务已结束**，只剩下面四个 GitHub 仓库未取全。
 - **GitHub**：54 个被引用仓库中 49 个浅克隆完成（约 1.9 GB）；`jaredpalmer/kev` 只拿到 37 MB 的部分检出，`StartLuxLabs/StartLux-Decision`、`Mapika/decider`、`togethercomputer/tev1` 的 pack 在代理下反复截断，`PACT` 因缺 git-lfs 只有源码无权重。这四个仓库的代码仍可按文件从 raw 地址取回，但没有 git 历史。
 
+#### 6.1.4.3 本地副本的采样核对：与 §2.2.1 要求的数据形态比对
+
+2026-10-28 对 24 个本地数据集逐个取样（每个目录按文件大小取前四个数据文件，读 schema 与首条记录；多问题集另做了分组结构统计），目的只有一个：核对 §2.2.1 的接口要求——**(state, 问题集, 每问题标签)**、问题里写着业务判据、同 state 在不同问题下划分不同、选项名由上下文注入、unknown 是合法输出——现有数据覆盖了哪几项。下表只列与这个要求相关的集合，数字全部来自本地文件而非论文。
+
+| 数据集（许可） | 规模（本地核实） | 形态 | 与要求的关系 |
+| --- | --- | --- | --- |
+| `LocalLLaMA/typed-decisions`（Apache-2.0） | 1,200 state，4 个工作流各 300；每 state **5 问**（choice / noul / score 混合，全集共 20 种问题）；标签是多标注者的概率分布 | **(state, 问题集, 每问题标签)** 三元组；判据写在每个问题的 `criteria` 里 | 唯一带标注者分歧字段的集合：6,000 个问题标签里 **2,121 个（35%）标注者 argmax 不一致**，总变差中位数 0.14。这是"标签是业务约定、约定可争议"的直接测量 |
+| `akhilaaa3/decision-bench`（Apache-2.0） | medium 80 state + hard；共 586 问，每 state 1–9 问，40 余个业务族；state 是多语对话 / 工单记录 | 同上形态，判据很长（如"证书日期不早于当前联系日 12 个月"） | 只够评测。自带结果：Jev 1.13 **90.48%**，生成式前沿 98.8–99.1%（state 宏平均）——业务判据任务上读出与生成式的差距 |
+| `ZefanCai/Open-Jev-v1.1` 合成部分 `community-diversity-v2`（CC0） | 48 个模板 × 80 组，训练 30,720 行（全集 51,200）；每组 4 个 state 变体 × (choice + noul 或 score) | 规则**可见**（`numbered_requirements` + 三值 `evidence_policy`：null 是未报告不是假、AND/OR/NOT 的 unknown 传播）；选项含 `abstain`；标签由代码算出 | **唯一带标签的 unknown / abstain 来源**；反事实变体翻一个字段后标签改变 **10,201 / 11,858（86%）**；划分按规则族留出（`family_disjoint … 1 ood`）。缺点：state 是结构化事实而不是自然语言 |
+| `ZefanCai/Open-Jev-v1.1` 全混合 | 147,139 行、73 个来源；65/73 来源有同 state 多问题 | — | **问题多样性极低**：全混合只有 **4,101 个不同的问题字符串**，其中 `wanli` 一个来源 82,045 行只用一个问题 |
+| `avbiswas/bev-decision`（许可未注明） | data 125,614（每 state 1–9 问，56,091 行多问）、hard 42,000、skills 34,627、numeric_temporal 16,477、counterfactual 12,614 | `counterfactual_15k`：规则写在指令里、作用于结构化 state（"若 referrer 为空选 expedite"），2,679 条不同规则 | 最接近"规则条件化决策"的现成集合，但 12,614 行里 **12,549 个不同 state**——变的是 state 不是规则，没有"同 state × 多条规则"的配对；许可未注明，只能评测 |
+| `jaredpalmer/kev-suites` `diagnostics/binding-v1` | 560 条，policy + case，六个层（match_true / mismatch_clean / 两种 decoy / 两种 elapsed），代码标签 | D3 原语探针（and / le / match / elapsed） | 可直接用；`decision-v2` 的可训练来源全是经典分类集（banking77、boolq、agnews、mnli…），即 (state, 固定问题) |
+| `Hanno-Labs/decision-bench`（other） | 23,900 行、43 任务、27 族、3 原语，候选数最多 255；1,200 行专用推理 | `compact_*` 三列是 Qwen 生成、逐行校验的**措辞改写**（标签、候选、顺序不变） | 遗漏 4（问题侧复述一致性）的现成材料，但改写对象是 state 与指令的措辞，不是判据本身 |
+| `SabaPivot/jev-safety-bench`（other） | 83,183 对 × original / reversed / serialization_control（+ repeat），415,827 行模型结果 | 选项位置对调与键名对调，含 laya、openjev 等模型的逐行结果 | 缺陷 6（顺序）已测；只覆盖安全域 |
+| `Praveenrajus/jev-bench`（other） | 22,773 测试题 × 多模型，每题两次键置换的 logscore 加一组**标签先验** | 索引模式的置换读出 | 检查表"同骨干标签对数概率基线"与键置换的现成基础设施 |
+| `OmniJev/OneJev-Data`（128 个来源各自许可） | 18 个分片，含图像 / 视频 | 每行一个问题 | (state, 单一问题) |
+| 其余：`btzsc`（74–95 万行经典分类）、`Lexmount/WebJev`（64,122，GUI 定位 / 动作）、`yflantmy/DecisionRobust`（19 GB 图像扰动）、`DaehanKim/korean-jev-benchmark`（25,418，韩语）、`carlosxiang/JEVal`、`limberc/this-that`、`startlux-models/DecisionPivot`、`mohit67890/imajev-bench`、`raxITLabs`、`respanai`、`caiovicentino1/eikos`、`bespokelabs` 决策索引、`Luni`（空目录） | — | 单问题或非文本 | 与 §2.2.1 的形态无关，作对照或不用 |
+
+**逐项核对结果**（对应 §2.2.1 的五个要求点，每项先说有没有、再说能不能从现有材料造出来）：
+
+1. **同 state 多问题：有。** 四个集合（typed-decisions、akhilaaa3、Open-Jev 合成部分、bev-decision）都是 (state, 问题集, 每问题标签) 形态。§2.3 遗漏 1 原先写的"现有决策数据集全部是 (state, 单一固定问题, 标签)"**是错的**，已改。
+2. **问题间重划（同 state 下相互竞争的约定）：零。** 四个集合的多问题要么是同一 state 的不同侧面（紧急度 / 风险 / 处置），要么是同一条规则的不同视图（选哪个候选 / 某候选是否合格 / 满足几条）。没有任何一组问题被设计成"对 state 的划分不同"——米饭 / 牛奶那张表的第二列在本地没有对应物。但它**不需要新的任务类型**：Open-Jev 的合成生成器（规则可见、三值逻辑、代码标签、按族留出）与 bev 的规则条件化模板已经是正确的构件，缺的只是"同一 state 下换规则"这一层配对。
+3. **选项名由上下文注入（1–5 对 a–e）：没有集合变换过名字集合。** SabaPivot 与 jev-bench 只换位置与键的指派，不换"字母 / 数字 / 词"这一层。这一项不需要标签：任何 choice 集合重新渲染即可测，而文献里它的效应量最大（§3.1.2.2：yes/no 名字下的翻转率比 0/1 对照高最多 70.4 pp；检查表"选项名不变性测试"合规 1/27）。
+4. **unknown：只有一种。** Open-Jev 合成部分的 unknown 是**证据缺失**（字段为 null，规则按三值逻辑传播），有代码标签；而遗漏 3 说的 unknown 是**规则沉默**（问题没有覆盖这个 state，例如没写"米饭算固体"）。后者本地为零，且没有生成器能算它——它的标签只能由写规则的人给。
+5. **标签来自业务约定：typed-decisions 把它量出来了。** 35% 的问题标签标注者之间 argmax 不一致，意味着"业务约定"在同一份判据下仍可争议。合成路线用"规则明文 + 代码求值"绕开了争议，代价是 state 变成结构化字段——这正是遗漏 9（state 是什么）在数据上的投影。
+
+**再核一个与第 3 条命题（训练"理解业务要求的能力"而非具体任务）直接相关的量**：§6.3.2 的结论是决定 ICL 存亡的变量是训练样本之间**任务定义是否在变**。按这个量看，本地没有一个集合合格：Open-Jev 全混合 147,139 行只有 4,101 个问题字符串；typed-decisions 20 种问题；合成部分 48 个模板；kev 的可训练来源是十来个经典分类集。要训"能力"，缺的不是 state，是**每个 state 上成百上千条不同写法的规则**——没有现成来源。
+
+**结论（只回答"能不能用现有数据做实验"）**：
+
+- **现在就能用现有数据做的测量**：P2″ 的正确率地板（typed-decisions、akhilaaa3、kev binding、Open-Jev 合成、bev counterfactual）；缺陷 6 顺序不变性（SabaPivot，已测）；选项名集合不变性（任何 choice 集重渲染）；缺陷 5 证据缺失型 unknown（Open-Jev 合成）；D3 原语执行（kev binding 六层）；遗漏 4 的措辞复述（Hanno compact）；N = 5 的前缀共享对照（typed-decisions）。
+- **必须构造但不是新任务类型**：P1″ 的"问题间重划"分母——同 state × 若干相互竞争的规则，标签由规则明文经代码求值；它是现有构件的一种**新配对**。规则沉默型 unknown 也在此列，但它没有代码标签。
+- **没有现成来源、也造不便宜的**：自然语言 state 上的业务约定标签（35% 分歧说明这不是标注预算问题，是约定本身的问题），以及"训能力"所需的规则多样性。
+- **一个要先记下的陷阱**：合成规则数据的无约束最优解是**学会生成器的规则语法**（一个解析器）。它在同语法的新规则上泛化，但没碰过"牛奶是液体"这一半——语义那一半只在自然语言 state 里，而自然语言 state 的标签只能由人给。所以合成集能测 P2″ 在形式规则上的地板，不能替代 P1″ 在业务语义上的分母。这与 §2.2.6 的退化最优解模式是同一条。
+
 ### 6.1.5 基座选型规律
 
 | 规律 | 证据 |
