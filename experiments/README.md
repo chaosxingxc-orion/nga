@@ -33,3 +33,19 @@ T1–T3 need no new labels and can run on CPU for the 0.6B/0.8B pair (slow but f
 - `build_tasks.py` — builds T1–T3 jsonl files + `manifest.json` from the local mirrors (run with `python3 -I`, needs `pyarrow`).
 - `SERVER-175.md` — what was found on the server and what is still needed there.
 - Record format (all tasks): `{"task": ..., "variant": ..., "group_id": ..., "input": str, "task_definition": str, "question": str, "levels": [{"id","name","definition"}], "level_type": "ordinal|nominal|boolean", "candidate_set": "exclusive|stackable", "gold": optional}`.
+
+## 与研究提案的对应
+
+本目录是 [`proposal/00-research-proposal.md`](../proposal/00-research-proposal.md) 的实现层。T1–T7 全部落在提案的 **R0（口径与基线，无权重更新）**，它们的作用是判定 **G1 关口（指标可测）**：
+
+| 任务 | 提案中的预先登记项 | 它判定什么 |
+| --- | --- | --- |
+| T1 档位名不变性 | R0-3 | 档位名从 1–5 换成 a–e / 业务词 / 随机串时读出是否移动（缺陷 1、17） |
+| T2 定义互换 / 档位重排 | R0-3 的**判别项** | 名字不变性的退化解是"完全忽略名字"，本项封住它 |
+| T3 问题集加减重排 | P1″ 的新增不变性项 | 取定顺序下加入新问题会改变已有读出（缺陷 11 的接口侧后果） |
+| T4 混合 vs 纯注意力 | R0-4 | 缺陷 11，报告里零命中且被测量阻塞的两行之一 |
+| T5 正确率地板 | R0-6 与 P2″ | 未调优读出是否达到调优后的 76%–97%；退化模型的封堵线 |
+| T6 边际分布与 C 分支 | R2-3、R4-4 | 累积质量取阈相对 argmax / 期望的优势；序数压缩对 C 分支的膨胀 |
+| T7 互斥 vs 可叠加 | R2-4 | 菜单相对性（四根承重柱之一）在我们设置下的复现 |
+
+R0 还有三项本目录尚未覆盖的任务，均属评测线：四分母并排的一致率口径（`E-0.2`）、同骨干标签对数概率基线（`E-0.3`）、退化基线与四柱复现（`E-0.4`/`E-0.5`）。
