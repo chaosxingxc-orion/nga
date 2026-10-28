@@ -2,7 +2,7 @@
 
 > 本报告引用的全部来源。arXiv 论文按发表日期排序（日期取自 arXiv 摘要页的首次提交日期）；文档、仓库与网页按类别列出。所有数字在正文中都标注了来源；正文中"未核实、已删除"的说法在 README §方法论中说明。
 
-## 11.1 arXiv 论文（共 269 篇）
+## 11.1 arXiv 论文（共 271 篇）
 
 | ID | 日期 | 标题 |
 | --- | --- | --- |
@@ -106,6 +106,7 @@
 | [2609.28587](https://arxiv.org/abs/2609.28587) | 2026-09-23 | NumericJev: Jev-like LLM Numerical Decoding with Multiway Decision Trees |
 | [2609.28613](https://arxiv.org/abs/2609.28613) | 2026-09-23 | Decision Hijacking: Prompt Injection Attacks on Jev's Typed Probabilistic Decisions |
 | [2609.28919](https://arxiv.org/abs/2609.28919) | 2026-09-24 | Harness Tokenomics: A Router for the Enterprise Agentic Control Plane |
+| [2609.29429](https://arxiv.org/abs/2609.29429) | 2026-09-24 | Just Ask Jev: Reinforcement Learning for Calibrated Decisions as a Zero-Shot Detector of AI Alignment Failures |
 | [2609.29769](https://arxiv.org/abs/2609.29769) | 2026-09-24 | Decision Models vs. LLMs as Rubric Judges: Cheaper, Faster, and Wrong in the Same Places |
 | [2609.30186](https://arxiv.org/abs/2609.30186) | 2026-09-24 | Jev-Mobile: Jev as an Executor for Mobile GUI Agents |
 | [2609.30216](https://arxiv.org/abs/2609.30216) | 2026-09-24 | Jev in the Wild: A Data-Driven Analysis of the Jev Model's Functionality, Applications and Ecosystem |
@@ -251,6 +252,7 @@
 | [2610.28116](https://arxiv.org/abs/2610.28116) | 2026-10-20 | AgenTest: Mining Business Rules to Test LLM Agents for Business Logic Bugs |
 | [2610.28522](https://arxiv.org/abs/2610.28522) | 2026-10-20 | DecisionPivot: A Diagnostic Benchmark for Decision Models in LLM Systems |
 | [2610.28577](https://arxiv.org/abs/2610.28577) | 2026-10-20 | Cache Engineering for Agents |
+| [2610.28819](https://arxiv.org/abs/2610.28819) | 2026-10-20 | LIFT: Scoped Constraints for Evaluating and Training Instruction Following |
 | [2610.29052](https://arxiv.org/abs/2610.29052) | 2026-10-21 | Our Own Jev: Typed Decisions in One Forward Pass, from an In-House Judge to Open LoRA Models |
 | [2610.29217](https://arxiv.org/abs/2610.29217) | 2026-10-21 | When Multiple Choices Are Correct: Asymmetric Probability Allocation in Jev and Other Decision Models |
 | [2610.29294](https://arxiv.org/abs/2610.29294) | 2026-10-21 | Same Probabilities, Different Advice: Gain-Loss Framing Effects in High-Stakes LLM Decision Support |
