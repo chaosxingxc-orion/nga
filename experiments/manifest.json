@@ -1,0 +1,44 @@
+{
+ "built": "2026-10-28",
+ "sources": {
+  "typed-decisions": 6000,
+  "akhilaaa3": 586,
+  "openjev-synth": 7680
+ },
+ "tasks": {
+  "T1_level_names": {
+   "typed-decisions": {
+    "records": 24000,
+    "sha256": "bcf4ef740196ca1cee909d82a0bfa49ea54af12476decdccf3dfe7f5bcf6698b"
+   },
+   "akhilaaa3": {
+    "records": 2216,
+    "sha256": "36e7cbe2e7900c98751b667e44d76a31255f664cbb3d50e2b6a41f02241175a0"
+   },
+   "openjev-synth": {
+    "records": 30720,
+    "sha256": "3f78ce8ae2d2523392f87cfd56ea8b31c4bfa2561d23ff95542cb0f9b00fb6da"
+   }
+  },
+  "T2_definition_swap": {
+   "typed-decisions": {
+    "records": 14400,
+    "sha256": "5373377d3672d7971200a6658442a5f68e78a66774fe1414e8353eb8bac8b0a8"
+   },
+   "akhilaaa3": {
+    "records": 1314,
+    "sha256": "08e6758256545a1693c854b3c88f874124fbf6045fce4dc38917ab349d116ee0"
+   },
+   "openjev-synth": {
+    "records": 23040,
+    "sha256": "e8aa0171b9ffb32a0229dc68ba88b3f26488178f5a3ccbeff80ebb38ca0b0df3"
+   }
+  },
+  "T3_question_set": {
+   "typed-decisions": {
+    "records": 24000,
+    "sha256": "7ab54aed08febed430340905588d835bfa64f3032cf1fd1304bad1cf0c59fc4f"
+   }
+  }
+ }
+}
