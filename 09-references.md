@@ -1,8 +1,8 @@
-# 11 · 参考文献
+# 9 · 参考文献
 
-> 本报告引用的全部来源。arXiv 论文按发表日期排序（日期取自 arXiv 摘要页的首次提交日期）；文档、仓库与网页按类别列出。所有数字在正文中都标注了来源；正文中"未核实、已删除"的说法在 README §方法论中说明。
+> 全部条目带链接。正文引用的每一篇都在此，§9.1 的篇数与正文引用数一致（校验脚本见提交记录）。
 
-## 11.1 arXiv 论文（共 283 篇）
+## 9.1 arXiv 论文（共 283 篇）
 
 | ID | 日期 | 标题 |
 | --- | --- | --- |
@@ -290,7 +290,7 @@
 | [2610.35721](https://arxiv.org/abs/2610.35721) | 2026-10-26 | Can JEV Support Clinical Trial Criteria Assessment? |
 | [2610.35826](https://arxiv.org/abs/2610.35826) | 2026-10-26 | Understanding Jev-Style System One Models: Does Structure Reduce Selection Bias? |
 
-## 11.2 TypeSafe 官方文档与页面
+## 9.2 TypeSafe 官方文档与页面
 
 | 页面 | URL |
 | --- | --- |
@@ -318,7 +318,7 @@
 | typesafe-ai/skills 仓库 | https://github.com/typesafe-ai/skills |
 | system-one-adapter-python | https://github.com/typesafe-ai/system-one-adapter-python |
 
-## 11.3 开源复现、工具与模型卡
+## 9.3 开源复现、工具与模型卡
 
 | 项目 | URL |
 | --- | --- |
@@ -358,7 +358,7 @@
 | Jev Decision Index 文章 | https://systemonemodels.org/examples/articles/jev-decision-index/ |
 | Jev Decision Index（HF Space） | https://huggingface.co/spaces/multimodalart/jev-decision-index |
 
-## 11.4 其他网页
+## 9.4 其他网页
 
 | 页面 | URL |
 | --- | --- |
