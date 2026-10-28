@@ -79,12 +79,14 @@
 
 ### 12.4.2 本地副本（/mnt/cephfs/xingchao）
 
-镜像范围在 2026-10-28 按用户决定收窄为**全部公开数据集 + 一个基座（Qwen3.8-27B）**；模型权重不再成批下载。状态以清单为准（`/mnt/cephfs/xingchao/manifests/jev/hf_manifest.jsonl`、`github_manifest.tsv`、`hf_probe.json`）。本节更新时（2026-10-28 上午）：
+镜像范围在 2026-10-28 按用户决定收窄为**全部公开数据集 + 实验阶梯需要的 Qwen 基座**；模型权重不再成批下载。当天复查 `/mnt/cephfs/` 后又发现 27B 档的基座本来就在共享目录里，于是下载范围进一步缩到"只补 Qwen3.5 的小尺寸"。状态以清单为准（`/mnt/cephfs/xingchao/manifests/jev/hf_manifest.jsonl`、`github_manifest.tsv`、`hf_probe.json`）。本节更新时（2026-10-28 上午）：
 
 - 目录约定：数据集 `datasets/jev/<org>__<name>`、模型 `models/jev/<org>__<name>`、GitHub 仓库 `repos/jev/<org>__<repo>`（浅克隆）；每个完成的 HF 仓库写 `.complete`（含修订号与时间）。
 - **数据集**：探测到 24 个公开 HF 数据集约 43 GB，已完成 21 个（约 3.4 GB，含 kev-suites、this-that 两个基准、DecisionPivot、Open-Jev / v1.1、JEVal、decision-bench、WebJev、imajev-bench 等），正在下载 `Praveenrajus/jev-bench`，随后是两个大件 `OmniJev/OneJev-Data`（17.7 GB）与 `yflantmy/DecisionRobust`（19.9 GB）。排除：`fstandhartinger/jevbench`（不存在）、gated 仓库（RLCDAlignBench、system-x、prompt-injection）。
-- **模型**：收窄前已落地 32 个 ≤9B 的决策模型 / 适配器与对照（约 14 GB：Nimble-9B-v3、Laya 三种、Open-Jev 适配器、decider-0.8b、Decision-2.0-Kai-0.6B、Qwen3-0.6B、JevAny-Qwen3.8-27B-LoRA 等）；队列里只剩 `Qwen/Qwen3.8-27B`（55.6 GB safetensors，Apache-2.0），在数据集之后开始。Qwen3.5 的 0.8B–9B 基座（Base + Instruct 共 8 个约 60 GB）**未入队**，若 scale-up 实验需要再补。
-- 带宽约束：代理每连接约 10 KB/s，96 并行约 2.5 MB/s；小文件多的仓库实际只有约 1.5 GB/小时，大文件接近 9 GB/小时。剩余约 93 GB 预计一天左右。
+- **模型**：已落地 32 个 ≤9B 的决策模型 / 适配器与对照（约 14 GB：Nimble-9B-v3、Laya 三种、Open-Jev 适配器、decider-0.8b、Decision-2.0-Kai-0.6B、Qwen3-0.6B、JevAny-Qwen3.8-27B-LoRA 等）。
+- **基座不需要重新下载**：`/mnt/cephfs/models/` 下已经有完整的 `Qwen3.8-27B`（52 GB，18/18 分片，config.json 与上游逐键一致且无 `quantization_config`）、`Qwen3.5-27B`（11/11）、`Qwen3.6-27B`（15/15）与 `Qwen3.5-35B-A3B`（14/14，MoE）；共享的 `huggingface_hub` 缓存里另有完整的 Qwen3-0.6B / 14B / 30B-A3B（纯注意力与 MoE 对照）。同目录下的 `-w8a8`、`-DSpark*`、`-DFlash2` 是量化或投机解码变体，不是基座。清单见 `manifests/jev/shared_models_reusable.tsv`。因此原计划的 55.6 GB `Qwen/Qwen3.8-27B` 下载已取消。
+- **仍需下载的只有 Qwen3.5 的小尺寸**：0.8B / 2B / 4B / 9B 的 Base 与 Instruct 共 8 个仓库约 70 GB（1.77 / 4.57 / 9.34 / 19.33 GB 一档，均 Apache-2.0），cephfs 上任何位置都没有，已按"小→大"入队（`manifests/jev/hf_queue3.txt`）。
+- 带宽约束：代理每连接约 10 KB/s，96 并行约 2.5 MB/s；小文件多的仓库实际只有约 1.5 GB/小时，大文件接近 9 GB/小时。剩余约 108 GB（70 GB 小基座 + 38 GB 两个大数据集）预计一天左右。
 - **GitHub**：54 个被引用仓库中 49 个浅克隆完成（约 1.9 GB）；`jaredpalmer/kev` 只拿到 37 MB 的部分检出，`StartLuxLabs/StartLux-Decision`、`Mapika/decider`、`togethercomputer/tev1` 的 pack 在代理下反复截断，`PACT` 因缺 git-lfs 只有源码无权重。这四个仓库的代码仍可按文件从 raw 地址取回，但没有 git 历史。
 
 ## 12.5 基座选型规律
