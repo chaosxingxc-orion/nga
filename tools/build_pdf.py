@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a printable A4 PDF of the survey from README.md and chapters 01–14.
+"""Build a printable A4 PDF of the survey from README.md and chapters 01–15.
 
 Usage: python3 tools/build_pdf.py [output.pdf]
 Requires: python-markdown, weasyprint, and the "Noto Sans CJK SC" font installed.

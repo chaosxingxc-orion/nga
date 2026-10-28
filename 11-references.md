@@ -2,7 +2,7 @@
 
 > 本报告引用的全部来源。arXiv 论文按发表日期排序（日期取自 arXiv 摘要页的首次提交日期）；文档、仓库与网页按类别列出。所有数字在正文中都标注了来源；正文中"未核实、已删除"的说法在 README §方法论中说明。
 
-## 11.1 arXiv 论文（共 267 篇）
+## 11.1 arXiv 论文（共 269 篇）
 
 | ID | 日期 | 标题 |
 | --- | --- | --- |
@@ -36,7 +36,9 @@
 | [2506.12796](https://arxiv.org/abs/2506.12796) | 2025-06-15 | Surprise Calibration for Better In-Context Learning |
 | [2507.02833](https://arxiv.org/abs/2507.02833) | 2025-07-03 | Generalizing Verifiable Instruction Following |
 | [2507.17746](https://arxiv.org/abs/2507.17746) | 2025-07-23 | Rubrics as Rewards: Reinforcement Learning Beyond Verifiable Domains |
+| [2508.04632](https://arxiv.org/abs/2508.04632) | 2025-08-06 | IFDecorator: Wrapping Instruction Following Reinforcement Learning with Verifiable Rewards |
 | [2509.02563](https://arxiv.org/abs/2509.02563) | 2025-09-02 | DynaGuard: A Dynamic Guardian Model With User-Defined Policies |
+| [2509.10414](https://arxiv.org/abs/2509.10414) | 2025-09-12 | Is In-Context Learning Learning? |
 | [2509.20820](https://arxiv.org/abs/2509.20820) | 2025-09-25 | Distilling Many-Shot In-Context Learning into a Cheat Sheet |
 | [2510.06084](https://arxiv.org/abs/2510.06084) | 2025-10-07 | Spectrum Tuning: Post-Training for Distributional Coverage and In-Context Steerability |
 | [2510.16092](https://arxiv.org/abs/2510.16092) | 2025-10-17 | Compressing Many-Shots in In-Context Learning |
