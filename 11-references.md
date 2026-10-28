@@ -2,7 +2,7 @@
 
 > 本报告引用的全部来源。arXiv 论文按发表日期排序（日期取自 arXiv 摘要页的首次提交日期）；文档、仓库与网页按类别列出。所有数字在正文中都标注了来源；正文中"未核实、已删除"的说法在 README §方法论中说明。
 
-## 11.1 arXiv 论文（共 282 篇）
+## 11.1 arXiv 论文（共 283 篇）
 
 | ID | 日期 | 标题 |
 | --- | --- | --- |
@@ -164,6 +164,7 @@
 | [2610.05107](https://arxiv.org/abs/2610.05107) | 2026-10-04 | SearchJev: A Calibrated System-1 Model for Search Agents |
 | [2610.05278](https://arxiv.org/abs/2610.05278) | 2026-10-04 | When Verifiable Counts Depend on Wording: Auditing Wording Robustness in Instruction Following |
 | [2610.06354](https://arxiv.org/abs/2610.06354) | 2026-10-05 | GraphDecisionBench: Benchmarking System One Models on Graph Tasks |
+| [2610.06425](https://arxiv.org/abs/2610.06425) | 2026-10-05 | SoK: Semantic Decision Engines in Network Control Loops |
 | [2610.06744](https://arxiv.org/abs/2610.06744) | 2026-10-05 | ufakzeka-karar: An Open Turkish Typed-Decision Model with Order-Invariant Option Scoring |
 | [2610.07327](https://arxiv.org/abs/2610.07327) | 2026-10-05 | SharedKV-BT: Node-Local Typed Decisions for Behavior-Tree Agents |
 | [2610.07716](https://arxiv.org/abs/2610.07716) | 2026-10-06 | JevCascade: Readout Stability and Inference-Time Compute Allocation for Prefill-Only Decision Models |
