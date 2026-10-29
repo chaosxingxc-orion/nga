@@ -40,6 +40,9 @@ extrapolated only when a total is known and the rate is positive.
 - `done`: marker present, exit code 0.  `failed`: marker present, non-zero exit code.
 - `running`: no marker, heartbeat age <= `--stall-seconds` (default 300, five missed one-minute heartbeats).
 - `stalled`: no marker, log exists, heartbeat older than that.
+- `archived`: no marker, **no heartbeat file**, and the newest log older than `--archive-seconds` (default 21600, 6 h). An ad hoc
+  run that finished long ago; escalation `none`, exit code 0, listed on one summary line. Anything newer stays `stalled`, and a
+  run that has a heartbeat file or a marker is never archived.
 - `unknown`, with a stated reason: marker without a parseable exit code or contradicting itself (DONE with a
   non-zero code, FAILED with 0), heartbeat in the future beyond `--clock-skew-seconds`, or no log and no marker.
 
@@ -68,6 +71,16 @@ The detector walks the whole JSON and flags, each with its JSON path:
 - `low_sample_count`: a sample-count key (`n`, `n_units`, `count`, ...) below `--min-n` (default 30) in a dict.
 - `non_finite`: NaN or infinity.
 
+Suppression by scorer role (`--suppress-roles`, default `constant,uniform,mock-*`, fnmatch patterns). Degenerate baselines are
+supposed to be degenerate, so `exact_zero`, `exact_one` and `identical_across_cells` whose JSON path passes through a
+segment with a suppressed role are not flagged; they are counted, and the digest prints one line per run, "suppressed N
+expected-degenerate values (constant x.., uniform x..)", so the suppression is auditable (`suppressed` in digest.json).
+Never suppressed: `--protect-roles` (default `primary,empty_input,question_only`; a protected segment wins), and every
+`low_sample_count` and `non_finite` flag for every scorer, so an `n = 0` cell always shows. Judgment call: when the report's
+own `primary` scorer name matches a suppress pattern (a mock check run), the `primary` segment and `decision_lines` are
+treated as that mock and suppressed as `primary=<name>`; a real primary is never suppressed. `--no-suppress` turns the whole
+mechanism off and shows everything.
+
 This is a tripwire, not a verdict: legitimate zeros exist (a constant-classifier baseline has rate 0.0 on some branches). The
 digest counts per kind and lists up to `--max-flags-per-kind` items per run; a human or tier-1 model decides.
 
@@ -75,14 +88,14 @@ digest counts per kind and lists up to `--max-flags-per-kind` items per run; a h
 
 - `decide`: the run is `failed` or `stalled`, or it is `done` with any suspicious metric (the result must be accepted or rejected).
 - `read`: otherwise, if the state is `unknown`, or there are suspicious metrics in a run still going, or error-severity lines.
-- `none`: everything else (including warnings only).
+- `none`: everything else (including warnings only, and every `archived` run).
 
 For `read` and `decide` the digest lists pointers: tail of the newest log, the terminal marker, error exemplars, and the
 `report.json` paths. Tier 1 reads those slices first; a `decide` run still gets a read before the orchestrator chooses.
 
 ### Exit code (worst state, for a scheduler)
 
-0 all done and nothing to decide, 10 some running, 20 some unknown or no runs found, 30 some stalled, 40 some failed.
+0 all done or archived, 10 some running, 20 some unknown or no runs found, 30 some stalled, 40 some failed.
 A done run with suspicious metrics counts as done here (see `escalation` in the digest). `--watch` exits with the last
 pass's code on SIGTERM; usage errors exit 2; a second `--watch` on the same out-dir exits 3.
 

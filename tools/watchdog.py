@@ -24,8 +24,8 @@ import tempfile
 import time
 
 DEFAULT_ROOT = "/mnt/cephfs/xingchao/experiments/jev/"
-STATE_RANK = {"done": 0, "running": 1, "unknown": 2, "stalled": 3, "failed": 4}
-EXIT_CODES = {"done": 0, "running": 10, "unknown": 20, "stalled": 30, "failed": 40}
+STATE_RANK = {"archived": -1, "done": 0, "running": 1, "unknown": 2, "stalled": 3, "failed": 4}
+EXIT_CODES = {"archived": 0, "done": 0, "running": 10, "unknown": 20, "stalled": 30, "failed": 40}
 EXIT_NO_RUNS = 20
 CHUNK = 8 << 20
 MAX_LINE = 4000
@@ -43,6 +43,8 @@ def build_parser():
     a("--stall-seconds", type=float, default=300.0, help="heartbeat older than this, no marker => stalled (default 300)")
     a("--clock-skew-seconds", type=float, default=120.0, help="heartbeat further in the future than this => unknown")
     a("--window-seconds", type=float, default=900.0, help="throughput window (default 900)")
+    a("--archive-seconds", type=float, default=21600.0,
+      help="no marker, no heartbeat file, newest log older than this => archived, escalation none (default 21600 = 6h)")
     a("--max-depth", type=int, default=4, help="directory depth below a root to look for runs (default 4)")
     a("--marker-names", default="DONE,FAILED,exit_code,EXIT_CODE", help="terminal marker file names")
     a("--heartbeat-name", default="heartbeat.log")
@@ -59,6 +61,12 @@ def build_parser():
     a("--max-md-bytes", type=int, default=6000, help="hard cap on digest.md size in bytes (default 6000)")
     a("--min-n", type=int, default=30, help="cells with a sample count below this are flagged (default 30)")
     a("--min-cells", type=int, default=3, help="a table needs at least this many cells for the identical-metric check")
+    a("--suppress-roles", default="constant,uniform,mock-*",
+      help="comma list of fnmatch patterns; a report path segment matching one marks expected-degenerate values "
+           "(exact 0/1, identical across cells) as suppressed and counted, not flagged")
+    a("--protect-roles", default="primary,empty_input,question_only",
+      help="path segments that are never suppressed, even below a suppressed one")
+    a("--no-suppress", action="store_true", help="turn suppression off wholesale: flag everything")
     a("--max-flags-per-kind", type=int, default=5, help="suspicious items listed per run and kind")
     a("--rate-keys", default=r"(?i)(?:^|[^a-z])(rate|acc|prec|recall|f1|auc|agree|consist|flip|score|readout|overall|share|constant|growth|ece)",
       help="regex marking a JSON key (leaf or up to 2 ancestors) as a rate/accuracy-like metric")
@@ -85,6 +93,8 @@ def make_cfg(**kw):
     cfg.globs = [x for x in cfg.log_globs.split(",") if x]
     cfg.skip = set(x for x in cfg.skip_dirs.split(",") if x)
     cfg.ignore_re = re.compile(cfg.ignore) if cfg.ignore else None
+    cfg.suppress_pats = [] if cfg.no_suppress else [x for x in cfg.suppress_roles.split(",") if x]
+    cfg.protect_set = set(x for x in cfg.protect_roles.split(",") if x)
     cfg.rate_re = re.compile(cfg.rate_keys)
     cfg.count_re = re.compile(cfg.count_keys)
     return cfg
@@ -441,7 +451,41 @@ def _is_count_key(parts, cfg):
     return bool(parts) and isinstance(parts[-1], str) and bool(cfg.count_re.match(parts[-1]))
 
 
+def _suppressed_by(parts, cfg, primary_name=None):
+    """Role that makes a value expected-degenerate, or None. Protected roles always win, except that the
+    'primary' role of a report whose primary scorer is itself a mock (mock-*) is a mock, so it is suppressed
+    as that mock. decision_lines belong to the primary scorer."""
+    segs = [p for p in parts if isinstance(p, str)]
+    if segs and segs[0] == "decision_lines":
+        segs = segs + ["primary"]
+    if not cfg.suppress_pats:
+        return None
+    mock_primary = None
+    if primary_name and "primary" in segs and any(fnmatch.fnmatchcase(primary_name, p) for p in cfg.suppress_pats):
+        mock_primary = "primary=" + primary_name
+        segs = [sg for sg in segs if sg != "primary"]
+    if any(sg in cfg.protect_set for sg in segs):
+        return None
+    for sg in segs:
+        for pat in cfg.suppress_pats:
+            if fnmatch.fnmatchcase(sg, pat):
+                return sg
+    return mock_primary
+
+
 def check_report(obj, cfg):
+    items = _check_report(obj, cfg)
+    pn = obj.get("primary") if isinstance(obj, dict) and isinstance(obj.get("primary"), str) else None
+    for it in items:
+        it["suppressed_by"] = None
+        if it["kind"] in ("exact_zero", "exact_one", "identical_across_cells"):
+            it["suppressed_by"] = _suppressed_by(it.pop("_parts"), cfg, pn)
+        else:
+            it.pop("_parts", None)
+    return items
+
+
+def _check_report(obj, cfg):
     """Pure detector. Returns a list of {kind, path, value, detail}. Kinds: exact_zero, exact_one,
     identical_across_cells, low_sample_count, non_finite."""
     items = []
@@ -452,7 +496,7 @@ def check_report(obj, cfg):
         if not _is_num(v):
             continue
         if isinstance(v, float) and not math.isfinite(v):
-            items.append({"kind": "non_finite", "path": jpath(parts), "value": str(v), "detail": "NaN or infinite value"})
+            items.append({"kind": "non_finite", "path": jpath(parts), "value": str(v), "detail": "NaN or infinite value", "_parts": parts})
             continue
         if _is_count_key(parts, cfg) or v not in (0, 1):
             continue
@@ -460,7 +504,7 @@ def check_report(obj, cfg):
             continue
         if _rate_ctx(parts, cfg):
             items.append({"kind": "exact_zero" if v == 0 else "exact_one", "path": jpath(parts), "value": v,
-                          "detail": "rate/accuracy exactly %s" % ("0.0" if v == 0 else "1.0")})
+                          "detail": "rate/accuracy exactly %s" % ("0.0" if v == 0 else "1.0"), "_parts": parts})
     # 2. identical metric across every cell of a table (post-order so deeper tables claim their leaves first)
     covered = set()
 
@@ -480,7 +524,7 @@ def check_report(obj, cfg):
                 if not leafp <= covered:
                     covered.update(leafp)
                     items.append({"kind": "identical_across_cells", "path": jpath(parts), "value": vals[0],
-                                  "detail": "all %d cells equal; input may never have varied" % len(ch)})
+                                  "detail": "all %d cells equal; input may never have varied" % len(ch), "_parts": parts})
             return
         if not all(isinstance(v, (dict, list)) for v in vals):
             return
@@ -506,7 +550,8 @@ def check_report(obj, cfg):
                 continue
             covered.update(leafp)
             items.append({"kind": "identical_across_cells", "path": jpath(parts) + "[*]" + jpath(rel)[1:],
-                          "value": fv[0], "detail": "same value in all %d cells; input may never have varied" % len(ch)})
+                          "value": fv[0], "detail": "same value in all %d cells; input may never have varied" % len(ch),
+                          "_parts": parts + rel})
 
     visit(obj, ())
     # 3. cells with a small sample count
@@ -520,7 +565,7 @@ def check_report(obj, cfg):
             for k, v in node.items():
                 if isinstance(k, str) and cfg.count_re.match(k) and _is_num(v) and v < cfg.min_n:
                     items.append({"kind": "low_sample_count", "path": jpath(parts + (k,)), "value": v,
-                                  "detail": "n=%s below minimum %d" % (v, cfg.min_n)})
+                                  "detail": "n=%s below minimum %d" % (v, cfg.min_n), "_parts": parts})
 
     visit_n(obj, ())
     return items
@@ -538,11 +583,17 @@ def scan_report(path, cfg):
     return check_report(obj, cfg), None
 
 
-def group_flags(items, cfg):
+def group_flags(all_items, cfg):
+    items = [i for i in all_items if not i["suppressed_by"]]
+    supp = {}
+    for i in all_items:
+        if i["suppressed_by"]:
+            supp[i["suppressed_by"]] = supp.get(i["suppressed_by"], 0) + 1
     by = {}
     for it in items:
         by.setdefault(it["kind"], []).append(it)
-    out = {"total": len(items), "by_kind": {}, "items": [], "omitted": 0}
+    out = {"total": len(items), "by_kind": {}, "items": [], "omitted": 0,
+           "suppressed": {"total": sum(supp.values()), "by_role": dict(sorted(supp.items()))}}
     for kind in sorted(by):
         lst = by[kind]
         out["by_kind"][kind] = len(lst)
@@ -647,7 +698,7 @@ def read_marker(d, cfg):
     return mk, None
 
 
-def classify(marker, problem, hb_ts, hb_src, has_logs, now, cfg):
+def classify(marker, problem, hb_ts, hb_src, has_logs, now, cfg, has_hb_file=True):
     """Deterministic state from the marker and heartbeat only. Returns (state, reason)."""
     if marker is not None:
         if problem:
@@ -663,10 +714,15 @@ def classify(marker, problem, hb_ts, hb_src, has_logs, now, cfg):
         return "unknown", "heartbeat %ds in the future (clock skew between hosts?)" % int(-age)
     if age <= cfg.stall_seconds:
         return "running", "heartbeat %s ago via %s" % (human_age(age), hb_src)
+    if not has_hb_file and age > cfg.archive_seconds:
+        return "archived", "no marker or heartbeat file, newest log %s old (> %s archive threshold)" % (
+            human_age(age), human_age(cfg.archive_seconds))
     return "stalled", "heartbeat %s old (> %ds) via %s, no marker" % (human_age(age), int(cfg.stall_seconds), hb_src)
 
 
 def escalate(state, flags_total, sigs):
+    if state == "archived":
+        return "none", ""
     has_err = any(s["severity"] == "error" for s in sigs)
     if state == "failed":
         return "decide", "run failed"
@@ -720,7 +776,7 @@ def evaluate_run(run, cfg, states, now):
         if mt:
             t, lg = max(mt)
             hb_ts, hb_src = t, "mtime of %s (no heartbeat file)" % os.path.basename(lg)
-    state, reason = classify(marker, problem, hb_ts, hb_src, bool(logs), now, cfg)
+    state, reason = classify(marker, problem, hb_ts, hb_src, bool(logs), now, cfg, os.path.isfile(hbp))
     if marker and hb_ts and marker["exit_code"] is not None and hb_ts > marker["ts"] + cfg.stall_seconds:
         notes.append("heartbeat newer than marker; marker may be stale")
 
@@ -768,7 +824,8 @@ def evaluate_run(run, cfg, states, now):
 
     # report.json
     rp = os.path.join(d, cfg.report_name)
-    sus = {"total": 0, "by_kind": {}, "items": [], "omitted": 0, "report": None}
+    sus = {"total": 0, "by_kind": {}, "items": [], "omitted": 0, "report": None,
+           "suppressed": {"total": 0, "by_role": {}}}
     if os.path.isfile(rp):
         items, err = scan_report(rp, cfg)
         sus = group_flags(items, cfg)
@@ -848,12 +905,13 @@ def render_md(dg, cfg):
     L = []
     c = dg["counts"]
     L.append("# Watchdog digest %s" % dg["generated_utc"])
-    L.append("worst=%s exit=%d | runs=%d: failed %d, stalled %d, unknown %d, running %d, done %d | stall>%ds | host %s" % (
+    L.append("worst=%s exit=%d | runs=%d: failed %d, stalled %d, unknown %d, running %d, done %d, archived %d | stall>%ds | host %s" % (
         dg["worst_state"], dg["exit_code"], len(dg["runs"]), c["failed"], c["stalled"], c["unknown"], c["running"],
-        c["done"], int(dg["stall_seconds"]), dg["host"]))
+        c["done"], c["archived"], int(dg["stall_seconds"]), dg["host"]))
     runs = dg["runs"]
     clean = [r for r in runs if r["state"] == "done" and r["escalation"] == "none"]
-    shown = [r for r in runs if r not in clean]
+    arch = [r for r in runs if r["state"] == "archived"]
+    shown = [r for r in runs if r not in clean and r not in arch]
     L.append("")
     L.append("## Runs (worst first)")
     if shown:
@@ -868,7 +926,10 @@ def render_md(dg, cfg):
     if clean:
         L.append("Clean done: %d (%s)" % (len(clean), _clip(", ".join(r["id"] for r in clean[:6]) + (", ..." if len(clean) > 6 else ""), 120)))
 
-    flagged = [r for r in runs if r["suspicious_metrics"]["total"] or r["notes"]]
+    if arch:
+        L.append("Archived (no marker, idle > %s, not escalated): %d (%s)" % (
+            human_age(cfg.archive_seconds), len(arch), _clip(", ".join(r["id"] for r in arch[:5]) + (", ..." if len(arch) > 5 else ""), 120)))
+    flagged = [r for r in runs if r["suspicious_metrics"]["total"] or r["suspicious_metrics"]["suppressed"]["total"] or r["notes"]]
     L.append("")
     L.append("## Flags")
     if not flagged:
@@ -883,6 +944,11 @@ def render_md(dg, cfg):
                 if it["kind"] not in seen and len(seen) < 4:
                     seen.add(it["kind"])
                     L.append("  - %s %s = %s" % (it["kind"], _clip(it["path"], 100), it["value"]))
+        sp = sm["suppressed"]
+        if sp["total"]:
+            L.append("%s suppressed %d expected-degenerate values (%s); --no-suppress shows them" % (
+                "  -" if sm["total"] else "- " + r["id"], 
+                sp["total"], ", ".join("%s x%d" % kv for kv in sp["by_role"].items())))
         for n in r["notes"]:
             L.append("- %s note: %s" % (r["id"], _clip(n, 120)))
 

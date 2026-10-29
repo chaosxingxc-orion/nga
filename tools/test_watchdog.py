@@ -292,6 +292,90 @@ class Suspicious(unittest.TestCase):
         self.assertTrue(t.digest()["runs"][0]["notes"])
 
 
+class Suppression(unittest.TestCase):
+    REP = {"primary": "real-model", "splits": {"g": {"h": {"src": {
+        "constant": {"flip": {"rate": 0.0, "n": 500}, "m": {"a": {"acc": 1.0, "n": 0}}},
+        "uniform": {"flip": {"rate": 0.0, "n": 500}},
+        "mock-x": {"flip": {"rate": 1.0, "n": 500}},
+        "primary": {"flip": {"rate": 0.0, "n": 500}, "m": {"a": {"acc": 1.0, "n": 500}}},
+        "empty_input": {"flip": {"rate": 0.0, "n": 500}},
+        "question_only": {"flip": {"rate": 1.0, "n": 500}}}}}}}
+
+    def items(self, rep=None, **kw):
+        return wd.check_report(rep or self.REP, wd.make_cfg(**kw))
+
+    def test_roles(self):
+        its = self.items()
+        flagged = {(i["kind"], i["path"].split(".")[5]) for i in its if not i["suppressed_by"] and i["kind"] != "low_sample_count"}
+        self.assertEqual({r for _, r in flagged}, {"primary", "empty_input", "question_only"})
+        supp = {i["suppressed_by"] for i in its if i["suppressed_by"]}
+        self.assertEqual(supp, {"constant", "uniform", "mock-x"})
+
+    def test_low_n_always_flagged_even_for_degenerate(self):
+        its = [i for i in self.items() if i["kind"] == "low_sample_count"]
+        self.assertEqual(len(its), 1)
+        self.assertIsNone(its[0]["suppressed_by"])
+        self.assertIn("constant", its[0]["path"])
+
+    def test_no_suppress_shows_everything(self):
+        self.assertFalse([i for i in self.items(no_suppress=True) if i["suppressed_by"]])
+
+    def test_custom_roles(self):
+        its = self.items(suppress_roles="empty_input", protect_roles="")
+        self.assertEqual({i["suppressed_by"] for i in its if i["suppressed_by"]}, {"empty_input"})
+
+    def test_mock_primary_is_suppressed_real_primary_is_not(self):
+        rep = {"primary": "mock-name-driven", "decision_lines": {"B": [{"followed_rate": 0.0}]},
+               "splits": {"primary": {"flip": {"rate": 0.0, "n": 99}}}}
+        its = [i for i in self.items(rep) if i["kind"] == "exact_zero"]
+        self.assertTrue(its and all(i["suppressed_by"] == "primary=mock-name-driven" for i in its))
+        rep["primary"] = "qwen"
+        self.assertFalse([i for i in self.items(rep) if i["suppressed_by"]])
+
+    def test_summary_line_in_digest(self):
+        t = Tree()
+        t.run("r", heartbeat=hb_line(-1, "x"), marker="rc=0", report=self.REP)
+        dg = t.digest()
+        sm = dg["runs"][0]["suspicious_metrics"]
+        self.assertEqual(set(sm["suppressed"]["by_role"]), {"constant", "mock-x", "uniform"})
+        self.assertGreater(sm["suppressed"]["total"], 0)
+        self.assertFalse([i for i in sm["items"] if i["kind"] != "low_sample_count" and "constant" in i["path"]])
+        md = wd.render_md(dg, t.cfg())
+        self.assertIn("suppressed", md)
+        self.assertIn("constant x", md)
+
+
+class Archived(unittest.TestCase):
+    def test_old_log_only_run_is_archived_and_quiet(self):
+        t = Tree()
+        d = t.run("old", log="ERROR boom\n")
+        os.utime(os.path.join(d, "run.log"), (NOW - 7 * 3600, NOW - 7 * 3600))
+        d2 = t.run("recent", log="ERROR boom\n")
+        os.utime(os.path.join(d2, "run.log"), (NOW - 5 * 3600, NOW - 5 * 3600))
+        dg = t.digest(archive_seconds=6 * 3600)
+        by = {r["id"]: r for r in dg["runs"]}
+        self.assertEqual((by["old"]["state"], by["old"]["escalation"]), ("archived", "none"))
+        self.assertEqual((by["recent"]["state"], by["recent"]["escalation"]), ("stalled", "decide"))
+        self.assertEqual(dg["exit_code"], 30)
+
+    def test_heartbeat_file_or_marker_prevents_archiving(self):
+        t = Tree()
+        t.run("hb", heartbeat=hb_line(-100000, "x"))
+        t.run("failed", log="x\n", marker="rc=1")
+        d = t.run("oldfail", log="x\n", marker="rc=1")
+        os.utime(os.path.join(d, "run.log"), (NOW - 100000, NOW - 100000))
+        st = t.states()
+        self.assertEqual((st["hb"], st["oldfail"]), ("stalled", "failed"))
+
+    def test_only_archived_runs_exit_zero(self):
+        t = Tree()
+        d = t.run("old", log="x\n")
+        os.utime(os.path.join(d, "run.log"), (NOW - 100000, NOW - 100000))
+        self.assertEqual(t.digest()["exit_code"], 0)
+        md = wd.render_md(t.digest(), t.cfg())
+        self.assertIn("Archived", md)
+
+
 class DigestOutput(unittest.TestCase):
     def test_size_cap_is_hard_and_explicit(self):
         t = Tree()
