@@ -301,6 +301,31 @@ class HFScorer(Scorer):
             raise ValueError("a level identifier tokenized to nothing")
         return prefix, cand_ids
 
+    # Throughput notes, measured 2026-10-29 on the vllm-ascend 0.30 stack. Neither is a defect and
+    # neither affects a score, but both cost wall clock and both have surprised a reader already.
+    #
+    # 1. Rows per second falls roughly with the SQUARE of prompt length, not linearly. Batching is by
+    #    token budget (size = token_budget // longest), so the tokens per batch stay about constant
+    #    and the linear-attention layers cost about the same per batch at any length. The 6 full
+    #    attention layers are quadratic in length, so at a constant token budget their cost per batch
+    #    grows LINEARLY with length, and rows/s therefore falls about as length squared. Measured:
+    #    about 8 rows/s/chip on typed-decisions (about 260 tokens) against about 0.2 on akhilaaa3
+    #    (about 1,800 tokens), a factor near 40 for a 7x length ratio. Expected for a hybrid
+    #    architecture under this batching rule; do not go looking for a bug.
+    #
+    # 2. The prefix is recomputed once PER CANDIDATE. Each item expands to one row per level, and
+    #    every row re-runs the whole prompt even though the rows share a byte-identical prefix and
+    #    differ only in the identifier tokens appended at the end. That is a 2x to 5x waste depending
+    #    on the level count. Most identifiers are a single token, so one forward pass over the prefix
+    #    would yield every candidate's log-probability at the final position, giving identical
+    #    numbers from the same logits.
+    #
+    #    If anyone implements that: it is an optimization of the PRIMARY evidence path, so it must be
+    #    proved score-for-score identical to this implementation on a fixed sample before it replaces
+    #    it, not merely faster. Multi-token identifiers need the shared prefix's KV cache reused
+    #    rather than the single-position shortcut, so handle them explicitly instead of assuming one
+    #    token. Do not change a baseline already scored; re-score instead and compare.
+
     def score(self, items):
         import torch
 
