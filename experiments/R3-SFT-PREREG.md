@@ -549,7 +549,7 @@ option log-probability (the K2 loss test) found that `r0_code/scorer.py`'s `HFSc
 the padding changes the score (0.157 nats on one decision-v7 train row; repro
 `r3_code/diag_padding.py`). Therefore:
 - Every R3 readout, Track K and Track T, every arm including K0 and the degenerate baselines, is
-  produced by a scorer whose rows are unpadded or RIGHT-padded. Both layers types are causal, so tokens
+  produced by a scorer whose rows are unpadded or RIGHT-padded. Both layer types are causal, so tokens
   after a position cannot affect it, and right padding is exact up to bf16 batch-size effects. A
   scorer is admissible only after it matches the unpadded layout (`token_budget=1`, one row per
   candidate) within the measured bf16 batch-size floor on a fixed sample of every suite.
