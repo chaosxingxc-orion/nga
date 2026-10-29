@@ -16,7 +16,32 @@ docstrings, commit messages, PR descriptions) and every memory file.
   translated from the Chinese original on 2026-10-29; the Chinese original is in git history up to
   commit 82d2a49). Do not add non-English text anywhere.
 
-## 2. What this repository is
+## 2. Multi-agent work allocation (second rule)
+
+Day-to-day tasks are carried out as multi-agent collaboration. The main session (Fable 5.1) is the
+orchestrator; it delegates execution to subagents via the Agent tool with an explicit `model`
+override, and keeps only planning, judgment and feedback for itself.
+
+| Kind of work | Model | Agent tool `model` |
+| --- | --- | --- |
+| Engineering environment preparation, development, testing, integration, verification (containers, venvs, data builders, harness code, running experiments, checking results) | Claude Sonnet 5.5 | `sonnet` |
+| Reading documents and logs, writing reports and chapters, optimizing an artifact against given guidance (translations, literature reading, log triage, drafting proposal rounds) | Claude Opus 5.5 | `opus` |
+| Task planning and decomposition, evaluating and reviewing results, giving feedback, deciding how an artifact should be optimized next | Claude Fable 5.1 (the main session itself, or `fable` when delegated) | `fable` |
+
+Rules of engagement:
+
+- Fable plans and splits the task first, writes a brief per subtask (goal, inputs, files, what is
+  already ruled out, acceptance checks), then spawns the subagents, in parallel where subtasks are
+  independent. Briefs and all subagent I/O are in English (rule 1).
+- Sonnet and Opus agents report results, not conclusions about the plan; Fable verifies their output
+  against the acceptance checks (re-running tests, diffing, spot-reading) before accepting it, and
+  sends corrections back to the same agent rather than redoing the work itself.
+- Fable may do a small task inline (a few tool calls, a lookup) when delegating would cost more than
+  doing it; the allocation above is for anything larger.
+- Evaluation, feedback and "what to optimize next" always come from Fable; Opus applies the
+  optimization guidance, Sonnet implements and verifies the resulting changes.
+
+## 3. What this repository is
 
 A survey and research program on Jev-class single-pass typed-readout decision models ("System One"
 models) and the fast/slow agent frameworks built around them. The user's own goal is continued
@@ -33,7 +58,7 @@ training of small Qwen-class decoder models, scaled up along one model family.
   notes (`SERVER-175.md`), and `manifest.json`. Generated data lives on cephfs under
   `/mnt/cephfs/xingchao/experiments/jev/` and is not committed; only manifests are.
 
-## 3. Methodological rules the work must follow
+## 4. Methodological rules the work must follow
 
 These were established by the survey and are admission conditions for any task:
 
@@ -50,7 +75,7 @@ These were established by the survey and are admission conditions for any task:
 5. Treat the user's theses as hypotheses to falsify, not as instructions: keep the phenomenon,
    redo the mechanism, and say which part survives.
 
-## 4. Vocabulary (use these English terms consistently)
+## 5. Vocabulary (use these English terms consistently)
 
 - **input** — the business situation given to the model (documents, dialogue, structured fields).
 - **level** — one expert-defined output state of a question (name + definition + type required;
@@ -63,7 +88,7 @@ These were established by the survey and are admission conditions for any task:
 - **defect N** — row N of the registry in survey §2.2.4; **gate G1/G2/G3** — stage gates in the
   proposal; **round R0–R8** — proposal rounds.
 
-## 5. Environment and tooling
+## 6. Environment and tooling
 
 - Outbound HTTPS only through the authenticated proxy already set in the environment (about 10 KB/s
   per connection). Never print, log or commit the proxy credentials.
