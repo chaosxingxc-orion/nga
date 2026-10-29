@@ -178,3 +178,46 @@ harmless but should be cleaned up by whoever created them.
   `npu_patch.resilient.patch`, `image-info.txt`, `packages-image.txt`, `model-test-pair0.log`,
   `README.md` (full detail, including the exact launch command and the five file/line list for the
   `AutoModelForVision2Seq` gap).
+
+## `AutoModelForVision2Seq` gap fixed with a shim; still no training step (2026-10-29, same day)
+
+- Coordinator authorized a fix: a compatibility shim rather than editing verl's five files, since
+  `AutoModelForImageTextToText` is `AutoModelForVision2Seq`'s direct successor with the same interface
+  and Qwen3.5-0.8B (`Qwen3_5ForCausalLM`) never reaches any of those vision-to-sequence call sites
+  anyway — they only block the import. Built as a **new tag**, `nga-verl-qwen35:20261029-shim`
+  (`FROM nga-verl-qwen35:20261029`), so the previously-verified baseline stays untouched.
+- Mechanism: `sitecustomize.py` in the image's site-packages (runs on every Python startup, before any
+  application import, independent of `-I`/`-P`). A naive `setattr(transformers,
+  "AutoModelForVision2Seq", ...)` was tried first and does **not** survive: partway through `import
+  verl.workers.fsdp_workers`, `sys.modules["transformers"]` gets replaced with a newly-constructed
+  `_LazyModule` instance (traced via `id()`; the exact trigger inside that import chain was not pinned
+  down, but `transformers.utils.import_utils.clear_import_cache()` is the only code with this
+  behaviour), which discards a plain instance attribute. The shim instead patches the **class** method
+  `_LazyModule.__getattr__` once, so the alias survives the module-object replacement. Guarded: no-op
+  if the old name already exists; raises loudly (not a silent wrong alias) if transformers drops
+  `AutoModelForImageTextToText` too or stops using `_LazyModule`; idempotent; logs once at `INFO`
+  naming what was aliased and why.
+- Verified **without touching any NPU chip** (all 8 chips on `npu` were resident-busy with the R0
+  baseline run throughout — confirmed via `npu-smi info`): a plain `docker run` mounting the Ascend
+  driver read-only plus only the three management devices (`davinci_manager`, `devmm_svm`, `hisi_hdc`,
+  no `/dev/davinci0..7`) is enough for `torch_npu`/`transformers`/`verl` to import. Results: `import
+  verl`, `verl.workers.fsdp_workers`, `verl.utils.model`, `verl.utils.checkpoint.fsdp_checkpoint_manager`,
+  `verl.model_merger.base_model_merger` all PASS; `vllm`/`vllm_ascend` still PASS; `verl.trainer.fsdp_sft_trainer`
+  and `verl.trainer.main_ppo` import and their hydra configs (`sft_trainer`, `ppo_trainer`) compose.
+  `npu_patch.py` family check, re-confirmed by identity comparison: 5 of 6 families (`qwen2`, `qwen3`,
+  `qwen3_moe`, `qwen3_vl`, `qwen3_vl_moe`) fully patched; `qwen2_5_vl` partially patched (`Qwen2_5_VLMLP.forward`
+  applied, `Qwen2RMSNorm.forward` skipped with the one expected warning) — unchanged from before, none of
+  this touches Qwen3.5.
+- **Still no verl training step has run.** Per instruction, stopped here deliberately: all 8 cards are
+  committed to the R0 baseline run, which is the deliverable in progress; the training step (SFT/GRPO,
+  loss values, peak HBM, seconds/step) is scheduled for once the cards free up.
+- Environment note for that later step: inside these containers use `python3 -P`, never `python3 -I` —
+  isolated mode discards `PYTHONPATH`, and CANN's `tbe` operator compiler is only reachable through
+  `PYTHONPATH`, so `-I` fails dynamic op compilation with `No module named 'tbe'` then `GEInitialize`
+  errors. Verified in-image: plain `python3` and `python3 -P` both work, `-I` fails. This supersedes
+  earlier guidance to use `-I` inside these containers (the repo-wide `-I` convention for untrusted
+  downloaded code on the host is unaffected).
+- Deliverables added: `ctx2/Dockerfile`, `ctx2/sitecustomize.py`, `build-shim.sh`, `image-info-shim.txt`,
+  `packages-image-shim.txt`, `verify-shim-norpu.log`, `npu-patch-families.log`, all in
+  `/mnt/cephfs/xingchao/docker/verl_qwen35_20261029/`; `README.md` there updated with the full mechanism,
+  the guard behaviour, and why the naive one-line alias was insufficient.
