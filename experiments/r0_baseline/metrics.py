@@ -17,12 +17,12 @@ A6  margin: distance (decision.cumulative_decision) compared with the within-gro
     level probabilities across the four T1 variants of the unit, averaged over levels.  The
     pre-registration says "variance"; a distance (probability units) is compared with a variance
     (squared units) exactly as written.  T1 only: T2 has no equivalence class.
-A8  amendment 4 (pre-reg section 11): flip rates are primary on argmax (a statement about the model)
-    with the thresholded rate beside them (a statement about the operator, ``overall`` / ``per_pair``);
+A8  amendment 4 + 11.8 (both columns under explicit parents ``argmax_reference`` / ``thresholded``, no bare keys) (pre-reg section 11): flip rates are primary on argmax (a statement about the model)
+    with the thresholded rate beside them (a statement about the operator);
     a thresholded rate over rows with no decision is null, never 0.0; every flip rate carries the C-branch
     rate of the rows it was computed over; margin counts decisions, not rows; a C-branch rate of exactly
     0.0 or 1.0 is flagged as forced by the fitted tau.  The move rate is likewise carried on argmax
-    (``argmax_reference`` inside each bucket), which is what section 8.2 asked for and B-3 now reads.
+    (``argmax_reference`` / ``thresholded`` inside each kind), which is what section 8.2 asked for and B-3 now reads.
 A7  ECE: standard 10-bin top-label ECE on held-out floor items; the top label is the argmax of the
     distribution, used as a calibration convention only.
 """
@@ -32,10 +32,13 @@ from itertools import combinations
 
 from common import FLOOR_VARIANT, INVARIANCE_VARIANTS, swap_positions
 from decision import argmax_index, cumulative_decision
+from thresholds import DECISIVE_MAX_ABSTAIN
 
 C = "C"  # the residual branch
 ECE_BINS = 10
 SWAP_ELIGIBLE_SIDES = ("i",)  # literal reading of pre-reg 3 item 3; ("i", "j") is the symmetric reading
+SCORED_ON_ARGMAX = "argmax (statement about the model; primary, pre-reg 11.2)"
+SCORED_ON_THRESHOLDED = "cumulative-mass operator (statement about the operator)"
 QUANTILES = (0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0)
 
 
@@ -112,9 +115,12 @@ def failure_sets(decided, task="T1"):
         fail_cum_arg += any(wrong_arg)
     return {
         "n_units": n,
-        "failures_original": fail_orig, "failures_cumulative": fail_cum,
-        "growth": None if fail_orig == 0 else (fail_cum - fail_orig) / fail_orig,
+        "thresholded": {
+            "scored_on": SCORED_ON_THRESHOLDED,
+            "failures_original": fail_orig, "failures_cumulative": fail_cum,
+            "growth": None if fail_orig == 0 else (fail_cum - fail_orig) / fail_orig},
         "argmax_reference": {
+            "scored_on": SCORED_ON_ARGMAX,
             "failures_original": fail_orig_arg, "failures_cumulative": fail_cum_arg,
             "growth": None if fail_orig_arg == 0 else (fail_cum_arg - fail_orig_arg) / fail_orig_arg},
     }
@@ -165,20 +171,22 @@ def flip_rate(decided, task="T1"):
             flips[(a, b)] += variants[a].cum_id != variants[b].cum_id
             flips_arg[(a, b)] += variants[a].arg_pos != variants[b].arg_pos
             decided_pair[(a, b)] += variants[a].cum_pos is not None or variants[b].cum_pos is not None
-    c = _c_summary(covered)
+    c = _c_summary(covered)  # C-branch rate of the rows both columns were computed over
     n_decisions = sum(d.cum_pos is not None for d in covered)
     overall = _rate(sum(flips.values()), n * len(pairs)) if n_decisions else None
+    # pre-reg 11.8 clause 1: no bare overall / per_pair; both columns sit under an explicit parent.
     return {
         "n_units": n,
-        "overall": overall,
-        "per_pair": {f"{a}|{b}": (_rate(flips[(a, b)], n) if decided_pair[(a, b)] else None) for a, b in pairs},
-        "scored_on": "cumulative-mass operator (statement about the operator)",
         "n_decisions": n_decisions,
         "c_branch": c,
         "argmax_reference": {
             "overall": _rate(sum(flips_arg.values()), n * len(pairs)),
             "per_pair": {f"{a}|{b}": _rate(c_, n) for (a, b), c_ in flips_arg.items()},
-            "scored_on": "argmax (statement about the model; primary, pre-reg 11.2)"},
+            "scored_on": SCORED_ON_ARGMAX},
+        "thresholded": {
+            "overall": overall,
+            "per_pair": {f"{a}|{b}": (_rate(flips[(a, b)], n) if decided_pair[(a, b)] else None) for a, b in pairs},
+            "scored_on": SCORED_ON_THRESHOLDED},
     }
 
 
@@ -228,13 +236,12 @@ def _move_buckets(decided, pos_of, id_of):
 
 
 def move_rate(decided):
-    """Thresholded buckets at top level; the argmax-scored buckets (primary per pre-reg 8.2 and 11.2,
-    the column B-3 reads) under ``argmax_reference`` inside each kind."""
-    out = _move_buckets(decided, lambda d: d.cum_pos, lambda d: d.cum_id)
+    """Per kind (swap / reversed): ``argmax_reference`` (primary per pre-reg 8.2 and 11.2, the column B-3
+    reads) and ``thresholded``; no bare counts or rates (pre-reg 11.8 clause 1)."""
+    thr = _move_buckets(decided, lambda d: d.cum_pos, lambda d: d.cum_id)
     arg = _move_buckets(decided, lambda d: d.arg_pos, lambda d: d.arg_id)
-    for kind in out:
-        out[kind]["argmax_reference"] = arg[kind]
-    return out
+    return {kind: {"argmax_reference": {**arg[kind], "scored_on": SCORED_ON_ARGMAX},
+                   "thresholded": {**thr[kind], "scored_on": SCORED_ON_THRESHOLDED}} for kind in thr}
 
 
 # 4. Margin distribution ------------------------------------------------------------------------
@@ -323,19 +330,18 @@ def threshold_fit_summary(decided, fitted):
     if fitted is None:
         return out
     diag_rows = [e for e in entries.values() if e[1] is not None]
-    collapsed = [e for e in diag_rows if e[1]["utility_at_chosen_tau"] == 0 and e[1]["best_decisive_utility"] is not None
-                 and e[1]["best_decisive_utility"] < 0]
+    # Collapsed = the fit chose a tau that is not decisive (abstain rate > 0.5, pre-reg 11.8 clause 2).
+    collapsed = [e for e in diag_rows if e[1]["abstain_rate_at_chosen_tau"] > DECISIVE_MAX_ABSTAIN]
     out["n_fitted_entries"] = len(diag_rows)
     out["share_rows_in_collapsed_entries"] = _rate(sum(e[0] for e in collapsed), n)
-    out["share_rows_with_all_decisive_tau_negative"] = _rate(
-        sum(e[0] for e in diag_rows if e[1]["best_decisive_utility"] is not None and e[1]["best_decisive_utility"] < 0), n)
     out["entries"] = [
         {"rows": rows, "tier": tier, "fitted_tau": tau, "n_fit": diag["n_fit"],
          "utility_at_fitted_tau": diag["utility_at_chosen_tau"],
+         "abstain_rate_at_fitted_tau": diag["abstain_rate_at_chosen_tau"],
          "best_decisive_tau": diag["best_decisive_tau"], "best_decisive_utility": diag["best_decisive_utility"],
          "best_decisive_abstain_rate": diag["best_decisive_abstain_rate"],
-         "collapsed": diag["utility_at_chosen_tau"] == 0 and diag["best_decisive_utility"] is not None
-                      and diag["best_decisive_utility"] < 0}
+         "utility_by_tau": diag["utility_by_tau"], "abstain_rate_by_tau": diag["abstain_rate_by_tau"],
+         "collapsed": diag["abstain_rate_at_chosen_tau"] > DECISIVE_MAX_ABSTAIN}
         for rows, diag, tau, tier in sorted(diag_rows, key=lambda e: -e[0])[:MAX_FIT_ENTRIES]]
     return out
 

@@ -69,20 +69,26 @@ def _utilities_and_decisions(row):
     return util, decided
 
 
-def _fit_diagnostics(chosen_i, utilities, decisions, n):
-    """What the fit saw, for reporting (pre-reg 11.3). Never feeds back into the choice of tau.
+DECISIVE_MAX_ABSTAIN = 0.5  # pre-reg 11.8 clause 2: a grid tau is decisive when it abstains on at most half the fitting rows
 
-    A grid value is *decisive* when the operator commits on at least one fitting row there; the best
-    decisive tau is picked with the same tie rule as the fit (larger tau)."""
-    decisive = [i for i in range(len(TAU_GRID)) if decisions[i] > 0]
+
+def _fit_diagnostics(chosen_i, utilities, decisions, n):
+    """What the fit saw, for reporting (pre-reg 11.3, 11.8 clause 2). Never feeds back into the choice of tau.
+
+    A grid value is *decisive* when its abstain rate on the fitting rows is at most DECISIVE_MAX_ABSTAIN;
+    the best decisive tau is picked with the same tie rule as the fit (larger tau) and is None when no grid
+    value qualifies, which is the statement of a collapse."""
+    abstain = [1 - decisions[i] / n for i in range(len(TAU_GRID))]
+    decisive = [i for i in range(len(TAU_GRID)) if abstain[i] <= DECISIVE_MAX_ABSTAIN]
     out = {"n_fit": n, "utility_at_chosen_tau": utilities[chosen_i],
-           "abstain_rate_at_chosen_tau": 1 - decisions[chosen_i] / n,
+           "abstain_rate_at_chosen_tau": abstain[chosen_i],
            "utility_by_tau": {str(t): u for t, u in zip(TAU_GRID, utilities)},
+           "abstain_rate_by_tau": {str(t): a for t, a in zip(TAU_GRID, abstain)},
            "best_decisive_tau": None, "best_decisive_utility": None, "best_decisive_abstain_rate": None}
     if decisive:
         b = max(decisive, key=lambda i: (utilities[i], i))
         out.update(best_decisive_tau=TAU_GRID[b], best_decisive_utility=utilities[b],
-                   best_decisive_abstain_rate=1 - decisions[b] / n)
+                   best_decisive_abstain_rate=abstain[b])
     return out
 
 

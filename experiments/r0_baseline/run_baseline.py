@@ -252,6 +252,7 @@ def emit_report(out_root, primary):
                                       "dtype", "limit_groups", "prompt_version", "prompt_format", "transformers_version", "python")}
     header["report_utc"] = utc_now()
     header["amendment_level"] = common.AMENDMENT_LEVEL
+    header["amendment_clauses"] = report_mod.clause_status()  # pre-reg 11.8 clause 3
     header["scorers_present"] = sorted(rows)
     header["rows_per_scorer"] = {k: len(v) for k, v in sorted(rows.items())}
     header["harness_config"] = harness_config()

@@ -280,8 +280,8 @@ def test_t3_flip_responds_to_question_set_dependence():
                 [dict(it, key=it["key"] + "|".join(it["prefix_questions"]))])[0] for it in items]
     inv = M.flip_rate(decided_for(sc.MockScorer.invariant(), loaded), "T3")
     drv = M.flip_rate(decided_for(PrefixDriven(), loaded), "T3")
-    assert inv["n_units"] == 60 and inv["overall"] == 0.0
-    assert drv["overall"] > 0.4 and "prefix_5q|prefix_5q_shuffled" in drv["per_pair"]
+    assert inv["n_units"] == 60 and inv["thresholded"]["overall"] == 0.0
+    assert drv["thresholded"]["overall"] > 0.4 and "prefix_5q|prefix_5q_shuffled" in drv["thresholded"]["per_pair"]
     assert M.accuracy_floor(decided_for(sc.MockScorer.oracle(), loaded, 0.9), "T3")["acc_cumulative"] == 1.0
     assert TH.fitting_row(common.make_row(loaded[0], [1/3]*3) | {})
 
@@ -306,11 +306,11 @@ def test_flip_rate_zero_for_invariant_and_high_for_name_driven():
     inv = M.flip_rate(decided_for(sc.MockScorer.invariant(), loaded))
     nd = M.flip_rate(decided_for(sc.MockScorer.name_driven(), loaded))
     assert inv["n_units"] == 150
-    assert inv["overall"] == 0.0 and all(v == 0.0 for v in inv["per_pair"].values())
+    assert inv["thresholded"]["overall"] == 0.0 and all(v == 0.0 for v in inv["thresholded"]["per_pair"].values())
     # Four levels with independent names: two variants disagree with probability 3/4.
-    assert nd["overall"] > 0.65
-    assert all(0.55 < v <= 1.0 for v in nd["per_pair"].values())
-    assert len(nd["per_pair"]) == 6
+    assert nd["thresholded"]["overall"] > 0.65
+    assert all(0.55 < v <= 1.0 for v in nd["thresholded"]["per_pair"].values())
+    assert len(nd["thresholded"]["per_pair"]) == 6
 
 
 def test_move_rate_identifies_followed_swaps_and_unmoved_for_name_driven():
@@ -321,12 +321,12 @@ def test_move_rate_identifies_followed_swaps_and_unmoved_for_name_driven():
     sharp = sc.MockScorer("mock-invariant-sharp", definition_weight=1.0, sharpness=40.0)
     inv = M.move_rate(decided_for(sharp, loaded))
     nd = M.move_rate(decided_for(sc.MockScorer.name_driven(), loaded))
-    assert inv["swap"]["n_eligible"] > 10 and inv["swap"]["followed_rate"] == 1.0
-    assert inv["reversed"]["followed_rate"] == 1.0
-    assert nd["swap"]["unmoved_rate"] == 1.0 and nd["swap"]["followed_rate"] == 0.0
-    assert nd["reversed"]["unmoved_rate"] == 1.0
+    assert inv["swap"]["thresholded"]["n_eligible"] > 10 and inv["swap"]["thresholded"]["followed_rate"] == 1.0
+    assert inv["reversed"]["thresholded"]["followed_rate"] == 1.0
+    assert nd["swap"]["thresholded"]["unmoved_rate"] == 1.0 and nd["swap"]["thresholded"]["followed_rate"] == 0.0
+    assert nd["reversed"]["thresholded"]["unmoved_rate"] == 1.0
     # swap items are eligible only when the base decision sat at position i (about 1 in k)
-    assert inv["swap"]["n_eligible"] + inv["swap"]["n_ineligible"] == 150
+    assert inv["swap"]["thresholded"]["n_eligible"] + inv["swap"]["thresholded"]["n_ineligible"] == 150
 
 
 def test_move_rate_hand_count():
@@ -349,7 +349,7 @@ def test_move_rate_hand_count():
         # unit f: base is C -> ineligible
         row("T2", "base", "f", mid), row("T2", "swap_0_1", "f", hi(1)),
     ]
-    m = M.move_rate(M.decide_rows(rows, FixedTau(0.6)))["swap"]
+    m = M.move_rate(M.decide_rows(rows, FixedTau(0.6)))["swap"]["thresholded"]
     assert (m["n_eligible"], m["followed"], m["unmoved"], m["moved_elsewhere"], m["n_ineligible"]) == (4, 1, 1, 2, 2)
     assert m["followed_rate"] == 0.25
 
@@ -368,11 +368,11 @@ def test_flip_and_failure_set_hand_count():
     flip = M.flip_rate(d)
     # u2: digits differs from the other three -> 3 of 6 pairs; u4: original vs three C -> 3 of 6 pairs;
     # the pair original|digits differs in u2 and u4 only
-    assert flip["n_units"] == 4 and abs(flip["overall"] - 6 / 24) < 1e-12
-    assert flip["per_pair"]["original|digits"] == 2 / 4
+    assert flip["n_units"] == 4 and abs(flip["thresholded"]["overall"] - 6 / 24) < 1e-12
+    assert flip["thresholded"]["per_pair"]["original|digits"] == 2 / 4
     fs = M.failure_sets(d)
     # original fails: u3 and... u4's original is right; so 1. cumulative: u2, u3, u4 fail somewhere -> 3
-    assert (fs["failures_original"], fs["failures_cumulative"]) == (1, 3) and fs["growth"] == 2.0
+    assert (fs["thresholded"]["failures_original"], fs["thresholded"]["failures_cumulative"]) == (1, 3) and fs["thresholded"]["growth"] == 2.0
     acc = M.accuracy_floor(d, "T1")
     assert acc["n"] == 4 and acc["acc_cumulative"] == 3 / 4
     assert M.c_branch_rate(d, "T1")["rate"] == 3 / 16
@@ -548,9 +548,9 @@ def test_end_to_end_with_mock_and_report_structure():
         roles = set(cells["src-a"]["ordinal"])
         assert roles == {"primary", "empty_input", "question_only", "constant", "uniform"}   # degenerate twins always present
         assert "question70" not in rep["splits"]                                            # akhilaaa3 only
-        assert cells["src-a"]["ordinal"]["primary"]["flip_T1"]["overall"] == 0.0
-        assert cells["src-a"]["ordinal"]["empty_input"]["flip_T1"]["overall"] == 0.0        # mock: no input dependence of names
-        assert cells["src-a"]["ordinal"]["primary"]["move_T2"]["swap"]["followed_rate"] == 1.0
+        assert cells["src-a"]["ordinal"]["primary"]["flip_T1"]["thresholded"]["overall"] == 0.0
+        assert cells["src-a"]["ordinal"]["empty_input"]["flip_T1"]["thresholded"]["overall"] == 0.0        # mock: no input dependence of names
+        assert cells["src-a"]["ordinal"]["primary"]["move_T2"]["swap"]["thresholded"]["followed_rate"] == 1.0
         assert rep["missing"] == []
         md = open(os.path.join(out, "report.md")).read()
         assert "## Split `group70`, side `heldout`" in md and "### B-2" in md
@@ -572,8 +572,8 @@ def test_name_driven_mock_shows_up_in_the_decision_lines():
         _run(data, out, "mock-name-driven")
         rep = _report(out)
         cell = rep["splits"]["group70"]["heldout"]["src-a"]["ordinal"]
-        assert cell["primary"]["flip_T1"]["overall"] > 0.5
-        assert cell["primary"]["move_T2"]["swap"]["followed_rate"] == 0.0
+        assert cell["primary"]["flip_T1"]["thresholded"]["overall"] > 0.5
+        assert cell["primary"]["move_T2"]["swap"]["thresholded"]["followed_rate"] == 0.0
         b3 = [r for r in rep["decision_lines"]["B-3"] if r["source"] == "src-a"][0]
         assert b3["above_30_percent"] is False
 
@@ -751,8 +751,8 @@ def test_a4_fully_abstaining_cell_has_null_thresholded_flip_and_real_argmax_flip
     d = M.decide_rows(_abstaining_name_sensitive_cell(), FixedTau(0.95))
     assert all(x.cum_pos is None for x in d)                    # precondition: the operator abstains everywhere
     flip = M.flip_rate(d)
-    assert flip["overall"] is None                              # not 0.0: there is nothing to flip
-    assert all(v is None for v in flip["per_pair"].values())
+    assert flip["thresholded"]["overall"] is None                              # not 0.0: there is nothing to flip
+    assert all(v is None for v in flip["thresholded"]["per_pair"].values())
     assert flip["argmax_reference"]["overall"] == 1.0           # four different argmax positions per unit
     assert all(v == 1.0 for v in flip["argmax_reference"]["per_pair"].values())
     assert flip["n_decisions"] == 0
@@ -763,13 +763,13 @@ def test_a4_fully_abstaining_cell_has_null_thresholded_flip_and_real_argmax_flip
 def test_a4_fully_abstaining_t3_flip_is_null_and_argmax_is_real():
     rows = [_a4_row("T3", f"u{u}", v, _peak(4, pos, 0.4)) for u in range(5) for pos, v in enumerate(common.T3_VARIANTS)]
     flip = M.flip_rate(M.decide_rows(rows, FixedTau(0.95)), "T3")
-    assert flip["overall"] is None and flip["argmax_reference"]["overall"] == 1.0
+    assert flip["thresholded"]["overall"] is None and flip["argmax_reference"]["overall"] == 1.0
 
 
 def test_a4_flip_rate_is_a_real_zero_when_the_operator_decides_and_agrees():
     rows = [_a4_row("T1", f"u{u}", v, _peak(4, 1, 0.97)) for u in range(5) for v in common.T1_VARIANTS]
     flip = M.flip_rate(M.decide_rows(rows, FixedTau(0.9)))
-    assert flip["overall"] == 0.0 and flip["argmax_reference"]["overall"] == 0.0     # a real zero stays a zero
+    assert flip["thresholded"]["overall"] == 0.0 and flip["argmax_reference"]["overall"] == 0.0     # a real zero stays a zero
     assert flip["c_branch"]["rate"] == 0.0
 
 
@@ -783,7 +783,7 @@ def test_a4_flip_carries_the_c_branch_rate_beside_it():
     flip = M.flip_rate(M.decide_rows(rows, FixedTau(0.8)))
     assert flip["c_branch"]["n"] == 16 and flip["c_branch"]["rate"] == 0.5
     assert flip["c_branch"]["forced_by_tau"] is False
-    assert flip["overall"] is not None and flip["n_decisions"] == 8
+    assert flip["thresholded"]["overall"] is not None and flip["n_decisions"] == 8
 
 
 def test_a4_margin_counts_decisions_not_rows():
@@ -816,7 +816,7 @@ def test_a4_move_rate_is_carried_on_argmax_beside_the_thresholded_one():
     # base decides on level 0 (sharp); the swap's mass moves to level 1 but not enough to clear tau
     rows = [_a4_row("T2", "a", "base", _peak(3, 0, 0.97), "nominal"), _a4_row("T2", "a", "swap_0_1", _peak(3, 1, 0.6), "nominal")]
     m = M.move_rate(M.decide_rows(rows, FixedTau(0.9)))["swap"]
-    assert m["followed_rate"] == 0.0 and m["moved_elsewhere_rate"] == 1.0              # thresholded: C
+    assert m["thresholded"]["followed_rate"] == 0.0 and m["thresholded"]["moved_elsewhere_rate"] == 1.0   # thresholded: C
     assert m["argmax_reference"]["followed_rate"] == 1.0                                 # argmax: followed
 
 
@@ -833,20 +833,23 @@ def test_a4_threshold_fit_reports_collapse_without_changing_the_fit():
     cell = M.cell_metrics(M.decide_rows(held, fitted), "heldout", fitted)["threshold_fit"]
     assert cell["rows_by_tau"] == {"0.95": 60} and cell["rows_by_tier"] == {"version": 60}
     e = cell["entries"][0]
-    assert e["fitted_tau"] == 0.95 and e["best_decisive_utility"] == -20 and e["collapsed"] is True
+    assert e["fitted_tau"] == 0.95 and e["best_decisive_utility"] == -20 and e["collapsed"] is True   # chosen tau abstains on every row; 0.8 is decisive (commits on all) and scores -20
     assert cell["share_rows_in_collapsed_entries"] == 1.0
     # the cell-level flip carries the collapse: all rows abstain, so the thresholded C-rate is 1.0 and forced
     assert M.cell_metrics(M.decide_rows(held, fitted), "heldout", fitted)["c_branch"]["T1"]["forced_by_tau"] is True
 
 
-def _a4_dl_report(real_arg, real_thr, empty_arg, empty_thr, fol_arg, fol_thr):
+def _a4_dl_report(real_arg, real_thr, empty_arg, empty_thr, fol_arg, fol_thr, t3=None):
     def flip(arg, thr):
-        return {"overall": thr, "argmax_reference": {"overall": arg}, "c_branch": {"rate": 0.0}}
+        return {"thresholded": {"overall": thr}, "argmax_reference": {"overall": arg}, "c_branch": {"rate": 0.0}}
 
     def move(arg, thr):
-        return {"swap": {"followed_rate": thr, "argmax_reference": {"followed_rate": arg}}}
+        return {"swap": {"thresholded": {"followed_rate": thr}, "argmax_reference": {"followed_rate": arg}}}
     cell = {"primary": {"flip_T1": flip(real_arg, real_thr), "move_T2": move(fol_arg, fol_thr)},
             "empty_input": {"flip_T1": flip(empty_arg, empty_thr), "move_T2": move(None, None)}}
+    if t3 is not None:   # (real_arg, real_thr, empty_arg, empty_thr)
+        cell["primary"]["flip_T3"] = flip(t3[0], t3[1])
+        cell["empty_input"]["flip_T3"] = flip(t3[2], t3[3])
     return {"splits": {"group70": {"heldout": {"s": {"ordinal": cell}}}}}
 
 
@@ -882,6 +885,87 @@ def test_a4_report_records_amendment_level_and_cell_fit_summary():
         assert "Amendment level of this report: 4" in md and "Threshold fitting per cell" in md
 
 
+def test_a4_no_bare_key_for_a_metric_with_two_operators():          # pre-reg 11.8 clause 1
+    d = M.decide_rows(_abstaining_name_sensitive_cell(), FixedTau(0.95))
+    for flip in (M.flip_rate(d), ):
+        for bare in ("overall", "per_pair"):
+            assert bare not in flip
+        for parent in ("argmax_reference", "thresholded"):
+            assert "overall" in flip[parent] and "per_pair" in flip[parent] and flip[parent]["scored_on"]
+    for kind, m in M.move_rate(d).items():
+        assert set(m) == {"argmax_reference", "thresholded"}
+        for parent in m.values():
+            assert "followed_rate" in parent and parent["scored_on"]
+    fs = M.failure_sets(d)
+    assert "growth" not in fs and "failures_original" not in fs and set(fs) >= {"argmax_reference", "thresholded"}
+    try:
+        M.flip_rate(d)["overall"]
+    except KeyError:
+        pass
+    else:
+        raise AssertionError("bare overall must raise KeyError")
+
+
+def test_a4_decisive_tau_requires_commitment_on_at_least_half_the_rows():   # pre-reg 11.8 clause 2
+    train, held = _split_rows(60)
+    for i, r in enumerate(train):
+        r["gold"] = "false" if i < 20 else "true"
+        r["p"] = [0.97, 0.03] if i < 2 else [0.5, 0.5]       # only 2 rows ever commit above tau 0.55
+    fitted = TH.fit_thresholds(S.TrainView.of(train + held, S.GROUP70))
+    tau_before = fitted.tau_for(train[0])
+    diag = fitted.diagnostics(fitted.lookup(train[0])[2])
+    # 58 of 60 rows are exact ties (always C) and 2 commit: abstain rate is about 0.97 at every grid tau, so none is decisive
+    assert all(a > TH.DECISIVE_MAX_ABSTAIN for t, a in diag["abstain_rate_by_tau"].items())
+    assert diag["best_decisive_tau"] is None and diag["best_decisive_utility"] is None
+    assert len(diag["utility_by_tau"]) == len(TH.TAU_GRID)         # the full curve is kept
+    assert TH.DECISIVE_MAX_ABSTAIN == 0.5
+    assert tau_before == fitted.tau_for(train[0])                   # reporting only: lookups unchanged
+
+
+def test_a4_decisive_tau_boundary_is_inclusive_at_half():
+    # half the rows commit at every tau (sharp), half never (flat): abstain rate exactly 0.5 everywhere
+    train, held = _split_rows(40)
+    for i, r in enumerate(train):
+        r["gold"] = "false"
+        r["p"] = [0.97, 0.03] if i % 2 == 0 else [0.5, 0.5]
+    fitted = TH.fit_thresholds(S.TrainView.of(train + held, S.GROUP70))
+    diag = fitted.diagnostics(fitted.lookup(train[0])[2])
+    assert diag["abstain_rate_by_tau"]["0.95"] == 0.5 and diag["best_decisive_tau"] == 0.95   # 0.5 is inclusive; ties -> larger tau
+    assert diag["best_decisive_abstain_rate"] == 0.5
+
+
+def test_a4_b2_extends_to_t3_on_argmax():                              # pre-reg 9.2 via 11.2
+    dl = report_mod.decision_lines(_a4_dl_report(0.5, 0.5, 0.9, 0.9, 0.5, 0.5, t3=(0.62, 0.0, 0.60, 0.5)))
+    b = dl["B-2_T3"][0]
+    assert b["real_flip"] == 0.62 and b["pass"] is False and b["t3_void"] is True and b["real_flip_thresholded"] == 0.0
+    dl = report_mod.decision_lines(_a4_dl_report(0.5, 0.5, 0.9, 0.9, 0.5, 0.5, t3=(0.1, 0.55, 0.6, 0.6)))
+    assert dl["B-2_T3"][0]["pass"] is True and dl["B-2_T3"][0]["t3_void"] is False
+    assert report_mod.decision_lines(_a4_dl_report(0.5, 0.5, 0.9, 0.9, 0.5, 0.5))["B-2_T3"] == []   # no T3 data, no verdict
+
+
+def test_a4_every_registered_clause_names_an_existing_test():          # pre-reg 11.8 clause 3
+    status = report_mod.clause_status()
+    assert status["in_force"] and set(status["in_force"].values())
+    for clause, test in status["in_force"].items():
+        assert callable(globals().get(test)), f"clause {clause} names a missing test {test}"
+    assert status["not_in_force"] == sorted(status["not_in_force"])
+    assert not set(status["in_force"]) & set(status["not_in_force"])
+
+
+def test_a4_unasserted_clause_is_reported_not_in_force():
+    status = report_mod.clause_status({"x": "test_does_not_exist", "y": "test_a4_b2_extends_to_t3_on_argmax"}, globals())
+    assert status["not_in_force"] == ["x"] and list(status["in_force"]) == ["y"]
+
+
+def test_a4_report_header_declares_clause_status():
+    with _tmp() as tmp:
+        data, out = os.path.join(tmp, "data"), os.path.join(tmp, "out")
+        _write_fixture_tree(data)
+        _run(data, out, "mock-name-driven")
+        hdr = _report(out)["header"]
+        assert hdr["amendment_clauses"]["in_force"] and "not_in_force" in hdr["amendment_clauses"]
+
+
 def test_real_data_smoke_if_present():
     if not os.path.exists(REAL_DATA):
         return
@@ -893,7 +977,7 @@ def test_real_data_smoke_if_present():
         for side in rep["splits"]["group70"].values():
             for src, by_type in side.items():
                 for ltype, roles in by_type.items():
-                    assert roles["primary"]["flip_T1"]["overall"] in (0.0, None)
+                    assert roles["primary"]["flip_T1"]["thresholded"]["overall"] in (0.0, None)
 
 
 if __name__ == "__main__":
