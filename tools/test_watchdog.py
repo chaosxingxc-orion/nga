@@ -446,6 +446,65 @@ class WhyNote(unittest.TestCase):
         self.assertLessEqual(len(t.digest()["runs"][0]["why"]["note"]) + len(t.digest()["runs"][1]["why"]["note"]), 400)
 
 
+class Expected(unittest.TestCase):
+    def mk(self, t, name, expected, note=True, **kw):
+        d = t.run(name, **kw)
+        body = {"note": "explained"} if note else {}
+        if expected is not None:
+            body["expected"] = expected
+        json.dump(body, open(os.path.join(d, "WHY_FAILED.json"), "w"))
+        return d
+
+    def test_expected_true_downgrades_failed_marker_but_not_stalled(self):
+        t = Tree()
+        self.mk(t, "failed", True, heartbeat=hb_line(-1, "x"), marker="rc=1")
+        self.mk(t, "stalled", True, heartbeat=hb_line(-9999, "x"))
+        self.mk(t, "unknown", True, report={"a": 1})
+        self.mk(t, "running", True, heartbeat=hb_line(-1, "x"), log="RuntimeError: x\n")
+        dg = t.digest()
+        by = {r["id"]: r for r in dg["runs"]}
+        self.assertEqual((by["failed"]["state"], by["failed"]["escalation"]), ("failed", "none"))
+        self.assertTrue(by["failed"]["expected_applied"])
+        self.assertEqual(by["stalled"]["escalation"], "decide")
+        self.assertEqual(by["unknown"]["escalation"], "read")
+        self.assertEqual(by["running"]["escalation"], "read")
+        self.assertFalse(by["stalled"]["expected_applied"])
+        self.assertEqual(dg["expected_downgrades"], {"count": 1, "runs": ["failed"]})
+        md = wd.render_md(dg, t.cfg())
+        self.assertIn("none expected=yes", md)
+        self.assertEqual(md.count("expected=yes"), 1 + md.count("was decide"))
+
+    def test_note_alone_or_non_boolean_changes_nothing(self):
+        t = Tree()
+        self.mk(t, "note_only", None, heartbeat=hb_line(-1, "x"), marker="rc=1")
+        self.mk(t, "false", False, heartbeat=hb_line(-1, "x"), marker="rc=1")
+        self.mk(t, "string", "true", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        self.mk(t, "int", 1, heartbeat=hb_line(-1, "x"), marker="rc=1")
+        d = t.run("prose", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        json.dump({"note": "this failure is expected and harmless, expected: true"}, open(os.path.join(d, "WHY_FAILED.json"), "w"))
+        dg = t.digest()
+        self.assertTrue(all(r["escalation"] == "decide" for r in dg["runs"]))
+        self.assertEqual(dg["expected_downgrades"]["count"], 0)
+
+    def test_expected_on_done_run_with_flags_and_on_archived(self):
+        t = Tree()
+        self.mk(t, "doneflag", True, heartbeat=hb_line(-1, "x"), marker="rc=0", report={"T1": {"n": 500, "rate": 1.0}})
+        d = self.mk(t, "old", True, log="x\n")
+        os.utime(os.path.join(d, "run.log"), (NOW - 100000, NOW - 100000))
+        dg = t.digest()
+        by = {r["id"]: r for r in dg["runs"]}
+        self.assertEqual(by["doneflag"]["escalation"], "none")
+        self.assertEqual(by["doneflag"]["suspicious_metrics"]["total"], 1)   # the flag itself is still reported
+        self.assertTrue(by["old"]["expected_applied"])
+        self.assertEqual(dg["expected_downgrades"]["runs"], ["doneflag"])
+
+    def test_marker_problem_unknown_is_not_downgraded(self):
+        t = Tree()
+        self.mk(t, "badmarker", True, heartbeat=hb_line(-1, "x"), marker="finished", marker_name="DONE")
+        r = t.digest()["runs"][0]
+        self.assertEqual((r["state"], r["escalation"]), ("unknown", "read"))
+
+
 class DigestOutput(unittest.TestCase):
     def test_size_cap_is_hard_and_explicit(self):
         t = Tree()

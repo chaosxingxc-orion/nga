@@ -59,7 +59,16 @@ with the writer (cephfs mtimes and UTC heartbeat stamps are both fine across hos
 
 If a run directory holds `WHY_STOPPED.json` or `WHY_FAILED.json` (`--why-names`), its `note` (else `why`, `reason`, `summary`, or
 the first string value, else the raw text) is shown as one line, clipped, under that run, so an expected failure is not re-diagnosed.
-It does not change the state or the escalation level.
+A note alone changes nothing.
+
+### Expected failures (the only downgrade)
+
+An explicit boolean `"expected": true` in the WHY file (strictly JSON `true`; not a string, not `1`, not a keyword in the note)
+sets the escalation to `none` when, and only when, the run has a terminal marker that parsed (state `done` or `failed`) or is
+`archived`. A `running`, `stalled` or `unknown` run keeps its escalation whatever the file says. When applied, the status row shows
+`expected=yes` (the reason reads "expected=yes (was decide: ...)"), the digest's `expected_downgrades` lists the count and run ids
+for audit, and the run keeps its `state` and its exit-code contribution; flags and error lines are still reported. Deciding that a
+failure is acceptable is a judgement, so it needs this explicit key.
 
 ### Error signatures
 
@@ -124,3 +133,44 @@ own directory lands on `sys.path`.
 ### Tests
 
     python3 -P tools/test_watchdog.py
+
+## Final interface summary
+
+**States** (one per run): `done` (marker, exit 0), `failed` (marker, non-zero), `running` (no marker, heartbeat within
+`--stall-seconds`, default 300), `stalled` (no marker, older heartbeat), `archived` (no marker, no heartbeat file, newest log older
+than `--archive-seconds`, default 21600), `unknown` (reason given). The marker is the source of truth; container state is never read.
+
+**Escalation**: `none`; `read` (tier-1 model reads the listed pointers); `decide` (orchestrator chooses, after the read). `decide`:
+failed, stalled, or done with suspicious metrics. `read`: unknown, suspicious metrics in a running run, or error lines. `none`:
+otherwise, archived, and runs downgraded by `"expected": true`.
+
+**Exit codes**: 0 all done or archived, 10 some running, 20 some unknown or no runs, 30 some stalled, 40 some failed; 2 usage error;
+3 a second `--watch` on the same out-dir. Exit codes follow state, not escalation, so an expected failure still exits 40 until it is
+moved out of the scanned tree (for example under `_archive/`).
+
+**Suppression** (`--suppress-roles`, default `constant,uniform,mock-*`): exact 0/1 and identical-across-cells values under those scorer
+names are counted, not flagged, with an audit line per run. **Protection** (`--protect-roles`, default
+`primary,empty_input,question_only`): never suppressed; `low_sample_count` and `non_finite` are never suppressed for anyone; a mock
+primary (`primary` whose report name matches a suppress pattern) is suppressed as `primary=<name>`. The rule keys off the scorer name;
+`--no-suppress` shows everything.
+
+**Digest size**: `digest.md` is capped at `--max-md-bytes` (default 12000) with priority-ordered dropping and an explicit note of what
+was dropped; `digest.json` is complete.
+
+**Launch detached (CLAUDE.md rule 7)**
+
+This host (Python 3.11, `-P`):
+
+    mkdir -p /mnt/cephfs/xingchao/experiments/jev/_watchdog
+    cd /home/xingchao/workspace/nga && nohup setsid python3 -P tools/watchdog.py --watch --interval 120 \
+        >> /mnt/cephfs/xingchao/experiments/jev/_watchdog/watchdog.log 2>&1 < /dev/null &
+
+`npu` (Python 3.10 has no `-P`, so plain `python3`; run it from a directory you do not distrust, and the repo checkout path there
+may differ, so give the script's absolute path):
+
+    mkdir -p /mnt/cephfs/xingchao/experiments/jev/_watchdog
+    cd / && nohup setsid python3 /path/to/nga/tools/watchdog.py --watch --interval 120 \
+        >> /mnt/cephfs/xingchao/experiments/jev/_watchdog/watchdog.log 2>&1 < /dev/null &
+
+Run one watcher per out-dir (a second exits with code 3). Both hosts write the same out-dir, so run it on only one of them. Check
+liveness through `generated_utc` in `digest.json`.

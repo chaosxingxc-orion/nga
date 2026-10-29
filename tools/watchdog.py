@@ -765,9 +765,11 @@ def read_why(d, cfg):
         except OSError:
             continue
         note = None
+        expected = False
         try:
             obj = json.loads(raw)
             if isinstance(obj, dict):
+                expected = obj.get("expected") is True   # strictly the boolean true; never inferred from prose
                 for k in ("note", "why", "reason", "summary", "cause", "message"):
                     if isinstance(obj.get(k), str):
                         note = obj[k]
@@ -780,7 +782,7 @@ def read_why(d, cfg):
             pass
         if note is None:
             note = raw
-        return {"file": name, "note": " ".join(note.split())[:300]}
+        return {"file": name, "note": " ".join(note.split())[:300], "expected": expected}
     return None
 
 
@@ -870,7 +872,7 @@ def evaluate_run(run, cfg, states, now):
         if err:
             notes.append(err)
 
-    esc, why = escalate(state, sus["total"], out_sigs)
+    esc, why_text = escalate(state, sus["total"], out_sigs)
     pointers = []
     if esc != "none":
         if state in ("failed", "stalled", "unknown") and newest is not None:
@@ -887,15 +889,24 @@ def evaluate_run(run, cfg, states, now):
         if sus["total"]:
             kinds = ",".join(sorted(sus["by_kind"]))
             pointers.append({"path": rp, "json_paths": [i["path"] for i in sus["items"][:3]], "why": "suspicious: " + kinds})
+    why = read_why(d, cfg)
+    esc_before, expected_applied = esc, False
+    # "expected": true downgrades only a run with a terminal marker (done/failed) or an archived run. Running, stalled
+    # and unknown runs keep their escalation whatever the file claims. A note alone never changes anything.
+    if why and why["expected"] and (state == "archived" or (marker is not None and state in ("done", "failed"))):
+        expected_applied = True
+        if esc != "none":
+            esc, why_text = "none", "expected=yes (was %s: %s)" % (esc_before, why_text)
     progress = summarize_progress(samples, d, cfg) if samples else None
     if progress is None and state in ("running", "stalled"):
         progress = {"done": None, "total": None, "percent": None, "rate_per_min": None, "window_s": None,
                     "eta_utc": None, "note": "no heartbeat samples", "counters": None, "fields": None}
     return {
-        "id": run["id"], "path": d, "state": state, "state_reason": reason, "escalation": esc, "escalation_reason": why,
+        "id": run["id"], "path": d, "state": state, "state_reason": reason, "escalation": esc, "escalation_reason": why_text,
         "heartbeat_utc": iso(hb_ts), "heartbeat_source": hb_src, "age_s": int(now - hb_ts) if hb_ts is not None else None,
         "marker": ({k: marker[k] for k in ("name", "path", "exit_code", "utc")} if marker else None),
-        "progress": progress, "errors": errors, "suspicious_metrics": sus, "pointers": pointers[:6], "notes": notes, "why": read_why(d, cfg),
+        "progress": progress, "errors": errors, "suspicious_metrics": sus, "pointers": pointers[:6], "notes": notes, "why": why,
+        "expected_applied": expected_applied, "escalation_before_expected": esc_before if esc_before != esc else None,
         "logs": logs,
     }
 
@@ -914,6 +925,8 @@ def build_digest(cfg, states, now=None):
     return {
         "generated_utc": iso(now), "host": socket.gethostname(), "roots": [os.path.abspath(r) for r in cfg.root],
         "stall_seconds": cfg.stall_seconds, "watch_interval_s": cfg.interval if cfg.watch else None,
+        "expected_downgrades": {"count": sum(1 for r in runs if r["escalation_before_expected"]),
+                                "runs": [r["id"] for r in runs if r["escalation_before_expected"]]},
         "worst_state": worst if runs else "no_runs", "exit_code": code, "counts": counts, "runs": runs,
     }
 
@@ -977,7 +990,7 @@ def build_blocks(dg, cfg):
     bad = ("failed", "stalled", "unknown")
     for r in shown:
         row = "| %s | %s | %s | %s | %s | %s |" % (
-            _clip(r["id"], 40), r["state"], r["escalation"], human_age(r["age_s"]), _clip(_prog_cell(r["progress"]), 48),
+            _clip(r["id"], 40), r["state"], r["escalation"] + (" expected=yes" if r["expected_applied"] else ""), human_age(r["age_s"]), _clip(_prog_cell(r["progress"]), 48),
             _clip(r["escalation_reason"] or r["state_reason"], 70))
         add(0 if r["state"] in bad else 1, "runs", "status rows", [row])
         if r["why"]:
@@ -990,7 +1003,8 @@ def build_blocks(dg, cfg):
             ", ".join(r["id"] for r in clean[:6]) + (", ..." if len(clean) > 6 else ""), 120))])
     for r in arch:
         w = " - %s" % _clip(r["why"]["note"], 100) if r["why"] else ""
-        add(6, "runs", "archived runs", ["Archived %s (idle %s, not escalated)%s" % (r["id"], human_age(r["age_s"]), w)])
+        add(6, "runs", "archived runs", ["Archived %s (idle %s, not escalated%s)%s" % (
+            r["id"], human_age(r["age_s"]), ", expected=yes" if r["expected_applied"] else "", w)])
 
     for r in runs:
         rid_bad = r["state"] in ("failed", "stalled")
