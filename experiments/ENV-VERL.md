@@ -514,3 +514,66 @@ section "Round 2". Chips 6,7 only; containers removed after each run.
   stays on the reference fallback for two independent, now-confirmed reasons: the CUDA-gated fast
   path (round 1) and no backward kernel for this op on this NPU stack at all (round 2).
 - **Task 6 still blocked**, per the coordinator, until this round is reviewed.
+
+## Round 3 (2026-10-29, same day): the throughput-optimal step configuration, a sweep bug fixed first
+
+Full detail: `/mnt/cephfs/xingchao/docker/verl_v030_20261029/README.md`, "Round 3".
+
+- **Three defects in the sweep harness, fixed before trusting any number**: (1) `run_sft.sh` only
+  wrote its `DONE`/`FAILED` marker when `torchrun` exited on its own, so externally killing a cell
+  skipped the marker entirely — fixed with a `TERM` trap, and the driver no longer kills cells
+  externally at all (each is bounded by `trainer.total_training_steps` instead, so natural
+  completion always runs). (2) `local a=$1 b=$2 c="...${a}..."` fails under `set -u` because bash
+  expands every right-hand side before any assignment in a multi-variable `local` line — split
+  into one `local` per variable. (3) **The actual cause of two "no marker found" timeouts**: the
+  sweep script polled `runs/sweep/<cell>/DONE`, but the launcher it calls writes to the flat
+  `runs/<cell>/DONE` — a path mismatch, not a filesystem timing issue as first suspected. Proved
+  the fix on one fully-populated cell before running the rest, per instruction.
+- **Hazard correction, carried over from round 2**: the `WarnNotImplemented` gated-delta-rule
+  gradient is a **silent** failure, not merely a safe one — every other layer keeps training, so
+  the aggregate loss has no reason to plateau and nothing looks wrong. Only a direct per-parameter
+  gradient check catches it. The earlier "loss would never move" phrasing was wrong and is
+  corrected in both this file and the deliverable README.
+- **The sweep, chips 6/7, bounded to 10 steps/cell** (stable by step 3 in earlier runs; no
+  gradient accumulation, so one micro-batch = one step): gradient checkpointing x
+  `micro_batch_size_per_gpu` in {4,8,16,24,32,48...} until OOM. Device HBM is 60.96 GiB usable, not
+  64. Checkpointing on peaked at **3,770.9 tokens/s/chip at micro_bs=24** (OOM at 48); checkpointing
+  off peaked at 1,843.5 tok/s/chip at micro_bs=8 (OOM at 16) — checkpointing on wins by 2.0x because
+  it buys three more batch-size doublings before its own wall, and this stack rewards batch size
+  enough (round 1: 1,197 -> 18,557 tok/s/chip from batch 1 to 32) that the larger reachable batch
+  wins over the per-step speed checkpointing gives up. **Binding constraint at the optimum: the
+  allocator's reserved pool (55.4 of 60.96 GiB, 91%), not live tensors** (allocated is only 23.4
+  GiB) — and the reserved figure is not monotonic in batch size across the grid, consistent with
+  round 2's fragmentation finding, so the wall should be expected to move a few GiB either way
+  between nearby batch sizes rather than sit where a linear estimate puts it. Both OOMs confirmed
+  as genuine `torch.OutOfMemoryError` in the logs, not inferred from a timeout.
+- **Two guards checked, not assumed**: loss at the chosen configuration strictly decreases
+  (1.868->0.361), same range as every other cell; and throughput does **not** scale linearly with
+  batch size (it even drops from micro_bs=24 to 32, right where the allocator wall tightens), which
+  rules out a trivial "measuring the batch, not the step" artifact.
+- **Watch path given to the coordinator**: `/mnt/cephfs/xingchao/docker/verl_v030_20261029/runs/`;
+  each sweep cell carries its own `WATCH.json` (`tier: fast`, `expected_total_steps: 10`).
+- **Item 2 (8-chip scaling) still waiting** on chips 0-5 releasing from the R0 baseline. **Item 3
+  (image build) is next**, baking in `micro_batch_size_per_gpu=24`, gradient checkpointing on, and
+  the three required fixes (`npu_patch.py` guard, `AutoModelForVision2Seq` shim, the custom
+  raw-completion dataset class).
+
+## Round 3 addendum: both follow-up diagnoses resolved, image built (2026-10-29, same day)
+
+Full detail: `/mnt/cephfs/xingchao/docker/verl_v030_20261029/image/README.md` and the "Round 3
+addendum" in that directory's own top-level `README.md`.
+
+- **`micro_bs=48`'s failure is a genuine `torch.OutOfMemoryError`**, on the first backward pass —
+  found in the raw log above the generic `ERR99999` torchrun-exit wrapper the CSV's note column
+  had truncated to. Not a shape or sequence-length bug; no hidden headroom above `micro_bs=24`.
+- **`micro_bs=32`'s slower-than-24 throughput is a real, late-onset allocator-pressure event, not
+  a uniform per-batch cost**: steps 1-8 run normally, steps 9-10 spike to 3x the per-step time
+  exactly when reserved memory ticks up to within 1.1 GiB of the 60.96 GiB device ceiling.
+  `micro_bs=24` keeps 5.6 GiB of headroom and never hits this; that margin, not just the measured
+  peak, is why it is the right pick.
+- **Image built and verified**: `nga-verl-qwen35-v030:20261029`. Carries all three required fixes;
+  records both closed questions (CUDA-gated transformers fast path, the CANN op's backward-free,
+  silent-failure hazard) in its own README. `import verl` passes with the driver mounted; a real
+  training step through the built image's own `/opt/verl` on chips 6,7 reproduces the sweep's
+  `micro_bs=24` numbers (losses 1.868->0.361, ~3,770-4,200 tok/s/chip, clean `DONE`).
+- **8-chip scaling (item 2) still waiting** on chips 0-5.
