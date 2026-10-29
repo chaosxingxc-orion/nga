@@ -268,13 +268,18 @@ occupied by other users, about 61 GB of HBM held on all 8 chips.
 Full detail and all deliverables: `/mnt/cephfs/xingchao/docker/verl_v030_20261029/README.md`.
 
 - **Throughput, one chip, stock image, before touching verl.** The old ~1,100 tok/s/chip ceiling
-  was the torch 2.7/CANN 8.3 stack, not the hardware and not batching: transformers alone (still on
-  the torch reference fallback for gated-delta-rule/causal-conv) reaches ~19,000 tok/s/chip at
-  batch 32 in the 0.30 stack, and vLLM (confirmed fused triton kernels: `ChunkGatedDeltaRuleFwd`,
-  `CausalConv1d`, `FusedInferAttentionScore` in a device profile) reaches ~34,000-50,000 tok/s/chip.
+  was the torch 2.7/CANN 8.3 stack, not the hardware: transformers alone (still on the torch
+  reference fallback for gated-delta-rule/causal-conv) reaches ~18,557 tok/s/chip at batch 32 in
+  the 0.30 stack — the gain is batch scaling coming back (batch 1 barely moved, 930->1,197), not a
+  per-token compute change. vLLM reaches ~34,000-50,000 tok/s/chip; its gated-delta-rule core runs
+  as one CANN fused operator, `aclnnChunkGatedDeltaRuleFwd` (44% of device time), not a triton
+  kernel — triton kernels do run elsewhere in the same profile (seven of them, ~6% of device time),
+  so triton is confirmed usable on this stack, just not for that specific op in this engine.
   Profiler evidence: both engines run on NPU cores; the only `AI_CPU` tasks seen were two 0.4 ms
-  `ViewCopy` ops, not a host fallback. Conclusion: **use vLLM for the readout harness**; this does
-  not change training, which stays on transformers/FSDP.
+  `ViewCopy` ops, not a host fallback. See the corrected section above
+  ("Measured on the vllm-ascend 0.30 stack...") for the full, superseding numbers and the
+  `logs/profile_vllm.log`-vs-trace discrepancy. Conclusion: **use vLLM for the readout harness**;
+  this does not change training, which stays on transformers/FSDP.
 - **verl added on top, torch 2.10 untouched.** verl's tree (commit `e9405d70b77...`) copied out of
   the official `verl-8.3.rc1-910b` image. The two fixes from the earlier (2026-10-29, same day,
   pre-rebase) derived image were needed again, unchanged: the `npu_patch.py` `hasattr` guard around
@@ -298,10 +303,13 @@ Full detail and all deliverables: `/mnt/cephfs/xingchao/docker/verl_v030_2026102
   on cephfs, `DONE` marker, relaunch command recorded). Result: losses not identical across steps
   (1.78 -> 0.43 -> ... -> 0.32, noisy-decreasing), val/loss 0.467 at step 20, ~6.9-7.4 s/it steady
   state, peak HBM ~31.4 GiB (chip 6, rank 0) / ~21.8 GiB (chip 7, rank 1) by 3s external `npu-smi`
-  sampling. Open point sent back to the coordinator: the brief's "generation vs. update time split"
+  sampling — **superseded below**: this was the allocator's reserved pool plus idle-chip baseline,
+  not live tensor memory; see "Round 2" for the corrected breakdown. Open point sent back to the
+  coordinator: the brief's "generation vs. update time split"
   applies to a PPO/GRPO step (vLLM rollout + FSDP update); this proof is SFT, which has no
   generation phase, so that split does not apply here — flagging rather than assuming which was
-  wanted.
+  wanted. **Coordinator's judgement on this point: SFT is correct for this project's goal
+  (continued training), the split does not apply, drop that part of the brief.**
 - **The fused `flash-linear-attention` path: a clean negative, confirmed architectural.** The image
   already ships an Ascend-specific triton port (`flash-linear-attention-npu-a2`, module `fla_npu`,
   same kernel family as vLLM's fused ops), not upstream `fla`. That distinction turned out not to
@@ -456,3 +464,49 @@ decode-FULL`.
   fixed time box, and **record a negative result as a result** — the transformers path is already
   fast enough for the readout harness, so a failed attempt closes the question instead of inviting a
   retry.
+
+## Round 2 (2026-10-29, same day): data loading measured, peak memory explained, a direct `fla_npu` test
+
+Full detail and all deliverables: `/mnt/cephfs/xingchao/docker/verl_v030_20261029/README.md`,
+section "Round 2". Chips 6,7 only; containers removed after each run.
+
+- **Data loading: measured, not a bottleneck, nothing changed.** Instrumented verl's SFT trainer
+  (gated on an env var, default off) to time the dataloader fetch separately from the compute call.
+  Config at measurement: `num_workers=8`, `pin_memory=False` (both were hardcoded in verl; now
+  config-overridable, defaulting to the same values). Result: after a one-time ~0.75-1.0s worker
+  startup cost on step 1, the dataloader is idle **under 0.5% of every subsequent step**. No stall
+  to fix, so nothing was tuned — per the brief's own instruction to report "no problem here" rather
+  than run a tuning exercise with no baseline.
+- **Peak memory: the 31 GiB was mostly allocator reservation, not live tensors, and nothing is
+  unsharded.** Re-measured with `torch.npu.max_memory_allocated/reserved` (reset after a 2-step
+  warmup) instead of host-side `npu-smi`. Qwen3.5-0.8B is 752.4M params; fp32
+  params+grad+Adam(m,v) unsharded = 11.21 GiB, ideally 5.61 GiB/rank once FSDP-sharded over 2
+  ranks — that is the floor. Measured **allocated**: ~9.1 GiB/rank steady state (gradient
+  checkpointing on, the default, confirmed active). Measured **reserved** (the caching allocator's
+  pool): up to ~27.6 GiB — + the ~3.4 GiB idle-chip baseline ≈ 31 GiB, matching the earlier
+  `npu-smi` figure almost exactly. So the 31 GiB tracked the allocator's reserved pool, not live
+  tensors; actual allocated memory is only ~3.5 GiB above the sharded floor (a plausible activation
+  footprint), not a sharding bug. **Checked checkpointing is doing real work rather than assuming**:
+  disabling it raised allocated peak to ~21-23 GiB (2.3-2.5x) and reserved to ~33.9 GiB, and made
+  each step faster (recompute's speed-for-memory trade, as expected). **Training throughput**:
+  ~730-880 tokens/s/rank with checkpointing on (the run item 4's losses came from), ~1,065-1,345
+  tokens/s/rank with it off — 13-25x slower than the 18,557 tok/s/chip batch-32 **inference**
+  prefill figure above, expected for forward+backward plus a small micro-batch (4, vs 32 for the
+  inference number). HBM headroom is large (9.1 of 64 GiB), so raising `micro_batch_size_per_gpu`
+  is the next lever for training throughput, not attempted this round.
+- **A direct `fla_npu` kernel test: clean, confirmed negative.** Called
+  `torch_npu.npu_chunk_gated_delta_rule` directly (outside transformers, the exact op the profiler
+  saw as `aclnnChunkGatedDeltaRuleFwd`): forward runs and matches its own documented inference-only
+  contract (`L_i <= 8` per call, a decode-shaped constraint). Its `grad_fn` is literally PyTorch's
+  `WarnNotImplemented` placeholder; `.backward()` does not raise, but `q.grad`/`k.grad`/`v.grad`
+  stay `None` — gradients are not computed, not computed wrong, which is the safe failure mode, not
+  the dangerous one the brief warned about. Searched the rest of `fla_npu`: it ships the individual
+  CANN kernel *sources* for both forward and backward pieces of this exact op (on disk, not
+  Python-callable), but no module wires them into an autograd-capable function the way it does for
+  `causal_conv1d`/`l2norm`/`fast_gelu`, or for KDA (a different algorithm, autograd-wired via
+  triton). **`fla_npu` has no backward-capable, callable gated-delta-rule kernel for training as
+  shipped.** Stopped here per the brief; no numerical or speed comparison was possible or
+  attempted, since there is no backward path to compare. Transformers/FSDP training on this stack
+  stays on the reference fallback for two independent, now-confirmed reasons: the CUDA-gated fast
+  path (round 1) and no backward kernel for this op on this NPU stack at all (round 2).
+- **Task 6 still blocked**, per the coordinator, until this round is reviewed.
