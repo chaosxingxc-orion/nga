@@ -221,3 +221,44 @@ harmless but should be cleaned up by whoever created them.
   `packages-image-shim.txt`, `verify-shim-norpu.log`, `npu-patch-families.log`, all in
   `/mnt/cephfs/xingchao/docker/verl_qwen35_20261029/`; `README.md` there updated with the full mechanism,
   the guard behaviour, and why the naive one-line alias was insufficient.
+
+## Decision 2026-10-29: rebase onto the vllm-ascend 0.30 stack before running experiments
+
+The first scored baseline was stopped mid-run and discarded, deliberately. It was scoring on a
+**slow reference fallback** for Qwen3.5's gated-delta-rule (linear attention) layers, which capped
+throughput at roughly 1,000 tokens per second per chip and forced a subsample of 10% of
+`openjev-synth` and 70% of `typed-decisions`. Running an experiment on a known-defective engineering
+base produces a weaker artifact than fixing the base first.
+
+Measured before stopping, on one chip with left padding, so the fallback is confirmed as the limit
+and not an input-starvation problem:
+
+| Batch size | Sequence length | Throughput | Peak HBM |
+| --- | --- | --- | --- |
+| 1 | 500 | 930 tokens/s | 1.5 GiB |
+| 8 | 500 | 1,060 tokens/s | 1.9 GiB |
+| 32 | 500 | 1,130 tokens/s | 3.3 GiB |
+| 128 | 128 | 1,150 tokens/s | 3.7 GiB |
+
+Throughput is flat in batch size, so the chip is compute-bound per token. Raising the batch size
+does not help, and `causal_conv1d` and `flash-linear-attention` are CUDA extensions that cannot be
+used here.
+
+**The fix already exists on the host.** `quay.io/ascend/vllm-ascend:v0.30.0rc2` is present on `npu`
+and carries everything the current stack lacks:
+
+| Component | Current stack | vllm-ascend 0.30.0rc2 |
+| --- | --- | --- |
+| CANN kernel sets | `ascend910b` only | `ascend910b` **and** `ascend910_93` |
+| torch / torch_npu | 2.7.1 / 2.7.1 | 2.10.0 / 2.10.0.post7 |
+| transformers | 4.57.6, needs a 5.x overlay plus a shim for Qwen3.5 | 5.14.1, **supports `qwen3_5` natively** |
+| vllm / vllm-ascend | 0.11.0 / 0.11.0rc1 | 0.30.0 / 0.30.0rc2 |
+| Qwen3.5 in vLLM | absent | `Qwen3_5ForCausalLM` and `Qwen3_5ForConditionalGeneration` registered |
+| Fused linear attention | absent, reference fallback | triton FLA kernels present, including chunked delta-h and fused GDN gating |
+| verl | 0.8.0.dev0 preinstalled | **absent, must be added** |
+
+Rebasing therefore removes three problems at once: the slow fallback, the transformers 5.x overlay,
+and the `AutoModelForVision2Seq` shim. It adds one task, installing verl against torch 2.10.
+
+Host policy fixed on 2026-10-29: **only `npu` (100.100.135.175) may be used.** `npu2` is fully
+occupied by other users, about 61 GB of HBM held on all 8 chips.
