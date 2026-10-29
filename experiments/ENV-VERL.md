@@ -489,10 +489,12 @@ section "Round 2". Chips 6,7 only; containers removed after each run.
   footprint), not a sharding bug. **Checked checkpointing is doing real work rather than assuming**:
   disabling it raised allocated peak to ~21-23 GiB (2.3-2.5x) and reserved to ~33.9 GiB, and made
   each step faster (recompute's speed-for-memory trade, as expected). **Training throughput**:
-  ~730-880 tokens/s/rank with checkpointing on (the run item 4's losses came from), ~1,065-1,345
-  tokens/s/rank with it off — 13-25x slower than the 18,557 tok/s/chip batch-32 **inference**
-  prefill figure above, expected for forward+backward plus a small micro-batch (4, vs 32 for the
-  inference number). HBM headroom is large (9.1 of 64 GiB), so raising `micro_batch_size_per_gpu`
+  ~730-880 tokens/s with checkpointing on (the run item 4's losses came from), ~1,065-1,345
+  with it off. **CORRECTED 2026-10-29, see the mislabelling section below: these are AGGREGATE over
+  the 2-chip data-parallel group, not per chip. Divide by 2: about 365-440 and 530-670 per chip.**
+  Against the 18,557 tok/s/chip batch-32 **inference** prefill figure above that is 42-51x slower,
+  not the 13-25x first written here, and the gap is expected for forward+backward plus a small
+  micro-batch (4, vs 32 for the inference number). HBM headroom is large (9.1 of 64 GiB), so raising `micro_batch_size_per_gpu`
   is the next lever for training throughput, not attempted this round.
 - **A direct `fla_npu` kernel test: clean, confirmed negative — and a silent-failure hazard, not
   just an absence of capability.** Called `torch_npu.npu_chunk_gated_delta_rule` directly (outside
@@ -577,3 +579,75 @@ addendum" in that directory's own top-level `README.md`.
   training step through the built image's own `/opt/verl` on chips 6,7 reproduces the sweep's
   `micro_bs=24` numbers (losses 1.868->0.361, ~3,770-4,200 tok/s/chip, clean `DONE`).
 - **8-chip scaling (item 2) still waiting** on chips 0-5.
+
+
+## CORRECTION: every `tok_s` from the SFT instrumentation is an aggregate, not per chip (2026-10-29)
+
+**All training throughput figures in the sections above, and in `image/README.md` and the
+`verl_v030_20261029/README.md` sweep tables, are aggregates over the data-parallel group and were
+mislabelled "tokens/s/rank" or "tokens/s/chip".** Every sweep cell ran on 2 chips, so the per-chip
+figure is **half** the number printed.
+
+**The cause, verified in the source rather than inferred.** In
+`src/verl/verl/trainer/sft_trainer.py`, `_get_batch_seqlens()` performs
+`torch.distributed.all_gather_into_tensor` over the data-parallel group and returns the whole group's
+sequence lengths; the code's own comment marks the result `(global_bsz,)`. The timing line then does
+`_tok = sum(batch_seqlens)` and prints `tok_s = _tok / _compute_s`, where `_compute_s` is **one
+rank's** local step time. So the numerator is the whole group's tokens and the denominator is one
+chip's time. `get_data_parallel_size() == world_size` here, since `ulysses_sequence_parallel_size=1`,
+so this is a true n-way data-parallel split with no sequence parallelism to complicate it.
+
+**Corrected sweep figures, per chip** (divide the printed aggregate by the 2 chips it ran on). The
+**ratios within the sweep are unaffected**, because every cell has the same factor, so the
+configuration choice of micro-batch 24 with checkpointing on still stands and the 5.1x gain over
+micro-batch 4 is still 5.1x.
+
+| ckpt | micro-batch | printed (aggregate, 2 chips) | **per chip** |
+| --- | --- | --- | --- |
+| on | 4 | 744 | **372** |
+| on | 8 | 1,465 | **733** |
+| on | 16 | 2,870 | **1,435** |
+| on | 24 | 3,771 | **1,885** |
+| on | 32 | 3,216 | **1,608** |
+| off | 4 | 1,163 | **581** |
+| off | 8 | 1,844 | **922** |
+
+The selected configuration therefore runs at about **1,885 tokens/s/chip**, roughly **10x** below the
+18,557 tok/s/chip inference prefill figure rather than the 5x the mislabelled number implied. An
+independent 2-chip run measured 1,955 tokens/s/chip on fast steps, which cross-checks the corrected
+1,885.
+
+**How it was caught, and the lesson.** It surfaced only when a run at a *different* chip count forced
+the per-chip question. A metric whose units are wrong by exactly the world size is invisible as long
+as every measurement uses the same world size, which is why the sweep's internal consistency hid it
+for three rounds. **Any throughput figure must state the chip count it was measured at and whether it
+is aggregate or per chip**, and a metric derived from a distributed collective must be checked against
+the collective's scope before it is labelled.
+
+## Scaling 2 to 8 chips: efficiency 0.86 to 0.91, and headroom gets worse (2026-10-29)
+
+Same configuration, same data, 20 steps each, detached with markers. Steps 1 to 3 excluded as warmup,
+matching the memory-counter reset.
+
+| | per chip, all steps | per chip, fast steps | peak allocated | peak reserved | reserved share of 60.96 GiB |
+| --- | --- | --- | --- | --- | --- |
+| 2 chips | 1,208 tok/s | 1,955 tok/s (15 of 17) | 25.20 GiB | 54.05 GiB | 88.7% |
+| 8 chips | 1,043 tok/s | 1,782 tok/s (12 of 17) | 21.65 GiB | 59.38 GiB | 97.4% |
+
+**Scaling efficiency is 0.86 on all steps and 0.91 on fast steps**, so 4x the chips bought about 3.5x
+the total throughput. Treat it as a range rather than a value: the spread between the two bases is
+stall frequency and there is only one 20-step run per chip count. A healthy step is **not** slower at
+8 chips (about 4.1 to 4.9 s at both counts); the entire loss is in slow steps, of which 8 chips had 5
+of 17 against 2 chips' 2 of 17, and the 8-chip run also stays slow for three steps at the start
+instead of one. Step 16 stalled in **both** runs, which is unlikely to be coincidence and was not
+investigated.
+
+**Memory moves in opposite directions, and the binding one gets worse.** Allocated memory per rank
+*falls* by 3.5 GiB at 8 chips, as expected from a finer parameter and optimizer-state shard. But
+**reserved** memory, which is the resource that actually produces the out-of-memory wall, *rises*,
+leaving about 1.6 GiB free against about 6.9 GiB at 2 chips. That is the same region where
+micro-batch 32 began stalling in the sweep, so the 8-chip slow steps are plausibly allocator pressure
+and the wider allocated-to-reserved gap is plausibly larger transient all-gather buffers needed to
+reassemble parameters from more, smaller shards. **Both of those are untested hypotheses**, recorded
+as such. The practical consequence is firm either way: **adding chips does not buy per-chip memory
+headroom here, it costs it**, so a configuration chosen at 2 chips cannot be assumed safe at 8.
