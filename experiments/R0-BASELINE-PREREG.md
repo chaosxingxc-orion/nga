@@ -631,8 +631,9 @@ Unlike the other sources, `akhilaaa3` carries a genuine input-dependent componen
 at 33.86% / 70.99% / 61.11% against an empty-input baseline of 7.94% / 50.00% / 33.89%. Its
 `original` names are real business words. **Frozen:** any claim that name rendering is a training
 problem rather than a harness decision must be supported on this source, not on the others. Its
-held-out cells are small (27 to 34 units) and 26 primary values were flagged below the minimum
-sample count, so those numbers are noisy and must carry their sample sizes.
+held-out cells are small (**19 to 63** units on the `group70` split, and 17 to 43 question-disjoint;
+the "27 to 34" written here first was wrong, see §13.4) and 26 primary values were flagged below the
+minimum sample count, so those numbers are noisy and must carry their sample sizes.
 
 ### 12.8 The two input ablations are not ordered the way their names suggest
 
@@ -640,3 +641,87 @@ Question-only agrees with the primary on **72.03%** of T1 items while empty-inpu
 **63.16%**. The empty-input arm, which keeps an `Input:` header above an empty body, is therefore the
 **more** aggressive ablation of the two. **Frozen:** neither is described as the weaker control, and
 both are reported with their agreement rates, so no reader infers an ordering from the names.
+
+---
+
+## 13. Amendment 6, 2026-10-29, corrections to amendment 5
+
+Writing the results document against amendment 5 exposed four defects in amendment 5 itself, three
+of them mine and one a pre-existing ambiguity this file has carried since §3.1. They are fixed here
+rather than silently in code, and §12 is left standing so the sequence of reasoning survives.
+
+### 13.1 How a tie-abstention is scored, which §12.5 failed to say
+
+§12.5 ruled that an exact tie at the top of the argmax reference counts as an abstention, and then
+never said how an abstention scores inside a metric. That makes it unimplementable: a tie could be
+read as a flip, as agreement, or as excluded, and the three give different numbers. Frozen, per
+metric, with the reasoning, because the reasoning is what settles the next case:
+
+1. **Flip rate (T1, T3): the variant pair is dropped from the denominator**, and the dropped count is
+   reported beside the rate. A flip rate asks whether two decisions differ; where one of them does
+   not exist there is nothing to compare. Counting a tie as agreement would manufacture invariance,
+   which is precisely the §11 defect; counting it as a flip would manufacture sensitivity. Dropping
+   is the only treatment that invents no direction. This is the same convention as §11.1, which
+   already makes a flip rate null when a cell has no decisions at all.
+2. **Move rate (T2): the item is ineligible**, by the same argument, and ineligible items are already
+   counted and reported separately by §3 metric 3.
+3. **Accuracy floor: a tie is not correct**, and the tie rate is reported beside the accuracy. This is
+   deliberately *not* the same treatment as the flip rate, and the asymmetry is the point. Accuracy
+   asks whether the model produced the right answer, and no answer is not the right answer. Excluding
+   ties from accuracy would inflate it exactly on the cells where the model is least decisive.
+
+A cell whose tie rate exceeds **10%** carries that rate in every metric it reports, so a number
+resting on a heavily tied cell cannot be quoted without it.
+
+### 13.2 §12.6's equal-tokenization requirement does not apply to T1's manipulation
+
+§12.6 required that a prompt's candidates be made to tokenize to an equal number of tokens where
+possible. Applied to T1 that is self-defeating: T1's whole manipulation is replacing the level-name
+set, and two of its four variants cannot be length-equal without ceasing to be what they test. The
+`random` variant spans 2 to 7 tokens by construction, and nominal `original` names are real business
+words of unequal length. Forcing equality there would delete the manipulation, which is the §8.1
+error in a new costume.
+
+**Frozen.** The equal-tokenization requirement is **within a prompt** and applies to task
+construction generally and to any new task. **T1 is exempt** wherever a variant's design makes its
+names intrinsically unequal, namely `random` in every cell and `original` in nominal cells; those
+variants instead **report their within-prompt token-length spread** so a reader can see the dimension
+that was not removed. The requirement does bind T1's `digits` and `letters` variants, which already
+satisfy it, and the boolean and ordinal `original` names, which already do too.
+
+### 13.3 §12.6 overstated what the stored values preserve
+
+§12.6 said within-item differences are "already exact" because `log p_i − log p_j = s_i − s_j`. That
+is true of the real-valued scores and false of the stored ones: the readout holds post-softmax
+probabilities at finite precision, which is exactly why 5.21% of rows show two candidates tied at
+bit-identical values that were not tied in the underlying scores. **Frozen:** the claim is narrowed
+to the algebra, the stored probabilities are not treated as exact, and the requirement to store the
+raw summed log-probability per candidate stands as the fix rather than as a convenience.
+
+### 13.4 §12.7's sample sizes were wrong
+
+§12.7 said the `akhilaaa3` held-out cells hold 27 to 34 units. They hold **19 to 63** on the
+`group70` split (boolean 63 and 31, nominal 27 and 22, ordinal 30 and 19) and 17 to 43 on the
+question-disjoint split. Corrected in place. The separate count of 26 primary values below the
+minimum sample count was right.
+
+### 13.5 B-2's pass bar and its void trigger are two different tests
+
+§3.1 gives B-2 a 10-point bar whose failure voids all T1 numbers, while §4 item 1 voids the
+invariance result when the degenerate baseline is within 5 points. Two thresholds with two stated
+consequences, never reconciled. Frozen, with `gap = empty_input_flip − real_flip`, both argmax-scored
+per §11.2:
+
+- **gap ≥ +0.10**: B-2 passes.
+- **|gap| < 0.05**: the cell's T1 numbers are **void**. The real model and a model that cannot read
+  the input are indistinguishable on this metric, so the number carries no information about the
+  model either way. This is §4's rule and it is the only void trigger.
+- **otherwise**: B-2 **fails** and the numbers are **not void**. In particular a clearly negative gap,
+  where the real model flips substantially more than the empty-input arm, is a **finding** rather than
+  a void: it says reading the input makes the model less invariant, which is informative and must be
+  reported, not discarded. Eight of the ten cells in the first scored run are of this kind.
+
+§3.1's "all T1 numbers in this run are void" is narrowed to **the failing cell's** T1 numbers. Voiding
+every cell in the run because one cell cannot distinguish itself from a degenerate baseline would
+discard sound measurements, and §11.10 already records that this file prefers a recorded, auditable
+judgement to a blanket rule that destroys evidence.
