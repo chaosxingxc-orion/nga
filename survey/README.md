@@ -4,7 +4,7 @@
 >
 > 可打印版本：[nga-survey.pdf](nga-survey.pdf)（A4，由 `tools/build_pdf.py` 从本仓库的 Markdown 生成；README 与 1–9 章按顺序合并，带目录与页码）
 >
-> 由本报告派生的方案文档（**不属于报告**）：[proposal/00-research-proposal.md](proposal/00-research-proposal.md) —— 九轮实验的任务分解与预先登记结论，三个分期关口；[experiments/](experiments/) —— 预实验任务集与构建脚本。报告本身维持"只分析、不出方案"。
+> 由本报告派生的方案文档（**不属于报告**）：[proposal/00-research-proposal.md](../proposal/00-research-proposal.md) —— 九轮实验的任务分解与预先登记结论，三个分期关口；[experiments/](../experiments/) —— 预实验任务集与构建脚本。报告本身维持"只分析、不出方案"。
 
 ---
 

@@ -1,345 +1,345 @@
-# 研究提案：单遍类型化读出决策模型（Jev 类）的自训路线
+# Research Proposal: A Self-Training Route for Single-Pass Typed-Readout Decision Models (Jev class)
 
-> 2026-10-28 · 本文件**不属于**调研报告（1–9 章）。报告的范围是"只分析、不出方案"（§2.3 遗漏 8：强化方案另起文档），本文件就是那份另起的文档。
+> 2026-10-28 · This file is **not part of** the survey report (chapters 1–9). The report's scope is "analysis only, no plan" (§2.3 omission 8: the strengthening plan is a separate document). This file is that separate document.
 >
-> 上游依据：报告 §2.2.1（取定结构）、§2.2.4（18 行缺陷登记表）、§2.2.5（最终框架 P0″–P5″）、§2.3（九条遗漏）、§6.1.4.3（本地数据核对）、§8.2.2（缺哪个测量）、§8.2.4（什么会推翻框架）。本文件只在这些结论之上做**任务分解与预先登记**，不新增对文献的论断。
+> Upstream basis: report §2.2.1 (the fixed structure), §2.2.4 (the 18-row defect registry), §2.2.5 (final framework P0″–P5″), §2.3 (nine omissions), §6.1.4.3 (local data check), §8.2.2 (which measurement is missing), §8.2.4 (what would overturn the framework). This file only does **task decomposition and pre-registration** on top of those conclusions; it adds no new claims about the literature.
 
 ---
 
-## 0. 这份提案的三条硬规则
+## 0. Three hard rules of this proposal
 
-报告用十一轮讨论换来了三条方法论，它们不是建议，是本提案每一条任务的准入条件：
+The report bought three methodological rules with eleven rounds of discussion. They are not suggestions; they are the admission conditions for every task in this proposal:
 
-1. **每条措施必须指向缺陷登记表的某一行。** 不能指到行号的措施不进计划。登记表的"类型"一栏（接口 / 结构 / SFT / RL / 无）决定它该花哪种预算。
-2. **每条措施必须先写出它的无约束最优解。** 十一轮里七轮的命题有退化最优解（查表、常数分类器、忽略名字、学会生成器语法、各自校准、按档位位置给先验）。退化解没写出来的任务不进计划。
-3. **指标必须预先登记。** §8.2.1 A2：一致率在等价类事后选定时不可证伪。每一轮的等价类定义、留出划分、阈值拟合集、判定阈值，都在跑之前写进本文件并提交，跑完只填结果，不改口径。
+1. **Every measure must point at a row of the defect registry.** A measure that cannot name a row number does not enter the plan. The registry's "type" column (interface / structure / SFT / RL / none) decides which kind of budget it may spend.
+2. **Every measure must first write down its unconstrained optimum.** In seven of the eleven rounds the proposition had a degenerate optimum (lookup table, constant classifier, ignore the names, learn the generator grammar, calibrate each separately, prior by level position). A task whose degenerate solution has not been written down does not enter the plan.
+3. **Metrics must be pre-registered.** §8.2.1 A2: a consistency rate is unfalsifiable when the equivalence classes are chosen after the fact. For every round, the equivalence-class definition, the held-out split, the threshold-fitting set and the decision thresholds are written into this file and committed before the run; after the run only the results are filled in, the protocol is not changed.
 
-另有两条来自报告自我复核的限制，提案必须一直挂着：
+Two further limits come from the report's self-review and must stay attached to the proposal:
 
-- **四根柱子各只有一篇六周内的预印本**（免校准并集界 2610.10978、成本与语义同一旋钮 2609.37832、指标的菜单相对性 2610.16655、语义泛化在便宜架构上活着 2609.29429）。提案不得把它们当前提：R0 的任务之一就是在我们自己的数据上复现这四条，任一条复现失败则对应的轮次重新设计（§8.2.1 A7）。
-- **报告里八个框架是作者自造的**（§8.1.2），其中问题图、决策重复度、D4 的 30 子维度过拟合风险最高。本提案用到问题图（R5）与 D4 子集（R0 的口径），都必须标注"这是本报告的分类"，不得当作文献结论引用。
+- **Each of the four load-bearing pillars rests on a single preprint less than six weeks old** (calibration-free union bound 2610.10978, cost and semantics on one knob 2609.37832, menu relativity of the metric 2610.16655, semantic generalization alive on a cheap architecture 2609.29429). The proposal may not take them as premises: one of R0's tasks is to reproduce all four on our own data, and if any reproduction fails the corresponding round is redesigned (§8.2.1 A7).
+- **Eight of the frameworks in the report are the author's own constructs** (§8.1.2); the question graph, decision repetition and D4's 30 sub-dimensions carry the highest overfitting risk. This proposal uses the question graph (R5) and a D4 subset (R0's protocol); both must be labelled "this is the report's own classification" and must not be cited as literature conclusions.
 
 ---
 
-## 1. 终局目标与分期判定
+## 1. Endgame goal and stage gates
 
-**终局交付物**（§2.2.1 最后一行）：不是一个模型，而是**一份给业务人员撰写的模板标准**（问题、档位、类型、候选集合类型、判据、示例的写法）**加一个能读这份模板的模型**，外加一个确定性 harness（累积质量取阈、剩余走 C、互斥用边际 + abstain）。
+**Endgame deliverable** (§2.2.1 last line): not a model, but **a template standard written for business authors** (how to write questions, levels, types, candidate-set types, criteria and examples) **plus a model that can read that template**, plus a deterministic harness (cumulative-mass thresholds, residual to C, margin + abstain for exclusive sets).
 
-**终局尺寸**：Qwen 27B 稠密，或 35B-A3B（MoE，约 3B 激活）。0.6B / 0.8B / 2B / 4B / 9B 的阶梯**不是终局的缩小版**，是结构性改动的试验台（§6.1.5）。这一改口径的后果写在 R6。
+**Endgame size**: Qwen 27B dense, or 35B-A3B (MoE, about 3B active). The 0.6B / 0.8B / 2B / 4B / 9B ladder is **not a scaled-down endgame**; it is a testbed for structural changes (§6.1.5). The consequence of this reframing is written in R6.
 
-**三个分期关口**（没过关不进下一期）：
+**Three stage gates** (no gate passed, no next stage):
 
-| 关口 | 判定 | 没过关怎么办 |
+| Gate | Criterion | If not passed |
 | --- | --- | --- |
-| **G1 指标可测** | 预先登记的 (输入, 问题集) 等价类上，四个分母并排的一致率能跑出数；"问题间重划"有分母数据 | 缺陷 12 未解除，整个方向停在测量阻塞上。此时只能做 P2″ 地板与接口类修补，不得启动任何以一致性为目标的训练 |
-| **G2 语义可修** | 渲染修补 + 符号调优能把"名字压倒定义"修回来（判据见 R3） | §8.2.4 第四条触发："核心逻辑是语义泛化"降级为愿望。路线退回"成本 + 接口契约"，终局目标重写 |
-| **G3 可配置成立** | 非技术业务专家写的模板，模型读得动（判据见 R7） | §8.1.5 盲区 4 触发。交付物从"模板标准 + 模型"改为"工程师写模板 + 模型"，业务价值主张重写 |
+| **G1 metric measurable** | On pre-registered (input, question set) equivalence classes, the consistency rate with all four denominators side by side produces numbers; "cross-question re-partition" has denominator data | Defect 12 is not cleared; the whole direction stops at a measurement block. Only P2″ floors and interface-type fixes may proceed; no training aimed at consistency may start |
+| **G2 semantics repairable** | Rendering fix + symbol tuning repair "names override definitions" (criterion in R3) | §8.2.4 item 4 fires: "the core logic is semantic generalization" is downgraded to a wish. The route falls back to "cost + interface contract" and the endgame goal is rewritten |
+| **G3 configurability holds** | Templates written by non-technical business experts are readable by the model (criterion in R7) | §8.1.5 blind spot 4 fires. The deliverable changes from "template standard + model" to "engineer-written templates + model"; the business value claim is rewritten |
 
 ---
 
-## 2. 四条工作线与任务编号
+## 2. Four work lines and task numbering
 
-| 线 | 范围 | 任务前缀 |
+| Line | Scope | Task prefix |
 | --- | --- | --- |
-| **D 数据** | 数据形态核对、分母数据构造、规则多样性语料、标签来源与分歧度量、留出划分 | `D-*` |
-| **M 模型** | 训练与调优：渲染、符号调优、序数结构、原生 unknown、蒸馏、阶梯上行 | `M-*` |
-| **E 评测** | 口径与 harness：四分母一致率、决策级配对、边际分布、阈值拟合、承重结论复现 | `E-*` |
-| **B 业务** | 模板标准、档位与类型的声明规范、业务专家作者评测、回溯标签契约 | `B-*` |
+| **D data** | data-shape checks, denominator data construction, rule-diversity corpus, label sources and disagreement measurement, held-out splits | `D-*` |
+| **M model** | training and tuning: rendering, symbol tuning, ordinal structure, native unknown, distillation, ladder ascent | `M-*` |
+| **E evaluation** | protocol and harness: four-denominator consistency, decision-level pairing, margin distribution, threshold fitting, reproduction of load-bearing results | `E-*` |
+| **B business** | template standard, declaration spec for levels and types, business-author evaluation, retrospective-label contract | `B-*` |
 
-**依赖主干**：`E-0 口径` → `D-1 分母数据` → `M-2 接口` → `M-3 SFT` → `M-5 蒸馏` → `M-6 阶梯` → `B-7 release`。`E-*` 全程先行：没有口径的轮次不许跑训练。
+**Dependency spine**: `E-0 protocol` → `D-1 denominator data` → `M-2 interface` → `M-3 SFT` → `M-5 distillation` → `M-6 ladder` → `B-7 release`. `E-*` leads throughout: no round may train without a protocol.
 
 ---
 
-## 3. 轮次计划（每轮预先登记结论）
+## 3. Round plan (pre-registered conclusions for every round)
 
-每轮固定六栏：**问题 / 对应登记表行 / 锁定的结论（正反两面）/ 判定口径与阈值 / 退化解检查 / 任务分配**。
-
----
-
-### R0 口径与基线：把测量先立起来（无任何权重更新）
-
-**问题**：在训练之前，四个分母的一致率各是多少？类型化读出相对同骨干的标签对数概率读出，有没有一致性优势？混合骨干的递归层是不是真的压掉了候选所需但不显著的方面？
-
-**对应登记表行**：6（顺序，已解决，作为对照）、11（混合 vs 纯注意力，零命中、被测量阻塞）、12（等价类一致率，无人定义）、16（跨候选可比性）、17（专家档位必须被读）。
-
-**锁定的结论（预先登记）**：
-
-| # | 我们预期 | 若反向则推翻什么 |
-| --- | --- | --- |
-| R0-1 | 四个分母的一致率跨度不小于 30 个百分点（文献两端相差 46 pp） | 若跨度 < 10 pp，则"一致率取定分母才是指标"这条论证的效应量被夸大，P1″ 的分母之争降级 |
-| R0-2 | 类型化单遍读出在预先登记等价类上的一致率**优于**同骨干标签对数概率读出 | **反向即推翻 P0″ / P1″ 的全部动机**（§8.2.4 第一条）：那样这个接口只剩成本优势，提案退回纯成本路线 |
-| R0-3 | 档位名从 {1–5} 换成 {a–e} / 业务词 / 随机串时，读出分布显著移动（翻转率 > 5%） | 若不动，缺陷 1 与 17 在我们的骨干上不成立，R3 的符号调优取消 |
-| R0-4 | 0.8B 混合骨干在"所需方面不显著"档上的准确率低于 0.6B 纯注意力，且差距随方面显著度下降而扩大 | 若无差异，缺陷 11 消解，取定顺序的残差风险解除，这对框架是好消息 |
-| R0-5 | 并集界（2610.10978）在我们的数据上不被任何一格推翻 | 任一格推翻即 **P2″ / P3″ 的地基塌**（§8.2.4 第三条），harness 契约重新设计 |
-| R0-6 | 未调优读出达到"决策调优后"的 76%–97%（2610.15501 的规律在我们骨干上复现） | 若未调优读出远低于此，则"调优只调整怎么读"不成立，SFT 的预算要加大 |
-
-**判定口径与阈值**：
-
-- 等价类**预先登记**：R0 只用两种可机械判定的等价类，避免事后选定——(i) 同一输入的 8 种无关扰动（空白、字段顺序、无关问题加减重排、档位名集合替换）；(ii) Open-Jev 合成部分的反事实配对（翻一个字段标签必变的 86% 那一侧作判别，其余作不变性）。自然语言业务等价类留到 D-1。
-- 一致率用**决策级配对口径**：累计失败集、等价类翻转率、公理违反。**禁止**报聚合准确率（换 8 种顺序准确率变化 < 2 pp 而累计失败集扩大 27–29%）。
-- 阈值 τ 拟合在留出标签上，按（问题、档位集合版本、规则版本）三元组分别拟合，绝不在测试集上拟合。
-
-**退化解检查**：R0 的所有不变性检查都能被"只读问题措辞、忽略输入"的退化模型通过。所以 R0 必须同时报 **P2″ 正确率地板**（typed-decisions、akhilaaa3、kev binding-v1、Open-Jev 合成、bev counterfactual），以及一个显式的退化基线：**把输入整段替换成空串**，看一致率掉多少。若退化基线的一致率与真模型相差 < 5 pp，本轮所有一致性数字作废。
-
-**任务分配**：
-
-| 任务 | 内容 | 状态 |
-| --- | --- | --- |
-| `E-0.1` | 决策级配对评测 harness：累计失败集、等价类翻转率、边际分布（累积质量到 τ 的距离 ÷ 类内方差） | 待做 |
-| `E-0.2` | 四分母一致率并排报告口径（字节级重跑 / 顺序置换 / 保答案对抗变体 / 预先登记等价类） | 待做 |
-| `E-0.3` | 同骨干标签对数概率基线（检查表第一项，26 篇只有 5 篇合规） | 待做 |
-| `E-0.4` | 四根柱子的复现：并集界、菜单相对性 IIA、联合 vs 可缓存独立编码、一个通用问题零样本跨基准 | 待做 |
-| `E-0.5` | 退化基线（空输入、仅问题措辞）与 P2″ 地板 | 待做 |
-| `D-0.1` | T1 档位名不变性（已构建：24,000 + 2,216 + 30,720 条） | **已完成** |
-| `D-0.2` | T2 定义互换 / 档位重排判别（已构建：14,400 + 1,314 + 23,040 条） | **已完成** |
-| `D-0.3` | T3 问题集加减重排不变性（已构建：24,000 条） | **已完成** |
-| `D-0.4` | T4 缺陷 11 对照集：同输入 × N 候选 × 按所需方面显著度分档 | 待做 |
-| `M-0.1` | 环境：Qwen3.5-0.8B 需 transformers 5.x，RL 镜像是 4.57.1，必须先解决（见 §5） | **阻塞中** |
-
-**产出物**：`experiments/R0/` 的口径文档 + 结果表 + 一份"四根柱子复现情况"的单页。**R0 不产生任何模型权重。**
-
-**G1 关口在本轮之后判定。**
+Every round has six fixed fields: **question / registry rows / locked conclusions (both directions) / protocol and thresholds / degenerate-solution check / task assignment**.
 
 ---
 
-### R1 数据制作：造出"问题间重划"的分母与规则多样性
+### R0 Protocol and baselines: stand the measurement up first (no weight update at all)
 
-**问题**：P1″ 的判别项（同输入在划分不同的问题下必须移动）本地分母为零；训"理解业务要求的能力"所需的规则多样性也为零（147,139 行只有 4,101 个不同问题字符串）。这两样是现有构件的新配对，不是新任务类型。
+**Question**: Before any training, what is the consistency rate under each of the four denominators? Does typed readout have a consistency advantage over same-backbone label log-probability readout? Do the recurrent layers of the hybrid backbone really crush the aspects a candidate needs but that are not salient?
 
-**对应登记表行**：12（主指标分母）、17（专家档位）、3（静默范围遗漏，对应规则沉默型 unknown）。
+**Registry rows**: 6 (order, solved, used as control), 11 (hybrid vs attention-only, zero hits, measurement-blocked), 12 (equivalence-class consistency, defined by nobody), 16 (cross-candidate comparability), 17 (expert levels must be read).
 
-**锁定的结论（预先登记）**：
+**Locked conclusions (pre-registered)**:
 
-| # | 我们预期 | 若反向则推翻什么 |
+| # | We expect | If reversed, what falls |
 | --- | --- | --- |
-| R1-1 | 用"规则明文 + 代码求值"能造出同输入 × 相互竞争规则的配对，且代码标签与人工抽检一致率 > 95% | 若 < 95%，合成路线的标签本身不可信，P1″ 的判别项要换成人工标注，预算量级变化 |
-| R1-2 | 自然语言输入上的业务约定标签，标注者分歧率与 typed-decisions 的 35% 同量级 | 若显著更低，则"约定可争议"被夸大；若更高，则 P2″ 的地板本身有天花板，必须先声明"地板测的是对约定的一致性而非正确性" |
-| R1-3 | 规则沉默型 unknown（问题不覆盖输入）**没有**代码标签来源，只能由写规则的人给 | 若能生成，则遗漏 3 的缺口变便宜，R4 的原生 unknown 训练提前 |
+| R0-1 | The spread of consistency across the four denominators is at least 30 percentage points (the literature's two ends differ by 46 pp) | If the spread is < 10 pp, the effect size behind "consistency is only a metric once the denominator is fixed" was exaggerated, and the denominator dispute in P1″ is downgraded |
+| R0-2 | Typed single-pass readout has **higher** consistency on the pre-registered equivalence classes than same-backbone label log-probability readout | **Reversal overturns the whole motivation of P0″ / P1″** (§8.2.4 item 1): the interface would then keep only its cost advantage and the proposal falls back to a pure cost route |
+| R0-3 | Changing level names from {1–5} to {a–e} / business words / random strings moves the readout distribution significantly (flip rate > 5%) | If it does not move, defects 1 and 17 do not hold on our backbone and R3's symbol tuning is cancelled |
+| R0-4 | The 0.8B hybrid backbone is less accurate than the 0.6B attention-only backbone on the "required aspect is not salient" bins, and the gap widens as aspect salience drops | If there is no difference, defect 11 dissolves and the residual risk of the fixed order is cleared; good news for the framework |
+| R0-5 | The union bound (2610.10978) is not overturned in any cell on our data | Any cell overturning it **collapses the foundation of P2″ / P3″** (§8.2.4 item 3); the harness contract is redesigned |
+| R0-6 | Untuned readout reaches 76%–97% of "decision-tuned" (the regularity in 2610.15501 reproduces on our backbone) | If untuned readout is far below, "tuning only adjusts how to read" does not hold and the SFT budget must grow |
 
-**判定口径与阈值**：
+**Protocol and thresholds**:
 
-- "问题间重划"分母的最低规模：同一输入 × 至少 3 条相互竞争的约定 × 至少 2,000 个输入。判别指标：同输入在两条竞争规则下的档位分布总变差 > 0.5 的比例。
-- 规则多样性目标：**每个输入上成百上千条不同写法的规则**。按 §6.3.2，决定"用上下文定义任务"能力存亡的变量是训练样本之间任务定义是否在变，所以留出必须按**规则族**切（Open-Jev v1.1 的 `family_disjoint … 1 ood` 是现成形式，本地有 5,120 行 ood）。
-- 三套数据必须分开记账，不得混用：**合成规则**（代码标签，测形式规则上的 P2″ 地板）、**自然语言约定**（人给标签，测语义那一半）、**规则沉默**（人给标签，测 unknown）。
+- Equivalence classes are **pre-registered**: R0 uses only two mechanically decidable kinds, to avoid after-the-fact selection: (i) eight irrelevant perturbations of the same input (whitespace, field order, adding / removing / reordering unrelated questions, replacing the level-name set); (ii) counterfactual pairs from the Open-Jev synthetic portion (the 86% side where flipping one field must change the label serves as discrimination, the rest as invariance). Natural-language business equivalence classes are left to D-1.
+- Consistency uses the **decision-level paired protocol**: cumulative failure set, equivalence-class flip rate, axiom violations. Reporting aggregate accuracy is **forbidden** (across eight orderings accuracy moves < 2 pp while the cumulative failure set grows 27–29%).
+- Threshold τ is fitted on held-out labels, separately per (question, level-set version, rule version) triple, never on the test set.
 
-**退化解检查**：合成规则数据的无约束最优解是**学会生成器的规则语法**（一个解析器）。它在同语法新规则上泛化，在"牛奶是液体"那一半上没有任何保证。所以：(i) 留出集必须含**不同语法**的规则写法，不只是不同规则；(ii) 任何在合成集上的增益，必须在自然语言约定集上独立复核才算；(iii) 合成集**不得**用作 P1″ 在业务语义上的分母。
+**Degenerate-solution check**: every invariance check in R0 can be passed by a degenerate model that "reads only the question wording and ignores the input". So R0 must also report the **P2″ accuracy floor** (typed-decisions, akhilaaa3, kev binding-v1, Open-Jev synthetic, bev counterfactual) and an explicit degenerate baseline: **replace the whole input with an empty string** and see how much consistency drops. If the degenerate baseline's consistency is within 5 pp of the real model, every consistency number in this round is void.
 
-**任务分配**：
+**Task assignment**:
 
-| 任务 | 内容 |
+| Task | Content | Status |
+| --- | --- | --- |
+| `E-0.1` | Decision-level paired evaluation harness: cumulative failure set, equivalence-class flip rate, margin distribution (distance from cumulative mass to τ ÷ within-class variance) | to do |
+| `E-0.2` | Side-by-side report protocol for the four consistency denominators (byte-level rerun / order permutation / answer-preserving adversarial variants / pre-registered equivalence classes) | to do |
+| `E-0.3` | Same-backbone label log-probability baseline (checklist item 1; only 5 of 26 papers comply) | to do |
+| `E-0.4` | Reproduction of the four pillars: union bound, menu-relativity IIA, joint vs cacheable independent encoding, one generic question zero-shot across benchmarks | to do |
+| `E-0.5` | Degenerate baselines (empty input, question wording only) and the P2″ floor | to do |
+| `D-0.1` | T1 level-name invariance (built: 24,000 + 2,216 + 30,720 records) | **done** |
+| `D-0.2` | T2 definition-swap / level-reorder discrimination (built: 14,400 + 1,314 + 23,040 records) | **done** |
+| `D-0.3` | T3 question-set add / remove / reorder invariance (built: 24,000 records) | **done** |
+| `D-0.4` | T4 defect-11 control set: same input × N candidates × binned by salience of the required aspect | to do |
+| `M-0.1` | Environment: Qwen3.5-0.8B needs transformers 5.x, the RL image pins 4.57.1; must be resolved first (see §5) | **blocked** |
+
+**Outputs**: protocol document + result tables in `experiments/R0/`, plus a one-page "reproduction status of the four pillars". **R0 produces no model weights.**
+
+**Gate G1 is decided after this round.**
+
+---
+
+### R1 Data construction: build the "cross-question re-partition" denominator and rule diversity
+
+**Question**: The discrimination item of P1″ (the same input must move under partition-different questions) has a local denominator of zero; the rule diversity needed to train "the ability to understand business requirements" is also zero (147,139 rows contain only 4,101 distinct question strings). Both are new pairings of existing components, not new task types.
+
+**Registry rows**: 12 (primary-metric denominator), 17 (expert levels), 3 (silent scope omission, corresponding to rule-silent unknown).
+
+**Locked conclusions (pre-registered)**:
+
+| # | We expect | If reversed, what falls |
+| --- | --- | --- |
+| R1-1 | "Rule text + code evaluation" can produce same-input × competing-rule pairs, and code labels agree with human spot checks > 95% | If < 95%, the synthetic route's labels are themselves untrustworthy; P1″'s discrimination item must switch to human annotation and the budget changes by an order of magnitude |
+| R1-2 | On natural-language inputs, annotator disagreement on business-convention labels is of the same order as typed-decisions' 35% | If significantly lower, "conventions are contestable" was exaggerated; if higher, the P2″ floor itself has a ceiling and must be declared as "the floor measures agreement with the convention, not correctness" |
+| R1-3 | Rule-silent unknown (the question does not cover the input) has **no** code-label source; only the rule author can provide it | If it can be generated, the gap of omission 3 becomes cheap and R4's native-unknown training moves earlier |
+
+**Protocol and thresholds**:
+
+- Minimum size of the "cross-question re-partition" denominator: same input × at least 3 competing conventions × at least 2,000 inputs. Discrimination metric: share of inputs whose level distributions under two competing rules have total variation > 0.5.
+- Rule-diversity target: **hundreds to thousands of differently phrased rules per input**. Per §6.3.2, the variable that decides whether "defining the task in context" survives is whether the task definition varies across training samples, so the held-out split must cut by **rule family** (Open-Jev v1.1's `family_disjoint … 1 ood` is a ready-made form; 5,120 ood rows exist locally).
+- Three datasets are accounted separately and never mixed: **synthetic rules** (code labels; measure the P2″ floor on formal rules), **natural-language conventions** (human labels; measure the semantic half), **rule-silent** (human labels; measure unknown).
+
+**Degenerate-solution check**: the unconstrained optimum on synthetic-rule data is **learning the generator's rule grammar** (a parser). It generalizes to new rules in the same grammar and gives no guarantee on the "milk is a liquid" half. Therefore: (i) the held-out set must contain rules written in a **different grammar**, not merely different rules; (ii) any gain on the synthetic set only counts after independent confirmation on the natural-language convention set; (iii) the synthetic set **must not** serve as P1″'s denominator for business semantics.
+
+**Task assignment**:
+
+| Task | Content |
 | --- | --- |
-| `D-1.1` | 竞争约定生成器：基于 Open-Jev 合成生成器（规则可见、三值逻辑、含 abstain、按族留出）扩一层"同输入换规则"配对 |
-| `D-1.2` | 规则改写多样性：同一条规则的 N 种自然语言写法（含否定、例外、嵌套条件），按语法族留出 |
-| `D-1.3` | 自然语言约定标注：从 typed-decisions / akhilaaa3 的对话型输入出发，业务方给约定标签，**同时记录标注者分歧** |
-| `D-1.4` | 规则沉默集：故意写不覆盖输入的问题，正确输出是 unknown |
-| `D-1.5` | 留出划分与版本化：按（规则族, 语法族, 档位集合版本）三轴切，提交为不可变 manifest |
-| `B-1.1` | 档位与类型的声明规范初稿（名字 / 定义 / 类型三者缺一不可；harness 限制档数） |
-| `E-1.1` | 分母数据的健全性检查：竞争规则真的诱导不同划分（而非同一规则的不同视图） |
+| `D-1.1` | Competing-convention generator: extend the Open-Jev synthetic generator (visible rules, three-valued logic, abstain, family-level hold-out) with a "same input, different rule" pairing layer |
+| `D-1.2` | Rule-rewrite diversity: N natural-language phrasings of the same rule (negation, exceptions, nested conditions), held out by grammar family |
+| `D-1.3` | Natural-language convention annotation: starting from the dialogue-type inputs of typed-decisions / akhilaaa3, the business side gives convention labels **and annotator disagreement is recorded** |
+| `D-1.4` | Rule-silent set: questions deliberately written not to cover the input; the correct output is unknown |
+| `D-1.5` | Held-out split and versioning: cut along three axes (rule family, grammar family, level-set version), committed as an immutable manifest |
+| `B-1.1` | First draft of the declaration spec for levels and types (name / definition / type all required; harness limits the number of levels) |
+| `E-1.1` | Sanity check of the denominator data: competing rules really induce different partitions (not different views of the same rule) |
 
-**产出物**：三套数据集 + 不可变 manifest + 一份"标注者分歧度量"报告。
+**Outputs**: three datasets + immutable manifest + an "annotator disagreement measurement" report.
 
 ---
 
-### R2 接口与 harness：不动权重能拿到的全部收益
+### R2 Interface and harness: everything obtainable without touching the weights
 
-**问题**：登记表里首选修法是"接口"的缺陷（1、4、5、7）和"结构"的缺陷（6、11）占多数，而 RL 不是任何一行的首选。先把不动权重的收益全部拿掉，再谈训练。
+**Question**: In the registry, defects whose first-choice fix is "interface" (1, 4, 5, 7) and "structure" (6, 11) are the majority, and RL is the first choice for no row. Take all the weight-free gains first, then talk about training.
 
-**对应登记表行**：1（渲染修补 +0.1511）、4（算术外包、数值走有序区间 MAE 5.18% → 1.84%）、5（留出集阈值把拒绝率 7% → 79%）、6（块因果 / 位置重置 / 分支隔离，已解决且免费）、7（独立 Noul 消除菜单相对性但 −8.7 点）、16（互斥用边际 + abstain）。
+**Registry rows**: 1 (rendering fix +0.1511), 4 (outsource arithmetic; numbers through ordered bins, MAE 5.18% → 1.84%), 5 (held-out threshold lifts the rejection rate 7% → 79%), 6 (block-causal / position reset / branch isolation, solved and free), 7 (independent Noul removes menu relativity but costs −8.7 points), 16 (exclusive sets use margin + abstain).
 
-**锁定的结论（预先登记）**：
+**Locked conclusions (pre-registered)**:
 
-| # | 我们预期 | 若反向则推翻什么 |
+| # | We expect | If reversed, what falls |
 | --- | --- | --- |
-| R2-1 | 渲染修补（中性标识 + 定义，代码映回业务名）在我们骨干上带来正增益，量级与 +0.1511 同阶 | 若为负或零，缺陷 1 的"唯一路径"断掉一条，G2 的压力全压到符号调优 |
-| R2-2 | 留出集阈值把规则沉默型 unknown 的正确拒绝率从约 7% 抬到 > 50% | 若抬不上去，原生 unknown 必须进 SFT（R4），且"最差的一格"保持最差 |
-| R2-3 | 累积质量取阈 **优于** argmax 与期望：相邻档质量接近时的决策翻转率显著更低 | 若无差异，P3″ 的操作符取定失去理由，harness 可以简化 |
-| R2-4 | 独立 Noul 打分的代价在我们数据上与 −8.7 点同阶；排序层 IIA 免费、概率层不免费 | 若概率层 IIA 也免费，菜单相对性（四根柱子之一）在我们设置下不成立 |
-| R2-5 | 算术 / 时间类问题外包给代码后，难度 3 档的准确率回到难度 1 档水平（87.7% 一线） | 若回不去，则失败不在算术而在"判断这题需要算术"，而模型不知道自己的界限（盲区 3） |
+| R2-1 | The rendering fix (neutral ids + definitions, code maps back to business names) gives a positive gain on our backbone of the same order as +0.1511 | If negative or zero, one of defect 1's "only paths" breaks and all G2 pressure falls on symbol tuning |
+| R2-2 | A held-out threshold lifts the correct-rejection rate on rule-silent unknown from about 7% to > 50% | If it cannot be lifted, native unknown must enter SFT (R4) and "the worst cell" stays worst |
+| R2-3 | Cumulative-mass thresholding **beats** argmax and expectation: the decision flip rate when adjacent levels have similar mass is significantly lower | If no difference, P3″'s choice of operator loses its reason and the harness can be simplified |
+| R2-4 | The cost of independent Noul scoring on our data is of the same order as −8.7 points; ranking-level IIA is free, probability-level is not | If probability-level IIA is also free, menu relativity (one of the four pillars) does not hold in our setting |
+| R2-5 | After outsourcing arithmetic / time questions to code, accuracy on difficulty 3 returns to the difficulty 1 level (around 87.7%) | If it does not return, the failure is not in arithmetic but in "judging that this question needs arithmetic", and the model does not know its own limit (blind spot 3) |
 
-**判定口径与阈值**：
+**Protocol and thresholds**:
 
-- 边际分布是本轮的核心新指标：**有多大比例的决策，其累积质量到 τ 的距离大于同等价类内的分数方差**。这个量不需要新标签，只需要等价类（§2.3 输入 2）。
-- 互斥 / 可叠加分治：互斥用候选隔离 + 联合 softmax + 边际 + 显式 abstain；可叠加用每候选独立 Noul。两条路各自报 IIA（排序层与概率层分开）。
-- 一律**不用** argmax、**不用**期望（期望把双峰藏成中间档）。
+- Margin distribution is this round's core new metric: **what share of decisions have a distance from cumulative mass to τ that exceeds the score variance within the same equivalence class**. This quantity needs no new labels, only equivalence classes (§2.3 input 2).
+- Exclusive / stackable split: exclusive uses candidate isolation + joint softmax + margin + explicit abstain; stackable uses independent Noul per candidate. Each path reports IIA separately (ranking level and probability level).
+- Never **argmax**, never **expectation** (expectation hides a bimodal distribution as a middle level).
 
-**退化解检查**：渲染修补的无约束最优解是**完全忽略名字**，这同时通过"档位名不变"检查。所以 R2-1 必须配 R0-3 的判别项：定义互换 / 档位重排后分布**必须跟着动**。两项同时通过才算。
+**Degenerate-solution check**: the unconstrained optimum of the rendering fix is **ignoring names entirely**, which also passes the "level-name invariance" check. So R2-1 must be paired with R0-3's discrimination item: after definition swap / level reorder the distribution **must move**. Both must pass.
 
-**任务分配**：`E-2.1` 累积质量 harness 与三种操作符对照；`E-2.2` 边际分布报告；`E-2.3` 互斥 / 可叠加 IIA 双层口径；`M-2.1` 渲染修补；`M-2.2` 算术外包与数值有序区间；`M-2.3` 留出集阈值拟合与 C 分支；`B-2.1` harness 契约文档（阈值按三元组版本化）。
+**Task assignment**: `E-2.1` cumulative-mass harness with three operators compared; `E-2.2` margin-distribution report; `E-2.3` two-level IIA protocol for exclusive / stackable; `M-2.1` rendering fix; `M-2.2` arithmetic outsourcing and ordered numeric bins; `M-2.3` held-out threshold fitting and the C branch; `B-2.1` harness contract document (thresholds versioned per triple).
 
-**产出物**：harness 实现 + 契约文档 + 一份"不动权重能拿到多少"的收益表。本轮之后才允许开始训练。
+**Outputs**: harness implementation + contract document + a gain table "how much is obtainable without touching the weights". Training may begin only after this round.
 
 ---
 
-### R3 SFT 第一轮：语义能不能被读回来（G2 关口）
+### R3 First SFT round: can the semantics be read back (gate G2)
 
-**问题**：名字压倒定义是全报告最弱的一层，而它与 §2.2.1 的要求 (b)（业务规则调整决策依据）是同一件事。所以渲染修补与符号调优从"可选"升为**承重**。
+**Question**: "Names override definitions" is the weakest layer in the whole report, and it is the same thing as requirement (b) of §2.2.1 (business rules change the decision basis). So the rendering fix and symbol tuning are promoted from "optional" to **load-bearing**.
 
-**对应登记表行**：1（标签名压倒定义）、17（专家档位必须被读）、8（序数压缩）、14（记录 vs 观测）。
+**Registry rows**: 1 (label names override definitions), 17 (expert levels must be read), 8 (ordinal compression), 14 (record vs observation).
 
-**锁定的结论（预先登记）**：
+**Locked conclusions (pre-registered)**:
 
-| # | 我们预期 | 若反向则推翻什么 |
+| # | We expect | If reversed, what falls |
 | --- | --- | --- |
-| R3-1 | 渲染修补 + 符号调优后，名字-定义对调协议下的 AUC **显著高于**基线的 23.2%（判定线：> 60%） | **达不到即 G2 关口不过**，§8.2.4 第四条触发："语义泛化在这个接口上可能不可达" |
-| R3-2 | 删除全部定义后准确率**显著下降**（基线是"不变"，0.8487） | 若仍不变，模型没在读定义，符号调优失败 |
-| R3-3 | 决策调优后的 k-shot 曲线**不变平** | 变平即 §8.2.4 第五条触发：业务人员可配置这一前提受损，G3 预警 |
-| R3-4 | 档位集合（K、名字、定义）在训练样本之间变，是 R3-1 成立的必要条件；固定档位集合的对照组达不到判定线 | 若固定档位集合也能达到，则"任务定义必须在变"这条（§6.3.2）在我们设置下不成立 |
-| R3-5 | 在留出**规则族**上，调优后模型相对未调优读出**不退化** | 退化即"训能力"的可检验形式失败（§2.3 输入 3 的判据） |
+| R3-1 | After rendering fix + symbol tuning, AUC under the name-definition swap protocol is **significantly above** the 23.2% baseline (decision line: > 60%) | **Failing this fails gate G2**; §8.2.4 item 4 fires: "semantic generalization may be unreachable on this interface" |
+| R3-2 | Deleting all definitions **significantly lowers** accuracy (the baseline is "unchanged", 0.8487) | If still unchanged, the model is not reading definitions and symbol tuning failed |
+| R3-3 | The k-shot curve after decision tuning **does not flatten** | Flattening fires §8.2.4 item 5: the premise that business staff can configure the model is damaged; G3 warning |
+| R3-4 | The level set (K, names, definitions) varying across training samples is a necessary condition for R3-1; the fixed-level-set control group does not reach the decision line | If a fixed level set also reaches it, "the task definition must vary" (§6.3.2) does not hold in our setting |
+| R3-5 | On held-out **rule families**, the tuned model **does not regress** relative to untuned readout | Regression means the testable form of "train an ability" fails (criterion of §2.3 input 3) |
 
-**判定口径与阈值**：
+**Protocol and thresholds**:
 
-- 本轮**必须**同时报三组：名字-定义对调 AUC、删除定义的准确率差、k-shot 曲线（1/2/4/8/16-shot，调优前后各一条）。全文献无人测过第三组（§3.1 盲区 1），所以它既是我们的判定项也是一个可发表的测量。
-- 留出按规则族与语法族双切（D-1.5 的 manifest）。
-- 训练手段限定在：LoRA、数据构成、结构隔离、温度（这四样是可证实有效的）。**本轮不用 RL**（登记表里 RL 不是任何一行的首选修法）。
+- This round **must** report three groups together: name-definition swap AUC, accuracy difference after deleting definitions, k-shot curves (1/2/4/8/16-shot, one curve before and one after tuning). Nobody in the literature has measured the third (§3.1 blind spot 1), so it is both our decision item and a publishable measurement.
+- Hold-out cuts by rule family and grammar family together (D-1.5's manifest).
+- Training means are limited to LoRA, data composition, structural isolation and temperature (the four that are demonstrably effective). **No RL this round** (in the registry, RL is the first-choice fix for no row).
 
-**退化解检查**：符号调优的无约束最优解是**完全忽略名字**（R2 同一个退化解）；"训能力"在合成规则上的无约束最优解是**学会生成器语法**。两者都必须用判别项封住：定义互换后分布必须动；留出语法族上必须不退化。
+**Degenerate-solution check**: the unconstrained optimum of symbol tuning is **ignoring names entirely** (the same degenerate solution as R2); the unconstrained optimum of "train an ability" on synthetic rules is **learning the generator grammar**. Both must be sealed by discrimination items: the distribution must move after definition swap; no regression on held-out grammar families.
 
-**任务分配**：`M-3.1` 符号调优配方（档位集合在样本间变）；`M-3.2` 对照组（固定档位集合）；`M-3.3` LoRA / 数据构成 / 温度消融；`E-3.1` 名字-定义对调协议；`E-3.2` k-shot 曲线（调优前后）；`E-3.3` 留出规则族不退化检验；`D-3.1` 训练集按"档位集合必须变"重采样。
+**Task assignment**: `M-3.1` symbol-tuning recipe (level set varies across samples); `M-3.2` control group (fixed level set); `M-3.3` LoRA / data composition / temperature ablations; `E-3.1` name-definition swap protocol; `E-3.2` k-shot curves (before and after tuning); `E-3.3` no-regression test on held-out rule families; `D-3.1` resample the training set so that "the level set must vary".
 
-**产出物**：第一组权重 + G2 判定书。**G2 关口在本轮之后判定。**
+**Outputs**: first set of weights + G2 decision memo. **Gate G2 is decided after this round.**
 
 ---
 
-### R4 序数与 unknown 的结构：把序和第三真值写进结构
+### R4 Ordinal and unknown structure: write the order and the third truth value into the structure
 
-**问题**：四种输出里三种形状是错的——布尔缺第三个真值（还原 P(U) 后软准确率 0.771 → 0.978）、选择的读出是序数的不是概率的（序数层误差 4.2 点、概率层 21.0 点）、序数被系统性压缩（40 数据集 × 9 模型，规模不能恢复）。
+**Question**: Three of the four output shapes are wrong: boolean lacks a third truth value (restoring P(U) lifts soft accuracy 0.771 → 0.978), the readout for choice is ordinal rather than probabilistic (ordinal-level error 4.2 points, probability-level 21.0 points), and ordinals are systematically compressed (40 datasets × 9 models; scale does not recover it).
 
-**对应登记表行**：8（序数压缩）、5（兜底 / unknown）、3（静默范围遗漏）、16（跨候选可比性）。
+**Registry rows**: 8 (ordinal compression), 5 (fallback / unknown), 3 (silent scope omission), 16 (cross-candidate comparability).
 
-**锁定的结论（预先登记）**：
+**Locked conclusions (pre-registered)**:
 
-| # | 我们预期 | 若反向则推翻什么 |
+| # | We expect | If reversed, what falls |
 | --- | --- | --- |
-| R4-1 | K−1 个累积布尔读出（把序写进结构）优于名义 K 类 softmax，序数压缩减轻 | 若无改善，缺陷 8 的修法只剩粗刻度，harness 必须限制档数到更小 |
-| R4-2 | 原生 unknown 类训练后，规则沉默型 unknown 的正确拒绝率优于 R2 的留出集阈值 | 若不优于，unknown 停在接口层，不进 SFT，省掉这一轮的训练预算 |
-| R4-3 | 还原第三真值后，布尔问题的软准确率提升量级与 0.771 → 0.978 同阶 | 若提升很小，该论文的效应量在我们数据上不成立 |
-| R4-4 | C 分支（两侧都不过阈的剩余）因序数压缩而系统性膨胀，膨胀量可测且随刻度变细加重 | 若不膨胀，序数压缩对 harness 的实际影响被夸大 |
+| R4-1 | K−1 cumulative boolean readouts (order written into the structure) beat a nominal K-way softmax and reduce ordinal compression | If no improvement, the only fix for defect 8 is a coarser scale and the harness must cap the number of levels lower |
+| R4-2 | After training a native unknown class, the correct-rejection rate on rule-silent unknown beats R2's held-out threshold | If not better, unknown stays at the interface layer and does not enter SFT, saving this round's training budget |
+| R4-3 | Restoring the third truth value lifts soft accuracy on boolean questions by an amount of the same order as 0.771 → 0.978 | If the lift is small, that paper's effect size does not hold on our data |
+| R4-4 | The C branch (residual that passes neither threshold) systematically inflates due to ordinal compression; the inflation is measurable and grows as the scale gets finer | If no inflation, the practical effect of ordinal compression on the harness was exaggerated |
 
-**退化解检查**：原生 unknown 的无约束最优解是**对一切难题给 unknown**。必须配判别：可判定集上的 unknown 率必须保持低位（判定线：< 5%），同时沉默集上的 unknown 率要高。两项同时成立才算。序数损失的退化解是**按档位位置给先验**（表现为序数压缩 + 中间偏置），判别项是"相邻档混淆高于远档"必须成立、而中间档不得被系统性超额填充。
+**Degenerate-solution check**: the unconstrained optimum of native unknown is **answering unknown to every hard question**. It must be paired with discrimination: the unknown rate on the decidable set must stay low (decision line: < 5%) while the unknown rate on the silent set must be high; both at once. The degenerate solution of an ordinal loss is **a prior by level position** (seen as ordinal compression + middle bias); the discrimination item is that "adjacent-level confusion exceeds distant-level confusion" must hold while the middle level must not be systematically over-filled.
 
-**任务分配**：`M-4.1` K−1 累积布尔读出头；`M-4.2` 序数 / 累积链接损失；`M-4.3` 原生 unknown 类；`E-4.1` 序数压缩度量（刻度细化扫描）；`E-4.2` unknown 双向判别；`E-4.3` C 分支膨胀量；`D-4.1` 规则沉默集扩充。
+**Task assignment**: `M-4.1` K−1 cumulative boolean readout head; `M-4.2` ordinal / cumulative-link loss; `M-4.3` native unknown class; `E-4.1` ordinal-compression measurement (scale-refinement sweep); `E-4.2` two-sided unknown discrimination; `E-4.3` C-branch inflation; `D-4.1` expansion of the rule-silent set.
 
 ---
 
-### R5 多步与蒸馏：把推理蒸进读出，用问题图分解规则
+### R5 Multi-step and distillation: distil reasoning into the readout, decompose rules with the question graph
 
-**问题**：单遍模型做不出"只有写出中间步骤才能做出"的决策（一次前向可解 97.5%、其余 74%），而且**它不知道自己的界限**——这是整个架构里唯一一处失败模式比替代方案更隐蔽的地方（盲区 3）。规则读出但只执行 22%–72%。
+**Question**: A single-pass model cannot make decisions that are "only possible after writing out intermediate steps" (97.5% solvable in one forward pass, 74% on the rest), and **it does not know its own limit**: the only place in the whole architecture where the failure mode is more hidden than the alternative's (blind spot 3). Rules are read but executed only 22%–72% of the time.
 
-**对应登记表行**：2（规则读出但不执行）、10（多步 / 带状态）、4（算术 / 时间）。
+**Registry rows**: 2 (rules read but not executed), 10 (multi-step / stateful), 4 (arithmetic / time).
 
-**锁定的结论（预先登记）**：
+**Locked conclusions (pre-registered)**:
 
-| # | 我们预期 | 若反向则推翻什么 |
+| # | We expect | If reversed, what falls |
 | --- | --- | --- |
-| R5-1 | 把规则拆成问题图逐节点问，执行率从 22%–72% 区间上移 | 若不上移，缺陷 2 无修法，复合规则的支持范围要向业务方明确收缩 |
-| R5-2 | 问题图分解后的**组合校准**可测且不崩（全文献无人测过） | 若崩，则分解换来执行率但失去可定界性，与 P3″ 冲突，分解降级为离线工具 |
-| R5-3 | 推理到读出的自蒸馏在我们骨干上复现"与 Jev 持平、约 0.1 s" | 若不复现，终局尺寸的主要投入方向（蒸馏而非决策 SFT）失去依据，R6 重新设计 |
-| R5-4 | "读别人的链"在决策场景下有正增益（文献：1,500 token 预算下 +4.1 pp、被截断题 +8.6 pp，省 71.3% 成本） | 若无增益，S1+S2 协同的"慢模型输出读出器"这一格失去最便宜的实现 |
-| R5-5 | 模型对"继承来的错"没有信号（置信度标不出来） | 若能标出，盲区 3 的严重性下降，这对框架是好消息 |
+| R5-1 | Splitting a rule into a question graph and asking node by node raises the execution rate above the 22%–72% band | If it does not, defect 2 has no fix and the supported scope of compound rules must be explicitly narrowed for the business |
+| R5-2 | **Compositional calibration** after question-graph decomposition is measurable and does not collapse (unmeasured in the whole literature) | If it collapses, decomposition buys execution rate but loses boundability, which conflicts with P3″; decomposition is downgraded to an offline tool |
+| R5-3 | Reasoning-to-readout self-distillation reproduces "on par with Jev, about 0.1 s" on our backbone | If not, the main investment direction at endgame size (distillation rather than decision SFT) loses its basis and R6 is redesigned |
+| R5-4 | "Reading someone else's chain" gives a positive gain in decision settings (literature: +4.1 pp under a 1,500-token budget, +8.6 pp on truncated items, 71.3% cost saved) | If no gain, the "slow model feeds the readout" cell of S1+S2 cooperation loses its cheapest implementation |
+| R5-5 | The model has no signal for "inherited errors" (confidence cannot flag them) | If it can, the severity of blind spot 3 drops; good news for the framework |
 
-**退化解检查**：问题图分解的退化解是**把图退化成一条链并只答最后一问**。判别：每个节点的读出必须单独可评，且节点级准确率的乘积要与端到端准确率在同一量级。蒸馏的退化解是**学会教师的措辞而非推理**，判别是留出规则族上的不退化（同 R3-5）。
+**Degenerate-solution check**: the degenerate solution of question-graph decomposition is **collapsing the graph into a chain and answering only the last question**. Discrimination: every node's readout must be separately evaluable, and the product of node-level accuracies must be of the same order as end-to-end accuracy. The degenerate solution of distillation is **learning the teacher's wording rather than its reasoning**; the discrimination item is no regression on held-out rule families (same as R3-5).
 
-**任务分配**：`M-5.1` 问题图分解器（标注：本报告自造框架）；`M-5.2` 推理到读出自蒸馏；`M-5.3` 读别人的链；`E-5.1` 组合校准度量；`E-5.2` 继承错误的信号检测；`E-5.3` 节点级与端到端的一致性；`D-5.1` 多步 / 带状态判断的配对集。
+**Task assignment**: `M-5.1` question-graph decomposer (labelled: the report's own construct); `M-5.2` reasoning-to-readout self-distillation; `M-5.3` reading others' chains; `E-5.1` compositional-calibration measurement; `E-5.2` signal detection for inherited errors; `E-5.3` node-level vs end-to-end consistency; `D-5.1` paired set for multi-step / stateful judgments.
 
 ---
 
-### R6 阶梯上行与终局尺寸裁决
+### R6 Ladder ascent and the endgame-size verdict
 
-**问题**：27B 档上决策调优增益只剩 2.3 点、新 schema 约零，而让它推理仍显著优于读出（96.9 对 89.1）。同时领域微调小模型可以胜过通用大模型（SecJev-0.8B 比 Kev-9B 高 20.51 pp）。所以"终局要大"**需要独立理由**。
+**Question**: At the 27B tier, decision-tuning gain is only 2.3 points and the new-schema gain is about zero, while letting it reason still clearly beats readout (96.9 vs 89.1). At the same time a domain-tuned small model can beat a general large one (SecJev-0.8B beats Kev-9B by 20.51 pp). So "the endgame must be big" **needs an independent reason**.
 
-**对应登记表行**：15（专家路由 × 分支隔离，仅当终局落在 35B-A3B；零命中）、11（混合 vs 纯注意力）。
+**Registry rows**: 15 (expert routing × branch isolation, only if the endgame is 35B-A3B; zero hits), 11 (hybrid vs attention-only).
 
-**锁定的结论（预先登记）**：
+**Locked conclusions (pre-registered)**:
 
-| # | 我们预期 | 若反向则推翻什么 |
+| # | We expect | If reversed, what falls |
 | --- | --- | --- |
-| R6-1 | 从 0.6B/0.8B 到 2B/4B/9B，R3–R5 的结构性改动**效应方向一致**，量级随规模缩小 | 若方向翻转，小尺寸试验台的结论不可外推，阶梯策略失效，必须直接在大档上试 |
-| R6-2 | 27B 档上决策 SFT 增益 ≤ 3 点（复现 2.3 点规律），而蒸馏增益显著更大 | 若 SFT 增益很大，"预训练提供表示、调优只调整怎么读"不成立，投入重心回到决策 SFT |
-| R6-3 | 若选 35B-A3B：逐 token 专家路由**会**在隔离的问题分支间引入新耦合 | 若不引入，缺陷 15 消解，MoE 路线解锁 |
-| R6-4 | 终局尺寸的裁决依据是"让读出不丢掉表示里已有的语义" + "把推理蒸进读出"两项的增益，**不是**读出准确率 | 若裁决最终只能靠准确率，则 P0″ 的"价值在接口而非准确率"在我们的工程决策里没有被真正执行 |
+| R6-1 | From 0.6B/0.8B to 2B/4B/9B, the structural changes of R3–R5 have **effects in the same direction**, with magnitude shrinking with scale | If the direction flips, conclusions from the small testbed cannot be extrapolated; the ladder strategy fails and trials must run directly at the large tier |
+| R6-2 | At 27B, decision-SFT gain ≤ 3 points (reproducing the 2.3-point regularity) while distillation gain is significantly larger | If the SFT gain is large, "pretraining provides the representation, tuning only adjusts how to read" does not hold and investment returns to decision SFT |
+| R6-3 | If 35B-A3B is chosen: per-token expert routing **does** introduce new coupling between isolated question branches | If it does not, defect 15 dissolves and the MoE route is unlocked |
+| R6-4 | The endgame-size verdict rests on the gains of "the readout does not lose semantics already in the representation" + "reasoning distilled into the readout", **not** on readout accuracy | If the verdict can finally only rest on accuracy, then P0″'s "the value is in the interface, not accuracy" was never really executed in our engineering decisions |
 
-**任务分配**：`M-6.1` 阶梯上行（2B/4B/9B）；`M-6.2` 27B 稠密试点；`M-6.3` 35B-A3B 的专家路由 × 分支隔离探针（选 MoE 前必须补）；`E-6.1` 跨规模效应方向一致性；`E-6.2` 终局尺寸裁决书。
+**Task assignment**: `M-6.1` ladder ascent (2B/4B/9B); `M-6.2` 27B dense pilot; `M-6.3` expert routing × branch isolation probe for 35B-A3B (mandatory before choosing MoE); `E-6.1` cross-scale direction consistency; `E-6.2` endgame-size verdict memo.
 
 ---
 
-### R7 业务人员作者与模板标准 release（G3 关口）
+### R7 Business authors and the template-standard release (gate G3)
 
-**问题**："业务人员可配置"在全部文献里是一个**假定**，不是被测过的属性（盲区 4）。而交付物就是模板标准，所以这从"附带风险"变成**产品本身的风险**。
+**Question**: "Configurable by business staff" is an **assumption** in the whole literature, never a measured property (blind spot 4). Since the deliverable is the template standard, this turns from a side risk into **the product's own risk**.
 
-**对应登记表行**：13（业务人员作者，零评测）、18（回溯标签的三个性质）、以及遗漏 2（Agent 回路里问题是机器写的）。
+**Registry rows**: 13 (business authors, zero evaluations), 18 (three properties of retrospective labels), plus omission 2 (in the agent loop the questions are machine-written).
 
-**锁定的结论（预先登记）**：
+**Locked conclusions (pre-registered)**:
 
-| # | 我们预期 | 若反向则推翻什么 |
+| # | We expect | If reversed, what falls |
 | --- | --- | --- |
-| R7-1 | 非技术业务专家按模板标准写出的问题 / 档位 / 判据，模型读得动；缺陷率显著低于公开 SKILL.md 的 91.8% | 达不到即 **G3 不过**：交付物改为"工程师写模板"，业务价值主张重写 |
-| R7-2 | 模板可编译、可校验，且必须**按裁判编译**（换裁判 67.70% → 47.87%）；我们的编译器锁定一个裁判版本 | 若换裁判无损失，规则制品的"按裁判编译"在我们设置下不成立，模板标准可以更自由 |
-| R7-3 | 运行时由 S2 生成的问题**必须经过契约**（版本化模板 + 填槽），自由生成的问题使 P1″ 的分母每次调用都在变 | 若自由生成也能保住一致性，遗漏 2 消解，S1 的保证可以直接向上传递 |
-| R7-4 | 回溯标签只能重拟合阈值，不能监督读出；用它做 RL 奖励的退化解是学结果代理 | 若能做信用分配，缺陷 18 的最大限制解除，生产态闭环可行 |
+| R7-1 | Questions / levels / criteria written by non-technical business experts following the template standard are readable by the model; the defect rate is significantly below the 91.8% of public SKILL.md files | Failing this **fails G3**: the deliverable becomes "engineer-written templates" and the business value claim is rewritten |
+| R7-2 | Templates are compilable and checkable, and must be **compiled per judge** (changing the judge drops 67.70% → 47.87%); our compiler pins one judge version | If changing the judge costs nothing, "compile per judge" for rule artifacts does not hold in our setting and the template standard can be freer |
+| R7-3 | Questions generated at runtime by S2 **must pass through a contract** (versioned template + slot filling); freely generated questions make P1″'s denominator change on every call | If free generation also preserves consistency, omission 2 dissolves and S1's guarantees can be passed upward directly |
+| R7-4 | Retrospective labels can only refit thresholds, not supervise the readout; using them as an RL reward has the degenerate solution of learning an outcome proxy | If credit assignment is possible, the largest limit of defect 18 is lifted and a production closed loop is feasible |
 
-**任务分配**：`B-7.1` 模板标准 release 候选版；`B-7.2` 业务专家作者实测（真人写，不是研究者写）；`B-7.3` 模板编译器与校验器；`B-7.4` 回溯标签契约（决策级 / 有选择 / 迟到三性质的工程处理，含拒绝侧补探索）；`E-7.1` 作者变量的评测口径（全文献零评测，这是新测量）；`E-7.2` 问题复述下划分不变（P1″ 的第三项，遗漏 4）。
+**Task assignment**: `B-7.1` release candidate of the template standard; `B-7.2` real business-author trial (real people write, not researchers); `B-7.3` template compiler and validator; `B-7.4` retrospective-label contract (engineering handling of the decision-level / selective / delayed properties, including exploration on the rejected side); `E-7.1` evaluation protocol for the author variable (zero evaluations in the literature; this is a new measurement); `E-7.2` partition invariance under question paraphrase (P1″'s third item, omission 4).
 
-**G3 关口在本轮之后判定。**
+**Gate G3 is decided after this round.**
 
 ---
 
-### R8 调度侧 RL：唯一允许用 RL 的地方
+### R8 Scheduling-side RL: the only place RL is allowed
 
-**问题**：登记表 18 行里 RL 不是任何一行的首选修法，而且本表的缺陷没有一条含中间对象。RL 真正的用武之地是**关于计算本身的决策**——问哪几个问题、循环到第几层、何时交给慢模型（按需深度省 15–24%）。那是调度，不是读出。
+**Question**: Across the 18 registry rows, RL is the first-choice fix for none, and no defect in the table involves an intermediate object. RL's real place is **decisions about the computation itself**: which questions to ask, how many loop iterations, when to hand off to the slow model (on-demand depth saves 15–24%). That is scheduling, not readout.
 
-**锁定的结论（预先登记）**：
+**Locked conclusions (pre-registered)**:
 
-| # | 我们预期 | 若反向则推翻什么 |
+| # | We expect | If reversed, what falls |
 | --- | --- | --- |
-| R8-1 | 在读出上用 RL 不优于交叉熵 + 适当评分规则（标签已知时两者同最优点） | 若 RL 显著更优，§6.1 / §6.3 的结论在我们设置下不成立，整条"RL 不是首选"的论证要重写 |
-| R8-2 | 在调度上用 RL 有正收益（省算力而不掉准确率） | 若无收益，RL 在本路线里**没有任何位置**，预算全部转向接口与 SFT |
-| R8-3 | 凡以验证器为奖励处都会被系统性套利 | 若不被套利，验证器奖励可用，R8 的设计空间显著扩大 |
+| R8-1 | RL on the readout is not better than cross-entropy + a proper scoring rule (with known labels both share the optimum) | If RL is significantly better, the conclusions of §6.1 / §6.3 do not hold in our setting and the whole "RL is not the first choice" argument is rewritten |
+| R8-2 | RL on scheduling has positive return (saves compute without losing accuracy) | If no return, RL has **no place at all** in this route and the budget moves entirely to interface and SFT |
+| R8-3 | Wherever a verifier is the reward it is systematically gamed | If not gamed, verifier rewards are usable and R8's design space grows significantly |
 
-**退化解检查**：调度 RL 的退化解是**永远选最便宜的那条路**（全部拒绝 / 全部交给慢模型）。判别：成本与通过率必须同时报，且与"不带模型的确定性控制器"对照（τ²-bench telecom 上它解出 79%）。
+**Degenerate-solution check**: the degenerate solution of scheduling RL is **always choosing the cheapest path** (reject everything / hand everything to the slow model). Discrimination: cost and pass rate must be reported together, against a **model-free deterministic controller** (it solves 79% of τ²-bench telecom).
 
-**任务分配**：`M-8.1` 读出侧 RL 对照（预期为负，作为证伪尝试）；`M-8.2` 调度侧 RL；`E-8.1` 成本 / 通过率双报与确定性控制器对照；`E-8.2` 奖励套利检测。
+**Task assignment**: `M-8.1` readout-side RL control (expected negative; a falsification attempt); `M-8.2` scheduling-side RL; `E-8.1` joint cost / pass-rate report against the deterministic controller; `E-8.2` reward-gaming detection.
 
 ---
 
-## 4. 轮次 × 工作线矩阵
+## 4. Round × work-line matrix
 
-| 轮 | D 数据 | M 模型 | E 评测 | B 业务 | 关口 |
+| Round | D data | M model | E evaluation | B business | Gate |
 | --- | --- | --- | --- | --- | --- |
-| R0 | T1–T3 已完成；T4 对照集 | 仅环境，无权重更新 | 口径 + 四分母 + 四柱复现 + 退化基线 | — | **G1** |
-| R1 | 竞争约定 / 规则多样性 / 沉默 unknown | — | 分母健全性 | 档位类型声明规范 | — |
-| R2 | — | 渲染修补 / 算术外包 / 阈值 | 累积质量 harness / 边际 / IIA | harness 契约 | — |
-| R3 | 档位集合必须变的重采样 | 符号调优 + LoRA 消融 | 名字-定义对调 / k-shot / 留出规则族 | — | **G2** |
-| R4 | 沉默集扩充 | K−1 累积布尔 / 序数损失 / 原生 unknown | 序数压缩 / unknown 双向 / C 膨胀 | — | — |
-| R5 | 多步配对集 | 问题图 / 自蒸馏 / 读别人的链 | 组合校准 / 继承错误信号 | — | — |
-| R6 | — | 阶梯 2B–9B / 27B / MoE 探针 | 跨规模方向一致性 | — | — |
-| R7 | — | — | 作者变量口径 / 复述不变 | 模板 release / 真人实测 / 编译器 / 回溯契约 | **G3** |
-| R8 | — | 读出侧 RL（证伪） / 调度侧 RL | 成本-通过率双报 / 套利检测 | — | — |
+| R0 | T1–T3 done; T4 control set | environment only, no weight update | protocol + four denominators + four-pillar reproduction + degenerate baselines | — | **G1** |
+| R1 | competing conventions / rule diversity / silent unknown | — | denominator sanity | level and type declaration spec | — |
+| R2 | — | rendering fix / arithmetic outsourcing / thresholds | cumulative-mass harness / margin / IIA | harness contract | — |
+| R3 | resample so the level set must vary | symbol tuning + LoRA ablations | name-definition swap / k-shot / held-out rule families | — | **G2** |
+| R4 | silent-set expansion | K−1 cumulative boolean / ordinal loss / native unknown | ordinal compression / two-sided unknown / C inflation | — | — |
+| R5 | multi-step paired set | question graph / self-distillation / reading others' chains | compositional calibration / inherited-error signal | — | — |
+| R6 | — | ladder 2B–9B / 27B / MoE probe | cross-scale direction consistency | — | — |
+| R7 | — | — | author-variable protocol / paraphrase invariance | template release / real-author trial / compiler / retrospective contract | **G3** |
+| R8 | — | readout-side RL (falsification) / scheduling-side RL | cost–pass-rate joint report / gaming detection | — | — |
 
 ---
 
-## 5. 资源与当前阻塞
+## 5. Resources and current blocks
 
-**已就绪**（2026-10-28 核实，两台 NPU 主机 `npu` = 100.100.135.175 / `npu2` = 100.100.135.181）：
+**Ready** (verified 2026-10-28, two NPU hosts `npu` = 100.100.135.175 / `npu2` = 100.100.135.181):
 
-- `agentic-rl-ascend:20261026`：两台都已加载，镜像 ID 与记录的 sha256 一致，导入冒烟通过。这是初始实验的默认环境。启动用 `start_rl_container.sh`（挂驱动与 davinci 设备；裸 `docker run` 会在 `import torch_npu` 处失败）。
-- `saea-base:20261027`：两台都已构建并通过冒烟。
-- 本地镜像：24 个数据集、Qwen3-0.6B（纯注意力）与 Qwen3.5-0.8B / 2B / 4B / 9B（混合），均在 `/mnt/cephfs/xingchao/models/jev`。
-- T1–T3 任务文件已生成（`/mnt/cephfs/xingchao/experiments/jev/`，带 sha256 manifest）。
+- `agentic-rl-ascend:20261026`: loaded on both hosts, image ID matches the recorded sha256, import smoke test passes. This is the default environment for the initial experiments. Start it with `start_rl_container.sh` (mounts the driver and davinci devices; a bare `docker run` fails at `import torch_npu`).
+- `saea-base:20261027`: built on both hosts and passes the smoke test.
+- Local mirrors: 24 datasets, Qwen3-0.6B (attention-only) and Qwen3.5-0.8B / 2B / 4B / 9B (hybrid), all under `/mnt/cephfs/xingchao/models/jev`.
+- T1–T3 task files generated (`/mnt/cephfs/xingchao/experiments/jev/`, with sha256 manifest).
 
-**阻塞 1（卡住 R0-4，即缺陷 11 的对照）**：RL 镜像钉的是 `transformers==4.57.1`，而 Qwen3.5-0.8B 的 `model_type` 是 `qwen3_5`，该架构在 transformers 5.x 才有（本地 5.21.0 的 wheel 里有 `models/qwen3_5`，4.57.1 没有）。所以 RL 镜像能跑 0.6B，跑不了它的混合对照。两条路：在 RL 镜像上叠一个 transformers 5.x 的 venv，或用 `saea-base:20261027`（镜像内 transformers 5.21.0、torch 2.10.0+cpu）再补 `torch_npu`。**R0 开跑前必须定一条。**
+**Block 1 (stalls R0-4, the defect-11 control)**: the RL image pins `transformers==4.57.1`, while Qwen3.5-0.8B's `model_type` is `qwen3_5`, an architecture that only exists in transformers 5.x (the local 5.21.0 wheel has `models/qwen3_5`; 4.57.1 does not). So the RL image can run 0.6B but not its hybrid control. Two options: layer a transformers 5.x venv on the RL image, or use `saea-base:20261027` (transformers 5.21.0 and torch 2.10.0+cpu inside the image) and add `torch_npu`. **One must be chosen before R0 starts.**
 
-**阻塞 2（卡住一切需要加速器的轮次）**：两台主机 8 张卡全部被 vLLM 部署占满（每卡约 59 GB HBM，另各有一个 `minimax_m31_flash` 容器在跑）。T1–T3 在 0.6B/0.8B 上可用 CPU 跑（256 核、约 2 TB 内存），慢但可行；R3 之后的训练必须要卡。**需要机器主人给出可用卡号或时间窗口。**
+**Block 2 (stalls every round that needs an accelerator)**: all 8 cards on both hosts are fully occupied by a vLLM deployment (about 59 GB HBM per card, plus one `minimax_m31_flash` container running on each). T1–T3 on 0.6B/0.8B can run on CPU (256 cores, about 2 TB RAM), slow but feasible; training from R3 onward needs cards. **The machine owner must provide usable card numbers or a time window.**
 
-**阻塞 3（卡住 R1 的一半）**：自然语言输入上的业务约定标签只能由业务方给，且 typed-decisions 量出同判据下 35% 标注者 argmax 不一致——这不是标注预算问题。**需要业务方投入标注工时，并接受"地板测的是对约定的一致性"这个口径。**
+**Block 3 (stalls half of R1)**: business-convention labels on natural-language inputs can only come from the business side, and typed-decisions measured 35% annotator argmax disagreement under the same criterion; this is not an annotation-budget problem. **The business side must commit annotation hours and accept the protocol "the floor measures agreement with the convention".**
 
 ---
 
-## 6. 这份提案本身最可能错在哪
+## 6. Where this proposal itself is most likely wrong
 
-按报告 §8.2.5 的规矩，提案也要带一份自我攻击：
+By the rule of report §8.2.5, the proposal also carries a self-attack:
 
-1. **G1 可能过不去，而提案把它当起点。** 缺陷 12（等价类一致率）是"无人定义、无人测过"，R0 的两种机械等价类是**替代品**，不是业务等价类。若机械等价类上的结论不能外推到业务等价类，G1 是假过关，后面每一轮的主指标都建在沙上。
-2. **R1 的合成路线与 R3 的语义目标可能互相拆台。** 合成规则给了便宜的标签与干净的留出，但它的退化解（学会生成器语法）恰好是 R3 要排除的东西。如果自然语言约定集造不够大，R3 的判定会被合成集主导，G2 会是假过关。
-3. **轮次顺序假定了"接口 → SFT → 蒸馏 → 调度 RL"，而这个顺序被报告撤回过。**（§2.3 遗漏 8：作者撤回了这个顺序，因为没有任何论文按它跑过。）本提案重新采用它，理由只有登记表的"类型"一栏，这是**推论不是测量**。每轮结束必须重新评估下一轮是否仍是正确的下一步。
-4. **八个自造框架里有三个进了提案**（问题图 R5、D4 子集 R0、决策重复度未用）。R5 的问题图过拟合风险最高，而 R5-2 的组合校准全文献无人测过——这意味着 R5 既是实验也是在验证一个我们自己造的分类。
-5. **四根柱子的复现放在 R0，但 R0 的结论又依赖它们。** 这是一个环：我们用并集界设计 harness，又用 harness 去测并集界。R0 必须把这两件事在时序上分开，先用最朴素的阈值口径测并集界，再据结果设计 harness。
+1. **G1 may fail, and the proposal treats it as the starting point.** Defect 12 (equivalence-class consistency) is "defined by nobody, measured by nobody"; R0's two mechanical equivalence classes are **substitutes**, not business equivalence classes. If conclusions on mechanical classes do not extrapolate to business classes, G1 is a false pass and every later round's primary metric is built on sand.
+2. **R1's synthetic route and R3's semantic goal may undermine each other.** Synthetic rules give cheap labels and clean hold-outs, but their degenerate solution (learning the generator grammar) is exactly what R3 must exclude. If the natural-language convention set cannot be made large enough, R3's verdict will be dominated by the synthetic set and G2 will be a false pass.
+3. **The round order assumes "interface → SFT → distillation → scheduling RL", and the report withdrew that order.** (§2.3 omission 8: the author withdrew it because no paper has run it.) This proposal re-adopts it on the sole basis of the registry's "type" column, which is **inference, not measurement**. At the end of every round, re-assess whether the next round is still the right next step.
+4. **Three of the eight self-made frameworks entered the proposal** (question graph in R5, D4 subset in R0, decision repetition unused). The question graph in R5 carries the highest overfitting risk, and R5-2's compositional calibration has never been measured in the literature; R5 is therefore both an experiment and a validation of a classification we made ourselves.
+5. **The four pillars are reproduced in R0, yet R0's conclusions depend on them.** This is a loop: we design the harness with the union bound and then measure the union bound with the harness. R0 must separate the two in time: first measure the union bound with the plainest threshold protocol, then design the harness from the result.
