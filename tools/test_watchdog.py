@@ -1155,5 +1155,83 @@ class DeclaredTotal(unittest.TestCase):
         self.assertEqual((r["progress"]["done"], r["progress"]["total"]), (7000, 24000))
         self.assertEqual(r["watch"]["last_eval_utc"], wd.iso(NOW))      # estimate refreshed without a full read
 
+
+class UniformCost(unittest.TestCase):
+    def _run(self, t, flag):
+        d = t.run("r", heartbeat=steady_hb(61, 60, 100))
+        body = {"tier": "slow", "total": 24000}
+        if flag is not None:
+            body["uniform_cost"] = flag
+        watch_json(d, json.dumps(body))
+        return d
+
+    def test_false_suppresses_the_range_but_keeps_fraction_and_rate(self):
+        t = Tree()
+        self._run(t, False)
+        r = t.digest()["runs"][0]
+        p = r["progress"]
+        self.assertEqual((p["done"], p["total"], p["percent"]), (6000, 24000, 25.0))
+        self.assertEqual(p["rate_per_min"], 100.0)
+        self.assertEqual(p["eta_quality"], "suppressed")
+        for k in ("left_s", "eta_utc", "eta_lo_utc", "eta_hi_utc"):     # nothing half-computed anywhere
+            self.assertIsNone(p[k], k)
+        self.assertFalse(p["uniform_cost"])
+        cfg = t.cfg()
+        row = [ln for ln in wd.render_md(wd.build_digest(cfg, {}, NOW), cfg).splitlines() if ln.startswith("| r |")][0]
+        self.assertIn("6000/24000 25%", row)
+        self.assertIn("100/min", row)
+        self.assertIn("no ETA", row)
+        self.assertNotIn("left", row)
+
+    def test_false_also_disables_the_unreachable_flag_but_not_the_exceeded_flag(self):
+        t = Tree()
+        d = t.run("hopeless", heartbeat=steady_hb(61, 60, 1))
+        watch_json(d, '{"tier": "slow", "total": 10000000, "uniform_cost": false}')
+        d2 = t.run("over", heartbeat=steady_hb(61, 60, 100))
+        watch_json(d2, '{"tier": "slow", "total": 1000, "uniform_cost": false}')
+        by = {x["id"]: x for x in t.digest()["runs"]}
+        self.assertEqual(by["hopeless"]["escalation"], "none")
+        self.assertIsNone(by["hopeless"]["total_anomaly"])
+        self.assertIn("TOTAL EXCEEDED", by["over"]["escalation_reason"])   # a row count over the declaration is not about cost
+
+    def test_absent_and_true_behave_exactly_as_before(self):
+        outs = []
+        for flag in (None, True):
+            t = Tree()
+            self._run(t, flag)
+            p = t.digest()["runs"][0]["progress"]
+            p = dict(p)
+            p.pop("uniform_cost")
+            outs.append(p)
+            self.assertEqual(p["eta_quality"], "range")
+            self.assertTrue(p["left_s"])
+        self.assertEqual(outs[0], outs[1])
+
+    def test_invalid_flag_errors_naming_the_file(self):
+        t = Tree()
+        d = t.run("r", heartbeat=steady_hb(10, 60, 1))
+        for bad in ('{"uniform_cost": "no"}', '{"uniform_cost": 0}', '{"uniform_cost": null}'):
+            watch_json(d, bad)
+            r = t.digest()["runs"][0]
+            self.assertEqual(r["state"], "unknown", bad)
+            self.assertIn("uniform_cost", r["state_reason"], bad)
+            self.assertIn("WATCH.json", r["state_reason"], bad)
+
+    def test_flag_survives_cached_ticks_and_legend_states_the_assumption(self):
+        t = Tree()
+        d = self._run(t, False)
+        cfg = t.cfg(interval=600.0, watch=True)
+        sched = {}
+        wd.build_digest(cfg, {}, NOW, sched)
+        with open(os.path.join(d, "heartbeat.log"), "a") as f:
+            f.write(rows_line(600, 6, 6, hf=7000))
+        dg = wd.build_digest(cfg, {}, NOW + 600, sched)
+        r = dg["runs"][0]
+        self.assertEqual(r["watch"]["last_eval_utc"], wd.iso(NOW))      # cached tick
+        self.assertEqual((r["progress"]["done"], r["progress"]["eta_quality"], r["progress"]["left_s"]), (7000, "suppressed", None))
+        md = wd.render_md(dg, cfg)
+        self.assertIn("UNIFORM cost per row", md)
+        self.assertIn("wrong when work per row varies", md)
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

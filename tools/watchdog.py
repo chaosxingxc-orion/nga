@@ -408,15 +408,16 @@ def fmt_left(lo, hi):
     return "~%g-%g%s" % (a, b, ub) if ua == ub else "~%g%s-%g%s" % (a, ua, b, ub)
 
 
-def summarize_progress(samples, rundir, cfg, declared=None):
+def summarize_progress(samples, rundir, cfg, declared=None, uniform=True):
     """samples: parsed heartbeat samples in file order. Returns progress dict. The total is only ever one the run declared
     (WATCH.json 'total', else a total in the heartbeat line, else total.txt); it is never guessed from file sizes or counts.
     Estimate (only with a total): remaining work over the observed rate, as a RANGE between the recent-window rate and the
     average rate since the run (or its last restart) began, widened by w = 1 + (1 - fraction complete), so an early
-    estimate is wide and a late one narrow. Labelled 'rough' while fewer than 5 samples or under 15 min have been observed."""
+    estimate is wide and a late one narrow. It assumes every row costs the same; a run whose rows differ in cost declares
+    uniform=False (WATCH.json "uniform_cost": false) and then NO estimate is computed at all: fraction and rate only. Labelled 'rough' while fewer than 5 samples or under 15 min have been observed."""
     prog = {"done": None, "total": None, "percent": None, "rate_per_min": None, "window_s": None,
             "eta_utc": None, "note": None, "counters": None, "fields": None, "total_source": None,
-            "eta_lo_utc": None, "eta_hi_utc": None, "left_s": None, "eta_quality": None}
+            "eta_lo_utc": None, "eta_hi_utc": None, "left_s": None, "eta_quality": None, "uniform_cost": uniform}
     withdone = [s for s in samples if s["done"] is not None]
     if not withdone:
         prog["note"] = "heartbeat has no progress count"
@@ -458,7 +459,9 @@ def summarize_progress(samples, rundir, cfg, declared=None):
     span = since_restart[-1]["ts"] - since_restart[0]["ts"]
     if span > 0 and since_restart[-1]["done"] > since_restart[0]["done"]:
         rates.append((since_restart[-1]["done"] - since_restart[0]["done"]) / span)
-    if total and rates and last["done"] < total:
+    if total and not uniform:
+        prog["eta_quality"] = "suppressed"     # declared non-uniform cost per row: nothing below is computed, so no width can leak
+    elif total and rates and last["done"] < total:
         rem = total - last["done"]
         w = 1.0 + (1.0 - min(last["done"], total) / float(total))
         lo_s, hi_s = rem / max(rates) / w, rem / min(rates) * w
@@ -787,29 +790,35 @@ def classify(marker, problem, hb_ts, hb_src, has_logs, now, cfg, has_hb_file=Tru
 
 
 def read_watch_file(d):
-    """(tier or None, declared total or None, error or None) from WATCH.json.
+    """(tier or None, declared total or None, uniform_cost, error or None) from WATCH.json.
     tier: only the exact strings fast|medium|slow. total: a positive JSON integer, the run's own count of rows it intends to
-    write (in the unit of the progress count: the sum of the heartbeat row counters). Anything else is an error naming the file."""
+    write (in the unit of the progress count: the sum of the heartbeat row counters). uniform_cost: optional JSON boolean, default true;
+    false says the run's rows differ in cost, so the remaining-time estimate is suppressed. Anything else is an error naming the file."""
     p = os.path.join(d, WATCH_FILE)
     if not os.path.isfile(p):
-        return None, None, None
+        return None, None, True, None
     try:
         with open(p, "r", encoding="utf-8") as f:
             obj = json.load(f)
     except (OSError, ValueError) as e:
-        return None, None, "%s unreadable or not JSON: %s" % (p, str(e)[:60])
+        return None, None, True, "%s unreadable or not JSON: %s" % (p, str(e)[:60])
     if not isinstance(obj, dict):
-        return None, None, "%s must hold a JSON object" % p
+        return None, None, True, "%s must hold a JSON object" % p
     tier = total = None
     if "tier" in obj:
         tier = obj["tier"]
         if not isinstance(tier, str) or tier not in TIER_NAMES:
-            return None, None, "%s: invalid tier %s (expected exactly one of %s)" % (p, json.dumps(tier)[:40], "|".join(TIER_NAMES))
+            return None, None, True, "%s: invalid tier %s (expected exactly one of %s)" % (p, json.dumps(tier)[:40], "|".join(TIER_NAMES))
     if "total" in obj:
         total = obj["total"]
         if isinstance(total, bool) or not isinstance(total, int) or total <= 0:
-            return None, None, "%s: invalid total %s (expected a positive JSON integer)" % (p, json.dumps(total)[:40])
-    return tier, total, None
+            return None, None, True, "%s: invalid total %s (expected a positive JSON integer)" % (p, json.dumps(total)[:40])
+    uniform = True
+    if "uniform_cost" in obj:
+        uniform = obj["uniform_cost"]
+        if not isinstance(uniform, bool):
+            return None, None, True, "%s: invalid uniform_cost %s (expected true or false)" % (p, json.dumps(uniform)[:40])
+    return tier, total, uniform, None
 
 
 def infer_period(samples):
@@ -830,7 +839,7 @@ def infer_period(samples):
 def resolve_tier(d, samples, cfg):
     """Tier for one run. Precedence: WATCH.json, then the run's own heartbeat period, then medium.
     Returns {name, source, recheck_s, stall_s, error}; cfg.stall_seconds, when set, overrides every stall threshold."""
-    tier, declared, err = read_watch_file(d)
+    tier, declared, uniform, err = read_watch_file(d)
     if err:
         t = dict(cfg.tiers["medium"], name="medium", source="default (WATCH.json invalid)", short="dflt", error=err)
     elif tier:
@@ -848,7 +857,7 @@ def resolve_tier(d, samples, cfg):
     if cfg.stall_seconds is not None:
         t["stall_s"] = cfg.stall_seconds
         t["source"] += "; stall from --stall-seconds"
-    t["declared_total"] = declared
+    t["declared_total"], t["uniform_cost"] = declared, uniform
     return t
 
 
@@ -982,7 +991,7 @@ def refresh_cached(res, d, cfg, now):
     track the run. State, errors and report stay as of the last full read."""
     samples, hb_ts, hb_src, _ = read_heartbeat(d, cfg)
     if samples:
-        res["progress"] = summarize_progress(samples, d, cfg, res.get("declared_total"))
+        res["progress"] = summarize_progress(samples, d, cfg, res.get("declared_total"), res.get("uniform_cost", True))
         res["heartbeat_epoch"], res["heartbeat_utc"], res["heartbeat_source"] = hb_ts, iso(hb_ts), hb_src
         res["age_s"] = int(now - hb_ts)
     elif res.get("heartbeat_epoch") is not None:
@@ -1070,7 +1079,7 @@ def evaluate_run(run, cfg, states, now, prev=None):
             notes.append(err)
 
     esc, why_text = escalate(state, sus["total"], out_sigs)
-    progress = summarize_progress(samples, d, cfg, tier.get("declared_total")) if samples else None
+    progress = summarize_progress(samples, d, cfg, tier.get("declared_total"), tier.get("uniform_cost", True)) if samples else None
     # Declared-total anomalies. Exceeded: the run wrote more rows than it declared, so the declaration or the run is wrong.
     # Unreachable: even the optimistic end of the estimate is past --deadline-hours. Never raised without a declaration.
     anomaly = None
@@ -1139,7 +1148,7 @@ def evaluate_run(run, cfg, states, now, prev=None):
         "heartbeat_epoch": hb_ts, "heartbeat_utc": iso(hb_ts), "heartbeat_source": hb_src, "age_s": int(now - hb_ts) if hb_ts is not None else None,
         "marker": ({k: marker[k] for k in ("name", "path", "exit_code", "utc")} if marker else None),
         "progress": progress, "errors": errors, "suspicious_metrics": sus, "pointers": pointers[:6], "notes": notes, "why": why,
-        "declared_total": tier.get("declared_total"), "total_anomaly": anomaly, "progress_flat": flat_info, "flat_reads": flat_reads, "flat_done": flat_done, "shards": shards,
+        "declared_total": tier.get("declared_total"), "uniform_cost": tier.get("uniform_cost", True), "total_anomaly": anomaly, "progress_flat": flat_info, "flat_reads": flat_reads, "flat_done": flat_done, "shards": shards,
         "expected_applied": expected_applied, "escalation_before_expected": esc_before if esc_before != esc else None,
         "logs": logs,
     }
@@ -1210,7 +1219,9 @@ def _prog_cell(p):
         s += " (total unknown)"
     if p.get("rate_per_min") is not None:
         s += " %g/min" % p["rate_per_min"]
-    if p.get("left_s"):
+    if p.get("eta_quality") == "suppressed":
+        s += " no ETA"
+    elif p.get("left_s"):
         s += " %s%s left" % ("rough " if p["eta_quality"] == "rough" else "", fmt_left(*p["left_s"]))
     return s
 
@@ -1310,7 +1321,7 @@ def build_blocks(dg, cfg):
 
 
 SECTIONS = [("head", []), ("runs", ["", "## Runs (worst first)", "| run | state | esc | age | watch | progress | why |", "|---|---|---|---|---|---|---|",
-                                      "(watch = tier/source last>next full read, UTC; file = WATCH.json, hbNm = inferred period, dflt = default. progress = SUM of the heartbeat row counters of all scorers, rate = change over the last 15 min of heartbeats; 'left' only with a declared total, a widened range, 'rough' while under 15 min seen)"]),
+                                      "(watch = tier/source last>next full read, UTC; file = WATCH.json, hbNm = inferred period, dflt = default. progress = SUM of the heartbeat row counters of all scorers, rate = change over the last 15 min of heartbeats; 'left' only with a declared total: a widened range assuming UNIFORM cost per row, wrong when work per row varies; 'no ETA' = run declared uniform_cost false; 'rough' = under 15 min seen)"]),
             ("flags", ["", "## Flags"]),
             ("esc", ["", "## Escalation (read: tier-1 reads these slices, paths relative to dir; decide: orchestrator chooses)"]),
             ("errors", ["", "## Error signatures (count, first..last, exemplar pointer)"])]

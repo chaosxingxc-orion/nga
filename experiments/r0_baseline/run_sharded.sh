@@ -19,7 +19,12 @@ rm -f "$out/DONE" "$out/FAILED"
 # WATCH_TOTAL is the number of readout rows the run intends to write, which the launcher knows and
 # the watchdog cannot infer; declaring it turns the digest's bare row count into a fraction and an
 # estimated finish. A wrong value is loud rather than silent (TOTAL EXCEEDED / UNREACHABLE).
-printf '{"tier": "%s"%s}\n' "${WATCH_TIER:-slow}" "${WATCH_TOTAL:+, \"total\": $WATCH_TOTAL}" > "$out/WATCH.json"
+# uniform_cost=false because this run's rows are NOT equal in cost: the constant and uniform
+# classifiers cost almost nothing, the empty-input and question-only scorers carry much shorter
+# prompts, and the scorers run in sequence. A row-count fraction is therefore a valid progress
+# signal and an invalid work signal, so the watchdog must not derive a finish time from it. It read
+# 10% complete once while the expensive primary scorer was already 60% done.
+printf '{"tier": "%s"%s, "uniform_cost": false}\n' "${WATCH_TIER:-slow}" "${WATCH_TOTAL:+, \"total\": $WATCH_TOTAL}" > "$out/WATCH.json"
 exec >> "$out/run.log" 2>&1
 echo "$(date -u +%FT%TZ) start out=$out shards=$n args: $*"
 

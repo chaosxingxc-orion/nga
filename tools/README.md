@@ -125,6 +125,15 @@ With a total the progress cell reads `27584/601980 5% 2561/min ~2-4h left`:
   wrong. `TOTAL UNREACHABLE` (running): even the optimistic end is further than `--deadline-hours` (default 48) away, checked only
   once the estimate is no longer `rough`. Both raise the run to escalation `read` with the text in the `why` cell.
 
+**The estimate assumes every row costs the same.** That is false for a run whose rows differ in cost (for example scorers with very
+different prompt lengths, or trivial constant scorers beside an expensive model scorer): the fraction is then biased, and so are both
+the midpoint and the width of the range, which is derived from the fraction. In such a case the estimate is biased in a direction a
+reader cannot see, so a run says so: `{"tier": "slow", "total": 601980, "uniform_cost": false}`. `uniform_cost` is an optional JSON
+boolean (default `true`; any non-boolean makes the run `unknown` with the file named). With `false` the digest shows the fraction and
+the rate and `no ETA`, nothing else is computed (`eta_quality` is `suppressed`, `left_s` and the `eta_*` fields are null), and
+`TOTAL UNREACHABLE` cannot fire; `TOTAL EXCEEDED` still can, since it counts rows. The watchdog does not infer non-uniformity or model
+per-row cost: only the run knows its workload. The legend line under the table states the uniform-cost assumption.
+
 **Launcher line** (a run's launcher knows the count; the watchdog cannot). In a shell launcher, replace the line that writes
 `WATCH.json` by one that also takes an optional `WATCH_TOTAL`:
 
