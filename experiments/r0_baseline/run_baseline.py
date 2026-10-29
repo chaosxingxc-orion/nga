@@ -251,6 +251,7 @@ def emit_report(out_root, primary):
     header = {k: ph.get(k) for k in ("scorer", "model_path", "image_id", "git_commit", "git_dirty", "render", "device",
                                       "dtype", "limit_groups", "prompt_version", "prompt_format", "transformers_version", "python")}
     header["report_utc"] = utc_now()
+    header["amendment_level"] = common.AMENDMENT_LEVEL
     header["scorers_present"] = sorted(rows)
     header["rows_per_scorer"] = {k: len(v) for k, v in sorted(rows.items())}
     header["harness_config"] = harness_config()

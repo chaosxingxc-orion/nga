@@ -17,6 +17,12 @@ A6  margin: distance (decision.cumulative_decision) compared with the within-gro
     level probabilities across the four T1 variants of the unit, averaged over levels.  The
     pre-registration says "variance"; a distance (probability units) is compared with a variance
     (squared units) exactly as written.  T1 only: T2 has no equivalence class.
+A8  amendment 4 (pre-reg section 11): flip rates are primary on argmax (a statement about the model)
+    with the thresholded rate beside them (a statement about the operator, ``overall`` / ``per_pair``);
+    a thresholded rate over rows with no decision is null, never 0.0; every flip rate carries the C-branch
+    rate of the rows it was computed over; margin counts decisions, not rows; a C-branch rate of exactly
+    0.0 or 1.0 is flagged as forced by the fitted tau.  The move rate is likewise carried on argmax
+    (``argmax_reference`` inside each bucket), which is what section 8.2 asked for and B-3 now reads.
 A7  ECE: standard 10-bin top-label ECE on held-out floor items; the top label is the argmax of the
     distribution, used as a calibration convention only.
 """
@@ -116,28 +122,70 @@ def failure_sets(decided, task="T1"):
 
 # 2. T1 flip rate -----------------------------------------------------------------------------
 
+def _forced_flag(rate, ds):
+    """Pre-reg 11.5: a C-branch rate of exactly 0.0 or 1.0 says something about the fitted tau, not the model."""
+    taus = sorted({d.tau for d in ds})
+    out = {"fitted_taus": taus, "forced_by_tau": rate is not None and rate in (0.0, 1.0), "forced_reason": None}
+    if out["forced_by_tau"]:
+        if rate == 1.0:
+            out["forced_reason"] = "every row abstained under the fitted tau"
+        elif taus == [0.5] and all(len(d.row["ids"]) == 2 for d in ds):
+            out["forced_reason"] = "tau 0.50 with two levels: abstention is arithmetically impossible"
+        else:
+            out["forced_reason"] = "no row abstained under the fitted tau"
+    return out
+
+
+def _c_summary(ds):
+    n = len(ds)
+    rate = _rate(sum(d.cum_pos is None for d in ds), n)
+    return {"n": n, "rate": rate, **_forced_flag(rate, ds)}
+
+
 def flip_rate(decided, task="T1"):
-    """Fraction of the 6 unordered variant pairs of a unit whose decisions differ (C is a decision)."""
+    """Fraction of the 6 unordered variant pairs of a unit whose decisions differ (C is a decision).
+
+    ``argmax_reference`` is the primary column (statement about the model, pre-reg 11.2): the same
+    computation over argmax positions.  ``overall`` / ``per_pair`` are the thresholded column
+    (statement about the operator).  The thresholded rate is null when the rows it covers contain no
+    decision at all (pre-reg 11.1); ``c_branch`` is the C-branch rate of those same rows."""
     variant_set = INVARIANCE_VARIANTS[task]
     pairs = list(combinations(variant_set, 2))
     flips = {p: 0 for p in pairs}
+    flips_arg = {p: 0 for p in pairs}
+    decided_pair = {p: 0 for p in pairs}  # units where at least one of the pair's two variants has a decision
     n = 0
+    covered = []
     for variants in _units(decided, task).values():
         if set(variants) != set(variant_set):
             continue
         n += 1
+        covered.extend(variants.values())
         for a, b in pairs:
             flips[(a, b)] += variants[a].cum_id != variants[b].cum_id
+            flips_arg[(a, b)] += variants[a].arg_pos != variants[b].arg_pos
+            decided_pair[(a, b)] += variants[a].cum_pos is not None or variants[b].cum_pos is not None
+    c = _c_summary(covered)
+    n_decisions = sum(d.cum_pos is not None for d in covered)
+    overall = _rate(sum(flips.values()), n * len(pairs)) if n_decisions else None
     return {
         "n_units": n,
-        "overall": _rate(sum(flips.values()), n * len(pairs)),
-        "per_pair": {f"{a}|{b}": _rate(c, n) for (a, b), c in flips.items()},
+        "overall": overall,
+        "per_pair": {f"{a}|{b}": (_rate(flips[(a, b)], n) if decided_pair[(a, b)] else None) for a, b in pairs},
+        "scored_on": "cumulative-mass operator (statement about the operator)",
+        "n_decisions": n_decisions,
+        "c_branch": c,
+        "argmax_reference": {
+            "overall": _rate(sum(flips_arg.values()), n * len(pairs)),
+            "per_pair": {f"{a}|{b}": _rate(c_, n) for (a, b), c_ in flips_arg.items()},
+            "scored_on": "argmax (statement about the model; primary, pre-reg 11.2)"},
     }
 
 
 # 3. T2 move rate -----------------------------------------------------------------------------
 
-def move_rate(decided):
+def _move_buckets(decided, pos_of, id_of):
+    """Move-rate buckets with decisions read through ``pos_of`` / ``id_of`` (Decided -> list position or None / id)."""
     out = {}
     for kind in ("swap", "reversed"):
         out[kind] = {"n_eligible": 0, "followed": 0, "unmoved": 0, "moved_elsewhere": 0, "n_ineligible": 0}
@@ -145,29 +193,30 @@ def move_rate(decided):
         base = variants.get("base")
         if base is None:
             continue
+        base_pos = pos_of(base)
         for name, d in variants.items():
             if name == "base":
                 continue
             ij = swap_positions(name)
             if ij is not None:
                 bucket, i_pos, j_pos = out["swap"], ij[0], ij[1]
-                eligible = base.cum_pos is not None and (
-                    (base.cum_pos == i_pos and "i" in SWAP_ELIGIBLE_SIDES)
-                    or (base.cum_pos == j_pos and "j" in SWAP_ELIGIBLE_SIDES))
-                target = None if not eligible else (j_pos if base.cum_pos == i_pos else i_pos)
+                eligible = base_pos is not None and (
+                    (base_pos == i_pos and "i" in SWAP_ELIGIBLE_SIDES)
+                    or (base_pos == j_pos and "j" in SWAP_ELIGIBLE_SIDES))
+                target = None if not eligible else (j_pos if base_pos == i_pos else i_pos)
             elif name == "reversed":
                 bucket = out["reversed"]
-                eligible = base.cum_pos is not None
-                target = base.cum_pos  # same definition, same list position
+                eligible = base_pos is not None
+                target = base_pos  # same definition, same list position
             else:
                 continue
             if not eligible:
                 bucket["n_ineligible"] += 1
                 continue
             bucket["n_eligible"] += 1
-            if d.cum_pos == target:
+            if pos_of(d) == target:
                 bucket["followed"] += 1
-            elif d.cum_id == base.cum_id:
+            elif id_of(d) == id_of(base):
                 bucket["unmoved"] += 1
             else:
                 bucket["moved_elsewhere"] += 1
@@ -175,6 +224,16 @@ def move_rate(decided):
         n = bucket["n_eligible"]
         for k in ("followed", "unmoved", "moved_elsewhere"):
             bucket[k + "_rate"] = _rate(bucket[k], n)
+    return out
+
+
+def move_rate(decided):
+    """Thresholded buckets at top level; the argmax-scored buckets (primary per pre-reg 8.2 and 11.2,
+    the column B-3 reads) under ``argmax_reference`` inside each kind."""
+    out = _move_buckets(decided, lambda d: d.cum_pos, lambda d: d.cum_id)
+    arg = _move_buckets(decided, lambda d: d.arg_pos, lambda d: d.arg_id)
+    for kind in out:
+        out[kind]["argmax_reference"] = arg[kind]
     return out
 
 
@@ -188,8 +247,12 @@ def _quantiles(values):
 
 
 def margin_distribution(decided, task="T1"):
-    """Share of T1 decisions whose distance to tau exceeds the within-unit score variance (A6)."""
-    dists, above, n = [], 0, 0
+    """Share of T1 decisions whose distance to tau exceeds the within-unit score variance (A6).
+
+    Only rows that produced a decision count (pre-reg 11.4): the ordinal operator returns a distance
+    even when it abstains, and that distance is not a margin of any decision.  The statistic is null
+    when there is no decision."""
+    dists, above, n, n_rows = [], 0, 0, 0
     for variants in _units(decided, task).values():
         if set(variants) != set(INVARIANCE_VARIANTS[task]):
             continue
@@ -201,18 +264,20 @@ def margin_distribution(decided, task="T1"):
             per_level.append(math.fsum((p - mean) ** 2 for p in ps) / len(ps))
         variance = math.fsum(per_level) / len(per_level)
         for v in variants.values():
+            n_rows += 1
+            if v.cum_pos is None:
+                continue
             n += 1
             dists.append(v.dist)
             above += v.dist > variance
-    return {"n_decisions": n, "share_distance_above_variance": _rate(above, n),
+    return {"n_decisions": n, "n_rows": n_rows, "share_distance_above_variance": _rate(above, n),
             "distance_quantiles": _quantiles(dists)}
 
 
 # 5. C-branch rate ------------------------------------------------------------------------------
 
 def c_branch_rate(decided, task):
-    rows = [d for d in decided if d.row["task"] == task]
-    return {"n": len(rows), "rate": _rate(sum(d.cum_pos is None for d in rows), len(rows))}
+    return _c_summary([d for d in decided if d.row["task"] == task])
 
 
 # 6. Calibration --------------------------------------------------------------------------------
@@ -237,9 +302,48 @@ def ece(decided):
     return {"n": n, "ece": total / n}
 
 
-def cell_metrics(decided, side):
+MAX_FIT_ENTRIES = 5  # fitted entries listed individually per cell (akhilaaa3 has hundreds of questions)
+
+
+def threshold_fit_summary(decided, fitted):
+    """Per-cell report of what threshold fitting did (pre-reg 11.3). Reporting only: nothing here
+    feeds back into the fit.  ``fitted`` is a thresholds.FittedThresholds (or None to skip diagnostics)."""
+    n = len(decided)
+    tiers = defaultdict(int)
+    taus = defaultdict(int)
+    entries = {}
+    for d in decided:
+        tiers[d.tier] += 1
+        taus[d.tau] += 1
+        if fitted is not None:
+            _, _, key = fitted.lookup(d.row)
+            e = entries.setdefault(key, [0, fitted.diagnostics(key) if key else None, d.tau, d.tier])
+            e[0] += 1
+    out = {"n_rows": n, "rows_by_tier": dict(tiers), "rows_by_tau": {str(t): c for t, c in sorted(taus.items())}}
+    if fitted is None:
+        return out
+    diag_rows = [e for e in entries.values() if e[1] is not None]
+    collapsed = [e for e in diag_rows if e[1]["utility_at_chosen_tau"] == 0 and e[1]["best_decisive_utility"] is not None
+                 and e[1]["best_decisive_utility"] < 0]
+    out["n_fitted_entries"] = len(diag_rows)
+    out["share_rows_in_collapsed_entries"] = _rate(sum(e[0] for e in collapsed), n)
+    out["share_rows_with_all_decisive_tau_negative"] = _rate(
+        sum(e[0] for e in diag_rows if e[1]["best_decisive_utility"] is not None and e[1]["best_decisive_utility"] < 0), n)
+    out["entries"] = [
+        {"rows": rows, "tier": tier, "fitted_tau": tau, "n_fit": diag["n_fit"],
+         "utility_at_fitted_tau": diag["utility_at_chosen_tau"],
+         "best_decisive_tau": diag["best_decisive_tau"], "best_decisive_utility": diag["best_decisive_utility"],
+         "best_decisive_abstain_rate": diag["best_decisive_abstain_rate"],
+         "collapsed": diag["utility_at_chosen_tau"] == 0 and diag["best_decisive_utility"] is not None
+                      and diag["best_decisive_utility"] < 0}
+        for rows, diag, tau, tier in sorted(diag_rows, key=lambda e: -e[0])[:MAX_FIT_ENTRIES]]
+    return out
+
+
+def cell_metrics(decided, side, fitted=None):
     """All pre-registered metrics for one cell. ECE only on the held-out side."""
     out = {
+        "threshold_fit": threshold_fit_summary(decided, fitted),
         "floor_T1": accuracy_floor(decided, "T1"),
         "floor_T2": accuracy_floor(decided, "T2"),
         "failure_set_T1": failure_sets(decided),

@@ -721,6 +721,167 @@ def test_frozen_sample_restricts_every_scorer_to_the_same_whole_groups():
         assert len(used) == 7
 
 
+# ---------------------------------------------------------------------------------------------
+# Amendment 4 (pre-registration section 11)
+# ---------------------------------------------------------------------------------------------
+
+def _a4_row(task, unit, variant, p, level_type="ordinal", gold=None):
+    ids = [str(i) for i in range(len(p))]
+    return {"k": f"{task}{unit}{variant}", "task": task, "variant": variant, "source": "s", "group_id": unit, "qname": "q",
+            "unit": unit, "level_type": level_type, "ids": ids, "gold": ids[0] if gold is None else gold, "p": p,
+            "lsv": variant, "tau_lsv": variant}
+
+
+def _peak(k, i, mass=0.5):
+    """Distribution over k levels with ``mass`` on level i and the rest spread evenly."""
+    return [mass if j == i else (1 - mass) / (k - 1) for j in range(k)]
+
+
+def _abstaining_name_sensitive_cell(n_units=8):
+    """The actual defect: ordinal, tau fitted at 0.95 so every row abstains, while the four name variants
+    of every unit put their argmax on four different levels (the smoke-run cell, openjev-synth / ordinal)."""
+    rows = []
+    for u in range(n_units):
+        for pos, v in enumerate(common.T1_VARIANTS):
+            rows.append(_a4_row("T1", f"u{u}", v, _peak(4, pos, 0.4)))
+    return rows
+
+
+def test_a4_fully_abstaining_cell_has_null_thresholded_flip_and_real_argmax_flip():
+    d = M.decide_rows(_abstaining_name_sensitive_cell(), FixedTau(0.95))
+    assert all(x.cum_pos is None for x in d)                    # precondition: the operator abstains everywhere
+    flip = M.flip_rate(d)
+    assert flip["overall"] is None                              # not 0.0: there is nothing to flip
+    assert all(v is None for v in flip["per_pair"].values())
+    assert flip["argmax_reference"]["overall"] == 1.0           # four different argmax positions per unit
+    assert all(v == 1.0 for v in flip["argmax_reference"]["per_pair"].values())
+    assert flip["n_decisions"] == 0
+    assert flip["c_branch"]["rate"] == 1.0 and flip["c_branch"]["forced_by_tau"] is True
+    assert flip["c_branch"]["fitted_taus"] == [0.95]
+
+
+def test_a4_fully_abstaining_t3_flip_is_null_and_argmax_is_real():
+    rows = [_a4_row("T3", f"u{u}", v, _peak(4, pos, 0.4)) for u in range(5) for pos, v in enumerate(common.T3_VARIANTS)]
+    flip = M.flip_rate(M.decide_rows(rows, FixedTau(0.95)), "T3")
+    assert flip["overall"] is None and flip["argmax_reference"]["overall"] == 1.0
+
+
+def test_a4_flip_rate_is_a_real_zero_when_the_operator_decides_and_agrees():
+    rows = [_a4_row("T1", f"u{u}", v, _peak(4, 1, 0.97)) for u in range(5) for v in common.T1_VARIANTS]
+    flip = M.flip_rate(M.decide_rows(rows, FixedTau(0.9)))
+    assert flip["overall"] == 0.0 and flip["argmax_reference"]["overall"] == 0.0     # a real zero stays a zero
+    assert flip["c_branch"]["rate"] == 0.0
+
+
+def test_a4_flip_carries_the_c_branch_rate_beside_it():
+    # half the rows abstain at tau 0.8: the 0.97-peaked ones decide, the 0.4-peaked ones do not
+    rows = []
+    for u in range(4):
+        sharp = u % 2 == 0
+        for pos, v in enumerate(common.T1_VARIANTS):
+            rows.append(_a4_row("T1", f"u{u}", v, _peak(4, 1, 0.97) if sharp else _peak(4, pos, 0.4)))
+    flip = M.flip_rate(M.decide_rows(rows, FixedTau(0.8)))
+    assert flip["c_branch"]["n"] == 16 and flip["c_branch"]["rate"] == 0.5
+    assert flip["c_branch"]["forced_by_tau"] is False
+    assert flip["overall"] is not None and flip["n_decisions"] == 8
+
+
+def test_a4_margin_counts_decisions_not_rows():
+    # unit a decides (sharp), unit b abstains (flat). The ordinal operator still returns a distance for b.
+    rows = [_a4_row("T1", "a", v, _peak(4, 1, 0.97)) for v in common.T1_VARIANTS]
+    rows += [_a4_row("T1", "b", v, _peak(4, 1, 0.4)) for v in common.T1_VARIANTS]
+    d = M.decide_rows(rows, FixedTau(0.9))
+    assert any(x.dist > 0 for x in d if x.cum_pos is None)      # precondition: abstaining rows do carry a distance
+    mg = M.margin_distribution(d)
+    assert mg["n_rows"] == 8 and mg["n_decisions"] == 4
+    assert len(mg["distance_quantiles"]) > 0 and mg["share_distance_above_variance"] is not None
+
+
+def test_a4_margin_is_null_over_a_fully_abstaining_cell():
+    mg = M.margin_distribution(M.decide_rows(_abstaining_name_sensitive_cell(), FixedTau(0.95)))
+    assert mg["n_decisions"] == 0 and mg["n_rows"] == 32
+    assert mg["share_distance_above_variance"] is None and mg["distance_quantiles"] is None
+
+
+def test_a4_c_branch_rate_zero_at_tau_half_with_two_levels_is_flagged_forced():
+    rows = [_a4_row("T1", f"u{u}", v, [0.6, 0.4], "boolean") for u in range(3) for v in common.T1_VARIANTS]
+    c = M.c_branch_rate(M.decide_rows(rows, FixedTau(0.5)), "T1")
+    assert c["rate"] == 0.0 and c["forced_by_tau"] is True and c["fitted_taus"] == [0.5]
+    assert "arithmetically impossible" in c["forced_reason"]
+    mixed = [_a4_row("T1", "a", "original", [0.8, 0.2], "boolean"), _a4_row("T1", "b", "original", [0.5, 0.5], "boolean")]
+    assert M.c_branch_rate(M.decide_rows(mixed, FixedTau(0.7)), "T1")["forced_by_tau"] is False   # 0.5 of rows: a measurement
+
+
+def test_a4_move_rate_is_carried_on_argmax_beside_the_thresholded_one():
+    # base decides on level 0 (sharp); the swap's mass moves to level 1 but not enough to clear tau
+    rows = [_a4_row("T2", "a", "base", _peak(3, 0, 0.97), "nominal"), _a4_row("T2", "a", "swap_0_1", _peak(3, 1, 0.6), "nominal")]
+    m = M.move_rate(M.decide_rows(rows, FixedTau(0.9)))["swap"]
+    assert m["followed_rate"] == 0.0 and m["moved_elsewhere_rate"] == 1.0              # thresholded: C
+    assert m["argmax_reference"]["followed_rate"] == 1.0                                 # argmax: followed
+
+
+def test_a4_threshold_fit_reports_collapse_without_changing_the_fit():
+    train, held = _split_rows(60)
+    for i, r in enumerate(train):
+        r["gold"] = "false" if i < 20 else "true"
+    fitted = TH.fit_thresholds(S.TrainView.of(train + held, S.GROUP70))
+    assert fitted.tau_for(train[0]) == (0.95, "version")                                 # fit itself unchanged
+    tau, tier, key = fitted.lookup(train[0])
+    diag = fitted.diagnostics(key)
+    assert diag["utility_at_chosen_tau"] == 0 and diag["abstain_rate_at_chosen_tau"] == 1.0
+    assert diag["best_decisive_tau"] == 0.8 and diag["best_decisive_utility"] == -20
+    cell = M.cell_metrics(M.decide_rows(held, fitted), "heldout", fitted)["threshold_fit"]
+    assert cell["rows_by_tau"] == {"0.95": 60} and cell["rows_by_tier"] == {"version": 60}
+    e = cell["entries"][0]
+    assert e["fitted_tau"] == 0.95 and e["best_decisive_utility"] == -20 and e["collapsed"] is True
+    assert cell["share_rows_in_collapsed_entries"] == 1.0
+    # the cell-level flip carries the collapse: all rows abstain, so the thresholded C-rate is 1.0 and forced
+    assert M.cell_metrics(M.decide_rows(held, fitted), "heldout", fitted)["c_branch"]["T1"]["forced_by_tau"] is True
+
+
+def _a4_dl_report(real_arg, real_thr, empty_arg, empty_thr, fol_arg, fol_thr):
+    def flip(arg, thr):
+        return {"overall": thr, "argmax_reference": {"overall": arg}, "c_branch": {"rate": 0.0}}
+
+    def move(arg, thr):
+        return {"swap": {"followed_rate": thr, "argmax_reference": {"followed_rate": arg}}}
+    cell = {"primary": {"flip_T1": flip(real_arg, real_thr), "move_T2": move(fol_arg, fol_thr)},
+            "empty_input": {"flip_T1": flip(empty_arg, empty_thr), "move_T2": move(None, None)}}
+    return {"splits": {"group70": {"heldout": {"s": {"ordinal": cell}}}}}
+
+
+def test_a4_b2_and_b3_are_evaluated_on_argmax_columns():
+    # B-2: thresholded says pass (0.0 vs 0.5 -> gap 0.5, the degenerate zero), argmax says void (0.62 vs 0.60).
+    dl = report_mod.decision_lines(_a4_dl_report(real_arg=0.62, real_thr=0.0, empty_arg=0.60, empty_thr=0.5, fol_arg=0.5, fol_thr=0.5))
+    b2 = dl["B-2"][0]
+    assert b2["real_flip"] == 0.62 and b2["empty_input_flip"] == 0.60 and b2["pass"] is False and b2["t1_void"] is True
+    assert b2["real_flip_thresholded"] == 0.0                                            # beside, not used
+    # opposite direction: thresholded would fail/void, argmax passes
+    dl = report_mod.decision_lines(_a4_dl_report(real_arg=0.1, real_thr=0.55, empty_arg=0.6, empty_thr=0.6, fol_arg=0.5, fol_thr=0.5))
+    assert dl["B-2"][0]["pass"] is True and dl["B-2"][0]["t1_void"] is False
+    # B-3: thresholded followed 0.1 / flip 0.0 would fail the 30% clause; argmax followed 0.5 vs flip 0.62 passes 30% but not 10 points over flip
+    dl = report_mod.decision_lines(_a4_dl_report(real_arg=0.62, real_thr=0.0, empty_arg=0.9, empty_thr=0.9, fol_arg=0.5, fol_thr=0.1))
+    b3 = dl["B-3"][0]
+    assert b3["followed_rate"] == 0.5 and b3["above_30_percent"] is True and b3["t1_flip_same_cell"] == 0.62
+    assert b3["exceeds_flip_by_10_points"] is False and abs(b3["followed_minus_flip"] - (0.5 - 0.62)) < 1e-12
+    dl = report_mod.decision_lines(_a4_dl_report(real_arg=0.2, real_thr=0.9, empty_arg=0.9, empty_thr=0.9, fol_arg=0.5, fol_thr=0.1))
+    b3 = dl["B-3"][0]
+    assert b3["above_30_percent"] is True and b3["exceeds_flip_by_10_points"] is True     # thresholded columns would say the opposite
+
+
+def test_a4_report_records_amendment_level_and_cell_fit_summary():
+    with _tmp() as tmp:
+        data, out = os.path.join(tmp, "data"), os.path.join(tmp, "out")
+        _write_fixture_tree(data)
+        _run(data, out, "mock-name-driven")
+        rep = _report(out)
+        assert rep["amendment_level"] == common.AMENDMENT_LEVEL == 4 and rep["header"]["amendment_level"] == 4
+        cell = rep["splits"]["group70"]["heldout"]["src-a"]["ordinal"]["primary"]
+        assert "argmax_reference" in cell["flip_T1"] and "threshold_fit" in cell and "forced_by_tau" in cell["c_branch"]["T1"]
+        md = open(os.path.join(out, "report.md")).read()
+        assert "Amendment level of this report: 4" in md and "Threshold fitting per cell" in md
+
+
 def test_real_data_smoke_if_present():
     if not os.path.exists(REAL_DATA):
         return

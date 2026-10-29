@@ -23,6 +23,10 @@ TASK_DIRS = {"T1": "T1_level_names", "T2": "T2_definition_swap",
              "T3": "T3_question_set"}
 SOURCE_FILES = ("typed-decisions", "openjev-synth", "akhilaaa3")  # T3 exists for typed-decisions only
 
+# Pre-registration amendment level the metrics derivation follows (R0-BASELINE-PREREG.md section 11.6).
+# A report without this key was produced before amendment 4.
+AMENDMENT_LEVEL = 4
+
 DEFAULT_DATA_ROOT = "/mnt/cephfs/xingchao/experiments/jev"
 DEFAULT_OUT_ROOT = "/mnt/cephfs/xingchao/experiments/jev/r0_baseline"
 

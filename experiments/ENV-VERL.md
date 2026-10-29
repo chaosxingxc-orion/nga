@@ -494,13 +494,17 @@ section "Round 2". Chips 6,7 only; containers removed after each run.
   prefill figure above, expected for forward+backward plus a small micro-batch (4, vs 32 for the
   inference number). HBM headroom is large (9.1 of 64 GiB), so raising `micro_batch_size_per_gpu`
   is the next lever for training throughput, not attempted this round.
-- **A direct `fla_npu` kernel test: clean, confirmed negative.** Called
-  `torch_npu.npu_chunk_gated_delta_rule` directly (outside transformers, the exact op the profiler
-  saw as `aclnnChunkGatedDeltaRuleFwd`): forward runs and matches its own documented inference-only
-  contract (`L_i <= 8` per call, a decode-shaped constraint). Its `grad_fn` is literally PyTorch's
-  `WarnNotImplemented` placeholder; `.backward()` does not raise, but `q.grad`/`k.grad`/`v.grad`
-  stay `None` — gradients are not computed, not computed wrong, which is the safe failure mode, not
-  the dangerous one the brief warned about. Searched the rest of `fla_npu`: it ships the individual
+- **A direct `fla_npu` kernel test: clean, confirmed negative — and a silent-failure hazard, not
+  just an absence of capability.** Called `torch_npu.npu_chunk_gated_delta_rule` directly (outside
+  transformers, the exact op the profiler saw as `aclnnChunkGatedDeltaRuleFwd`): forward runs and
+  matches its own documented inference-only contract (`L_i <= 8` per call, a decode-shaped
+  constraint). Its `grad_fn` is literally PyTorch's `WarnNotImplemented` placeholder;
+  `.backward()` does not raise, but `q.grad`/`k.grad`/`v.grad` stay `None`. **This is silent, not
+  just safe**: nothing raises, every other layer (full attention, MLP, embeddings) still gets real
+  gradients, so the loss keeps moving and a training run looks completely normal end to end while
+  the gated-delta-rule parameters receive zero gradient forever. Loss behaviour is not a way to
+  catch this; only checking per-parameter gradients directly catches it, which is what this test
+  did. Searched the rest of `fla_npu`: it ships the individual
   CANN kernel *sources* for both forward and backward pieces of this exact op (on disk, not
   Python-callable), but no module wires them into an autograd-capable function the way it does for
   `causal_conv1d`/`l2norm`/`fast_gelu`, or for KDA (a different algorithm, autograd-wired via

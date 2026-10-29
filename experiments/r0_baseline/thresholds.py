@@ -58,23 +58,61 @@ def _utilities(row):
     return out
 
 
+def _utilities_and_decisions(row):
+    """Utility and decided flag of this row at every grid value (reporting only, section 11.3)."""
+    gold_pos = row["ids"].index(row["gold"])
+    util, decided = [], []
+    for tau in TAU_GRID:
+        pos, _ = cumulative_decision(row["p"], row["level_type"], tau)
+        util.append(0 if pos is None else (1 if pos == gold_pos else -1))
+        decided.append(pos is not None)
+    return util, decided
+
+
+def _fit_diagnostics(chosen_i, utilities, decisions, n):
+    """What the fit saw, for reporting (pre-reg 11.3). Never feeds back into the choice of tau.
+
+    A grid value is *decisive* when the operator commits on at least one fitting row there; the best
+    decisive tau is picked with the same tie rule as the fit (larger tau)."""
+    decisive = [i for i in range(len(TAU_GRID)) if decisions[i] > 0]
+    out = {"n_fit": n, "utility_at_chosen_tau": utilities[chosen_i],
+           "abstain_rate_at_chosen_tau": 1 - decisions[chosen_i] / n,
+           "utility_by_tau": {str(t): u for t, u in zip(TAU_GRID, utilities)},
+           "best_decisive_tau": None, "best_decisive_utility": None, "best_decisive_abstain_rate": None}
+    if decisive:
+        b = max(decisive, key=lambda i: (utilities[i], i))
+        out.update(best_decisive_tau=TAU_GRID[b], best_decisive_utility=utilities[b],
+                   best_decisive_abstain_rate=1 - decisions[b] / n)
+    return out
+
+
 class FittedThresholds:
     """Immutable mapping from a row to (tau, tier)."""
 
-    def __init__(self, splitter_name, table):
+    def __init__(self, splitter_name, table, diagnostics=None):
         self._splitter_name = splitter_name
         self._table = dict(table)  # {(tier, key): (tau, n_fit)}
+        self._diag = dict(diagnostics or {})  # {(tier, key): fit diagnostics}, reporting only
 
     @property
     def splitter_name(self):
         return self._splitter_name
 
     def tau_for(self, row):
+        tau, tier, _ = self.lookup(row)
+        return tau, tier
+
+    def lookup(self, row):
+        """(tau, tier, key) where key identifies the fitted entry (None for the default tier)."""
         for tier, key in tier_keys(row):
             hit = self._table.get((tier, key))
             if hit is not None:
-                return hit[0], tier
-        return DEFAULT_TAU, "default"
+                return hit[0], tier, (tier, key)
+        return DEFAULT_TAU, "default", None
+
+    def diagnostics(self, key):
+        """Fit diagnostics of an entry returned by ``lookup`` (None for the default tier)."""
+        return self._diag.get(key)
 
     def summary(self):
         counts = defaultdict(int)
@@ -91,20 +129,23 @@ def fit_thresholds(train):
         if train.splitter.assign(row) != split_mod.TRAIN:
             raise ValueError("held-out row found in a TrainView")
     sums = defaultdict(lambda: [0] * len(TAU_GRID))
+    decs = defaultdict(lambda: [0] * len(TAU_GRID))
     counts = defaultdict(int)
     for row in train.rows:
         if not fitting_row(row):
             continue
-        util = _utilities(row)
+        util, dec = _utilities_and_decisions(row)
         for tier, key in tier_keys(row):
             counts[(tier, key)] += 1
-            acc = sums[(tier, key)]
+            acc, dacc = sums[(tier, key)], decs[(tier, key)]
             for i, u in enumerate(util):
                 acc[i] += u
-    table = {}
+                dacc[i] += dec[i]
+    table, diag = {}, {}
     for tk, n in counts.items():
         if n < MIN_FIT_ITEMS:
             continue
         best = max(range(len(TAU_GRID)), key=lambda i: (sums[tk][i], i))  # ties -> larger tau
         table[tk] = (TAU_GRID[best], n)
-    return FittedThresholds(train.splitter.name, table)
+        diag[tk] = _fit_diagnostics(best, sums[tk], decs[tk], n)
+    return FittedThresholds(train.splitter.name, table, diag)

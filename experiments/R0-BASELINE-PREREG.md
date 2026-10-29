@@ -421,3 +421,34 @@ primary and the empty-input baseline both abstaining, the primary's flip rate is
 the baseline's, B-2 fails, and all T1 numbers in the run are void. The protocol would have refused
 the false claim and discarded a real finding along with it. The argmax column in §11.2 is what keeps
 the finding.
+
+### 11.8 Reporting conventions that follow from this amendment
+
+Three conventions, fixed here so the implementation cannot drift from §11.2 and so no reader can get
+the wrong column by accident.
+
+1. **No bare key names a metric that has two operators.** Where a metric is reported both on argmax
+   and on the thresholded operator, **neither** lives at a bare `overall` or `per_pair`. Both sit
+   under an explicit parent: `argmax_reference` for the primary column and `thresholded` for the
+   secondary. A consumer that asks for the bare name gets an error rather than a number. This is
+   deliberate: the defect in §11 was a silently wrong number read from a plausible key, and this
+   project has now had three such defects, so failing loudly is worth more than backward
+   compatibility. Every bucket keeps its `scored_on` label saying which operator it is and whether
+   it is a statement about the model or about the harness.
+
+2. **"Decisive τ" requires commitment on most rows.** §11.3 requires reporting the utility of the
+   best decisive τ. A τ that commits on a single fitting row is not meaningfully decisive: in the
+   smoke cell τ = 0.60 abstained on 95.8% of rows and still counted. Frozen: a grid τ is **decisive**
+   when its abstain rate on the fitting rows is at most **0.5**. The reported `best_decisive_tau` is
+   the best such τ, and is **null** when no grid τ qualifies, which is itself the clearest statement
+   of a collapse. The abstain rate is reported beside it, and the utility at every grid τ is reported
+   in full so the curve can be inspected without re-running the fit. This is a **reporting**
+   definition only and changes no fitted value; the §11.3 prohibition on altering the grid, the
+   utility or the tie rule stands.
+
+3. **A pre-registered amendment is not in force until a test asserts it.** §8.2 moved the T2 move
+   rate to argmax and was never implemented; the code carried only the thresholded rate, so every
+   B-3 number produced before amendment 4 was thresholded while this file said otherwise. The same
+   had happened to B-2's T3 extension (§9.2), which existed in prose and not in the decision lines.
+   Frozen: each amendment clause that changes a number carries a test naming the clause, and a
+   clause with no such test is reported as **not in force** in the report header rather than assumed.

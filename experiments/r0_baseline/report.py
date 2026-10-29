@@ -8,8 +8,9 @@ Scorer roles shown side by side (pre-reg section 4: degenerate baselines are nev
 primary, primary+empty_input, primary+question_only, constant@<split>, uniform.
 
 Decision lines B-1, B-2 and B-3 are evaluated mechanically from the numbers with the constants of
-pre-registration section 3.1.  B-3's "clearly above the T1 flip rate" has no number in the
-pre-registration, so only the 30% part is a verdict and the flip rate is printed beside it.
+pre-registration section 3.1.  B-3's second clause was quantified in section 8.5 (10 points over the T1 flip rate).  Under
+amendment 4 (section 11.2) B-2 and B-3 are evaluated on the argmax-scored columns; thresholded values
+are carried beside the verdicts.
 B-4 needs a second, post-training report and is not evaluated here.
 """
 from collections import defaultdict
@@ -17,12 +18,13 @@ from collections import defaultdict
 import metrics as M
 import split as S
 import thresholds as TH
-from common import LEVEL_TYPES
+from common import AMENDMENT_LEVEL, LEVEL_TYPES
 
 B1_MARGIN = 0.10          # untuned readout beats the constant classifier by >= 10 points
 B2_MARGIN = 0.10          # real-model flip rate >= 10 points below the empty-input baseline
 B2_VOID_WITHIN = 0.05     # within 5 points of the empty-input baseline: T1 numbers void
 B3_FOLLOWED_ABOVE = 0.30  # T2 followed rate above 30%
+B3_MARGIN_OVER_FLIP = 0.10  # and above the T1 flip rate by 10 points (pre-reg 8.5)
 
 ROLE_ORDER = ("primary", "empty_input", "question_only", "constant", "uniform")
 
@@ -39,7 +41,7 @@ def role_names(primary, split_name):
 
 def build_report(rows_by_scorer, primary):
     """Return the report dict. ``rows_by_scorer`` maps physical scorer name -> list of readout rows."""
-    report = {"primary": primary, "splits": {}, "thresholds": {}, "missing": []}
+    report = {"amendment_level": AMENDMENT_LEVEL, "primary": primary, "splits": {}, "thresholds": {}, "missing": []}
     for splitter in (S.GROUP70, S.QUESTION70):
         split_cells, split_tau = {}, {}
         primary_rows = [r for r in rows_by_scorer.get(primary, []) if splitter in S.splitters_for_source(r["source"])]
@@ -57,7 +59,7 @@ def build_report(rows_by_scorer, primary):
                 by_cell[(side, d.row["source"], d.row["level_type"])].append(d)
                 tiers[side][d.tier] += 1
             for (side, source, ltype), ds in by_cell.items():
-                split_cells.setdefault(side, {}).setdefault(source, {}).setdefault(ltype, {})[role] = M.cell_metrics(ds, side)
+                split_cells.setdefault(side, {}).setdefault(source, {}).setdefault(ltype, {})[role] = M.cell_metrics(ds, side, fitted)
             split_tau[role] = {"scorer": phys, **fitted.summary(), "rows_by_tier": {s: dict(t) for s, t in tiers.items()}}
         if split_cells:
             report["splits"][splitter.name] = split_cells
@@ -83,19 +85,28 @@ def decision_lines(report):
                         out["B-1"].append({"source": source, "level_type": ltype, "floor": task,
                                            "readout": a, "constant": b, "difference": a - b,
                                            "pass": a - b >= B1_MARGIN})
-            real_flip = p["flip_T1"]["overall"]
-            if "empty_input" in roles and real_flip is not None and roles["empty_input"]["flip_T1"]["overall"] is not None:
-                empty_flip = roles["empty_input"]["flip_T1"]["overall"]
+            # B-2 and B-3 read the argmax-scored flip rate (pre-reg 11.2); the thresholded rate is carried beside.
+            real_flip = p["flip_T1"]["argmax_reference"]["overall"]
+            real_flip_thr = p["flip_T1"]["overall"]
+            if "empty_input" in roles and real_flip is not None and roles["empty_input"]["flip_T1"]["argmax_reference"]["overall"] is not None:
+                empty_flip = roles["empty_input"]["flip_T1"]["argmax_reference"]["overall"]
                 gap = empty_flip - real_flip
-                out["B-2"].append({"source": source, "level_type": ltype, "real_flip": real_flip,
-                                   "empty_input_flip": empty_flip, "gap": gap, "pass": gap >= B2_MARGIN,
-                                   "t1_void": abs(gap) <= B2_VOID_WITHIN})
-            fr = p["move_T2"]["swap"]["followed_rate"]
+                out["B-2"].append({"source": source, "level_type": ltype, "scored_on": "argmax",
+                                   "real_flip": real_flip, "empty_input_flip": empty_flip, "gap": gap,
+                                   "pass": gap >= B2_MARGIN, "t1_void": abs(gap) <= B2_VOID_WITHIN,
+                                   "real_flip_thresholded": real_flip_thr,
+                                   "empty_input_flip_thresholded": roles["empty_input"]["flip_T1"]["overall"],
+                                   "real_c_branch_rate": p["flip_T1"]["c_branch"]["rate"],
+                                   "empty_input_c_branch_rate": roles["empty_input"]["flip_T1"]["c_branch"]["rate"]})
+            fr = p["move_T2"]["swap"]["argmax_reference"]["followed_rate"]
             if fr is not None:
-                out["B-3"].append({"source": source, "level_type": ltype, "followed_rate": fr,
+                out["B-3"].append({"source": source, "level_type": ltype, "scored_on": "argmax",
+                                   "followed_rate": fr,
                                    "above_30_percent": fr > B3_FOLLOWED_ABOVE, "t1_flip_same_cell": real_flip,
                                    "followed_minus_flip": None if real_flip is None else fr - real_flip,
-                                   "clearly_above_flip": "reader judgement (no number in the pre-registration)"})
+                                   "exceeds_flip_by_10_points": None if real_flip is None else fr - real_flip >= B3_MARGIN_OVER_FLIP,
+                                   "t1_flip_same_cell_thresholded": real_flip_thr,
+                                   "followed_rate_thresholded": p["move_T2"]["swap"]["followed_rate"]})
     return out
 
 
@@ -107,6 +118,16 @@ def _f(x, pct=True):
     if x is None:
         return "-"
     return f"{100 * x:.1f}" if pct else f"{x:.4g}"
+
+
+def _crate(c):
+    """C-branch rate cell; a rate of exactly 0.0 or 1.0 is marked as forced by the fitted tau (pre-reg 11.5)."""
+    if c["rate"] is None:
+        return "-"
+    if c["forced_by_tau"]:
+        taus = "/".join(f"{t:.2f}" for t in c["fitted_taus"])
+        return f"{_f(c['rate'])} FORCED by tau {taus}"
+    return _f(c["rate"])
 
 
 def _table(headers, rows):
@@ -128,7 +149,10 @@ def _iter_cells(side_cells):
 def render_markdown(report, header):
     out = ["# R0 baseline report", "",
            "Generated from raw readouts. Every row is one source and one level type. "
-           "All rates are percentages unless stated. Definitions: `experiments/R0-BASELINE-PREREG.md` section 3.", "",
+           f"All rates are percentages unless stated. Definitions: `experiments/R0-BASELINE-PREREG.md` section 3 and amendment 4 (section 11). "
+           f"Amendment level of this report: {report.get('amendment_level', '<4 (pre-amendment)')}. "
+           "Flip rates: the argmax column is a statement about the model (primary); the thresholded column is a statement about the operator, and `-` there means no decisions to flip. "
+           "FORCED marks a C-branch rate of exactly 0 or 100 that the fitted tau determined (section 11.5).", "",
            "## Run header", "", "```"]
     out += [f"{k}: {v}" for k, v in header.items()]
     out += ["```", ""]
@@ -142,9 +166,9 @@ def render_markdown(report, header):
             out += [f"## Split `{split_name}`, side `{side}` ({note})", ""]
             cells = sides[side]
             rows = [[s, lt, role, m["floor_T1"]["n"], _f(m["floor_T1"]["acc_cumulative"]),
-                     _f(m["floor_T1"]["acc_argmax_reference"]), _f(m["c_branch"]["T1"]["rate"]),
+                     _f(m["floor_T1"]["acc_argmax_reference"]), _crate(m["c_branch"]["T1"]),
                      m["floor_T2"]["n"], _f(m["floor_T2"]["acc_cumulative"]),
-                     _f(m["floor_T2"]["acc_argmax_reference"]), _f(m["c_branch"]["T2"]["rate"]),
+                     _f(m["floor_T2"]["acc_argmax_reference"]), _crate(m["c_branch"]["T2"]),
                      _f(m["ece"]["ece"], False) if "ece" in m else "-"]
                     for s, lt, role, m in _iter_cells(cells)]
             out += ["### Accuracy floor and C-branch rate", "",
@@ -152,45 +176,65 @@ def render_markdown(report, header):
                             "T1 C-rate", "T2 n", "T2 acc (cum-mass)", "T2 acc (argmax ref)", "T2 C-rate", "ECE (0-1)"], rows), ""]
             rows = [[s, lt, role, m["failure_set_T1"]["n_units"], m["failure_set_T1"]["failures_original"],
                      m["failure_set_T1"]["failures_cumulative"], _f(m["failure_set_T1"]["growth"]),
-                     _f(m["flip_T1"]["overall"])] + [_f(v) for v in m["flip_T1"]["per_pair"].values()]
+                     _f(m["flip_T1"]["argmax_reference"]["overall"]), _f(m["flip_T1"]["overall"]),
+                     _crate(m["flip_T1"]["c_branch"])] + [_f(v) for v in m["flip_T1"]["argmax_reference"]["per_pair"].values()]
                     for s, lt, role, m in _iter_cells(cells)]
             pair_names = next((list(m["flip_T1"]["per_pair"]) for _, _, _, m in _iter_cells(cells)), [])
             out += ["### T1 invariance: cumulative failure set and flip rate", "",
                     _table(["source", "level_type", "scorer", "units", "fail (original)", "fail (cumulative, 4 variants)",
-                            "growth", "flip overall"] + [f"flip {p.replace('|', ' / ')}" for p in pair_names], rows), ""]
+                            "growth", "flip argmax (model)", "flip thresholded (operator)", "C-rate of these rows"]
+                           + [f"argmax flip {p.replace('|', ' / ')}" for p in pair_names], rows), ""]
             t3 = [(s, lt, role, m) for s, lt, role, m in _iter_cells(cells) if "flip_T3" in m]
             if t3:
                 pair_names3 = list(t3[0][3]["flip_T3"]["per_pair"])
                 rows = [[s, lt, role, m["floor_T3"]["n"], _f(m["floor_T3"]["acc_cumulative"]),
-                         _f(m["floor_T3"]["acc_argmax_reference"]), _f(m["c_branch"]["T3"]["rate"]),
+                         _f(m["floor_T3"]["acc_argmax_reference"]), _crate(m["c_branch"]["T3"]),
                          m["failure_set_T3"]["failures_original"], m["failure_set_T3"]["failures_cumulative"],
-                         _f(m["failure_set_T3"]["growth"]), m["flip_T3"]["n_units"], _f(m["flip_T3"]["overall"])]
-                        + [_f(v) for v in m["flip_T3"]["per_pair"].values()] for s, lt, role, m in t3]
+                         _f(m["failure_set_T3"]["growth"]), m["flip_T3"]["n_units"],
+                         _f(m["flip_T3"]["argmax_reference"]["overall"]), _f(m["flip_T3"]["overall"]), _crate(m["flip_T3"]["c_branch"])]
+                        + [_f(v) for v in m["flip_T3"]["argmax_reference"]["per_pair"].values()] for s, lt, role, m in t3]
                 out += ["### T3 question-set invariance (floor variant prefix_1q; flip rate defined as in T1; "
                         "prefix_5q / prefix_5q_shuffled is the pure ordering effect)", "",
                         _table(["source", "level_type", "scorer", "floor n", "acc (cum-mass)", "acc (argmax ref)", "C-rate",
-                                "fail (prefix_1q)", "fail (cumulative, 4 variants)", "growth", "units", "flip overall"]
-                               + [f"flip {p.replace('|', ' / ')}" for p in pair_names3], rows), ""]
+                                "fail (prefix_1q)", "fail (cumulative, 4 variants)", "growth", "units", "flip argmax (model)", "flip thresholded (operator)", "C-rate of these rows"]
+                               + [f"argmax flip {p.replace('|', ' / ')}" for p in pair_names3], rows), ""]
             rows = []
             for s, lt, role, m in _iter_cells(cells):
-                sw, rv = m["move_T2"]["swap"], m["move_T2"]["reversed"]
+                sw, rv = m["move_T2"]["swap"]["argmax_reference"], m["move_T2"]["reversed"]["argmax_reference"]
+                swt = m["move_T2"]["swap"]
                 rows.append([s, lt, role, sw["n_eligible"], _f(sw["followed_rate"]), _f(sw["unmoved_rate"]),
                              _f(sw["moved_elsewhere_rate"]), sw["n_ineligible"], rv["n_eligible"],
-                             _f(rv["followed_rate"]), _f(rv["unmoved_rate"]), _f(rv["moved_elsewhere_rate"]), rv["n_ineligible"]])
-            out += ["### T2 discrimination: move rate", "",
+                             _f(rv["followed_rate"]), _f(rv["unmoved_rate"]), _f(rv["moved_elsewhere_rate"]), rv["n_ineligible"],
+                             _f(swt["followed_rate"])])
+            out += ["### T2 discrimination: move rate, argmax-scored (model); last column is the thresholded swap followed rate (operator)", "",
                     _table(["source", "level_type", "scorer", "swap eligible", "followed", "unmoved", "moved elsewhere",
-                            "swap ineligible", "rev eligible", "followed", "unmoved", "moved elsewhere", "rev ineligible"], rows), ""]
+                            "swap ineligible", "rev eligible", "followed", "unmoved", "moved elsewhere", "rev ineligible", "swap followed (thresholded)"], rows), ""]
             rows = []
             for s, lt, role, m in _iter_cells(cells):
                 mg = m["margin_T1"]
                 q = mg["distance_quantiles"] or {}
-                rows.append([s, lt, role, mg["n_decisions"], _f(mg["share_distance_above_variance"])]
+                rows.append([s, lt, role, mg["n_decisions"], mg["n_rows"], _f(mg["share_distance_above_variance"])]
                             + [_f(q.get(k), False) for k in ("q00", "q10", "q25", "q50", "q75", "q90", "q100")])
-            out += ["### Margin distribution (T1): share of decisions with distance above within-group variance, "
+            out += ["### Margin distribution (T1): share of decisions (rows without a decision do not count; `-` = no decisions) with distance above within-group variance, "
                     "and quantiles of the distance (probability units)", "",
-                    _table(["source", "level_type", "scorer", "decisions", "share above variance",
+                    _table(["source", "level_type", "scorer", "decisions", "rows", "share above variance",
                             "d q0", "q10", "q25", "q50", "q75", "q90", "q100"], rows), ""]
-    out += ["## Threshold fitting", ""]
+    out += ["## Threshold fitting per cell (pre-reg 11.3: reporting only, the objective is not tuned)", ""]
+    for split_name, sides in report["splits"].items():
+        rows = []
+        for side in ("heldout", "train"):
+            for s, lt, role, m in _iter_cells(sides.get(side, {})):
+                tf = m.get("threshold_fit") or {}
+                for e in tf.get("entries", [])[:1]:
+                    rows.append([split_name, side, s, lt, role, tf["rows_by_tau"], tf["rows_by_tier"], tf["n_fitted_entries"],
+                                 e["fitted_tau"], e["utility_at_fitted_tau"], e["best_decisive_tau"], e["best_decisive_utility"],
+                                 _f(tf["share_rows_in_collapsed_entries"])])
+        if rows:
+            out += ["Largest fitted entry per cell shown (full list in report.json). Collapsed = the fit chose a tau with utility 0 "
+                    "because every decisive tau scored negative.", "",
+                    _table(["split", "side", "source", "level_type", "scorer", "rows by tau", "rows by tier", "fitted entries",
+                            "fitted tau", "utility at fitted tau", "best decisive tau", "best decisive utility", "share of rows collapsed"], rows), ""]
+    out += ["## Threshold fitting, keys per tier", ""]
     for split_name, roles in report["thresholds"].items():
         rows = [[split_name, role, info["scorer"], info["fitted_keys_per_tier"], info["rows_by_tier"]] for role, info in roles.items()]
         out += [_table(["split", "role", "scorer", "keys fitted per tier", "rows decided per side and tier"], rows), ""]
@@ -199,11 +243,17 @@ def render_markdown(report, header):
     out += ["### B-1 readout vs constant classifier (pass: >= 10 points)", "",
             _table(["source", "level_type", "floor", "readout", "constant", "diff", "pass"],
                    [[r["source"], r["level_type"], r["floor"], _f(r["readout"]), _f(r["constant"]), _f(r["difference"]), r["pass"]] for r in dl["B-1"]]), ""]
-    out += ["### B-2 real flip vs empty-input flip (pass: real >= 10 points below; void if within 5 points)", "",
-            _table(["source", "level_type", "real flip", "empty-input flip", "gap", "pass", "T1 void"],
-                   [[r["source"], r["level_type"], _f(r["real_flip"]), _f(r["empty_input_flip"]), _f(r["gap"]), r["pass"], r["t1_void"]] for r in dl["B-2"]]), ""]
-    out += ["### B-3 T2 followed rate (pass: above 30%; 'clearly above T1 flip' is a reader judgement)", "",
-            _table(["source", "level_type", "followed", "above 30%", "T1 flip same cell", "followed minus flip"],
-                   [[r["source"], r["level_type"], _f(r["followed_rate"]), r["above_30_percent"], _f(r["t1_flip_same_cell"]), _f(r["followed_minus_flip"])] for r in dl["B-3"]]), ""]
+    out += ["### B-2 real flip vs empty-input flip, argmax-scored (pass: real >= 10 points below; void if within 5 points); thresholded values and C-rates beside", "",
+            _table(["source", "level_type", "real flip (argmax)", "empty-input flip (argmax)", "gap", "pass", "T1 void",
+                    "real flip (thresholded)", "empty flip (thresholded)", "real C-rate", "empty C-rate"],
+                   [[r["source"], r["level_type"], _f(r["real_flip"]), _f(r["empty_input_flip"]), _f(r["gap"]), r["pass"], r["t1_void"],
+                     _f(r["real_flip_thresholded"]), _f(r["empty_input_flip_thresholded"]),
+                     _f(r["real_c_branch_rate"]), _f(r["empty_input_c_branch_rate"])] for r in dl["B-2"]]), ""]
+    out += ["### B-3 T2 followed rate vs T1 flip rate, both argmax-scored (pass: followed above 30% and 10 points above the flip rate)", "",
+            _table(["source", "level_type", "followed (argmax)", "above 30%", "T1 flip (argmax)", "followed minus flip", "10 points above flip",
+                    "followed (thresholded)", "T1 flip (thresholded)"],
+                   [[r["source"], r["level_type"], _f(r["followed_rate"]), r["above_30_percent"], _f(r["t1_flip_same_cell"]),
+                     _f(r["followed_minus_flip"]), r["exceeds_flip_by_10_points"], _f(r["followed_rate_thresholded"]),
+                     _f(r["t1_flip_same_cell_thresholded"])] for r in dl["B-3"]]), ""]
     out += [f"### B-4\n\n{dl['B-4']}", ""]
     return "\n".join(out)
