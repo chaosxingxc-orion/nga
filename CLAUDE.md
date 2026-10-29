@@ -120,3 +120,27 @@ link must never be able to interrupt or orphan a run.
 - Write the exact relaunch command into the run's output directory, so someone who did not start the
   run can resume it.
 - Attached runs are fine only for short interactive checks that finish in under a minute.
+
+### 7.1 Monitoring: never read raw logs with the orchestrator
+
+Log reading is tiered, so routine status costs no model tokens. Do not spend the orchestrator on
+raw output.
+
+| Tier | Who | Reads | Produces |
+| --- | --- | --- | --- |
+| 0 | `tools/watchdog.py`, a script, no model | logs, heartbeats, marker files, `report.json` | `digest.json` and a size-capped `digest.md`: one status line per run, flags, clustered error signatures with pointers |
+| 1 | Claude Opus 5.5 | only the bounded slices the digest points at, for bad-case and failure analysis | a short diagnosis naming cause and evidence |
+| 2 | Claude Fable 5.1, the orchestrator | the digest and the tier-1 diagnosis only | the decision |
+
+Rules:
+
+- The orchestrator reads `digest.md`, never a log file. If the digest is not enough, it asks tier 1
+  for a specific slice rather than widening its own read.
+- The watchdog reports **pointers** to evidence (file plus line range), not the evidence. Full
+  tracebacks never enter the digest.
+- Escalate to tier 1 only when the digest flags it. A tier-1 agent gets the pointers in its brief and
+  is told to read those slices, not to explore.
+- The watchdog also flags **suspicious successes**, not only failures: any rate exactly 0.0 or 1.0,
+  a metric identical across every cell, or a cell below the minimum sample count. This project has
+  twice produced a perfect number that came from the measurement being broken rather than the model
+  being good, so a clean zero is a reason to look harder, not to celebrate.
