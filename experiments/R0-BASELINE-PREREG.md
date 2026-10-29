@@ -521,3 +521,122 @@ needs about **2.2 hours** in total rather than 6.5.
 3. §8.6 stands unaltered and was, on the corrected estimate, never actually triggered. The override
    recorded in §11.9 was therefore unnecessary. It is left in the file because a decision log that
    quietly deletes the decisions that turned out to rest on bad numbers is worth nothing.
+---
+
+## 12. Amendment 5, 2026-10-29, after the first scored run
+
+The full pass was scored and then interrogated. One of my own hypotheses died, the dominant mechanism
+turned out to be something else, and two defects were found that qualify the published numbers. The
+run is **not** void: the readouts are sound and the verdicts stand as measured. What changes is what
+two of the cells are **measuring**.
+
+### 12.1 The candidate-length confound was tested and is not material. Do not retest it.
+
+Candidates are scored by the unnormalized sum of the log-probabilities of their identifier tokens,
+so a name tokenizing into more pieces could in principle be disfavoured. I suspected this drove the
+T1 flip rate. It does not, on three independent grounds:
+
+1. On **73.97%** of all 56,936 T1 rows every candidate in the prompt has the **same** token count, so
+   the missing normalization adds an identical constant to every candidate and cannot change the
+   argmax. On those rows it is an exact no-op, not an approximation.
+2. Restricting each cell to pairs where length cannot discriminate leaves the flip rate **equal or
+   slightly higher**, never lower. Three of the six variant pairs are length-fair at full sample size
+   on `openjev-synth` and `typed-decisions`, and that is where the flip mass lives.
+3. The mechanical length effect has the **wrong sign**: measured with position controlled on the
+   semantics-free `random` labels, longer identifiers score *higher*, by +0.154 nats per token on
+   `openjev-synth` and +0.44/+0.49 on akhilaaa3, against a within-item score spread of 2 to 3 nats.
+
+Per-token mean normalization is therefore **not** adopted, and §12.6 records the better fix. Note
+that normalization would make measured name sensitivity **worse**, not better: sweeping the
+unrecoverable softmax constant moves the pooled T1 flip rate up from 56.91% to between 58.83% and
+65.50%.
+
+### 12.2 The dominant mechanism is a prior over identifier tokens, not a reading of names
+
+Argmax concentrates on one position far above chance, and **which** position depends on the name
+variant rather than on the input. On `openjev-synth` ordinal, where 5 levels give 20% chance, the
+modal position takes 99.97% of items under `letters` (label `a`, position 0), 87.25% under `digits`
+(label `3`, position 2), 60.65% under `original` and 56.15% under `random`.
+
+The decisive evidence is the empty-input arm, which has no business situation to read at all. It
+flips at 44.18% / 47.52% / 57.44% on `typed-decisions` boolean / nominal / ordinal and 57.24% on
+`openjev-synth`, against the primary's 29.23% / 54.24% / 53.22% / 66.06%. **A model that reads
+nothing flips as much as the real one, and on `typed-decisions` boolean it flips more.** Primary and
+empty-input choose the same level on 63.16% of all T1 items against 25.55% chance agreement.
+
+**Consequence, frozen.** The T1 flip rate as measured here is predominantly a statement about the
+identifier set, not about the model's reading of names in context. Identifier choice is therefore a
+**harness design decision** for most of T1, not a training problem, with two exceptions below.
+
+### 12.3 `openjev-synth` ordinal T1 is a label/definition conflict, not a renaming. Its T1 numbers do not measure invariance.
+
+The question is *"How many of the four requirements are established for this candidate?"* and the
+`original` level names are literally the counts `0`–`4`. The `digits` variant relabels them `1`–`5`
+while leaving definitions untouched, so the rendered prompt contains lines such as
+
+```
+- 1: Exactly 0 of the 4 numbered requirements are established.
+```
+
+The identifier contradicts its own definition, in a task whose answer **is** a number. Verified
+directly in the frozen data.
+
+**Frozen.** For this source T1 is not a renaming manipulation and its T1 flip rate, accuracy and
+invariance numbers **may not be reported as name invariance**. They are reported separately and
+labelled as a label/definition conflict. This covers **7,680 of 14,234 T1 units, 54%**, so it is not
+a corner case. A weaker form of the same problem exists in every ordinal cell, where `original`
+names are rank indices. Rebuilding this source's T1 requires choosing identifiers that are not
+themselves the answer; relabelling alone cannot fix it, because the identifier is semantically
+load-bearing. Until then no name-invariance claim rests on this source.
+
+### 12.4 The single B-2 pass rests on a cell with a constant arm
+
+`typed-decisions` boolean, the one cell that passes B-2, chose `true` on **1,800 of 1,800** rows in
+its `original` variant, and the question-only control agrees with the primary on **100.00%** of them.
+That arm is a constant classifier wearing the primary's name, so the cell's 29.23% flip rate is
+produced entirely by the other three variants.
+
+**Frozen.** The B-2 pass is reported **with this caveat attached**, never as a bare pass. A constant
+arm is exactly the suspicious-success case §7.1 of `CLAUDE.md` exists to catch, and it was found by
+asking what the number would be if the model were replaced by a constant, which is the check §9.4
+already says belongs before every scored run.
+
+### 12.5 A tie in the reference column is an abstention, not a vote for the first option
+
+Under bf16, **5.21%** of all T1 rows have two or more candidates tied at exactly the top
+probability, rising to 14.10% on `openjev-synth` `original` and 16.00% on `typed-decisions` ordinal
+`digits`. `argmax` breaks those ties to the lowest index, which inflates `openjev-synth` `original`'s
+position-0 rate by about 5.95 points.
+
+**Frozen.** Where the argmax reference column is computed, an exact tie at the top counts as an
+**abstention**, not as a choice of the first-listed candidate, and the tie rate is reported per cell.
+Silently resolving a tie toward position 0 manufactures a position effect that is an artifact of
+numerical precision.
+
+### 12.6 Readouts must store the raw per-candidate score
+
+The readout stores only post-softmax probabilities. The softmax constant is not recoverable when
+candidates differ in length, so no normalization question can be answered without a rescore.
+
+**Frozen.** Every readout row stores the **raw summed log-probability per candidate** alongside the
+probabilities. One extra float per candidate would have answered §12.1 without touching an NPU.
+Within-item differences are already exact, since `log p_i − log p_j = s_i − s_j`; only the absolute
+level is lost, and that is what a length question needs. Additionally, where a prompt's candidates
+can be made to tokenize to an equal number of tokens, they **should** be, which removes the length
+dimension rather than correcting for it; this already holds on 74% of rows.
+
+### 12.7 `akhilaaa3` is the exception, and is where name rendering is a real question
+
+Unlike the other sources, `akhilaaa3` carries a genuine input-dependent component: the primary flips
+at 33.86% / 70.99% / 61.11% against an empty-input baseline of 7.94% / 50.00% / 33.89%. Its
+`original` names are real business words. **Frozen:** any claim that name rendering is a training
+problem rather than a harness decision must be supported on this source, not on the others. Its
+held-out cells are small (27 to 34 units) and 26 primary values were flagged below the minimum
+sample count, so those numbers are noisy and must carry their sample sizes.
+
+### 12.8 The two input ablations are not ordered the way their names suggest
+
+Question-only agrees with the primary on **72.03%** of T1 items while empty-input agrees on
+**63.16%**. The empty-input arm, which keeps an `Input:` header above an empty body, is therefore the
+**more** aggressive ablation of the two. **Frozen:** neither is described as the weaker control, and
+both are reported with their agreement rates, so no reader infers an ordering from the names.
