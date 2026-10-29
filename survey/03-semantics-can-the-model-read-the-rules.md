@@ -1,245 +1,243 @@
-# 3 · 语义：业务方写下的东西，模型究竟读了没有
+# 3 · Semantics: did the model actually read what the business side wrote
 
-> 若核心逻辑是语义理解的泛化（§2.2 P0），那么第一个要问的就是：**业务方用文字写下的定义、判据、示例与规则，模型是否真的读了**。本章是这个问题的全部证据。
+> If the core logic is the generalization of semantic understanding (§2.2 P0), then the first question to ask is: **does the model actually read the definitions, criteria, examples and rules that the business side writes down in text**. This chapter is the whole body of evidence on that question.
 >
-> §3.1（原 D1 维度）口径不是成本档位，而是：决策微调后的单遍模型是否仍具备并能利用 ICL，**业务人员能否通过提示词工程直接使用 Jev 类模型**，每种杠杆的效应量与失效模式。§3.2（原 D3 维度）是另一半：定义一组逻辑原语，让非技术业务专家用文字写业务规则并被忠实执行。
+> The protocol of §3.1 (formerly dimension D1) is not a cost level. It is: whether the decision-fine-tuned single-pass model still has, and can use, ICL; **whether business staff can use a Jev-class model directly through prompt engineering**; and the effect size and failure modes of each lever. §3.2 (formerly dimension D3) is the other half: define a set of logic primitives so that non-technical business experts can write business rules in text and have them executed faithfully.
 >
-> 本章最刺的两条结论：**标签名压倒定义**（名字-定义对调使平均 AUC 93.8% → 23.2%，而类型错误率全程 0%——类型正确 ≠ 读了定义），以及**删除全部定义准确率不变**。它们直接打在"业务人员可配置"这个前提上。
+> The two sharpest conclusions of this chapter: **label names override definitions** (a name-definition swap takes mean AUC from 93.8% → 23.2%, while the type-error rate stays at 0% throughout: correct type ≠ read the definition), and **deleting all definitions leaves accuracy unchanged**. They strike directly at the premise that "business staff can configure it".
 
-## 3.1 D1 上下文学习：能否"在提示里学"，业务人员能用哪些杠杆
+## 3.1 D1 in-context learning: can it "learn in the prompt", and which levers can business staff use
 
-> 口径（按最新讨论）：不是成本档位。要回答三个问题：
-> 1. 决策微调后的单遍模型**是否还具备 / 能否利用** ICL（示例、定义、判据、状态结构）？
-> 2. 怎样**利用好**这种能力？
-> 3. **业务人员通过提示词工程**能用哪些杠杆，效应量多大，哪些情形会失效？
+> Protocol (per the latest discussion): not a cost level. Three questions to answer:
+> 1. Does the decision-fine-tuned single-pass model **still have / can it use** ICL (examples, definitions, criteria, state structure)?
+> 2. How to **make good use** of this ability?
+> 3. Which levers can **business staff use through prompt engineering**, how large are the effects, and in which situations do they fail?
 
-### 3.1.1 先回到 ICL 的基础事实（上游文献）
+### 3.1.1 First, Back to the Basic Facts of ICL (Upstream Literature)
 
-决策模型是在因果 LM 上微调得到的，因此 LM 的 ICL 规律是我们的起点。与"业务人员写示例"直接相关的结论：
+A decision model is obtained by fine-tuning a causal LM, so the ICL regularities of LMs are our starting point. The conclusions directly relevant to "business staff writing examples":
 
-| 事实 | 出处 |
+| Fact | Source |
 | --- | --- |
-| 示例的**真实标签不是必需的**：随机替换示例标签几乎不伤害 12 个模型的分类/多选表现；起作用的是标签空间、输入分布与格式 | [2202.12837](https://arxiv.org/abs/2202.12837) |
-| **翻转标签只有大模型能学**：小模型忽略翻转标签，依赖预训练的语义先验；覆盖先验是随规模涌现的能力 | [2303.03846](https://arxiv.org/abs/2303.03846) |
-| **1–12B 开源模型在少样本下语义覆盖率恰好为零**：反转示例只能以牺牲准确率为代价提高"提示对齐"，ICL 是"调整输入如何投影到稳定的语义方向"，而非重映射标签含义 | [2511.21038](https://arxiv.org/abs/2511.21038) |
-| **同质标签让 0.8B–8B 模型坍塌到 ≤12%**：模型把标签槽位里的 token 当作穷尽的答案词表；示例若带 {foo,bar,vex,nit,orb} 这类无意义 token，42–67% 的概率落在示例集合上，P(dog) < 0.2%；4 分类下三模型 0% | [2605.08295](https://arxiv.org/abs/2605.08295) |
-| ICL 可分解为**任务模式（Schema）与绑定（Binding）**两个可分离机制：Schema 经晚期 MLP 100% 迁移，Binding 经残差流 62% 迁移；先验知识通过注意力错路由（72.7% 近因偏置）干扰；高先验场景 38% 绑定失败；在 Mamba 上同样成立 | [2512.17325](https://arxiv.org/abs/2512.17325) |
-| **标签词是锚点**：浅层把语义聚合进标签词表示，深层以此为参考做预测 | [2305.14160](https://arxiv.org/abs/2305.14160) |
-| **Symbol tuning**：用任意符号替换自然语言标签做微调，迫使模型学输入-标签映射，对未见 ICL 任务与欠定提示更稳健 | [2305.08298](https://arxiv.org/abs/2305.08298) |
-| **先校准再使用 / 批校准**：少样本的不稳定来自对特定答案的偏置（末尾位置、预训练高频），用无内容输入估计偏置可矫正 | [2102.09690](https://arxiv.org/abs/2102.09690)、[2309.17249](https://arxiv.org/abs/2309.17249) |
-| **任务向量 / 函数向量**：ICL 把示例集压缩成一个向量；少数注意力头搬运任务表示 | [2310.15916](https://arxiv.org/abs/2310.15916)、[2310.15213](https://arxiv.org/abs/2310.15213) |
-| **规则可摊销，配对不可**：静态向量等价于一个合成示例，对高秩映射（词级双射）必然失败 | [2610.00526](https://arxiv.org/abs/2610.00526) |
-| **ICL 放大潜在符号电路**：抽象-归纳-检索三阶段电路在准确率升高之前就已存在，示例只是给同一电路供给输入 | [2609.36265](https://arxiv.org/abs/2609.36265) |
-| **多示例（many-shot）**：数百到数千示例持续提升，特别是大标签空间；但对选择策略高度敏感，对开放生成任务收益有限 | [2404.11018](https://arxiv.org/abs/2404.11018)、[2405.00200](https://arxiv.org/abs/2405.00200)、[2603.05829](https://arxiv.org/abs/2603.05829) |
-| 示例**排列可被攻击**：仅重排示例在 LLaMA-3 上近 80% 攻击成功率 | [2502.14628](https://arxiv.org/abs/2502.14628) |
-| **ICL 与指令遵循不是一回事**：3 个示例的 ICL 对齐仍不如指令微调 | [2405.19874](https://arxiv.org/abs/2405.19874) |
-| **ICL 对校准有负面影响**，来源是示例选择偏置；跨模型跨任务的通用校准器可把前沿模型校准误差降 50% 以上 | [2610.17096](https://arxiv.org/abs/2610.17096)、[2506.12796](https://arxiv.org/abs/2506.12796) |
-| 后训练会**降低分布覆盖与上下文可引导性** | [2510.06084](https://arxiv.org/abs/2510.06084) |
+| The **true labels of examples are not required**: randomly replacing example labels barely hurts the classification / multiple-choice performance of 12 models; what matters is the label space, the input distribution and the format | [2202.12837](https://arxiv.org/abs/2202.12837) |
+| **Only large models can learn flipped labels**: small models ignore flipped labels and rely on pretrained semantic priors; overriding priors is an ability that emerges with scale | [2303.03846](https://arxiv.org/abs/2303.03846) |
+| **1–12B open models have exactly zero semantic override rate under few-shot**: inverted examples can only raise "prompt alignment" at the cost of accuracy; ICL is "adjusting how inputs project onto stable semantic directions", not remapping label meanings | [2511.21038](https://arxiv.org/abs/2511.21038) |
+| **Homogeneous labels collapse 0.8B–8B models to ≤12%**: the model treats the tokens in the label slot as an exhaustive answer vocabulary; if examples carry meaningless tokens like {foo,bar,vex,nit,orb}, 42–67% of the probability falls on the example set, P(dog) < 0.2%; under 4-way classification three models score 0% | [2605.08295](https://arxiv.org/abs/2605.08295) |
+| ICL decomposes into two separable mechanisms, **task Schema and Binding**: Schema transfers 100% through late MLPs, Binding transfers 62% through the residual stream; prior knowledge interferes through attention misrouting (72.7% recency bias); 38% binding failure in high-prior scenarios; the same holds on Mamba | [2512.17325](https://arxiv.org/abs/2512.17325) |
+| **Label words are anchors**: shallow layers aggregate semantics into the label-word representation, deep layers use it as the reference for prediction | [2305.14160](https://arxiv.org/abs/2305.14160) |
+| **Symbol tuning**: fine-tuning with arbitrary symbols replacing natural-language labels forces the model to learn the input-label mapping; more robust on unseen ICL tasks and underspecified prompts | [2305.08298](https://arxiv.org/abs/2305.08298) |
+| **Calibrate before use / batch calibration**: few-shot instability comes from bias toward specific answers (last position, pretraining frequency); estimating the bias with content-free inputs corrects it | [2102.09690](https://arxiv.org/abs/2102.09690), [2309.17249](https://arxiv.org/abs/2309.17249) |
+| **Task vectors / function vectors**: ICL compresses the example set into one vector; a few attention heads carry the task representation | [2310.15916](https://arxiv.org/abs/2310.15916), [2310.15213](https://arxiv.org/abs/2310.15213) |
+| **Rules can be amortized, pairings cannot**: a static vector is equivalent to one synthetic example and necessarily fails on high-rank mappings (word-level bijections) | [2610.00526](https://arxiv.org/abs/2610.00526) |
+| **ICL amplifies latent symbolic circuits**: the abstraction-induction-retrieval three-stage circuit already exists before accuracy rises; examples merely feed inputs to the same circuit | [2609.36265](https://arxiv.org/abs/2609.36265) |
+| **Many-shot**: hundreds to thousands of examples keep improving results, especially for large label spaces; but highly sensitive to the selection strategy, and limited gains on open generation tasks | [2404.11018](https://arxiv.org/abs/2404.11018), [2405.00200](https://arxiv.org/abs/2405.00200), [2603.05829](https://arxiv.org/abs/2603.05829) |
+| Example **ordering can be attacked**: merely reordering examples gives nearly 80% attack success on LLaMA-3 | [2502.14628](https://arxiv.org/abs/2502.14628) |
+| **ICL and instruction following are not the same thing**: 3-shot ICL alignment is still worse than instruction tuning | [2405.19874](https://arxiv.org/abs/2405.19874) |
+| **ICL hurts calibration**, the source being example-selection bias; a cross-model cross-task universal calibrator can cut the calibration error of frontier models by more than 50% | [2610.17096](https://arxiv.org/abs/2610.17096), [2506.12796](https://arxiv.org/abs/2506.12796) |
+| Post-training **reduces distribution coverage and in-context steerability** | [2510.06084](https://arxiv.org/abs/2510.06084) |
 
-**从这些事实推出的硬约束**：在我们目标的 0.6B–9B 规模上，**ICL 能做的是"识别任务模式 + 在已有语义方向上调整边界"，做不到的是"用示例翻转标签含义"或"让模型学会一个与先验冲突的映射"**。业务人员写示例时，示例的作用主要是示范格式、暴露标签空间、把输入分布拉近，而不是"教会"模型新的规则。
+**Hard constraints that follow from these facts**: at our target scale of 0.6B–9B, **what ICL can do is "recognize the task pattern + adjust the boundary along existing semantic directions"; what it cannot do is "flip label meanings with examples" or "make the model learn a mapping that conflicts with its prior"**. When business staff write examples, the examples mainly demonstrate the format, expose the label space and pull the input distribution closer; they do not "teach" the model new rules.
 
-### 3.1.2 决策模型（Jev 与复现）上的 ICL 证据
+### 3.1.2 ICL Evidence on Decision Models (Jev and Reproductions)
 
-#### 3.1.2.1 官方接口把 ICL 放在了哪里
+#### 3.1.2.1 Where the Official Interface Puts ICL
 
-- `state` 文档明确允许放"相关上下文、示例与其他有助于回答的信息"（[concepts/state](https://docs.typesafe.ai/concepts/state)）。
-- Choice 选项带 `criteria`（描述）与 `examples`；Noul 的 `criteria.true` / `criteria.false` 可各自带定义与示例；Score 的每个等级是一段描述（[primitives/advanced](https://docs.typesafe.ai/primitives/advanced)）。
-- 官方锯齿表第 1 条"字面阅读"的解法就是"为每个选项写出精确条件与判据"（[jaggedness](https://docs.typesafe.ai/model-jaggedness/jev-1.13)）。
+- The `state` documentation explicitly allows "relevant context, examples and other information helpful for answering" ([concepts/state](https://docs.typesafe.ai/concepts/state)).
+- Choice options carry `criteria` (a description) and `examples`; Noul's `criteria.true` / `criteria.false` can each carry a definition and examples; each Score level is a description ([primitives/advanced](https://docs.typesafe.ai/primitives/advanced)).
+- The fix for item 1 of the vendor's zigzag table, "literal reading", is exactly "write precise conditions and criteria for each option" ([jaggedness](https://docs.typesafe.ai/model-jaggedness/jev-1.13)).
 
-也就是说，官方把 ICL 的三种载体——**定义、示例、判据**——都设计进了接口；问题是模型到底用不用。
+In other words, the vendor designed all three carriers of ICL, **definitions, examples and criteria**, into the interface; the question is whether the model actually uses them.
 
-#### 3.1.2.2 定义被用到了吗？——"标签名压倒定义"
+#### 3.1.2.2 Are Definitions Used? "Label Names Override Definitions"
 
-这是 D1 最重要、也最反直觉的证据链：
+This is the most important and most counter-intuitive chain of evidence in D1:
 
-| 证据 | 数字 | 出处 |
+| Evidence | Number | Source |
 | --- | --- | --- |
-| 只改"名字-定义"的配对，不改问题、state、名字与定义文本本身：在 1,200 个带任务特定定义的决策任务上，yes/no 名字下的决策翻转率比 0/1 对照高最多 70.4 pp；**yes/no 名字下重分配使平均 AUC 从 93.8% 跌到低于随机的 23.2%**；随机字符串作名字时翻转率接近中性对照；类型错误率全程 0% | 类型正确 ≠ 遵循定义 | [2609.26758](https://arxiv.org/abs/2609.26758) |
-| 规则只写在定义里时，模型主要按标签回答：**删除全部定义准确率不变**（0.8487），尽管定义单独能撑起 0.7971；标签与定义矛盾时准确率从 0.8511 跌到 0.2281；**原因定位在提示渲染 `"{label}: {definition}"`**，改成只写定义（标签用 A/B 作标识符）准确率 +0.1511；给出"两次调用测试"判断某模型是否读定义 | 定义是开发者唯一能写规则的地方，但模型读的是标签 | [2610.02586](https://arxiv.org/abs/2610.02586) |
-| HateDecide：提供数据集的仇恨言论定义**改变最多 28% 的预测而不能一致地提升分类**；把定义分解成多个问题只在 20% 的比较中显著有效 | 定义改变答案但不改善答案 | [2610.03324](https://arxiv.org/abs/2610.03324) |
-| 在线审核：Jev 一般受益于**检索到的先例**（固定答案空间下提升精确策略选择与有害内容判别）；Laya 则"检索常改变其正例率或无违规率而不提升判别" | 先例（示例）对解码器系有效、对编码器系不稳定 | [2610.07953](https://arxiv.org/abs/2610.07953) |
-| 结构化输出模式描述：标签定义放在系统提示比放在 schema 描述更好（GPT-4.1 / 5.4 低 11–13 点）；但 schema 与提示冲突时错误的 schema 指令让准确率跌 5–45 点；在标签前加一个中间推理字段让 schema-only 准确率 +15–24 | 定义的**位置**与**渲染**是一阶变量 | [2608.08254](https://arxiv.org/abs/2608.08254) |
+| Change only the "name-definition" pairing, not the question, the state, or the name and definition texts themselves: on 1,200 decision tasks with task-specific definitions, the decision flip rate under yes/no names is up to 70.4 pp higher than the 0/1 control; **reassignment under yes/no names takes mean AUC from 93.8% to a below-chance 23.2%**; with random strings as names the flip rate is close to the neutral control; type-error rate 0% throughout | Correct type ≠ following the definition | [2609.26758](https://arxiv.org/abs/2609.26758) |
+| When the rule is written only in the definition, the model mostly answers by label: **deleting all definitions leaves accuracy unchanged** (0.8487), although definitions alone can sustain 0.7971; when label and definition contradict, accuracy drops from 0.8511 to 0.2281; **the cause is localized to the prompt rendering `"{label}: {definition}"`**; switching to definition-only (labels replaced by A/B identifiers) gives +0.1511 accuracy; a "two-call test" is given to decide whether a model reads definitions | The definition is the only place a developer can write rules, but the model reads the label | [2610.02586](https://arxiv.org/abs/2610.02586) |
+| HateDecide: supplying the dataset's hate-speech definition **changes up to 28% of predictions without consistently improving classification**; decomposing the definition into multiple questions is significantly effective in only 20% of comparisons | Definitions change answers but do not improve them | [2610.03324](https://arxiv.org/abs/2610.03324) |
+| Online moderation: Jev generally benefits from **retrieved precedents** (improves exact policy selection and harmful-content discrimination under a fixed answer space); Laya instead "retrieval often changes its positive rate or no-violation rate without improving discrimination" | Precedents (examples) work for the decoder family, unstable for the encoder family | [2610.07953](https://arxiv.org/abs/2610.07953) |
+| Structured-output schema descriptions: label definitions in the system prompt beat those in the schema description (GPT-4.1 / 5.4 lower by 11–13 points); but when schema and prompt conflict, wrong schema instructions drop accuracy by 5–45 points; adding an intermediate reasoning field before the label gives schema-only accuracy +15–24 | The **position** and **rendering** of definitions are first-order variables | [2608.08254](https://arxiv.org/abs/2608.08254) |
 
-**解读**：决策微调的模型保留了 LM 的"标签词锚点"机制——它根据选项**名字**的语义先验作答，定义只在名字无信息（随机字符串、A/B）时才被读取。这与 3.1 节"小模型无法翻转标签语义"完全一致：定义是在试图重写标签含义，而小模型做不到。
+**Reading**: the decision-fine-tuned model keeps the LM's "label-word anchor" mechanism. It answers from the semantic prior of the option **name**; the definition is read only when the name carries no information (random strings, A/B). This is fully consistent with the §3.1 finding that "small models cannot flip label semantics": a definition is an attempt to rewrite the label meaning, and small models cannot do that.
 
-#### 3.1.2.3 示例被用到了吗？——间接证据
+#### 3.1.2.3 Are Examples Used? Indirect Evidence
 
-没有一篇论文**直接**在决策模型上做"k-shot 示例曲线"实验。能找到的间接证据：
+No paper runs a "k-shot example curve" experiment **directly** on a decision model. The indirect evidence that can be found:
 
-- **JevKT**（知识追踪）：零数据 Jev AUC .706，**加入示例与相似学习者统计后 .722**，领先深度 KT 模型到 16 个学习者、平均到 64 个；这个增益是 Jev 特有的，三个其他 LLM 用字节相同的请求都低于它（[2610.11135](https://arxiv.org/abs/2610.11135)）。这是最接近"state 内示例有效"的证据。
-- **检索到的先例**对 Jev 有益（上表，[2610.07953](https://arxiv.org/abs/2610.07953)）。
-- **Nimble 的对比数据策展**（"改一个事实让答案翻转"）是在训练时用示例对，不是推理时（[bespokelabsai/nimble](https://github.com/bespokelabsai/nimble)）。
-- **Jev-LDE**：训练一个小模型（System 1）对检索到的示例集做一次 Keep / Delete / Replace 编辑，再喂给目标 LLM；在分类基准上一致提升且可迁移（[2609.33609](https://arxiv.org/abs/2609.33609)）。它说明"选哪些示例"本身可以是一个决策任务。
-- **多示例压缩**：MemCom 逐层压缩多示例表示，3–8 倍压缩下优于"少用几个示例"这个意外强的基线（[2510.16092](https://arxiv.org/abs/2510.16092)）；cheat-sheet ICL 把多示例蒸馏成一段文本摘要（[2509.20820](https://arxiv.org/abs/2509.20820)）。
-- **State 长度**：TypedBench 中宿主模型准确率到 30k token 仍平坦，解码器变慢，编码器静默截断（[2610.11392](https://arxiv.org/abs/2610.11392)）；官方锯齿表第 5 条警告"大量无关细节的 state 要先过滤"。示例放进 state 会直接撞上这条。
+- **JevKT** (knowledge tracing): zero-data Jev AUC .706, **.722 after adding examples and similar-learner statistics**, ahead of deep KT models up to 16 learners and on average up to 64; this gain is Jev-specific, three other LLMs with byte-identical requests all score below it ([2610.11135](https://arxiv.org/abs/2610.11135)). This is the closest thing to evidence that "examples in state work".
+- **Retrieved precedents** help Jev (table above, [2610.07953](https://arxiv.org/abs/2610.07953)).
+- **Nimble's contrastive data curation** ("change one fact so the answer flips") uses example pairs at training time, not at inference time ([bespokelabsai/nimble](https://github.com/bespokelabsai/nimble)).
+- **Jev-LDE**: train a small model (System 1) to perform one Keep / Delete / Replace edit on the retrieved example set, then feed it to the target LLM; consistent gains on classification benchmarks and transferable ([2609.33609](https://arxiv.org/abs/2609.33609)). It shows that "which examples to pick" can itself be a decision task.
+- **Many-shot compression**: MemCom compresses many-shot representations layer by layer and beats the surprisingly strong baseline of "just use fewer examples" at 3–8× compression ([2510.16092](https://arxiv.org/abs/2510.16092)); cheat-sheet ICL distills many examples into one text summary ([2509.20820](https://arxiv.org/abs/2509.20820)).
+- **State length**: in TypedBench the host model's accuracy stays flat up to 30k tokens, decoders slow down, encoders truncate silently ([2610.11392](https://arxiv.org/abs/2610.11392)); item 5 of the vendor's zigzag table warns that "state with lots of irrelevant detail should be filtered first". Putting examples into state runs straight into this.
 
-**空白**：没有工作回答"决策微调前后，同一骨干的 k-shot 曲线怎么变"。这是 D1 的第一个盲区。
+**Gap**: no work answers "how does the k-shot curve of the same backbone change before and after decision fine-tuning". This is the first blind spot of D1.
 
-#### 3.1.2.4 措辞与判据被用到了吗？——"读得到但不一定做"
+#### 3.1.2.4 Are Wording and Criteria Used? "Read, but Not Necessarily Acted On"
 
-- TypedBench 的九个套件里，**宿主模型对措辞敏感且系统性欠自信**，解码器随结构复杂度退化；"措辞可归因的方差份额"被作为报告指标（[2610.11392](https://arxiv.org/abs/2610.11392)）。
-- Rule transfer：**等价改写有相反的任务级效应**，"对陌生规则的增益仍可能依赖熟悉的措辞"；"一个决策服务在等价措辞之间改变答案的程度超过在真正不同的规则之间"（[2610.30045](https://arxiv.org/abs/2610.30045)）。
-- Reading Right, Acting Wrong：策略修改被**正确读出**但只在 22%–72% 的情况下被**执行**（[2610.18579](https://arxiv.org/abs/2610.18579)，细节见 D2）。
-- 定义优化可以当训练对象：Goldsmith 把"结构化标注定义"当作可训练的文本对象，用可执行结构损失在小金标集上做文本梯度修订，优于 OPRO / APE / PromptBreeder（[2610.09489](https://arxiv.org/abs/2610.09489)）；CALICO 让非技术领域专家把编码本变成可编辑、可版本化、可优化的提示，两位编码员分别 +13.0 / +7.4 点，且优化后的提示捕获了编码员特定的解释（[2609.14726](https://arxiv.org/abs/2609.14726)）。
+- Across the nine suites of TypedBench, **the host model is wording-sensitive and systematically under-confident**, and decoders degrade with structural complexity; the "share of variance attributable to wording" is used as a reported metric ([2610.11392](https://arxiv.org/abs/2610.11392)).
+- Rule transfer: **equivalent rewrites have opposite task-level effects**, "gains on unfamiliar rules may still depend on familiar wording"; "a decision service changes its answer more between equivalent wordings than between genuinely different rules" ([2610.30045](https://arxiv.org/abs/2610.30045)).
+- Reading Right, Acting Wrong: policy modifications are **read out correctly** but **acted on** in only 22%–72% of cases ([2610.18579](https://arxiv.org/abs/2610.18579), details in D2).
+- Definition optimization can be a training target: Goldsmith treats "structured annotation definitions" as trainable text objects and revises them by textual gradients with an executable structural loss on a small gold set, beating OPRO / APE / PromptBreeder ([2610.09489](https://arxiv.org/abs/2610.09489)); CALICO lets non-technical domain experts turn a codebook into an editable, versionable, optimizable prompt, two coders gaining +13.0 / +7.4 points respectively, and the optimized prompt captured coder-specific interpretations ([2609.14726](https://arxiv.org/abs/2609.14726)).
+### 3.1.3 Prompt Levers Available to Business Staff: Effect Sizes and Failure Modes
 
-### 3.1.3 业务人员可用的提示词杠杆：效应量与失效模式
+Organizing the evidence above by "knobs business staff can turn":
 
-把上面的证据按"业务人员能动的旋钮"整理：
-
-| 杠杆 | 预期效应 | 已知效应量 | 失效模式 | 证据 |
+| Lever | Expected effect | Known effect size | Failure mode | Evidence |
 | --- | --- | --- | --- | --- |
-| **选项名字** | 最强的杠杆 | 名字-定义重分配使 AUC 93.8%→23.2%；误导性名字让守卫 fail-open 率到 93–100% | 名字有极性（yes/no、allow/deny、安全/不安全）时压倒一切；名字与定义不一致时模型跟名字 | [2609.26758](https://arxiv.org/abs/2609.26758)、[2610.12292](https://arxiv.org/abs/2610.12292) |
-| **定义 / 判据** | 本应是写规则的地方 | 删除不变、矛盾时 0.85→0.23；只写定义 +0.15 | 被名字遮蔽；改变 28% 预测而无改善；渲染方式决定是否被读 | [2610.02586](https://arxiv.org/abs/2610.02586)、[2610.03324](https://arxiv.org/abs/2610.03324) |
-| **示例（state 内或选项内）** | 示范格式、暴露标签空间、拉近分布 | JevKT +0.016 AUC；先例对 Jev 有益 | 同质示例坍塌；小模型不能翻转语义；示例变长撞上"无关 state"退化；示例顺序可被攻击 | [2610.11135](https://arxiv.org/abs/2610.11135)、[2605.08295](https://arxiv.org/abs/2605.08295)、[2511.21038](https://arxiv.org/abs/2511.21038) |
-| **措辞 / 改写** | 不应有影响 | 等价改写有相反效应；宿主模型措辞敏感 | 这是方差来源而非杠杆；需多措辞取中位数 | [2610.30045](https://arxiv.org/abs/2610.30045)、[2610.11392](https://arxiv.org/abs/2610.11392) |
-| **候选集（菜单）设计** | 一阶变量 | 150 类→精选 5 候选：69.0%→95.4%，跨度大于 0.8B 与 4B 之差 | 候选相似、候选多（50 个最近邻工具时 Laya 31%）、缺少"其他"选项时拒绝失败 | [2610.07716](https://arxiv.org/abs/2610.07716)、[2610.02267](https://arxiv.org/abs/2610.02267) |
-| **问题分解（一个大问题拆成多个 Noul）** | 可审计、可组合 | 分解只在 20% 的比较中显著有效；但分解后的逐选项二元得分归一化在医学上比 Choice 打分更准 | 分解引入概率不一致（见 D4 层级一致性） | [2610.03324](https://arxiv.org/abs/2610.03324)、[2610.18529](https://arxiv.org/abs/2610.18529) |
-| **State 结构（JSON vs 文本、过滤）** | 减少无关信息 | 官方建议过滤；宿主模型 30k 内平坦 | 解码器随长度变慢；无关细节退化 | [docs/state](https://docs.typesafe.ai/concepts/state)、[2610.11392](https://arxiv.org/abs/2610.11392) |
-| **语言** | 不应有影响 | 印尼地方语言用人工印尼语翻译 +37.2 点；孟加拉语字面锁定比英语高 1.9–6.4 倍 | 低资源语言下 ICL 杠杆全部变弱 | [2610.14112](https://arxiv.org/abs/2610.14112)、[2610.22526](https://arxiv.org/abs/2610.22526) |
-| **把规则写进 state 而不是定义** | 绕开名字遮蔽 | Archer 探针：声明放 state 比放兄弟问题概率上升 | 无直接对照实验 | [Archer Hume](https://archerhume.com/posts/jevs-architecture-unmasked) |
+| **Option names** | The strongest lever | Name-definition reassignment takes AUC 93.8%→23.2%; misleading names push guard fail-open rates to 93–100% | When names have polarity (yes/no, allow/deny, safe/unsafe) they override everything; when name and definition disagree the model follows the name | [2609.26758](https://arxiv.org/abs/2609.26758), [2610.12292](https://arxiv.org/abs/2610.12292) |
+| **Definitions / criteria** | Supposed to be the place to write rules | Deletion leaves accuracy unchanged, contradiction 0.85→0.23; definition-only +0.15 | Masked by names; changes 28% of predictions without improvement; rendering decides whether it is read | [2610.02586](https://arxiv.org/abs/2610.02586), [2610.03324](https://arxiv.org/abs/2610.03324) |
+| **Examples (in state or in options)** | Demonstrate format, expose label space, pull distribution closer | JevKT +0.016 AUC; precedents help Jev | Homogeneous examples collapse; small models cannot flip semantics; longer examples run into "irrelevant state" degradation; example order can be attacked | [2610.11135](https://arxiv.org/abs/2610.11135), [2605.08295](https://arxiv.org/abs/2605.08295), [2511.21038](https://arxiv.org/abs/2511.21038) |
+| **Wording / rewrites** | Should have no effect | Equivalent rewrites have opposite effects; the host model is wording-sensitive | This is a variance source, not a lever; take the median over multiple wordings | [2610.30045](https://arxiv.org/abs/2610.30045), [2610.11392](https://arxiv.org/abs/2610.11392) |
+| **Candidate set (menu) design** | First-order variable | 150 classes→5 curated candidates: 69.0%→95.4%, a span larger than the gap between 0.8B and 4B | Similar candidates, many candidates (Laya 31% with 50 nearest-neighbor tools), missing "other" option makes refusal fail | [2610.07716](https://arxiv.org/abs/2610.07716), [2610.02267](https://arxiv.org/abs/2610.02267) |
+| **Question decomposition (one big question split into several Nouls)** | Auditable, composable | Decomposition is significantly effective in only 20% of comparisons; but normalized per-option binary scores after decomposition are more accurate than Choice scoring in medicine | Decomposition introduces probabilistic inconsistency (see D4 hierarchical consistency) | [2610.03324](https://arxiv.org/abs/2610.03324), [2610.18529](https://arxiv.org/abs/2610.18529) |
+| **State structure (JSON vs text, filtering)** | Reduce irrelevant information | Vendor recommends filtering; host model flat up to 30k | Decoders slow down with length; irrelevant detail degrades | [docs/state](https://docs.typesafe.ai/concepts/state), [2610.11392](https://arxiv.org/abs/2610.11392) |
+| **Language** | Should have no effect | Indonesian regional languages with human Indonesian translation +37.2 points; Bengali literal lock-in 1.9–6.4× higher than English | Under low-resource languages all ICL levers weaken | [2610.14112](https://arxiv.org/abs/2610.14112), [2610.22526](https://arxiv.org/abs/2610.22526) |
+| **Writing rules into state rather than into definitions** | Bypass name masking | Archer's probe: a statement placed in state raises probability more than one placed in a sibling question | No direct controlled experiment | [Archer Hume](https://archerhume.com/posts/jevs-architecture-unmasked) |
 
-### 3.1.4 ICL 的替代与补充（不是我们的主线，但要知道）
+### 3.1.4 Alternatives and Complements to ICL (Not Our Main Line, but Worth Knowing)
 
-- **把上下文变成权重**：Text-to-LoRA、Doc-to-LoRA、Internalizer、Cartridges、LatentSkill 都是"超网络 / 自学习把文档或技能压成 LoRA / KV"，LatentSkill 在 ALFWorld 上比上下文技能 +21.4 成功率（[2606.06087](https://arxiv.org/abs/2606.06087)、[2602.15902](https://arxiv.org/abs/2602.15902)、[2610.11715](https://arxiv.org/abs/2610.11715)、[2506.06266](https://arxiv.org/abs/2506.06266)）。这类方法把"业务人员写文字"保留在前端，但模型侧不再是 ICL。
-- **任务算子**：每个注意力头的输出是其上下文屏蔽版本的仿射变换，可用输入相关的算子替代示例（[2610.01054](https://arxiv.org/abs/2610.01054)）。
-- **元学习逻辑**：1.5B–7B 小模型用少样本元学习学三段论，低数据下超过 GPT-4o / o3-mini（[2505.14313](https://arxiv.org/abs/2505.14313)）；MetaICL（[2110.15943](https://arxiv.org/abs/2110.15943)）。这是"训练模型学会从示例学"的路线，与决策微调的关系未被研究。
-- **分层示范胜过平铺日志**：模糊描述的任务上分组示范把通过率 76.7%→90.7%，精确描述时无收益；只有子目标分组起作用（[2606.20978](https://arxiv.org/abs/2606.20978)）。对"业务人员提供流程示例"直接相关。
+- **Turning context into weights**: Text-to-LoRA, Doc-to-LoRA, Internalizer, Cartridges and LatentSkill are all "hypernetwork / self-learning compresses a document or skill into LoRA / KV"; LatentSkill beats in-context skills by +21.4 success rate on ALFWorld ([2606.06087](https://arxiv.org/abs/2606.06087), [2602.15902](https://arxiv.org/abs/2602.15902), [2610.11715](https://arxiv.org/abs/2610.11715), [2506.06266](https://arxiv.org/abs/2506.06266)). These methods keep "business staff write text" at the front end, but the model side is no longer ICL.
+- **Task operators**: the output of each attention head is an affine transform of its context-masked version, so an input-dependent operator can replace the examples ([2610.01054](https://arxiv.org/abs/2610.01054)).
+- **Meta-learned logic**: 1.5B–7B small models learn syllogisms by few-shot meta-learning and beat GPT-4o / o3-mini in low-data regimes ([2505.14313](https://arxiv.org/abs/2505.14313)); MetaICL ([2110.15943](https://arxiv.org/abs/2110.15943)). This is the route of "training the model to learn from examples"; its relation to decision fine-tuning has not been studied.
+- **Hierarchical demonstrations beat flat logs**: on vaguely described tasks, grouped demonstrations raise pass rate 76.7%→90.7%, with no gain under precise descriptions; only sub-goal grouping works ([2606.20978](https://arxiv.org/abs/2606.20978)). Directly relevant to "business staff supplying process examples".
 
-### 3.1.5 哪些工作解决了哪类问题（D1 小矩阵）
+### 3.1.5 Which Works Solve Which Kind of Problem (D1 Mini-Matrix)
 
-| 问题 | 已有工作 | 状态 |
+| Problem | Existing work | Status |
 | --- | --- | --- |
-| 定义是否被读 | 2609.26758、2610.02586（含诊断测试） | **已量化**，原因定位在渲染与名字极性 |
-| 示例是否有效 | JevKT、先例检索、Nimble 训练时对比 | 间接证据，**无 k-shot 曲线** |
-| 措辞敏感度 | TypedBench、Rule transfer | 已量化，无缓解 |
-| 定义/提示的优化 | Goldsmith、CALICO、Jev-LDE | 有工具，面向生成式 LLM 或外部编辑器 |
-| 小模型的 ICL 上限 | Semantic anchors、In-context fixation、Schema/Binding | 上游 LM 结论清楚，**未在决策微调模型上复验** |
-| ICL 对校准的影响 | CALIBFORMER、Surprise calibration | 上游 LM，决策模型未测 |
-| 菜单 / 候选集设计 | JevCascade、Fast Models Slow Evidence | 已量化，是最强杠杆 |
+| Are definitions read | 2609.26758, 2610.02586 (incl. diagnostic test) | **Quantified**, cause localized to rendering and name polarity |
+| Do examples work | JevKT, precedent retrieval, Nimble training-time contrast | Indirect evidence, **no k-shot curve** |
+| Wording sensitivity | TypedBench, Rule transfer | Quantified, no mitigation |
+| Optimization of definitions / prompts | Goldsmith, CALICO, Jev-LDE | Tools exist, aimed at generative LLMs or external editors |
+| ICL ceiling of small models | Semantic anchors, In-context fixation, Schema/Binding | Upstream LM conclusions clear, **not re-verified on decision-fine-tuned models** |
+| Effect of ICL on calibration | CALIBFORMER, Surprise calibration | Upstream LM, not measured on decision models |
+| Menu / candidate-set design | JevCascade, Fast Models Slow Evidence | Quantified, the strongest lever |
 
-### 3.1.6 D1 盲区（我们识别、现有工作未覆盖）
+### 3.1.6 D1 Blind Spots (Identified by Us, Not Covered by Existing Work)
 
-1. **决策微调是否保留 ICL**：无任何论文对比同一骨干微调前后的 k-shot 曲线、标签翻转能力、定义遵循率。Spectrum Tuning 提示后训练会降低上下文可引导性，但没在决策模型上测。
-2. **"定义被名字遮蔽"的训练侧解法**：Symbol tuning 的思路（用无意义符号作标签迫使读定义）在决策模型上没有人试过；2610.02586 只给了渲染层面的修补。
-3. **示例放在哪**：state 里、选项的 `examples` 里、还是 Noul 的 true/false 判据里——三种位置的效应没有对照。Archer 的探针只说明"state 可见、兄弟问题不可见"。
-4. **示例 × 分支隔离的交互**：示例若放 state 会被所有问题共享并增加所有分支的成本；放问题分支里则每个问题各带一份。没有人测这两种布局的准确率/成本权衡。
-5. **ICL 与校准**：ICL 引入的示例选择偏置会破坏校准（上游证据），而决策模型的核心卖点是校准；两者的交互无人测。
-6. **业务人员视角的"提示词可用性"**：CALICO 面向生成式 LLM；没有面向决策模型的"非技术人员写判据 → 模型遵循率"的可用性研究。
-7. **多措辞取中位数 / 批校准**是否能移植到单遍决策接口（它天然支持扇出，成本低），没有人做。
+1. **Does decision fine-tuning preserve ICL**: no paper compares the k-shot curve, label-flipping ability or definition-following rate of the same backbone before and after fine-tuning. Spectrum Tuning hints that post-training reduces in-context steerability, but it was not measured on decision models.
+2. **A training-side fix for "definitions masked by names"**: the Symbol tuning idea (meaningless symbols as labels to force reading of definitions) has not been tried on decision models; 2610.02586 only gives a rendering-level fix.
+3. **Where to put examples**: in state, in the option's `examples`, or in Noul's true/false criteria; the effects of the three positions have no controlled comparison. Archer's probe only shows "state is visible, sibling questions are not".
+4. **Interaction of examples × branch isolation**: examples placed in state are shared by all questions and add to the cost of every branch; placed in the question branch, each question carries its own copy. Nobody has measured the accuracy/cost trade-off of these two layouts.
+5. **ICL and calibration**: the example-selection bias introduced by ICL breaks calibration (upstream evidence), while calibration is the core selling point of decision models; the interaction of the two is unmeasured.
+6. **"Prompt usability" from the business staff's perspective**: CALICO targets generative LLMs; there is no usability study for decision models of "non-technical staff write criteria → model following rate".
+7. Whether **median over multiple wordings / batch calibration** can be ported to the single-pass decision interface (which natively supports fan-out at low cost) has not been done.
 
-这些盲区在 [§8.4](08-critical-and-adversarial-review.md) 转化为可度量的问题定义。
+These blind spots are turned into measurable problem definitions in [§8.4](08-critical-and-adversarial-review.md).
 
-## 3.2 D3 逻辑原语与规则语言：让业务专家用文字写规则
+## 3.2 D3 logic primitives and rule language: letting business experts write rules in text
 
-> 口径（按最新讨论）：定义一组**逻辑原语**，让非技术的业务专家通过**文字撰写**让模型理解业务规则——就像 Skill 用文字让模型理解工作能力一样。本节梳理：(1) Skill 范式本身的证据；(2) "自然语言规则 → 可执行结构"的编译类工作；(3) 决策模型上已有的原语与组合模式；(4) "策略即提示"类守卫的经验；(5) 盲区。
+> Protocol (per the latest discussion): define a set of **logic primitives** so that non-technical business experts can make the model understand business rules by **writing text**, just as a Skill uses text to make the model understand a work capability. This section covers: (1) the evidence on the Skill paradigm itself; (2) compiler-style work on "natural-language rules → executable structure"; (3) primitives and composition patterns already present on decision models; (4) the experience of "policy-as-prompt" guards; (5) blind spots.
 
-### 3.2.1 Skill 范式：文字能教会模型"工作能力"到什么程度
+### 3.2.1 The Skill Paradigm: How Far Can Text Teach a Model a "Work Capability"
 
-| 事实 | 出处 |
+| Fact | Source |
 | --- | --- |
-| Agent Skills 规范：`SKILL.md` = YAML 前言（`name` ≤64 字符、`description` ≤1024 字符）+ 任意 Markdown 正文；可选 `scripts/`、`references/`、`assets/`；**渐进披露**：启动时只载入约 100 token 的元数据，激活时载入 <5000 token 的正文 | [agentskills.io/specification](https://agentskills.io/specification) |
-| SkillsBench：87 任务 8 领域 18 个模型-harness 配置，精选 Skill 把平均通过率 33.9%→50.5%（+16.6 pp），配置级 +4.1 到 +25.7；**≤3 模块的聚焦 Skill 优于大而全**；带 Skill 的小模型可匹敌无 Skill 的大模型 | [2602.12670](https://arxiv.org/abs/2602.12670) |
-| 138,133 个公开 SKILL.md：**91.8% 至少有一个缺陷**（88.8–94.6%）；主要是弱路由元数据、臃肿或不可执行的正文、资源组织差；有效路由元数据的 Skill 更可靠地被检索 | [2608.08453](https://arxiv.org/abs/2608.08453) |
-| SkillJuror：渐进披露在总体结果之前先改变运行时行为 | [2606.11543](https://arxiv.org/abs/2606.11543) |
-| Skill coverage：任务结果不显示 Skill 的哪些部分被执行、是否按指令执行，需要轨迹级覆盖度量 | [2606.20659](https://arxiv.org/abs/2606.20659) |
-| SkillSentry：即使 Agent 在 Skill 指导下完成过任务，也可能因偏离程序或步骤执行错误而不稳定；用 DSL 表示运行时断言做保证 | [2608.09253](https://arxiv.org/abs/2608.09253) |
-| AFTER：382 个企业任务 6 角色 22 程序技能，一轮精炼 +3.7–6.7 点；跨任务/角色/模型迁移受控评估 | [2606.23127](https://arxiv.org/abs/2606.23127) |
-| **Auto-Policy, not Auto-Skill**："Skill 描述 Agent 应如何行为；Policy 决定哪种行为**被允许**成为动作"；现有格式只覆盖前者，后者留给模型；自动生成更多 Skill 放大的是差距而非安全 | [2608.25091](https://arxiv.org/abs/2608.25091) |
-| LatentSkill：把文本技能通过超网络压成 LoRA，ALFWorld +21.4 成功率、prefill token 大减 | [2606.06087](https://arxiv.org/abs/2606.06087) |
-| 决策模型筛恶意 Skill：SkillScreen 从 SKILL.md 单遍打分，99% 召回下只标 20–25% 的良性 Skill | [2610.17727](https://arxiv.org/abs/2610.17727) |
+| Agent Skills specification: `SKILL.md` = YAML front matter (`name` ≤64 characters, `description` ≤1024 characters) + arbitrary Markdown body; optional `scripts/`, `references/`, `assets/`; **progressive disclosure**: only about 100 tokens of metadata are loaded at startup, the <5000-token body is loaded on activation | [agentskills.io/specification](https://agentskills.io/specification) |
+| SkillsBench: 87 tasks, 8 domains, 18 model-harness configurations; curated Skills raise mean pass rate 33.9%→50.5% (+16.6 pp), +4.1 to +25.7 per configuration; **focused Skills of ≤3 modules beat large all-in-one ones**; a small model with Skills can match a large model without | [2602.12670](https://arxiv.org/abs/2602.12670) |
+| 138,133 public SKILL.md files: **91.8% have at least one defect** (88.8–94.6%); mainly weak routing metadata, bloated or non-executable bodies, poor resource organization; Skills with effective routing metadata are retrieved more reliably | [2608.08453](https://arxiv.org/abs/2608.08453) |
+| SkillJuror: progressive disclosure changes runtime behavior before it changes overall outcomes | [2606.11543](https://arxiv.org/abs/2606.11543) |
+| Skill coverage: task outcomes do not show which parts of a Skill were executed or whether they were executed as instructed; trajectory-level coverage metrics are needed | [2606.20659](https://arxiv.org/abs/2606.20659) |
+| SkillSentry: even when an Agent has completed a task under Skill guidance, it may be unstable due to deviating from the procedure or executing steps wrongly; a DSL expresses runtime assertions as guarantees | [2608.09253](https://arxiv.org/abs/2608.09253) |
+| AFTER: 382 enterprise tasks, 6 roles, 22 procedural skills; one round of refinement +3.7–6.7 points; controlled evaluation of transfer across tasks / roles / models | [2606.23127](https://arxiv.org/abs/2606.23127) |
+| **Auto-Policy, not Auto-Skill**: "a Skill describes how an Agent should behave; a Policy decides which behavior is **allowed** to become an action"; existing formats cover only the former and leave the latter to the model; auto-generating more Skills amplifies the gap, not safety | [2608.25091](https://arxiv.org/abs/2608.25091) |
+| LatentSkill: compresses text skills into LoRA via a hypernetwork, ALFWorld +21.4 success rate, prefill tokens greatly reduced | [2606.06087](https://arxiv.org/abs/2606.06087) |
+| Decision models screening malicious Skills: SkillScreen scores from SKILL.md in a single pass, flagging only 20–25% of benign Skills at 99% recall | [2610.17727](https://arxiv.org/abs/2610.17727) |
 
-**对 D3 的含义**：Skill 证明了"文字能教会生成式 Agent 做事"，但它的可靠性来自**模型在执行时能推理**；而且它只覆盖"怎么做"，不覆盖"什么被允许"。我们要的"业务规则语言"更接近 Policy 而非 Skill，而执行者是**单遍不推理**的决策模型——这两个差异决定了不能直接照搬 Skill。
+**Implications for D3**: Skills prove that "text can teach a generative Agent to do things", but their reliability comes from **the model's ability to reason at execution time**; and they only cover "how to do it", not "what is allowed". The "business rule language" we want is closer to Policy than to Skill, and the executor is a **single-pass, non-reasoning** decision model. These two differences mean the Skill approach cannot be copied directly.
 
-### 3.2.2 自然语言规则 → 可执行结构：编译类工作
+### 3.2.2 Natural-Language Rules → Executable Structure: Compiler-Style Work
 
-这些工作都在回答"业务专家写的文字，怎样变成机器能忠实执行的东西"。它们面向生成式 LLM，但其**中间表示**正是我们设计逻辑原语的候选。
+All of these works answer "how does text written by a business expert become something a machine executes faithfully". They target generative LLMs, but their **intermediate representations** are exactly the candidates for our logic primitives.
 
-| 工作 | 输入 → 中间表示 | 关键结果 | 出处 |
+| Work | Input → intermediate representation | Key result | Source |
 | --- | --- | --- | --- |
-| **Artic** | 自然语言工作流 → 制品驱动工作流（每步声明读/写的制品，约束门控制品，显式控制转移）；编译器识别依赖过多状态或控制逻辑困难的步骤并优化 | 11 个真实领域 488 实例，任务解决率 +28 pp；跨模型与重复执行一致性 +32 / +56 pp | [2608.21341](https://arxiv.org/abs/2608.21341) |
-| **FlashScript** | 成功的 Agent 运行 → 神经符号程序（动作与数据变换成代码，实例值成参数，**需要模型判断的决策成 LLM 调用**）；三层放置 + 三种用代码替代大部分调用的技术 | 120 个 WorkBench 任务：NSP 每次运行工具调用完全一致，输入 token 少约 70 倍、运行时间 1/3；复合任务上 Skill 引导的 Agent 跌到 23%，NSP 保持正确；108 个未见实例全部泛化 | [2610.33876](https://arxiv.org/abs/2610.33876) |
-| **TraceCompiler** | 噪声 Agent 轨迹簇 → 大部分确定性的工作流；只有当消费者参数含有唯一可归因于早先生产者的值时才承认依赖，每条硬边带可审计证据 | — | [2608.02680](https://arxiv.org/abs/2608.02680) |
-| **Formal Skill** | Markdown 技能 → JSON 元数据 + 动作 schema + Python 执行器 + hook 控制逻辑 + 技能局部状态；"可执行状态机 + hook 策略" | Harness-Bench 上竞争性得分且 token 大减 | [2605.19604](https://arxiv.org/abs/2605.19604) |
-| **P2T（Executable Governance）** | 政策文档 → 规范化机器可读规则；紧凑 DSL 编码**危害、范围、条件、例外、所需证据** | — | [2512.04408](https://arxiv.org/abs/2512.04408) |
-| **SIRNA** | 业务规则文档 → SMT 公式（LLM 翻译 + 验证），与实现的 SMT 表示做一致性检查；税务成本计算案例 | — | [2608.00396](https://arxiv.org/abs/2608.00396) |
-| **Cedar 自动形式化** | Agent 提示 / MCP 工具描述 / 政策文档 → Cedar 策略语言（生成-批评循环） | MedAgentBench | [2606.26649](https://arxiv.org/abs/2606.26649) |
-| **ARc（Automated Reasoning checks）** | 自然语言政策 → 形式化（可人工引导），推理时自动形式化验证陈述 | 面向金融/医疗等受监管行业的公共服务 | [2511.09008](https://arxiv.org/abs/2511.09008) |
-| **Logic Sketch Prompting** | 提示里引入类型化变量、确定性条件求值器、基于规则的验证器 | 两个药理合规任务上三个开源模型全部最高且可重复 | [2512.22258](https://arxiv.org/abs/2512.22258) |
-| **NormBench / Deontic trees** | 法条 → 跨度锚定的道义树（一般规则、嵌套例外、反例外） | 诊断"静默范围遗漏" | [2606.08932](https://arxiv.org/abs/2606.08932) |
-| **业务规则恢复为级联查找** | 历史交易 → 知识图引导的候选业务键（列组合）→ 级联查找表，而非不透明的统计模式 | 销售订单字段（付款条款、发货点、销售归属） | [2610.34258](https://arxiv.org/abs/2610.34258) |
-| **AgenTest** | 系统提示 / 工具定义 / 领域知识 → 挖掘出的业务规则 → 测试 Agent 的业务逻辑缺陷 | 规则"分散在系统提示与工具定义里，或隐含在领域知识中" | [2610.28116](https://arxiv.org/abs/2610.28116) |
-| **Typed action contracts** | 模型只解释意图、提出动作；类型化动作契约、权限感知能力暴露、作用域上下文、副作用前验证、消费者侧执行边界 | 企业 AI 的"有界自治" | [2604.14723](https://arxiv.org/abs/2604.14723) |
-| **Bellman LMs** | 有界 Agent 工作流中的决策空间趋于饱和 → "离散化，然后决策"：把决策当优化问题解一次并复用 | 更快、更便宜、更可靠 | [2610.24871](https://arxiv.org/abs/2610.24871) |
-| **LLM 作为接口而非神谕** | LLM 只做 schema 约束的特征抽取 + 确定性合理性检查，最终决策交给结构化 ML | 儿科阑尾炎 | [2606.19183](https://arxiv.org/abs/2606.19183) |
+| **Artic** | Natural-language workflow → artifact-driven workflow (each step declares the artifacts it reads/writes, constraints gate artifacts, explicit control transfer); the compiler identifies steps that depend on too much state or have hard control logic and optimizes them | 488 instances in 11 real domains, task resolution rate +28 pp; cross-model and repeated-execution consistency +32 / +56 pp | [2608.21341](https://arxiv.org/abs/2608.21341) |
+| **FlashScript** | Successful Agent runs → neuro-symbolic program (actions and data transforms become code, instance values become parameters, **decisions that need model judgment become LLM calls**); three-tier placement + three techniques for replacing most calls with code | 120 WorkBench tasks: the NSP's tool calls are fully identical on every run, about 70× fewer input tokens, 1/3 runtime; on composite tasks the Skill-guided Agent drops to 23% while the NSP stays correct; all 108 unseen instances generalize | [2610.33876](https://arxiv.org/abs/2610.33876) |
+| **TraceCompiler** | Clusters of noisy Agent trajectories → mostly deterministic workflow; a dependency is admitted only when a consumer's parameters contain a value uniquely attributable to an earlier producer, each hard edge carrying auditable evidence | — | [2608.02680](https://arxiv.org/abs/2608.02680) |
+| **Formal Skill** | Markdown skill → JSON metadata + action schema + Python executor + hook control logic + skill-local state; "executable state machine + hook policies" | Competitive scores on Harness-Bench with far fewer tokens | [2605.19604](https://arxiv.org/abs/2605.19604) |
+| **P2T (Executable Governance)** | Policy documents → normalized machine-readable rules; a compact DSL encodes **harm, scope, conditions, exceptions, required evidence** | — | [2512.04408](https://arxiv.org/abs/2512.04408) |
+| **SIRNA** | Business rule documents → SMT formulas (LLM translation + verification), consistency-checked against the SMT representation of the implementation; tax cost calculation case | — | [2608.00396](https://arxiv.org/abs/2608.00396) |
+| **Cedar autoformalization** | Agent prompts / MCP tool descriptions / policy documents → Cedar policy language (generate-critique loop) | MedAgentBench | [2606.26649](https://arxiv.org/abs/2606.26649) |
+| **ARc (Automated Reasoning checks)** | Natural-language policy → formalization (optionally human-guided), statements verified by automated formal reasoning at inference time | A public service aimed at regulated industries such as finance / healthcare | [2511.09008](https://arxiv.org/abs/2511.09008) |
+| **Logic Sketch Prompting** | Introduces typed variables, a deterministic condition evaluator and a rule-based validator into the prompt | Highest and reproducible for all three open models on two pharmacological compliance tasks | [2512.22258](https://arxiv.org/abs/2512.22258) |
+| **NormBench / Deontic trees** | Statutes → span-anchored deontic trees (general rules, nested exceptions, counter-exceptions) | Diagnoses "silent scope omission" | [2606.08932](https://arxiv.org/abs/2606.08932) |
+| **Business rules recovered as cascaded lookups** | Historical transactions → knowledge-graph-guided candidate business keys (column combinations) → cascaded lookup tables, rather than opaque statistical patterns | Sales-order fields (payment terms, shipping point, sales attribution) | [2610.34258](https://arxiv.org/abs/2610.34258) |
+| **AgenTest** | System prompt / tool definitions / domain knowledge → mined business rules → tests for the Agent's business-logic defects | Rules are "scattered across the system prompt and tool definitions, or implicit in domain knowledge" | [2610.28116](https://arxiv.org/abs/2610.28116) |
+| **Typed action contracts** | The model only interprets intent and proposes actions; typed action contracts, permission-aware capability exposure, scoped context, pre-side-effect validation, consumer-side execution boundaries | "Bounded autonomy" for enterprise AI | [2604.14723](https://arxiv.org/abs/2604.14723) |
+| **Bellman LMs** | The decision space in bounded Agent workflows tends to saturate → "discretize, then decide": solve the decision once as an optimization problem and reuse it | Faster, cheaper, more reliable | [2610.24871](https://arxiv.org/abs/2610.24871) |
+| **LLM as interface, not oracle** | The LLM only does schema-constrained feature extraction + deterministic plausibility checks; the final decision goes to structured ML | Pediatric appendicitis | [2606.19183](https://arxiv.org/abs/2606.19183) |
 
-**共同的中间表示元素**（出现两次以上）：步骤的**读/写制品**；**条件 / 例外 / 反例外**的层级；**需要证据**的声明；**需要模型判断的点**被显式隔离成"调用"；**确定性求值器**负责算术/比较；**类型化变量**。这是我们定义逻辑原语的最小集合候选。
+**Shared intermediate-representation elements** (appearing two or more times): the **read/write artifacts** of a step; the hierarchy of **conditions / exceptions / counter-exceptions**; statements that **require evidence**; **points requiring model judgment** explicitly isolated as "calls"; a **deterministic evaluator** responsible for arithmetic / comparison; **typed variables**. This is the minimal candidate set for defining our logic primitives.
+### 3.2.3 Primitives and Composition Patterns Already Present on Decision Models
 
-### 3.2.3 决策模型上已有的原语与组合模式
+#### 3.2.3.1 Official Primitives and Patterns (Details in §1.1)
 
-#### 3.2.3.1 官方原语与模式（细节见 §1.1）
+- Three question primitives: Noul (P(true)), Choice (distribution over ≤255 options), Score (ordered distribution over ≤10 levels); all accept JSON-structured `instructions` / `criteria` / `examples`.
+- Five composition patterns: fan-out, composite scoring, confidence routing (global floor + per-action threshold), walking a classification tree level by level, "put the constants in one file for easy review".
+- Two cookbooks directly demonstrate "business rules → list of Nouls": the **self-consistency cookbook** runs a car-insurance claim through a 14-Noul scoring rubric 15 times to check whether each answer is stable ([consistency_noul_cookbook](https://docs.typesafe.ai/cookbooks/consistency_noul_cookbook)); the **autoresearch cookbook** uses 29 Scores + 9 Nouls to turn free text into 67 columns of numeric features fed to CatBoost ([autoresearch_feature_discovery](https://docs.typesafe.ai/cookbooks/autoresearch_feature_discovery)).
+- The example rules on the official evaluation page look exactly like business rules: "every reimbursement must have a receipt; if it cannot be read, have the employee resubmit", "meals over 75 dollars need a manager's signature when the description and the receipt disagree" ([evals.typesafe.ai](https://evals.typesafe.ai/)).
 
-- 三种问题原语：Noul（P(true)）、Choice（≤255 选项分布）、Score（≤10 级有序分布）；都接受 JSON 结构化的 `instructions` / `criteria` / `examples`。
-- 五种组合模式：扇出、复合打分、置信路由（全局下限 + 每动作阈值）、逐层走分类树、"把常量放一个文件里便于审查"。
-- 两个 cookbook 直接示范了"业务规则 → Noul 列表"：**自洽性 cookbook** 把一份车险理赔用 14 个 Noul 问题的评分细则跑 15 遍检查每个答案是否稳定（[consistency_noul_cookbook](https://docs.typesafe.ai/cookbooks/consistency_noul_cookbook)）；**autoresearch cookbook** 用 29 个 Score + 9 个 Noul 把自由文本变成 67 列数值特征喂给 CatBoost（[autoresearch_feature_discovery](https://docs.typesafe.ai/cookbooks/autoresearch_feature_discovery)）。
-- 官方评测页的示例规则就是业务规则的样子："每条报销都要有收据；读不出就让员工重交"、"超过 75 美元的餐费在描述与收据不符时需要经理签字"（[evals.typesafe.ai](https://evals.typesafe.ai/)）。
+#### 3.2.3.2 Third-Party Primitives / Composition Structures
 
-#### 3.2.3.2 第三方的原语 / 组合结构
-
-| 工作 | 原语 / 结构 | 关键结果 | 出处 |
+| Work | Primitive / structure | Key result | Source |
 | --- | --- | --- | --- |
-| **SemTree** | 规则决策 = 语义决策树：每个节点是一个带显式 **Yes/No/Unknown 判据**的自然语言问题，由可插拔的语义裁判回答；分支结构**按该裁判实际给出的答案编译**；执行路径即推理，错误在发生的节点修复；修正的节点成为裁判的训练标签；工具使用的 LLM 编辑器在观察执行结果下修订问题与子树 | ShARC 8,276 例：宿主裁判执行的树 67.70%（2.99 问/例）与直接问最终标签 68.23% 持平；为另一裁判编译的树换裁判只有 47.87%，在新裁判答案上重编译的树 64.39%；节点修复把 BANKING77 82.04%→86.16%；一个显式豁免节点把中文电商审核条款误报 24→5；训练的编辑器把开发准确率 64.47%→73.35% | [2610.13999](https://arxiv.org/abs/2610.13999) |
-| **概率感知、确定性裁决** | 模型输出只作为**带分数的观测记录**；准入策略在声明的误报上限下把分数映射到 true / false / **unknown**；unknown 即拒绝；确定性、充分性检查过的契约做裁决；感知改变裁决的概率有**并集界**（各感知字段的误准入率 + unknown 率之和）；最小化估计的界是选择契约的有效成本模型 | 2 领域 2 传感器族 36,000 次调用，无一单元反驳该界；21,000 个测试裁决中 13 个"拒→允"翻转全部来自 3 条矛盾记录 | [2610.10978](https://arxiv.org/abs/2610.10978) |
-| **临床医生主导的可检查规则** | 两位临床医生定义、定稿、裁定 4 条安全检查的规则库，形式化验证内部一致性，作为 LLM 输出的守卫；**每个裁决可从一条命名规则与 16 个事实重算** | 与匹配的 Llama-3.3-70B 裁判的最大分歧类是结构化的 | [2610.30690](https://arxiv.org/abs/2610.30690) |
-| **Jev-Guard** | 可编辑的**策略树**：先按调用方审计上下文在树上路由到适用策略，再在检索到的策略条件下做安全分类 | 7,033 例 93.72% 安全准确率、58 ms；层级路由 93.10%；全流水线 240 ms | [2610.18326](https://arxiv.org/abs/2610.18326) |
-| **JEVDB** | SQL 扩展：语义过滤、连接、分类、排序交给决策模型，不确定的升级到生成式 LLM；**语义布隆过滤器用"注册的必要条件"筛候选**；Yannakakis 半连接约简 | SemBench 21 查询全部最低延迟、19 个最低成本；Shelob 540K 候选对 | [2610.02046](https://arxiv.org/abs/2610.02046) |
-| **语义查询的成本-准确率优化** | 从每个决策的校准置信得到期望错误，按其对输出的贡献（扇出）加权得到期望输出错误；查询计划同时影响成本与结果 | 形式化问题定义 | [2610.08089](https://arxiv.org/abs/2610.08089) |
-| **Code Owns the Simulation, Jev Owns the Evaluation** | 清晰的边界：**能从输入描述中判断**的（评估）Jev 可做（CRT 99%）；**依赖预测输入之外的东西**的（模拟）Jev 做不了 | 反思测试、一次性矩阵博弈、ALFWorld、机器人控制 | [2610.01834](https://arxiv.org/abs/2610.01834) |
-| **NIOCIS** | 执行日志 → 循环坍缩的动作图（前向转移 + 恢复回边）；在每个状态问一个类型化问题"下一跳选哪个声明的选项 + stop"；**节点条件化的选项空间** | 1,615 个生产安全运营回合 | [2610.25985](https://arxiv.org/abs/2610.25985) |
-| **SharedKV-BT** | 行为树每个活动节点暴露阶段局部的字段与候选，共享 KV 并行打分，选定的决策交给单独的执行系统 | 机器人操作 | [2610.07327](https://arxiv.org/abs/2610.07327) |
-| **NumericJev** | "范围选择"原语：多叉决策树递归细化数值 | 见 D2 | [2609.28587](https://arxiv.org/abs/2609.28587) |
-| **JevForest** | 预算内特征获取：自举树的路径投票决定下一个问 Jev 的问题 | AG News 四问 0.729 对静态排序 0.667、随机 0.583 | [2610.10615](https://arxiv.org/abs/2610.10615) |
-| **LAVOIR** | 把"缺失信息槽位"放在选项旁边，一次前向同时返回决策分布与每个槽位的**信息价值** | 已见 schema 上与 Bayes 上限统计不可区分（编码器系，对照引用） | [2609.30706](https://arxiv.org/abs/2609.30706) |
-| **Reading Right** | 事实探针 + 代码组合 | 代码组合 0.96–1.00（见 D2） | [2610.18579](https://arxiv.org/abs/2610.18579) |
+| **SemTree** | Rule decision = semantic decision tree: each node is a natural-language question with explicit **Yes/No/Unknown criteria**, answered by a pluggable semantic judge; the branch structure is **compiled against the answers that judge actually gives**; the execution path is the reasoning, errors are fixed at the node where they occur; corrected nodes become training labels for the judge; a tool-using LLM editor revises questions and subtrees while observing execution results | ShARC 8,276 cases: a tree executed by the host judge 67.70% (2.99 questions/case), on par with asking the final label directly 68.23%; a tree compiled for another judge gets only 47.87% when the judge is swapped, a tree recompiled on the new judge's answers 64.39%; node repair takes BANKING77 82.04%→86.16%; one explicit exemption node cuts false positives on a Chinese e-commerce moderation clause 24→5; the trained editor takes dev accuracy 64.47%→73.35% | [2610.13999](https://arxiv.org/abs/2610.13999) |
+| **Probabilistic perception, deterministic adjudication** | Model outputs serve only as **scored observation records**; an admission policy maps scores to true / false / **unknown** under a declared false-positive ceiling; unknown means reject; a deterministic, sufficiency-checked contract adjudicates; the probability that perception changes the adjudication has a **union bound** (sum of each perception field's false-admission rate + unknown rate); minimizing the estimated bound is an effective cost model for choosing contracts | 36,000 calls over 2 domains and 2 sensor families, not one unit refutes the bound; all 13 "reject→allow" flips among 21,000 test adjudications come from 3 contradictory records | [2610.10978](https://arxiv.org/abs/2610.10978) |
+| **Clinician-led inspectable rules** | Two clinicians define, finalize and adjudicate a rule base of 4 safety checks, formally verified for internal consistency, used as a guard on LLM output; **every adjudication can be recomputed from one named rule and 16 facts** | The largest disagreement class against a matched Llama-3.3-70B judge is structural | [2610.30690](https://arxiv.org/abs/2610.30690) |
+| **Jev-Guard** | An editable **policy tree**: first route on the tree to the applicable policy by the caller's audit context, then classify safety conditioned on the retrieved policy | 93.72% safety accuracy on 7,033 cases at 58 ms; hierarchical routing 93.10%; full pipeline 240 ms | [2610.18326](https://arxiv.org/abs/2610.18326) |
+| **JEVDB** | SQL extension: semantic filter, join, classify and sort go to the decision model, uncertain ones escalate to a generative LLM; **a semantic Bloom filter screens candidates with "registered necessary conditions"**; Yannakakis semi-join reduction | Lowest latency on all 21 SemBench queries, lowest cost on 19; Shelob 540K candidate pairs | [2610.02046](https://arxiv.org/abs/2610.02046) |
+| **Cost-accuracy optimization of semantic queries** | Expected error from each decision's calibrated confidence, weighted by its contribution to the output (fan-out) to obtain expected output error; the query plan affects both cost and result | Formal problem definition | [2610.08089](https://arxiv.org/abs/2610.08089) |
+| **Code Owns the Simulation, Jev Owns the Evaluation** | A clean boundary: what **can be judged from the input description** (evaluation) Jev can do (CRT 99%); what **depends on things beyond the predicted input** (simulation) Jev cannot | Reflection tests, one-shot matrix games, ALFWorld, robot control | [2610.01834](https://arxiv.org/abs/2610.01834) |
+| **NIOCIS** | Execution logs → loop-collapsed action graph (forward transitions + recovery back-edges); at each state ask one typed question "which declared option is the next hop + stop"; **node-conditioned option space** | 1,615 production security-operations episodes | [2610.25985](https://arxiv.org/abs/2610.25985) |
+| **SharedKV-BT** | Each active node of a behavior tree exposes stage-local fields and candidates, scored in parallel over a shared KV; the selected decision goes to a separate execution system | Robot manipulation | [2610.07327](https://arxiv.org/abs/2610.07327) |
+| **NumericJev** | A "range selection" primitive: a multi-way decision tree recursively refines a numeric value | See D2 | [2609.28587](https://arxiv.org/abs/2609.28587) |
+| **JevForest** | Feature acquisition within a budget: path votes of bootstrapped trees decide the next question to ask Jev | AG News four questions 0.729 vs static ordering 0.667, random 0.583 | [2610.10615](https://arxiv.org/abs/2610.10615) |
+| **LAVOIR** | Places "missing information slots" next to the options; one forward pass returns both the decision distribution and the **value of information** of each slot | Statistically indistinguishable from the Bayes ceiling on seen schemas (encoder family, cited as control) | [2609.30706](https://arxiv.org/abs/2609.30706) |
+| **Reading Right** | Fact probes + code composition | Code composition 0.96–1.00 (see D2) | [2610.18579](https://arxiv.org/abs/2610.18579) |
 
-#### 3.2.3.3 评分细则 / 清单类原语（上游）
+#### 3.2.3.3 Rubric / Checklist Primitives (Upstream)
 
-- TICK：LLM 生成的指令特定清单让评测可解释（[2410.03608](https://arxiv.org/abs/2410.03608)）；Rubrics as Rewards 把实例特定评分细则当 RL 奖励（[2507.17746](https://arxiv.org/abs/2507.17746)）；ReVeR 从指令本身推导**硬规则与分级原则**，逐点、工具增强地评判（[2610.18766](https://arxiv.org/abs/2610.18766)）；评分细则裁决缺少不确定性，需要按判据加权（[2610.21214](https://arxiv.org/abs/2610.21214)）；决策模型作评分细则裁判"便宜、快、错在同样的地方"（[2609.29769](https://arxiv.org/abs/2609.29769)）。
+- TICK: LLM-generated instruction-specific checklists make evaluation interpretable ([2410.03608](https://arxiv.org/abs/2410.03608)); Rubrics as Rewards uses instance-specific rubrics as RL rewards ([2507.17746](https://arxiv.org/abs/2507.17746)); ReVeR derives **hard rules and grading principles** from the instruction itself and judges point by point with tool augmentation ([2610.18766](https://arxiv.org/abs/2610.18766)); rubric adjudication lacks uncertainty and needs criterion-weighted aggregation ([2610.21214](https://arxiv.org/abs/2610.21214)); decision models as rubric judges are "cheap, fast, and wrong in the same places" ([2609.29769](https://arxiv.org/abs/2609.29769)).
 
-### 3.2.4 "策略即提示"守卫：业务规则文本直接喂模型的经验
+### 3.2.4 "Policy-as-Prompt" Guards: Experience of Feeding Business Rule Text Directly to the Model
 
-| 工作 | 结论 | 出处 |
+| Work | Conclusion | Source |
 | --- | --- | --- |
-| gpt-oss-safeguard（120b / 20b）| 开放权重**推理**模型，同时读取开发者策略与内容，输出结论与推理；"推理帮助模型泛化到新写的策略"；传统分类器快但改策略要重训 | [OpenAI](https://openai.com/index/introducing-gpt-oss-safeguard/) |
-| DynaGuard | 用户定义策略的动态守卫，带可选 CoT | [2509.02563](https://arxiv.org/abs/2509.02563) |
-| **SafePyramid** | 1,000 对话 3,000 策略 61,699 条自然语言规则，三级：L0 单规则、L1 规则依赖、L2 上下文定义的全新策略框架；**最好的 GPT-5.5 精确识别全部违规规则的比例只有 54.0% / 35.3% / 12.9%** | [2606.29887](https://arxiv.org/abs/2606.29887) |
-| **LPG** | 把策略落地的内部审议压缩成 10 个潜在 token，4B 达 84.5% 安全准确率，比 Qwen3-4B-Thinking 快约 11 倍 | [2605.17329](https://arxiv.org/abs/2605.17329) |
-| Policy-as-Prompt（社区治理） | 把审核规则交给 ChatGPT 不够；需考虑对社区治理的影响 | [2607.12149](https://arxiv.org/abs/2607.12149)、[2502.18695](https://arxiv.org/abs/2502.18695) |
-| PolicyGuard | DLP 分类判据完全由**非工程人员可编辑的纯文本策略文件**定义 | [2608.02687](https://arxiv.org/abs/2608.02687) |
-| BARRED / PAM | 只用任务描述 + 少量未标注样本合成训练数据训练自定义策略分类器 | [2604.25203](https://arxiv.org/abs/2604.25203)、[2505.19766](https://arxiv.org/abs/2505.19766) |
-| 文本脱敏 | 自然语言脱敏规则 + 指令微调，输出可审计的理由 | [2608.14693](https://arxiv.org/abs/2608.14693) |
-| 多轮约束跟踪 | StateWise：模型维护自己的可修订约束状态（带墓碑），以可执行检查器测量持续性失败与复发 | [2610.33766](https://arxiv.org/abs/2610.33766) |
-| Jev 在审核 | 受益于检索先例；定义改变预测但不稳定提升（见 D1） | [2610.07953](https://arxiv.org/abs/2610.07953)、[2610.03324](https://arxiv.org/abs/2610.03324) |
+| gpt-oss-safeguard (120b / 20b) | Open-weight **reasoning** models that read the developer's policy and the content together and output a conclusion plus reasoning; "reasoning helps the model generalize to newly written policies"; traditional classifiers are fast but need retraining when the policy changes | [OpenAI](https://openai.com/index/introducing-gpt-oss-safeguard/) |
+| DynaGuard | Dynamic guard for user-defined policies, with optional CoT | [2509.02563](https://arxiv.org/abs/2509.02563) |
+| **SafePyramid** | 1,000 dialogues, 3,000 policies, 61,699 natural-language rules, three levels: L0 single rule, L1 rule dependency, L2 entirely new policy framework defined in context; **the best model, GPT-5.5, exactly identifies all violated rules in only 54.0% / 35.3% / 12.9%** | [2606.29887](https://arxiv.org/abs/2606.29887) |
+| **LPG** | Compresses the internal deliberation of policy grounding into 10 latent tokens; a 4B model reaches 84.5% safety accuracy, about 11× faster than Qwen3-4B-Thinking | [2605.17329](https://arxiv.org/abs/2605.17329) |
+| Policy-as-Prompt (community governance) | Handing moderation rules to ChatGPT is not enough; the impact on community governance must be considered | [2607.12149](https://arxiv.org/abs/2607.12149), [2502.18695](https://arxiv.org/abs/2502.18695) |
+| PolicyGuard | DLP classification criteria defined entirely by a **plain-text policy file editable by non-engineers** | [2608.02687](https://arxiv.org/abs/2608.02687) |
+| BARRED / PAM | Train custom policy classifiers from synthesized training data using only a task description + a few unlabeled samples | [2604.25203](https://arxiv.org/abs/2604.25203), [2505.19766](https://arxiv.org/abs/2505.19766) |
+| Text de-identification | Natural-language de-identification rules + instruction tuning, outputting auditable rationales | [2608.14693](https://arxiv.org/abs/2608.14693) |
+| Multi-turn constraint tracking | StateWise: the model maintains its own revisable constraint state (with tombstones); persistent failures and recurrences measured with executable checkers | [2610.33766](https://arxiv.org/abs/2610.33766) |
+| Jev in moderation | Benefits from retrieved precedents; definitions change predictions without stable improvement (see D1) | [2610.07953](https://arxiv.org/abs/2610.07953), [2610.03324](https://arxiv.org/abs/2610.03324) |
 
-**含义**：即使最强的推理模型，在"规则依赖"（L1）与"新策略框架"（L2）上的精确执行率也只有 35% / 13%。单遍模型要做到可靠，规则必须被**分解**到单规则（L0）粒度，依赖与组合交给代码——这正是 SemTree 与"概率感知、确定性裁决"的结构。
+**Implication**: even the strongest reasoning models reach exact execution rates of only 35% / 13% on "rule dependency" (L1) and "new policy framework" (L2). For a single-pass model to be reliable, rules must be **decomposed** to single-rule (L0) granularity, with dependencies and composition left to code. This is exactly the structure of SemTree and of "probabilistic perception, deterministic adjudication".
 
-### 3.2.5 哪些工作解决了哪类问题（D3 小矩阵）
+### 3.2.5 Which Works Solve Which Kind of Problem (D3 Mini-Matrix)
 
-| 问题 | 已有工作 | 状态 |
+| Problem | Existing work | Status |
 | --- | --- | --- |
-| 文字能否教会模型做事 | SkillsBench、AFTER | 对生成式 Agent 已证明；对单遍模型**无** |
-| 规则文本 → 中间表示 | Artic、P2T、SIRNA、Cedar、ARc、LSP、Deontic trees | 有多种 IR，面向生成式 LLM / 形式验证 |
-| 判断点与确定性逻辑的分离 | FlashScript、TraceCompiler、Formal Skill、LLM-as-interface、Reading Right | **共识**："决策成调用，其余成代码" |
-| 单遍模型上的树 / 契约 | SemTree、概率感知确定性裁决、Jev-Guard、JEVDB、NIOCIS、SharedKV-BT | 有雏形；SemTree 的"按裁判答案编译"与 Unknown 节点最接近我们的需求 |
-| 非技术人员的编辑界面 | CALICO、Goldsmith、PolicyGuard、SemTree 的节点修复 | 有，但只有 SemTree 面向决策裁判 |
-| 策略文本的直接执行上限 | SafePyramid | 清楚：L1/L2 不可靠 |
-| 规则的测试充分性 | Skill coverage、SkillSentry、AgenTest | 面向生成式 Agent |
+| Can text teach a model to do things | SkillsBench, AFTER | Proven for generative Agents; **none** for single-pass models |
+| Rule text → intermediate representation | Artic, P2T, SIRNA, Cedar, ARc, LSP, Deontic trees | Several IRs exist, aimed at generative LLMs / formal verification |
+| Separation of judgment points from deterministic logic | FlashScript, TraceCompiler, Formal Skill, LLM-as-interface, Reading Right | **Consensus**: "decisions become calls, the rest becomes code" |
+| Trees / contracts on single-pass models | SemTree, probabilistic perception deterministic adjudication, Jev-Guard, JEVDB, NIOCIS, SharedKV-BT | Prototypes exist; SemTree's "compile against the judge's answers" and Unknown nodes are closest to our needs |
+| Editing interface for non-technical staff | CALICO, Goldsmith, PolicyGuard, SemTree's node repair | Exist, but only SemTree targets a decision judge |
+| Ceiling of direct execution of policy text | SafePyramid | Clear: L1/L2 unreliable |
+| Test sufficiency of rules | Skill coverage, SkillSentry, AgenTest | Aimed at generative Agents |
 
-### 3.2.6 D3 盲区
+### 3.2.6 D3 Blind Spots
 
-1. **没有面向单遍决策模型的"规则语言"**：所有 IR（Artic、P2T、Cedar、LSP）都假设执行者会推理或会调用求值器。单遍模型能忠实执行的规则子集（L0 单条件？带一个例外？）没有被定义。
-2. **原语的"可执行性"没有被分级**：Code Owns the Simulation 给了"评估 vs 模拟"一条边界，Reading Right 给了"读 vs 组合"一条边界，2610.24929 给了"一遍可解 vs 需要中间步骤"一条边界。三条边界没有被统一成一个原语级的分类。
-3. **Unknown / 弃权作为一等原语**：SemTree 与"概率感知"都把 Unknown 当节点输出，但 D2 证明兜底与拒绝是单遍模型最弱的地方。"每个原语都要能说不知道"与"模型说不了不知道"之间的矛盾没有被正面研究。
-4. **规则的措辞不变性**：Lost in the Fallback 与 2610.30045 证明等价措辞导致不同决策。一个规则语言要么规定措辞（模板），要么训练模型对措辞不变；两条路都没有工作在决策模型上做。
-5. **规则的组合可靠性**：SemTree 每例平均 2.99 个问题；D4 的层级一致性证据（TV 0.219–0.349）说明分解后的概率不自洽。多个原语在代码里组合时"误差如何传播"只有语义查询优化（2610.08089）与并集界（2610.10978）两个形式化起点。
-6. **按裁判编译**：SemTree 证明树要为特定裁判编译（换裁判从 67.70% 掉到 47.87%）。这意味着"业务专家写的规则"与"模型实际执行的树"之间需要一个编译步骤，而这个编译器对单遍小模型应长什么样，无人研究。
-7. **Skill 与 Policy 的分离**在决策模型上尚未出现：Auto-Policy 指出两者不同，Jev-Guard 的策略树是 Policy，TypeSafe 的 agent-skill 是 Skill；没有工作同时定义二者并测量交互。
+1. **No "rule language" for single-pass decision models**: all IRs (Artic, P2T, Cedar, LSP) assume the executor can reason or can call an evaluator. The subset of rules a single-pass model can execute faithfully (L0 single condition? with one exception?) has not been defined.
+2. **The "executability" of primitives has not been graded**: Code Owns the Simulation gives one boundary ("evaluation vs simulation"), Reading Right gives another ("read vs compose"), 2610.24929 gives a third ("solvable in one pass vs needs intermediate steps"). The three boundaries have not been unified into one primitive-level classification.
+3. **Unknown / abstain as a first-class primitive**: both SemTree and "probabilistic perception" treat Unknown as a node output, but D2 shows that fallback and refusal are the weakest point of single-pass models. The contradiction between "every primitive must be able to say I don't know" and "the model cannot say I don't know" has not been studied head-on.
+4. **Wording invariance of rules**: Lost in the Fallback and 2610.30045 show that equivalent wordings lead to different decisions. A rule language must either prescribe the wording (templates) or train the model to be wording-invariant; no work has taken either path on decision models.
+5. **Composition reliability of rules**: SemTree averages 2.99 questions per case; the hierarchical-consistency evidence in D4 (TV 0.219–0.349) shows that probabilities after decomposition are not self-consistent. For "how errors propagate" when several primitives are composed in code, the only formal starting points are semantic query optimization (2610.08089) and the union bound (2610.10978).
+6. **Compiling per judge**: SemTree shows that a tree must be compiled for a specific judge (swapping the judge drops 67.70% to 47.87%). This means a compilation step is needed between "the rules the business expert writes" and "the tree the model actually executes", and what that compiler should look like for a small single-pass model has not been studied by anyone.
+7. **The separation of Skill and Policy** has not yet appeared on decision models: Auto-Policy points out that the two differ, Jev-Guard's policy tree is a Policy, TypeSafe's agent-skill is a Skill; no work defines both at once and measures their interaction.

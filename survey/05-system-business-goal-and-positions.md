@@ -1,270 +1,268 @@
-# 5 · 系统：业务目标、属性清单，与 System1+System2 的位置
+# 5 · System: business goal, property list, and the positions of System1+System2
 
-> 本章回答"**它值多少钱、能承诺什么、放在系统的哪个位置**"。注意 §2.2 的 P5 已经把成本从"业务目标"降为"使能条件"，所以 §5.1 的成本证据应读作**前提条件**而不是目标。
+> This chapter answers "**what it is worth, what it can promise, and where it sits in the system**". Note that P5 in §2.2 has already demoted cost from a "business goal" to an "enabling condition", so the cost evidence in §5.1 should be read as a **precondition**, not a goal.
 >
-> §5.1 给出被消除的那一类成本（不解码带来的一到两个数量级）、Jevons 式的后果、十二条业务属性里哪两条可以对业务承诺而哪八条有独立审计测出的反例，以及支撑 System1+System2 的五个工程上不同的位置（前四格有正面证据，第五格"闭环执行者"普遍失败）。§5.2（原 D5 维度）是快/慢协同的 Agent 框架证据，它的核心发现是"**更快的决策 ≠ 更好的 Agent**"。
+> §5.1 gives the class of cost that is eliminated (the one to two orders of magnitude from not decoding), the Jevons-style consequence, which two of the twelve business properties can be promised to the business and which eight have counter-examples measured by independent audits, and the five engineering-distinct positions that support System1+System2 (the first four cells have positive evidence; the fifth cell, the "closed-loop executor", fails across the board). §5.2 (the former dimension D5) is the evidence on fast/slow cooperation Agent frameworks; its core finding is "**faster decisions ≠ a better Agent**".
 >
-> 一条自带的梯度：确定性往 harness 里推到底，模型就变成冗余（类型化策略字段上一条确定性规则全对；不带模型的控制器解出 79%）。所以可用区间的上界是业务字段的可结构化程度，下界是决策的重复度。
+> A built-in gradient: push determinism all the way into the harness and the model becomes redundant (one deterministic rule on typed policy fields gets everything right; a model-free controller solves 79%). So the upper bound of the usable range is how structurable the business fields are, and the lower bound is the repetition of the decisions.
 
-## 5.1 业务目标与属性：消除了哪一类成本，支撑哪一个位置
+## 5.1 Business goal and properties: which class of cost is eliminated, which position is supported
 
-> 口径：仍然只做分析与调研。本节回答第一个追问——**Jev 的业务目标是什么、属性是什么、解决当前的什么业务问题、最终如何支撑 System1+System2 的新型智能体**。
+> Protocol: still analysis and survey only. This section answers the first follow-up question: **what Jev's business goal is, what its properties are, which current business problem it solves, and how it ultimately supports the new System1+System2 agents**.
 >
-> 结论先行：（1）**本节的出发命题是"幂等性的搬迁"，但它经不住检验**：命题说 Jev 没有新增业务处理能力、只是把不保证幂等的生成式判断换成"类型化指标 + harness 里的确定性执行"。§2.1 用六条反证检验它，结论是**前提与结语都要改**——宿主 Jev 本身就不幂等（相同重复调用下 0.78%–1.33% 的决策改变，四篇论文报告其非确定性），格式保证不是它带来的（语法约束解码的既有谱系）且有"约束税"，harness 的执行计划本身会改变答案，能力并不守恒（多步/带状态处直接丢失且 harness 收不到信号）。可以守住的版本是：**它不消除非幂等，它把非幂等的表面收缩成可数、可定界、可定价的若干个字段，代价是失败从显性变成隐性**（§2.1.4）。**而把幂等当"设计目的"而非"已成事实"是另一条命题，必须单独检验**：按字面意思它已经达成（同请求 ICC 0.997、同文重跑翻转 0.17%）却什么也没买到（"一致的答案也会保留错误"，重复的错误占观察到错误的大部分），而且它可以不用模型就买到（查表即严格幂等；确定性规则在六个策略上全对；不带模型的控制器解出 79%）——**一个最优解是"不要模型"的目标函数不能交给模型团队**。可检验的版本是一个三元组：等价类内同判 + 等价类外仍给得出决策 + 单价低一到两个数量级，它翻译成的模型侧要求是**单调可取阈的分数、原生 unknown、业务等价类内不变**，而幂等本身住在阈值与确定性契约里（§2.1.6）。（2）由此得到的业务目标**不是把决策做得更准，而是把"决策"这件事的单价压到可以在程序的每一个分支上都调用的程度**，从而让一大批"本来不值得让模型来判断"的判断变得值得。（3）它的属性清单里**只有两条是结构性保证的**（输出必在声明的选项集内、一次前向答完整个请求），其余（校准、不变性、兜底、自知、概率自洽）全部是**按工作负载变动的经验性质**，而且已经有多项独立审计测出反例。（4）它支撑 System1+System2 的方式不是"一个快模型加一个慢模型"，而是**五个在工程上完全不同的位置**，其中证据最强的是"把慢模型的每一次外部判断外包出去"，证据最弱的恰恰是"让快模型自己闭环地做 Agent"——而这一格的失败可以由"决策被搬回模型里"直接预测。
+> Conclusions first: (1) **The starting proposition of this section is "the migration of idempotence", but it does not survive testing**: the proposition says Jev adds no new business-processing capability and only replaces generative judgments that do not guarantee idempotence with "typed metrics + deterministic execution in the harness". §2.1 tests it with six pieces of counter-evidence and concludes that **both the premise and the conclusion must change**: the host Jev is itself non-idempotent (0.78%–1.33% of decisions change under identical repeated calls; four papers report its non-determinism), the format guarantee is not something it brings (it belongs to the existing lineage of grammar-constrained decoding) and carries a "constraint tax", the harness's execution plan itself changes the answer, and capability is not conserved (it is lost outright at multi-step/stateful points, and the harness receives no signal). The version that can be defended is: **it does not eliminate non-idempotence; it shrinks the surface of non-idempotence to a countable, boundable, priceable set of fields, at the cost of failures turning from explicit into silent** (§2.1.4). **Treating idempotence as a "design purpose" rather than an "accomplished fact" is a separate proposition and must be tested separately**: taken literally it has already been achieved (same-request ICC 0.997, same-text rerun flip rate 0.17%) yet buys nothing ("a consistent answer also preserves errors"; repeated errors account for most of the observed errors), and it can be bought without a model (a lookup table is strictly idempotent; deterministic rules are correct on all six policies; a model-free controller solves 79%). **An objective function whose optimum is "no model" cannot be handed to a model team**. The testable version is a triple: same judgment within an equivalence class + a decision still produced outside the equivalence class + a unit price one to two orders of magnitude lower; it translates into the model-side requirements of **a monotone thresholdable score, native unknown, and invariance within business equivalence classes**, while idempotence itself lives in the thresholds and the deterministic contract (§2.1.6). (2) The business goal that follows **is not to make decisions more accurate, but to push the unit price of "a decision" down to the point where it can be called on every branch of a program**, so that a large class of judgments that "were not worth having a model make" becomes worth it. (3) In its property list, **only two items are structural guarantees** (the output is necessarily within the declared option set; one forward pass answers the whole request); the rest (calibration, invariance, fallback, self-knowledge, probabilistic self-consistency) are all **empirical properties that vary with the workload**, and several independent audits have already measured counter-examples. (4) The way it supports System1+System2 is not "one fast model plus one slow model" but **five engineering-distinct positions**, among which the strongest evidence is for "outsourcing every external judgment of the slow model", and the weakest is precisely "letting the fast model run the Agent loop by itself". The failure of that cell is directly predicted by "the decision being moved back into the model".
 >
-> **复核提示（§8.1）**：本节 §2.1 已经就地检验了出发命题；§8.1.1.2 进一步区分了它**该采纳的诊断部分**与**该替换的描述部分**，并标出本节的"三层幂等"（过拟合风险高）、"五个位置 A–E"（中）、"决策重复度轴"（高）、"十二条业务属性"（已知不完整）都是本报告的构造而非文献结论。
+> **Re-check note (§8.1)**: §2.1 has already tested this section's starting proposition in place; §8.1.1.2 further separates the **diagnostic part that should be adopted** from the **descriptive part that should be replaced**, and marks this section's "three layers of idempotence" (high overfitting risk), "five positions A–E" (medium), "decision repetition axis" (high) and "twelve business properties" (known to be incomplete) as the report's own constructs rather than literature conclusions.
 
-### 5.1.1 业务问题：哪一类成本被消除了
+### 5.1.1 The Business Problem: Which Class of Cost Is Eliminated
 
-#### 5.1.1.1 被消除的是"每次判断都要解码一段文字"这笔成本
+#### 5.1.1.1 What Is Eliminated Is the Cost of "Decoding a Passage of Text for Every Judgment"
 
-| 证据 | 测到的量 | 口径 |
+| Evidence | Measured quantity | Protocol |
 | --- | --- | --- |
-| 前缀-only 决策模型 | 一次调用比**同规模**生成式语言模型便宜**一到两个数量级**；在菜单固定、只改选项集的干预下，干预后的准确率已由缓存的首遍分布决定（[2610.07716](https://arxiv.org/abs/2610.07716)） | 成本的结构性来源：不解码 |
-| 作为 rubric 评审 | LLM 评审**贵 16–357 倍、慢 5–350 倍**，而两个决策模型在 27 项比较中显著落后的最多只有 6 项（[2609.29769](https://arxiv.org/abs/2609.29769)） | 同一批人工判据、同一批面板 |
-| 作为评审（偏置口径） | TDM 比 2026 年的 LLM 评审**便宜 37 倍**且更一致（[2610.18122](https://arxiv.org/abs/2610.18122)） | CALM 偏置测试 |
-| 社科文本标注 | 中位**成本低 44 倍**，代价是比"每任务最好的 LLM"中位低 11.6 macro-F1（15 项里 14 项落后）（[2609.24574](https://arxiv.org/abs/2609.24574)） | 18 个任务 7,977 条，零样本同协议 |
-| 对齐失败检测 | 成本为 LLM 评审的 **1/63**，一个通用问题零样本 AUROC 中位 0.886（[2609.29429](https://arxiv.org/abs/2609.29429)） | 10 类失败、44 个基准 |
-| 内容审核 | **约 0.000025 美元/次、约 100 ms**；零样本 AUROC 0.83 与 14 个前沿系统中的 13 个**统计上不可分**（配对 bootstrap，n=56；是"未能拒绝相等"而非等价性证明），成本低 1–3 个数量级（[2610.33258](https://arxiv.org/abs/2610.33258)） | 142,658 条人工标注 |
-| 本地 2B | **30.9 ms**/决策（单张笔记本 GPU）、**零输出 token**；对照前沿 API 调用 8,758 ms，而答得好的宿主系统每题先"想" 21–212 个生成 token 并逐个计费；单消费级 GPU 持续 32 决策/秒（[2609.23886](https://arxiv.org/abs/2609.23886)） | 本地推理，状态不出机器 |
-| Agent 单跳路由 | 类型化编码器 **10 ms**（类型化选择式 19.5 ms），对照每次 LLM 跳 **2.2 s**（[2610.25985](https://arxiv.org/abs/2610.25985)） | 1,615 条生产安全运营轨迹 |
-| 守卫 | 安全分类平均 **58 ms**，路由+分类全流程 240 ms；权限闸把每任务平均评审时间从 SFT-LLM 评审的 4.80 s 降到 1.33 s（[2610.18326](https://arxiv.org/abs/2610.18326)） | 7,033 条评测用例 |
-| 推理延迟对照 | 最大的 System-1 模型在**非 Agent** 准确率上追平或超过快速闭源 LLM，概率校准更好，延迟是其 **1/4**；而最准的是推理型 LLM，代价约为快速 LLM 的 **70 倍**成本（[2610.21244](https://arxiv.org/abs/2610.21244)） | 92k 题 / 105 任务 / 268 来源 |
+| Prefix-only decision model | One call is **one to two orders of magnitude** cheaper than a **same-size** generative language model; under interventions that keep the menu fixed and change only the option set, post-intervention accuracy is already determined by the cached first-pass distribution ([2610.07716](https://arxiv.org/abs/2610.07716)) | Structural source of the cost: no decoding |
+| As a rubric judge | LLM judges are **16–357× more expensive and 5–350× slower**, while the two decision models are significantly behind in at most 6 of 27 comparisons ([2609.29769](https://arxiv.org/abs/2609.29769)) | Same human criteria, same panels |
+| As a judge (bias protocol) | TDMs are **37× cheaper** than 2026 LLM judges and more consistent ([2610.18122](https://arxiv.org/abs/2610.18122)) | CALM bias tests |
+| Social-science text annotation | Median **cost 44× lower**, at the price of a median 11.6 macro-F1 below "the best LLM per task" (behind on 14 of 15) ([2609.24574](https://arxiv.org/abs/2609.24574)) | 18 tasks, 7,977 items, zero-shot, same protocol |
+| Alignment-failure detection | Cost **1/63** of an LLM judge; one generic question, zero-shot median AUROC 0.886 ([2609.29429](https://arxiv.org/abs/2609.29429)) | 10 failure classes, 44 benchmarks |
+| Content moderation | **About 0.000025 USD per call, about 100 ms**; zero-shot AUROC 0.83, **statistically indistinguishable** from 13 of 14 frontier systems (paired bootstrap, n=56; this is "failure to reject equality", not a proof of equivalence), cost 1–3 orders of magnitude lower ([2610.33258](https://arxiv.org/abs/2610.33258)) | 142,658 human-labeled items |
+| Local 2B | **30.9 ms** per decision (single laptop GPU), **zero output tokens**; versus 8,758 ms for a frontier API call, where the host systems that answer well first "think" for 21–212 generated tokens per question, each billed; a single consumer GPU sustains 32 decisions/s ([2609.23886](https://arxiv.org/abs/2609.23886)) | Local inference, state never leaves the machine |
+| Agent single-hop routing | Typed encoder **10 ms** (typed selective 19.5 ms), versus **2.2 s** per LLM hop ([2610.25985](https://arxiv.org/abs/2610.25985)) | 1,615 production security-operations trajectories |
+| Guard | Safety classification averages **58 ms**, routing + classification end to end 240 ms; the permission gate cuts mean review time per task from 4.80 s for an SFT-LLM judge to 1.33 s ([2610.18326](https://arxiv.org/abs/2610.18326)) | 7,033 evaluation cases |
+| Inference-latency comparison | The largest System-1 model matches or exceeds fast closed-source LLMs on **non-Agent** accuracy, with better probability calibration and **1/4** the latency; the most accurate are reasoning LLMs, at about **70×** the cost of fast LLMs ([2610.21244](https://arxiv.org/abs/2610.21244)) | 92k questions / 105 tasks / 268 sources |
 
-**一句话**：被消除的不是"模型推理成本"，而是**解码成本 + 往返成本 + 解析成本**。这三项都与"答案是一段文字"绑定，而不与"答案是一个判断"绑定。[2609.23886](https://arxiv.org/abs/2609.23886) 把这件事讲得最直白：程序需要回来的"不是散文，而是 n 个声明选项之一加一个可以设阈值的数"。
+**In one sentence**: what is eliminated is not "model inference cost" but **decoding cost + round-trip cost + parsing cost**. All three are tied to "the answer is a passage of text", not to "the answer is a judgment". [2609.23886](https://arxiv.org/abs/2609.23886) puts it most plainly: what the program needs back is "not prose, but one of n declared options plus a number that a threshold can be set on".
 
-#### 5.1.1.2 于是"本来不值得判断的判断"变得值得
+#### 5.1.1.2 So "Judgments That Were Not Worth Making" Become Worth Making
 
-这正是 TypeSafe 用 Jevons 命名产品时想表达的东西，也是唯一一篇把它当作**组织问题**而不是模型问题来写的论文的出发点：机器评估的总边际成本下降得足够多时，**在潜在需求充足且互补成本不占主导的地方，组织对机器评估的消费会增加**；该文把预测、机器评估、组织判断与授权区分为四种成本不必同时下降的功能活动，并明确指出代价——评估之间会**共享证据、判据与错误**，会把**误设的 rubric 规模化**，会在"后果性限定条件已经消失"的表示上运行，并通过阈值与例外路由**实际改变决策权的分配**（[2610.01231](https://arxiv.org/abs/2610.01231)）。
+This is exactly what TypeSafe meant when it named its product after Jevons, and it is the starting point of the only paper that treats this as an **organizational** problem rather than a model problem: when the total marginal cost of machine evaluation falls far enough, **organizations consume more machine evaluation wherever latent demand is sufficient and complementary costs do not dominate**; the paper separates prediction, machine evaluation, organizational judgment and delegation into four functional activities whose costs need not fall together, and it states the price explicitly: evaluations will **share evidence, criteria and errors**, will **scale up a mis-specified rubric**, will run on representations from which "the consequential qualifiers have already disappeared", and will **actually change the allocation of decision rights** through thresholds and exception routing ([2610.01231](https://arxiv.org/abs/2610.01231)).
 
-这条"代价"必须和"收益"写在一起，因为它预言了 §5.1.2 里几乎所有的反例：当一个误设的判据被便宜地跑在十亿条数据上时，错误不是独立的。[2609.29769](https://arxiv.org/abs/2609.29769) 实测到了这件事的一个具体形态：**flash 档 LLM 评审在决策模型"最自信的错误"上有超过 85% 重复了同样的错误**，而独立出错应该约为一半——所以级联只能省钱，用 flash 档兜底的级联即使用预言机阈值也最多比最强单一评审高 2.7 点。
+This "price" must be written next to the "benefit", because it predicts almost every counter-example in §5.1.2: when a mis-specified criterion is run cheaply over a billion records, the errors are not independent. [2609.29769](https://arxiv.org/abs/2609.29769) measured one concrete form of this: **on the decision model's "most confident errors", a flash-tier LLM judge repeated the same error more than 85% of the time**, whereas independent errors should give about half. So a cascade can only save money; a cascade with a flash-tier fallback beats the strongest single judge by at most 2.7 points even with an oracle threshold.
 
-#### 5.1.1.3 可被便宜化的业务，有一个共同结构：决策在重复
+#### 5.1.1.3 Businesses That Can Be Made Cheap Share One Structure: The Decisions Repeat
 
-三篇互相独立的论文都指向同一个条件。
+Three mutually independent papers point to the same condition.
 
-- **语义数据库**：把 LLM 用在关系型离散判断上造成高延迟与高成本；换成类型化决策模型做语义过滤/连接/分类/排序，只把不确定的升级给生成式 LLM。在 SemBench 的 21 条查询上延迟全部最低、成本 19 条最低；在 54 万候选对的 Shelob 上平均 F1 95.7%–97.5%，语义 Bloom 过滤先砍掉 **87.4%** 的候选对，可复用的条件索引打分再把**推理模型升级次数减少 55.2%**（[2610.02046](https://arxiv.org/abs/2610.02046)）。
-- **有界 Agent 工作流**：决策空间会**饱和**——Agent 反复遇到同样的状态，足够多的对话之后就不再遇到新状态；而 LLM 不把这些决策当优化问题，每一轮都从上下文重新推导一遍。把它当 MDP 解一次再复用：在 τ²-bench telecom 上，不带模型的控制器解出 **79%**；Qwen3.8-27B 从 29% 升到 **96%** 且模型调用减少 **93%**；对已经能解 96% 的 Claude Opus 5.5，按此运行把每任务调用与成本砍掉约 **98%** 并多解出 2 个任务（[2610.24871](https://arxiv.org/abs/2610.24871)）。
-- **生产工单/安全运营**：Agent 按决策付费，每跳都要重读状态并思考数秒，"而它的动作是有限的，决策在重复"（[2610.25985](https://arxiv.org/abs/2610.25985)）。
+- **Semantic databases**: using LLMs for relational discrete judgments causes high latency and high cost; switch to typed decision models for semantic filter/join/classify/rank and escalate only the uncertain cases to a generative LLM. On the 21 SemBench queries latency is lowest on all and cost lowest on 19; on Shelob with 540k candidate pairs mean F1 is 95.7%–97.5%, a semantic Bloom filter first prunes **87.4%** of the candidate pairs, and reusable conditional index scoring then **reduces reasoning-model escalations by 55.2%** ([2610.02046](https://arxiv.org/abs/2610.02046)).
+- **Bounded Agent workflows**: the decision space **saturates**: the Agent keeps meeting the same states, and after enough conversations it stops meeting new ones; yet the LLM does not treat these decisions as an optimization problem and re-derives them from context every turn. Solve it once as an MDP and reuse it: on τ²-bench telecom a model-free controller solves **79%**; Qwen3.8-27B rises from 29% to **96%** with **93%** fewer model calls; for Claude Opus 5.5, which already solves 96%, running it this way cuts per-task calls and cost by about **98%** and solves 2 more tasks ([2610.24871](https://arxiv.org/abs/2610.24871)).
+- **Production tickets / security operations**: the Agent pays per decision, rereading the state and thinking for seconds at every hop, "while its actions are finite and the decisions repeat" ([2610.25985](https://arxiv.org/abs/2610.25985)).
 
-**推论**：Jev 类模型的业务价值与**决策的重复度**成正比，与**决策的新颖度**成反比。这给了"该把 Jev 放在哪"一个可判定的工程判据，也解释了为什么 §5.1.4 里"闭环 Agent"是最弱的一格——闭环里的状态几乎不重复。
+**Corollary**: the business value of a Jev-class model is proportional to **decision repetition** and inversely proportional to **decision novelty**. This gives "where to put Jev" a decidable engineering criterion, and it explains why the "closed-loop Agent" in §5.1.4 is the weakest cell: states in a closed loop hardly ever repeat.
 
-### 5.1.2 属性清单：哪些能对业务承诺，哪些不能
+### 5.1.2 The Property List: What Can Be Promised to the Business and What Cannot
 
-下表把"业务方会据此下单的属性"逐条列出，右列只放**反例**，因为正例已在 §5.1.1 与 §1.1。
+The table below lists, item by item, "the properties on which the business side would place an order"; the right column holds only **counter-examples**, because the positive examples are already in §5.1.1 and §1.1.
 
-| # | 属性 | 是否可承诺 | 已测到的反例 / 边界 |
+| # | Property | Can it be promised | Measured counter-examples / boundaries |
 | --- | --- | --- | --- |
-| P1 | **输出必在调用方声明的选项集内**，不可能出现格式错误 | **结构性保证** | 无反例。这是唯一"按构造成立"的属性（[2609.23886](https://arxiv.org/abs/2609.23886)）。但它只保证**类型**，不保证**语义**：换 rubric 的 no/yes 名字可把 Jev 的 AUC 从 .815 压到 .581，而**类型错误为零**（[2609.32160](https://arxiv.org/abs/2609.32160) 转述 T3） |
-| P2 | **一次前向答完一个请求里的所有问题**；额外问题近乎免费（**这是 Jev 架构的性质；§2.2.1 取定的顺序不具备它**，缓存改沿规则轴） | **结构性保证**（共享前缀 + 隔离分支，§1.1.4） | 延迟优势会被缓存抹掉：有论文的延迟优势在加缓存后消失，且两篇姊妹论文在不同负载上报出**相反的成本方向**；"报了延迟优势就要同时报带缓存与不带缓存"这一项在 20 篇适用论文中只有 **3 篇**合规（[2609.32160](https://arxiv.org/abs/2609.32160)） |
-| P3 | **概率是校准的**，下游可直接设阈值 | **按负载变动** | 宿主模型遵守写明的策略，但**对措辞敏感且系统性欠自信**；在非对称代价下，**用它的概率可能比直接取它的 top-1 更差**（[2610.11392](https://arxiv.org/abs/2610.11392)）。决策模型"常能指出最可能的结果，却大幅高估它的概率"（[2610.03935](https://arxiv.org/abs/2610.03935)）。另一审计发现三个前沿模型的校准误差中位更低（0.157 对 0.066）（[2609.24574](https://arxiv.org/abs/2609.24574)） |
-| P4 | **同一判断在等价提法下给同一答案** | **不可承诺** | 每个 TDM 在 12 项偏置测试中有 **3–8 项**有偏；把更好的答案改写成情绪化语气可把典型 TDM 的准确率从 **99% 压到 42%**；八个 TDM **全部**会在答案位置互换时改判，而 2026 年的 LLM 评审几乎不改判；**校准良好并不防偏置**（[2610.18122](https://arxiv.org/abs/2610.18122)） |
-| P5 | **低置信度 = 该升级** | **不可承诺，而且是两个量** | 置信度混淆了**人类分歧**与**决策风险**两种不确定性；在非对称审核损失下这两者要求**相反的升级信号**，所以**没有任何单一置信数能同时服务两者**（[2610.33258](https://arxiv.org/abs/2610.33258)）。另有实测：升级最不自信的那批决策**抓不到被攻击翻转的决策**（[2610.12292](https://arxiv.org/abs/2610.12292)） |
-| P6 | **不确定时会走兜底 / 弃权** | **不可承诺，这是最差的一格** | 正确答案缺席时的正确拒绝率只有 **7%**（答案在场时准确率 99%），而同一批题上原生布尔校验能到 99% 精确匹配；一个在独立开发集上选出的阈值把拒绝准确率从 7% 提到 **79%**（[2609.39496](https://arxiv.org/abs/2609.39496)）。配对兜底稳健性测试发现**正确识别类别并不迁移为正确选用兜底项**，即使显式把正确类别给它；**逻辑等价**的兜底规则表述会造成显著分歧（[2610.19856](https://arxiv.org/abs/2610.19856)） |
-| P7 | **"不知道"可被表达** | **接口上缺一个值** | 在 Choice 回答里 P(A) 与 P(¬A) 被当作和为 1 呈现，而和式里缺了一项 P(U)≠0；把 P(U) 还原回来，Choice 的软准确率中位从 **0.771 升到 0.978**——即使在二元决策里，模型"想答第三个选项：我不知道"（[2609.35342](https://arxiv.org/abs/2609.35342)） |
-| P8 | **知道自己不知道** | **不可承诺** | 没有任何与答案相关的信息时，对某个显著选项给到 **0.80**；越过观测到的知识边界后置信度比准确率高 **0.21–0.33**，用更早月份做再校准**也补不上**。反而是**定向的是/否问题**更锐利：问"结果是否已尘埃落定"AUROC 1.00，"证据是否充分"0.95（同题上置信度只有 0.85）（[2610.01006](https://arxiv.org/abs/2610.01006)） |
-| P9 | **概率之间自洽** | **不可承诺** | 480 个否定对上，"标签是 X"与"标签不是 X"的和平均偏离 1 达 **0.064**；三个单标签概率平均和为 **1.14**；违背量约为其重复噪声的 5 倍，且集中在它**不确定**的地方（[2609.33209](https://arxiv.org/abs/2609.33209)） |
-| P10 | **业务人员可以用文字直接配置它** | **部分成立，这是 D1 的核心** | 读得懂示例与定义，但**标签名压倒定义**、删掉定义准确率不变、小模型无法在上下文里翻转标签语义（§3.1）。审核场景里 Jev **从检索到的先例中获益**（在答案空间固定时改善策略精确选择与有害内容判别），而开源对照 Laya 的检索常只改变正例率而不改善判别（[2610.07953](https://arxiv.org/abs/2610.07953)） |
-| P11 | **决策可审计** | **结构性缺失** | 不生成文字，所以"**没有文字理由可供人工检视**"（[2610.11392](https://arxiv.org/abs/2610.11392)）；"理由与思维链不适用"（[2610.22526](https://arxiv.org/abs/2610.22526)）。现有补偿手段都在模型外面：可编辑策略树上的路由（[2610.18326](https://arxiv.org/abs/2610.18326)）、Yes/No/Unknown 节点树逐节点修复（[2610.13999](https://arxiv.org/abs/2610.13999)）、把判断记到证据记录里（[2609.27535](https://arxiv.org/abs/2609.27535)） |
-| P12 | **风险可被预算** | **只能靠事后统计认证** | 无法人工兜底时不确定项也必须有动作；朴素阈值选择在**约一半**有定义测试风险的设定下超出目标风险，而 Learn-Then-Test 只有 **7.8%** 超出（[2610.19811](https://arxiv.org/abs/2610.19811)）。"依赖一个类概率接口对部署决策是不够的" |
+| P1 | **The output is necessarily within the option set declared by the caller**; a format error is impossible | **Structural guarantee** | No counter-example. This is the only property that "holds by construction" ([2609.23886](https://arxiv.org/abs/2609.23886)). But it guarantees only the **type**, not the **semantics**: swapping the no/yes names of a rubric can push Jev's AUC from .815 to .581 with **zero type errors** ([2609.32160](https://arxiv.org/abs/2609.32160) relaying T3) |
+| P2 | **One forward pass answers all questions in a request**; extra questions are nearly free (**this is a property of the Jev architecture; the fixed order of §2.2.1 does not have it**, caching moves to the rule axis) | **Structural guarantee** (shared prefix + isolated branches, §1.1.4) | The latency advantage can be erased by caching: one paper's latency advantage disappears once caching is added, and two sister papers report **opposite cost directions** on different workloads; the item "if you report a latency advantage, report both with and without caching" is complied with by only **3** of 20 applicable papers ([2609.32160](https://arxiv.org/abs/2609.32160)) |
+| P3 | **The probabilities are calibrated**; downstream can set thresholds directly | **Varies with workload** | The host model follows the written policy but is **sensitive to wording and systematically under-confident**; under asymmetric costs, **using its probabilities can be worse than taking its top-1 directly** ([2610.11392](https://arxiv.org/abs/2610.11392)). Decision models "can often point to the most likely outcome, yet substantially overestimate its probability" ([2610.03935](https://arxiv.org/abs/2610.03935)). Another audit found that three frontier models have a lower median calibration error (0.157 vs 0.066) ([2609.24574](https://arxiv.org/abs/2609.24574)) |
+| P4 | **The same judgment gets the same answer under equivalent phrasings** | **Cannot be promised** | Every TDM is biased on **3–8** of 12 bias tests; rewriting the better answer in an emotional tone can push a typical TDM's accuracy from **99% down to 42%**; **all** eight TDMs change their verdict when answer positions are swapped, whereas 2026 LLM judges almost never do; **good calibration does not protect against bias** ([2610.18122](https://arxiv.org/abs/2610.18122)) |
+| P5 | **Low confidence = should escalate** | **Cannot be promised, and it is two quantities** | Confidence conflates two kinds of uncertainty, **human disagreement** and **decision risk**; under asymmetric moderation losses the two call for **opposite escalation signals**, so **no single confidence number can serve both** ([2610.33258](https://arxiv.org/abs/2610.33258)). Also measured: escalating the least confident batch of decisions **does not catch the decisions flipped by attacks** ([2610.12292](https://arxiv.org/abs/2610.12292)) |
+| P6 | **Falls back / abstains when uncertain** | **Cannot be promised; this is the worst cell** | The correct-rejection rate when the correct answer is absent is only **7%** (accuracy 99% when the answer is present), while native boolean checks reach 99% exact match on the same questions; a threshold selected on an independent dev set lifts rejection accuracy from 7% to **79%** ([2609.39496](https://arxiv.org/abs/2609.39496)). Paired fallback-robustness tests find that **correctly identifying the category does not transfer into correctly choosing the fallback option**, even when the correct category is given explicitly; **logically equivalent** phrasings of the fallback rule cause significant divergence ([2610.19856](https://arxiv.org/abs/2610.19856)) |
+| P7 | **"I don't know" can be expressed** | **One value missing from the interface** | In Choice answers P(A) and P(¬A) are presented as summing to 1, while the sum is missing a term P(U)≠0; restoring P(U) raises Choice's median soft accuracy from **0.771 to 0.978**. Even in binary decisions the model "wants to answer a third option: I don't know" ([2609.35342](https://arxiv.org/abs/2609.35342)) |
+| P8 | **Knows what it does not know** | **Cannot be promised** | With no answer-relevant information at all, it gives **0.80** to some salient option; beyond the observed knowledge boundary, confidence exceeds accuracy by **0.21–0.33**, and recalibrating with earlier months **does not close the gap**. **Targeted yes/no questions** are sharper instead: asking "has the outcome settled" gives AUROC 1.00, "is the evidence sufficient" 0.95 (confidence on the same questions only 0.85) ([2610.01006](https://arxiv.org/abs/2610.01006)) |
+| P9 | **Probabilities are mutually consistent** | **Cannot be promised** | On 480 negation pairs, the sum of "the label is X" and "the label is not X" deviates from 1 by **0.064** on average; three single-label probabilities sum to **1.14** on average; the violation is about 5× its rerun noise and concentrates where it is **uncertain** ([2609.33209](https://arxiv.org/abs/2609.33209)) |
+| P10 | **Business staff can configure it directly with text** | **Partly holds; this is the core of D1** | It reads examples and definitions, but **label names override definitions**, deleting the definitions leaves accuracy unchanged, and small models cannot flip label semantics in context (§3.1). In moderation, Jev **benefits from retrieved precedents** (improving precise policy selection and harmful-content discrimination when the answer space is fixed), whereas retrieval for the open-source control Laya often only changes the positive rate without improving discrimination ([2610.07953](https://arxiv.org/abs/2610.07953)) |
+| P11 | **Decisions are auditable** | **Structurally missing** | It generates no text, so "**there is no textual rationale for human inspection**" ([2610.11392](https://arxiv.org/abs/2610.11392)); "rationales and chains of thought do not apply" ([2610.22526](https://arxiv.org/abs/2610.22526)). All existing compensations are outside the model: routing on an editable policy tree ([2610.18326](https://arxiv.org/abs/2610.18326)), node-by-node repair of a Yes/No/Unknown node tree ([2610.13999](https://arxiv.org/abs/2610.13999)), writing judgments into an evidence record ([2609.27535](https://arxiv.org/abs/2609.27535)) |
+| P12 | **Risk can be budgeted** | **Only certifiable by post-hoc statistics** | When no human fallback is possible, uncertain items must still have an action; naive threshold selection exceeds the target risk in **about half** of the settings with a defined test risk, whereas Learn-Then-Test exceeds it in only **7.8%** ([2610.19811](https://arxiv.org/abs/2610.19811)). "Relying on a class-probability interface is insufficient for deployment decisions" |
 
-**读法**：P1–P2 是产品；P3–P12 是**需要逐工作负载重新测量的经验事实**。这张表也是 第 §5.2评测覆盖面的被测对象清单。
+**How to read it**: P1–P2 are the product; P3–P12 are **empirical facts that must be re-measured per workload**. This table is also the list of objects under test for the evaluation coverage in §5.2.
 
-### 5.1.3 业务目标**不是**什么
+### 5.1.3 What the Business Goal Is **Not**
 
-1. **不是替代 LLM**。最准的仍是推理型 LLM，代价约 70 倍（[2610.21244](https://arxiv.org/abs/2610.21244)）；社科标注上中位落后 11.6 macro-F1（[2609.24574](https://arxiv.org/abs/2609.24574)）；印尼地方语上六个商用 LLM 里五个比 Jev 高 4–14 点（[2610.14112](https://arxiv.org/abs/2610.14112)）。
-2. **不是替代"有标注就能训的专用模型"**。"有足够标注时要把任务专用模型（编码器、经典分类器、奖励模型或探针）作为基线"这一项，13 篇适用论文里只有 7 篇合规；已测到的是微调编码器在排序上不显著差于开源 TDM 且 ECE 名义更低、更快（[2609.32160](https://arxiv.org/abs/2609.32160)）。本报告按既定口径只把编码器系当对照。
-3. **不是"准确率持平"就算赢**。持平结论常来自**强模型已触顶**的测试集；"要报告模型间的分差、不要在饱和测试上宣称持平"这一项无法从文本可靠评分（同上 T1）。
-4. **不是省掉阈值工程**。所有有效的部署都把阈值当**独立的、要用分离数据拟合并冻结的对象**（[2609.39496](https://arxiv.org/abs/2609.39496)、[2610.19811](https://arxiv.org/abs/2610.19811)、[2610.14112](https://arxiv.org/abs/2610.14112)、§5.2）。
-5. **不是把判断外包出去就不用管语义**。误设的 rubric 会被规模化，错误会相关，决策权会被阈值与例外路由悄悄改写（[2610.01231](https://arxiv.org/abs/2610.01231)）。
+1. **Not replacing LLMs**. The most accurate are still reasoning LLMs, at about 70× the cost ([2610.21244](https://arxiv.org/abs/2610.21244)); on social-science annotation the median lag is 11.6 macro-F1 ([2609.24574](https://arxiv.org/abs/2609.24574)); on Indonesian regional languages five of six commercial LLMs are 4–14 points above Jev ([2610.14112](https://arxiv.org/abs/2610.14112)).
+2. **Not replacing "task-specific models that can be trained whenever labels exist"**. The item "when enough labels exist, use a task-specific model (encoder, classic classifier, reward model or probe) as a baseline" is complied with by only 7 of 13 applicable papers; what has been measured is that a fine-tuned encoder is not significantly worse than open-source TDMs on ranking, with nominally lower ECE and faster ([2609.32160](https://arxiv.org/abs/2609.32160)). Under its fixed protocol this report treats the encoder family only as a control.
+3. **Not "accuracy on par" counting as a win**. On-par conclusions often come from test sets on which **strong models have already saturated**; the item "report the score gaps between models, do not claim parity on saturated tests" cannot be reliably scored from the text (T1, as above).
+4. **Not skipping threshold engineering**. Every effective deployment treats the threshold as **an independent object to be fitted on separate data and frozen** ([2609.39496](https://arxiv.org/abs/2609.39496), [2610.19811](https://arxiv.org/abs/2610.19811), [2610.14112](https://arxiv.org/abs/2610.14112), §5.2).
+5. **Not "once judgments are outsourced, semantics no longer need attention"**. Mis-specified rubrics get scaled up, errors become correlated, and decision rights get quietly rewritten by thresholds and exception routing ([2610.01231](https://arxiv.org/abs/2610.01231)).
 
-### 5.1.4 如何支撑 System1+System2：五个不同的位置
+### 5.1.4 How It Supports System1+System2: Five Different Positions
 
-"快思考 + 慢思考"在工程上不是一种结构，而是**五种**。它们对模型的要求、失败模式与现有证据强度都不同。
+"Fast thinking + slow thinking" is not one structure in engineering terms but **five**. They differ in what they require of the model, in their failure modes, and in the strength of the existing evidence.
 
-| 位置 | S1 在做什么 | 最强证据 | 要求 S1 的哪条属性 |
+| Position | What S1 does | Strongest evidence | Which S1 property it requires |
 | --- | --- | --- | --- |
-| **A 入口闸 / 级联** | 在慢模型之前判断"这件事要不要慢下来" | 等成本下**置信度级联胜过任何重问同一模型的方案**，而**策展菜单胜过放大模型**：0.8B 在策展过的 5 候选菜单上 95.4%，4B 在 150 标签全菜单上 80.0%（[2610.07716](https://arxiv.org/abs/2610.07716)）；路由给 LLM 可在追平该 LLM 的同时省 **24–77%** API 成本（[2610.14112](https://arxiv.org/abs/2610.14112)） | P3 校准、P5 置信可用于路由 → **两条都不可直接承诺** |
-| **B 过程监控 / 介入** | 在慢模型**运行中**持续监控并在必要时接管 | SOMA：场景层用自然语言写目标与预定动作，觉察层让 S1 判断该行为是否出现，控制层累积判断先提醒、持续出现才接管。共享一个 S1 与一个控制器、**无需训练**，治两种失败：过度思考下推理 token 减少最多 **36%** 且平均准确率提升；不可答问题上弃权从 **70.5% 升到 87.2%**（[2610.26793](https://arxiv.org/abs/2610.26793)） | P10 文字配置、P3 校准；**不要求** P6 兜底（控制器在外面累积） |
-| **C 证据面 / 记忆面** | 把慢模型需要的"多而小的判断"全部承包 | Mnemon 把记忆工作分成"大量独立是/否判断"（S1，每秒几十个）与"少量慢工作"（S2 写查询、命名需求、组织答案）：LoCoMo **91.7%**（14 个系统中最高）、LongMemEval-S 83.8%，每题上下文不到 4k token，LoCoMo 上有效成本指数最低；换推理模型作答到 92.2% / 94.4%；历史从 100K 到 10M token，每题成本只涨 **1.11 倍**（[2609.36059](https://arxiv.org/abs/2609.36059)）。Jev-Mem 把 S1 当控制面（记忆分型、查询路由、检索预算分配、图遍历、候选打分、自适应停止）：LoCoMo 评审分 0.777（相对最强基线 +11.0%），构建时间 158 s（**6.6×**），平均查询延迟 0.93 s（**−36.7%**）（[2609.23986](https://arxiv.org/abs/2609.23986)）。JevGPT 在自主研究里 S2 定证据目标、S1 定位支持与评估相关性，并行独立判断源（[2610.18272](https://arxiv.org/abs/2610.18272)） | P1 类型、P2 批量近免费；对单条判断的准确率要求低（错一条不致命） |
-| **D 慢模型输出的读出器** | 读**别人**的（可能被截断的）推理链并提交决策 | 七个推理器 × 五个选择题基准（35 对）：在 500–16,000 token 预算下 Jev 的平均准确率**高于强制作答**（含推理与作答的估计成本）；1,500 token 预算上整体 **+4.1 pp**、被截断题 **+8.6 pp**，17 对在 Holm 校正 bootstrap 下显著；在训练折上选出的策略在保留折省 **71.3%** 的全程估计成本而只损失 0.58 pp（[2610.25768](https://arxiv.org/abs/2610.25768)） | P1、P3；这是最被低估的一格 |
-| **E 闭环执行者 / RL 组件** | 自己在环境里连续做决策 | **最弱**。System1-Arena 的 138 个闭环环境里，大型开源 LLM 成功率最高（至多 32.9%），**小型 System-1 模型很少成功**（[2610.21244](https://arxiv.org/abs/2610.21244)）；Doom 闭环 33 局三种子下**没有任何变体走到出口**（[2610.09683](https://arxiv.org/abs/2610.09683)）；孤立问题最准的决策模型只解出 69.5% 的 Agent 任务（§5.2）。唯一稳的子形态是**冻结模型当 RL 训练的部件**：参考策略、探索评审、回放评分三个位置上，九个 MiniGrid 任务与三个 Atari 游戏上胜过标准 RL 学习器（含学习器单独毫无进展处），而模型本身不被训练；同文确立 Jev 能满足 RL 各对象对答案的要求，**除了价值函数的 cardinal 用法**（[2610.11692](https://arxiv.org/abs/2610.11692)） | 要求 P5+P6+P9 同时成立 → **三条都不成立**，所以这一格失败是可预期的 |
+| **A Entry gate / cascade** | Decides "does this need to slow down" before the slow model | At equal cost, **a confidence cascade beats any scheme that re-asks the same model**, and **a curated menu beats scaling up the model**: 0.8B at 95.4% on a curated 5-candidate menu, 4B at 80.0% on the full 150-label menu ([2610.07716](https://arxiv.org/abs/2610.07716)); routing to an LLM can match that LLM while saving **24–77%** of API cost ([2610.14112](https://arxiv.org/abs/2610.14112)) | P3 calibration, P5 confidence usable for routing → **neither can be directly promised** |
+| **B Process monitoring / intervention** | Continuously monitors the slow model **while it runs** and takes over when necessary | SOMA: the scenario layer writes goals and planned actions in natural language, the awareness layer has S1 judge whether the behavior has occurred, and the control layer accumulates judgments, warning first and taking over only if the behavior persists. One shared S1 and one controller, **no training needed**, curing two failures: under over-thinking, reasoning tokens drop by up to **36%** with mean accuracy up; on unanswerable questions abstention rises from **70.5% to 87.2%** ([2610.26793](https://arxiv.org/abs/2610.26793)) | P10 text configuration, P3 calibration; P6 fallback **not required** (the controller accumulates outside) |
+| **C Evidence plane / memory plane** | Takes over all the "many small judgments" the slow model needs | Mnemon splits memory work into "many independent yes/no judgments" (S1, dozens per second) and "a little slow work" (S2 writes queries, names needs, organizes answers): LoCoMo **91.7%** (highest of 14 systems), LongMemEval-S 83.8%, under 4k tokens of context per question, lowest effective cost index on LoCoMo; with a reasoning model answering, 92.2% / 94.4%; from 100K to 10M tokens of history, per-question cost rises only **1.11×** ([2609.36059](https://arxiv.org/abs/2609.36059)). Jev-Mem uses S1 as the control plane (memory typing, query routing, retrieval-budget allocation, graph traversal, candidate scoring, adaptive stopping): LoCoMo judge score 0.777 (+11.0% over the strongest baseline), build time 158 s (**6.6×**), mean query latency 0.93 s (**−36.7%**) ([2609.23986](https://arxiv.org/abs/2609.23986)). In autonomous research, JevGPT has S2 set the evidence goals while S1 locates support and assesses relevance, judging sources independently in parallel ([2610.18272](https://arxiv.org/abs/2610.18272)) | P1 type, P2 batch nearly free; low accuracy requirement per single judgment (one wrong is not fatal) |
+| **D Readout of slow-model output** | Reads **someone else's** (possibly truncated) reasoning chain and commits a decision | Seven reasoners × five multiple-choice benchmarks (35 pairs): under 500–16,000 token budgets, Jev's mean accuracy is **above forced answering** (with estimated cost including reasoning and answering); at a 1,500-token budget overall **+4.1 pp**, truncated questions **+8.6 pp**, 17 pairs significant under Holm-corrected bootstrap; a policy selected on the training fold saves **71.3%** of estimated end-to-end cost on the held-out fold while losing only 0.58 pp ([2610.25768](https://arxiv.org/abs/2610.25768)) | P1, P3; this is the most underrated cell |
+| **E Closed-loop executor / RL component** | Makes consecutive decisions in the environment by itself | **Weakest**. In the 138 closed-loop environments of System1-Arena, large open-source LLMs have the highest success rate (at most 32.9%), and **small System-1 models rarely succeed** ([2610.21244](https://arxiv.org/abs/2610.21244)); in 33 closed-loop Doom episodes over three seeds, **no variant reached the exit** ([2610.09683](https://arxiv.org/abs/2610.09683)); the decision model most accurate on isolated questions solves only 69.5% of Agent tasks (§5.2). The only stable sub-form is **a frozen model as a component of RL training**: in three positions (reference policy, exploration judge, replay scoring) it beats standard RL learners on nine MiniGrid tasks and three Atari games (including where the learner alone makes no progress at all), with the model itself untrained; the same paper establishes that Jev can satisfy what each RL object requires of an answer, **except the cardinal use of the value function** ([2610.11692](https://arxiv.org/abs/2610.11692)) | Requires P5+P6+P9 to hold simultaneously → **none of the three holds**, so failure in this cell is to be expected |
 
-#### 5.1.4.1 这五格里有一条贯穿的工程事实
+#### 5.1.4.1 One Engineering Fact Runs Through These Five Cells
 
-**S1 的收益随"它替代的判断次数"线性增长，而风险随"它单独决定的后果严重度"线性增长。** A/B/C/D 四格都把"后果"留在 S2 或代码里：级联把不确定项交回去、监控器只提醒、记忆面错一条判断不致命、读出器前面还有一整条推理链。E 格把后果交给了 S1 自己，于是 P5/P6/P9 的全部缺陷一次性暴露。
+**S1's benefit grows linearly with "the number of judgments it replaces", while its risk grows linearly with "the severity of the consequences it decides alone".** Cells A/B/C/D all leave the "consequence" with S2 or with code: the cascade hands uncertain items back, the monitor only warns, one wrong judgment on the memory plane is not fatal, and the readout still has a whole reasoning chain in front of it. Cell E hands the consequence to S1 itself, so all the defects of P5/P6/P9 are exposed at once.
 
-这也解释了 §5.1.1.3 的饱和现象为什么重要：[2610.24871](https://arxiv.org/abs/2610.24871) 的 BLM 是这条逻辑的极限——**当决策重复到可以解一次就复用时，连模型都不需要在线**（不带模型的控制器解出 79%）。换句话说，Jev 类模型占据的是"决策重复度足够高到值得便宜化、但还没高到可以离线求解"的那一段。
+This also explains why the saturation phenomenon of §5.1.1.3 matters: the BLM of [2610.24871](https://arxiv.org/abs/2610.24871) is the limit of this logic. **When decisions repeat enough to be solved once and reused, not even the model needs to be online** (a model-free controller solves 79%). In other words, Jev-class models occupy the segment where "decision repetition is high enough to be worth making cheap, but not yet high enough to be solved offline".
 
-#### 5.1.4.2 还有一格：把"决策"当数据库算子或图算子
+#### 5.1.4.2 One More Cell: Treating "Decisions" as Database Operators or Graph Operators
 
-这不是"Agent"，但业务体量可能最大：语义数据库把类型化决策当语义过滤/连接/分类/排序算子（[2610.02046](https://arxiv.org/abs/2610.02046)）；NIOCIS 把执行日志折成"环路折叠动作图"，每个状态只问一个类型化问题（[2610.25985](https://arxiv.org/abs/2610.25985)）；Jev-Guard 在可编辑策略树上先路由再分类（[2610.18326](https://arxiv.org/abs/2610.18326)）。这一格的共同点是**选项集由外部结构（schema / 图 / 策略树）给定**，于是 §5.1.4 表里对 P10 的依赖被转移给了工程结构。
+This is not an "Agent", but it may be the largest in business volume: semantic databases treat typed decisions as semantic filter/join/classify/rank operators ([2610.02046](https://arxiv.org/abs/2610.02046)); NIOCIS folds execution logs into a "loop-folded action graph" and asks one typed question per state ([2610.25985](https://arxiv.org/abs/2610.25985)); Jev-Guard routes first and classifies second on an editable policy tree ([2610.18326](https://arxiv.org/abs/2610.18326)). What this cell has in common is that **the option set is given by an external structure (schema / graph / policy tree)**, so the dependence on P10 in the §5.1.4 table is transferred to the engineering structure.
 
-#### 5.1.4.3 业务天花板可能不在模型
+#### 5.1.4.3 The Business Ceiling May Not Be in the Model
 
-NIOCIS 给出了本报告里最诚实的一个数字：类型化编码器在 3,875 条保留决策上匹配日志下一跳的比例是 **32.2%**（在声明选项内 34.9%）；而跨轨迹留一法把"已发布状态"的天花板定在 **25.6%–44.9%**，随状态键变细而变化——也就是说，**重复出现的状态彼此不一致的次数多于一致的次数**（[2610.25985](https://arxiv.org/abs/2610.25985)）。消融把增益归给**按节点限制候选集**（比扁平目录 +3.5 点）而不是图遍历（区间内为零）。
+NIOCIS gives the most honest number in this report: a typed encoder matches the logged next hop on 3,875 held-out decisions **32.2%** of the time (34.9% within the declared options); and cross-trajectory leave-one-out puts the ceiling of "already-published states" at **25.6%–44.9%**, varying as the state key gets finer. That is, **recurring states disagree with each other more often than they agree** ([2610.25985](https://arxiv.org/abs/2610.25985)). The ablation attributes the gain to **restricting the candidate set per node** (+3.5 points over a flat catalog) rather than to graph traversal (zero within the interval).
 
-**推论**：在真实业务里，"决策模型的准确率上限"常常是**被记录的流程自身的一致性上限**。这一条对 第 §5.2的意义是：**只用公开基准评测，测不到这个天花板**。
+**Corollary**: in real business, "the accuracy ceiling of the decision model" is often **the consistency ceiling of the recorded process itself**. What this means for §5.2 is: **evaluating only on public benchmarks cannot measure this ceiling**.
 
-### 5.1.5 本节小结与盲区
+### 5.1.5 Section Summary and Blind Spots
 
-**出发命题经检验后的版本**：Jev 类模型**不**把不幂等变成幂等。它把非幂等的表面从"自由文本输出的任何位置"收缩到"若干个类型化字段的取值"，由此让这个表面可数、可定界、可定价（裁决翻转概率的并集界不依赖校准，依赖"unknown 即拒绝"的构造）；代价是失败从显性变成隐性，并在"需要写出中间步骤"的那类判断上直接丢失能力。最精确的动词来自文献本身：编译**不消除**非确定性，它把非确定性**定位**。六条反证见 §2.1.3，其中三条推翻的是命题的前提而非结论：宿主 Jev 相同重复调用下 0.78%–1.33% 的决策改变；格式保证属于语法约束解码的既有谱系且硬 schema 把答案准确率从 19.7% 压到 11.0%；查询计划的选择会改变结果，而排队会让所有延迟保证失效。
+**The starting proposition, as it stands after testing**: Jev-class models do **not** turn non-idempotence into idempotence. They shrink the surface of non-idempotence from "any position in a free-text output" to "the values of a few typed fields", which makes that surface countable, boundable and priceable (the union bound on the probability of a verdict flip does not depend on calibration; it depends on the "unknown means reject" construction); the price is that failures turn from explicit into silent, and capability is lost outright on the class of judgments that "need the intermediate steps written out". The most precise verb comes from the literature itself: compilation **does not eliminate** non-determinism, it **localizes** it. The six pieces of counter-evidence are in §2.1.3; three of them overturn the proposition's premise rather than its conclusion: the host Jev changes 0.78%–1.33% of decisions under identical repeated calls; the format guarantee belongs to the existing lineage of grammar-constrained decoding, and a hard schema pushes answer accuracy from 19.7% down to 11.0%; the choice of query plan changes the result, and queueing voids every latency guarantee.
 
-**这个命题自带一个梯度**：确定性往 harness 里推到底，模型就变成冗余（把策略字段解析成类型化值之后，一条确定性规则在六个策略上全对；不带模型的控制器在 τ²-bench telecom 上解出 79%；企业字段预测里 LLM 只在离线规则发现阶段使用，推理期是透明键查找）。所以可用区间的上界是"业务字段的可结构化程度"，下界是"决策的重复度"。
+**This proposition carries its own gradient**: push determinism all the way into the harness and the model becomes redundant (once policy fields are parsed into typed values, one deterministic rule is correct on all six policies; a model-free controller solves 79% on τ²-bench telecom; in enterprise field prediction the LLM is used only in the offline rule-discovery stage, and inference is a transparent key lookup). So the upper bound of the usable range is "how structurable the business fields are" and the lower bound is "the repetition of the decisions".
 
-**三层幂等表（本报告自己的构造）**：L1 格式由接口保证但不是 Jev 独有；L3 执行只在固定计划固定负载下成立；**L2 语义是最弱的一层**——能写进注意力掩码的等价可解（翻转率 8.30%→0.11%、Prism-1 按构造零翻转），写不进掩码的全部失守，而菜单构成造成的系统性偏移已被预先登记的 299,463 次调用测为自身噪声的 **1.2–3 倍**，"指标"因此只能被读作相对于那张选项表的相对量。
+**The three-layer idempotence table (the report's own construct)**: L1 format is guaranteed by the interface but is not unique to Jev; L3 execution holds only under a fixed plan and a fixed load; **L2 semantic is the weakest layer**: equivalences that can be written into the attention mask are solvable (flip rate 8.30%→0.11%, Prism-1 zero flips by construction), everything that cannot be written into the mask falls, and the systematic shift caused by menu composition has been measured over 299,463 pre-registered calls at **1.2–3×** its own noise, so a "metric" can only be read as a quantity relative to that option table.
 
-**业务目标**：把一次判断的边际成本压到可以写在每一个程序分支上，从而把"评估/判断"从稀缺资源变成可规模消费的资源；在决策重复度高的地方收益最大。
+**Business goal**: push the marginal cost of one judgment down to where it can be written on every program branch, thereby turning "evaluation/judgment" from a scarce resource into a resource that can be consumed at scale; the benefit is largest where decision repetition is high.
 
-**属性**：只有"输出必在选项集内"与"一次前向答完整个请求"是结构性保证；校准、等价提法不变性、兜底、自知、概率自洽五项都有独立审计测出的反例，必须逐工作负载重测并冻结阈值。
+**Properties**: only "the output is necessarily within the option set" and "one forward pass answers the whole request" are structural guarantees; the five items calibration, invariance under equivalent phrasing, fallback, self-knowledge and probabilistic self-consistency all have counter-examples measured by independent audits and must be re-measured per workload with frozen thresholds.
 
-**支撑 System1+System2 的方式**：入口闸、过程监控、证据/记忆面、慢模型输出读出器、闭环执行者——前四格有正面证据，第五格普遍失败，而失败可由 P5/P6/P9 的缺陷预测。
+**How it supports System1+System2**: entry gate, process monitoring, evidence/memory plane, readout of slow-model output, closed-loop executor. The first four cells have positive evidence; the fifth fails across the board, and the failure is predictable from the defects of P5/P6/P9.
 
-**盲区**（都未被任何论文回答）：
+**Blind spots** (none answered by any paper):
 
-1. **没有人测"成本-正确结果"这一端到端指标**。检查表里"报告延迟时要同时报带缓存与不带缓存，并说明服务位置、并发与每正确结果的实测成本"在 20 篇适用论文中只有 3 篇合规（[2609.32160](https://arxiv.org/abs/2609.32160)）。省了 44 倍成本但掉 11.6 个 F1 点，到底是赚还是亏，没有任何论文给出可计算的口径。
-2. **没有人测"把判断变便宜之后，判断的总量变成了多少"**。Jevons 假说被形式化为**条件性**命题，但[2610.01231](https://arxiv.org/abs/2610.01231) 自述是"把它当技术性挑衅而非既成的经验结果"，没有任何实测。
-3. **"决策权被阈值与例外路由改写"没有任何量化工作**。这是最直接的业务风险，却只有一篇概念论文。
-4. **P5 的"两个不确定性"只在内容审核一个域被测过**。[2610.33258](https://arxiv.org/abs/2610.33258) 明确说分解成并行子问题读分歧这个补救**是特异的**：它只帮最弱、对分歧盲视的模型，而且只在分解与分歧来源对齐时有效，专用毒性模型与最强 LLM 都不需要它，且效果对分布敏感。在其他业务域上这条是否成立，为零命中。
-5. **业务流程自身的一致性上限只有一篇论文测过**（[2610.25985](https://arxiv.org/abs/2610.25985)），且是单一域（安全运营）。
-6. **没有任何工作把"业务人员直接用提示词配置"当成一个可评测的业务属性**（P10）。D1 的全部证据都是研究者写的提示词，不是业务人员写的（§3.1）。
-7. **L2 语义幂等没有任何人把它当成一个独立的被测量**。现有工作或者测单一干预下的翻转率（顺序、措辞、语气、标签名各一篇），或者用结构把某一种等价写进掩码；**没有任何论文定义"业务等价"这个等价类并测量指标在该等价类上的稳定性**。这是本节命题里唯一一处既无结构性保证、又无评测口径的地方（§2.1.4、§7.3 的 P4）。
-8. **harness 侧的幂等性被假定而非被测量**。决策权实际落在 harness，但 harness 自身的可靠性只有一篇把它分成七个部件（上下文、执行、治理、生命周期、可观测性、工具、校验）来测（[2610.32285](https://arxiv.org/abs/2610.32285)）；"同一指标 → 同一动作"在真实 harness 上是否成立，没有针对 Jev 类模型的测量。
+1. **Nobody measures the end-to-end metric "cost per correct result"**. The checklist item "when reporting latency, report both with and without caching, and state the serving location, the concurrency and the measured cost per correct result" is complied with by only 3 of 20 applicable papers ([2609.32160](https://arxiv.org/abs/2609.32160)). Whether saving 44× in cost while dropping 11.6 F1 points is a gain or a loss, no paper gives a computable protocol.
+2. **Nobody measures "how large the total volume of judgments becomes once judgments are made cheap"**. The Jevons hypothesis is formalized as a **conditional** proposition, but [2610.01231](https://arxiv.org/abs/2610.01231) describes itself as "treating it as a technical provocation rather than an established empirical result", with no measurement at all.
+3. **"Decision rights rewritten by thresholds and exception routing" has no quantitative work at all**. This is the most direct business risk, yet there is only one conceptual paper.
+4. **P5's "two uncertainties" have been measured in only one domain, content moderation**. [2610.33258](https://arxiv.org/abs/2610.33258) states explicitly that the remedy of decomposing into parallel sub-questions and reading the disagreement **is idiosyncratic**: it helps only the weakest, disagreement-blind models, works only when the decomposition aligns with the source of disagreement, is needed by neither the dedicated toxicity model nor the strongest LLM, and its effect is distribution-sensitive. Whether this holds in other business domains: zero hits.
+5. **The consistency ceiling of the business process itself has been measured by only one paper** ([2610.25985](https://arxiv.org/abs/2610.25985)), and in a single domain (security operations).
+6. **No work treats "business staff configuring it directly with prompts" as an evaluable business property** (P10). All the evidence for D1 comes from prompts written by researchers, not by business staff (§3.1).
+7. **Nobody treats L2 semantic idempotence as an independent measurand**. Existing work either measures the flip rate under a single intervention (order, wording, tone, label name, one paper each) or uses structure to write one kind of equivalence into the mask; **no paper defines the equivalence class "business equivalence" and measures the stability of the metric over that class**. This is the only place in this section's proposition that has neither a structural guarantee nor an evaluation protocol (§2.1.4, P4 of §7.3).
+8. **Idempotence on the harness side is assumed, not measured**. Decision rights actually land in the harness, but the harness's own reliability is measured by only one paper, which splits it into seven components (context, execution, governance, lifecycle, observability, tools, validation) ([2610.32285](https://arxiv.org/abs/2610.32285)); whether "same metric → same action" holds on a real harness has not been measured for Jev-class models.
+## 5.2 D5 Agent / knowledge systems: fast/slow cooperation, memory, routing and guards
 
-## 5.2 D5 Agent / 知识系统：快慢协同、记忆、路由与守卫
+> Protocol: can a Jev-class model turn the Agent loop from "slow thinking + execution feedback" into "fast/slow thinking cooperation". This section first gives the counter-evidence (faster decisions do not equal better Agents), then goes through, by role, fast/slow switching, memory and compression, routing and guards, multi-Agent, domain Agents and continual learning, and finally gives the matrix and the blind spots.
 
-> 口径：Jev 类模型能否把 Agent 循环从"慢思考 + 执行反馈"变成"快/慢思考协同"。本节先给反方证据（更快的决策不等于更好的 Agent），再按角色梳理快慢切换、记忆与压缩、路由与守卫、多 Agent、领域 Agent、持续学习，最后给矩阵与盲区。
+### 5.2.1 Counter-evidence: faster decisions ≠ better Agents
 
-### 5.2.1 反方证据：更快的决策 ≠ 更好的 Agent
-
-| 研究 | 设置 | 结论 | 出处 |
+| Study | Setting | Conclusion | Source |
 | --- | --- | --- | --- |
-| **When Faster Decisions Do Not Make Better Agents** | 5 个 Agent、ALFWorld + AndroidWorld、4,500 次执行 | Jev 显著降低决策成本与延迟；任务成功在 ALFWorld 接近基线，在两个移动 Agent 上明显下降；**辅助推理与额外交互吞掉决策节省**；恢复失败与过早完成限制交付；一个 Agent 每次尝试花费下降但**每个成功结果的平均成本上升** | [2610.13092](https://arxiv.org/abs/2610.13092) |
-| **Good Judgment, Bad Advice** | Claude Sonnet 5.5 终端 Agent，Terminal-Bench 2.1，21 任务 315 次，预注册，含安慰剂臂 | Jev 控制器**提高每次尝试成本 19%**（1.19，CI 1.02–1.36）而通过率相同（73.0% = 73.0%）；比小 LLM 控制器便宜（0.81）但比安慰剂贵 22%；离线排序最好（AUROC 0.78 对规则 0.62、小 LLM 0.60）但校准差（0.50 对 87%），于是让 Agent 验证已经正确的工作；**没有控制器选择过放弃**；"有信息的决策信号没有变成有用的干预" | [2610.24649](https://arxiv.org/abs/2610.24649) |
-| **JevAgentHarness** | AgentDecisionBench 从孤立问题到控制运行中的 Agent | 孤立问题上最准的决策模型只解决 69.5% 的 Agent 任务；**不拟合置信阈值直接委托工具选择，成功率 −19.0**；现有决策模型从未见过 Agent 自己犯错后的状态；在 Agent 自己轨迹上训练的 AgentDecision-4B：域外 91.5% 对 Jev 82.0%；域内便宜 81.1–89.0%、快 2.5 倍、损失 <3 点 | [2610.21412](https://arxiv.org/abs/2610.21412) |
-| **System1-Arena** | 92k 题 105 任务 + 138 闭环环境，30 模型 | 最大的 System-1 模型在非 Agent 准确率上匹敌快速闭源 LLM，校准更好、延迟 1/4；Decision-2.0-Vega-27B、Jev、Qwen3.5-9B 单步都 67.8%；闭环中大开源 LLM 最多 32.9%（Gemma-4-31B），**四个小 System-1 模型最多 3.1%** | [2610.21244](https://arxiv.org/abs/2610.21244) |
-| **Fast Models, Slow Evidence** | 11 个 Agent 决策点、7,283 + 6,640 例、配对、自审计 | Jev 在 9/11 决策点显著更准（+10.8 到 +46.0 pp）；**零样本模型路由两者都不超随机，RAG 相关性门控持平**；作者审计自己的流水线：预筛成本漏算（报 23.9% 节省、实际 4.3%）、把门准确率当端到端质量（58% 对 98%）、样本内阈值（5% 目标、保留集 17% 漏） | [2610.02267](https://arxiv.org/abs/2610.02267) |
-| **Microtask Eligibility Gap** | 4 个 harness 微任务（审批命令、写记忆、选工具、排序历史），Qwen3 0.6–8B，CI 门槛 | **0/16 配置合格**、0/112 跨改写；Llama 12/12 不合格；量化不改变结论；"把 SLM 放在达标的基线后面，只在基线失败处用" | [2610.00025](https://arxiv.org/abs/2610.00025) |
-| **Measure Before You Train** | 真实邮件 Agent 739 封 | ~200 标签的逻辑回归在每个字段都最准（0.79/0.74/0.83/0.90）；发件人关系属于联系人图而非提示；**组合成动作后最准的系统最常忽略要处理的邮件（18% 对 4%）** | [2610.32955](https://arxiv.org/abs/2610.32955) |
-| **JEVal** | 11,257 例 36 数据集 10 领域，25 配置，含 τ-bench 与社会模拟 | 决策模型在"证据可直接判定"时最有竞争力，需要专业知识或忠实不确定性时变弱（常识别出最可能结果但**高估其概率**）；**τ-bench 上更快的局部决策降低中位回合时间但降低任务成功**，错误沿长轨迹累积 | [2610.03935](https://arxiv.org/abs/2610.03935) |
-| **Code Owns the Simulation** | 反思测试、矩阵博弈、ALFWorld、机器人 | 能从输入描述判断的（评估）Jev 做得好（CRT 99%）；依赖预测输入之外的（模拟）做不了 | [2610.01834](https://arxiv.org/abs/2610.01834) |
-| **What Can't Jev Decide** | 单因素基准 | 单遍模型不能做"LLM 只有写出中间步骤才能做"的决策；给陈旧摘要就跟随它 | [2610.24929](https://arxiv.org/abs/2610.24929) |
+| **When Faster Decisions Do Not Make Better Agents** | 5 Agents, ALFWorld + AndroidWorld, 4,500 runs | Jev significantly lowers decision cost and latency; task success is close to baseline on ALFWorld and drops clearly on the two mobile Agents; **auxiliary reasoning and extra interactions eat the decision savings**; recovery failures and premature completion limit delivery; for one Agent the cost per attempt falls but **the average cost per successful outcome rises** | [2610.13092](https://arxiv.org/abs/2610.13092) |
+| **Good Judgment, Bad Advice** | Claude Sonnet 5.5 terminal Agent, Terminal-Bench 2.1, 21 tasks, 315 runs, pre-registered, with a placebo arm | The Jev controller **raises cost per attempt by 19%** (1.19, CI 1.02–1.36) with the same pass rate (73.0% = 73.0%); cheaper than a small-LLM controller (0.81) but 22% more expensive than placebo; best offline ranking (AUROC 0.78 vs 0.62 for rules, 0.60 for the small LLM) but poor calibration (0.50 vs 87%), so it makes the Agent verify work that is already correct; **no controller ever chose to abandon**; "an informative decision signal did not become a useful intervention" | [2610.24649](https://arxiv.org/abs/2610.24649) |
+| **JevAgentHarness** | AgentDecisionBench, from isolated questions to controlling a running Agent | The decision model most accurate on isolated questions solves only 69.5% of Agent tasks; **delegating tool selection directly without fitting a confidence threshold: success rate −19.0**; existing decision models have never seen the state after the Agent's own mistakes; AgentDecision-4B trained on the Agent's own trajectories: out-of-domain 91.5% vs Jev 82.0%; in-domain 81.1–89.0% cheaper, 2.5× faster, loss <3 points | [2610.21412](https://arxiv.org/abs/2610.21412) |
+| **System1-Arena** | 92k questions, 105 tasks + 138 closed-loop environments, 30 models | The largest System-1 model matches fast closed-source LLMs on non-Agent accuracy, with better calibration and 1/4 the latency; Decision-2.0-Vega-27B, Jev and Qwen3.5-9B all at 67.8% single-step; in closed loop, large open-source LLMs reach at most 32.9% (Gemma-4-31B), **the four small System-1 models at most 3.1%** | [2610.21244](https://arxiv.org/abs/2610.21244) |
+| **Fast Models, Slow Evidence** | 11 Agent decision points, 7,283 + 6,640 cases, paired, self-audited | Jev is significantly more accurate at 9/11 decision points (+10.8 to +46.0 pp); **zero-shot model routing does not beat random in either case, RAG relevance gating is flat**; the authors audit their own pipeline: pre-screening cost left out (23.9% savings reported, 4.3% actual), gate accuracy taken as end-to-end quality (58% vs 98%), in-sample threshold (5% target, 17% missed on the held-out set) | [2610.02267](https://arxiv.org/abs/2610.02267) |
+| **Microtask Eligibility Gap** | 4 harness microtasks (approving commands, writing memory, choosing tools, ranking history), Qwen3 0.6–8B, CI threshold | **0/16 configurations eligible**, 0/112 across rewrites; Llama 12/12 ineligible; quantization does not change the conclusion; "put the SLM behind a baseline that meets the bar, use it only where the baseline fails" | [2610.00025](https://arxiv.org/abs/2610.00025) |
+| **Measure Before You Train** | Real email Agent, 739 emails | Logistic regression on ~200 labels is the most accurate on every field (0.79/0.74/0.83/0.90); sender relationship belongs to the contact graph, not the prompt; **once composed into actions, the most accurate system most often ignores emails that need handling (18% vs 4%)** | [2610.32955](https://arxiv.org/abs/2610.32955) |
+| **JEVal** | 11,257 cases, 36 datasets, 10 domains, 25 configurations, including τ-bench and social simulation | Decision models are most competitive when "the evidence can be judged directly", weaker when expertise or faithful uncertainty is needed (they often identify the most likely outcome but **overestimate its probability**); **on τ-bench, faster local decisions lower median turn time but lower task success**, errors accumulate along long trajectories | [2610.03935](https://arxiv.org/abs/2610.03935) |
+| **Code Owns the Simulation** | Reflection tests, matrix games, ALFWorld, robotics | What can be judged from the input description (evaluation) Jev does well (CRT 99%); what depends on predicting beyond the input (simulation) it cannot do | [2610.01834](https://arxiv.org/abs/2610.01834) |
+| **What Can't Jev Decide** | Single-factor benchmark | A single-pass model cannot make decisions that "an LLM can only make by writing out intermediate steps"; given a stale summary, it follows it | [2610.24929](https://arxiv.org/abs/2610.24929) |
 
-**结论**：把 Jev 放进 Agent 循环的收益取决于三件事——(a) 决策点是否真的是"读出"而非"推导"；(b) 置信阈值是否在 Agent 自己的轨迹上拟合；(c) 节省是否被额外交互吞掉。"快/慢协同"的论文越来越多地把这三件事当作设计约束而不是假设。
+**Conclusion**: the benefit of putting Jev into the Agent loop depends on three things: (a) whether the decision point is really a "readout" rather than a "derivation"; (b) whether the confidence threshold is fitted on the Agent's own trajectories; (c) whether the savings are eaten by extra interactions. The "fast/slow cooperation" papers increasingly treat these three as design constraints rather than assumptions.
 
-### 5.2.2 快慢切换：谁来决定什么时候慢下来
+### 5.2.2 Fast/slow switching: who decides when to slow down
 
-| 工作 | 切换机制 | 关键结果 | 出处 |
+| Work | Switching mechanism | Key result | Source |
 | --- | --- | --- | --- |
-| **Talker-Reasoner**（上游） | 对话 System 1 + 规划 System 2 两个 Agent | 架构提案 | [2410.08328](https://arxiv.org/abs/2410.08328) |
-| **CogRouter**（上游） | 按步骤在四个认知层级间切换；"合适的认知深度应最大化动作置信" | Qwen2.5-7B 在 ALFWorld/ScienceWorld 82.3%，token −62% | [2602.12662](https://arxiv.org/abs/2602.12662) |
-| **StartLux AutoThink** | top 概率 <0.9 才推理 | 27B AutoThink 86.9 对 Instant 75.4（见 02） | [2610.17309](https://arxiv.org/abs/2610.17309) |
-| **Selective Reasoning** | 冻结 Qwen3.5-4B 上的共享候选读取器：收益门启动推理、自然状态触发读取、熵规则接受并取消生成 | 768 题 70.96%→84.38%；对 512-token 终端读取 +7.29 pp 只多 2.25% 输出；对 1,024-token 流水线时间 −46.30%、准确率 −1.17 | [2610.19644](https://arxiv.org/abs/2610.19644) |
-| **LDM 路由** | 置信路由到推理 | 92% 推理准确率用 27–58% token（见 02） | [2610.15501](https://arxiv.org/abs/2610.15501) |
-| **System Switch** | 快速执行者每步决策，门打开时交给推理 VLM，游戏不停 | 0.15B–9B 零样本模型在错误中选"收集物品"比随机多 1.6–1.8 倍；准确率/校准/敏感性三者独立；延后 30% 最不确定的收益与 AUROC 秩相关 0.87，保留集 +0.13 [0.08, 0.18]，推理贡献约一半；**闭环 33 局无一到达出口**；承诺计划让站着不动的执行者动起来但死得更多 | [2610.09683](https://arxiv.org/abs/2610.09683) |
-| **SOMA** | S1 持续监控 S2 推理：场景层（自然语言目标 + 预定义动作）、意识层（S1 判断行为是否出现）、控制层（先提醒再接管） | 不训练；过度思考上推理 token −36% 且平均准确率提升；不可回答问题上弃权 70.5%→87.2% | [2610.26793](https://arxiv.org/abs/2610.26793) |
-| **Truncated Reasoning** | Jev 读截断的推理轨迹 | 7 推理器 × 5 基准：500–16,000 预算全部优于强制作答；1,500 预算 +4.1 pp（截断题 +8.6）；离线回放 34.5% 成本 −1.13 pp；训练折策略省 71.3% −0.58 pp；Jev 只看问题 68.0% 对 500-token 强制作答 65.5% | [2610.25768](https://arxiv.org/abs/2610.25768) |
-| **SanSi / LEV（System 1.5）** | 循环层数当"思考深度"，不生成 token | SanSi 72.0%（+13.5）；LEV 2.6B 63.2%→76.2%（深度 1→4），按需深度省 15–24%，<50 ms 下比同延迟的稠密模型与级联准 5.4–8.8 点 | [2610.07730](https://arxiv.org/abs/2610.07730)、[2610.20951](https://arxiv.org/abs/2610.20951) |
-| **VoI 慢模块调度** | 把"何时调用慢模块"形式化为校准决策问题，固定比例/预算/历史门都是干预价值的退化情形 | 低成本比下校准收益消失；LIBERO 14 臂：自适应触发按阈值规则分配查询，但语言改写通道无法转化为成功；只有"撤销失败改写"零净负面 | [2610.21160](https://arxiv.org/abs/2610.21160) |
-| **TORSI（实时）** | 慢教师在暂停的游戏中研究失败并写可复用指令给快学生；学生比赛中不调用教师 | RealtimeBench 180 任务：GPT-6.1-sol 暂停时胜 Jev、持续运行时落后；两轮 Jev 13.51→24.19（0–100）；指令对另外三个模型也有效 | [2610.20665](https://arxiv.org/abs/2610.20665) |
-| **CARE（具身）** | 轻量 critic 监控本地执行可靠性，升级后控制权持续直到恢复；共享交接记忆 | 跨具身基准改进 | [2610.30587](https://arxiv.org/abs/2610.30587) |
-| **JEV-as-a-Judge** | 置信接受 / 升级 | 冻结阈值 +0.9 于 GPT-6、41% 费用；风格对抗与无参考散文上失效 | [2609.26550](https://arxiv.org/abs/2609.26550) |
-| **P(Yes) 测试时搜索** | 冻结决策模型对完整提案打"是"的概率，搜索更高者 | 128 逻辑谜题 Qwen3.8-27B 从 2 到 30 全对（15×），每空 27.8%→48.5% | [2610.25474](https://arxiv.org/abs/2610.25474) |
+| **Talker-Reasoner** (upstream) | Two Agents: a conversational System 1 + a planning System 2 | Architecture proposal | [2410.08328](https://arxiv.org/abs/2410.08328) |
+| **CogRouter** (upstream) | Switches among four cognitive levels per step; "the right cognitive depth should maximize action confidence" | Qwen2.5-7B 82.3% on ALFWorld/ScienceWorld, tokens −62% | [2602.12662](https://arxiv.org/abs/2602.12662) |
+| **StartLux AutoThink** | Reasons only when the top probability is <0.9 | 27B AutoThink 86.9 vs Instant 75.4 (see 02) | [2610.17309](https://arxiv.org/abs/2610.17309) |
+| **Selective Reasoning** | A shared candidate reader on a frozen Qwen3.5-4B: a benefit gate starts reasoning, natural states trigger reading, an entropy rule accepts and cancels generation | 768 questions 70.96%→84.38%; vs 512-token terminal reading +7.29 pp with only 2.25% more output; vs the 1,024-token pipeline, time −46.30%, accuracy −1.17 | [2610.19644](https://arxiv.org/abs/2610.19644) |
+| **LDM routing** | Confidence routing to reasoning | 92% of reasoning accuracy with 27–58% of the tokens (see 02) | [2610.15501](https://arxiv.org/abs/2610.15501) |
+| **System Switch** | A fast executor decides every step; when the gate opens it hands over to a reasoning VLM, the game does not pause | 0.15B–9B zero-shot models pick "collect item" under error 1.6–1.8× more often than random; accuracy / calibration / sensitivity are three independent things; the benefit of deferring the 30% most uncertain has rank correlation 0.87 with AUROC, held-out +0.13 [0.08, 0.18], reasoning contributes about half; **in closed loop, none of 33 games reaches the exit**; committed plans make a standing-still executor move but die more often | [2610.09683](https://arxiv.org/abs/2610.09683) |
+| **SOMA** | S1 continuously monitors S2 reasoning: scene layer (natural-language goal + predefined actions), awareness layer (S1 judges whether a behavior appears), control layer (remind first, then take over) | No training; on overthinking, reasoning tokens −36% with average accuracy up; abstention on unanswerable questions 70.5%→87.2% | [2610.26793](https://arxiv.org/abs/2610.26793) |
+| **Truncated Reasoning** | Jev reads truncated reasoning traces | 7 reasoners × 5 benchmarks: every budget from 500 to 16,000 beats forced answering; budget 1,500 +4.1 pp (+8.6 on truncated questions); offline replay at 34.5% of the cost, −1.13 pp; the training-fold policy saves 71.3% at −0.58 pp; Jev on the question alone 68.0% vs 65.5% for 500-token forced answering | [2610.25768](https://arxiv.org/abs/2610.25768) |
+| **SanSi / LEV (System 1.5)** | The number of recurrent layers serves as "thinking depth", no tokens generated | SanSi 72.0% (+13.5); LEV 2.6B 63.2%→76.2% (depth 1→4), on-demand depth saves 15–24%, under 50 ms it is 5.4–8.8 points more accurate than dense models and cascades at the same latency | [2610.07730](https://arxiv.org/abs/2610.07730), [2610.20951](https://arxiv.org/abs/2610.20951) |
+| **VoI slow-module scheduling** | Formalizes "when to call the slow module" as a calibrated decision problem; fixed-ratio / budget / history gates are all degenerate cases of the value of intervention | At low cost ratios the calibration benefit vanishes; LIBERO 14 arms: adaptive triggering allocates queries by the threshold rule, but the language-rewrite channel cannot be converted into success; only "undo failed rewrites" has zero net negative | [2610.21160](https://arxiv.org/abs/2610.21160) |
+| **TORSI (real-time)** | A slow teacher studies failures in the paused game and writes reusable instructions for the fast student; the student does not call the teacher during the match | RealtimeBench 180 tasks: GPT-6.1-sol beats Jev when paused, falls behind when running continuously; two rounds take Jev 13.51→24.19 (0–100); the instructions also work for three other models | [2610.20665](https://arxiv.org/abs/2610.20665) |
+| **CARE (embodied)** | A lightweight critic monitors local execution reliability; after escalation, control persists until recovery; shared hand-off memory | Improvements across embodied benchmarks | [2610.30587](https://arxiv.org/abs/2610.30587) |
+| **JEV-as-a-Judge** | Confident accept / escalate | Frozen threshold +0.9 over GPT-6 at 41% of the cost; fails on style-adversarial and reference-free prose | [2609.26550](https://arxiv.org/abs/2609.26550) |
+| **P(Yes) test-time search** | A frozen decision model scores the probability of "yes" for a complete proposal, search for a higher one | 128 logic puzzles, Qwen3.8-27B from 2 to 30 fully correct (15×), per blank 27.8%→48.5% | [2610.25474](https://arxiv.org/abs/2610.25474) |
 
-**模式归纳**：切换信号有四种来源——(1) 答案置信（StartLux、LDM、JEV-as-Judge）；(2) 收益/熵门（Selective Reasoning）；(3) 外部 S1 监控 S2 的行为（SOMA）；(4) 决策论的干预价值（VoI）。(1) 的局限被 D4-D1/D3 的证据限定：置信是答案不确定性，不是"需要思考"的信号（System Switch 第 ii 条、Good Judgment 的 0.50 对 87%）。(3) 是唯一把 S1 放在 S2 **之中**而非之前的设计。
+**Pattern summary**: switching signals come from four sources: (1) answer confidence (StartLux, LDM, JEV-as-Judge); (2) benefit/entropy gates (Selective Reasoning); (3) an external S1 monitoring S2's behavior (SOMA); (4) decision-theoretic value of intervention (VoI). The limits of (1) are bounded by the D4-D1/D3 evidence: confidence is answer uncertainty, not a "needs thinking" signal (System Switch item ii, Good Judgment's 0.50 vs 87%). (3) is the only design that puts S1 **inside** S2 rather than before it.
 
-### 5.2.3 记忆与上下文压缩：System 1 做"多而小"的判断
+### 5.2.3 Memory and context compression: System 1 makes "many small" judgments
 
-| 工作 | S1 角色 | 关键结果 | 出处 |
+| Work | S1 role | Key result | Source |
 | --- | --- | --- | --- |
-| **Mnemon** | 对原始带日期记录做许多独立 yes/no 判断（是否需要、是否过期），LLM 规划搜索；写入时不做决定 | 架构 + 背景整合 | [2609.36059](https://arxiv.org/abs/2609.36059) |
-| **Jev-Mem** | S1 控制面：记忆类型化、关系组织、查询路由、预算分配、图遍历、候选打分、自适应停止 | LoCoMo 0.777（+11.0%），构建 158 s（6.6×） | [2609.23986](https://arxiv.org/abs/2609.23986) |
-| **选择 vs 抽取（预注册）** | Jev 一次调用选原始轮次 | LoCoMo 紧预算下非劣于 LLM 抽取记忆（单侧 95% 界 −3.0 对 −5 边际）；写入便宜 3,061 倍；重排收益随预算缩小（保留 3/30 时 +17.4 / +9.1，宽预算 +1.5 / +1.1 且抽取更准）；与 LLM 重排器同准（−2.0）、1/3 延迟；**重排降低正确弃权** | [2609.34227](https://arxiv.org/abs/2609.34227) |
-| **压缩对后续问题** | 决策 API 判断哪些句子对当前问题必要 | MultiRC 当前问题 +11.4 点 @25% token；**对后续问题，所有按当前问题选句的方法都不优于随机删除**；忽略问题的词级 LLMLingua-2 +12.5（等内容词保留 +7.3）；FEVER 上标签准确率高估保留文本的支持；τ-bench 上句选优于随机 | [2610.27301](https://arxiv.org/abs/2610.27301) |
-| **SJC（源判断压缩）** | Jev 判断每条摘要条目是否有环境输出或前摘要作为来源 | 83% 失败运行追溯到执行无来源摘要条目的动作；AppWorld/OfficeBench 跨运行可靠性 +2.1–8.9%，不增 token | [2610.20927](https://arxiv.org/abs/2610.20927) |
-| **记忆退役门** | SUPERSEDED / NEEDS-CONFIRMATION / COMPATIBLE 三元契约 | 141 个非变化零误退；二元门过早退役 39.2%，三元 15.5% 但检出 −15.3；级联与提阈值无差；"二元分数不要直接接删除" | [2610.15710](https://arxiv.org/abs/2610.15710) |
-| **Cache Engineering**（上游） | Agent 直接操作 KV 缓存（drop/repos）而不改轨迹 | 历史依赖使前缀匹配不足以复用缓存 | [2610.28577](https://arxiv.org/abs/2610.28577) |
-| **MarkovSim**（上游） | 有限状态机边界上构造紧凑进度表示 | 长程计算模拟 harness | [2610.35349](https://arxiv.org/abs/2610.35349) |
-| **Selection replaces extraction / Jev-LDE / MemCom** | 见 D1 §3.1.2 | — | — |
+| **Mnemon** | Makes many independent yes/no judgments on raw dated records (needed or not, expired or not), the LLM plans the search; no decisions at write time | Architecture + background consolidation | [2609.36059](https://arxiv.org/abs/2609.36059) |
+| **Jev-Mem** | S1 control plane: memory typing, relation organization, query routing, budget allocation, graph traversal, candidate scoring, adaptive stopping | LoCoMo 0.777 (+11.0%), construction 158 s (6.6×) | [2609.23986](https://arxiv.org/abs/2609.23986) |
+| **Selection vs extraction (pre-registered)** | Jev selects raw turns in one call | On LoCoMo under a tight budget, non-inferior to LLM-extracted memory (one-sided 95% bound −3.0 vs a −5 margin); writing 3,061× cheaper; re-ranking gains shrink with budget (+17.4 / +9.1 when keeping 3/30, +1.5 / +1.1 under a wide budget where extraction is more accurate); as accurate as an LLM re-ranker (−2.0) at 1/3 the latency; **re-ranking lowers correct abstention** | [2609.34227](https://arxiv.org/abs/2609.34227) |
+| **Compression vs follow-up questions** | A decision API judges which sentences are necessary for the current question | MultiRC current question +11.4 points @25% tokens; **for follow-up questions, no method that selects sentences by the current question beats random deletion**; question-agnostic word-level LLMLingua-2 +12.5 (+7.3 with equal content-word retention); on FEVER, label accuracy overestimates the support of the retained text; on τ-bench sentence selection beats random | [2610.27301](https://arxiv.org/abs/2610.27301) |
+| **SJC (source-judged compression)** | Jev judges whether each summary entry has an environment output or a previous summary as its source | 83% of failed runs trace back to executing an action from a sourceless summary entry; AppWorld/OfficeBench cross-run reliability +2.1–8.9%, no extra tokens | [2610.20927](https://arxiv.org/abs/2610.20927) |
+| **Memory retirement gate** | SUPERSEDED / NEEDS-CONFIRMATION / COMPATIBLE three-way contract | Zero false retirements on 141 non-changes; the binary gate retires prematurely 39.2%, the three-way gate 15.5% but detection −15.3; cascading and raising the threshold make no difference; "do not wire a binary score directly to deletion" | [2610.15710](https://arxiv.org/abs/2610.15710) |
+| **Cache Engineering** (upstream) | The Agent operates directly on the KV cache (drop/repos) without changing the trajectory | History dependence makes prefix matching insufficient for cache reuse | [2610.28577](https://arxiv.org/abs/2610.28577) |
+| **MarkovSim** (upstream) | Builds compact progress representations at finite-state-machine boundaries | Long-horizon computation simulation harness | [2610.35349](https://arxiv.org/abs/2610.35349) |
+| **Selection replaces extraction / Jev-LDE / MemCom** | See D1 §3.1.2 | — | — |
 
-**结论**：记忆是 S1 最有说服力的用途——判断"多、小、独立"，且证据（预注册）支持"选择原始记录 + S1 判断"非劣于 LLM 抽取。但两条边界清楚：(a) 为当前问题压缩的内容对后续问题无用（需要忽略问题的压缩）；(b) 二元门不能直接接"删除"这种不可逆动作。
+**Conclusion**: memory is S1's most convincing use: the judgments are "many, small, independent", and the (pre-registered) evidence supports "select raw records + S1 judgment" being non-inferior to LLM extraction. But two boundaries are clear: (a) content compressed for the current question is useless for follow-up questions (question-agnostic compression is needed); (b) a binary gate must not be wired directly to an irreversible action such as "delete".
+### 5.2.4 Routing and guards
 
-### 5.2.4 路由与守卫
-
-| 工作 | 结论 | 出处 |
+| Work | Conclusion | Source |
 | --- | --- | --- |
-| **REFLEX** | Jev 作类型化决策层、低置信时调强 LLM：冻结 100 任务 95% 成功、强模型调用 −72.7%，三种兜底家族均成立；可靠性取决于**动作集大小与授权边界附近的近似有效选项**；BFCL / τ-style 上"当普通路由已经很准时，对廉价生成级联优势有限" | [2609.26532](https://arxiv.org/abs/2609.26532) |
-| **Jev-Guard** | 策略树路由 + 条件分类，93.72% / 58 ms（见 D3） | [2610.18326](https://arxiv.org/abs/2610.18326) |
-| **选项通道攻击** | 守卫角色下 7 个开源 TDM 36–72%；日志六行 0→63%；误导性名字 93–100%；**所有防御被击败；升级最不确定的无效**；把策略字段解析成类型化值后确定性规则 100%——"使模型变得不必要" | [2610.12292](https://arxiv.org/abs/2610.12292) |
-| **Same Attack, Different Judge** | Jev 在有明确规则的输入审核上最稳健；在需要整体判断的钓鱼检测上更易被绕过、召回低 | [2610.17820](https://arxiv.org/abs/2610.17820) |
-| **TrustJev** | 策略权威与不可信证据分离，有界修正 | [2610.34826](https://arxiv.org/abs/2610.34826) |
-| **COGNIT-Guard** | 直接决策守卫 + 校准 + 双用途误报控制 + CPU-NPU 路由 | [2609.33671](https://arxiv.org/abs/2609.33671) |
-| **SkillScreen** | 单遍筛恶意 Skill，99% 召回下只标 20–25% 良性 | [2610.17727](https://arxiv.org/abs/2610.17727) |
-| **StepGuard / ToolSafe / AgentDoG 1.5**（生成式守卫，对照） | 步级工具调用守卫；TS-Guard 多任务 RL 推理；taxonomy 引导的数据引擎 | [2608.24777](https://arxiv.org/abs/2608.24777)、[2601.10156](https://arxiv.org/abs/2601.10156)、[2605.29801](https://arxiv.org/abs/2605.29801) |
-| **CARE（shell）/ StateMirror**（静态优先，对照） | shell 命令规范化-归因-解析；执行前检测幻觉工具调用（4,398 轨迹，恢复中位 3 步 22.4K token） | [2607.21642](https://arxiv.org/abs/2607.21642)、[2610.32648](https://arxiv.org/abs/2610.32648) |
-| **JevSoup** | S1 选两个 LoRA 专家做正交合并 | 14 任务最高 +1.19% | [2609.30922](https://arxiv.org/abs/2609.30922) |
-| **Harness Tokenomics** | 企业 harness 控制面的路由器（谁回答、读什么、缓存怎么用） | [2609.28919](https://arxiv.org/abs/2609.28919) |
+| **REFLEX** | Jev as a typed decision layer, calling a strong LLM at low confidence: frozen 100 tasks 95% success, strong-model calls −72.7%, holds for all three fallback families; reliability depends on **action-set size and the near-valid options close to the authorization boundary**; on BFCL / τ-style, "when ordinary routing is already accurate, the advantage of the cascade over cheap generation is limited" | [2609.26532](https://arxiv.org/abs/2609.26532) |
+| **Jev-Guard** | Policy-tree routing + conditional classification, 93.72% / 58 ms (see D3) | [2610.18326](https://arxiv.org/abs/2610.18326) |
+| **Option-channel attack** | In the guard role, 7 open-source TDMs at 36–72%; six log lines 0→63%; misleading names 93–100%; **all defenses defeated; escalating the most uncertain is ineffective**; a deterministic rule over policy fields parsed into typed values reaches 100%, "making the model unnecessary" | [2610.12292](https://arxiv.org/abs/2610.12292) |
+| **Same Attack, Different Judge** | Jev is most robust on input moderation with explicit rules; on phishing detection, which needs holistic judgment, it is easier to bypass and recall is low | [2610.17820](https://arxiv.org/abs/2610.17820) |
+| **TrustJev** | Separates policy authority from untrusted evidence, bounded correction | [2610.34826](https://arxiv.org/abs/2610.34826) |
+| **COGNIT-Guard** | Direct decision guard + calibration + dual-use false-positive control + CPU-NPU routing | [2609.33671](https://arxiv.org/abs/2609.33671) |
+| **SkillScreen** | Single-pass screening of malicious Skills, flags only 20–25% of benign ones at 99% recall | [2610.17727](https://arxiv.org/abs/2610.17727) |
+| **StepGuard / ToolSafe / AgentDoG 1.5** (generative guards, for comparison) | Step-level tool-call guard; TS-Guard multi-task RL reasoning; taxonomy-guided data engine | [2608.24777](https://arxiv.org/abs/2608.24777), [2601.10156](https://arxiv.org/abs/2601.10156), [2605.29801](https://arxiv.org/abs/2605.29801) |
+| **CARE (shell) / StateMirror** (static-first, for comparison) | Shell command normalization-attribution-parsing; detects hallucinated tool calls before execution (4,398 trajectories, median recovery 3 steps, 22.4K tokens) | [2607.21642](https://arxiv.org/abs/2607.21642), [2610.32648](https://arxiv.org/abs/2610.32648) |
+| **JevSoup** | S1 picks two LoRA experts for orthogonal merging | At most +1.19% on 14 tasks | [2609.30922](https://arxiv.org/abs/2609.30922) |
+| **Harness Tokenomics** | The router of an enterprise harness control plane (who answers, what to read, how the cache is used) | [2609.28919](https://arxiv.org/abs/2609.28919) |
 
-**结论**：路由是 S1 最成熟但也最被高估的角色：当 LLM 自身的路由已经很准（REFLEX 的 BFCL 结果）或任务可以被确定性规则解决（选项通道攻击的 100%）时，S1 没有位置。守卫角色下 S1 的失效模式（选项名、日志注入）与 D4-B3/E3 一致。
+**Conclusion**: routing is S1's most mature but also most overrated role: when the LLM's own routing is already accurate (REFLEX's BFCL result) or the task can be solved by deterministic rules (the option-channel attack's 100%), S1 has no place. S1's failure modes in the guard role (option names, log injection) agree with D4-B3/E3.
 
-### 5.2.5 多 Agent 协调
+### 5.2.5 Multi-Agent coordination
 
-| 工作 | S1 角色 | 结果 | 出处 |
+| Work | S1 role | Result | Source |
 | --- | --- | --- | --- |
-| **Jev-LiteMAS** | 动态选专家（规划缺口）+ 筛中间制品、标记的交 LLM 复审（复审缺口） | 三个 MAS 框架中路由与复审占生成 token 31.7–43.5%；4 基准 2 骨干生成 token −12.7–54.6%，准确率在 1.34 pp 内 | [2610.21411](https://arxiv.org/abs/2610.21411) |
-| **S1-MAS** | 轻量控制器选检查条件、选后续任务、决定终止；紧凑读取器从授权源取条件相关证据 | 决策-证据循环 | [2610.08155](https://arxiv.org/abs/2610.08155) |
-| **BLADE** | Jev 给依赖概率，选相关的"源-决策"交接点审计是否忠实使用 | 1,228 次失败运行上最好或并列最好，比一次性归因 +2.2–11.1 pp | [2610.18780](https://arxiv.org/abs/2610.18780) |
-| **Jarvis** | 全双工对话中 JEV 读每轮对照活动任务选操作，**代码对照当前状态检查每个选择再应用**；版本化任务记录 | τ-Voice 29→192 / 278；Full-Duplex-Bench v3 69% Pass1 对 GPT-Realtime 60% | [2610.23804](https://arxiv.org/abs/2610.23804) |
+| **Jev-LiteMAS** | Dynamic expert selection (planning gap) + screening of intermediate artifacts, flagged ones go to the LLM for re-review (review gap) | In three MAS frameworks, routing and review account for 31.7–43.5% of generated tokens; 4 benchmarks, 2 backbones, generated tokens −12.7–54.6%, accuracy within 1.34 pp | [2610.21411](https://arxiv.org/abs/2610.21411) |
+| **S1-MAS** | A lightweight controller selects check conditions, selects follow-up tasks and decides termination; a compact reader fetches condition-relevant evidence from authorized sources | Decision-evidence loop | [2610.08155](https://arxiv.org/abs/2610.08155) |
+| **BLADE** | Jev gives dependency probabilities and selects the relevant "source-decision" hand-off points to audit for faithful use | Best or tied best on 1,228 failed runs, +2.2–11.1 pp over one-shot attribution | [2610.18780](https://arxiv.org/abs/2610.18780) |
+| **Jarvis** | In full-duplex dialogue, JEV reads each turn against the active tasks to choose an operation, **code checks each choice against the current state before applying it**; versioned task records | τ-Voice 29→192 / 278; Full-Duplex-Bench v3 69% Pass1 vs GPT-Realtime 60% | [2610.23804](https://arxiv.org/abs/2610.23804) |
 
-### 5.2.6 领域 Agent 与非 Agent 的"S1 位置"
+### 5.2.6 Domain Agents and the "S1 position" in non-Agent settings
 
-| 工作 | 位置 | 结果 | 出处 |
+| Work | Position | Result | Source |
 | --- | --- | --- | --- |
-| **JevCoder** | 代码修复中的片段推荐、动作类型指导、何时提交 | 收益取决于干预改变的工作量而非判断成本；3 模型 × 400 任务 token −21.6–50.6%，修复率更高 | [2610.19596](https://arxiv.org/abs/2610.19596) |
-| **Jev-Mobile** | VLM 低频规划、Jev 在可访问性树定义的动作空间高频执行 | AndroidWorld 79% 对 SeeAct-V 78%、逐步 VLM 84%；时间 −32.7%、API 成本 −73.4% | [2609.30186](https://arxiv.org/abs/2609.30186) |
-| **JEV-Star** | JEV 动作选择 + 持续 GPT-6 规划 | 击败 Lv7 内置 AI；中位响应 0.422 s；$3.71/局（JEV $0.15）；**单独 JEV 控制器对 Lv2 不扩张** | [2609.27331](https://arxiv.org/abs/2609.27331) |
-| **SearchJev** | 相关性、证据充分性、搜索动作；软标签校准（SLCD） | 比同尺寸 Qwen3.5 快 5.2–5.3 倍、ECE −41–74%；BrowseComp-Plus 搜索时间 3.7–4.7 倍、准确率 45%→54% | [2610.05107](https://arxiv.org/abs/2610.05107) |
-| **JevGPT** | S2 定证据目标、S1 并行定位/评估相关性 | 固定语料 QA 与排序领先，更快更便宜 | [2610.18272](https://arxiv.org/abs/2610.18272) |
-| **JevSpawn** | 自然语言任务 → 有限概率探索；并行动作生成 + 反馈分支选择 | 8 基准优于 7 基线 | [2610.00437](https://arxiv.org/abs/2610.00437) |
-| **NIOCIS / SharedKV-BT** | 节点条件化的选项空间（见 D3） | — | [2610.25985](https://arxiv.org/abs/2610.25985)、[2610.07327](https://arxiv.org/abs/2610.07327) |
-| **Decision4Rec** | 知识图把日志写成尺度语句，S1 读类型化问题 | 4B 决策模型 NDCG@10 比最好训练基线高 25–36%（3 个稀疏目录） | [2610.26035](https://arxiv.org/abs/2610.26035) |
-| **Jev 作 RL 的 Q / 策略** | 参考策略、探索判官、回放评分器 | 能满足 RL 对象的所有要求**除了值函数的基数用法**；9 MiniGrid + 3 Atari 优于标准学习器 | [2610.11692](https://arxiv.org/abs/2610.11692) |
-| **象棋** | Jev 判断放进 Stockfish 搜索；蒸馏成紧凑评估器 | >2200 Lichess bullet；双教师平均标签比全用 Qwen +9.6 Elo | [2610.09188](https://arxiv.org/abs/2610.09188) |
-| **KITE** | 每唯一状态查一次类型化行为核，表驱动群体实验 | 1.7% 锚点使效应误差 −41% | [2609.27535](https://arxiv.org/abs/2609.27535) |
-| **ProAgent / StreamingJev** | 持续观察、何时介入 | 比源骨干更准的介入时机、更少误触 | [2610.16967](https://arxiv.org/abs/2610.16967) |
-| **Jevolution** | 远程决策 Agent 的世界/调度/控制器分离 | 框架 | [2610.14449](https://arxiv.org/abs/2610.14449) |
+| **JevCoder** | Snippet recommendation, action-type guidance and when to commit in code repair | The benefit depends on how much work the intervention changes, not on the cost of the judgment; 3 models × 400 tasks, tokens −21.6–50.6%, higher repair rate | [2610.19596](https://arxiv.org/abs/2610.19596) |
+| **Jev-Mobile** | The VLM plans at low frequency, Jev executes at high frequency in the action space defined by the accessibility tree | AndroidWorld 79% vs SeeAct-V 78%, step-by-step VLM 84%; time −32.7%, API cost −73.4% | [2609.30186](https://arxiv.org/abs/2609.30186) |
+| **JEV-Star** | JEV action selection + continuous GPT-6 planning | Beats the Lv7 built-in AI; median response 0.422 s; $3.71 per game (JEV $0.15); **the JEV controller alone does not expand against Lv2** | [2609.27331](https://arxiv.org/abs/2609.27331) |
+| **SearchJev** | Relevance, evidence sufficiency, search actions; soft-label calibration (SLCD) | 5.2–5.3× faster than same-size Qwen3.5, ECE −41–74%; BrowseComp-Plus search time 3.7–4.7×, accuracy 45%→54% | [2610.05107](https://arxiv.org/abs/2610.05107) |
+| **JevGPT** | S2 sets the evidence goals, S1 locates / assesses relevance in parallel | Leads on fixed-corpus QA and ranking, faster and cheaper | [2610.18272](https://arxiv.org/abs/2610.18272) |
+| **JevSpawn** | Natural-language task → bounded probabilistic exploration; parallel action generation + feedback-based branch selection | Beats 7 baselines on 8 benchmarks | [2610.00437](https://arxiv.org/abs/2610.00437) |
+| **NIOCIS / SharedKV-BT** | Node-conditioned option spaces (see D3) | — | [2610.25985](https://arxiv.org/abs/2610.25985), [2610.07327](https://arxiv.org/abs/2610.07327) |
+| **Decision4Rec** | A knowledge graph writes the logs as scale statements, S1 reads typed questions | A 4B decision model's NDCG@10 is 25–36% above the best trained baseline (3 sparse catalogs) | [2610.26035](https://arxiv.org/abs/2610.26035) |
+| **Jev as the Q / policy in RL** | Reference policy, exploration judge, replay scorer | Meets every requirement of the RL objects **except the cardinal use of the value function**; beats standard learners on 9 MiniGrid + 3 Atari | [2610.11692](https://arxiv.org/abs/2610.11692) |
+| **Chess** | Jev judgments placed inside Stockfish search; distilled into a compact evaluator | >2200 Lichess bullet; dual-teacher averaged labels +9.6 Elo over all-Qwen | [2610.09188](https://arxiv.org/abs/2610.09188) |
+| **KITE** | Queries a typed behavior kernel once per unique state, table-driven population experiments | 1.7% anchors cut the effect error by 41% | [2609.27535](https://arxiv.org/abs/2609.27535) |
+| **ProAgent / StreamingJev** | Continuous observation, when to intervene | More accurate intervention timing than the source backbone, fewer false triggers | [2610.16967](https://arxiv.org/abs/2610.16967) |
+| **Jevolution** | World / scheduler / controller separation for remote decision Agents | Framework | [2610.14449](https://arxiv.org/abs/2610.14449) |
 
-**共同点**：成功的领域 Agent 都把 S1 放在**动作空间已被代码/树/图枚举**的位置（Jev-Mobile 的可访问性树、NIOCIS 的动作图、Decision4Rec 的尺度语句、象棋的搜索树），并由 S2 **低频**地改变动作空间或目标。
+**Common point**: successful domain Agents all put S1 where **the action space has already been enumerated by code / a tree / a graph** (Jev-Mobile's accessibility tree, NIOCIS's action graph, Decision4Rec's scale statements, the chess search tree), and let S2 change the action space or the goal at **low frequency**.
 
-### 5.2.7 记录 vs 现实、持续学习
+### 5.2.7 Record vs reality, continual learning
 
-- **Claim Laundering**：决策模型信记录多于观察（53–100%）；探针 AUROC 0.77–1.00；EVIGATE +18.7/+5.0/+5.1；离线校准不迁移（[2610.25947](https://arxiv.org/abs/2610.25947)）。
-- **Jev-DLC**：类型化反馈（接受/撤销）变成有界的因果状态，不存原始历史、不加打分调用；TCPA-Repeat 44.83%（+2.43 于 Recent-4 回放），两次反馈后 56.07%（+7.54）（[2610.31521](https://arxiv.org/abs/2610.31521)）。
-- **SHIFT-JEV**：认证弃权 + 收益门控的持续适配；Qwen3-0.6B 70.5% 高于回放/LwF/EWC；4B 上保守门落后 0.4–1.4 点（[2610.34329](https://arxiv.org/abs/2610.34329)）。
-- **TORSI**：慢教师写指令、快学生执行的离线递归自改进（[2610.20665](https://arxiv.org/abs/2610.20665)）。
+- **Claim Laundering**: decision models trust records more than observations (53–100%); probe AUROC 0.77–1.00; EVIGATE +18.7/+5.0/+5.1; offline calibration does not transfer ([2610.25947](https://arxiv.org/abs/2610.25947)).
+- **Jev-DLC**: typed feedback (accept/undo) becomes a bounded causal state, no raw history stored, no scoring calls added; TCPA-Repeat 44.83% (+2.43 over Recent-4 replay), 56.07% after two feedbacks (+7.54) ([2610.31521](https://arxiv.org/abs/2610.31521)).
+- **SHIFT-JEV**: certified abstention + benefit-gated continual adaptation; Qwen3-0.6B 70.5%, above replay/LwF/EWC; on 4B the conservative gate trails by 0.4–1.4 points ([2610.34329](https://arxiv.org/abs/2610.34329)).
+- **TORSI**: offline recursive self-improvement in which the slow teacher writes instructions and the fast student executes ([2610.20665](https://arxiv.org/abs/2610.20665)).
 
-### 5.2.8 D5 矩阵
+### 5.2.8 D5 matrix
 
-| 问题 | 已有工作 | 状态 |
+| Question | Existing work | Status |
 | --- | --- | --- |
-| S1 放进 Agent 循环是否省钱 | 2610.13092、2610.24649、2610.21412、2610.02267 | **有条件**：阈值需在自己轨迹上拟合；节省会被额外交互吞掉 |
-| 什么时候该慢下来 | StartLux、Selective Reasoning、SOMA、System Switch、VoI、LDM | 四类信号；答案置信不是"需要思考"信号 |
-| S1 能否监控 S2 | SOMA、BLADE | 有雏形 |
-| 记忆选择/判断 | 2609.34227、Mnemon、Jev-Mem、SJC、退役门 | **最强证据**；边界：后续问题、不可逆动作 |
-| 路由/守卫 | REFLEX、Jev-Guard、选项通道攻击 | 成熟但被高估；守卫角色高危 |
-| 多 Agent 协调 | Jev-LiteMAS、S1-MAS、BLADE、Jarvis | 有收益；Jarvis 的"模型判断、代码执行"最清晰 |
-| 领域 Agent | Jev-Mobile、JEV-Star、SearchJev、JevCoder、Decision4Rec | 成功 = 动作空间被代码枚举 + S2 低频 |
-| 实时性 | TORSI、System Switch、Jarvis | 快模型在"世界不等"时赢 |
-| 记录 vs 现实 | Claim Laundering、SJC、2610.24929 | 已定义，部分缓解 |
-| 持续学习 | Jev-DLC、SHIFT-JEV、TORSI | 起步 |
-| S1 训练数据从哪来 | AgentDecision-4B（Agent 自己的轨迹 + Jev 标签）、TORSI（教师指令） | 关键发现：**要包含犯错后的状态** |
+| Does putting S1 into the Agent loop save money | 2610.13092, 2610.24649, 2610.21412, 2610.02267 | **Conditional**: the threshold must be fitted on the Agent's own trajectories; savings get eaten by extra interactions |
+| When to slow down | StartLux, Selective Reasoning, SOMA, System Switch, VoI, LDM | Four kinds of signal; answer confidence is not a "needs thinking" signal |
+| Can S1 monitor S2 | SOMA, BLADE | Prototypes exist |
+| Memory selection / judgment | 2609.34227, Mnemon, Jev-Mem, SJC, retirement gate | **Strongest evidence**; boundaries: follow-up questions, irreversible actions |
+| Routing / guards | REFLEX, Jev-Guard, option-channel attack | Mature but overrated; the guard role is high-risk |
+| Multi-Agent coordination | Jev-LiteMAS, S1-MAS, BLADE, Jarvis | Gains exist; Jarvis's "the model judges, the code executes" is the clearest |
+| Domain Agents | Jev-Mobile, JEV-Star, SearchJev, JevCoder, Decision4Rec | Success = action space enumerated by code + low-frequency S2 |
+| Real-time | TORSI, System Switch, Jarvis | Fast models win when "the world does not wait" |
+| Record vs reality | Claim Laundering, SJC, 2610.24929 | Defined, partly mitigated |
+| Continual learning | Jev-DLC, SHIFT-JEV, TORSI | Just starting |
+| Where S1 training data comes from | AgentDecision-4B (the Agent's own trajectories + Jev labels), TORSI (teacher instructions) | Key finding: **must include post-mistake states** |
 
-### 5.2.9 D5 盲区
+### 5.2.9 D5 blind spots
 
-1. **"快/慢协同"的收益核算没有标准**：2610.02267 自审计暴露了三种常见算错（预筛成本、门准确率当端到端、样本内阈值）；2610.13092 提出"每个成功交付的资源"；没有被广泛采用。
-2. **切换信号的理论只有 VoI 一篇**，且在 VLA 上；在语言 Agent 上"何时调慢"仍靠置信阈值，而 D4 已证明置信不等于"需要思考"。
-3. **S1 监控 S2（SOMA 式）只有一篇**，而这是把 S1 放进慢思考内部、而非之前的唯一设计。
-4. **没有工作比较"S1 决策"与"确定性规则 / 逻辑回归"作为 Agent 微任务控制器**（Good Judgment 的规则臂、Measure Before You Train 的 LR、选项通道攻击的 100% 规则都暗示规则常常够用）。
-5. **S1 训练数据必须含错误后状态**（JevAgentHarness）与**S1 信记录不信观察**（Claim Laundering）两个发现尚未被任何复现配方吸收。
-6. **知识系统**（用户原始提法中的"知识"）在文献里只以"记忆选择"与"检索相关性"出现；"S1 维护结构化知识（本体、规则库、版本化事实）"没有工作——Jarvis 的版本化任务记录与 Jev-DLC 的有界通道是最接近的两个。
-7. **中文 / 企业场景的 Agent 证据为零**：所有基准是英文公开环境。
+1. **There is no standard for accounting the benefit of "fast/slow cooperation"**: the self-audit in 2610.02267 exposed three common miscalculations (pre-screening cost, gate accuracy taken as end-to-end, in-sample threshold); 2610.13092 proposes "resources per successful delivery"; neither has been widely adopted.
+2. **The theory of switching signals has only one paper, VoI**, and that one is on VLA; on language Agents, "when to call the slow model" still relies on confidence thresholds, while D4 has already shown that confidence is not "needs thinking".
+3. **S1 monitoring S2 (SOMA-style) has only one paper**, yet it is the only design that puts S1 inside slow thinking rather than before it.
+4. **No work compares "S1 decisions" against "deterministic rules / logistic regression" as Agent microtask controllers** (Good Judgment's rule arm, Measure Before You Train's LR and the option-channel attack's 100% rule all suggest that rules are often enough).
+5. The two findings **S1 training data must include post-error states** (JevAgentHarness) and **S1 trusts records over observations** (Claim Laundering) have not yet been absorbed by any reproduction recipe.
+6. **Knowledge systems** ("knowledge" in the user's original wording) appear in the literature only as "memory selection" and "retrieval relevance"; there is no work on "S1 maintaining structured knowledge (ontologies, rule bases, versioned facts)"; Jarvis's versioned task records and Jev-DLC's bounded channel are the two closest.
+7. **Zero Agent evidence for Chinese / enterprise settings**: all benchmarks are English public environments.

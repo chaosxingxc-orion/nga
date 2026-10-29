@@ -1,133 +1,133 @@
-# 7 · 评测：已有的检查表、覆盖面，以及无法被裁决的事
+# 7 · Evaluation: the existing checklist, the coverage, and what cannot be decided
 
-> 本章只做分析与调研，**不提方案、不设计新基准**。做法是把 §5.1.2 的十二条业务属性当作被测对象，去核对现有评测集覆盖了哪几格。
+> This chapter only analyzes and surveys; it **proposes no scheme and designs no new benchmark**. The method is to treat the twelve business properties of §5.1.2 as the objects under test and check which cells the existing evaluation sets cover.
 >
-> 三条结论：（1）"应该怎么评测"文献里已有答案——一份 **14 项检查表**加一张最小报告卡，而现有论文对它的合规率很低（同骨干标签对数概率基线 26 篇只有 5 篇合规、选项名不变性测试 27 篇只有 1 篇、带缓存与不带缓存两套延迟 20 篇只有 3 篇），也就是说公开数字里"接口的功劳"与"模型的功劳"基本没被分开过；（2）按业务属性看覆盖面严重不均，**业务人员可配置与可审计两格是零**；（3）最大的缺口是业务目标本身——**每正确结果的端到端成本没有任何可复现口径**。
+> Three conclusions: (1) "how evaluation should be done" already has an answer in the literature: a **14-item checklist** plus a minimal report card, and the compliance rate of existing papers against it is low (same-backbone label log-probability baseline: only 5 of 26 papers comply; option-name invariance test: only 1 of 27; latency with and without cache: only 3 of 20). In other words, in the published numbers "the interface's credit" and "the model's credit" have essentially never been separated; (2) seen by business property, coverage is severely uneven, and **the two cells "configurable by business staff" and "auditable" are zero**; (3) the largest gap is the business goal itself: **end-to-end cost per correct result has no reproducible protocol at all**.
 >
-> 按 §2.2 的 P1′ 读，本章的覆盖矩阵还缺最关键的一行：**预先登记的业务等价类上的决策一致率**，它是本报告找到的那个无人占据的空位（§7.5 第 13 行、§8.2.2）。
+> Read through P1′ of §2.2, the coverage matrix of this chapter is still missing its most critical row: **decision consistency rate on pre-registered business equivalence classes**, which is the unoccupied slot this report found (§7.5 row 13, §8.2.2).
 
-## 7.1 "应该怎么评测"已有答案：14 项检查表与它的合规率
+## 7.1 "How evaluation should be done" already has an answer: the 14-item checklist and its compliance rate
 
-一篇对 Jev 发布后九天内 28 篇论文的证据审计，把反复出现的比较与报告缺陷整理成一份 14 项检查表，并对其中可评分的项给出**合规论文数 / 适用论文数**（在 27 篇"评测了模型"的论文内计数；"不清楚"的论文从分子分母同时剔除；"–"表示无法从文本可靠评分）（[2609.32160](https://arxiv.org/abs/2609.32160)）。
+An evidence audit of 28 papers published within nine days after the Jev release collected the recurring comparison and reporting defects into a 14-item checklist, and for the scorable items gives **compliant papers / applicable papers** (counted within the 27 papers that "evaluated a model"; "unclear" papers are removed from both numerator and denominator; "–" means the item could not be reliably scored from the text) ([2609.32160](https://arxiv.org/abs/2609.32160)).
 
-| ID | 要求报告的内容 | 合规 / 适用 | 该项被观察到的失败 |
+| ID | What must be reported | Compliant / applicable | Observed failures for this item |
 | --- | --- | --- | --- |
-| **B1** | 一个从普通或**同骨干**语言模型读标签对数概率的基线 | **5/26**（1 不清楚） | 否则无法把接口收益与模型收益分开；凡测过的地方，读出几乎没加准确率 |
-| **B2** | 若用置信阈值把决策交给另一个模型：一个**便宜的生成式级联**作基线 | **1/5** | 外部基准上便宜的生成式级联比 TDM 级联更便宜且不更差；Jev 价位区间的六个开源权重 LLM 里有两个 macro-F1 中位更高 |
-| **B3** | 若标注足够训一个：**任务专用模型**（编码器 / 经典分类器 / 奖励模型 / 探针）作基线 | **7/13**（3 不清楚） | 微调编码器在排序上不显著差于开源 TDM，ECE 名义更低（Brier 更高），且更快；训练过的质量模型仍大幅领先 |
-| **T1** | 测试集上**模型间的分差**；不要在饱和测试上宣称持平 | – | 多个持平结论来自强模型已触顶的测试 |
-| **T2** | **逐条决策**在重复 / 换序 / 换措辞下的正确性或一致性，而不只是聚合准确率 | **17/26**（1 不清楚） | 相同的聚合分数掩盖了不同的决策；正确的最终标签掩盖了错误的中间选择 |
-| **T3** | **选项名不变性**测试：跨 rubric 交换名字，或比较中性名与语义名 | **1/27** | 跨 rubric 交换 no/yes 把 Jev 的 AUC 从 .815 压到 .581 且类型错误为零；用 `Score` 而非 `Choice` 提问使分级准确率移动最多 10.5 点 |
-| **T4** | **数据来源**：合成还是真实、金标来源、公开基准是否早于模型 | – | 语料里包含 Agent 生成的文本配 Agent 生成的标签，以及未解决的污染疑虑 |
-| **R1** | **确切的模型版本与运行日期** | – | 宿主 TDM 是闭源的，可能在同一名字下变动；多篇两者都没给 |
-| **R2** | 主结果上的**置信区间或显著性检验** | **15/27** | 27 篇里 12 篇的主结果两者都没有；由于宿主模型非确定性，还应报重复运行的稳定性 |
-| **R3** | 披露**在看过测试数据之后**才选定的提示、配方、基线或阈值 | – | 至少 7 篇做了这类选择；一串重设计把主指标从 .576 推到 .797 |
-| **C1** | 若把概率用作或描述为校准的：用 ECE / Brier / 可靠性分析或等价指标测校准 | **13/17**（1 不清楚） | 优先用保留数据、与标签流行度匹配的指标、并给出再校准前后两套结果；某些负载下原始概率失准，再校准降 3.3（点），而 0.01 的网格限制了稀有标签的分辨力 |
-| **C2** | **最高置信那批样本**的准确率，按任务分列 | – | 语料里存在"高置信但准确率接近基率"的情形，以及平均置信 .778 的错误工具调用；在保答案的优化上下文下，Jev 原本正确的决策有 45%（被改向的里 73%）最终以 >0.7 的概率落在错误选项上 |
-| **C3** | 若用置信阈值做接受 / 升级：阈值在**与评测集分离的数据**上拟合，或在评测前固定且不在其上调 | **7/7**（3 不清楚） | 冻结阈值还应测跨负载 / 跨兜底模型的迁移，因为在选择集上拟合的阈值并非对每个兜底模型都在保留条目上成立，且拟合出的温度跨负载不同；有些固定阈值被用在作者明确不假设其校准的分数上 |
-| **C4** | 若报了 TDM 延迟或宣称延迟优势：**带缓存与不带缓存两套延迟** | **3/20**（1 不清楚） | 还应说明服务位置、并发与**每正确结果的实测成本**；缓存抹掉了一篇报告的延迟优势；两篇姊妹论文在不同负载上报出**相反的成本方向** |
+| **B1** | A baseline that reads label log-probabilities from a plain or **same-backbone** language model | **5/26** (1 unclear) | Otherwise interface gains cannot be separated from model gains; wherever it was measured, the readout added almost no accuracy |
+| **B2** | If a confidence threshold hands decisions to another model: a **cheap generative cascade** as a baseline | **1/5** | On external benchmarks the cheap generative cascade is cheaper than the TDM cascade and no worse; among six open-weight LLMs in Jev's price range, two have a higher median macro-F1 |
+| **B3** | If the labels suffice to train one: a **task-specific model** (encoder / classic classifier / reward model / probe) as a baseline | **7/13** (3 unclear) | A fine-tuned encoder is not significantly worse than open-source TDMs in ranking, has nominally lower ECE (higher Brier), and is faster; trained quality models still lead by a wide margin |
+| **T1** | **The score gap between models** on the test set; do not claim parity on a saturated test | – | Several parity conclusions come from tests on which strong models have already hit the ceiling |
+| **T2** | Correctness or consistency of **each individual decision** under repetition / reordering / rewording, not only aggregate accuracy | **17/26** (1 unclear) | Identical aggregate scores hide different decisions; a correct final label hides wrong intermediate choices |
+| **T3** | **Option-name invariance** test: swap names across rubrics, or compare neutral names with semantic names | **1/27** | Swapping no/yes across rubrics pushed Jev's AUC from .815 to .581 with zero type errors; asking with `Score` instead of `Choice` moves grading accuracy by up to 10.5 points |
+| **T4** | **Data provenance**: synthetic or real, source of gold labels, whether the public benchmark predates the model | – | The corpus contains Agent-generated text paired with Agent-generated labels, and unresolved contamination concerns |
+| **R1** | **Exact model version and run date** | – | The host TDM is closed-source and may change under the same name; several papers give neither |
+| **R2** | **Confidence intervals or significance tests** on the main result | **15/27** | 12 of 27 papers have neither on their main result; because the host model is non-deterministic, stability across repeated runs should also be reported |
+| **R3** | Disclose prompts, recipes, baselines or thresholds that were chosen **after seeing the test data** | – | At least 7 papers made such choices; a chain of redesigns pushed the main metric from .576 to .797 |
+| **C1** | If probabilities are used as, or described as, calibrated: measure calibration with ECE / Brier / reliability analysis or an equivalent metric | **13/17** (1 unclear) | Prefer held-out data, metrics matched to label prevalence, and both pre- and post-recalibration results; under some workloads the raw probabilities are miscalibrated, recalibration lowers it by 3.3 (points), and the 0.01 grid limits resolution on rare labels |
+| **C2** | Accuracy of the **highest-confidence batch of samples**, broken down by task | – | The corpus contains cases of "high confidence but accuracy near the base rate", and wrong tool calls with mean confidence .778; under answer-preserving optimization context, 45% of Jev's originally correct decisions (73% of those redirected) end up on the wrong option with probability >0.7 |
+| **C3** | If a confidence threshold is used for accept / escalate: the threshold is fitted on **data separate from the evaluation set**, or fixed before evaluation and not tuned on it | **7/7** (3 unclear) | A frozen threshold should also be tested for transfer across workloads / across fallback models, because a threshold fitted on the selection set does not hold on held-out items for every fallback model, and the fitted temperature differs across workloads; some fixed thresholds are applied to scores the authors explicitly do not assume to be calibrated |
+| **C4** | If TDM latency is reported or a latency advantage is claimed: **latency both with and without cache** | **3/20** (1 unclear) | Serving location, concurrency and **measured cost per correct result** should also be stated; caching erased one report's latency advantage; two sister papers report **opposite cost directions** on different workloads |
 
-该文还把检查表压成一张**最小报告卡**：确切模型版本与运行日期；测试难度或模型分差；一个普通 LM 读出基线；一个便宜的生成式基线；重复运行的区间；保留集校准；以及**用到级联时，在新负载或新兜底模型上评测的冻结阈值**。
+The paper also compresses the checklist into a **minimal report card**: exact model version and run date; test difficulty or model score gap; a plain-LM readout baseline; a cheap generative baseline; intervals across repeated runs; held-out calibration; and, **when a cascade is used, a frozen threshold evaluated on a new workload or a new fallback model**.
 
-**读法**：这是本报告里"应该怎么评测"这个问题的直接答案，而且是文献自己给的。它同时暴露了一件事——**现有评测集的问题不在于基准不够多，而在于报告纪律**。B1 的 5/26 与 T3 的 1/27 意味着：公开数字里，"接口的功劳"与"模型的功劳"基本没被分开过，"标签名压倒定义"这个 D1 最严重的缺陷基本没被常规测过。
+**How to read this**: this is the direct answer to this report's question "how evaluation should be done", and the literature gives it itself. It also exposes one thing: **the problem with existing evaluation sets is not too few benchmarks but reporting discipline**. B1 at 5/26 and T3 at 1/27 mean that, in the published numbers, "the interface's credit" and "the model's credit" have essentially never been separated, and "label names override definitions", the most serious D1 defect, has essentially never been tested as a matter of routine.
 
-### 7.1.1 一个自审计案例说明成本口径有多容易错
+### 7.1.1 A self-audit case showing how easily the cost protocol goes wrong
 
-一篇对 11 个 Agent 决策点（18 个公开来源、7,283 条基础用例 + 6,640 条稳健性变体、字节级相同输入、配对检验、跨硬件跨日复现检查）的配对评测，**对自己的流水线做了审计**，并报告了三个分析错误与一个设计混杂如何扭曲了它原本的部署结论：**漏算了一道前置筛选的成本，使"节省 23.9%"实际只有 4.3%**；把**闸门准确率当成端到端质量**报告（58% 对 98%）；阈值在样本内拟合（目标 5%，保留集上最高到 17%）（[2610.02267](https://arxiv.org/abs/2610.02267)）。
+A paired evaluation of 11 Agent decision points (18 public sources, 7,283 base cases + 6,640 robustness variants, byte-identical inputs, paired tests, reproduction checks across hardware and across days) **audited its own pipeline** and reported how three analysis errors and one design confound distorted its original deployment conclusion: **the cost of a pre-filter was left out, so a claimed "23.9% saving" was actually 4.3%**; **gate accuracy was reported as end-to-end quality** (58% versus 98%); the threshold was fitted in-sample (target 5%, up to 17% on the held-out set) ([2610.02267](https://arxiv.org/abs/2610.02267)).
 
-这一段比检查表更有说服力：**它是同一批作者在同一篇论文里把自己的成本结论推翻的记录**。§5.1.5 盲区 1 说"没有人测每正确结果的端到端成本"，根源就在这里——这个数极易算错，而且算错的方向总是对自己有利。
+This passage is more persuasive than the checklist: **it is a record of the same authors overturning their own cost conclusion within the same paper**. §5.1.5 blind spot 1 says "nobody measures end-to-end cost per correct result", and the root cause is here: this number is extremely easy to get wrong, and the direction of the error always favors oneself.
 
-## 7.2 现有评测集按"测什么"分类
+## 7.2 Existing evaluation sets classified by "what is tested"
 
-§6.1.4.1 已给出数据可得性与规模，本节只补"每个评测集的被测对象"，因为这才是覆盖面分析的输入。
+§6.1.4.1 already gives data availability and scale; this section only adds "the object under test for each evaluation set", because that is the input to the coverage analysis.
 
-| 评测集 | 规模 | 被测的主要对象 | 出处 |
+| Evaluation set | Scale | Main object under test | Source |
 | --- | --- | --- | --- |
-| **JEVal** | 11,257 条 / 36 数据集 / 10 领域 / 双语 | 横向能力 + 组合成系统后的行为变化；结论是决策模型在"能从已有证据裁决"时最有竞争力，而在需要专家知识或**忠实的不确定性估计**时变弱——"常能指出最可能的结果，却大幅高估它的概率" | [2610.03935](https://arxiv.org/abs/2610.03935) |
-| **System1-Arena** | 92k 题 / 105 任务 / 268 来源 + **138 个闭环环境**（含实时模式） | 同一批决策请求下给所有模型打概率分；四组：文本分类与知识、应用决策、评估与控制、Agent 与动作 | [2610.21244](https://arxiv.org/abs/2610.21244) |
-| **TypedBench** | 7 个策略标注生成器 + 9 个评测套件 | **四件事联测**：策略遵守、措辞稳健（准确率报跨复述的中位与范围）、概率质量（选择性预测、**序数适当评分规则**、非对称代价下的实现代价）、成本；校准误差相对一个**匹配的完美校准预测器的有限样本噪声底** | [2610.11392](https://arxiv.org/abs/2610.11392) |
-| **DecisionPivot** | 48 任务 / 40,033 条；核心轨 7,800 条（13 个生成任务族，**对照组 + 独立实现的求解器验证**）；参照轨 32,233 条（35 个公开测试集，保留原指标） | 条目准确率、**对照组准确率**、概率排序、校准、经验选择性覆盖。关键结果：参照轨只差 2.6 点的两个 27B 模型，对照组准确率是 **70.1% 与 44.2%**；2,400 个二元对照对上 Perplexity Decider 把正例排在负例之上的比例 92.3%，而**两边都答对只有 74.1%** | [2610.28522](https://arxiv.org/abs/2610.28522) |
-| **AgentDecisionBench / DecisionGym** | 从孤立问题到控制运行中的 Agent | Agent 场景下的决策委托。孤立问题最准的模型只解出 **69.5%** 的 Agent 任务；不拟合置信阈值就委托工具选择使成功率降 **19.0 点** | [2610.21412](https://arxiv.org/abs/2610.21412) |
-| **Sys1Cal-v1** | 构造上已知 P(A) 的真 / 假命题 | **概率的数值含义**（不是置信排序）：用与真值分布的总变差距离评分，三个原语分别提问 | [2609.35342](https://arxiv.org/abs/2609.35342) |
-| **Probability Contracts** | 1,000 个有限世界（+ 400 根独立队列） | 精确有限世界后验、事件对齐校验、**接口一致性**、失败感知的决策评测联测。Jev 的 Event 与 Choice 接口在 defer 成本 0.10 下对 **32.8%** 的有效配对改变二元动作 | [2609.37470](https://arxiv.org/abs/2609.37470) |
-| **概率公理电池** | 160 条（ChaosNLI、PubMedQA）/ 480 个否定对 | **逐条的逻辑自洽**（无需标签） | [2609.33209](https://arxiv.org/abs/2609.33209) |
-| **JevAdvBench** | 862 题 + 5,586 个保答案变体、12 种黑盒攻击 | 对抗稳健：攻击翻转 Jev 正确决策的 **46.3%**（同样重跑只翻 0.17%）；无命令的谬误论证翻 77.2%，接近直接提示注入的 92.0%；八个开源 TDM 被同样变体翻 34.0%–51.7%；**0.8 阈值下服务仍会执行的决策里 23.5% 是错的** | [2609.31142](https://arxiv.org/abs/2609.31142) |
-| **选项通道攻击** | 七个开源权重模型做守卫 | 分开报两个错误方向（fail-open 是漏洞、fail-closed 只是成本）：允许/阻止决策准确率 36%–72%（随机水平 50%）；六行与策略无关的服务器日志把某个闸的 fail-open 率从 0% 抬到 63%；给宽松选项一个误导性名字（定义与被判文本不变）在四个把标签放进输入的模型上抬到 **93%–100%**；**所有被测防御都被击破**，而且**升级最不自信的决策也没用——被攻击翻转的决策不比它替换掉的那个更不自信** | [2610.12292](https://arxiv.org/abs/2610.12292) |
-| **PFR（配对兜底稳健性）** | 三个基准、跨架构与参数量的受控比较 | 兜底：是否在常规项与兜底项之间正确切换；同一规则的**逻辑等价表述**下是否一致 | [2610.19856](https://arxiv.org/abs/2610.19856) |
-| **TUPLE-Bench** | 配对合成案例、九个模型 | **接口泄漏**：指示"隐去原因"全部失效，91.88%–99.93% 的回答通过直接选择或**残留分数**泄漏原因；把原因从候选集排除后，完整输出仍让保留集恢复率 62.85%–75.35%（只用被选类别是 51.04%–57.64%，随机 50%）；完整输出在 **27/27** 个模型-任务比较里降低下游平均成本，而**置信字段增加泄漏却不一致地降成本** | [2610.23668](https://arxiv.org/abs/2610.23668) |
-| **配对 Agent 决策点评测** | 11 个决策点 / 18 个来源 / 7,283 + 6,640 | 配对、字节级相同输入、跨硬件跨日复现 + **自审计**。Jev 在 9/11 个决策点显著更准（+10.8 到 +46.0 pp）；**两者在零样本模型路由上都不如随机**，在 RAG 相关性闸上打平；Laya 在选项顺序反转时改 30% 的答案，候选多或相似时急剧退化（50 个最近邻工具 31%，Jev 在唯一正确工具的条目上 98%） | [2610.02267](https://arxiv.org/abs/2610.02267) |
-| **Choice2Seq** | — | 把**任务正确、计划忠实、输出合规**分开测 | [2610.16191](https://arxiv.org/abs/2610.16191) |
-| **在线审核套件** | 五个审核基准 + 受控信息条件 | 把**成文规则、检索到的先例、候选答案空间的限制**三者分离。Jev 普遍从检索先例获益（答案空间固定时改善策略精确选择与有害内容判别）；Laya 的检索常只移动正例率而不改善判别；Jev 置信在若干设定下可支持选择性复核但**并非一致校准** | [2610.07953](https://arxiv.org/abs/2610.07953) |
-| **RLCDAlignBench** | 10 类对齐失败 / 44 个基准 / 5 个目标模型 | 零样本对齐失败检测（也暴露基准自身的标签缺陷） | [2609.29429](https://arxiv.org/abs/2609.29429) |
-| **心理测量审计** | 立陶宛组织心理学问卷（n=263、68 条目）、100 个真人画像、14 个决策模型 / 11 家 + 47 个生成模型 | **合成被访者的构念效度**（PSS）：默认四舍五入读出下 14 个决策模型里 13 个低于生成式参照；47 个生成模型里 33 个比任何决策模型更好地重现条目相关结构；但**概率向量比四舍五入答案更接近人类条目边际**；作为个人作答的预测则每个决策模型都不如"其他被访者的作答频率" | [2610.14912](https://arxiv.org/abs/2610.14912) |
-| **其他**（Decision Index、JevBench、kev-suites、CJ-Bench、DecisionVista、DecisionRobust、this-that spatial/complex、生物安全审计、文化价值审计、偏见审计等） | 见 §6.1.4.1 | 领域横向能力、语言覆盖、特定偏置 | §6.1 |
+| **JEVal** | 11,257 items / 36 datasets / 10 domains / bilingual | Cross-domain capability + behavior change once composed into a system; the conclusion is that decision models are most competitive when "the decision can be made from existing evidence" and weaken when expert knowledge or **faithful uncertainty estimates** are needed: "often points to the most likely outcome but substantially overestimates its probability" | [2610.03935](https://arxiv.org/abs/2610.03935) |
+| **System1-Arena** | 92k questions / 105 tasks / 268 sources + **138 closed-loop environments** (including a live mode) | Probability scores from all models on the same batch of decision requests; four groups: text classification and knowledge, applied decisions, evaluation and control, Agent and action | [2610.21244](https://arxiv.org/abs/2610.21244) |
+| **TypedBench** | 7 policy-annotated generators + 9 evaluation suites | **Four things tested jointly**: policy compliance, wording robustness (accuracy reported as median and range across paraphrases), probability quality (selective prediction, **ordinal proper scoring rules**, realized cost under asymmetric costs), cost; calibration error relative to the **finite-sample noise floor of a matched perfectly calibrated predictor** | [2610.11392](https://arxiv.org/abs/2610.11392) |
+| **DecisionPivot** | 48 tasks / 40,033 items; core track 7,800 items (13 generative task families, **contrast groups + independently implemented solver verification**); reference track 32,233 items (35 public test sets, original metrics retained) | Item accuracy, **contrast-group accuracy**, probability ranking, calibration, empirical selective coverage. Key result: two 27B models only 2.6 points apart on the reference track have contrast-group accuracy of **70.1% and 44.2%**; on 2,400 binary contrast pairs Perplexity Decider ranks the positive above the negative 92.3% of the time, yet **gets both sides right only 74.1%** | [2610.28522](https://arxiv.org/abs/2610.28522) |
+| **AgentDecisionBench / DecisionGym** | From isolated questions to controlling a running Agent | Decision delegation in Agent scenarios. The model most accurate on isolated questions solves only **69.5%** of Agent tasks; delegating tool selection without fitting a confidence threshold lowers the success rate by **19.0 points** | [2610.21412](https://arxiv.org/abs/2610.21412) |
+| **Sys1Cal-v1** | True / false propositions with P(A) known by construction | **The numerical meaning of probabilities** (not confidence ranking): scored by total variation distance to the true distribution, with the three primitives asked separately | [2609.35342](https://arxiv.org/abs/2609.35342) |
+| **Probability Contracts** | 1,000 finite worlds (+ 400 independent queues) | Exact finite-world posteriors, event alignment checks, **interface consistency**, failure-aware decision evaluation tested jointly. Jev's Event and Choice interfaces change the binary action on **32.8%** of valid pairs at a defer cost of 0.10 | [2609.37470](https://arxiv.org/abs/2609.37470) |
+| **Probability axiom battery** | 160 items (ChaosNLI, PubMedQA) / 480 negation pairs | **Per-item logical self-consistency** (no labels needed) | [2609.33209](https://arxiv.org/abs/2609.33209) |
+| **JevAdvBench** | 862 questions + 5,586 answer-preserving variants, 12 black-box attacks | Adversarial robustness: attacks flip **46.3%** of Jev's correct decisions (an identical rerun flips only 0.17%); fallacious arguments without commands flip 77.2%, close to the 92.0% of direct prompt injection; eight open-source TDMs are flipped 34.0%–51.7% by the same variants; **of the decisions the service would still execute at a 0.8 threshold, 23.5% are wrong** | [2609.31142](https://arxiv.org/abs/2609.31142) |
+| **Option-channel attacks** | Seven open-weight models as guards | Reports the two error directions separately (fail-open is a vulnerability, fail-closed is only a cost): allow/block decision accuracy 36%–72% (chance level 50%); six lines of policy-irrelevant server logs raise one gate's fail-open rate from 0% to 63%; giving the permissive option a misleading name (definition and judged text unchanged) raises it to **93%–100%** on the four models that put labels in the input; **every tested defense was broken**, and **escalating the least confident decisions does not help either: the decision flipped by the attack is not less confident than the one it replaced** | [2610.12292](https://arxiv.org/abs/2610.12292) |
+| **PFR (paired fallback robustness)** | Three benchmarks, controlled comparison across architectures and parameter counts | Fallback: whether the model switches correctly between regular items and fallback items; whether it is consistent under **logically equivalent formulations** of the same rule | [2610.19856](https://arxiv.org/abs/2610.19856) |
+| **TUPLE-Bench** | Paired synthetic cases, nine models | **Interface leakage**: instructions to "hide the reason" all fail, 91.88%–99.93% of responses leak the reason through direct selection or **residual scores**; after excluding the reason from the candidate set, the full output still lets held-out recovery reach 62.85%–75.35% (51.04%–57.64% using only the selected category, chance 50%); the full output lowers average downstream cost in **27/27** model-task comparisons, while **the confidence field increases leakage yet lowers cost inconsistently** | [2610.23668](https://arxiv.org/abs/2610.23668) |
+| **Paired Agent decision-point evaluation** | 11 decision points / 18 sources / 7,283 + 6,640 | Paired, byte-identical inputs, reproduction across hardware and days + **self-audit**. Jev is significantly more accurate on 9/11 decision points (+10.8 to +46.0 pp); **both are worse than random on zero-shot model routing**, and tie on the RAG relevance gate; Laya changes 30% of its answers when option order is reversed, and degrades sharply when candidates are many or similar (31% with 50 nearest-neighbor tools, Jev 98% on items with a unique correct tool) | [2610.02267](https://arxiv.org/abs/2610.02267) |
+| **Choice2Seq** | — | Tests **task correctness, plan faithfulness, and output compliance** separately | [2610.16191](https://arxiv.org/abs/2610.16191) |
+| **Online moderation suite** | Five moderation benchmarks + controlled information conditions | Separates **written rules, retrieved precedents, and restrictions on the candidate answer space**. Jev generally benefits from retrieved precedents (with a fixed answer space it improves precise policy selection and harmful-content discrimination); Laya's retrieval often only shifts the positive rate without improving discrimination; Jev's confidence can support selective review in several settings but is **not consistently calibrated** | [2610.07953](https://arxiv.org/abs/2610.07953) |
+| **RLCDAlignBench** | 10 classes of alignment failure / 44 benchmarks / 5 target models | Zero-shot alignment failure detection (also exposes label defects in the benchmarks themselves) | [2609.29429](https://arxiv.org/abs/2609.29429) |
+| **Psychometric audit** | Lithuanian organizational psychology questionnaire (n=263, 68 items), 100 real-person profiles, 14 decision models / 11 vendors + 47 generative models | **Construct validity of synthetic respondents** (PSS): under the default rounded readout, 13 of 14 decision models fall below the generative reference; 33 of 47 generative models reproduce the item correlation structure better than any decision model; but **probability vectors are closer to the human item marginals than rounded answers**; as predictions of individual responses, every decision model is worse than "the response frequencies of the other respondents" | [2610.14912](https://arxiv.org/abs/2610.14912) |
+| **Others** (Decision Index, JevBench, kev-suites, CJ-Bench, DecisionVista, DecisionRobust, this-that spatial/complex, biosafety audit, cultural values audit, bias audit, etc.) | See §6.1.4.1 | Cross-domain capability, language coverage, specific biases | §6.1 |
 
-## 7.3 覆盖矩阵：十二条业务属性 × 现有评测集
+## 7.3 Coverage matrix: twelve business properties × existing evaluation sets
 
-把 §5.1.2 的属性清单当被测对象，逐条对上去。
+Take the property list of §5.1.2 as the objects under test and match them one by one.
 
-| 业务属性（§2.1） | 有专门评测它的评测集 | 覆盖判定 |
+| Business property (§2.1) | Evaluation sets that test it specifically | Coverage verdict |
 | --- | --- | --- |
-| **P1 输出必在选项集内** | 无需基准（结构性）。但"类型对、语义错"只被**顺带**测到（T3 的 AUC .815→.581 且类型错误为零） | **结构性保证，但"类型安全给人的虚假安全感"无人系统测量** |
-| **P2 一次前向答完 / 额外问题近乎免费** | 无。延迟与成本散见各篇，而检查表 C4（带缓存 / 不带缓存）合规 **3/20** | **零系统性覆盖** |
-| **P3 校准** | TypedBench（相对噪声底）、Sys1Cal-v1（构造上已知 P(A)）、DecisionPivot、JEVal、Decision Index、社科标注审计、在线审核套件 | **最充分的一格**，但口径互不相同（§1.4.5：ECE 至少五种算法） |
-| **P4 等价提法下的一致性（= L2 语义幂等）** | DecisionPivot（对照组）、TypedBench（跨复述中位与范围）、CALM 偏置套件、序数刻度偏置（40 数据集）、测试语言审计、配对 Agent 决策点（顺序反转） | **干预覆盖密集但等价类未被定义**：每篇测一种干预，检查表 T3（选项名不变性）**只有 1/27** 篇做过；没有任何评测集把"业务等价"当作一个等价类整体测量（§2.1.4） |
-| **P5 置信可用于路由** | System1-Arena、Doom 快慢切换（校准 / 准确 / 敏感度三分离）、rubric 评审级联、印尼地方语级联 | **覆盖但结论负面**，且"两个不确定性"只在**内容审核一个域**被测过（[2610.33258](https://arxiv.org/abs/2610.33258)） |
-| **P6 兜底 / 弃权** | PFR 测试（[2610.19856](https://arxiv.org/abs/2610.19856)）、算术拒绝瓶颈（[2609.39496](https://arxiv.org/abs/2609.39496)） | **两篇孤证**，且都不是通用基准 |
-| **P7 "不知道"可被表达（P(U)）** | Sys1Cal-v1（[2609.35342](https://arxiv.org/abs/2609.35342)） | **单篇孤证** |
-| **P8 知道自己不知道** | 受控自知审计（[2610.01006](https://arxiv.org/abs/2610.01006)）、生物安全审计的选择性预测部分（[2609.30454](https://arxiv.org/abs/2609.30454)） | **单篇孤证 + 单域** |
-| **P9 概率自洽（公理）** | 概率公理电池 160 条 / 480 对（[2609.33209](https://arxiv.org/abs/2609.33209)）、Probability Contracts 1,000 世界（[2609.37470](https://arxiv.org/abs/2609.37470)） | **两篇，且规模极小**；"n 个判断组合后的自洽"为零 |
-| **P10 业务人员可用文字配置** | 在线审核套件的受控信息条件最接近（规则 / 先例 / 答案空间三分离，[2610.07953](https://arxiv.org/abs/2610.07953)）；D1 上游证据（标签名压倒定义等）全部来自研究者写的提示词 | **零覆盖**：没有任何评测集用**业务人员写的**定义 / 判据 / 示例作为输入变量 |
-| **P11 可审计** | **零**。现有工作都是在模型外面补结构（策略树路由、Yes/No/Unknown 节点树、证据记录） | **零覆盖** |
-| **P12 风险可被预算** | 风险预算决策（[2610.19811](https://arxiv.org/abs/2610.19811)）、SHIFT-JEV 的认证部分（§6.4.2） | **单篇孤证** |
+| **P1 Output must be in the option set** | No benchmark needed (structural). But "right type, wrong semantics" is only tested **incidentally** (T3's AUC .815→.581 with zero type errors) | **Structurally guaranteed, but "the false sense of safety that type safety gives" is systematically measured by nobody** |
+| **P2 Answered in one forward pass / extra questions nearly free** | None. Latency and cost are scattered across papers, and checklist item C4 (with / without cache) has compliance **3/20** | **Zero systematic coverage** |
+| **P3 Calibration** | TypedBench (relative to the noise floor), Sys1Cal-v1 (P(A) known by construction), DecisionPivot, JEVal, Decision Index, social-science annotation audit, online moderation suite | **The most thoroughly covered cell**, but the protocols differ from each other (§1.4.5: at least five algorithms for ECE) |
+| **P4 Consistency under equivalent formulations (= L2 semantic idempotence)** | DecisionPivot (contrast groups), TypedBench (median and range across paraphrases), CALM bias suite, ordinal-scale bias (40 datasets), test-language audit, paired Agent decision points (order reversal) | **Dense coverage of interventions but the equivalence class is never defined**: each paper tests one intervention, and checklist item T3 (option-name invariance) was done by **only 1/27** papers; no evaluation set measures "business equivalence" as an equivalence class as a whole (§2.1.4) |
+| **P5 Confidence usable for routing** | System1-Arena, Doom fast/slow switching (calibration / accuracy / sensitivity separated three ways), rubric review cascade, Indonesian regional-language cascade | **Covered but with negative conclusions**, and "the two uncertainties" have been tested in **only one domain, content moderation** ([2610.33258](https://arxiv.org/abs/2610.33258)) |
+| **P6 Fallback / abstention** | PFR test ([2610.19856](https://arxiv.org/abs/2610.19856)), arithmetic refusal bottleneck ([2609.39496](https://arxiv.org/abs/2609.39496)) | **Two isolated papers**, and neither is a general benchmark |
+| **P7 "I don't know" can be expressed (P(U))** | Sys1Cal-v1 ([2609.35342](https://arxiv.org/abs/2609.35342)) | **A single isolated paper** |
+| **P8 Knowing what it does not know** | Controlled self-knowledge audit ([2610.01006](https://arxiv.org/abs/2610.01006)), the selective-prediction part of the biosafety audit ([2609.30454](https://arxiv.org/abs/2609.30454)) | **A single isolated paper + a single domain** |
+| **P9 Probabilistic self-consistency (axioms)** | Probability axiom battery, 160 items / 480 pairs ([2609.33209](https://arxiv.org/abs/2609.33209)), Probability Contracts, 1,000 worlds ([2609.37470](https://arxiv.org/abs/2609.37470)) | **Two papers, and at a tiny scale**; "self-consistency after combining n judgments" is zero |
+| **P10 Configurable by business staff in text** | The controlled information conditions of the online moderation suite come closest (rules / precedents / answer space separated three ways, [2610.07953](https://arxiv.org/abs/2610.07953)); all upstream D1 evidence (label names override definitions, etc.) comes from prompts written by researchers | **Zero coverage**: no evaluation set uses definitions / criteria / examples **written by business staff** as an input variable |
+| **P11 Auditable** | **Zero**. All existing work adds structure outside the model (policy-tree routing, Yes/No/Unknown node trees, evidence records) | **Zero coverage** |
+| **P12 Risk can be budgeted** | Risk-budgeted decisions ([2610.19811](https://arxiv.org/abs/2610.19811)), the certification part of SHIFT-JEV (§6.4.2) | **A single isolated paper** |
 
-### 7.3.1 还有三类被密集评测、但不在业务属性清单上的东西
+### 7.3.1 Three more things that are densely evaluated but not on the business property list
 
-它们说明现有评测的重心与业务目标并不对齐。
+They show that the center of gravity of existing evaluation is not aligned with business goals.
 
-1. **对抗与安全**：JevAdvBench、选项通道攻击、上下文投毒（[2610.15537](https://arxiv.org/abs/2610.15537)）、请求呈现方式的对抗线索（[2610.11436](https://arxiv.org/abs/2610.11436)）、同数字引用互换（[2610.08675](https://arxiv.org/abs/2610.08675)）。这一格的证据密度**高于兜底与自知**，而后两者是业务上更常触发的失败。
-2. **隐私与接口泄漏**：TUPLE-Bench 把"返回的字段本身是信息泄漏"这件事量化了，结论是**置信字段增加泄漏而不一致地降成本**（[2610.23668](https://arxiv.org/abs/2610.23668)）。这条对"要不要把概率暴露给下游"是直接的设计约束，而 §2.1的属性清单里没有这一条——**说明业务属性清单本身也不完整**。
-3. **文化与人群效度**：文化价值审计（[2609.36399](https://arxiv.org/abs/2609.36399)）、偏见案例研究（[2610.19619](https://arxiv.org/abs/2610.19619)）、心理测量审计（[2610.14912](https://arxiv.org/abs/2610.14912)）、人口实验核（[2609.27535](https://arxiv.org/abs/2609.27535)）。
+1. **Adversarial and safety**: JevAdvBench, option-channel attacks, context poisoning ([2610.15537](https://arxiv.org/abs/2610.15537)), adversarial cues in how the request is presented ([2610.11436](https://arxiv.org/abs/2610.11436)), swapping citations with the same number ([2610.08675](https://arxiv.org/abs/2610.08675)). The evidence density in this cell is **higher than for fallback and self-knowledge**, while the latter two are the failures triggered more often in business.
+2. **Privacy and interface leakage**: TUPLE-Bench quantified the fact that "the returned fields are themselves an information leak", concluding that **the confidence field increases leakage while lowering cost inconsistently** ([2610.23668](https://arxiv.org/abs/2610.23668)). This is a direct design constraint on "whether to expose probabilities downstream", and the property list of §2.1 does not contain it: **which shows the business property list itself is also incomplete**.
+3. **Cultural and population validity**: cultural values audit ([2609.36399](https://arxiv.org/abs/2609.36399)), bias case study ([2610.19619](https://arxiv.org/abs/2610.19619)), psychometric audit ([2610.14912](https://arxiv.org/abs/2610.14912)), population experiment kernel ([2609.27535](https://arxiv.org/abs/2609.27535)).
 
-## 7.4 跨评测集的数字不可比，这是结构性的
+## 7.4 Numbers across evaluation sets are incomparable, and this is structural
 
-§1.4已给出完整清单，这里只强调它对"评测"这件事的三个直接后果。
+§1.4 already gives the full list; here I only stress its three direct consequences for "evaluation".
 
-1. **同一个指标名下至少五种算法**：ECE 有 10/15 等宽、15 等质量、相对零假设等至少五种；"翻转率"有五种分母；"弃权"是选项、概率带、分数还是兜底动作各篇不同（§1.4.5、§1.4.6、§1.4.8）。
-2. **聚合分数会掩盖对照组表现**：参照轨只差 2.6 点的两个 27B 模型，对照组准确率是 70.1% 与 44.2%（[2610.28522](https://arxiv.org/abs/2610.28522)）。这是"为什么不能只看排行榜"的最清楚的一个数字。
-3. **概率排序好 ≠ 两边都答对**：2,400 个二元对照对上，正例被排在负例之上的比例 92.3%，而两边都答对只有 74.1%（同上）。业务上执行的是**决策**，不是排序。
+1. **At least five algorithms under the same metric name**: ECE has at least five variants (10/15 equal-width bins, 15 equal-mass bins, relative to a null hypothesis, and so on); "flip rate" has five denominators; whether "abstention" is an option, a probability band, a score or a fallback action differs by paper (§1.4.5, §1.4.6, §1.4.8).
+2. **Aggregate scores hide contrast-group performance**: two 27B models only 2.6 points apart on the reference track have contrast-group accuracy of 70.1% and 44.2% ([2610.28522](https://arxiv.org/abs/2610.28522)). This is the clearest single number for "why one cannot just look at the leaderboard".
+3. **Good probability ranking ≠ both sides right**: on 2,400 binary contrast pairs, the positive is ranked above the negative 92.3% of the time, yet both sides are right only 74.1% (same source). What business executes is the **decision**, not the ranking.
 
-## 7.5 从业务目标反推：哪些能力目前无法被任何现有评测集判定
+## 7.5 Working backward from business goals: which capabilities no existing evaluation set can currently decide
 
-下面每一条都是"**现有评测集给不出判定**"，而不是"我们应该做什么"。
+Each item below is "**the existing evaluation sets cannot give a verdict**", not "what we should do".
 
-| # | 业务上要判定的事 | 为什么现有评测集判不了 |
+| # | What business needs decided | Why the existing evaluation sets cannot decide it |
 | --- | --- | --- |
-| 1 | **每正确结果的端到端成本** | 检查表 C4 合规 3/20；两篇姊妹论文在不同负载上报出相反的成本方向；一篇自审计把"省 23.9%"改成"省 4.3%"（[2609.32160](https://arxiv.org/abs/2609.32160)、[2610.02267](https://arxiv.org/abs/2610.02267)）。没有任何论文给出"省 44 倍成本但掉 11.6 个 F1 点到底赚不赚"的可计算口径 |
-| 2 | **决策微调是否保留 / 破坏 ICL** | 没有任何论文测量过决策训练**前后**的 k-shot 曲线（§3.1盲区、§6.3.2） |
-| 3 | **业务人员自己写的规则能不能被忠实执行** | 所有 D1 / D2 / D3 证据的提示词都是研究者写的；没有评测集把"规则的作者是非技术业务专家"作为变量（§3.2、§7.3 的 P10） |
-| 4 | **中文业务规则决策** | 中文决策数据只有一家，且面向通用 / 医法金融；**没有面向业务规则的中文决策数据**（§6.1.4.1） |
-| 5 | **序数项开了之后刻度利用率提高多少** | [2609.38827](https://arxiv.org/abs/2609.38827) 说"可被定向训练缓解"但未给跨数据集训练对照；PACT 的序数传输只有 324 条冻结保留集、三个种子（§6.5盲区 2） |
-| 6 | **三条数值路线哪条更好** | 区间决策树、分箱分类、解码式回归头**从未在同一批数值决策上被比较**（§6.5盲区 3） |
-| 7 | **把一个判断拆成 n 个判断之后，组合的校准是什么** | 关于概率自洽的全部证据是 160 条、480 对（[2609.33209](https://arxiv.org/abs/2609.33209)）；分解只在单层上测过（§6.5.5.2） |
-| 8 | **被记录的业务流程自身的一致性上限** | 只有一篇测过（跨轨迹留一法把天花板定在 25.6%–44.9%，重复状态彼此不一致多于一致），且是单一域（[2610.25985](https://arxiv.org/abs/2610.25985)）。**公开基准结构上测不到这个量** |
-| 9 | **阈值跨负载 / 跨兜底模型的迁移** | 检查表 C3 要求测迁移，已观察到"在选择集上拟合的阈值并非对每个兜底模型都在保留条目上成立，拟合温度跨负载不同"（[2609.32160](https://arxiv.org/abs/2609.32160)）；但没有任何基准把"迁移"作为主指标 |
-| 10 | **把判断变便宜之后判断总量变成多少 / 决策权怎么被改写** | 只有一篇概念论文，自述是"技术性挑衅而非既成的经验结果"（[2610.01231](https://arxiv.org/abs/2610.01231)） |
-| 11 | **"两个不确定性"在非审核域是否成立** | 只在内容审核一个域被测过，且作者明确说补救手段是特异的、对分布敏感（[2610.33258](https://arxiv.org/abs/2610.33258)） |
-| 12 | **可审计性** | 零评测集。模型按构造不产生文字理由（[2610.11392](https://arxiv.org/abs/2610.11392)、[2610.22526](https://arxiv.org/abs/2610.22526)） |
-| 13 | **L2 语义幂等：等价的业务情形是否给等价的指标** | 现有工作只测单一干预下的翻转率（顺序、措辞、语气、标签名各一篇，§2.1.4 的表）。**没有任何论文定义"业务等价"这个等价类并测量指标在该等价类上的稳定性**；而 harness 只能保证"同一指标 → 同一动作"，保证不了这一层（§2.1.4） |
-| 14 | **harness 侧"同一指标 → 同一动作"在真实系统里是否成立** | harness 可靠性只有一篇按七个部件（上下文、执行、治理、生命周期、可观测性、工具、校验）来测（[2610.32285](https://arxiv.org/abs/2610.32285)），且不是针对 Jev 类模型 |
+| 1 | **End-to-end cost per correct result** | Checklist item C4 compliance 3/20; two sister papers report opposite cost directions on different workloads; one self-audit revised "save 23.9%" to "save 4.3%" ([2609.32160](https://arxiv.org/abs/2609.32160), [2610.02267](https://arxiv.org/abs/2610.02267)). No paper gives a computable protocol for "is saving 44× in cost while losing 11.6 F1 points actually worth it" |
+| 2 | **Whether decision fine-tuning preserves / destroys ICL** | No paper has measured the k-shot curve **before and after** decision training (§3.1 blind spot, §6.3.2) |
+| 3 | **Whether rules written by business staff themselves can be executed faithfully** | The prompts in all D1 / D2 / D3 evidence were written by researchers; no evaluation set treats "the rule's author is a non-technical business expert" as a variable (§3.2, P10 in §7.3) |
+| 4 | **Chinese business-rule decisions** | Chinese decision data comes from a single source and targets general-purpose / medical-legal-finance; **there is no Chinese decision data aimed at business rules** (§6.1.4.1) |
+| 5 | **How much scale utilization improves once ordinal items are enabled** | [2609.38827](https://arxiv.org/abs/2609.38827) says it "can be mitigated by targeted training" but gives no cross-dataset training control; PACT's ordinal transfer has only a 324-item frozen held-out set and three seeds (§6.5 blind spot 2) |
+| 6 | **Which of the three numeric routes is better** | Interval decision trees, binned classification, and decoded regression heads **have never been compared on the same batch of numeric decisions** (§6.5 blind spot 3) |
+| 7 | **What the combined calibration is after splitting one judgment into n judgments** | All evidence on probabilistic self-consistency is 160 items and 480 pairs ([2609.33209](https://arxiv.org/abs/2609.33209)); decomposition has only been tested at a single level (§6.5.5.2) |
+| 8 | **The consistency ceiling of the recorded business process itself** | Only one paper measured it (cross-trajectory leave-one-out puts the ceiling at 25.6%–44.9%, with repeated states inconsistent with each other more often than consistent), and in a single domain ([2610.25985](https://arxiv.org/abs/2610.25985)). **Public benchmarks structurally cannot measure this quantity** |
+| 9 | **Threshold transfer across workloads / across fallback models** | Checklist item C3 requires testing transfer, and it has been observed that "a threshold fitted on the selection set does not hold on held-out items for every fallback model, and the fitted temperature differs across workloads" ([2609.32160](https://arxiv.org/abs/2609.32160)); but no benchmark makes "transfer" its main metric |
+| 10 | **What the total volume of judgments becomes once judgment is cheap / how decision authority gets rewritten** | Only one conceptual paper, self-described as "a technical provocation rather than an established empirical result" ([2610.01231](https://arxiv.org/abs/2610.01231)) |
+| 11 | **Whether "the two uncertainties" hold outside the moderation domain** | Tested in only one domain, content moderation, and the authors explicitly say the remedies are specific and distribution-sensitive ([2610.33258](https://arxiv.org/abs/2610.33258)) |
+| 12 | **Auditability** | Zero evaluation sets. The model by construction produces no textual rationale ([2610.11392](https://arxiv.org/abs/2610.11392), [2610.22526](https://arxiv.org/abs/2610.22526)) |
+| 13 | **L2 semantic idempotence: do equivalent business situations give equivalent metrics** | Existing work only measures the flip rate under a single intervention (order, wording, tone, label name, one paper each; the table in §2.1.4). **No paper defines the equivalence class "business equivalence" and measures the stability of the metric on that class**; and the harness can only guarantee "same metric → same action", not this layer (§2.1.4) |
+| 14 | **Whether the harness-side "same metric → same action" holds in real systems** | Harness reliability has been measured by only one paper, across seven components (context, execution, governance, lifecycle, observability, tools, validation) ([2610.32285](https://arxiv.org/abs/2610.32285)), and not for Jev-class models |
 
-## 7.6 本章小结与盲区
+## 7.6 Chapter summary and blind spots
 
-**应该怎么评测**：文献已给出 14 项检查表与一张最小报告卡（版本与日期、模型分差、一个普通 LM 读出基线、一个便宜的生成式基线、重复运行区间、保留集校准、冻结并测过迁移的级联阈值）。现有论文对它的合规率低，B1 是 5/26、T3 是 1/27、C4 是 3/20——这意味着公开数字里"接口的功劳"与"模型的功劳"基本没被分开过。
+**How evaluation should be done**: the literature already gives a 14-item checklist and a minimal report card (version and date, model score gap, a plain-LM readout baseline, a cheap generative baseline, intervals across repeated runs, held-out calibration, a frozen cascade threshold tested for transfer). Existing papers comply with it at a low rate: B1 is 5/26, T3 is 1/27, C4 is 3/20. This means that in the published numbers "the interface's credit" and "the model's credit" have essentially never been separated.
 
-**当前评测集覆盖了什么**：准确率、校准、一致性 / 对照组、对抗稳健、领域横向能力、Agent 场景，覆盖密集且有多个大规模基准（System1-Arena 92k 题 + 138 个闭环环境、DecisionPivot 40,033 条、JEVal 11,257 条、TypedBench 的四件事联测）。
+**What the current evaluation sets cover**: accuracy, calibration, consistency / contrast groups, adversarial robustness, cross-domain capability, Agent scenarios; coverage is dense and there are several large-scale benchmarks (System1-Arena with 92k questions + 138 closed-loop environments, DecisionPivot with 40,033 items, JEVal with 11,257 items, TypedBench's four things tested jointly).
 
-**没覆盖什么**：兜底、unknown、自知、概率自洽、风险预算五格是单篇或两篇孤证；**业务人员可配置与可审计两格是零**；而业务目标本身（每正确结果的端到端成本）没有任何可复现口径。
+**What is not covered**: the five cells fallback, unknown, self-knowledge, probabilistic self-consistency and risk budgeting rest on one or two isolated papers; **the two cells "configurable by business staff" and "auditable" are zero**; and the business goal itself (end-to-end cost per correct result) has no reproducible protocol at all.
 
-**本章自身的盲区**：
+**This chapter's own blind spots**:
 
-1. **本章的覆盖判定依赖"被测对象 = §2.1的十二条属性"这一前提**，而 §7.3.1 已经证明该清单不完整（TUPLE-Bench 的接口泄漏不在其中）。属性清单本身需要继续扩充，第 §5.2的覆盖矩阵会随之变化。
-2. **合规率全部来自单篇审计的编码**（[2609.32160](https://arxiv.org/abs/2609.32160)），其语料只有 28 篇、九天窗口，且作者自述若干项需要判断、无法可靠评分处留空。此后一个月新增的大量论文（System1-Arena、TypedBench、DecisionPivot、JEVal 等）**没有被按同一检查表重新编码过**，所以"合规率是否已改善"是未知的。
-3. **本报告自己没有运行任何评测**。全部数字来自论文与文档的转述，口径差异（§1.4）意味着跨论文的任何比较都只能定性。
+1. **The coverage verdicts of this chapter depend on the premise "objects under test = the twelve properties of §2.1"**, and §7.3.1 has already shown that this list is incomplete (TUPLE-Bench's interface leakage is not in it). The property list itself needs further extension, and the coverage matrix of §5.2 will change accordingly.
+2. **All compliance rates come from the coding of a single audit** ([2609.32160](https://arxiv.org/abs/2609.32160)), whose corpus is only 28 papers over a nine-day window, and whose authors state that several items required judgment and left blanks where they could not score reliably. The many papers added in the following month (System1-Arena, TypedBench, DecisionPivot, JEVal, etc.) **have not been recoded against the same checklist**, so "whether the compliance rate has improved" is unknown.
+3. **This report ran no evaluation of its own**. All numbers are restated from papers and documents, and the protocol differences (§1.4) mean any cross-paper comparison can only be qualitative.

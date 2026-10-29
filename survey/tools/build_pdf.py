@@ -2,7 +2,7 @@
 """Build a printable A4 PDF of the survey from README.md and chapters 1–9.
 
 Usage: python3 tools/build_pdf.py [output.pdf]
-Requires: python-markdown, weasyprint, and the "Noto Sans CJK SC" font installed.
+Requires: python-markdown, weasyprint, and a Noto Sans font (the CJK SC variant works for English too).
 """
 import re
 import sys
@@ -21,7 +21,7 @@ CSS = """
   size: A4;
   margin: 16mm 14mm 18mm 14mm;
   @bottom-center { content: counter(page) " / " counter(pages); font-size: 8pt; color: #666; }
-  @top-right { content: "Jev 类快思考模型与快/慢协同框架调研"; font-size: 7.5pt; color: #888; }
+  @top-right { content: "Survey: Jev-class fast-thinking models and fast/slow cooperation frameworks"; font-size: 7.5pt; color: #888; }
 }
 @page :first { @top-right { content: none; } }
 body { font-family: "Noto Sans CJK SC", "Noto Sans", sans-serif; font-size: 9.2pt; line-height: 1.42; color: #111; }
@@ -56,7 +56,7 @@ hr { border: 0; border-top: 0.6pt solid #aaa; margin: 8pt 0; }
 
 
 def slug(text, used):
-    s = re.sub(r'[^\w一-鿿]+', '-', text).strip('-').lower() or 'sec'
+    s = re.sub(r'[^\w]+', '-', text).strip('-').lower() or 'sec'
     base, n = s, 1
     while s in used:
         n += 1
@@ -118,10 +118,10 @@ def convert(path, used, first):
 
 def cover_html():
     today = datetime.date.today().isoformat()
-    return (f'<div class="cover"><h1>下一代 Agent 技术路线调研</h1>'
-            f'<p>Jev 类快思考模型（System One）与快 / 慢协同框架</p>'
-            f'<p>调研报告 · 仅分析与调研，不含训练方案</p>'
-            f'<p>生成日期：{today}</p></div>')
+    return (f'<div class="cover"><h1>Next-Generation Agent Technology Route Survey</h1>'
+            f'<p>Jev-class fast-thinking models (System One) and fast / slow cooperation frameworks</p>'
+            f'<p>Survey report · analysis and survey only, no training plan</p>'
+            f'<p>Generated: {today}</p></div>')
 
 
 def main():
@@ -132,10 +132,10 @@ def main():
         parts.append(html)
         toc.extend(t)
     cover = cover_html()
-    toc_html = '<div id="toc"><h1 class="first">目录</h1><ul>' + ''.join(
+    toc_html = '<div id="toc"><h1 class="first">Contents</h1><ul>' + ''.join(
         f'<li class="lvl{l}"><a href="#{s}">{t}</a></li>' for l, t, s in toc) + '</ul></div>'
     body = cover + toc_html + ''.join(parts)
-    doc = f'<html><head><meta charset="utf-8"><title>Jev 类快思考模型调研报告</title></head><body>{body}</body></html>'
+    doc = f'<html><head><meta charset="utf-8"><title>Survey of Jev-class fast-thinking models</title></head><body>{body}</body></html>'
     weasyprint.HTML(string=doc, base_url=ROOT).write_pdf(OUT, stylesheets=[weasyprint.CSS(string=CSS)])
     print(OUT, os.path.getsize(OUT) // 1024, 'KB')
 

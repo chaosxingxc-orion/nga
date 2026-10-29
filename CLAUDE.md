@@ -12,9 +12,9 @@ docstrings, commit messages, PR descriptions) and every memory file.
   the work in English. Replies to the user may use the user's language; artifacts never do.
 - Any non-English text found in the engineering plan (`proposal/`, `experiments/`, this file) must be
   translated into English when encountered. Do not add new non-English text anywhere in the repo.
-- Status 2026-10-29: `proposal/` and `experiments/` are fully English. `survey/` (the published
-  Chinese survey report, chapters 1–9, plus the PDF built from it) has not been translated; do not add
-  Chinese to it, and confirm with the user before translating it wholesale.
+- Status 2026-10-29: the whole repository is English, including the survey report (chapters 1–9,
+  translated from the Chinese original on 2026-10-29; the Chinese original is in git history up to
+  commit 82d2a49). Do not add non-English text anywhere.
 
 ## 2. What this repository is
 
@@ -22,7 +22,7 @@ A survey and research program on Jev-class single-pass typed-readout decision mo
 models) and the fast/slow agent frameworks built around them. The user's own goal is continued
 training of small Qwen-class decoder models, scaled up along one model family.
 
-- `survey/` — the analysis-only report (chapters `01`–`09`, `README.md`, `nga-survey.pdf`).
+- `survey/` — the analysis-only report (chapters `01`–`09`, `README.md`, `nga-survey.pdf`), in English.
   **The survey stays analysis-only: no training recipes, no architecture picks.** Extend existing
   sections; do not add chapter files. `survey/tools/build_pdf.py` builds the PDF (python-markdown +
   weasyprint, Noto Sans CJK in `~/.fonts/`); `survey/tools/check_overflow.py` checks for content

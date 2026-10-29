@@ -1,10 +1,10 @@
-# 9 · 参考文献
+# 9 · References
 
-> 全部条目带链接。正文引用的每一篇都在此，§9.1 的篇数与正文引用数一致（校验脚本见提交记录）。
+> Every entry carries a link. Every paper cited in the body is listed here; the count in §9.1 equals the number of citations in the body (the checking script is in the commit history).
 
-## 9.1 arXiv 论文（共 283 篇）
+## 9.1 arXiv papers (283 in total)
 
-| ID | 日期 | 标题 |
+| ID | Date | Title |
 | --- | --- | --- |
 | [2102.09690](https://arxiv.org/abs/2102.09690) | 2021-02-19 | Calibrate Before Use: Improving Few-Shot Performance of Language Models |
 | [2110.15943](https://arxiv.org/abs/2110.15943) | 2021-10-29 | MetaICL: Learning to Learn In Context |
@@ -290,48 +290,48 @@
 | [2610.35721](https://arxiv.org/abs/2610.35721) | 2026-10-26 | Can JEV Support Clinical Trial Criteria Assessment? |
 | [2610.35826](https://arxiv.org/abs/2610.35826) | 2026-10-26 | Understanding Jev-Style System One Models: Does Structure Reduce Selection Bias? |
 
-## 9.2 TypeSafe 官方文档与页面
+## 9.2 TypeSafe official documentation and pages
 
-| 页面 | URL |
+| Page | URL |
 | --- | --- |
-| 发布博客：Introducing System One models and Jev | https://typesafe.ai/blog/introducing-system-one-models-and-jev |
-| 文档首页 | https://docs.typesafe.ai/introduction |
-| 机器学习入门（primer） | https://docs.typesafe.ai/introduction/machine-learning-primer |
-| System One 概念 | https://docs.typesafe.ai/concepts/system-one |
-| 如何用 System One 构建 | https://docs.typesafe.ai/concepts/how-to-build-with-system-one |
-| State 概念 | https://docs.typesafe.ai/concepts/state |
-| 用例地图 | https://docs.typesafe.ai/concepts/use-case-map |
-| 原语：Score | https://docs.typesafe.ai/primitives/score |
-| 原语：进阶 | https://docs.typesafe.ai/primitives/advanced |
-| 置信度 | https://docs.typesafe.ai/confidence |
-| 模式总览 | https://docs.typesafe.ai/patterns |
-| 模式：扇出 | https://docs.typesafe.ai/patterns/fan-out |
-| 模式：复合打分 | https://docs.typesafe.ai/patterns/composite-scoring |
-| 模式：置信路由 | https://docs.typesafe.ai/patterns/confidence-routing |
+| Launch blog post: Introducing System One models and Jev | https://typesafe.ai/blog/introducing-system-one-models-and-jev |
+| Documentation home | https://docs.typesafe.ai/introduction |
+| Machine-learning primer | https://docs.typesafe.ai/introduction/machine-learning-primer |
+| Concept: System One | https://docs.typesafe.ai/concepts/system-one |
+| How to build with System One | https://docs.typesafe.ai/concepts/how-to-build-with-system-one |
+| Concept: State | https://docs.typesafe.ai/concepts/state |
+| Use-case map | https://docs.typesafe.ai/concepts/use-case-map |
+| Primitive: Score | https://docs.typesafe.ai/primitives/score |
+| Primitives: advanced | https://docs.typesafe.ai/primitives/advanced |
+| Confidence | https://docs.typesafe.ai/confidence |
+| Patterns overview | https://docs.typesafe.ai/patterns |
+| Pattern: fan-out | https://docs.typesafe.ai/patterns/fan-out |
+| Pattern: composite scoring | https://docs.typesafe.ai/patterns/composite-scoring |
+| Pattern: confidence routing | https://docs.typesafe.ai/patterns/confidence-routing |
 | Agent skill | https://docs.typesafe.ai/agent-skill |
-| 模型列表 | https://docs.typesafe.ai/models |
-| 模型 jaggedness（jev-1.13） | https://docs.typesafe.ai/model-jaggedness/jev-1.13 |
-| Cookbooks 总览 | https://docs.typesafe.ai/cookbooks |
-| Cookbook：Noul 自洽性 | https://docs.typesafe.ai/cookbooks/consistency_noul_cookbook |
-| Cookbook：autoresearch 特征发现 | https://docs.typesafe.ai/cookbooks/autoresearch_feature_discovery |
-| 官方评测页 | https://evals.typesafe.ai/ |
-| typesafe-ai/skills 仓库 | https://github.com/typesafe-ai/skills |
+| Model list | https://docs.typesafe.ai/models |
+| Model jaggedness (jev-1.13) | https://docs.typesafe.ai/model-jaggedness/jev-1.13 |
+| Cookbooks overview | https://docs.typesafe.ai/cookbooks |
+| Cookbook: Noul self-consistency | https://docs.typesafe.ai/cookbooks/consistency_noul_cookbook |
+| Cookbook: autoresearch feature discovery | https://docs.typesafe.ai/cookbooks/autoresearch_feature_discovery |
+| Official evaluation page | https://evals.typesafe.ai/ |
+| typesafe-ai/skills repository | https://github.com/typesafe-ai/skills |
 | system-one-adapter-python | https://github.com/typesafe-ai/system-one-adapter-python |
 
-## 9.3 开源复现、工具与模型卡
+## 9.3 Open-source reproductions, tools and model cards
 
-| 项目 | URL |
+| Project | URL |
 | --- | --- |
 | Kev（jaredpalmer） | https://github.com/jaredpalmer/kev |
-| Kev-9B 模型卡 | https://huggingface.co/jaredpalmer/kev-9b |
+| Kev-9B model card | https://huggingface.co/jaredpalmer/kev-9b |
 | Tev1（Together） | https://github.com/togethercomputer/tev1 |
-| Tev1-4B-experimental 模型卡 | https://huggingface.co/togethercomputer/Tev1-4B-experimental |
-| Together 博客：How to train your own Jev | https://www.together.ai/blog/how-to-train-your-own-jev |
+| Tev1-4B-experimental model card | https://huggingface.co/togethercomputer/Tev1-4B-experimental |
+| Together blog: How to train your own Jev | https://www.together.ai/blog/how-to-train-your-own-jev |
 | Nimble（Bespoke Labs） | https://github.com/bespokelabsai/nimble |
-| Bespoke-Nimble-9B-v3 模型卡 | https://huggingface.co/bespokelabs/Bespoke-Nimble-9B-v3 |
-| pplx-decider-v1.2 模型卡 | https://huggingface.co/perplexity-ai/pplx-decider-v1.2 |
+| Bespoke-Nimble-9B-v3 model card | https://huggingface.co/bespokelabs/Bespoke-Nimble-9B-v3 |
+| pplx-decider-v1.2 model card | https://huggingface.co/perplexity-ai/pplx-decider-v1.2 |
 | OneJev（OmniJev） | https://github.com/OmniJev/OneJev |
-| OneJev-9B 模型卡 | https://huggingface.co/OmniJev/OneJev-9B |
+| OneJev-9B model card | https://huggingface.co/OmniJev/OneJev-9B |
 | OmniJev flide | https://github.com/OmniJev/flide |
 | awesome-jev-papers | https://github.com/OmniJev/awesome-jev-papers |
 | awesome-jev-gallery | https://github.com/OmniJev/awesome-jev-gallery |
@@ -341,7 +341,7 @@
 | qwen-rlcd（shamazharikh） | https://github.com/shamazharikh/qwen-rlcd |
 | Mapika decider | https://github.com/Mapika/decider |
 | StartLux-Decision | https://github.com/StartLuxLabs/StartLux-Decision |
-| StartLux-Decision-v1.1-27B-Instant-GGUF 模型卡 | https://huggingface.co/startlux-models/StartLux-Decision-v1.1-27B-Instant-GGUF |
+| StartLux-Decision-v1.1-27B-Instant-GGUF model card | https://huggingface.co/startlux-models/StartLux-Decision-v1.1-27B-Instant-GGUF |
 | jevlike（mustafasemi-ai） | https://github.com/mustafasemi-ai/jevlike |
 | this-that-model（FLock-io） | https://github.com/FLock-io/this-that-model |
 | openjev-sglang（ekzhang） | https://github.com/ekzhang/openjev-sglang |
@@ -352,18 +352,18 @@
 | jev-ultrafast（browser-use） | https://github.com/browser-use/jev-ultrafast |
 | WaterSheep | https://github.com/SamratDuttaOfficial/WaterSheep |
 | Laya（NandhaKishorM） | https://github.com/NandhaKishorM/laya |
-| Laya 模型页 | https://huggingface.co/convaiinnovations/laya |
-| Laya 官网 | https://laya.convaiinnovations.com/ |
+| Laya model page | https://huggingface.co/convaiinnovations/laya |
+| Laya website | https://laya.convaiinnovations.com/ |
 | decision-index（apolinario） | https://github.com/apolinario/decision-index |
-| Jev Decision Index 文章 | https://systemonemodels.org/examples/articles/jev-decision-index/ |
+| Jev Decision Index article | https://systemonemodels.org/examples/articles/jev-decision-index/ |
 | Jev Decision Index（HF Space） | https://huggingface.co/spaces/multimodalart/jev-decision-index |
 
-## 9.4 其他网页
+## 9.4 Other web pages
 
-| 页面 | URL |
+| Page | URL |
 | --- | --- |
 | Archer Hume：Jev's Architecture Unmasked | https://archerhume.com/posts/jevs-architecture-unmasked |
-| Agent Skills 规范 | https://agentskills.io/specification |
+| Agent Skills specification | https://agentskills.io/specification |
 | OpenAI：Introducing gpt-oss-safeguard | https://openai.com/index/introducing-gpt-oss-safeguard/ |
 | LangChain：Building a harness with Jev | https://www.langchain.com/blog/building-a-harness-with-jev |
 | Wikipedia：Jev (AI model) | https://en.wikipedia.org/wiki/Jev_(AI_model) |

@@ -1,334 +1,332 @@
-# 4 · 一致性：主指标、它的分母，以及符号干预下的失效
+# 4 · Consistency: the primary metric, its denominator, and failure under symbolic interventions
 
-> 按 §2.2 的 P1，**一致率是主指标、正确率是声明的地板**。本章是这个主指标的全部证据，分两半。
+> Per P1 in §2.2, **the consistency rate is the primary metric and accuracy is the declared floor**. This chapter is the full body of evidence for that primary metric, in two halves.
 >
-> §4.1（原 D2 维度）是**符号干预**下的一致性：规则、否定、算术/时间、兜底选项、指令层级、对抗上下文。它的核心发现是瓶颈不在"读"而在"做"——策略修改被正确读出，但只在 22%–72% 的情况下被执行。§4.2（原 D4 维度）把"数值一致性"拆成 **30 个子维度**（A 同输入稳定性 / B 选项表示依赖 / C 逻辑相干 / D 不确定性语义 / E 输入内容敏感 / F 接口与动作），每项给出可量化定义与现有证据。
+> §4.1 (the former D2 dimension) is consistency under **symbolic interventions**: rules, negation, arithmetic/time, fallback options, instruction hierarchy, adversarial context. Its core finding is that the bottleneck is not in "reading" but in "doing": policy modifications are read out correctly but executed in only 22%–72% of cases. §4.2 (the former D4 dimension) splits "numerical consistency" into **30 sub-dimensions** (A same-input stability / B option-representation dependence / C logical coherence / D uncertainty semantics / E input-content sensitivity / F interface and actions), each with a quantifiable definition and the existing evidence.
 >
-> 必须与 §2.1.8 合读：**同一个模型的"一致率"，在字节级重跑口径下是 99.83%，在保答案对抗变体口径下是 53.7%——相差 46 个百分点**。所以在取定分母之前，"一致率"不是一个指标；而唯一有业务含义的那个分母（业务声明的等价类）无人定义过。
+> This must be read together with §2.1.8: **the "consistency rate" of the same model is 99.83% under the byte-level rerun protocol and 53.7% under the answer-preserving adversarial variant protocol, a gap of 46 percentage points**. So before the denominator is fixed, "consistency rate" is not a metric; and the only denominator with business meaning (the equivalence classes the business declares) has never been defined by anyone.
 
-## 4.1 D2 符号化指令遵循：规则、否定、算术/时间、兜底、层级与对抗
+## 4.1 D2 symbolic instruction following: rules, negation, arithmetic/time, fallback, hierarchy and adversarial context
 
-> 口径：模型拿到一条**符号化**的指令（规则、阈值、条件、层级、兜底规则），能否在单遍前向中忠实执行。与 D1 的区别：D1 关心"示例 / 定义是否被利用"，D2 关心"给定被读懂的规则，决策是否按规则产生"。与 D3 的区别：D3 关心"怎样写规则才能被执行"。
+> Protocol: the model receives a **symbolic** instruction (rule, threshold, condition, hierarchy, fallback rule); can it execute it faithfully in a single forward pass? Difference from D1: D1 cares about "whether the examples / definitions are used"; D2 cares about "given a rule that has been understood, is the decision produced according to the rule". Difference from D3: D3 cares about "how to write rules so that they get executed".
 
-### 4.1.1 上游基线：生成式 LLM 的规则遵循
+### 4.1.1 Upstream baseline: rule following in generative LLMs
 
-| 事实 | 出处 |
+| Fact | Source |
 | --- | --- |
-| RuLES：14 个简单文本场景中，LLM 遵循"不要做 X"类规则的能力可被越狱绕过，需要程序化评测 | [2311.04235](https://arxiv.org/abs/2311.04235) |
-| RuleArena：航空行李费、NBA 交易、税法三领域的真实规则需要长上下文、逻辑推理与精确算术，超出一阶逻辑 | [2412.08972](https://arxiv.org/abs/2412.08972) |
-| **扩展规则遵循失败**：126 个领先模型变体都不能在一个模型相关、语法敏感的计数容量阈值之上准确计数；失败是突然的，且随规模、推理时间增加而持续 | [2605.02028](https://arxiv.org/abs/2605.02028) |
-| 可验证指令遵循过拟合于一小组约束，对未见约束泛化差（IFBench）；RLVR 会奖励黑客（约束满足上升、回答质量下降，CALIF 修正） | [2507.02833](https://arxiv.org/abs/2507.02833)、[2610.19525](https://arxiv.org/abs/2610.19525) |
-| WISE：同一操作要求换个措辞，合规率大幅变化；五种"避免/排除"表述低于正向基线 | [2610.05278](https://arxiv.org/abs/2610.05278) |
-| 指令层级：非对抗的良性冲突也常见；失败可分解为"识别相关指令 / 解决冲突 / 推理对了但输出违规"三类 | [2604.09075](https://arxiv.org/abs/2604.09075)、[2606.07808](https://arxiv.org/abs/2606.07808) |
-| **静默范围遗漏（SSO）**：模型应用一般规则但悄悄丢掉嵌套的例外与反例外；NormBench 2,290 条中英法规条款 | [2606.08932](https://arxiv.org/abs/2606.08932) |
-| 小模型的**约束税**：<3B 模型在结构化输出约束下答案与可执行准确率下降；约束解码消除结构错误但暴露规模相关的语义缺口 | [2605.26128](https://arxiv.org/abs/2605.26128)、[2609.23742](https://arxiv.org/abs/2609.23742) |
-| 状态跟踪需要"当下写出的推理"：锁状态任务上，大部分违规减少来自动作时刻的推理，保留早期推理贡献小，填充文本或准确的状态表都不能替代 | [2610.25760](https://arxiv.org/abs/2610.25760) |
+| RuLES: across 14 simple text scenarios, LLMs' ability to follow "do not do X" rules can be bypassed by jailbreaks; programmatic evaluation is needed | [2311.04235](https://arxiv.org/abs/2311.04235) |
+| RuleArena: real rules in three domains (airline baggage fees, NBA trades, tax law) require long context, logical reasoning and exact arithmetic, beyond first-order logic | [2412.08972](https://arxiv.org/abs/2412.08972) |
+| **Scaled rule-following failure**: none of 126 leading model variants can count accurately above a model-dependent, grammar-sensitive counting capacity threshold; the failure is abrupt and persists as scale and inference time increase | [2605.02028](https://arxiv.org/abs/2605.02028) |
+| Verifiable instruction following overfits to a small set of constraints and generalizes poorly to unseen constraints (IFBench); RLVR reward-hacks (constraint satisfaction rises, answer quality falls; CALIF corrects this) | [2507.02833](https://arxiv.org/abs/2507.02833), [2610.19525](https://arxiv.org/abs/2610.19525) |
+| WISE: rephrasing the same operational requirement changes the compliance rate substantially; five "avoid/exclude" phrasings fall below the positive baseline | [2610.05278](https://arxiv.org/abs/2610.05278) |
+| Instruction hierarchy: non-adversarial benign conflicts are also common; failures decompose into three classes: "identifying the relevant instruction / resolving the conflict / reasoning correctly but outputting a violation" | [2604.09075](https://arxiv.org/abs/2604.09075), [2606.07808](https://arxiv.org/abs/2606.07808) |
+| **Silent scope omission (SSO)**: models apply the general rule but quietly drop nested exceptions and counter-exceptions; NormBench, 2,290 Chinese and English statutory clauses | [2606.08932](https://arxiv.org/abs/2606.08932) |
+| The **constraint tax** on small models: <3B models lose answer accuracy and executable accuracy under structured-output constraints; constrained decoding removes structural errors but exposes scale-dependent semantic gaps | [2605.26128](https://arxiv.org/abs/2605.26128), [2609.23742](https://arxiv.org/abs/2609.23742) |
+| State tracking needs "reasoning written out in the moment": on a lock-state task, most of the violation reduction comes from reasoning at the moment of action; retained earlier reasoning contributes little, and neither filler text nor an accurate state table can substitute for it | [2610.25760](https://arxiv.org/abs/2610.25760) |
 
-**含义**：生成式 LLM 能靠写出中间步骤弥补一部分规则执行；单遍决策模型没有这条路，所以 D2 的失效会更"硬"。
+**Implication**: generative LLMs can compensate for part of rule execution by writing out intermediate steps; a single-pass decision model has no such route, so D2 failures will be "harder".
 
-### 4.1.2 决策模型上的证据：按失效类型分组
+### 4.1.2 Evidence on decision models: grouped by failure type
 
-#### 4.1.2.1 读得对、做得错（组合失效）
+#### 4.1.2.1 Reading right, acting wrong (composition failure)
 
-**Reading Right, Acting Wrong**（[2610.18579](https://arxiv.org/abs/2610.18579)）是 D2 的核心诊断：
+**Reading Right, Acting Wrong** ([2610.18579](https://arxiv.org/abs/2610.18579)) is the core diagnosis for D2:
 
-- 六个最准的系统上，**73%–85% 的决策错误发生在"每个被测事实都答对"的状态上**，且这个份额随准确率升高而增大。
-- 14 个"有能力的"快系统在**同样的 141 个状态**上全部出错（随机预期为 0）。
-- 在"探针足以决定动作"的生成状态上，能读对所有事实、也能从事实完美决策的模型，**一旦要从轨迹同时做两件事就掉 20–45 点**；用它们自己的事实答案能恢复 15–28 点；**在代码里由事实组合出动作可达 0.96–1.00**。
-- 真实状态上"决策本身常常缺失"：ALFWorld 上"说出下一个子目标"给 JEV +16 点，任何事实块最多 +5。
-- 删掉历史会在"早期观测重要"的地方让准确率坍塌；**策略修改被正确读出但只在 22%–72% 的情况下被执行**；校准误差 2.6%–26.6%。
-- 解码器快系统延迟 27–225 ms，开源 LM 的似然读出 317–947 ms，推理模型 2.3 s。
+- On the six most accurate systems, **73%–85% of decision errors occur on states where "every probed fact is answered correctly"**, and this share grows as accuracy rises.
+- 14 "capable" fast systems all err on **the same 141 states** (random expectation: 0).
+- On generated states where "the probes suffice to determine the action", models that can read every fact correctly and can decide perfectly from the facts **drop 20–45 points as soon as they have to do both things from the trajectory at once**; using their own fact answers recovers 15–28 points; **composing the action from the facts in code reaches 0.96–1.00**.
+- On real states "the decision itself is often missing": on ALFWorld, "state the next sub-goal" gives JEV +16 points, while any block of facts gives at most +5.
+- Deleting history collapses accuracy where "early observations matter"; **policy modifications are read out correctly but executed in only 22%–72% of cases**; calibration error 2.6%–26.6%.
+- Decoder fast systems have latency 27–225 ms, likelihood readout from open-source LMs 317–947 ms, reasoning models 2.3 s.
 
-**结论**：单遍模型的瓶颈是"事实 → 动作"的**组合**，而不是"读"。这直接支持 TypeSafe 自己的设计原则（"把独立问题一起问，在代码里组合"）和 D3 的方向（原语 + 代码组合）。
+**Conclusion**: the bottleneck of single-pass models is the **composition** "facts → action", not "reading". This directly supports TypeSafe's own design principle ("ask independent questions together, compose in code") and the direction of D3 (primitives + composition in code).
 
-#### 4.1.2.2 算术、时间与否定
+#### 4.1.2.2 Arithmetic, time and negation
 
-| 证据 | 数字 | 出处 |
+| Evidence | Numbers | Source |
 | --- | --- | --- |
-| 官方锯齿：不可靠计数、把日期当文本读 | — | [jaggedness](https://docs.typesafe.ai/model-jaggedness/jev-1.13) |
-| MathQA 比前沿中位数低 17.7 点，低于全部 19 个 LLM | — | [2610.11978](https://arxiv.org/abs/2610.11978) |
-| 医学上数值驱动任务明显弱于文本驱动任务 | — | [2610.18529](https://arxiv.org/abs/2610.18529) |
-| DecisionPivot：Perplexity Decider 在 2,400 个二元对照对上 **92.3% 的对里把更高的 yes 概率给了正例，却只有 74.1% 的对两边都分类正确**；难度 1→3 配对准确率 87.7%→57.4%（Instant 90.7%→65.3%）；"算术与时间对照暴露大的性能缺口"；API 聊天模型在 63–93% 的情况下 top 概率 ≥0.99 | **排序对、分类错**是算术/时间类的典型形态 | [2610.28522](https://arxiv.org/abs/2610.28522) |
-| Kev 的日期事实补充（代码算好天数写进 state）把截止期策略题 0.80→0.90 | "把算术交给代码"的直接实证 | [jaredpalmer/kev](https://github.com/jaredpalmer/kev) |
-| 否定互补性：Jev 对 P(A)+P(¬A)=1 的平均绝对违反 0.064，Qwen3.8-27B 首 token 读出 0.293、口头读出 0.122；Jev 19.0% 的对偏差 >0.1，违反量是其重复噪声下限的 ~5 倍；**单标签陈述平均概率 0.380，而一致性要求 1/3** | 否定不是免费的 | [2609.33209](https://arxiv.org/abs/2609.33209) |
-| TypedBench 有专门的否定套件（Suite G）与严重度阶梯套件（F） | — | [2610.11392](https://arxiv.org/abs/2610.11392) |
-| NumericJev：用多叉决策树递归细化数值范围，100 值网格 10 叉树只需两轮；比"直接从含正确答案的候选列表里选"高 2.93 pp；范围归一化 MAE 1.84% 对直接选择 5.18% | 数值输出可以用"范围选择"原语在代码里搭出来 | [2609.28587](https://arxiv.org/abs/2609.28587) |
-| Choice2Seq：Jev 在算术 / 词汇检索上选择准确率 97.1% / 99.5%，但**串行构造只保留 33.0% / 2.1%**；限制局部选项为候选支持的字符、显式位置索引可改善 | "选对答案"与"一步步构造答案"是两种能力 | [2610.16191](https://arxiv.org/abs/2610.16191) |
-| 同数字引用交换：金融报表里数值相同但角色不同的单元格，Jev 作为证据验证器会放过错角色引用、也会拒绝有效的替代引用；显式列标签有帮助 | 数值匹配 ≠ 角色识别 | [2610.08675](https://arxiv.org/abs/2610.08675) |
-| 对无关数值信息敏感 | — | [2610.19619](https://arxiv.org/abs/2610.19619) |
+| The vendor's zigzag: unreliable counting, dates read as text | — | [jaggedness](https://docs.typesafe.ai/model-jaggedness/jev-1.13) |
+| MathQA 17.7 points below the frontier median, below all 19 LLMs | — | [2610.11978](https://arxiv.org/abs/2610.11978) |
+| In medicine, numerically driven tasks are clearly weaker than text-driven tasks | — | [2610.18529](https://arxiv.org/abs/2610.18529) |
+| DecisionPivot: on 2,400 binary contrast pairs, Perplexity Decider **gives the higher yes probability to the positive item in 92.3% of pairs, yet classifies both sides correctly in only 74.1% of pairs**; pairwise accuracy from difficulty 1→3 goes 87.7%→57.4% (Instant 90.7%→65.3%); "arithmetic and temporal contrasts expose large performance gaps"; API chat models put top probability ≥0.99 in 63–93% of cases | **Ranked right, classified wrong** is the typical shape of the arithmetic/time class | [2610.28522](https://arxiv.org/abs/2610.28522) |
+| Kev's date-fact supplement (code computes the day count and writes it into the state) lifts the deadline-policy questions 0.80→0.90 | Direct empirical support for "hand arithmetic to code" | [jaredpalmer/kev](https://github.com/jaredpalmer/kev) |
+| Negation complementarity: Jev's mean absolute violation of P(A)+P(¬A)=1 is 0.064; Qwen3.8-27B first-token readout 0.293, verbalized readout 0.122; 19.0% of Jev's pairs deviate by >0.1, and the violation is ~5× its repeat-noise floor; **the mean probability of a single-label statement is 0.380, whereas consistency requires 1/3** | Negation is not free | [2609.33209](https://arxiv.org/abs/2609.33209) |
+| TypedBench has a dedicated negation suite (Suite G) and a severity-ladder suite (F) | — | [2610.11392](https://arxiv.org/abs/2610.11392) |
+| NumericJev: refines numerical ranges recursively with a multi-way decision tree; a 10-way tree needs only two rounds for a 100-value grid; 2.93 pp higher than "choosing directly from a candidate list that contains the correct answer"; range-normalized MAE 1.84% vs 5.18% for direct selection | Numerical output can be built in code from a "range selection" primitive | [2609.28587](https://arxiv.org/abs/2609.28587) |
+| Choice2Seq: Jev's selection accuracy on arithmetic / lexical retrieval is 97.1% / 99.5%, but **serial construction retains only 33.0% / 2.1%**; restricting local options to the characters supported by the candidates, and explicit position indices, improve this | "Picking the right answer" and "constructing the answer step by step" are two different capabilities | [2610.16191](https://arxiv.org/abs/2610.16191) |
+| Same-number reference swaps: cells in financial statements with the same value but different roles; Jev as an evidence verifier lets wrong-role references through and also rejects valid alternative references; explicit column labels help | Numerical matching ≠ role identification | [2610.08675](https://arxiv.org/abs/2610.08675) |
+| Sensitive to irrelevant numerical information | — | [2610.19619](https://arxiv.org/abs/2610.19619) |
 
-#### 4.1.2.3 拒绝、兜底与"正确答案缺席"
+#### 4.1.2.3 Refusal, fallback and "the correct answer is absent"
 
-| 证据 | 数字 | 出处 |
+| Evidence | Numbers | Source |
 | --- | --- | --- |
-| **算术相关的拒绝瓶颈**：答案在场准确率 99%，正确拒绝只有 7%；跨数值大小、运算深度、语境、拒绝标签都存在；**原生 Boolean 验证在同样的答案缺席算术题上 99% 精确匹配**，说明"能验证却不能拒绝"；用单独开发集选一个阈值把拒绝率 7%→79%，保留 97% 的答案在场准确率，不需重训 | 拒绝是读出层/阈值问题，不是能力问题 | [2609.39496](https://arxiv.org/abs/2609.39496) |
-| **Lost in the Fallback**：非对抗条件下，兜底规则本身让模型失败：TREC50 上 Intern 从常规分配 97.9% 跌到兜底分配 23.1%，即使显式给出正确类别也持续；**逻辑等价的兜底规则表述导致个体决策大幅分歧而总体准确率几乎不变** | 兜底规则是一种"符号化指令"，被读懂但不被执行 | [2610.19856](https://arxiv.org/abs/2610.19856) |
-| 拒绝策略迁移：在 DBpedia 上校准的 Jev 策略在 Emotion 上拒绝 69.3% 的覆盖输入，反向策略完全失去检测；10 个意图候选时 Laya 检出 99.0% 的域外查询但拒绝 48.8% 的覆盖查询 | 拒绝阈值不跨任务迁移 | [2610.03387](https://arxiv.org/abs/2610.03387) |
-| 法律：正确判例缺席时生成式 LLM 仍在 38–86% 的条目上选一个，最谨慎的决策模型 30%；CaseHOLD 上决策模型 88.1% 对最佳 LLM 88.2%，成本 1/55 | 决策模型的弃权**相对**更好但远非可靠 | [2610.29961](https://arxiv.org/abs/2610.29961) |
-| 医学：大多数模型不能识别正确答案缺失也不会用可选弃权 | — | [2610.18529](https://arxiv.org/abs/2610.18529) |
-| 记忆退休门：Jev 在 141 个同会话非变化上从不误退休，但**过早退休**：二元门在 39.2% "仅被暗示"的变化上退休；三路决策降到 15.5% 但付出 15.3 点检测代价；级联与简单抬高阈值无法区分 | 二元门对"已确立 vs 仅暗示"的区分需要第三个选项 | [2610.15710](https://arxiv.org/abs/2610.15710) |
-| 自知之明：无答案相关信息时 Jev 仍给显著选项最多 0.80；知识边界外新闻上置信超出准确率 0.21–0.33，重校准不能修复；但**针对性的 yes/no 问题**对"结果是否已定"AUROC 1.00、"证据是否充分" 0.95（置信度本身 0.85） | "问一个关于证据的问题"比"看置信度"更可靠 | [2610.01006](https://arxiv.org/abs/2610.01006) |
+| **The arithmetic-related refusal bottleneck**: answer-present accuracy 99%, correct refusal only 7%; this holds across number magnitude, operation depth, context and refusal label; **native Boolean verification reaches 99% exact match on the same answer-absent arithmetic items**, showing "can verify but cannot refuse"; choosing one threshold on a separate dev set takes the refusal rate 7%→79% while retaining 97% answer-present accuracy, with no retraining | Refusal is a readout-layer/threshold problem, not a capability problem | [2609.39496](https://arxiv.org/abs/2609.39496) |
+| **Lost in the Fallback**: under non-adversarial conditions, the fallback rule itself makes models fail: on TREC50, Intern drops from 97.9% on regular assignment to 23.1% on fallback assignment, and this persists even when the correct class is given explicitly; **logically equivalent phrasings of the fallback rule cause large divergence in individual decisions while overall accuracy barely changes** | A fallback rule is a kind of "symbolic instruction" that is understood but not executed | [2610.19856](https://arxiv.org/abs/2610.19856) |
+| Refusal policy transfer: a Jev policy calibrated on DBpedia rejects 69.3% of covered inputs on Emotion, and the reverse policy loses detection entirely; with 10 intent candidates Laya detects 99.0% of out-of-domain queries but rejects 48.8% of covered queries | Refusal thresholds do not transfer across tasks | [2610.03387](https://arxiv.org/abs/2610.03387) |
+| Law: when the correct precedent is absent, generative LLMs still pick one on 38–86% of items, the most cautious decision model on 30%; on CaseHOLD, decision model 88.1% vs best LLM 88.2%, at 1/55 the cost | Decision models' abstention is **relatively** better but far from reliable | [2610.29961](https://arxiv.org/abs/2610.29961) |
+| Medicine: most models can neither recognize that the correct answer is missing nor use the optional abstention | — | [2610.18529](https://arxiv.org/abs/2610.18529) |
+| Memory retirement gate: Jev never retires wrongly on 141 same-session non-changes, but **retires too early**: the binary gate retires on 39.2% of "merely hinted" changes; a three-way decision brings this down to 15.5% but at a 15.3-point detection cost; cascading and simply raising the threshold cannot make the distinction | Distinguishing "established vs merely hinted" with a binary gate needs a third option | [2610.15710](https://arxiv.org/abs/2610.15710) |
+| Self-knowledge: with no answer-relevant information, Jev still gives a salient option up to 0.80; on news outside its knowledge boundary, confidence exceeds accuracy by 0.21–0.33 and recalibration cannot fix it; but **targeted yes/no questions** reach AUROC 1.00 for "is the outcome already settled" and 0.95 for "is the evidence sufficient" (confidence itself 0.85) | "Asking a question about the evidence" is more reliable than "looking at confidence" | [2610.01006](https://arxiv.org/abs/2610.01006) |
 
-#### 4.1.2.4 指令层级与对抗上下文
+#### 4.1.2.4 Instruction hierarchy and adversarial context
 
-| 证据 | 数字 | 出处 |
+| Evidence | Numbers | Source |
 | --- | --- | --- |
-| 决策劫持（InjecAgent 510 例）：恶意内容移动动作概率但很少让 Jev 选攻击者目标；覆盖标记减少影响；自适应攻击把新验证调用的成功率从 1.8% 升到 3.5%，与小的初始决策边际相关 | 直接注入对 Jev 影响有限 | [2609.28613](https://arxiv.org/abs/2609.28613) |
-| **JevOut**：64 次目标评估内，短的"背景/程序性"上下文添加把 61.4%–73.2% 的初始正确决策导向预定错误选项；91.6% 被人判为自然且不含决定性证据；影响高置信决策，跨模型迁移 | **自然上下文**比直接注入危险得多 | [2609.30243](https://arxiv.org/abs/2609.30243) |
-| **JevAdvBench**：862 题、12 种黑盒攻击，翻转 46.3% 的 Jev 正确决策（重跑只翻 0.17%）；**不含命令的有缺陷论证翻转 77.2%**，接近直接注入 92.0%；八个开源 TDM 34.0%–51.7%；0.8 阈值下仍执行的决策中 23.5% 是错的 | 阈值不能挡攻击 | [2609.31142](https://arxiv.org/abs/2609.31142) |
-| **选项通道攻击**：七个开源模型做守卫，allow/block 准确率 36%–72%（随机 50%）；六行与策略无关的服务器日志把 fail-open 率从 0% 提到 63%；**给宽松选项起误导性名字（定义与被判文本不变）让四个把标签放进输入的模型 fail-open 93%–100%**；所有防御被击败；被攻击翻转的决策并不比原决策更不自信 | 选项名字是攻击面（与 D1 "名字压倒定义"同源） | [2610.12292](https://arxiv.org/abs/2610.12292) |
-| JevProbe：228 个真实 Jev 应用 2,273 测试，**81.5% 出现决策翻转**，其中 98.6% 导致潜在下游安全影响 | 应用层可达性 | [2610.18612](https://arxiv.org/abs/2610.18612) |
-| DICE：三个适配器输出（state 抽取、问题生成、输出解释）的有界替换都能改变最终决策，而 Jev 与 API 响应本身不在攻击者控制下 | 接口边界是攻击面 | [2610.14404](https://arxiv.org/abs/2610.14404) |
-| Poisoned into Action：执行感知协议，1,659 次 Jev-1.13 调用，自然检索下独立载荷在全部 60 次试验中到达 | 中毒证据经检索到达动作 | [2610.15537](https://arxiv.org/abs/2610.15537) |
-| 同一攻击不同裁判：50 种攻击变体 13 族，对 Jev、5 个 GPT/GLM 裁判、Llama Guard 3、Prompt Guard 2 的首次受控比较 | — | [2610.17820](https://arxiv.org/abs/2610.17820) |
-| **TrustJev**：受保护的策略打分 + 有界的证据修正（修正预算由可信策略与候选计算），0.6B 实现在三个数据集（认证、指令层级、可执行授权规则）上对 14 个基线取得最高 Balance，授权基准上 95.77% 的来源答对全部 32 种攻击（最强对比 80.98%） | **架构上分离"策略权威"与"不可信证据"**是目前唯一的结构性防御 | [2610.34826](https://arxiv.org/abs/2610.34826) |
-| 提示注入检测的校准与延后：LLM 裁判 AUROC 0.897，Jev 0.871，Prompt Guard 2 86M 0.757；在分布偏移下 allow/block/defer 策略需单独校准 | — | [2610.20907](https://arxiv.org/abs/2610.20907) |
-| 安全决策：高总体准确率与低平均校准误差可以掩盖"特定攻击组内高置信误判为安全"；严格漏检限制下自动放行很少，分开选 allow/block 阈值主要通过更多 block 增加自动化 | 要按攻击组报告 | [2609.33401](https://arxiv.org/abs/2609.33401) |
+| Decision hijacking (InjecAgent, 510 cases): malicious content moves action probabilities but rarely makes Jev pick the attacker's target; override markers reduce the effect; an adaptive attack raises the success rate of new verification calls from 1.8% to 3.5%, correlated with small initial decision margins | Direct injection has limited effect on Jev | [2609.28613](https://arxiv.org/abs/2609.28613) |
+| **JevOut**: within 64 target evaluations, short "background/procedural" context additions steer 61.4%–73.2% of initially correct decisions to a predetermined wrong option; 91.6% are judged by humans as natural and containing no decisive evidence; affects high-confidence decisions and transfers across models | **Natural context** is far more dangerous than direct injection | [2609.30243](https://arxiv.org/abs/2609.30243) |
+| **JevAdvBench**: 862 items, 12 black-box attacks, flipping 46.3% of Jev's correct decisions (reruns flip only 0.17%); **flawed arguments containing no commands flip 77.2%**, close to direct injection at 92.0%; eight open-source TDMs 34.0%–51.7%; among decisions still executed under a 0.8 threshold, 23.5% are wrong | Thresholds cannot block attacks | [2609.31142](https://arxiv.org/abs/2609.31142) |
+| **Option-channel attack**: seven open-source models as guards, allow/block accuracy 36%–72% (random 50%); six policy-irrelevant lines of server log raise the fail-open rate from 0% to 63%; **giving the permissive option a misleading name (definition and judged text unchanged) makes the four models that place labels in the input fail open 93%–100%**; all defenses are defeated; decisions flipped by the attack are no less confident than the original decisions | Option names are an attack surface (same root as D1 "names override definitions") | [2610.12292](https://arxiv.org/abs/2610.12292) |
+| JevProbe: 2,273 tests over 228 real Jev applications, **81.5% show decision flips**, 98.6% of which lead to potential downstream safety impact | Reachability at the application layer | [2610.18612](https://arxiv.org/abs/2610.18612) |
+| DICE: bounded substitutions in each of three adapter outputs (state extraction, question generation, output interpretation) can change the final decision, while Jev and the API response itself are not under the attacker's control | Interface boundaries are an attack surface | [2610.14404](https://arxiv.org/abs/2610.14404) |
+| Poisoned into Action: an execution-aware protocol, 1,659 Jev-1.13 calls; under natural retrieval the standalone payload arrives in all 60 trials | Poisoned evidence reaches the action through retrieval | [2610.15537](https://arxiv.org/abs/2610.15537) |
+| Same attack, different judges: 50 attack variants in 13 families, the first controlled comparison across Jev, 5 GPT/GLM judges, Llama Guard 3 and Prompt Guard 2 | — | [2610.17820](https://arxiv.org/abs/2610.17820) |
+| **TrustJev**: protected policy scoring + bounded evidence correction (the correction budget computed from the trusted policy and the candidates); a 0.6B implementation achieves the highest Balance against 14 baselines on three datasets (authentication, instruction hierarchy, executable authorization rules); on the authorization benchmark 95.77% of sources answer all 32 attacks correctly (strongest comparison 80.98%) | **Architecturally separating "policy authority" from "untrusted evidence"** is currently the only structural defense | [2610.34826](https://arxiv.org/abs/2610.34826) |
+| Calibration and deferral for prompt-injection detection: LLM judge AUROC 0.897, Jev 0.871, Prompt Guard 2 86M 0.757; under distribution shift the allow/block/defer policy needs separate calibration | — | [2610.20907](https://arxiv.org/abs/2610.20907) |
+| Safety decisions: high overall accuracy and low mean calibration error can mask "high-confidence misjudgment as safe within specific attack groups"; under a strict miss limit, automatic allow is rare, and choosing allow/block thresholds separately increases automation mainly through more blocks | Report per attack group | [2609.33401](https://arxiv.org/abs/2609.33401) |
 
-#### 4.1.2.5 规则迁移与措辞
+#### 4.1.2.5 Rule transfer and wording
 
-- "Which Differences Matter"（[2610.30045](https://arxiv.org/abs/2610.30045)）用**可执行算术规则**把"规则迁移、联合可靠性、信息使用"分开测：适配增益随最近源答案一致性增加；完全冲突的四元组增益小且在不同源分割间符号相反；**等价改写有相反的任务级效应**；外部表格带来的提升不能证明模型用了表格的值与映射。
-- Certo（[2609.37832](https://arxiv.org/abs/2609.37832)）：Qwen3-4B 联合打分器（state + 规则 + 候选一起读）规则敏感性 recall@1 1.00；改成可缓存的独立编码（候选编码一次复用，77 候选时约 5 倍便宜）**规则敏感性显著丢失**（摘要写 1.00 → 0.24，全文该处数字被遮蔽，以摘要为准），shortlist+rerank 救不回来；针对性反事实监督在保留的合成规则任务上恢复，但作者**未隔离"预测是否依赖所给规则"**。
-- 表格：决策模型在行分类/事实核验/异常检测上与 LLM 相当且更便宜，三个对问题表述更稳健，**但没有模型对表格组织方式稳健**，每个模型至少三分之一的行决策随格式变化（[2610.19536](https://arxiv.org/abs/2610.19536)）。
-- 图任务：准确的邻接识别不保证更广的结构正确性（[2610.06354](https://arxiv.org/abs/2610.06354)）。
+- "Which Differences Matter" ([2610.30045](https://arxiv.org/abs/2610.30045)) uses **executable arithmetic rules** to test "rule transfer, joint reliability, information use" separately: adaptation gain increases with the answer consistency of the nearest sources; fully conflicting quadruples give small gains whose sign flips across source splits; **equivalent rewrites have opposite task-level effects**; an improvement from an external table does not prove that the model used the table's values and mapping.
+- Certo ([2609.37832](https://arxiv.org/abs/2609.37832)): a Qwen3-4B joint scorer (state + rule + candidates read together) has rule-sensitivity recall@1 of 1.00; switching to cacheable independent encoding (candidates encoded once and reused, about 5× cheaper with 77 candidates) **loses rule sensitivity significantly** (the abstract says 1.00 → 0.24; the number at that point in the full text is masked, so the abstract is taken as authoritative), and shortlist+rerank cannot recover it; targeted counterfactual supervision recovers it on a held-out synthetic rule task, but the authors **did not isolate "whether the prediction depends on the given rule"**.
+- Tables: decision models match LLMs on row classification / fact verification / anomaly detection and are cheaper, and three are more robust to question phrasing, **but no model is robust to how the table is organized**; for every model at least one third of row decisions change with the format ([2610.19536](https://arxiv.org/abs/2610.19536)).
+- Graph tasks: accurate adjacency identification does not guarantee broader structural correctness ([2610.06354](https://arxiv.org/abs/2610.06354)).
 
-#### 4.1.2.6 决策模型作规则裁判
+#### 4.1.2.6 Decision models as rule judges
 
-- 九个面板七个基准上，Jev 与 Decider 在 27 次比较中最多 6 次显著落后于 flash 级 LLM 裁判，而后者贵 16–357 倍、慢 5–350 倍；**错在同样的地方**（[2609.29769](https://arxiv.org/abs/2609.29769)）。
-- Agent 轨迹安全：JEV 基准平均正类 F1 77.8 对最强生成式 74.1（[2609.34862](https://arxiv.org/abs/2609.34862)）。
-- CALM 偏置测试：八个 TDM 全部在 12 项中的 3–8 项有偏置；**情绪化语气把典型 TDM 准确率从 99% 拉到 42%**；全部八个在答案交换位置时改变裁决（2026 年 LLM 裁判几乎不变）；好的校准不防偏置（[2610.18122](https://arxiv.org/abs/2610.18122)）。
-- 首 token 读出会**高估**位置偏置：三个 Qwen3 裁判在 12%–49% 的对上不以裁决 token 开头，强制读出返回"先出现的那个"（[2610.00054](https://arxiv.org/abs/2610.00054)）。这对"用 logits 读出"的复现是个提醒。
+- Across nine panels and seven benchmarks, Jev and Decider lag significantly behind flash-tier LLM judges in at most 6 of 27 comparisons, while the latter are 16–357× more expensive and 5–350× slower; **they err in the same places** ([2609.29769](https://arxiv.org/abs/2609.29769)).
+- Agent trajectory safety: on the JEV benchmark, mean positive-class F1 of 77.8 vs 74.1 for the strongest generative model ([2609.34862](https://arxiv.org/abs/2609.34862)).
+- CALM bias tests: all eight TDMs show bias on 3–8 of 12 items; **an emotional tone pulls the typical TDM's accuracy from 99% to 42%**; all eight change their verdict when the answer positions are swapped (2026 LLM judges barely change); good calibration does not prevent bias ([2610.18122](https://arxiv.org/abs/2610.18122)).
+- First-token readout **overestimates** position bias: three Qwen3 judges do not begin with the verdict token on 12%–49% of pairs, and forced readout returns "whichever appears first" ([2610.00054](https://arxiv.org/abs/2610.00054)). This is a caution for reproductions that "read out from logits".
+### 4.1.3 Which work solves which class of problem (the D2 mini-matrix)
 
-### 4.1.3 哪些工作解决了哪类问题（D2 小矩阵）
-
-| 问题类 | 诊断工作 | 缓解工作 | 状态 |
+| Problem class | Diagnostic work | Mitigation work | Status |
 | --- | --- | --- | --- |
-| 事实→动作组合 | Reading Right | 代码组合（同篇） | **诊断清楚，解法在接口而非模型** |
-| 算术 / 时间 | 官方锯齿、DecisionPivot、MathQA、Choice2Seq | Kev 日期事实、NumericJev 范围树、"算术放代码" | 解法是工程约定，无模型侧突破 |
-| 否定 / 互补性 | 2609.33209、TypedBench G | — | 无缓解 |
-| 拒绝 / 兜底 | 2609.39496、Lost in the Fallback、2610.03387、法律/医学/记忆门 | 开发集阈值（7%→79%）、三路决策、针对证据的 yes/no 问题 | 阈值级缓解；**兜底语义不被执行**无解 |
-| 自然上下文攻击 | JevOut、JevAdvBench、选项通道、JevProbe、DICE、Poisoned | TrustJev（结构性）、覆盖标记（弱）、按攻击组报告 | 只有 TrustJev 是模型侧结构解 |
-| 规则迁移 / 措辞 | 2610.30045、Certo、表格、WISE | 反事实监督（Certo，未隔离） | 无通用解 |
-| 裁判偏置 | 2610.18122、2610.00054 | 测试再用 | 无缓解 |
-| 层级 / 例外 | NSHA、白盒诊断、NormBench（生成式） | — | **决策模型上零研究** |
+| Facts→action composition | Reading Right | Composition in code (same paper) | **Diagnosed clearly; the solution is in the interface, not the model** |
+| Arithmetic / time | The vendor's zigzag, DecisionPivot, MathQA, Choice2Seq | Kev date facts, NumericJev range tree, "arithmetic in code" | The solution is an engineering convention; no model-side breakthrough |
+| Negation / complementarity | 2609.33209, TypedBench G | none | No mitigation |
+| Refusal / fallback | 2609.39496, Lost in the Fallback, 2610.03387, law/medicine/memory gate | Dev-set threshold (7%→79%), three-way decision, yes/no questions about the evidence | Threshold-level mitigation; **fallback semantics not being executed** has no solution |
+| Natural-context attacks | JevOut, JevAdvBench, option channel, JevProbe, DICE, Poisoned | TrustJev (structural), override markers (weak), reporting per attack group | Only TrustJev is a model-side structural solution |
+| Rule transfer / wording | 2610.30045, Certo, tables, WISE | Counterfactual supervision (Certo, not isolated) | No general solution |
+| Judge bias | 2610.18122, 2610.00054 | Test before use | No mitigation |
+| Hierarchy / exceptions | NSHA, white-box diagnosis, NormBench (generative) | none | **Zero research on decision models** |
 
-### 4.1.4 D2 盲区
+### 4.1.4 D2 blind spots
 
-1. **兜底 / 例外 / 层级这三种"元规则"在单遍模型上的执行率**：Lost in the Fallback 只测了兜底；"嵌套例外被静默丢弃"（SSO）和"多来源指令冲突"在决策模型上没有基准。
-2. **"读得对、做得错"的训练侧解法**：Reading Right 的解法是代码组合；没有人尝试训练模型在单遍里做组合（也许本来就不该），也没有人量化"哪些组合能学会、哪些必须交给代码"的边界。
-3. **否定与互补性的训练目标**：2609.33209 给出了度量，没有工作把 P(A)+P(¬A)=1 当作训练约束。
-4. **拒绝的通用阈值**：2609.39496 的阈值是任务特定的；2610.03387 证明不迁移。"候选集覆盖率估计"作为一个独立问题没有被定义。
-5. **自然上下文攻击的防御评测口径**：JevAdvBench 与选项通道攻击证明"置信度不变"，TrustJev 只在三个数据集上；没有在 JevOut / JevAdvBench 上评 TrustJev 的结果。
-6. **规则的"可执行性分级"**：哪些规则是单遍可做（查找、匹配、单跳比较），哪些不可（计数、两次以上状态更新、算术），只有 2610.24929 给了一个"参考 LLM 需要多少思考 token"的代理指标（Jev 答对 97.5% 的一遍可解条目，其余只有 74%）。
+1. **The execution rate of the three "meta-rules" (fallback / exception / hierarchy) on single-pass models**: Lost in the Fallback tested only fallback; "nested exceptions silently dropped" (SSO) and "conflicting instructions from multiple sources" have no benchmark on decision models.
+2. **A training-side solution to "reading right, acting wrong"**: Reading Right's solution is composition in code; nobody has tried to train a model to compose within a single pass (perhaps it should not be done at all), and nobody has quantified the boundary of "which compositions can be learned and which must be handed to code".
+3. **A training objective for negation and complementarity**: 2609.33209 gives the measure; no work has used P(A)+P(¬A)=1 as a training constraint.
+4. **A general threshold for refusal**: the threshold in 2609.39496 is task-specific; 2610.03387 proves it does not transfer. "Estimating candidate-set coverage" has not been defined as a problem in its own right.
+5. **An evaluation protocol for defenses against natural-context attacks**: JevAdvBench and the option-channel attack prove that "confidence does not change"; TrustJev is only on three datasets; there is no result evaluating TrustJev on JevOut / JevAdvBench.
+6. **An "executability grading" of rules**: which rules are doable in a single pass (lookup, matching, single-hop comparison) and which are not (counting, two or more state updates, arithmetic); only 2610.24929 gives a proxy measure, "how many thinking tokens a reference LLM needs" (Jev answers 97.5% of single-pass-solvable items correctly, the rest only 74%).
+## 4.2 D4 consistency: split into 30 definable, measurable sub-questions
 
-## 4.2 D4 一致性：拆成 30 个可定义、可度量的子问题
+> Protocol (per the latest discussion): D4 is not just the four items "repetition, order, wording, calibration"; it has to **define and understand the question itself**. This section lists, one by one, the factors that appeared in the literature of the past two months and that make "the same business judgment" return different probabilities; for each item it gives the definition, the way to measure it, the existing evidence and the existing mitigations, and finally gives the matrix and the blind spots. This section is an exploration of the problem definition, not a solution.
 
-> 口径（按最新讨论）：D4 不只是"重复、顺序、措辞、校准"四项，而是要**自己定义并理解问题**。本节把近两个月文献里出现过的、会让"同一个业务判断"给出不同概率的因素逐一列出，每项给出定义、度量方式、已有证据与已有缓解，最后给出矩阵与盲区。本节是问题定义的探索，不是方案。
+### 4.2.1 Why Split It
 
-### 4.2.1 为什么要拆
+Jev's selling point is "probabilities that can be thresholded, composed and audited". But the evidence below shows: **for the same fact and the same rule, the probability changes with 25 factors unrelated to the business**. These changes are often invisible in accuracy: 2610.35826 found that after Jev was given 8 option orders the accuracy changed by less than 2 percentage points, but the cumulative failure set grew by 27–29%; 2609.27678 found that "corrections and regressions cancel each other out, accuracy is unchanged but the decisions changed". So the D4 measurement must be **decision-level, paired, item by item**, not aggregate accuracy.
 
-Jev 的卖点是"概率可阈值、可组合、可审计"。但下面的证据表明：**同一事实、同一规则，概率会随 25 种与业务无关的因素变化**。这些变化在准确率上往往看不见——2610.35826 发现 Jev 换 8 种选项顺序后准确率变化不到 2 个百分点，但累计失败集扩大 27–29%；2609.27678 发现"修正与回归相互抵消，准确率不变但决策变了"。所以 D4 的度量必须是**决策级、配对、逐项**的，而不是聚合准确率。
+### 4.2.2 Sub-Dimension Checklist
 
-### 4.2.2 子维度清单
+Format for each item: **Definition** → **Measurement** → **Evidence** → **Existing mitigation** → **Status**.
 
-每项格式：**定义** → **度量** → **证据** → **已有缓解** → **状态**。
+#### A. Stability on the Same Input
 
-#### A. 同一输入的稳定性
+**A1 Repeatability (same input, same configuration, multiple calls)**
+- Definition: the variance of the output probability for completely identical requests.
+- Measurement: intraclass correlation coefficient ICC; top-1 flip rate; absolute probability difference.
+- Evidence: 24 cultural-values questions, 288,000 answers, ICC 0.997 ([2609.36399](https://arxiv.org/abs/2609.36399)); Jev's negation inconsistency is about 5 times its repetition noise, which shows that the repetition noise itself is small ([2609.33209](https://arxiv.org/abs/2609.33209)); "consistent answers also preserve errors": repeated wrong answers account for most of the observed errors ([2609.27678](https://arxiv.org/abs/2609.27678)).
+- Mitigation: none needed; but high repeatability does not equal correctness, see A2–A4.
+- Status: **solved and misleading**: high repeatability makes people mistake it for robustness.
 
-**A1 重复性（同输入、同配置、多次调用）**
-- 定义：对完全相同的请求，输出概率的方差。
-- 度量：组内相关系数 ICC；top-1 翻转率；概率绝对差。
-- 证据：文化价值观 24 题 288,000 次回答 ICC 0.997（[2609.36399](https://arxiv.org/abs/2609.36399)）；Jev 的否定不一致是其重复噪声的约 5 倍，说明重复噪声本身很小（[2609.33209](https://arxiv.org/abs/2609.33209)）；"一致的答案也会保留错误"——重复的错误答案占观察到错误的大部分（[2609.27678](https://arxiv.org/abs/2609.27678)）。
-- 缓解：无需；但重复性高不等于正确，见 A2–A4。
-- 状态：**已解决且会误导**——高重复性让人误以为稳健。
+**A2 Numerical Precision / Quantization / Merge Drift**
+- Definition: the change of top-1 for the same weights under different precision, quantization or after merging.
+- Measurement: proportion of top-1 changes; maximum probability deviation.
+- Evidence: Kev's server-side bf16 differs from fp32 probabilities by at most ~0.03 (GPU) / 0.05 (Mac), about 1 top-1 change per 300 questions ([Kev README](https://github.com/jaredpalmer/kev)); Chinese Decision's merge and Q8_0 quantization each change 0.4–1.1% of top-1, the aggregate metrics are almost unchanged ([2610.23170](https://arxiv.org/abs/2610.23170)); Laya-typed's default CUDA path produced 5 paragraph swaps, and the probability shifts disappeared after an FP32 rerun ([2610.14631](https://arxiv.org/abs/2610.14631)); the damage from 4-bit quantization (RTN/GPTQ/AWQ) varies with model size and did not push any configuration into the passing range ([2610.00025](https://arxiv.org/abs/2610.00025)).
+- Status: **measurable, small in magnitude, but flips at the threshold boundary**.
 
-**A2 数值精度 / 量化 / 合并漂移**
-- 定义：同一权重在不同精度、量化、合并后 top-1 的变化。
-- 度量：top-1 变化比例；概率最大偏差。
-- 证据：Kev 服务端 bf16 对 fp32 概率差最多 ~0.03（GPU）/0.05（Mac），约每 300 题 1 题 top-1 变化（[Kev README](https://github.com/jaredpalmer/kev)）；Chinese Decision 合并与 Q8_0 量化各改变 0.4–1.1% 的 top-1，聚合指标几乎不变（[2610.23170](https://arxiv.org/abs/2610.23170)）；Laya-typed 默认 CUDA 路径产生 5 次段落交换，FP32 重跑后概率移动消失（[2610.14631](https://arxiv.org/abs/2610.14631)）；4-bit 量化（RTN/GPTQ/AWQ）的损伤随模型大小变化，没有把任何配置推入合格（[2610.00025](https://arxiv.org/abs/2610.00025)）。
-- 状态：**可度量、量级小、但在阈值边界会翻**。
+**A3 Version / Model Drift**
+- Definition: the change of decisions for the same business rule across model versions or across models.
+- Evidence: 2610.35826 covers two Jev versions, 12 reproductions, 6 LLMs; the tree SemTree compiled for judge A drops from 67.70% to 47.87% when moved to judge B ([2610.13999](https://arxiv.org/abs/2610.13999)); the rankings in Decision Index 0.4 fluctuate across versions ([Decision Index](https://systemonemodels.org/examples/articles/jev-decision-index/)).
+- Status: **almost no systematic research**; critical for our "self-trained model + business rule library" (whether rules must be recompiled with the model).
 
-**A3 版本 / 模型漂移**
-- 定义：同一业务规则在不同模型版本或不同模型之间的决策变化。
-- 证据：2610.35826 覆盖两个 Jev 版本、12 个复现、6 个 LLM；SemTree 为裁判 A 编译的树换到裁判 B 从 67.70% 跌到 47.87%（[2610.13999](https://arxiv.org/abs/2610.13999)）；Decision Index 0.4 的排名随版本波动（[Decision Index](https://systemonemodels.org/examples/articles/jev-decision-index/)）。
-- 状态：**几乎没有系统性研究**；对我们"自训模型 + 业务规则库"至关重要（规则是否要随模型重编译）。
+#### B. Dependence on Option Representation
 
-#### B. 选项表示的依赖
+**B1 Option Order / Position**
+- Definition: whether the decision changes after the option order is shuffled.
+- Measurement: flip rate of one shuffle; expansion of the cumulative failure set across 8 presentations; residual after cyclic-shift averaging.
+- Evidence: row 8 of the official jaggedness page admits it ([jaggedness](https://docs.typesafe.ai/model-jaggedness/jev-1.13)); Archer Hume's probe: card placed first 12/16, placed last 16/16 ([architecture](https://archerhume.com/posts/jevs-architecture-unmasked)); after reordering, Jev's accuracy changes <2 pp but the cumulative failure set grows +27–29%, the gain from voting is limited, "unanimously agreed answers are also often wrong" ([2610.35826](https://arxiv.org/abs/2610.35826)); for Qwen3-8B / Gemma 4 12B letter readout, one shuffle changes 20.0% / 11.9%, the published decision fine-tuning still changes 9.1%; changing only the letters without moving positions changes 9.1% / 14.0%, moving only positions without changing letters changes 12.0% / 22.7%; training on shuffled data plateaus ([2610.22066](https://arxiv.org/abs/2610.22066)); reversing the order changes 30% of Laya's answers ([2610.02267](https://arxiv.org/abs/2610.02267)); order mainly changes the answer when the model is uncertain about the top few, yet list-style answers look confident ([2610.18233](https://arxiv.org/abs/2610.18233)).
+- Mitigation: block-causal attention ([2610.01601](https://arxiv.org/abs/2610.01601)); Prism-1's position- and opponent-independent scoring (zero flips); Runoff's two stages (zero flips, cyclic-average residual 9.3%); AnyJev rotation + label-prior correction; PACT has the lowest position bias ([2609.35865](https://arxiv.org/abs/2609.35865)); Kev's `/permute` endpoint.
+- Status: **clearly defined, mature measurement, structural mitigations exist**; but the mitigations all target Choice, and the position problem of Score (B5) is counted separately.
 
-**B1 选项顺序 / 位置**
-- 定义：打乱选项顺序后决策是否变化。
-- 度量：一次洗牌的翻转率；8 种展示下的累计失败集扩张；循环平移平均后的残余。
-- 证据：官方 jaggedness 第 8 行承认（[jaggedness](https://docs.typesafe.ai/model-jaggedness/jev-1.13)）；Archer Hume 探针：卡片排第一 12/16，排最后 16/16（[architecture](https://archerhume.com/posts/jevs-architecture-unmasked)）；Jev 换序后准确率变化 <2 pp 但累计失败集 +27–29%，投票收益有限，"一致同意的答案也常错"（[2610.35826](https://arxiv.org/abs/2610.35826)）；Qwen3-8B / Gemma 4 12B 字母读出一次洗牌改 20.0% / 11.9%，已发布的决策微调仍改 9.1%；只换字母不动位置改 9.1% / 14.0%，只动位置不换字母改 12.0% / 22.7%；训练洗牌数据会平台化（[2610.22066](https://arxiv.org/abs/2610.22066)）；Laya 反转顺序改 30% 答案（[2610.02267](https://arxiv.org/abs/2610.02267)）；顺序主要在模型对前几名不确定时改变答案，但列表式答案看起来很自信（[2610.18233](https://arxiv.org/abs/2610.18233)）。
-- 缓解：块因果注意力（[2610.01601](https://arxiv.org/abs/2610.01601)）；Prism-1 位置与对手无关打分（零翻转）；Runoff 两阶段（零翻转，循环平均残余 9.3%）；AnyJev 旋转 + 标签先验校正；PACT 位置偏置最低（[2609.35865](https://arxiv.org/abs/2609.35865)）；Kev `/permute` 端点。
-- 状态：**定义清楚、度量成熟、结构性缓解已有**；但缓解都针对 Choice，Score 的位置问题（B5）另算。
+**B2 Option-Set Dependence / Independence of Irrelevant Alternatives (IIA)**
+- Definition: whether the log-odds between the correct option and the strongest wrong option change after adding an option that is neither correct nor the strongest competitor.
+- Measurement: ratio of the root-mean-square systematic shift of the log-odds (nats) to the between-run variation.
+- Evidence: Jev 1.13, pre-registered, 299,463 calls: every added option moves the log-odds, 0.20–0.52 nats, 1.2–3 times the between-run variation, even when the new option takes only 0.1% probability; the shift is directional (options that resemble the wrong answer draw probability from it, +0.10 nats; paraphrases of the wrong answer get less than half of its 1/3); it grows with log(number of options), about 1 nat at 255 items; out-of-domain padding pushes the odds away from the correct answer; **multiple questions packed into one call do not affect each other (deviation <0.001)**; independent per-option Noul removes the dependence but accuracy is 8.7 points lower ([2610.16655](https://arxiv.org/abs/2610.16655)); Archer Hume: an irrelevant option moves the log-odds +0.38→+0.11, in all 10 blocks ([architecture](https://archerhume.com/posts/jevs-architecture-unmasked)).
+- Mitigation: Prism-1's opponent independence; JevCascade's menu curation (0.8B on a curated 5-candidate menu 95.4% vs 4B on all 150 labels 80.0%, [2610.07716](https://arxiv.org/abs/2610.07716)).
+- Status: **pre-registered evidence and a formal definition exist**; "the probability is only valid relative to its option list" should become part of the interface documentation.
 
-**B2 选项集依赖 / 无关选项独立性（IIA）**
-- 定义：加入既非正确也非最强对手的选项后，正确与最强错误之间的对数几率是否变化。
-- 度量：log-odds 的均方根系统偏移（nats）与运行间变异之比。
-- 证据：Jev 1.13 预注册 299,463 次调用：每加一个选项都移动对数几率，0.20–0.52 nats，是运行间变异的 1.2–3 倍，即使新选项只拿 0.1% 概率；偏移有方向性（像错误答案的选项从它那里吸概率 +0.10 nats；错误答案的改写只拿到它一半以下的 1/3）；随 log(选项数) 增长，255 项时约 1 nat；域外填充把几率推离正确答案；**打包进一次调用的多个问题不互相影响（偏差 <0.001）**；逐选项独立 Noul 消除依赖但正确率低 8.7 点（[2610.16655](https://arxiv.org/abs/2610.16655)）；Archer Hume 无关选项让 log-odds +0.38→+0.11，10 个块全部如此（[architecture](https://archerhume.com/posts/jevs-architecture-unmasked)）。
-- 缓解：Prism-1 的对手无关性；JevCascade 的菜单策展（0.8B 在 5 候选策展菜单 95.4% 对 4B 全 150 标签 80.0%，[2610.07716](https://arxiv.org/abs/2610.07716)）。
-- 状态：**有预注册证据和形式化定义**；"概率只相对于其选项列表有效"应作为接口文档的一部分。
+**B3 Dependence on Option Names / Definitions**
+- Definition: how much the decision changes when option names are changed or definitions are removed or altered.
+- Evidence: see D1 §3.1.2.2 for details: replacing option names with meaningless codes takes AUC 93.8→23.2 ([2609.26758](https://arxiv.org/abs/2609.26758)); definitions can be removed (0.8487→0.7971), contradictory definitions 0.8511→0.2281 ([2610.02586](https://arxiv.org/abs/2610.02586)); giving the permissive option a misleading name raises the guard's false-allow rate to 93–100% ([2610.12292](https://arxiv.org/abs/2610.12292)); putting the literal meaning of an idiom into the option list draws away 65–96% of the remaining errors ([2610.22526](https://arxiv.org/abs/2610.22526)).
+- Status: **consistent conclusion: option names are the strongest lever and the largest attack surface**.
 
-**B3 选项名 / 定义的依赖**
-- 定义：改选项名、删或改定义，决策变化多少。
-- 证据：详见 D1 §3.1.2.2——选项名换成无语义代号 AUC 93.8→23.2（[2609.26758](https://arxiv.org/abs/2609.26758)）；定义可删（0.8487→0.7971），矛盾定义 0.8511→0.2281（[2610.02586](https://arxiv.org/abs/2610.02586)）；给宽松选项起误导性名字使守卫误放行率升至 93–100%（[2610.12292](https://arxiv.org/abs/2610.12292)）；把成语的字面义塞进选项列表吸走 65–96% 的剩余错误（[2610.22526](https://arxiv.org/abs/2610.22526)）。
-- 状态：**结论一致——选项名是最强杠杆也是最大攻击面**。
+**B4 Probability Allocation under Multiple Correct Options**
+- Definition: whether probability is distributed fairly among several options when they are all correct.
+- Evidence: three decision models, even when they rank all correct items above all distractors, still put at least one correct item below 1/n in 28–50% of the lists; five identical correct items differ in probability by 17–79 pp; **a threshold cannot identify the correct set** ([2610.29217](https://arxiv.org/abs/2610.29217)).
+- Status: **defined, measured, no mitigation**. Multi-label business rules ("which of the following clauses are triggered") must be split into multiple Nouls.
 
-**B4 多正确选项下的概率分配**
-- 定义：多个选项同为正确时，概率在它们之间是否公平分配。
-- 证据：三个决策模型即使把所有正确项排在所有干扰项之上，仍在 28–50% 的列表中让至少一个正确项低于 1/n；五份相同正确项的概率差 17–79 pp；**阈值不能识别正确集合**（[2610.29217](https://arxiv.org/abs/2610.29217)）。
-- 状态：**已定义、已度量、无缓解**。多标签业务规则（"以下哪些条款被触发"）必须拆成多个 Noul。
+**B5 Ordinal Scale Compression / Tendency toward the Middle**
+- Definition: in Score-type questions, decisions concentrate on fewer effective levels than the gold standard.
+- Measurement: effective label utilization (the proportion of the gold standard's effective support covered by the decisions); TVD.
+- Evidence: JEV 1.13 on 6,400 ANLI questions reaches 74.95% accuracy, yet gives 38.8% of predictions and 51.3% of errors to Neutral, while the gold standard is nearly balanced; on 36 ordinal datasets it uses only 60–76% of the effective gold support, versus 87–102% on 4 nominal tasks; finer scales worsen the compression; random order weakens but does not remove it; widening the level spacing raises accuracy but does not restore utilization; larger models recover inconsistently; targeted training can mitigate it ([2609.38827](https://arxiv.org/abs/2609.38827)).
+- Status: **defined, measured, a training mitigation direction is given**. Business scoring rules on a "1–10 scale" must take this into account.
 
-**B5 序数尺度压缩 / 向中趋势**
-- 定义：Score 类问题中决策集中到比金标准更少的有效档位。
-- 度量：有效标签利用率（决策对金标准有效支持的比例）；TVD。
-- 证据：JEV 1.13 在 ANLI 6,400 题准确率 74.95%，却把 38.8% 的预测、51.3% 的错误给 Neutral，而金标准接近均衡；36 个序数数据集上只用 60–76% 的有效金标准支持，对 4 个名义任务 87–102%；更细的尺度加剧压缩；随机顺序减弱但不消除；加大档距提升准确率但不恢复利用率；更大模型不一致地恢复；可用针对性训练缓解（[2609.38827](https://arxiv.org/abs/2609.38827)）。
-- 状态：**已定义、已度量、给出了训练缓解方向**。业务里"1–10 分"的评分规则要考虑这点。
+**B6 Question-Form Equivalence (Noul / Choice / Score / Packed / Separate)**
+- Definition: whether the probabilities agree when the same judgment is expressed as Noul, Choice, Score, or as several questions packed together / asked separately.
+- Evidence: for Jev the single-label probabilities of "the label is X" over the three options sum to 1.14 on average ([2609.33209](https://arxiv.org/abs/2609.33209)); normalized per-option Noul preserves higher accuracy than Choice scoring (medicine, [2610.18529](https://arxiv.org/abs/2610.18529)) but is 8.7 points lower on intent classification ([2610.16655](https://arxiv.org/abs/2610.16655)): the direction is **inconsistent**; pplx-decider asking several facets of the same message jointly gets 68.09 vs 67.75 separately, and joint asking over independent passages drops slightly by 0.2–0.4 ([pplx-decider](https://huggingface.co/perplexity-ai/pplx-decider-v1.2)); Kev provides a "packed vs separate" comparison tool.
+- Status: **the evidence contradicts itself and depends on the task**; "which primitive a business rule should be expressed in" has no general answer and is a quantity that D3 primitive design must measure.
 
-**B6 问题形式等价性（Noul / Choice / Score / 打包 / 分开）**
-- 定义：同一判断用 Noul、Choice、Score 或多问打包/分开表达时概率是否一致。
-- 证据：Jev 对"标签是 X"的单标签概率三者之和平均 1.14（[2609.33209](https://arxiv.org/abs/2609.33209)）；逐选项 Noul 归一化比 Choice 打分保留更高准确率（医学，[2610.18529](https://arxiv.org/abs/2610.18529)），但在意图分类上低 8.7 点（[2610.16655](https://arxiv.org/abs/2610.16655)）——方向**不一致**；pplx-decider 同一消息多侧面联合问 68.09 对分开 67.75，独立段落联合略降 0.2–0.4（[pplx-decider](https://huggingface.co/perplexity-ai/pplx-decider-v1.2)）；Kev 提供"打包 vs 分开"对比工具。
-- 状态：**证据相互矛盾、与任务有关**；"业务规则用哪种原语表达"没有通用答案，是 D3 原语设计必须测量的量。
+#### C. Consistency of Logic and Decomposition
 
-#### C. 逻辑与分解的一致性
+**C1 Hierarchical / Decompositional Coherence**
+- Definition: whether asking the fine label directly agrees with the distribution reconstructed from "ask the coarse class first, then the fine label".
+- Measurement: total variation TV at the coarse-class level; change in accuracy and ECE after reconstruction.
+- Evidence: 72,000 questions: Jev's TV 0.219–0.349, Laya 0.424–0.689; on CLINC150 reconstruction changes Jev's accuracy by −22.9 pp [−24.9, −20.9] and Laya's by +21.3; on MASSIVE Laya's accuracy +9.2 but ECE 0.046→0.124 ([2609.33971](https://arxiv.org/abs/2609.33971)); SemTree's multi-step tree is on par with asking directly (67.70 vs 68.23, [2610.13999](https://arxiv.org/abs/2610.13999)).
+- Status: **defined, clearly measured, the direction differs by model**; the "rule decomposition" of D3 must answer "are the probabilities still usable after decomposition".
 
-**C1 层级 / 分解相干性**
-- 定义：直接问细标签与"先问大类再问细标签"重构的分布是否一致。
-- 度量：大类级总变差 TV；重构后的准确率与 ECE 变化。
-- 证据：72,000 题：Jev 的 TV 0.219–0.349，Laya 0.424–0.689；CLINC150 上重构让 Jev 准确率 −22.9 pp [−24.9, −20.9]，让 Laya +21.3；MASSIVE 上 Laya 准确率 +9.2 但 ECE 0.046→0.124（[2609.33971](https://arxiv.org/abs/2609.33971)）；SemTree 多步树与直接问持平（67.70 对 68.23，[2610.13999](https://arxiv.org/abs/2610.13999)）。
-- 状态：**已定义、度量清楚、方向因模型而异**；D3 的"规则分解"必须回答"分解后概率还能用吗"。
+**C2 Probability Axioms such as Negation / Complement / Conjunction**
+- Definition: P(X)+P(¬X)=1, exclusive labels sum to 1, a conjunction is not larger than its single terms.
+- Evidence: Jev's negation pairs deviate by 0.064 on average (CI 0.055–0.072), Qwen3.8-27B first token 0.293, verbalized 0.122; Jev's violation is about 5 times the repetition noise and concentrates where it is uncertain; Qwen rejects both the statement and its negation in 196/480 pairs ([2609.33209](https://arxiv.org/abs/2609.33209)); Jev gets famous probability puzzles right every time but violates the same rule every time on adapted versions; 54% of 15,000 answers on 30 conjunction tasks violate it ([2610.19619](https://arxiv.org/abs/2610.19619)).
+- Mitigation: detectable without labels (axiom tests).
+- Status: **defined, label-free measurement exists, no training-side mitigation**.
 
-**C2 否定 / 互补 / 合取等概率公理**
-- 定义：P(X)+P(¬X)=1、互斥标签和为 1、合取不大于单项。
-- 证据：Jev 否定对平均偏 0.064（CI 0.055–0.072），Qwen3.8-27B 首 token 0.293、口头 0.122；Jev 违反量约为重复噪声 5 倍，集中在不确定处；Qwen 在 196/480 对中同时拒绝陈述与其否定（[2609.33209](https://arxiv.org/abs/2609.33209)）；Jev 在著名概率题上每次都对，但改编版每次都违反同一规则；30 个合取任务 15,000 次回答中 54% 违反（[2610.19619](https://arxiv.org/abs/2610.19619)）。
-- 缓解：无需标签即可检测（公理测试）。
-- 状态：**已定义、有免标签度量、无训练侧缓解**。
+**C3 Invariance under Equivalent Wording**
+- Definition: whether a logically equivalent rewording of the rule or question changes the decision.
+- Evidence: "decision services change their answer across equivalent wordings more often than across repetitions of the identical text" ([2610.30045](https://arxiv.org/abs/2610.30045)); logically equivalent formulations of fallback rules produce substantive disagreement ([2610.19856](https://arxiv.org/abs/2610.19856)); 21 rewrites of table tasks: three decision models are robust to the question wording, **none is robust to the table organization**, and for every model at least 1/3 of the row decisions change with the format ([2610.19536](https://arxiv.org/abs/2610.19536)); on medical tasks Jev keeps strong consistency under changes of question format ([2610.18529](https://arxiv.org/abs/2610.18529)).
+- Status: **clearly defined; the evidence shows "question wording" is more stable than "data format"**.
 
-**C3 等价措辞不变性**
-- 定义：规则或问题的逻辑等价改写是否改变决策。
-- 证据："决策服务跨等价措辞改变答案的次数多于跨同文重复"（[2610.30045](https://arxiv.org/abs/2610.30045)）；逻辑等价的兜底规则表述产生实质分歧（[2610.19856](https://arxiv.org/abs/2610.19856)）；表格任务 21 种改写：三个决策模型对问题表述稳健，**无一对表格组织稳健**，每个模型至少 1/3 的行决策随格式变（[2610.19536](https://arxiv.org/abs/2610.19536)）；医学任务下 Jev 对问题格式变化保持强一致性（[2610.18529](https://arxiv.org/abs/2610.18529)）。
-- 状态：**定义清楚；证据显示"问题措辞"比"数据格式"更稳**。
+**C4 Framing Effects and Cognitive-Bias Manipulation**
+- Definition: whether the probability changes when only the presentation (gain/loss framing, anchoring, irrelevant numbers) changes and the facts do not.
+- Evidence: at the level of the selected answer Jev avoids most human biases, but it is sensitive to irrelevant numerical information and option order, and several bias manipulations significantly change the returned probability even when the selected answer is unchanged ([2610.19619](https://arxiv.org/abs/2610.19619)); the effect of gain/loss framing on high-stakes LLM advice (upstream control, [2610.29294](https://arxiv.org/abs/2610.29294)).
+- Status: **selected answer stable, probability unstable**: thresholded systems are affected.
 
-**C4 框架效应与认知偏差操纵**
-- 定义：不改变事实、只改变呈现（得失框架、锚定、无关数字）时概率是否变化。
-- 证据：Jev 在选中答案层面避开多数人类偏差，但对无关数值信息与选项顺序敏感，多种偏差操纵显著改变返回概率即使选中答案不变（[2610.19619](https://arxiv.org/abs/2610.19619)）；得失框架对 LLM 高风险建议的影响（上游对照，[2610.29294](https://arxiv.org/abs/2610.29294)）。
-- 状态：**选中答案稳、概率不稳**——阈值化系统会受影响。
+#### D. The Meaning of Confidence
 
-#### D. 置信度的含义
+**D1 Calibration vs Discrimination vs Sensitivity (three things, not one)**
+- Definition: calibration = probability matches frequency; discrimination = AUROC of ranking right against wrong; sensitivity = whether confidence can separate right from wrong.
+- Evidence: models with similar accuracy differ greatly in AUROC, and the confidence of the most sensitive model tracks "which kind of situation will fail" rather than "which answer is wrong"; the gain from deferring the 30% least certain decisions has rank correlation 0.87 with AUROC ([2610.09683](https://arxiv.org/abs/2610.09683)); Jev ranks completion requests best (AUROC 0.78 vs rules 0.62, small LLM 0.60) yet is poorly calibrated: mean "completed" probability 0.50 while 87% actually pass ([2610.24649](https://arxiv.org/abs/2610.24649)); in Indonesian the ECE does not increase but the ability to rank its own errors degrades on all three datasets ([2610.14112](https://arxiv.org/abs/2610.14112)); Intern-Decision's Brier 0.628→0.550 and ECE 0.213→0.089 come from the training objective ([2610.22131](https://arxiv.org/abs/2610.22131)).
+- Status: **the concepts are separated; the three must be reported separately**.
 
-**D1 校准 vs 判别 vs 敏感性（三件事不是一件）**
-- 定义：校准 = 概率与频率匹配；判别 = 排序对错的 AUROC；敏感性 = 置信度能否把对错分开。
-- 证据：准确率相近的模型 AUROC 差异很大，最敏感模型的置信度追踪"哪类情境会失败"而非"哪个答案错"；延后 30% 最不确定决策的收益与 AUROC 秩相关 0.87（[2610.09683](https://arxiv.org/abs/2610.09683)）；Jev 对完成请求排序最好（AUROC 0.78 对规则 0.62、小 LLM 0.60）却校准差：平均"已完成"概率 0.50 而 87% 实际通过（[2610.24649](https://arxiv.org/abs/2610.24649)）；印尼语 ECE 不增但排序自身错误的能力在三个数据集上全部退化（[2610.14112](https://arxiv.org/abs/2610.14112)）；Intern-Decision Brier 0.628→0.550、ECE 0.213→0.089 来自训练目标（[2610.22131](https://arxiv.org/abs/2610.22131)）。
-- 状态：**概念已分清、三者要分别报告**。
+**D2 Two Kinds of Uncertainty (human disagreement vs decision risk)**
+- Evidence: 142,658 moderation comments: the model's AUROC 0.83 is indistinguishable from 13/14 frontier models; "confidence" mixes annotator disagreement with decision risk, and under asymmetric loss the two demand opposite escalation signals; splitting the judgment into parallel sub-questions and reading their dispersion recovers the disagreement signal, but only for the weakest model and only when the decomposition aligns with the source of disagreement ([2610.33258](https://arxiv.org/abs/2610.33258)).
+- Status: **defined; mitigation is conditional**.
 
-**D2 两种不确定性（人类分歧 vs 决策风险）**
-- 证据：142,658 条审核评论：模型 AUROC 0.83 与 13/14 前沿模型不可分；"置信度"混合了标注者分歧与决策风险，在非对称损失下两者要求相反的升级信号；把判断拆成并行子问题读其分散度可恢复分歧信号，但只对最弱模型有效且依赖分解对齐分歧来源（[2610.33258](https://arxiv.org/abs/2610.33258)）。
-- 状态：**已定义；缓解条件性**。
+**D3 Self-Knowledge (is low confidence "random" or "don't know")**
+- Evidence: with no relevant information at all Jev still gives the salient option up to 0.80; on news beyond its knowledge boundary confidence exceeds accuracy by 0.21–0.33 and recalibration on early months cannot fix it; targeted Nouls are sharper: whether the outcome is already settled AUROC 1.00, whether the evidence is sufficient 0.95 (vs answer confidence 0.85); "do you know the answer" seems to flag fictitious entities and post-boundary news (0.91), but after removing dates or using real names it is no better than answer uncertainty ([2610.01006](https://arxiv.org/abs/2610.01006)); on option lists without semantics the accuracy is random, yet the best-calibrated model still reports mean confidence 0.82; open-source models' confidence is inverted, and gating by confidence is worse than random ([2610.22526](https://arxiv.org/abs/2610.22526)).
+- Status: **defined; surface cues disguise themselves as self-knowledge**.
 
-**D3 自知之明（低置信是"随机"还是"不知道"）**
-- 证据：无任何相关信息时 Jev 仍给显著选项最高 0.80；超出知识边界的新闻上置信超准确 0.21–0.33 且早期月份重校准不能修复；定向 Noul 更锐：结果是否已定 AUROC 1.00、证据是否充分 0.95（对比答案置信 0.85）；"你知道答案吗"看似能标出虚构实体与边界后新闻（0.91），但去掉日期或用真实名字后不优于答案不确定性（[2610.01006](https://arxiv.org/abs/2610.01006)）；无语义选项列表上准确率为随机，最校准的模型仍报平均置信 0.82；开源模型置信反转，按置信门控比随机差（[2610.22526](https://arxiv.org/abs/2610.22526)）。
-- 状态：**已定义；表面线索会伪装成自知**。
+**D4 Calibration and Thresholds under Prevalence (Prior) Shift**
+- Evidence: Nimble-9B has only one more LoRA than Qwen3.5-9B, is better calibrated on intent tasks but Macro-F1 −12.0 on financial sentiment; under moderate shift, Jev's ECE and threshold risk are significantly higher than fine-tuned DeBERTa only on financial sentiment (+1.7/+2.5 pp), with an average gap ≤1 point over 2,000 scenarios; EM prior correction (label-free) lowers ECE by 2.7/1.8 points ([2610.26325](https://arxiv.org/abs/2610.26325)); SHIFT-JEV: KL anchor + temperature takes the calibration error under shift 0.289→0.087, and a chi-square test detects 95–99% of the class-prior shifts missed by confidence/embedding detectors ([2610.34329](https://arxiv.org/abs/2610.34329)).
+- Status: **measurement and cheap mitigation exist**.
 
-**D4 流行率（先验）偏移下的校准与阈值**
-- 证据：Nimble-9B 只比 Qwen3.5-9B 多一个 LoRA，意图任务校准更好但金融情感 Macro-F1 −12.0；中度偏移下 Jev 的 ECE 与阈值风险只在金融情感上显著高于微调 DeBERTa（+1.7/+2.5 pp），2,000 个场景平均差距 ≤1 点；EM 先验校正（无标签）降 ECE 2.7/1.8 点（[2610.26325](https://arxiv.org/abs/2610.26325)）；SHIFT-JEV：KL 锚 + 温度把偏移下校准误差 0.289→0.087，卡方检验检出 95–99% 置信/嵌入检测器漏掉的类先验偏移（[2610.34329](https://arxiv.org/abs/2610.34329)）。
-- 状态：**有度量与廉价缓解**。
+**D5 Inherited Teacher Bias**
+- Evidence: exact risk computation on a Gaussian proxy: the student inherits the teacher's bias, more student data does not remove it, and agreement with the teacher cannot prove correctness ([2610.26797](https://arxiv.org/abs/2610.26797)); in the memory-retirement task, LLM majority-vote gold labels share most errors with the upgraded model of the same family ([2610.15710](https://arxiv.org/abs/2610.15710)); AgentDecision-4B uses Jev answers as labels ([2610.21412](https://arxiv.org/abs/2610.21412)); Releasing Inner Jev uses Qwen3.5-122B / Qwen3.6-27B as teachers ([2610.17205](https://arxiv.org/abs/2610.17205)).
+- Status: **clear in theory, almost never measured empirically on decision models**. A direct risk for our "small model + distillation" route.
 
-**D5 教师偏差继承**
-- 证据：Gaussian 代理的精确风险计算——学生继承教师偏差，更多学生数据不消除，与教师的一致性不能证明正确（[2610.26797](https://arxiv.org/abs/2610.26797)）；记忆退役任务中 LLM 多数票金标签与同家族升级模型共享多数错误（[2610.15710](https://arxiv.org/abs/2610.15710)）；AgentDecision-4B 用 Jev 答案作标签（[2610.21412](https://arxiv.org/abs/2610.21412)）；Releasing Inner Jev 用 Qwen3.5-122B / Qwen3.6-27B 做教师（[2610.17205](https://arxiv.org/abs/2610.17205)）。
-- 状态：**理论上清楚、实证上几乎没有在决策模型上度量**。对我们"小模型 + 蒸馏"路线是直接风险。
+#### E. Dependence on Input Content
 
-#### E. 输入内容的依赖
+**E1 Numbers / Dates / Arithmetic** (see D2 for details)
+- Evidence: MathQA is 17.7 points below the best LLM ([2610.11978](https://arxiv.org/abs/2610.11978)); numerically driven medical tasks are an explicit capability boundary ([2610.18529](https://arxiv.org/abs/2610.18529)); refusal bottleneck 99%/7% ([2609.39496](https://arxiv.org/abs/2609.39496)).
+- Status: **boundary is clear, the vendor recommends "put arithmetic in code"**.
 
-**E1 数字 / 日期 / 算术**（详见 D2）
-- 证据：MathQA 比最佳 LLM 低 17.7 点（[2610.11978](https://arxiv.org/abs/2610.11978)）；医学数值驱动任务是明确的能力边界（[2610.18529](https://arxiv.org/abs/2610.18529)）；拒绝瓶颈 99%/7%（[2609.39496](https://arxiv.org/abs/2609.39496)）。
-- 状态：**边界清楚，官方建议"算术放代码"**。
+**E2 State Length / Irrelevant Detail / Indirection**
+- Evidence: rows 4 and 5 of the official jaggedness page; Jev has no mis-retrieval record within 20k tokens and 64 options, but drops to 53–80% when the answer depends on two or more updates from the same user (16 updates), because similar records interfere with each other ([2610.24929](https://arxiv.org/abs/2610.24929)); Laya 31% on 50 nearest-neighbor tools, Jev 98% ([2610.02267](https://arxiv.org/abs/2610.02267)); Archer Hume: serving time is essentially flat up to ~100 questions, question text costs about 2 times the state ([architecture](https://archerhume.com/posts/jevs-architecture-unmasked)).
+- Status: **"reading" is stable, "aggregating" is not**; boundary = intermediate steps required.
 
-**E2 状态长度 / 无关细节 / 间接性**
-- 证据：官方 jaggedness 第 4、5 行；Jev 在 20k token、64 选项内无误检索记录，但答案依赖同一用户两次以上更新时掉到 53–80%（16 次更新），因为相似记录互相干扰（[2610.24929](https://arxiv.org/abs/2610.24929)）；Laya 在 50 个最近邻工具上 31%，Jev 98%（[2610.02267](https://arxiv.org/abs/2610.02267)）；Archer Hume：服务时间到 ~100 问基本持平，问题文本约 2 倍状态成本（[architecture](https://archerhume.com/posts/jevs-architecture-unmasked)）。
-- 状态：**"读"稳、"聚合"不稳**；边界 = 需要中间步骤。
+**E3 Flips from Natural Background Information (non-instructional adversarial)**
+- Evidence: JevOut: within 64 target evaluations, short background / procedural additions steer 61.4–73.2% of initially correct decisions to the predetermined wrong option, without any explicit answer instruction ([2609.30243](https://arxiv.org/abs/2609.30243)); six lines of policy-irrelevant server logs raise the guard's false-allow rate 0%→63% ([2610.12292](https://arxiv.org/abs/2610.12292)).
+- Status: **defined, high risk, no effective mitigation** ("escalate the least certain" does not work: decisions reversed by the attack are not less confident).
 
-**E3 自然背景信息的翻转（非指令式对抗）**
-- 证据：JevOut：64 次目标评估内，短背景/程序性补充把 61.4–73.2% 的初始正确决策导向预定错误选项，不含显式答案指令（[2609.30243](https://arxiv.org/abs/2609.30243)）；六行与策略无关的服务器日志让守卫误放行 0%→63%（[2610.12292](https://arxiv.org/abs/2610.12292)）。
-- 状态：**已定义、高危、无有效缓解**（"升级最不确定的"无效：被攻击反转的决策并不更不自信）。
+**E4 Record vs Observation (claim vs reality)**
+- Evidence: Claim Laundering: in all 12 configurations the record influences the commitment decision more than the observation; after a claimed success that actually failed, 53–100% still stop / proceed / purchase; a linear probe can tell them apart (AUROC 0.77–1.00); EVIGATE's middle-layer veto +18.7 (ALFWorld) / +5.0 / +5.1, but offline calibration does not transfer to live trajectories ([2610.25947](https://arxiv.org/abs/2610.25947)); given a stale summary, Jev follows it ([2610.24929](https://arxiv.org/abs/2610.24929)); in compressed summaries 83% of failures trace back to summary entries with no environment support ([2610.20927](https://arxiv.org/abs/2610.20927)).
+- Status: **defined; the most dangerous consistency problem in agent scenarios**.
 
-**E4 记录 vs 观察（声明 vs 现实）**
-- 证据：Claim Laundering：12 个配置中记录对承诺决策的影响全部大于观察；声明成功但实际失败后 53–100% 仍停止/前进/购买；线性探针可区分（AUROC 0.77–1.00）；EVIGATE 中层否决 +18.7（ALFWorld）/+5.0/+5.1，但离线校准不迁移到实时轨迹（[2610.25947](https://arxiv.org/abs/2610.25947)）；给陈旧摘要 Jev 就跟随它（[2610.24929](https://arxiv.org/abs/2610.24929)）；压缩摘要中 83% 失败追溯到无环境支持的摘要条目（[2610.20927](https://arxiv.org/abs/2610.20927)）。
-- 状态：**已定义；是 Agent 场景最危险的一致性问题**。
+**E5 Language / Culture / Persona**
+- Evidence: Saudi vs US personas reproduce 87% of the human differences in English and 62% in Arabic; the difference comes from the question language, not the persona language, and confidence is lower in Arabic ([2609.36399](https://arxiv.org/abs/2609.36399)); Indonesian regional languages: human translation into Indonesian gains up to +37.2 points, ECE does not increase but the ability to rank errors degrades ([2610.14112](https://arxiv.org/abs/2610.14112)); the same medical question from English to Yoruba loses up to −39 pp accuracy ([2610.31315](https://arxiv.org/abs/2610.31315)); Bengali is captured by the literal meaning 1.9–6.4 times more often than English, "the resistance of commercial models is a property of the test language" ([2610.22526](https://arxiv.org/abs/2610.22526)).
+- Status: **defined; the only Chinese evidence is Chinese Decision's CJ-Bench** ([2610.23170](https://arxiv.org/abs/2610.23170)).
 
-**E5 语言 / 文化 / 人设**
-- 证据：沙特 vs 美国人设在英语中复现 87% 的人类差异、阿拉伯语 62%，差异来自题目语言而非人设语言，阿拉伯语置信更低（[2609.36399](https://arxiv.org/abs/2609.36399)）；印尼地区语言：人工翻译成印尼语最多 +37.2 点，ECE 不增但排错能力退化（[2610.14112](https://arxiv.org/abs/2610.14112)）；同一医学题从英语到约鲁巴语准确率最多 −39 pp（[2610.31315](https://arxiv.org/abs/2610.31315)）；孟加拉语比英语被字面义捕获 1.9–6.4 倍，"商业模型的抗性是测试语言的属性"（[2610.22526](https://arxiv.org/abs/2610.22526)）。
-- 状态：**已定义；中文证据只有 Chinese Decision 的 CJ-Bench**（[2610.23170](https://arxiv.org/abs/2610.23170)）。
+**E6 Style / Emotion / Judge Bias**
+- Evidence: CALM's 12 bias tests: all 8 TDMs are biased on 3–8 items, emotional tone has the largest effect, rewriting the better answer in an emotional tone takes a typical TDM's accuracy 99%→42%, and TDMs are more biased than the LLM judges of 2026 ([2610.18122](https://arxiv.org/abs/2610.18122)); JEV-as-Judge confidence routing fails under style adversaries and on reference-free prose ([2609.26550](https://arxiv.org/abs/2609.26550)).
+- Status: **defined, measured, no mitigation**.
 
-**E6 风格 / 情绪 / 判官偏差**
-- 证据：CALM 12 项偏差测试：8 个 TDM 全部在 3–8 项上有偏差，情绪语气影响最大，把更好答案改写成情绪语气使典型 TDM 准确率 99%→42%，TDM 比 2026 年的 LLM 判官更有偏差（[2610.18122](https://arxiv.org/abs/2610.18122)）；JEV-as-Judge 置信路由在风格对抗与无参考散文上失效（[2609.26550](https://arxiv.org/abs/2609.26550)）。
-- 状态：**已定义、已度量、无缓解**。
+#### F. Interface and Composition
 
-#### F. 接口与组合
+**F1 Readout Method (first token / verbalized / typed head / pointer)**
+- Evidence: first-token readout overestimates position bias: for a Qwen3 judge, 12–49% of the pairs do not begin with the verdict token, a forced read returns "who is listed first", and after swapping 89.7% flip vs 47.5% when reading after generation ([2610.00054](https://arxiv.org/abs/2610.00054)); first-token negation bias 0.293 vs verbalized 0.122 ([2609.33209](https://arxiv.org/abs/2609.33209)); a typed head has no consistent advantage over LM-head readout ([2609.25845](https://arxiv.org/abs/2609.25845), [2609.32160](https://arxiv.org/abs/2609.32160)); JevCascade's readout stability is an ordinal property, not a probabilistic one (menu interventions predict with 4.2 points of error, probability-level variants 21.0 points) ([2610.07716](https://arxiv.org/abs/2610.07716)).
+- Status: **the readout choice affects bias measurement results**; reproduction work should report the readout type.
 
-**F1 读出方式（首 token / 口头 / 类型化头 / 指针）**
-- 证据：首 token 读出高估位置偏置：Qwen3 判官 12–49% 的对不以判决 token 开头，强读返回"谁排第一"，交换后翻转 89.7% 对生成后读 47.5%（[2610.00054](https://arxiv.org/abs/2610.00054)）；首 token 否定偏差 0.293 对口头 0.122（[2609.33209](https://arxiv.org/abs/2609.33209)）；类型化头对 LM 头读出无一致优势（[2609.25845](https://arxiv.org/abs/2609.25845)、[2609.32160](https://arxiv.org/abs/2609.32160)）；JevCascade 的读出稳定性是序数性质而非概率性质（菜单干预预测误差 4.2 点，概率级变体 21.0 点）（[2610.07716](https://arxiv.org/abs/2610.07716)）。
-- 状态：**读出选择影响偏差测量结果**；复现工作应报告读出类型。
+**F2 Selection vs Sequential Construction (Choice2Seq)**
+- Evidence: on arithmetic / lexical retrieval Jev's whole-selection accuracy is 97.1% / 99.5%, but only 33.0% / 2.1% is retained through local sequential construction ([2610.16191](https://arxiv.org/abs/2610.16191)).
+- Status: **defined**; a business rule "judged step by step" and "judged as a whole" can give completely different results.
 
-**F2 选择 vs 顺序构造（Choice2Seq）**
-- 证据：Jev 在算术 / 词汇检索上整体选择准确率 97.1% / 99.5%，但通过局部顺序构造只保留 33.0% / 2.1%（[2610.16191](https://arxiv.org/abs/2610.16191)）。
-- 状态：**已定义**；业务规则"按步骤判断"与"整体判断"结果可以完全不同。
+**F3 Request Independence / Packing Side Effects**
+- Evidence: Nimble's request expansion on TREC DL2019/2020 causes 9.1%/8.0% strict binary flips and changes 21.4%/18.9% of the select-or-abstain actions; all 70 flips trace back to schema fields serialized into the scoring prompt; Von's fixed shared separator positions remove the flips ([2610.14631](https://arxiv.org/abs/2610.14631)); Jev's packed questions do not affect each other, <0.001 ([2610.16655](https://arxiv.org/abs/2610.16655)).
+- Status: **the hosted model passes, open-source reproductions not necessarily**; an acceptance metric for reproductions.
 
-**F3 请求独立性 / 打包副作用**
-- 证据：Nimble 的请求扩展在 TREC DL2019/2020 上引发 9.1%/8.0% 的严格二元翻转、改变 21.4%/18.9% 的选择或弃权动作，70 次翻转全部追溯到序列化进打分提示的 schema 字段；Von 固定共享分隔符位置消除翻转（[2610.14631](https://arxiv.org/abs/2610.14631)）；Jev 打包问题不互相影响 <0.001（[2610.16655](https://arxiv.org/abs/2610.16655)）。
-- 状态：**托管模型达标、开源复现不一定**；是复现的验收指标。
+**F4 Consistency after Decision→Action Composition**
+- Evidence: the most accurate system, once composed into actions, most often ignores emails that need handling (18% vs 4% for the best LLM); a cost threshold on the noisy probability halves this ([2610.32955](https://arxiv.org/abs/2610.32955)); DICE: the three adapters for state extraction / question generation / output interpretation can each change the final decision while Jev's response is unchanged ([2610.14404](https://arxiv.org/abs/2610.14404)); union bound and cost-accuracy formalization ([2610.10978](https://arxiv.org/abs/2610.10978), [2610.08089](https://arxiv.org/abs/2610.08089)).
+- Status: **defined; product metric ≠ decision accuracy**.
 
-**F4 决策→动作组合后的一致性**
-- 证据：最准确的系统组合成动作后最常忽略需要处理的邮件（18% 对最佳 LLM 4%）；按噪声概率的成本阈值使其减半（[2610.32955](https://arxiv.org/abs/2610.32955)）；DICE：状态抽取 / 问题生成 / 输出解释三个适配器都能在 Jev 响应不变时改变最终决策（[2610.14404](https://arxiv.org/abs/2610.14404)）；联合界与成本-准确率形式化（[2610.10978](https://arxiv.org/abs/2610.10978)、[2610.08089](https://arxiv.org/abs/2610.08089)）。
-- 状态：**已定义；产品指标 ≠ 决策准确率**。
+**F5 Adversarial Injection (explicit)**
+- Evidence: JevAdvBench 862 questions; option-channel attacks give 36–72% accuracy (random 50%); JPDH program decision hijacking in real applications ([2610.18612](https://arxiv.org/abs/2610.18612)); injection detection AUROC 0.897 ([2610.20907](https://arxiv.org/abs/2610.20907)); Jev is most robust on tasks with "an explicit rule to look up" (0 bypasses for 8 forgeries, "why would anyone make such a request" bypasses 9% vs 56% for GPT-6 Astra), while on phishing detection, which needs holistic judgment, the same forgeries bypass 19–29%, and without attack it detects only 62% and mislabels 27% of benign requests ([2610.17820](https://arxiv.org/abs/2610.17820)); TrustJev separates policy authority from evidence ([2610.34826](https://arxiv.org/abs/2610.34826)).
+- Status: **many definitions, few mitigations**; see D2 §4.1.2.4 for details.
 
-**F5 对抗注入（显式）**
-- 证据：JevAdvBench 862 题；选项通道攻击 36–72% 准确率（随机 50%）；JPDH 真实应用中的程序决策劫持（[2610.18612](https://arxiv.org/abs/2610.18612)）；注入检测 AUROC 0.897（[2610.20907](https://arxiv.org/abs/2610.20907)）；Jev 在"有明确规则可查"的任务上最稳健（8 种伪造 0 绕过，"为什么有人会提这种请求"绕过 9% 对 GPT-6 Astra 56%），在需要整体判断的钓鱼检测上同样伪造绕过 19–29%，且无攻击时只检出 62%，误标 27% 良性请求（[2610.17820](https://arxiv.org/abs/2610.17820)）；TrustJev 策略权威与证据分离（[2610.34826](https://arxiv.org/abs/2610.34826)）。
-- 状态：**定义多、缓解少**；详见 D2 §4.1.2.4。
+**F6 Consistency of Refusal / Fallback / Abstention** (see D2 §4.1.2.3 for details)
+- Evidence: arithmetic 99%/7%; with missing legal authority LLMs still choose 38–86%, the most cautious decision model 30% ([2610.29961](https://arxiv.org/abs/2610.29961)); refusal policy transfer 69.3%/48.8% ([2610.03387](https://arxiv.org/abs/2610.03387)); in memory retirement the binary gate retires prematurely 39.2%, the ternary gate drops this to 15.5% but detection −15.3 ([2610.15710](https://arxiv.org/abs/2610.15710)); in medicine most models are weak at both "recognizing a missing correct answer and using the optional abstention" ([2610.18529](https://arxiv.org/abs/2610.18529)).
+- Status: **the weakest link**.
 
-**F6 拒绝 / 兜底 / 弃权的一致性**（详见 D2 §4.1.2.3）
-- 证据：算术 99%/7%；法律缺失权威 LLM 38–86% 仍选、最谨慎决策模型 30%（[2610.29961](https://arxiv.org/abs/2610.29961)）；拒绝策略迁移 69.3%/48.8%（[2610.03387](https://arxiv.org/abs/2610.03387)）；记忆退役二元门过早退役 39.2%，三元降到 15.5% 但检出 −15.3（[2610.15710](https://arxiv.org/abs/2610.15710)）；医学上多数模型"识别缺失正确答案与使用可选弃权"都弱（[2610.18529](https://arxiv.org/abs/2610.18529)）。
-- 状态：**最弱环节**。
+### 4.2.3 D4 Matrix: Which Work Solves Which Kind of Problem
 
-### 4.2.3 D4 矩阵：哪些工作解决了哪类问题
-
-| 子维度 | 有定义 | 有度量 | 有缓解 | 代表工作 |
+| Sub-dimension | Defined | Measured | Mitigated | Representative work |
 | --- | --- | --- | --- | --- |
-| A1 重复性 | ✓ | ✓ | 不需要 | 2609.36399、2609.27678 |
-| A2 精度/量化 | ✓ | ✓ | — | Kev、2610.23170、2610.14631 |
-| A3 版本漂移 | 弱 | 弱 | — | 2610.35826、SemTree |
-| B1 顺序 | ✓ | ✓ | ✓（结构性） | 2610.22066、2610.18233、2610.00831、2610.01601、2609.35865 |
-| B2 IIA | ✓ | ✓ | 部分 | 2610.16655、Prism-1、2610.07716 |
-| B3 选项名/定义 | ✓ | ✓ | — | 2609.26758、2610.02586、2610.12292、2610.22526 |
-| B4 多正确 | ✓ | ✓ | — | 2610.29217 |
-| B5 序数压缩 | ✓ | ✓ | 训练方向 | 2609.38827 |
-| B6 问题形式 | ✓ | 矛盾 | — | 2609.33209、2610.18529、2610.16655、pplx |
-| C1 层级相干 | ✓ | ✓ | — | 2609.33971 |
-| C2 概率公理 | ✓ | ✓（免标签） | — | 2609.33209、2610.19619 |
-| C3 措辞 | ✓ | ✓ | — | 2610.30045、2610.19856、2610.19536 |
-| C4 框架 | ✓ | 部分 | — | 2610.19619 |
-| D1 校准/判别/敏感 | ✓ | ✓ | 训练目标 | 2610.09683、2610.24649、2610.22131 |
-| D2 两种不确定性 | ✓ | ✓ | 条件性 | 2610.33258 |
-| D3 自知 | ✓ | ✓ | — | 2610.01006、2610.22526 |
-| D4 流行率偏移 | ✓ | ✓ | ✓（EM/KL 锚） | 2610.26325、2610.34329 |
-| D5 教师偏差 | 理论 | — | — | 2610.26797 |
-| E1 数字 | ✓ | ✓ | 代码 | 2610.11978、2609.39496 |
-| E2 长度/无关 | ✓ | ✓ | 过滤 | 2610.24929、2610.02267 |
-| E3 自然背景翻转 | ✓ | ✓ | — | 2609.30243、2610.12292 |
-| E4 记录 vs 观察 | ✓ | ✓ | 部分（探针否决） | 2610.25947、2610.20927 |
-| E5 语言/文化 | ✓ | ✓ | 翻译/级联 | 2609.36399、2610.14112、2610.31315、2610.22526 |
-| E6 风格/情绪 | ✓ | ✓ | — | 2610.18122 |
-| F1 读出 | ✓ | ✓ | 报告读出类型 | 2610.00054、2610.07716 |
-| F2 选择 vs 构造 | ✓ | ✓ | — | 2610.16191 |
-| F3 请求独立性 | ✓ | ✓ | 格式修复 | 2610.14631 |
-| F4 决策→动作 | ✓ | 部分 | 形式化起点 | 2610.32955、2610.14404、2610.08089 |
-| F5 显式注入 | ✓ | ✓ | 弱 | 2609.31142、2610.12292、2610.17820 |
-| F6 拒绝/兜底 | ✓ | ✓ | — | 2609.39496、2610.29961、2610.03387 |
+| A1 Repeatability | ✓ | ✓ | Not needed | 2609.36399, 2609.27678 |
+| A2 Precision/quantization | ✓ | ✓ | — | Kev, 2610.23170, 2610.14631 |
+| A3 Version drift | Weak | Weak | — | 2610.35826, SemTree |
+| B1 Order | ✓ | ✓ | ✓ (structural) | 2610.22066, 2610.18233, 2610.00831, 2610.01601, 2609.35865 |
+| B2 IIA | ✓ | ✓ | Partial | 2610.16655, Prism-1, 2610.07716 |
+| B3 Option names/definitions | ✓ | ✓ | — | 2609.26758, 2610.02586, 2610.12292, 2610.22526 |
+| B4 Multiple correct | ✓ | ✓ | — | 2610.29217 |
+| B5 Ordinal compression | ✓ | ✓ | Training direction | 2609.38827 |
+| B6 Question form | ✓ | Contradictory | — | 2609.33209, 2610.18529, 2610.16655, pplx |
+| C1 Hierarchical coherence | ✓ | ✓ | — | 2609.33971 |
+| C2 Probability axioms | ✓ | ✓ (label-free) | — | 2609.33209, 2610.19619 |
+| C3 Wording | ✓ | ✓ | — | 2610.30045, 2610.19856, 2610.19536 |
+| C4 Framing | ✓ | Partial | — | 2610.19619 |
+| D1 Calibration/discrimination/sensitivity | ✓ | ✓ | Training objective | 2610.09683, 2610.24649, 2610.22131 |
+| D2 Two kinds of uncertainty | ✓ | ✓ | Conditional | 2610.33258 |
+| D3 Self-knowledge | ✓ | ✓ | — | 2610.01006, 2610.22526 |
+| D4 Prevalence shift | ✓ | ✓ | ✓ (EM/KL anchor) | 2610.26325, 2610.34329 |
+| D5 Teacher bias | Theory | — | — | 2610.26797 |
+| E1 Numbers | ✓ | ✓ | Code | 2610.11978, 2609.39496 |
+| E2 Length/irrelevant | ✓ | ✓ | Filtering | 2610.24929, 2610.02267 |
+| E3 Natural background flips | ✓ | ✓ | — | 2609.30243, 2610.12292 |
+| E4 Record vs observation | ✓ | ✓ | Partial (probe veto) | 2610.25947, 2610.20927 |
+| E5 Language/culture | ✓ | ✓ | Translation/cascade | 2609.36399, 2610.14112, 2610.31315, 2610.22526 |
+| E6 Style/emotion | ✓ | ✓ | — | 2610.18122 |
+| F1 Readout | ✓ | ✓ | Report readout type | 2610.00054, 2610.07716 |
+| F2 Selection vs construction | ✓ | ✓ | — | 2610.16191 |
+| F3 Request independence | ✓ | ✓ | Format fix | 2610.14631 |
+| F4 Decision→action | ✓ | Partial | Starting point for formalization | 2610.32955, 2610.14404, 2610.08089 |
+| F5 Explicit injection | ✓ | ✓ | Weak | 2609.31142, 2610.12292, 2610.17820 |
+| F6 Refusal/fallback | ✓ | ✓ | — | 2609.39496, 2610.29961, 2610.03387 |
 
-### 4.2.4 D4 盲区
+### 4.2.4 D4 Blind Spots
 
-1. **没有一个把这些子维度放在一起的"一致性基准"**：DecisionPivot（[2610.28522](https://arxiv.org/abs/2610.28522)）最接近（48 任务 7 角色的对照组），但覆盖的是 B1/C3/F6 的一部分；TypedBench（[2610.18488](https://arxiv.org/abs/2610.18488)）与 System1-Arena 各覆盖另一部分。没有工作同时报告 A–F。
-2. **没有"中文 + 业务规则"的一致性数据**：E5 的证据全是英语/印尼/阿拉伯/孟加拉/约鲁巴；中文只有 CJ-Bench 的准确率与 ECE。
-3. **A3 版本漂移与 D5 教师偏差没有实证**，而这两项决定了"规则库是否随模型重编译"与"蒸馏小模型是否继承 Jev 的 B2/B5/C2 缺陷"。
-4. **B6 问题形式等价性的证据相互矛盾**，这意味着 D3 的每个原语都需要在目标模型上单独测"用 Noul 还是 Choice"。
-5. **缓解只覆盖 B1、D4 两项**（结构性顺序无关、先验校正）。B2–B5、C1–C3、E3、E6 的缓解都停留在"报告"或"训练方向"。
-6. **决策级配对评测没有成为规范**：多数复现工作仍只报准确率与 ECE；2610.35826 与 2609.27678 说明这会系统性高估稳健性。
+1. **There is no "consistency benchmark" that puts these sub-dimensions together**: DecisionPivot ([2610.28522](https://arxiv.org/abs/2610.28522)) is the closest (a control group of 48 tasks and 7 roles), but it covers only part of B1/C3/F6; TypedBench ([2610.18488](https://arxiv.org/abs/2610.18488)) and System1-Arena each cover another part. No work reports A–F at the same time.
+2. **There is no consistency data for "Chinese + business rules"**: the E5 evidence is all English / Indonesian / Arabic / Bengali / Yoruba; for Chinese there is only CJ-Bench's accuracy and ECE.
+3. **A3 version drift and D5 teacher bias have no empirical evidence**, yet these two items decide "whether the rule library must be recompiled with the model" and "whether a distilled small model inherits Jev's B2/B5/C2 defects".
+4. **The evidence on B6 question-form equivalence contradicts itself**, which means every primitive of D3 must be tested separately on the target model for "Noul or Choice".
+5. **Mitigations cover only the two items B1 and D4** (structural order independence, prior correction). The mitigations for B2–B5, C1–C3, E3 and E6 all stop at "report it" or "a training direction".
+6. **Decision-level paired evaluation has not become the norm**: most reproduction work still reports only accuracy and ECE; 2610.35826 and 2609.27678 show that this systematically overestimates robustness.

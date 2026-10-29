@@ -1,394 +1,391 @@
-# 8 · 复核与对抗性检验：工作假设、本报告自己的构造、方法论缺陷与攻击
+# 8 · Review and adversarial check: working hypotheses, the report's own constructs, methodological defects and attacks
 
-> 本章不新增证据，只做复核与攻击。它存在的理由是：本报告的生产流程是"提问者给命题 → 我找证据 → 我写结论"，这**满足确认偏差的标准条件**；而 §2.2 的框架是讨论的共同产物，我是它的共同作者，不再是外部审查者。"基本上达成一致"正是最该做对抗性分析的时刻。
+> This chapter adds no evidence; it only reviews and attacks. Its reason for existing: the production process of this report is "the questioner gives a proposition → I look for evidence → I write the conclusion", which **satisfies the standard conditions for confirmation bias**; and the framework in §2.2 is a joint product of the discussion, of which I am a co-author, so I am no longer an external reviewer. "Basically reaching agreement" is exactly the moment when adversarial analysis is most needed.
 >
-> §8.1 逐条判定四个工作假设（三个"结论对、机制错"），标出本报告里八个**属于我自己而非文献**的框架及其过拟合风险，列出我自己的九条方法论缺陷（含一次已记录的确认偏差实例），给出结论的稳健性分级与提问者视野里的四个盲区。§8.2 用七条攻击检验 §2.2 的框架：**两条推翻其表述、三条迫使它增加限定、一条未决且最重要、一条是永久折扣**，并给出修订后的框架与"什么证据会推翻它"。§8.3 是工作—问题矩阵与按影响排序的盲区汇总，§8.4 是开放问题清单。
+> §8.1 rules on the four working hypotheses one by one (three are "conclusion right, mechanism wrong"), marks the eight frameworks in this report that **belong to me rather than to the literature** together with their overfitting risk, lists my own nine methodological defects (including one recorded instance of confirmation bias), and gives a robustness grading of the conclusions plus four blind spots in the questioner's field of view. §8.2 tests the §2.2 framework with seven attacks: **two overturn its wording, three force it to add qualifications, one is undecided and the most important, one is a permanent discount**; it then gives the revised framework and "what evidence would overturn it". §8.3 is the work-question matrix and the blind-spot summary sorted by impact; §8.4 is the list of open questions.
 >
-> 读法：§8.2.3 的 P0′–P5′ 是**中间版本**；全报告最终的框架表述是 §2.2.5 的 P0″–P5″，A4 的裁决见 §8.2.1 后记二。
+> How to read: the P0′–P5′ in §8.2.3 are an **intermediate version**; the final framework wording for the whole report is the P0″–P5″ of §2.2.5, and the ruling on A4 is in the second postscript of §8.2.1.
 
-## 8.1 四个工作假设、本报告自己的构造与我的方法论缺陷
+## 8.1 The four working hypotheses, the report's own constructs and my methodological defects
 
-> 口径：本节不新增证据，只做复核。14–第 §5.2各自回答了一个由提问者提出的工作假设，而**提出假设的人与检验假设的人是同一组对话的两端，这是确认偏差的标准条件**。2026-10-28 复核 §2.1时发现了一个实例：初稿把"幂等性搬迁"这条命题当成地基，而推翻它前提的证据**本报告自己早就引用过**，分散在 04、05、06、09、10、§1.4里，只是在写 §2.1时没有被调出来。本节把这类失败系统化处理：§8.1.1 逐条判定四个假设，§8.1.2 标出报告里哪些框架是我自己造的而非文献结论，§8.1.3 列我自己的方法论缺陷，§8.1.4 给出"哪些结论最稳、哪些最可能被推翻"的分级，§8.1.5 回答"提问者的视野里有哪些盲区"。
+> Protocol: this section adds no evidence; it only reviews. Sections 14–§5.2 each answer a working hypothesis raised by the questioner, and **the person who raised the hypothesis and the person who tested it are the two ends of the same conversation, which is the standard condition for confirmation bias**. While reviewing §2.1 on 2026-10-28 I found an instance: the first draft treated the proposition "the migration of idempotence" as a foundation, while the evidence overturning its premise **had already been cited by this report itself**, scattered across 04, 05, 06, 09, 10 and §1.4; it simply was not retrieved when §2.1 was written. This section handles this kind of failure systematically: §8.1.1 rules on the four hypotheses one by one, §8.1.2 marks which frameworks in the report are my own constructs rather than literature conclusions, §8.1.3 lists my own methodological defects, §8.1.4 gives a grading of "which conclusions are most robust and which are most likely to be overturned", and §8.1.5 answers "what blind spots lie in the questioner's field of view".
 
-### 8.1.1 四个工作假设的判定
+### 8.1.1 Rulings on the four working hypotheses
 
-| # | 假设（提问者提出） | 判定 | 结论方向 | 给出的机制 |
+| # | Hypothesis (raised by the questioner) | Ruling | Direction of conclusion | Mechanism given |
 | --- | --- | --- | --- | --- |
-| H1 | SFT 无法让模型具备一般意义上的泛化能力（§6.2） | **强形式不成立，弱形式成立** | **对** | **不完整**：假设把原因归给"监督目标"，而证据显示跨层移动结果的是基座规模、指令调优起点、监督分布与结构约束 |
-| H2 | 我们对 Jev 的业务期待无法直接转化成可导的学习函数（§6.4） | **结论成立，理由不成立** | **对** | **错**：抗拒梯度有四种不同成因；真正不可导的那几类恰恰是 RL 实测收益为零的那几类，所以"不可导 → 用 RL"不成立 |
-| H3 | 应该考虑用 RL 来同时保住 ICL 与类 skill 的语义注入（§6.3） | **不成立** | **错** | **错**：决定 ICL 存亡的是"训练样本之间任务定义是否在变"；唯二能提升"用上下文定义任务"的方法（MetaICL、符号调优）都是 SFT |
-| H4 | Jev 类模型 = 把不保证幂等的生成式业务判断转换成"指标输出 + harness 的确定幂等执行"（§2.1 §2.1） | **前提不成立，结论需大幅修正** | **部分对** | **部分错**：见 §2.1.3 的六条反证 |
+| H1 | SFT cannot give a model generalization ability in the general sense (§6.2) | **Strong form does not hold, weak form holds** | **Right** | **Incomplete**: the hypothesis attributes the cause to the "supervised objective", while the evidence shows that what moves results across levels is base-model scale, the instruction-tuned starting point, the supervision distribution and structural constraints |
+| H2 | Our business expectations of Jev cannot be directly turned into a differentiable learning function (§6.4) | **Conclusion holds, reasoning does not** | **Right** | **Wrong**: resistance to gradients has four distinct causes; the classes that are genuinely non-differentiable are exactly the classes where measured RL gain is zero, so "non-differentiable → use RL" does not hold |
+| H3 | RL should be considered to preserve ICL and skill-like semantic injection at the same time (§6.3) | **Does not hold** | **Wrong** | **Wrong**: what decides whether ICL survives is "whether the task definition changes between training samples"; the only two methods that improve "defining the task from context" (MetaICL, symbol tuning) are both SFT |
+| H4 | Jev-class model = converting generative business judgment that does not guarantee idempotence into "indicator output + deterministic idempotent execution in the harness" (§2.1 §2.1) | **Premise does not hold, conclusion needs major revision** | **Partly right** | **Partly wrong**: see the six pieces of counter-evidence in §2.1.3 |
 
-#### 8.1.1.1 一个值得注意的模式
+#### 8.1.1.1 A pattern worth noting
 
-四条里有三条（H1、H2、H4）**结论方向是对的，而给出的机制是错的或不完整的**。这不是巧合，而是两种知识来源的差别：
+Three of the four (H1, H2, H4) have **the right direction of conclusion but a mechanism that is wrong or incomplete**. This is not a coincidence; it is the difference between two sources of knowledge:
 
-- 提问者的判断来自**部署与工程观察**——换个 schema 模型就不行了、业务目标写不成 loss、生成式输出不稳定。这类观察对**现象**非常可靠。
-- 机制归因需要**控制变量的实验**，而文献在这几处恰好缺控制实验：没人测过决策微调前后的 k-shot 曲线（§3.1），没人把 Jev 的重复抖动与温度 0 的生成式基线并排测过（§2.1.3 反证 1），没人在同一批数值决策上比较三条数值路线（§6.5盲区 3）。
+- The questioner's judgments come from **deployment and engineering observation**: change the schema and the model stops working, business goals cannot be written as a loss, generative output is unstable. This kind of observation is very reliable about **phenomena**.
+- Attributing mechanisms requires **controlled experiments**, and the literature happens to lack controlled experiments at exactly these points: nobody has measured k-shot curves before and after decision fine-tuning (§3.1), nobody has measured Jev's repeat jitter side by side with a temperature-0 generative baseline (§2.1.3 counter-evidence 1), nobody has compared the three numeric routes on the same batch of numeric decisions (§6.5 blind spot 3).
 
-**推论**：在这个题目上，"现象判断"比"机制判断"可信得多。遇到分歧时，应该保留提问者的现象、重做机制，而不是整体接受或整体否决。H4 正是这样处理的——它的**诊断价值很高**（它准确预言了 §5.1.4 里第五格"闭环执行者"为什么普遍失败：决策被搬回了模型里），而它关于幂等的**描述性断言是错的**。
+**Corollary**: on this topic, "phenomenon judgments" are far more trustworthy than "mechanism judgments". When there is disagreement, one should keep the questioner's phenomenon and redo the mechanism, rather than accept or reject the whole. H4 was handled exactly this way: its **diagnostic value is high** (it correctly predicted why the fifth cell "closed-loop executor" in §5.1.4 generally fails: the decision was moved back into the model), while its **descriptive claim about idempotence is wrong**.
 
-#### 8.1.1.2 H4 的诊断价值应当被明确记下
+#### 8.1.1.2 The diagnostic value of H4 should be recorded explicitly
 
-我在 §1.1.6 写过"Jev 的价值在接口契约而非权重"。提问者的版本比我的更锋利，因为它指出了**契约是干什么用的**：契约的意义不是"输出好解析"，而是"把决策的**记账**交给代码"。（这句话我最初写成"把决策权从模型挪到代码"，提问者在 2026-10-28 指出这是错的：**我们做的是 AI 系统，核心逻辑是语义理解的泛化**。这条反对意见用的正是本报告自己的归谬——"挪到代码"的无约束最优解同样是查表——所以它成立，措辞已在 §2.1.7 改正。）这个版本能做出我的版本做不到的预测——哪一类部署会成功（决策权在代码里的）、哪一类会失败（决策权回到模型里的）。§5.1.4 的五格表与它完全一致，而那张表是我在听到这个命题之前就写好的。**所以这里的正确态度不是"命题错了"，而是"命题的诊断部分应当被采纳，描述部分应当被替换"。**
+In §1.1.6 I wrote "Jev's value lies in the interface contract, not in the weights". The questioner's version is sharper than mine because it states **what the contract is for**: the point of the contract is not "the output parses well" but "handing the **bookkeeping** of the decision to code". (I first wrote this as "moving decision authority from the model to the code"; the questioner pointed out on 2026-10-28 that this is wrong: **what we build is an AI system, and the core logic is the generalization of semantic understanding**. This objection uses exactly this report's own reductio, since the unconstrained optimum of "move it to code" is likewise a lookup table, so it holds, and the wording has been corrected in §2.1.7.) This version can make a prediction that my version cannot: which kind of deployment will succeed (decision authority in the code) and which will fail (decision authority back in the model). The five-cell table in §5.1.4 agrees with it completely, and that table was written before I heard this proposition. **So the correct attitude here is not "the proposition is wrong" but "the diagnostic part of the proposition should be adopted and the descriptive part replaced".**
 
-### 8.1.2 报告里哪些框架是我自己造的
+### 8.1.2 Which frameworks in the report are my own constructs
 
-下面每一条都在正文里被当作组织工具使用，但**没有任何一篇论文提出过它们**。这是本报告最容易被误读为"文献结论"的地方，因此逐条标注其依据与过拟合风险。
+Each item below is used as an organizing tool in the main text, but **no paper has ever proposed any of them**. This is where the report is most easily misread as "literature conclusions", so each one is annotated with its basis and its overfitting risk.
 
-| 构造 | 出处 | 依据 | 过拟合风险 |
+| Construct | Where | Basis | Overfitting risk |
 | --- | --- | --- | --- |
-| **七个泛化层次 L0–L6** | §6.2.1 | 把约 20 篇论文的结果按"变了什么"排序后归并 | **中高**。层与层之间不是正交的（L2 新 schema 与 L3 新符号操作在真实数据里混在一起），而且 L5 校准迁移与 L6 推理深度各自只有两三篇证据。换一种分层可能得到不同的"哪一层有正面证据" |
-| **五类可导性 A–E** | §6.4.2 | 按"为什么抗拒梯度"而非业务领域分类 | **中**。C 类（分位数/秩）与 D 类（下游长程）的边界取决于你把认证手段算进目标还是算进流程 |
-| **三层幂等 L1–L3** | §2.1.4 | 我在检验 H4 时造的，用于把命题可证伪化 | **高**。三层划分本身没有文献支持；§2.1.3 已经证明 L3 不是干净的一层（固定计划固定负载才成立），所以这张表至少还缺一个"负载/计划"维度 |
-| **五个 System1+System2 位置 A–E** | §5.1.4 | 把约 15 个系统按"S1 的输出被谁消费"归类 | **中**。它在"守卫/路由/分类"族上很贴合，在"记忆/监控/评审"族上偏勉强——SOMA 是一个累积判断的控制回路，Mnemon 的 S1 输出根本不被执行，而这一族的实测结果恰恰最好（LoCoMo 91.7%，14 个系统中最高） |
-| **"决策重复度"轴** | §5.1.1.3 | 从三篇论文（JEVDB、Bellman LM、NIOCIS）各自的动机句里抽出的共同结构 | **高**。没有任何论文把"重复度"量化过，也没有任何论文把它与收益做过回归。它是一个**假说**，被我当作判据在用 |
-| **"问题图 vs token 流"** | §6.5.5.1 | 从成本结构（多问近乎免费、多生成按量计费）推出，再用五个已有形态填充 | **中高**。"把一个判断拆成 n 个判断"的组合校准**没有任何论文回答过**（§6.5盲区 5），所以这个形态的可行性是推理出来的，不是测出来的 |
-| **十二条业务属性 P1–P12** | §5.1.2 | 从"业务方会据此下单"的角度列举 | **已知不完整**。§7.3.1 自己证明了这点：TUPLE-Bench 的"接口字段本身是信息泄漏"不在清单里 |
-| **D4 的 30 个子维度** | §4.2 | 枚举式探索，用户明确要求"自己定义和理解问题" | **低**（本来就声明为探索），但**子维度之间高度相关**，不能当成 30 个独立的测量轴 |
+| **Seven generalization levels L0–L6** | §6.2.1 | Results of about 20 papers sorted by "what changed" and then merged | **Medium-high**. The levels are not orthogonal (L2 new schema and L3 new symbol operations are mixed together in real data), and L5 calibration transfer and L6 reasoning depth each have only two or three pieces of evidence. A different layering might yield a different answer to "which level has positive evidence" |
+| **Five classes of differentiability A–E** | §6.4.2 | Classified by "why it resists gradients" rather than by business domain | **Medium**. The boundary between class C (quantile/rank) and class D (downstream long-range) depends on whether you count the certification means as part of the objective or part of the process |
+| **Three layers of idempotence L1–L3** | §2.1.4 | Built by me while testing H4, to make the proposition falsifiable | **High**. The three-layer division itself has no literature support; §2.1.3 has already shown that L3 is not a clean layer (it holds only under a fixed plan and fixed load), so this table is missing at least one "load/plan" dimension |
+| **Five System1+System2 positions A–E** | §5.1.4 | About 15 systems classified by "who consumes S1's output" | **Medium**. It fits the "guard/routing/classification" family well and is strained on the "memory/monitoring/review" family: SOMA is a control loop of cumulative judgments, Mnemon's S1 output is never executed at all, and this family has exactly the best measured results (LoCoMo 91.7%, highest among 14 systems) |
+| **The "decision repetition" axis** | §5.1.1.3 | The common structure extracted from the motivation sentences of three papers (JEVDB, Bellman LM, NIOCIS) | **High**. No paper has quantified "repetition", and no paper has regressed it against gain. It is a **hypothesis** that I am using as a criterion |
+| **"Question graph vs token stream"** | §6.5.5.1 | Derived from the cost structure (asking more is nearly free, generating more is metered), then filled in with five existing forms | **Medium-high**. The compositional calibration of "splitting one judgment into n judgments" **has not been answered by any paper** (§6.5 blind spot 5), so the feasibility of this form is inferred, not measured |
+| **Twelve business properties P1–P12** | §5.1.2 | Enumerated from the angle of "what the business side would order on" | **Known to be incomplete**. §7.3.1 itself proves this: TUPLE-Bench's "the interface fields themselves are an information leak" is not on the list |
+| **The 30 sub-dimensions of D4** | §4.2 | Enumerative exploration; the user explicitly asked to "define and understand the question ourselves" | **Low** (declared as exploration from the start), but **the sub-dimensions are highly correlated** and cannot be treated as 30 independent measurement axes |
 
-**读法**：凡是上表里的框架，正文中的"按这个分类看，X 格是零"这类句子，**应被读作"按本报告这种分类看"**，而不是"文献证明了 X 不存在"。
+**How to read**: for every framework in the table above, sentences in the main text of the form "under this classification, cell X is empty" **should be read as "under this report's classification"**, not as "the literature has proved that X does not exist".
 
-### 8.1.3 我自己的方法论缺陷
+### 8.1.3 My own methodological defects
 
-1. **确认偏差，且已有一次实例。** 流程是"提问者给假设 → 我找证据 → 我写结论"。§2.1初稿是失败案例：六条反证里的五条所依据的论文（约束税、IIA 预先登记、计划改变答案、控制回路 SoK、Koa-decision）**有四篇早已在本报告的其他章节被引用**，只有 [2610.06425](https://arxiv.org/abs/2610.06425) 是复核时新加的。也就是说失败不在检索，而在**写新章时没有对已有证据做反向检索**。
-2. **只读了约 70 篇全文，其余 212 篇靠摘要。** 摘要里的数字常常不是论文的主结论，限定条件也常常不写进摘要。本报告多处转述的是摘要句。
-3. **单向检索。** 关键词围绕 Jev / typed decision / System One 展开，会系统性漏掉**不使用这套术语但暴露同类接口**的系统——早期审计自己也承认这条局限。
-4. **没有运行任何评测。** 全部数字来自论文与文档的转述，而 §1.4已证明跨论文的口径不可比（ECE 至少五种算法、翻转率五种分母），所以任何跨论文比较只能定性。
-5. **合规率全部来自单篇审计的编码**（[2609.32160](https://arxiv.org/abs/2609.32160)，28 篇语料、九天窗口），此后一个月新增的大量论文没有被按同一检查表重新编码过。
-6. **时间窗口极窄。** 绝大多数证据是 Jev 发布后六周内的预印本，未经同行评审，多篇自述为"早期证据"。
-7. **我的"零命中"声明是最脆弱的一类断言。** "没有任何论文做过 X"只能证伪不能证实，而它在本报告里出现了几十次。每一条都应读作"在本报告的检索范围内没找到"。
+1. **Confirmation bias, with one instance already.** The process is "the questioner gives a hypothesis → I look for evidence → I write the conclusion". The first draft of §2.1 is the failure case: of the papers behind five of the six pieces of counter-evidence (constraint tax, IIA pre-registration, plans changing answers, control-loop SoK, Koa-decision), **four had already been cited in other chapters of this report**; only [2610.06425](https://arxiv.org/abs/2610.06425) was newly added during review. In other words the failure was not in retrieval but in **not doing a reverse search of existing evidence when writing a new chapter**.
+2. **I read only about 70 papers in full; the remaining 212 were read from abstracts.** Numbers in abstracts are often not the paper's main conclusion, and qualifying conditions are often not written into the abstract. In many places this report paraphrases abstract sentences.
+3. **One-directional retrieval.** The keywords revolved around Jev / typed decision / System One, which will systematically miss systems that **do not use this terminology but expose the same kind of interface**; the early audit itself admitted this limitation.
+4. **No evaluation was run.** All numbers are paraphrased from papers and documents, and §1.4 has already shown that protocols across papers are incomparable (at least five algorithms for ECE, five denominators for flip rate), so any cross-paper comparison can only be qualitative.
+5. **All compliance rates come from the coding of a single audit** ([2609.32160](https://arxiv.org/abs/2609.32160), a corpus of 28 papers, a nine-day window); the large number of papers added in the following month has not been re-coded under the same checklist.
+6. **The time window is extremely narrow.** The great majority of the evidence is preprints from the six weeks after the Jev release, not peer-reviewed, and several describe themselves as "early evidence".
+7. **My "zero hits" statements are the most fragile class of claims.** "No paper has done X" can only be falsified, never confirmed, and it appears dozens of times in this report. Each one should be read as "not found within this report's retrieval scope".
 
-8. **我按"业务成本"一条轴组织了全报告，而没有按"语义泛化"重走一遍。** 这是提问者在 2026-10-28 指出的，而它造成了一处可指认的遗漏：让 Jev 便宜的那个工程操作与毁掉规则敏感性的那个操作**是同一个**（Certo 的可缓存独立编码约 5 倍便宜、规则敏感度 recall@1 1.00 → 0.24，[2609.37832](https://arxiv.org/abs/2609.37832)），而本报告把这两件事分别记在 §5.1.1（成本结构）与 §6.2.3（泛化层次）两处，**没有并置，也没有把它当成取舍写出来**。按成本轴组织时，"便宜 63 倍"会被记成优点，而同一条证据在语义轴上说明的是"模型不可替代"（[2609.29429](https://arxiv.org/abs/2609.29429)）——同一个数字在两条轴上的含义完全不同。
-9. **我连续三次把提问者的命题判为"有退化最优解"，而没有早一步指出这是同一个模式。** 幂等 → 查表（§2.1.6）、挪到代码 → 查表（§2.1.7）、一致率 → 常数分类器（§2.1.8）。三条命题都点名了"不变性"这一半而把"判别"那一半留空。把三次归谬分开写，等于让同一个结构性缺口被重复发现三次，这本身是组织上的失败。
+8. **I organized the whole report along the single axis of "business cost" and did not re-walk it along "semantic generalization".** The questioner pointed this out on 2026-10-28, and it caused one identifiable omission: the engineering operation that makes Jev cheap and the operation that destroys rule sensitivity **are the same operation** (Certo's cacheable independent encoding is about 5× cheaper, and rule-sensitivity recall@1 goes 1.00 → 0.24, [2609.37832](https://arxiv.org/abs/2609.37832)), while this report recorded these two facts separately in §5.1.1 (cost structure) and §6.2.3 (generalization levels), **never placed them side by side, and never wrote them up as a trade-off**. When organized along the cost axis, "63× cheaper" is recorded as an advantage, while on the semantic axis the same evidence says "the model is irreplaceable" ([2609.29429](https://arxiv.org/abs/2609.29429)); the same number means something completely different on the two axes.
+9. **Three times in a row I ruled the questioner's proposition to "have a degenerate optimum" without pointing out one step earlier that this was the same pattern.** Idempotence → lookup table (§2.1.6), move to code → lookup table (§2.1.7), consistency rate → constant classifier (§2.1.8). All three propositions named the "invariance" half and left the "discrimination" half empty. Writing the three reductios separately let the same structural gap be rediscovered three times, which is itself an organizational failure.
 
-### 8.1.4 结论的稳健性分级
+### 8.1.4 Robustness grading of the conclusions
 
-| 稳健度 | 结论 | 为什么 |
+| Robustness | Conclusion | Why |
 | --- | --- | --- |
-| **最稳** | 成本与延迟的量级（便宜 1–2 个数量级、评审贵 16–357 倍、本地 2B 30.9 ms 对前沿 API 8,758 ms） | 多篇独立测量、方向一致、量级一致，且与"不解码"这一结构性原因吻合 |
-| **最稳** | 类型化读出本身没有独立于同类标签概率读出的准确率优势 | 早期审计的 28 篇编码 + 现成模型读 logits 即可（[2610.02076](https://arxiv.org/abs/2610.02076)）两条独立路径 |
-| **稳** | 结构约束（掩码/位置重置/块隔离）优于把一致性写进损失 | 多篇、方向一致、且有"按构造成立"的强形式 |
-| **稳** | 序数刻度压缩 | 40 个数据集 × 9 个模型 × 3 个族，并有跨范式的独立确认（临床序数量表上的中心趋势效应） |
-| **稳** | 兜底/弃权是最差的一格 | 两条互相独立的测量（拒绝率 7%、兜底项让 Intern 从 97.9% 跌到 23.1%） |
-| **中** | "单遍模型上 RL 为负或无效" | §6.1与 §6.3都正确地把它限定在"单遍/纯读出"并注明"正面证据都绑定推理链"，所以**措辞没问题**；问题是**证据基数太小**。三个负面数据点里，一个是编码器（按用户自己的口径本就不属于我们的方向）、一个是小规模 REINFORCE、一个是 Agent 循环内的 GRPO 而不是读出上的 RL。用三个异质的点支撑一条关于架构的一般结论，偏薄 |
-| **中** | 五个 System1+System2 位置 | 分类是我造的，且在"记忆/监控"族上偏勉强（§8.1.2） |
-| **最可能被推翻** | "L2 语义幂等无人保证" | 这是一条零命中声明，而且是最可能的检索盲区：相关工作可能发表在鲁棒性/不变性文献里而不自称与决策模型有关 |
-| **最可能被推翻** | "每正确结果的端到端成本无人测过" | 同上。工业界的实践大概率有这个口径，只是不发论文；本报告的来源偏学术（早期审计也承认"工业经验被低估") |
-| **最可能被推翻** | "决策重复度"是收益的主变量 | 从未被量化或回归过（§8.1.2） |
+| **Most robust** | The orders of magnitude of cost and latency (1–2 orders of magnitude cheaper, review 16–357× more expensive, local 2B at 30.9 ms versus frontier API at 8,758 ms) | Multiple independent measurements, consistent direction, consistent magnitude, and matching the structural cause "no decoding" |
+| **Most robust** | Typed readout itself has no accuracy advantage independent of same-class label-probability readout | Two independent paths: the 28-paper coding of the early audit + an off-the-shelf model reading logits is enough ([2610.02076](https://arxiv.org/abs/2610.02076)) |
+| **Robust** | Structural constraints (masking / position reset / block isolation) beat writing consistency into the loss | Multiple papers, consistent direction, and a strong form that "holds by construction" |
+| **Robust** | Ordinal scale compression | 40 datasets × 9 models × 3 families, with independent cross-paradigm confirmation (central tendency effect on clinical ordinal scales) |
+| **Robust** | Fallback/abstention is the worst cell | Two mutually independent measurements (refusal rate 7%; a fallback option drops Intern from 97.9% to 23.1%) |
+| **Medium** | "RL on single-pass models is negative or ineffective" | §6.1 and §6.3 both correctly restrict this to "single-pass / pure readout" and note that "all positive evidence is tied to reasoning chains", so **the wording is fine**; the problem is **the evidence base is too small**. Of the three negative data points, one is an encoder (which by the user's own definition is not our direction anyway), one is small-scale REINFORCE, and one is GRPO inside an Agent loop rather than RL on a readout. Supporting a general conclusion about architecture with three heterogeneous points is thin |
+| **Medium** | Five System1+System2 positions | The classification is my own, and it is strained on the "memory/monitoring" family (§8.1.2) |
+| **Most likely to be overturned** | "Nobody guarantees L2 semantic idempotence" | This is a zero-hit statement, and it is the most likely retrieval blind spot: relevant work may be published in the robustness/invariance literature without describing itself as related to decision models |
+| **Most likely to be overturned** | "Nobody has measured end-to-end cost per correct result" | Same as above. Industrial practice very likely has this protocol but does not publish papers; this report's sources skew academic (the early audit also admitted "industrial experience is underestimated") |
+| **Most likely to be overturned** | "Decision repetition" is the main variable of gain | Never quantified or regressed (§8.1.2) |
 
-### 8.1.5 提问者视野里的四个盲区
+### 8.1.5 Four blind spots in the questioner's field of view
 
-这是本节被要求回答的部分。逐条给出盲区、它为什么是盲区、以及支撑的测量。
+This is the part this section was asked to answer. For each: the blind spot, why it is a blind spot, and the supporting measurements.
 
-**盲区 1：把"幂等"当成目标，而业务上真正要的是"可定界的风险"，两者在非对称代价下冲突。**
-"确定、幂等的执行"要求把分布塌成一个动作。但按被访者平均后，**概率向量比四舍五入后的答案更接近人类的条目边际分布**（[2610.14912](https://arxiv.org/abs/2610.14912)）；置信度混淆了人类分歧与决策风险，非对称损失下两者要求**相反的升级信号**，**没有任何单一置信数能同时服务两者**（[2610.33258](https://arxiv.org/abs/2610.33258)）。而真正可操作的目标是别的东西：把输出当"带分数的观测记录"、让 unknown 直接拒绝，就能得到一个**不依赖校准**的裁决翻转上界，并据此在多个充分契约之间做选择（[2610.10978](https://arxiv.org/abs/2610.10978)）。**可定界 > 幂等**，而且前者可以在后者不成立时成立。
+**Blind spot 1: treating "idempotence" as the goal, when what the business actually needs is "boundable risk", and the two conflict under asymmetric costs.**
+"Deterministic, idempotent execution" requires collapsing the distribution into one action. But after averaging over respondents, **the probability vector is closer to the human per-item marginal distribution than the rounded answer** ([2610.14912](https://arxiv.org/abs/2610.14912)); confidence conflates human disagreement with decision risk, and under asymmetric loss the two demand **opposite escalation signals**, so **no single confidence number can serve both** ([2610.33258](https://arxiv.org/abs/2610.33258)). The genuinely operational goal is something else: treating the output as an "observation record with scores" and letting unknown refuse directly yields a **calibration-free** upper bound on verdict flips, on which one can choose among multiple sufficient contracts ([2610.10978](https://arxiv.org/abs/2610.10978)). **Boundable > idempotent**, and the former can hold when the latter does not.
 
-**盲区 2：命题把 harness 当成可信的确定性层，而 harness 自己会改变答案。**
-语义查询引擎里"**查询计划的选择不仅影响成本，也影响结果**"，准确率**只在逐点确定性策略下**与计划无关，而当升级带在计划自己的候选上校准时**选择下推不是质量可靠的**（[2610.08089](https://arxiv.org/abs/2610.08089)）。对 139 个论文族的系统化综述更直接：50 个族声称适配控制回路，**只有 4 个用匹配的测量支持**；139 个里**只有 4 个报告截止期达成率**；而"一个对每个孤立请求都满足 10 秒预算的决策，一旦决策排在被回放的执行时间之前排队，就对任何请求都不满足"（[2610.06425](https://arxiv.org/abs/2610.06425)）。**把难点搬到 harness 不等于解决它**；搬过去之后它变成排队论与查询优化问题，而这两件事在现有 Jev 文献里几乎没人测。
+**Blind spot 2: the proposition treats the harness as a trustworthy deterministic layer, while the harness itself changes answers.**
+In semantic query engines "**the choice of query plan affects not only cost but also results**"; accuracy is plan-independent **only under pointwise deterministic policies**, and when the escalation band is calibrated on the plan's own candidates, **selection pushdown is not quality-reliable** ([2610.08089](https://arxiv.org/abs/2610.08089)). A systematic survey of 139 paper families is more direct: 50 families claim to fit a control loop, **only 4 support it with matching measurements**; of the 139, **only 4 report deadline attainment**; and "a decision that meets a 10-second budget for every isolated request fails it for every request once the decision is queued before a replayed execution time" ([2610.06425](https://arxiv.org/abs/2610.06425)). **Moving the hard part into the harness is not the same as solving it**; once moved, it becomes a queueing-theory and query-optimization problem, and almost nobody in the existing Jev literature measures either.
 
-**盲区 3：命题隐含"能力守恒"，于是低估了多步/带状态业务逻辑的丢失，而这类丢失 harness 收不到信号。**
-这是部署上最危险的一条。Jev 做不出"LLM 只有写出中间步骤才能做出"的决策（一次前向可解的条目 97.5%，其余 **74%**）；答案依赖同一用户两次以上更新时准确率下降，十六次更新时 53%–80%；给它过时的状态摘要它就照着答。而**它不知道自己的界限**：置信度标记它自己犯的错，但标记不出它从过时输入继承来的错，**显式的与训练出来的交接选项都抓不到后者**（[2610.24929](https://arxiv.org/abs/2610.24929)）。"指标 + 确定执行"这个架构在这一类失败上**没有任何可用的信号**——harness 看到的是一个高置信、类型合法、语义错误的值。配合"约束税"的发现（硬 schema 把"合法但答错"从 49.5% 抬到 88.9%，[2605.26128](https://arxiv.org/abs/2605.26128)），这是整个架构里唯一一处**失败模式比替代方案更隐蔽**的地方。
+**Blind spot 3: the proposition implicitly assumes "conservation of capability", so it underestimates the loss of multi-step / stateful business logic, and the harness receives no signal of this loss.**
+This is the most dangerous item for deployment. Jev cannot make decisions that "an LLM can only make by writing out intermediate steps" (items solvable in one forward pass 97.5%, the rest **74%**); when the answer depends on two or more updates from the same user, accuracy drops, to 53%–80% at sixteen updates; given a stale state summary, it answers from the stale summary. And **it does not know its own limits**: confidence flags the errors it makes itself but cannot flag the errors it inherits from stale inputs, and **neither explicit nor trained handoff options catch the latter** ([2610.24929](https://arxiv.org/abs/2610.24929)). The "indicator + deterministic execution" architecture has **no usable signal** for this class of failure; what the harness sees is a high-confidence, type-valid, semantically wrong value. Combined with the "constraint tax" finding (a hard schema raises "valid but wrong" from 49.5% to 88.9%, [2605.26128](https://arxiv.org/abs/2605.26128)), this is the only place in the whole architecture where **the failure mode is more hidden than in the alternative**.
 
-**盲区 4："可用配置（提示词）驱动"这个前提本身没有被任何评测验证过。**
-命题的起点是"泛化、灵活的、基于配置的生成式模型业务处理能力"。但 D1 的全部证据里，提示词都是**研究者**写的，没有任何评测集把"规则/判据/示例的作者是非技术业务专家"当作变量（§7.5 第 3 条，§5.1.5 盲区 6）。而已知的失效模式正好打在业务人员最可能踩的地方：**标签名压倒定义**（AUC 93.8% → 23.2%）、删掉定义准确率不变、小模型无法在上下文里翻转标签语义、同质示例让小模型坍塌到 12% 以下（§3.1）。**"可配置"在这份文献里是一个假定，不是一个被测过的属性。** 如果它不成立，那么命题拆分出的两半里，"模型 + 提示词配置"这一半的能力来源就比命题假定的更弱。
+**Blind spot 4: the premise "driven by usable configuration (prompts)" has itself never been validated by any evaluation.**
+The proposition starts from "generalized, flexible, configuration-based business processing ability of a generative model". But in all the evidence for D1, the prompts were written by **researchers**; no evaluation set treats "the author of the rules/criteria/examples is a non-technical business expert" as a variable (§7.5 item 3, §5.1.5 blind spot 6). And the known failure modes land exactly where business staff are most likely to step: **label names override definitions** (AUC 93.8% → 23.2%), deleting the definitions leaves accuracy unchanged, small models cannot flip label semantics in context, homogeneous examples collapse small models to below 12% (§3.1). **"Configurable" is an assumption in this literature, not a measured property.** If it does not hold, then of the two halves the proposition splits out, the "model + prompt configuration" half has a weaker source of capability than the proposition assumes.
 
-### 8.1.6 本节小结
+### 8.1.6 Summary of this section
 
-- 四个工作假设里，三个的**结论方向对、机制错**（H1、H2、H4），一个不成立（H3）。遇到分歧时应保留现象、重做机制。
-- H4 的**诊断价值应当采纳**（它准确预言了哪一类部署会失败），**描述性断言应当替换**（幂等不是它做的事；它做的是把非幂等的表面收缩成可定界的几个字段）。
-- 报告里有八个框架是**我自己造的**，其中"三层幂等"、"决策重复度"、"问题图"三条过拟合风险最高。
-- 我自己的方法论缺陷里最该防的是**确认偏差**，而且已有一次实例：§2.1初稿的反证材料大半早就在本报告里，只是写新章时没做反向检索。
-- 几十处"没有任何论文做过 X"都应读作"在本报告的检索范围内没找到"，其中"L2 无人保证"与"端到端成本无人测"最可能是检索盲区。
+- Of the four working hypotheses, three have **the right direction of conclusion and the wrong mechanism** (H1, H2, H4), and one does not hold (H3). When there is disagreement, keep the phenomenon and redo the mechanism.
+- H4's **diagnostic value should be adopted** (it correctly predicted which kind of deployment fails), and its **descriptive claim should be replaced** (idempotence is not what it does; what it does is shrink a non-idempotent surface down to a few boundable fields).
+- Eight frameworks in the report are **my own constructs**, of which "three layers of idempotence", "decision repetition" and "question graph" carry the highest overfitting risk.
+- Among my own methodological defects, the one most worth guarding against is **confirmation bias**, and there is already one instance: most of the counter-evidence material for the first draft of §2.1 was already in this report; a reverse search was simply not done when writing the new chapter.
+- The dozens of "no paper has done X" statements should all be read as "not found within this report's retrieval scope"; of these, "nobody guarantees L2" and "nobody has measured end-to-end cost" are the most likely retrieval blind spots.
 
-## 8.2 对 §2.2 框架的七条对抗性攻击
+## 8.2 Seven adversarial attacks on the §2.2 framework
 
-> **阅读提示**：本节写于讨论的第四轮之后，攻击对象是当时达成一致的六条陈述 P0–P5（其修订版 P0′–P5′ 在 §8.2.3）。第六轮讨论（§2.2.1 的"同 state 多问题"例子）之后，**A1 被解决、A4 被升级为骨干特定的版本**，最终框架是 §2.2.5 的 P0″–P5″。本节保留原文，并在 A1、A4 处加后记，以保留推理轨迹。
+> **Reading note**: this section was written after the fourth round of the discussion, and its target is the six statements P0–P5 agreed at that time (their revised version P0′–P5′ is in §8.2.3). After the sixth round of the discussion (the "multiple questions on the same state" example in §2.2.1), **A1 was resolved and A4 was upgraded to a backbone-specific version**; the final framework is the P0″–P5″ of §2.2.5. This section keeps the original text and adds postscripts at A1 and A4, to preserve the trail of reasoning.
 
-> 口径：本节不新增证据，只重构逻辑。2026-10-28 的四轮讨论把本报告的组织轴从"**业务成本**"换成了"**语义理解的泛化**"，并把主指标从准确率换成了等价类上的一致率。§2.2 先把达成一致的框架写成可证伪的六条；**余下各节的任务是攻击它**。
+> Protocol: this section adds no evidence; it only restructures the logic. The four rounds of discussion on 2026-10-28 switched the organizing axis of this report from "**business cost**" to "**the generalization of semantic understanding**", and switched the main metric from accuracy to the consistency rate on equivalence classes. §2.2 first writes the agreed framework as six falsifiable statements; **the task of the remaining sections is to attack it**.
 >
-> 为什么攻击的篇幅要大于陈述：§8.1.3 已经记下，本报告的生产流程（提问者给命题 → 我找证据 → 我写结论）满足确认偏差的标准条件，而**现在的条件比那时更坏**——这个框架是讨论的共同产物，我是它的共同作者，不再是外部审查者。"我感觉我们基本上在思路上达成一致"正是最该做对抗性分析的时刻。
+> Why the attacks take more space than the statements: §8.1.3 already recorded that this report's production process (the questioner gives a proposition → I look for evidence → I write the conclusion) satisfies the standard conditions for confirmation bias, and **the conditions now are worse than they were then**: this framework is a joint product of the discussion, I am its co-author, and I am no longer an external reviewer. "I feel we have basically reached agreement on the approach" is exactly the moment when adversarial analysis is most needed.
 >
-> 结论先行：七条攻击里，**两条推翻了框架的表述**（A1 等价类自身是不幂等的判断；A3"模型管语义、代码管记账"没有边界），**三条迫使框架增加限定条件**（A2 预先登记、A5 它是系统指标而非模型指标、A6 别把普通的多目标优化说成发现），**一条未决但最重要**（A4 语义轴与成本轴可能在架构层直接对立），**一条是永久性折扣**（A7 四个承重点各只有一篇论文）。修订后的框架见 §8.2.3。
+> Conclusions first: of the seven attacks, **two overturn the framework's wording** (A1: the equivalence class is itself a non-idempotent judgment; A3: "the model handles semantics, the code handles bookkeeping" has no boundary), **three force the framework to add qualifying conditions** (A2: pre-registration; A5: it is a system metric, not a model metric; A6: do not present ordinary multi-objective optimization as a discovery), **one is undecided but the most important** (A4: the semantic axis and the cost axis may be directly opposed at the architecture level), and **one is a permanent discount** (A7: each of the four load-bearing points rests on a single paper). The revised framework is in §8.2.3.
 
-### 8.2.1 七条对抗性攻击
+### 8.2.1 The seven adversarial attacks
 
-#### A1 等价类本身是一个判断，而且正是我们想摆脱的那一类判断 —— **推翻 P1 的表述**
+#### A1 The equivalence class is itself a judgment, and exactly the kind of judgment we want to get rid of: **overturns the wording of P1**
 
-P1 把"分母"问题交给"业务声明的等价类"。但**谁来声明？** 业务专家说"这两个案子等价"，这句话本身就是一次泛化的、基于语义的、不保证幂等的判断——与我们要替换掉的那一类判断同构。于是 P1 没有解决问题，只是把它**上移了一层**，而新位置的测量比旧位置更少。
+P1 hands the "denominator" problem to "business-declared equivalence classes". But **who declares them?** When a business expert says "these two cases are equivalent", that statement is itself a generalized, semantics-based judgment that does not guarantee idempotence, isomorphic to the kind of judgment we want to replace. So P1 does not solve the problem; it only **moves it up one layer**, and the new location has fewer measurements than the old one.
 
-支撑这条攻击的证据：
+Evidence supporting this attack:
+- Artifacts written by the business side are **systematically defective**: of 138,133 public SKILL.md files, **91.8%** have at least one defect (CI 88.8–94.6%), mainly weak routing metadata and bloated, non-executable bodies ([2608.08453](https://arxiv.org/abs/2608.08453)). There is no reason to think "equivalence-class declarations" would be written any better.
+- Rule artifacts **must be compiled for a specific model**: a SemTree tree compiled for judge A drops from 67.70% to **47.87%** when moved to judge B ([2610.13999](https://arxiv.org/abs/2610.13999)). Must equivalence-class declarations then also be recompiled per model? If so, they are not a business artifact but a model artifact, and the words "business-declared" in P1 do not hold.
+- Worse, there is a **cycle**: if the equivalence classes cannot be enumerated (which is exactly why generalization is needed), then deciding "are these two situations of the same kind" requires a model, so **the consistency of the metric depends on the consistency of the metric's own model**.
+- And the equivalence class is precisely **where business risk hides**: "are two loan applications that differ only in zip code equivalent?" is a fairness ruling, not a measurement. Writing it into the denominator hides the most contested judgment inside the metric definition.
 
-- 业务方写的制品**系统性有缺陷**：138,133 个公开 SKILL.md 中 **91.8%** 至少有一个缺陷（CI 88.8–94.6%），主要是路由元数据弱、正文臃肿不可执行（[2608.08453](https://arxiv.org/abs/2608.08453)）。没有理由认为"等价类声明"会写得更好。
-- 规则制品**必须为具体模型编译**：SemTree 为裁判 A 编译的树换到裁判 B 从 67.70% 跌到 **47.87%**（[2610.13999](https://arxiv.org/abs/2610.13999)）。那么等价类声明是否也要按模型重编译？若是，它就不是业务制品而是模型制品，P1 的"业务声明"字样不成立。
-- 更糟的是**循环**：如果等价类无法穷举（这正是需要泛化的原因），那么判定"这两个情形是否同类"就需要一个模型，于是**指标的一致性依赖于指标自己那个模型的一致性**。
-- 而等价类恰恰是**业务风险的藏身处**："除邮编外其余相同的两份贷款申请是否等价"——这是一个公平性裁决，不是一次测量。把它写进分母，等于把最有争议的判断藏进了指标定义。
+**Ruling: the attack holds, P1 must be rewritten.** The defensible version is not "business-declared equivalence classes" but "**versioned, held-out, audited equivalence-class declarations**": that is, treat the equivalence class as **an artifact that needs governance**, a newly added non-idempotent source in the system, which must be listed as a risk item rather than taken as the reliable base of the metric. This has been written into P5′ in §8.2.3.
 
-**判定：攻击成立，P1 必须改写。** 可守住的版本不是"业务声明的等价类"，而是"**被版本化、被留出、被审计的等价类声明**"——即把等价类当作**一个需要治理的制品**，它是系统里新增的一个不幂等源，必须被当作风险项列出，而不是当作指标的可靠基座。这条已写入 §8.2.3 的 P5′。
+**Postscript (after the sixth round): A1 has been resolved, and not by patching but by dissolution.** The equivalence class does not need to be declared separately: it is **induced by the question**. "I eat rice" and "I eat milk" are of the same kind under "did you eat a meal" and of different kinds under "did you drink a liquid", and questions are already first-class objects of the interface (§2.2.1). But omission 2 in §2.3 points out that this holds only for **human-written, offline** questions; questions generated at runtime by S2 inside an Agent loop bring A1 back unchanged.
 
-**后记（第六轮之后）：A1 已被解决，而且不是被修补而是被消解。** 等价类不需要另行声明——它**由问题诱导**："I eat rice"与"I eat milk"在"是否吃饭了"下同类、在"是否吃了液体"下异类，而问题本来就是接口的一等对象（§2.2.1）。但 §2.3 遗漏 2 指出它只对**人写的、离线的**问题成立；Agent 回路里由 S2 运行时生成的问题会把 A1 原样带回来。
+#### A2 The consistency rate is unfalsifiable when the equivalence classes are chosen after the fact: **P1 gains a pre-registration condition**
 
-#### A2 一致率在等价类事后选定时不可证伪 —— **P1 增加预先登记条件**
+Any consistency rate can be engineered by picking the equivalence relation. Stack A1 on top of this: if we declare the equivalence classes and we also report the consistency rate on those classes on the same batch of data, that is **in-sample fitting**, and this report has already cited its price: one paper fitted its threshold in-sample, targeting 5% while the held-out set went as high as **17%** ([2610.02267](https://arxiv.org/abs/2610.02267)); the same paper corrected "saves 23.9%" to **4.3%** and reported gate accuracy as end-to-end quality, 58% versus 98%.
 
-任何一致率都能通过挑选等价关系被工程出来。把 A1 与此叠加：若由我们声明等价类、又由我们在同一批数据上报告该等价类上的一致率，这就是**样本内拟合**，而本报告已引用过它的代价——某论文阈值样本内拟合，目标 5% 而保留集最高到 **17%**（[2610.02267](https://arxiv.org/abs/2610.02267)），同一篇还把"节省 23.9%"订正为 **4.3%**、把闸门准确率当端到端质量报成 58% 对 98%。
+The literature already has templates that do this right: the IIA study **pre-registered** its hypotheses and then ran 299,463 calls ([2610.16655](https://arxiv.org/abs/2610.16655)); the union-bound study is **pre-registered** with 36,000 calls ([2610.10978](https://arxiv.org/abs/2610.10978)).
 
-文献里已有做对的样板：IIA 研究**预先登记**假设后跑 299,463 次调用（[2610.16655](https://arxiv.org/abs/2610.16655)）；并集界研究是**预先登记**的 36,000 次调用（[2610.10978](https://arxiv.org/abs/2610.10978)）。
+**Ruling: the attack holds and a remedy is available.** The usable form of P1 must be written as "decision consistency rate on **pre-registered, held-out** equivalence classes". A consistency rate that is not pre-registered is not evidence.
 
-**判定：攻击成立且有现成补救。** P1 的可用形式必须写成"**预先登记的、留出的**等价类上的决策一致率"。不预先登记的一致率不是证据。
+#### A3 "The model handles semantics, the code handles bookkeeping" has no boundary: **overturns the wording of P0**
 
-#### A3 "模型负责语义、代码负责记账"没有边界 —— **推翻 P0 的表述**
+This dichotomy sounds clean, but the report contains three pieces of evidence that **bookkeeping carries semantics**:
 
-这个二分听起来干净，但报告里有三条证据说明**记账会携带语义**：
-
-| 被当作"记账"的东西 | 它携带了语义 |
+| What is treated as "bookkeeping" | How it carries semantics |
 | --- | --- |
-| 选项表（配置） | 每个被加入的选项都移动金标与最强错误标签间的对数几率，系统性偏移是自身重跑波动的 **1.2–3 倍**（[2610.16655](https://arxiv.org/abs/2610.16655)） |
-| 查询计划（执行） | "查询计划的选择不仅影响成本，也影响结果"；准确率**只在逐点确定性策略下**与计划无关（[2610.08089](https://arxiv.org/abs/2610.08089)） |
-| 决策树结构（编译产物） | 为裁判 A 编译的树换到裁判 B 掉 **19.8 点**（[2610.13999](https://arxiv.org/abs/2610.13999)） |
+| Option table (configuration) | Every option added shifts the log-odds between the gold label and the strongest wrong label; the systematic shift is **1.2–3×** the model's own rerun fluctuation ([2610.16655](https://arxiv.org/abs/2610.16655)) |
+| Query plan (execution) | "The choice of query plan affects not only cost but also results"; accuracy is plan-independent **only under pointwise deterministic policies** ([2610.08089](https://arxiv.org/abs/2610.08089)) |
+| Decision-tree structure (compiled artifact) | A tree compiled for judge A drops **19.8 points** when moved to judge B ([2610.13999](https://arxiv.org/abs/2610.13999)) |
 
-**判定：攻击成立，但它指向一个精确的修补。** 共同点是：**凡是代码的参数被拟合在模型自己的输出或候选上，这段代码就携带语义，二分就失效**。而这正是 [2610.08089](https://arxiv.org/abs/2610.08089) 测出来的那条界——"当升级带在计划自己的候选上校准时，选择下推**不是质量可靠的**"。所以 P0 的可守住版本要加一个条件：**代码的参数只能拟合在留出的真值上，不能拟合在模型自己的候选上**；满足这个条件时二分成立，不满足时记账就是语义的一部分，必须按语义来评测。
+**Ruling: the attack holds, but it points to a precise repair.** The common factor: **whenever the parameters of the code are fitted on the model's own outputs or candidates, that code carries semantics and the dichotomy breaks**. This is exactly the boundary measured by [2610.08089](https://arxiv.org/abs/2610.08089): "when the escalation band is calibrated on the plan's own candidates, selection pushdown **is not quality-reliable**". So the defensible version of P0 needs a condition: **the parameters of the code may only be fitted on held-out ground truth, never on the model's own candidates**; when this condition is met the dichotomy holds, and when it is not, bookkeeping is part of the semantics and must be evaluated as semantics.
 
-#### A4 语义轴与成本轴可能在架构层直接对立 —— **未决，且是最重要的一条**
+#### A4 The semantic axis and the cost axis may be directly opposed at the architecture level: **undecided, and the most important item**
 
-这是对 P0 + P5 最深的攻击，因为它打的不是表述而是**架构**。
+This is the deepest attack on P0 + P5, because it hits not the wording but the **architecture**.
 
-- 若语义敏感性需要**联合编码**（state + 规则 + 候选一起读），那么"共享状态前缀 + 隔离的问题分支 + 列表式读出"这个被 15 个以上开源复现照抄的骨架，**在结构上与我们刚刚同意的核心逻辑对立**。实测：联合打分器规则敏感性 recall@1 **1.00**；改成可缓存独立编码（77 候选时约 5 倍便宜）掉到 **0.24**（[2609.37832](https://arxiv.org/abs/2609.37832)）。
-- 反向证据同样有力：标准架构下，**一个通用问题**零样本跨 44 个基准 AUROC 中位 0.886 并胜过多数有监督基线（[2609.29429](https://arxiv.org/abs/2609.29429)）。语义泛化在便宜架构上至少有一个强例活着。
+- If semantic sensitivity requires **joint encoding** (reading state + rules + candidates together), then the skeleton "shared state prefix + isolated question branches + list-style readout", copied by more than 15 open-source reproductions, **is structurally opposed to the core logic we just agreed on**. Measured: the joint scorer has rule-sensitivity recall@1 **1.00**; switching to cacheable independent encoding (about 5× cheaper at 77 candidates) drops it to **0.24** ([2609.37832](https://arxiv.org/abs/2609.37832)).
+- The counter-evidence is just as strong: under the standard architecture, **one generic question** zero-shot across 44 benchmarks reaches a median AUROC of 0.886 and beats most supervised baselines ([2609.29429](https://arxiv.org/abs/2609.29429)). Semantic generalization has at least one strong example alive on the cheap architecture.
 
-两边各一篇，骨干、任务、读出方式均不同，**本报告无法裁决**。而它的后果很重：如果 A4 成立，那么"在小 Qwen 上做 Jev 式读出的继续训练"是在为我们刚同意的目标优化**错误的架构**。
+One paper on each side, with different backbones, tasks and readout methods; **this report cannot rule on it**. And the consequences are heavy: if A4 holds, then "continued training of Jev-style readout on a small Qwen" is optimizing the **wrong architecture** for the goal we just agreed on.
 
-**判定：未决。** 这是本报告最该被填的证据缺口（见 §8.2.2），也是 §8.1.4"最可能被推翻"一栏应当新增的一行。
+**Ruling: undecided.** This is the evidence gap this report most needs filled (see §8.2.2), and it is a row that should be added to the "most likely to be overturned" grade in §8.1.4.
 
-**后记（第六轮之后）：A4 有了一个更锋利、骨干特定的版本。**"同 state 多问题"要求 state 编码一次、每个问题各自投影——这恰是共享前缀 + 隔离分支的架构。但共享前缀是在**问题未知时**算完的：纯注意力骨干下 KV 缓存保留 token 级细节，问题分支可以"重读"state；而 Qwen3.5/3.8-27B 的 64 层里 **48 层是递归层**，共享前缀复用的是递归状态快照（§1.3.2），问题分支拿到的是**与问题无关的定长摘要**。预测：需要 state 中不显著方面的问题会失败，且静默失败。这是缺陷登记表第 11 行（§2.2.4），对照（混合 vs 纯注意力，同 state、N 问题、按方面显著程度分档）现在就能做。
+**Postscript (after the sixth round): A4 now has a sharper, backbone-specific version.** "Multiple questions on the same state" requires the state to be encoded once and each question to project separately; this is exactly the shared-prefix + isolated-branch architecture. But the shared prefix is computed **while the question is unknown**: under an attention-only backbone the KV cache keeps token-level detail and the question branch can "re-read" the state; while in the 64 layers of Qwen3.5/3.8-27B, **48 are recurrent layers**, the shared prefix reuses a recurrent state snapshot (§1.3.2), and what the question branch gets is a **question-independent fixed-length summary**. Prediction: questions that need non-salient aspects of the state will fail, and fail silently. This is row 11 of the defect registry (§2.2.4), and the control (hybrid vs attention-only, same state, N questions, binned by aspect salience) can be run now.
 
-**后记二（第八轮之后）：A4 由设计选择裁决，不再未决。** 提问者取定的顺序是任务定义 → 输入 → 候选分支，输入的编码以任务定义为条件（Certo 里贵的、规则敏感的那一侧；Bongard 第三阶段的方向，[2609.39111](https://arxiv.org/abs/2609.39111)），跨样本缓存沿"同一套规则"这个轴而不是沿"同一输入多问题"。所以"便宜的操作与毁掉规则敏感性的操作是同一个"这条攻击仍然成立，只是我们选了付钱的那一侧：失去的是 Jev 的"额外问题近乎免费"，保住的是"不解码"带来的一到两个数量级（§2.2.5 P5″）。残差是骨干特定的：候选分支看输入的通道在混合骨干上是 16 层注意力逐字 + 48 层递归压缩，缺陷 11 改写为"候选分支经递归层看输入"，对照实验（本地 Qwen3-0.6B 纯注意力 对 Qwen3.5-0.8B 混合）仍是第一个该跑的结构实验。
+**Second postscript (after the eighth round): A4 is ruled by a design choice and is no longer undecided.** The order fixed by the questioner is task definition → input → candidate branches, with the encoding of the input conditioned on the task definition (the expensive, rule-sensitive side in Certo; the direction of Bongard's third stage, [2609.39111](https://arxiv.org/abs/2609.39111)), and cross-sample caching along the axis "the same set of rules" rather than "the same input, multiple questions". So the attack "the cheap operation and the operation that destroys rule sensitivity are the same one" still holds; we simply chose the side that pays: what is lost is Jev's "additional questions nearly free", what is kept is the one to two orders of magnitude from "no decoding" (§2.2.5 P5″). The residual is backbone-specific: on the hybrid backbone the channel through which candidate branches see the input is 16 attention layers verbatim + 48 recurrent layers of compression; defect 11 is rewritten as "candidate branches see the input through recurrent layers", and the control experiment (local Qwen3-0.6B attention-only versus Qwen3.5-0.8B hybrid) remains the first structural experiment to run.
 
-#### A5 "决策一致率"是系统指标，不是模型指标 —— **P1、P2 增加限定**
+#### A5 "Decision consistency rate" is a system metric, not a model metric: **P1 and P2 gain qualifications**
 
-两条独立理由：
+Two independent reasons:
 
-1. **与非对称代价冲突。** 按被访者平均后**概率向量比四舍五入后的答案更接近人类的条目边际分布**（[2610.14912](https://arxiv.org/abs/2610.14912)）；置信度混淆了人类分歧与决策风险，非对称损失下两者要求**相反的升级信号**，**没有任何单一置信数能同时服务两者**（[2610.33258](https://arxiv.org/abs/2610.33258)）。主指标若是"决策"的一致率，优化它就会把分布塌成一个动作，而那恰好丢掉非对称代价决策所需的信息。
-2. **"决策"在阈值之后才存在。** 所以决策一致率是 (模型 + 阈值 + 契约) 的性质，**不存在模型层面的版本**。而阈值是训练之后才拟合的，于是"把决策一致率当训练目标"在时序上是循环的。
+1. **Conflict with asymmetric costs.** After averaging over respondents, **the probability vector is closer to the human per-item marginal distribution than the rounded answer** ([2610.14912](https://arxiv.org/abs/2610.14912)); confidence conflates human disagreement with decision risk, and under asymmetric loss the two demand **opposite escalation signals**, so **no single confidence number can serve both** ([2610.33258](https://arxiv.org/abs/2610.33258)). If the main metric is the consistency rate of "decisions", optimizing it will collapse the distribution into one action, and that throws away exactly the information that decisions under asymmetric costs need.
+2. **A "decision" exists only after the threshold.** So decision consistency is a property of (model + threshold + contract), and **no model-level version exists**. And the threshold is fitted after training, so "using decision consistency as a training objective" is circular in time.
 
-**判定：攻击成立，框架需分层。** 可用形式：**系统层**的主指标是预先登记等价类上的决策一致率；**模型层**可训练的代理只能是**分数的序数稳定性**（而这恰好与"读出本来就是序数的不是概率的"吻合——序数层误差 4.2 点对概率层 21.0 点，§6.5.2.2）。混用这两层会把一个系统指标误当成模型目标。
+**Ruling: the attack holds, the framework must be layered.** Usable form: the **system-level** main metric is the decision consistency rate on pre-registered equivalence classes; the trainable proxy at the **model level** can only be **the ordinal stability of the scores** (which happens to match "the readout is ordinal in the first place, not probabilistic": ordinal-layer error 4.2 points versus probability-layer 21.0 points, §6.5.2.2). Mixing the two layers mistakes a system metric for a model objective.
 
-#### A6 "不变性 + 判别"这对本身不是新东西 —— **防止把普通的多目标优化包装成发现**
+#### A6 The pair "invariance + discrimination" is nothing new in itself: **prevents packaging ordinary multi-objective optimization as a discovery**
 
-P4 展开后就是"带约束的多目标优化"，这是教科书内容。如果框架的贡献被表述为 P4，那它没有贡献。
+Expanded, P4 is "constrained multi-objective optimization", which is textbook content. If the framework's contribution is stated as P4, it has no contribution.
 
-**判定：攻击部分成立，必须限定功劳。** 新的部分只有三处，且都是**具体的取定**而非一般原则：（a）该用哪个不变性——不是字节级重跑（已达 ICC 0.997 / 翻转 0.17%，拿不到任何增量），不是顺序置换（按构造可买到，Prism-1 零翻转），而是**预先登记的业务等价类**，而它无人定义过；（b）幂等该住在哪——阈值与确定性契约，且其界**不依赖校准**；（c）取舍该在哪里定价——成本与语义是同一个旋钮（A4）。除这三条之外，P4 应当被当作常识复述，不是发现。
+**Ruling: the attack partly holds, and the credit must be limited.** The new part is only three items, and all are **concrete fixed choices** rather than general principles: (a) which invariance to use: not byte-level rerun (already at ICC 0.997 / flips 0.17%, no gain to be had), not order permutation (purchasable by construction, Prism-1 zero flips), but **pre-registered business equivalence classes**, which nobody has defined; (b) where idempotence should live: in the threshold and the deterministic contract, with a bound that **does not depend on calibration**; (c) where the trade-off should be priced: cost and semantics are the same knob (A4). Apart from these three, P4 should be treated as a restatement of common sense, not a discovery.
 
-#### A7 四个承重点各只有一篇论文 —— **永久性折扣**
+#### A7 Each of the four load-bearing points rests on a single paper: **permanent discount**
 
-| 承重结论 | 唯一来源 |
+| Load-bearing conclusion | Sole source |
 | --- | --- |
-| 免校准并集界（P2、P3 的地基） | [2610.10978](https://arxiv.org/abs/2610.10978) |
-| 成本与语义是同一个旋钮（P5、A4） | [2609.37832](https://arxiv.org/abs/2609.37832) |
-| 指标是菜单相对量（A3、L2 的核心反例） | [2610.16655](https://arxiv.org/abs/2610.16655) |
-| 语义泛化在便宜架构上活着（P0 的最强支持） | [2609.29429](https://arxiv.org/abs/2609.29429) |
+| Calibration-free union bound (the foundation of P2, P3) | [2610.10978](https://arxiv.org/abs/2610.10978) |
+| Cost and semantics are the same knob (P5, A4) | [2609.37832](https://arxiv.org/abs/2609.37832) |
+| The metric is a menu-relative quantity (the core counterexample for A3, L2) | [2610.16655](https://arxiv.org/abs/2610.16655) |
+| Semantic generalization is alive on the cheap architecture (the strongest support for P0) | [2609.29429](https://arxiv.org/abs/2609.29429) |
 
-四篇都是 Jev 发布后六周内的预印本，未经同行评审。**任一篇不可复现，框架就掉一根柱子**；而其中两篇（并集界、IIA）是预先登记研究，这是四篇里可信度最高的两篇，另两篇不是。
+All four are preprints from the six weeks after the Jev release, not peer-reviewed. **If any one fails to reproduce, the framework loses a pillar**; two of them (union bound, IIA) are pre-registered studies, the two most credible of the four, and the other two are not.
 
-**判定：这不是可以修补的缺陷，是一个必须一直挂在框架上的折扣。**
+**Ruling: this is not a defect that can be patched; it is a discount that must stay attached to the framework permanently.**
 
-### 8.2.2 裁决这些分歧所缺的证据（不是方案，是缺口）
+### 8.2.2 The evidence missing to rule on these disagreements (gaps, not plans)
 
-按 §8.4的口径，把上面未决的部分写成"缺哪一个测量"，而不是"该怎么做"：
+Following the protocol of §8.4, the undecided parts above are written as "which measurement is missing", not "what should be done":
 
-| 缺口 | 它裁决哪条攻击 | 现有最接近的东西 |
+| Gap | Which attack it rules on | Closest existing thing |
 | --- | --- | --- |
-| **同骨干、同数据、同任务上并排测"联合编码 vs 可缓存独立编码"，同时报规则敏感度与单价** | **A4**（最重要） | Certo 只在自己的设置里报了两端（[2609.37832](https://arxiv.org/abs/2609.37832)）；无人做跨设置对照 |
-| **四个分母并排报的一致率**：字节级重跑 / 顺序置换 / 保答案对抗变体 / **预先登记的业务等价类** | **A1、A2** | 前三个分母各有论文（0.17%、0.11%–8.30%、46.3%），**第四个无人定义过**（§7.5 第 13 行） |
-| **决策微调前后的 k-shot 曲线**，外加名字-定义对调协议与渲染修补、符号调优的对照 | P0 能否被修复（语义是否能被读回来） | 渲染修补 **+0.1511**（[2610.02586](https://arxiv.org/abs/2610.02586)）、符号调优提升翻转上下文标签语义（[2305.08298](https://arxiv.org/abs/2305.08298)），**两者都没在决策模型上试过**；k-shot 曲线无人测（§3.1盲区 1） |
+| **Side-by-side measurement of "joint encoding vs cacheable independent encoding" on the same backbone, same data, same task, reporting rule sensitivity and unit price together** | **A4** (most important) | Certo reports both ends only in its own setting ([2609.37832](https://arxiv.org/abs/2609.37832)); nobody has done a cross-setting control |
+| **Consistency rates reported side by side on the four denominators**: byte-level rerun / order permutation / answer-preserving adversarial variants / **pre-registered business equivalence classes** | **A1, A2** | The first three denominators each have a paper (0.17%, 0.11%–8.30%, 46.3%); **the fourth has never been defined** (§7.5 row 13) |
+| **k-shot curves before and after decision fine-tuning**, plus controls with the name-definition swap protocol, rendering fixes and symbol tuning | Whether P0 can be repaired (whether semantics can be read back) | Rendering fix **+0.1511** ([2610.02586](https://arxiv.org/abs/2610.02586)), symbol tuning improves flipped in-context label semantics ([2305.08298](https://arxiv.org/abs/2305.08298)), **neither has been tried on a decision model**; nobody has measured k-shot curves (§3.1 blind spot 1) |
 
-### 8.2.3 攻击之后剩下的框架
+### 8.2.3 The framework that remains after the attacks
 
-> 本小节是**中间版本**（P0′–P5′）。最终版本 P0″–P5″ 在 §2.2.5，差别是：等价类由问题诱导（P0″）、主指标成为"问题内不变 / 问题间重划"一对（P1″）、正确率是第三条腿而非地板的补充（P2″）、成本取舍被定界为"失去额外问题近乎免费，而非失去一到两个数量级"（P5″）。
+> This subsection is the **intermediate version** (P0′–P5′). The final version P0″–P5″ is in §2.2.5; the differences are: equivalence classes are induced by questions (P0″), the main metric becomes the pair "within-question invariance / cross-question re-partition" (P1″), accuracy is a third leg rather than a supplement to the floor (P2″), and the cost trade-off is bounded as "losing 'additional questions nearly free', not losing one to two orders of magnitude" (P5″).
 
-把五条成立的攻击折进去，可守住的版本是：
+Folding in the five attacks that hold, the defensible version is:
 
-> **P0′** 模型把开放世界情形映射成带刻度的类型化观测；代码做观测之上的算术，**且代码的参数只能拟合在留出的真值上，不能拟合在模型自己的候选上**——不满足这个条件时，"记账"携带语义，必须按语义评测。
+> **P0′** The model maps open-world situations into typed observations with a scale; the code does arithmetic on top of the observations, **and the parameters of the code may only be fitted on held-out ground truth, never on the model's own candidates**. When this condition is not met, "bookkeeping" carries semantics and must be evaluated as semantics.
 >
-> **P1′** 系统层主指标是**预先登记的、留出的**业务等价类上的决策一致率。模型层可训练的代理只能是**分数的序数稳定性**；这两层不可混用。
+> **P1′** The system-level main metric is the decision consistency rate on **pre-registered, held-out** business equivalence classes. The trainable proxy at the model level can only be **the ordinal stability of the scores**; the two layers must not be mixed.
 >
-> **P2′** 正确率是**声明的地板**，并且必须用决策级配对口径测（累计失败集、等价类翻转率），不能用聚合准确率——换 8 种顺序时准确率变化 **<2 pp** 而累计失败集扩大 **27–29%**（[2610.35826](https://arxiv.org/abs/2610.35826)）。
+> **P2′** Accuracy is a **declared floor**, and it must be measured with the decision-level paired protocol (cumulative failure set, equivalence-class flip rate), not with aggregate accuracy: across 8 orderings accuracy changes by **<2 pp** while the cumulative failure set grows by **27–29%** ([2610.35826](https://arxiv.org/abs/2610.35826)).
 >
-> **P3′** 幂等住在阈值与确定性契约里；模型侧的三条要求是单调可取阈的分数、原生 unknown（当前最差的一格：答案缺席时正确拒绝率 **7%**，拟合阈值可到 **79%**）、等价类内不变。
+> **P3′** Idempotence lives in the threshold and the deterministic contract; the three requirements on the model side are a monotonic thresholdable score, native unknown (currently the worst cell: correct refusal rate **7%** when the answer is absent, up to **79%** with a fitted threshold), and invariance within equivalence classes.
 >
-> **P4′** 每条不变性配一条判别。此条是常识复述，功劳只在"该用哪个不变性"这个取定上（A6）。
+> **P4′** Every invariance is paired with a discrimination. This item is a restatement of common sense; the credit lies only in the fixed choice of "which invariance to use" (A6).
 >
-> **P5′** 单价是使能条件。**等价类声明是系统新增的一个不幂等源**，必须被版本化、留出、审计，并作为风险项列出。用成本换语义的手段必须显式定价，而这个取舍目前**未决**（A4）。
+> **P5′** Unit price is the enabling condition. **The equivalence-class declaration is a newly added non-idempotent source in the system** and must be versioned, held out, audited and listed as a risk item. Any means of trading cost for semantics must be priced explicitly, and this trade-off is currently **undecided** (A4).
 
-### 8.2.4 什么证据会推翻这个框架
+### 8.2.4 What evidence would overturn this framework
 
-| 若观测到 | 则被推翻的是 |
+| If observed | What is overturned |
 | --- | --- |
-| 在预先登记的业务等价类上，类型化单遍读出的一致率**不优于**同骨干的标签对数概率读出 | P0、P1 的全部动机——那样 Jev 类接口连一致性优势也没有，只剩成本 |
-| 联合编码与可缓存独立编码在规则敏感度上**无显著差异** | A4 消解，P5 的"显式定价"降级为次要条款；这对框架是**好消息** |
-| 并集界在第三方复现中被某一格推翻 | P2、P3 的地基（唯一来源，A7） |
-| 渲染修补 + 符号调优**不能**把"名字压倒定义"这条修回来 | P0 的可修复性——语义泛化在这个接口上可能不可达，那么"核心逻辑是语义泛化"就只是一个愿望 |
-| 决策微调后 k-shot 曲线变平 | 业务人员可配置这一前提（§5.1.5 盲区 6、§8.1.5 盲区 4） |
+| On pre-registered business equivalence classes, the consistency rate of typed single-pass readout is **not better than** same-backbone label log-probability readout | The entire motivation for P0 and P1: the Jev-class interface would then have no consistency advantage either, only cost |
+| Joint encoding and cacheable independent encoding show **no significant difference** in rule sensitivity | A4 dissolves, and the "explicit pricing" in P5 is downgraded to a secondary clause; this is **good news** for the framework |
+| The union bound is overturned in some cell by a third-party reproduction | The foundation of P2 and P3 (sole source, A7) |
+| Rendering fixes + symbol tuning **cannot** repair "names override definitions" | The repairability of P0: semantic generalization may be unreachable on this interface, in which case "the core logic is semantic generalization" is only a wish |
+| The k-shot curve flattens after decision fine-tuning | The premise that business staff can configure it (§5.1.5 blind spot 6, §8.1.5 blind spot 4) |
 
-### 8.2.5 本节小结
+### 8.2.5 Summary of this section
 
-1. **达成一致不是检验通过。** 这个框架是讨论的共同产物，我是共同作者，确认偏差的条件比 §8.1记录的更坏。所以本节攻击的篇幅大于陈述。
-2. **七条攻击里，框架的两处表述被推翻**（等价类不是可靠基座而是新增的不幂等源；"模型管语义、代码管记账"只在"代码参数不拟合在模型候选上"时成立），**三处必须加限定**（预先登记、系统层/模型层分开、功劳只在取定上），**一处未决且最重要**（成本与语义是否在架构层对立），**一处是永久折扣**（四个承重点各一篇论文，其中两篇非预先登记）。
-3. **框架没有因此变弱，而是变得可证伪。** §8.2.4 列了五条会推翻它的观测，其中三条所需的测量**现在就能做**（四个分母并排的一致率、联合 vs 独立编码对照、决策微调前后的 k-shot 曲线）。
-4. **最该记住的一条**：三次命题（幂等、挪到代码、一致率）都只点名了"不变性"而留空了"判别"，而三次的无约束最优解分别是查表、查表、常数分类器。这是一个**模式**，不是三次巧合——下一条命题提出时，先检查它的无约束最优解是不是一个退化模型。
+1. **Reaching agreement is not passing a test.** This framework is a joint product of the discussion, I am a co-author, and the conditions for confirmation bias are worse than those recorded in §8.1. That is why the attacks in this section take more space than the statements.
+2. **Of the seven attacks, two of the framework's wordings are overturned** (the equivalence class is not a reliable base but a newly added non-idempotent source; "the model handles semantics, the code handles bookkeeping" holds only when "the code's parameters are not fitted on the model's candidates"), **three must gain qualifications** (pre-registration, separating the system level from the model level, credit only for the fixed choices), **one is undecided and the most important** (whether cost and semantics are opposed at the architecture level), **one is a permanent discount** (each of the four load-bearing points rests on one paper, two of which are not pre-registered).
+3. **The framework is not weakened by this; it becomes falsifiable.** §8.2.4 lists five observations that would overturn it, and the measurements for three of them **can be made now** (consistency rates side by side on the four denominators, the joint vs independent encoding control, k-shot curves before and after decision fine-tuning).
+4. **The one thing most worth remembering**: all three propositions (idempotence, move to code, consistency rate) named only "invariance" and left "discrimination" empty, and their unconstrained optima were lookup table, lookup table and constant classifier respectively. This is a **pattern**, not three coincidences: when the next proposition is raised, first check whether its unconstrained optimum is a degenerate model.
+## 8.3 Work-problem matrix and blind-spot summary
 
-## 8.3 工作—问题矩阵与盲区汇总
+> This section compresses the conclusions of 01–08 into two tables: (1) for each dimension, "which class of problem is solved by which works, and to what degree"; (2) a cross-dimension list of blind spots, ordered by how directly "we would run into them when training our own Jev-class model". Details and numbers are in the respective chapters; this section only gives the index.
 
-> 本节把 01–08 的结论压成两张表：(1) 每个维度下"哪类问题被哪些工作解决到什么程度"；(2) 跨维度的盲区清单，按"我们自训 Jev 类模型时会直接撞上"的程度排序。细节与数字都在各章，此处只给索引。
+### 8.3.1 Overview of the Five Dimensions
 
-### 8.3.1 五维度总览
-
-| 维度 | 问题重述（按用户口径） | 已解决 | 部分解决 | 未解决 |
+| Dimension | Problem restated (in the user's terms) | Solved | Partially solved | Unsolved |
 | --- | --- | --- | --- | --- |
-| **D1 ICL** | 决策微调后的单遍模型是否保留 ICL；如何利用；业务人员能用哪些提示杠杆 | 选项名与定义是最强杠杆（03 §3.1.2.2）；状态内示例/先例有效（JevKT、审核先例） | 示例数量与格式的效应只有间接证据；上游 ICL 机制（标签空间、格式、符号电路）未在决策模型上验证 | **决策微调对 ICL 的保留/破坏没有直接测量**；非技术人员写的提示的效果没有被测 |
-| **D2 符号指令** | 模型是否忠实执行明确的符号规则（阈值、日期、否定、兜底） | "读"类事实探针稳（Reading Right 0.96–1.00 代码组合） | 否定/层级有免标签度量；算术/日期边界清楚（官方建议放代码） | **拒绝/兜底是最弱环节**（99%/7%、97.9→23.1）；等价措辞不变性无缓解 |
-| **D3 规则语言** | 给非技术专家一套逻辑原语，用文字写业务规则，模型忠实执行 | Skill 范式对生成式 Agent 有效（+16.6）；NL→IR 编译器有多种中间表示 | SemTree（Yes/No/Unknown 树、按裁判编译）、概率感知确定性裁决（并集界）是单遍模型上的雏形 | **没有面向单遍模型的规则语言**；原语可执行性未分级；Unknown 原语与"模型说不了不知道"矛盾；L1/L2 规则（依赖/新框架）即使推理模型也只有 35%/13% |
-| **D4 一致性** | 定义并度量所有让"同一判断"概率变化的因素 | 顺序（结构性缓解）、先验偏移（EM/KL 锚）、重复性 | 30 个子维度中 26 个有定义和度量 | **缓解只覆盖 2 项**；版本漂移、教师偏差无实证；无统一一致性基准；中文零证据 |
-| **D5 Agent/知识** | 快/慢协同能否替代"慢思考 + 执行反馈" | 记忆选择/判断（预注册非劣）；动作空间被代码枚举的领域 Agent | 切换信号四类，但置信 ≠ "需要思考"；S1 监控 S2 只有 SOMA | **省钱不等于更好**（三篇反方）；收益核算无标准；知识结构维护无工作；规则/LR 基线常够用 |
-| **08 骨干** | 混合骨干对 Jev 式接口的约束 | 推理时隔离（逐行/分叉）可做 | 选择性适配、注意力层双向读法 | **训练时分支隔离无文献**；同参数量混合 vs 纯注意力无对照 |
+| **D1 ICL** | Whether a single-pass model retains ICL after decision fine-tuning; how to exploit it; which prompt levers business staff can use | Option names and definitions are the strongest levers (03 §3.1.2.2); in-state examples/precedents work (JevKT, review precedents) | The effect of example count and format has only indirect evidence; upstream ICL mechanisms (label space, format, symbolic circuits) have not been verified on decision models | **No direct measurement of whether decision fine-tuning preserves or destroys ICL**; the effect of prompts written by non-technical staff has not been measured |
+| **D2 Symbolic instructions** | Whether the model faithfully executes explicit symbolic rules (thresholds, dates, negation, fallback) | "Read"-type factual probes are stable (Reading Right 0.96–1.00 with code composition) | Negation/hierarchy have label-free metrics; arithmetic/date boundaries are clear (the vendor recommends putting them in code) | **Refusal/fallback is the weakest link** (99%/7%, 97.9→23.1); no mitigation for equivalent-wording invariance |
+| **D3 Rule language** | Give non-technical experts a set of logic primitives to write business rules in text, which the model executes faithfully | The Skill paradigm works for generative Agents (+16.6); NL→IR compilers have multiple intermediate representations | SemTree (Yes/No/Unknown trees, compile-per-judge) and probability-aware deterministic adjudication (union bound) are prototypes on single-pass models | **No rule language targets single-pass models**; primitive executability is not graded; the Unknown primitive conflicts with "the model cannot say it does not know"; L1/L2 rules (dependency / new framework) reach only 35%/13% even on reasoning models |
+| **D4 Consistency** | Define and measure all factors that change the probability of "the same judgment" | Order (structural mitigation), prior shift (EM/KL anchors), repeatability | 26 of the 30 sub-dimensions have definitions and metrics | **Mitigation covers only 2 items**; version drift and teacher bias have no empirical evidence; no unified consistency benchmark; zero evidence in Chinese |
+| **D5 Agent/knowledge** | Whether fast/slow cooperation can replace "slow thinking + execution feedback" | Memory selection/judgment (pre-registered non-inferiority); domain Agents whose action space is enumerated by code | Four classes of switching signal, but confidence ≠ "needs thinking"; S1 monitoring S2 has only SOMA | **Cheaper does not mean better** (three opposing papers); no standard for benefit accounting; no work on knowledge-structure maintenance; rule/LR baselines are often sufficient |
+| **08 Backbone** | Constraints a hybrid backbone places on the Jev-style interface | Inference-time isolation (row-by-row / forking) is feasible | Selective adaptation, bidirectional reading of attention layers | **No literature on training-time branch isolation**; no controlled comparison of hybrid vs attention-only at equal parameter count |
 
-### 8.3.2 工作 → 问题矩阵（主要工作）
+### 8.3.2 Work → Problem Matrix (Main Works)
 
-列 = 维度；格内 = 该工作对该维度的贡献类型：**E** 证据（度量了问题）、**M** 缓解（给出可用方法）、**T** 工具/基准、**N** 反方证据。
+Columns = dimensions; cell = the type of contribution the work makes to that dimension: **E** evidence (measured the problem), **M** mitigation (gives a usable method), **T** tool/benchmark, **N** opposing evidence.
 
-| 工作 | D1 | D2 | D3 | D4 | D5 | 08 |
+| Work | D1 | D2 | D3 | D4 | D5 | 08 |
 | --- | --- | --- | --- | --- | --- | --- |
-| TypeSafe 文档（primitives / patterns / jaggedness / cookbooks / agent-skill） | M | E | M | E | M | — |
-| Archer Hume 架构探针 | — | — | — | E | — | E |
-| Kev | — | — | — | T(permute) | — | M(逐行) |
-| qwen-rlcd | — | — | — | — | — | M(分叉) |
-| StartLux-Decision | — | — | — | M(校准) | M(AutoThink) | M(双向) |
-| Releasing Inner Jev / LLM-as-Jev / LDM / FunDM / AnyJev | — | — | — | E(读出) | — | — |
-| OneJev / Open-Jev / Tev1 / Nimble / Intern-Decision / Chinese Decision | — | — | — | E | — | E(延迟) |
-| PACT / Prism-1 / Runoff / Block-causal | — | — | — | M(顺序) | — | — |
-| SanSi / LEV | — | — | — | — | M(深度) | — |
-| 2609.26758 选项名 / 2610.02586 定义 | E, M | — | E | E | — | — |
-| JevKT / 审核先例 / MemCom / cheat-sheet / Jev-LDE | E | — | — | — | — | — |
+| TypeSafe documentation (primitives / patterns / jaggedness / cookbooks / agent-skill) | M | E | M | E | M | — |
+| Archer Hume architecture probe | — | — | — | E | — | E |
+| Kev | — | — | — | T(permute) | — | M(row-by-row) |
+| qwen-rlcd | — | — | — | — | — | M(forking) |
+| StartLux-Decision | — | — | — | M(calibration) | M(AutoThink) | M(bidirectional) |
+| Releasing Inner Jev / LLM-as-Jev / LDM / FunDM / AnyJev | — | — | — | E(readout) | — | — |
+| OneJev / Open-Jev / Tev1 / Nimble / Intern-Decision / Chinese Decision | — | — | — | E | — | E(latency) |
+| PACT / Prism-1 / Runoff / Block-causal | — | — | — | M(order) | — | — |
+| SanSi / LEV | — | — | — | — | M(depth) | — |
+| 2609.26758 option names / 2610.02586 definitions | E, M | — | E | E | — | — |
+| JevKT / review precedents / MemCom / cheat-sheet / Jev-LDE | E | — | — | — | — | — |
 | CALICO / Goldsmith | M | — | M | — | — | — |
-| In-context fixation / 语义锚 / schema | E(上游) | — | — | — | — | — |
+| In-context fixation / semantic anchors / schema | E(upstream) | — | — | — | — | — |
 | Reading Right | — | E, M | M | — | — | — |
-| 否定公理 2609.33209 / 层级 2609.33971 / 合取 2610.19619 | — | E | — | E | — | — |
-| 拒绝瓶颈 / Lost in the Fallback / 法律弃权 / 拒绝迁移 / 退役门 | — | E | E | E | — | — |
-| JevOut / JevAdvBench / 选项通道 / Same Attack / TrustJev / DICE | — | E | — | E | N | — |
-| 2610.30045 措辞 / 表格 2610.19536 | — | E | — | E | — | — |
-| IIA 2610.16655 / 选择偏差 2610.35826 / 请求独立性 2610.14631 | — | — | — | E | — | — |
-| 多正确 2610.29217 / 序数压缩 2609.38827 | — | — | E | E | — | — |
-| 自知 2610.01006 / 两种不确定性 2610.33258 / 字面锁定 2610.22526 | — | — | — | E | — | — |
-| 流行率偏移 2610.26325 / SHIFT-JEV | — | — | — | E, M | M | — |
-| 教师偏差 2610.26797 | — | — | — | E(理论) | — | — |
-| SemTree | — | — | M | E(版本) | — | — |
-| 概率感知确定性裁决 2610.10978 / 语义查询优化 2610.08089 / JEVDB | — | — | M | M(组合) | — | — |
+| Negation axioms 2609.33209 / hierarchy 2609.33971 / conjunction 2610.19619 | — | E | — | E | — | — |
+| Refusal bottleneck / Lost in the Fallback / legal abstention / refusal transfer / retirement gate | — | E | E | E | — | — |
+| JevOut / JevAdvBench / option channel / Same Attack / TrustJev / DICE | — | E | — | E | N | — |
+| 2610.30045 wording / tables 2610.19536 | — | E | — | E | — | — |
+| IIA 2610.16655 / selection bias 2610.35826 / request independence 2610.14631 | — | — | — | E | — | — |
+| Multiple-correct 2610.29217 / ordinal compression 2609.38827 | — | — | E | E | — | — |
+| Self-knowledge 2610.01006 / two kinds of uncertainty 2610.33258 / literal lock-in 2610.22526 | — | — | — | E | — | — |
+| Prevalence shift 2610.26325 / SHIFT-JEV | — | — | — | E, M | M | — |
+| Teacher bias 2610.26797 | — | — | — | E(theory) | — | — |
+| SemTree | — | — | M | E(version) | — | — |
+| Probability-aware deterministic adjudication 2610.10978 / semantic query optimization 2610.08089 / JEVDB | — | — | M | M(composition) | — | — |
 | Jev-Guard / SafePyramid / LPG / gpt-oss-safeguard / PolicyGuard | — | — | E, M | — | M | — |
 | Artic / FlashScript / TraceCompiler / Formal Skill / P2T / SIRNA / Cedar / ARc / LSP | — | — | M(IR) | — | — | — |
 | SkillsBench / 138K SKILL.md / Skill coverage / SkillSentry / Auto-Policy | — | — | E | — | — | — |
-| Code Owns the Simulation / What Can't Jev Decide | — | E | M(边界) | E | N | — |
+| Code Owns the Simulation / What Can't Jev Decide | — | E | M(boundary) | E | N | — |
 | When Faster Decisions… / Good Judgment Bad Advice / JevAgentHarness / Microtask / Measure Before You Train / JEVal | — | — | — | — | N, M | — |
 | System1-Arena / Fast Models Slow Evidence / DecisionPivot / TypedBench | — | E | — | E | T | — |
 | Selective Reasoning / SOMA / System Switch / VoI / Truncated Reasoning / TORSI | — | — | — | — | M | — |
-| 选择 vs 抽取 / Mnemon / Jev-Mem / SJC / 压缩后续问题 | — | — | — | — | E, M | — |
+| Selection vs extraction / Mnemon / Jev-Mem / SJC / compression for follow-up questions | — | — | — | — | E, M | — |
 | REFLEX / Jev-LiteMAS / S1-MAS / BLADE / Jarvis | — | — | — | — | M | — |
-| Jev-Mobile / JEV-Star / SearchJev / JevCoder / Decision4Rec / NIOCIS | — | — | M(动作空间) | — | M | — |
+| Jev-Mobile / JEV-Star / SearchJev / JevCoder / Decision4Rec / NIOCIS | — | — | M(action space) | — | M | — |
 | Claim Laundering / Jev-DLC | — | — | — | E | E, M | — |
-| Marconi / FastJEV / Hydragen / DeFT / Block-Attention / IPPD / Visual Jev / 选择性适配 | — | — | — | — | — | M |
+| Marconi / FastJEV / Hydragen / DeFT / Block-Attention / IPPD / Visual Jev / selective adaptation | — | — | — | — | — | M |
 
-### 8.3.3 盲区汇总（按对自训工作的影响排序）
+### 8.3.3 Blind-Spot Summary (Ordered by Impact on Our Own Training Work)
 
-#### 一级：直接决定训练配方能否成立
+#### Tier 1: Directly Decides Whether a Training Recipe Can Stand
 
-1. **决策微调是否保留 ICL（D1）**。所有复现只报准确率/ECE，没有人在微调前后测"状态内示例改变决策的幅度"。如果 RLCD/软标签蒸馏抹掉了 ICL，D1 与 D3 的前提都不成立。
-2. **训练时分支隔离在混合骨干上无文献（08）**。Qwen3.5 全系是 DeltaNet 混合；Kev 用逐行训练，qwen-rlcd 推迟。要么证明梯度穿过复制递归状态正确，要么接受逐行成本，要么换纯注意力骨干——三条路都没有公开数字。
-3. **教师偏差继承无实证（D4-D5）**。小模型 + Jev 标签（AgentDecision-4B）或 + 大 LLM 标签（Releasing Inner Jev）是主流配方；理论说学生继承教师的 IIA/序数/否定缺陷且更多数据不消除；没有人测过。
-4. **拒绝/兜底/Unknown（D2-F6、D3-盲区 3）**。规则语言需要"不知道"原语；单遍模型在这一项上最弱；缓解只有三元契约（退役门）一例。
+1. **Whether decision fine-tuning preserves ICL (D1)**. All reproductions report only accuracy/ECE; nobody has measured "how much in-state examples change the decision" before and after fine-tuning. If RLCD / soft-label distillation wipes out ICL, the premises of both D1 and D3 fail.
+2. **No literature on training-time branch isolation on hybrid backbones (08)**. The whole Qwen3.5 series is a DeltaNet hybrid; Kev trains row-by-row, qwen-rlcd defers the question. Either prove that gradients pass correctly through the copied recurrent state, or accept the row-by-row cost, or switch to an attention-only backbone: none of the three paths has public numbers.
+3. **No empirical evidence on teacher-bias inheritance (D4-D5)**. Small model + Jev labels (AgentDecision-4B) or + large-LLM labels (Releasing Inner Jev) is the mainstream recipe; theory says the student inherits the teacher's IIA/ordinal/negation defects and more data does not remove them; nobody has measured it.
+4. **Refusal/fallback/Unknown (D2-F6, D3 blind spot 3)**. A rule language needs a "don't know" primitive; single-pass models are weakest on exactly this item; the only mitigation is one instance of a ternary contract (retirement gate).
 
-#### 二级：决定规则语言的形状
+#### Tier 2: Decides the Shape of the Rule Language
 
-5. **没有面向单遍模型的规则语言**；原语可执行性没有按"读 / 组合 / 需中间步骤"分级（D3）。
-6. **问题形式等价性证据矛盾**（Noul 归一化 vs Choice，医学 +、意图 −8.7）：每个原语在目标模型上都要单测（D4-B6）。
-7. **等价措辞不变性无缓解**（D2/D4-C3）：规则语言要么模板化措辞，要么训练不变性；都没做。
-8. **分解后的概率不自洽**（TV 0.219–0.349，重构 −22.9）：规则树的节点概率不能直接相乘（D4-C1）。
-9. **按裁判编译**（SemTree 67.70→47.87）：业务规则与模型实际执行的树之间需要编译步骤，且随模型版本变化（D3-6、D4-A3）。
+5. **No rule language targets single-pass models**; primitive executability is not graded by "read / compose / needs intermediate steps" (D3).
+6. **Contradictory evidence on question-form equivalence** (Noul normalization vs Choice, medical +, intent −8.7): every primitive must be tested individually on the target model (D4-B6).
+7. **No mitigation for equivalent-wording invariance** (D2/D4-C3): a rule language must either template the wording or train for invariance; neither has been done.
+8. **Decomposed probabilities are not self-consistent** (TV 0.219–0.349, reconstruction −22.9): node probabilities in a rule tree cannot simply be multiplied (D4-C1).
+9. **Compile-per-judge** (SemTree 67.70→47.87): a compilation step is needed between the business rules and the tree the model actually executes, and it changes with the model version (D3-6, D4-A3).
 
-#### 三级：决定部署与评估
+#### Tier 3: Decides Deployment and Evaluation
 
-10. **无统一一致性基准**；决策级配对评测不是规范（D4）。
-11. **快慢协同的收益核算无标准**（D5-1）；置信不是"需要思考"信号（D5-2）。
-12. **规则/逻辑回归基线常够用**，但没有工作系统比较（D5-4）。
-13. **S1 训练数据要含错误后状态、S1 信记录不信观察**——未进任何配方（D5-5）。
-14. **中文/企业场景证据接近零**：一致性、Agent、规则语言全是英文公开数据；中文只有 CJ-Bench 的准确率与 ECE（D4-E5、D5-7）。
-15. **知识结构维护**（本体、规则库版本化）无工作（D5-6）。
-16. **同参数量混合 vs 纯注意力的决策质量无对照**（08）。
+10. **No unified consistency benchmark**; decision-level paired evaluation is not the norm (D4).
+11. **No standard for benefit accounting of fast/slow cooperation** (D5-1); confidence is not a "needs thinking" signal (D5-2).
+12. **Rule / logistic-regression baselines are often sufficient**, but no work compares them systematically (D5-4).
+13. **S1 training data must include post-error states, and S1 trusts the record over the observation**: neither has entered any recipe (D5-5).
+14. **Evidence for Chinese / enterprise scenarios is close to zero**: consistency, Agents and rule languages are all on English public data; in Chinese there is only CJ-Bench's accuracy and ECE (D4-E5, D5-7).
+15. **Knowledge-structure maintenance** (ontologies, rule-base versioning) has no work (D5-6).
+16. **No controlled comparison of decision quality for hybrid vs attention-only at equal parameter count** (08).
+## 8.4 List of open questions (without solutions)
 
-## 8.4 开放问题清单（不含方案）
+> Terms: "this stage keeps only analysis and survey work... understand the problem first". This section **gives no training plan**; it only rewrites the blind spots of §8.3 as answerable questions and, for each question, names the measurement method already available in the literature (or points out that the measurement itself is also missing). The purpose is to give the next stage's experiments a clear statement of "what was answered".
 
-> 口径："这个阶段只保留分析和调研……先理解问题"。本节**不给训练方案**，只把 §8.3的盲区写成可回答的问题，并为每个问题指定文献里已有的度量方式（或指出度量本身也缺失）。目的是让下一阶段的实验有明确的"回答了什么"。
+### 8.4.1 D1: Retention and Use of ICL
 
-### 8.4.1 D1：ICL 的保留与利用
-
-| # | 问题 | 已有度量 | 度量缺口 |
+| # | Question | Existing measurement | Measurement gap |
 | --- | --- | --- | --- |
-| Q1.1 | 决策微调（LoRA / 全参 / RLCD / 软标签蒸馏）前后，状态内 k 个示例对决策的边际效应变化多少？ | 上游：示例数量-准确率曲线；In-context fixation 的标签槽测试（[2605.08295](https://arxiv.org/abs/2605.08295)）；JevKT 的零数据 AUC（[2610.11135](https://arxiv.org/abs/2610.11135)） | 决策模型上没有"示例效应"的标准定义；需要配对（同状态 ± 示例）设计 |
-| Q1.2 | 示例放在状态里（JSON 数组）与放在问题的 `examples` 字段里，效应是否相同？ | 官方 API 两种放置（[state 文档](https://docs.typesafe.ai/concepts/state)） | 无对照 |
-| Q1.3 | 示例标签与选项名冲突时谁赢？（In-context fixation 的"标签槽"在决策模型上的对应） | [2605.08295](https://arxiv.org/abs/2605.08295)、[2609.26758](https://arxiv.org/abs/2609.26758) | 无 |
-| Q1.4 | 非技术人员写的选项名/定义/示例与专家写的相比，决策质量差多少？ | CALICO / Goldsmith 的专家编辑流程（[2609.14726](https://arxiv.org/abs/2609.14726)、[2610.09489](https://arxiv.org/abs/2610.09489)） | **没有"作者专业度 → 决策质量"的测量** |
-| Q1.5 | 定义能否被删（0.8487→0.7971）在中文业务规则上是否成立？ | [2610.02586](https://arxiv.org/abs/2610.02586) 的删除/矛盾/反转设计 | 中文无数据 |
+| Q1.1 | Before and after decision fine-tuning (LoRA / full-parameter / RLCD / soft-label distillation), how much does the marginal effect of k in-state examples on the decision change? | Upstream: example-count vs accuracy curves; the label-slot test of In-context fixation ([2605.08295](https://arxiv.org/abs/2605.08295)); JevKT's zero-data AUC ([2610.11135](https://arxiv.org/abs/2610.11135)) | No standard definition of "example effect" on decision models; needs a paired design (same state ± examples) |
+| Q1.2 | Is the effect the same when examples are placed in the state (JSON array) versus in the question's `examples` field? | The two placements in the vendor API ([state documentation](https://docs.typesafe.ai/concepts/state)) | No controlled comparison |
+| Q1.3 | When example labels conflict with option names, which wins? (The decision-model counterpart of In-context fixation's "label slot") | [2605.08295](https://arxiv.org/abs/2605.08295), [2609.26758](https://arxiv.org/abs/2609.26758) | None |
+| Q1.4 | How much worse is decision quality with option names / definitions / examples written by non-technical staff than with those written by experts? | The expert editing workflows of CALICO / Goldsmith ([2609.14726](https://arxiv.org/abs/2609.14726), [2610.09489](https://arxiv.org/abs/2610.09489)) | **No measurement of "author expertise → decision quality"** |
+| Q1.5 | Does the finding that definitions can be removed (0.8487→0.7971) hold for Chinese business rules? | The removal / contradiction / inversion design of [2610.02586](https://arxiv.org/abs/2610.02586) | No Chinese data |
 
-### 8.4.2 D2：符号指令
+### 8.4.2 D2: Symbolic Instructions
 
-| # | 问题 | 已有度量 | 度量缺口 |
+| # | Question | Existing measurement | Measurement gap |
 | --- | --- | --- | --- |
-| Q2.1 | 哪些符号操作在单遍内可靠（比较、包含、日期先后）、哪些不可靠（算术、计数、多跳）？ | Reading Right 的事实探针 + 代码组合（[2610.18579](https://arxiv.org/abs/2610.18579)）；What Can't Jev Decide 的"思考 token 分级"（[2610.24929](https://arxiv.org/abs/2610.24929)）；计数失败 126 变体 | 两种分级没有合并 |
-| Q2.2 | 兜底/拒绝的执行率与规则措辞的关系 | PFR 测试（[2610.19856](https://arxiv.org/abs/2610.19856)）；拒绝瓶颈配对（[2609.39496](https://arxiv.org/abs/2609.39496)） | 无缓解可测 |
-| Q2.3 | 否定、互斥、合取的公理违反量在微调后是增是减？ | 免标签公理电池（[2609.33209](https://arxiv.org/abs/2609.33209)） | 微调前后无对照 |
-| Q2.4 | 策略权威 vs 证据的分离能否在小模型上复现？ | TrustJev 的配对监督（[2610.34826](https://arxiv.org/abs/2610.34826)） | 只有一篇 |
+| Q2.1 | Which symbolic operations are reliable within a single pass (comparison, containment, date ordering) and which are not (arithmetic, counting, multi-hop)? | Reading Right's factual probes + code composition ([2610.18579](https://arxiv.org/abs/2610.18579)); the "thinking-token grading" of What Can't Jev Decide ([2610.24929](https://arxiv.org/abs/2610.24929)); the 126 counting-failure variants | The two gradings have not been merged |
+| Q2.2 | The relation between fallback/refusal execution rate and rule wording | The PFR test ([2610.19856](https://arxiv.org/abs/2610.19856)); refusal-bottleneck pairing ([2609.39496](https://arxiv.org/abs/2609.39496)) | No mitigation available to measure |
+| Q2.3 | Do axiom violations for negation, exclusivity and conjunction increase or decrease after fine-tuning? | The label-free axiom battery ([2609.33209](https://arxiv.org/abs/2609.33209)) | No before/after fine-tuning comparison |
+| Q2.4 | Can the separation of policy authority vs evidence be reproduced on small models? | TrustJev's paired supervision ([2610.34826](https://arxiv.org/abs/2610.34826)) | Only one paper |
 
-### 8.4.3 D3：规则语言
+### 8.4.3 D3: Rule Language
 
-| # | 问题 | 已有度量 | 度量缺口 |
+| # | Question | Existing measurement | Measurement gap |
 | --- | --- | --- | --- |
-| Q3.1 | 单遍模型能忠实执行的规则子集边界在哪（L0 单规则 / 带一个例外 / L1 依赖 / L2 新框架）？ | SafePyramid 三级（[2606.29887](https://arxiv.org/abs/2606.29887)）在推理模型上的数字 | 单遍模型上无 |
-| Q3.2 | 原语集合的最小充分集是什么？候选：读/比较/包含/例外/Unknown/证据要求/类型化变量 | 编译类工作的 IR 元素（05 §3.2.2）；SemTree 节点类型；概率感知的 true/false/unknown | 无 |
-| Q3.3 | 规则在代码里组合时的误差如何传播？ | 并集界（[2610.10978](https://arxiv.org/abs/2610.10978)）；扇出加权期望错误（[2610.08089](https://arxiv.org/abs/2610.08089)）；层级 TV（[2609.33971](https://arxiv.org/abs/2609.33971)） | 三者没有被放在同一个规则树上验证 |
-| Q3.4 | "按裁判编译"的编译器对小模型长什么样？换模型版本后规则库退化多少？ | SemTree 的换裁判实验（[2610.13999](https://arxiv.org/abs/2610.13999)） | 无 |
-| Q3.5 | 规则的 Skill 部分（怎么做）与 Policy 部分（什么被允许）能否分开表达并测量交互？ | Auto-Policy 的区分（[2608.25091](https://arxiv.org/abs/2608.25091)）；Jev-Guard 策略树（[2610.18326](https://arxiv.org/abs/2610.18326)） | 无 |
-| Q3.6 | 非技术专家写规则的"可执行率"与"修复一轮后的可执行率" | SemTree 节点修复（82.04→86.16）；AFTER 一轮精炼 +3.7–6.7 | 作者非专家的设置无 |
+| Q3.1 | Where is the boundary of the rule subset a single-pass model can execute faithfully (L0 single rule / with one exception / L1 dependency / L2 new framework)? | The SafePyramid three-level numbers ([2606.29887](https://arxiv.org/abs/2606.29887)) on reasoning models | None on single-pass models |
+| Q3.2 | What is the minimal sufficient set of primitives? Candidates: read / compare / contain / exception / Unknown / evidence requirement / typed variables | IR elements of the compiler-type works (05 §3.2.2); SemTree node types; probability-aware true/false/unknown | None |
+| Q3.3 | How does error propagate when rules are composed in code? | Union bound ([2610.10978](https://arxiv.org/abs/2610.10978)); fan-out-weighted expected error ([2610.08089](https://arxiv.org/abs/2610.08089)); hierarchy TV ([2609.33971](https://arxiv.org/abs/2609.33971)) | The three have not been verified on the same rule tree |
+| Q3.4 | What does a "compile-per-judge" compiler look like for small models? How much does the rule base degrade after a model version change? | SemTree's judge-swap experiment ([2610.13999](https://arxiv.org/abs/2610.13999)) | None |
+| Q3.5 | Can the Skill part of a rule (how to do it) and the Policy part (what is allowed) be expressed separately and their interaction measured? | Auto-Policy's distinction ([2608.25091](https://arxiv.org/abs/2608.25091)); Jev-Guard's policy tree ([2610.18326](https://arxiv.org/abs/2610.18326)) | None |
+| Q3.6 | The "executability rate" of rules written by non-technical experts, and the "executability rate after one round of repair" | SemTree node repair (82.04→86.16); AFTER one round of refinement +3.7–6.7 | No setting where the authors are non-experts |
 
-### 8.4.4 D4：一致性
+### 8.4.4 D4: Consistency
 
-| # | 问题 | 已有度量 | 度量缺口 |
+| # | Question | Existing measurement | Measurement gap |
 | --- | --- | --- | --- |
-| Q4.1 | 30 个子维度（06 §4.2.2）在同一模型、同一数据上的联合画像 | 各子维度各有度量 | **无统一基准**；DecisionPivot / TypedBench / System1-Arena 各覆盖一部分 |
-| Q4.2 | 顺序、IIA、序数压缩、否定违反在蒸馏学生上与教师的相关性（教师偏差继承） | 各项度量 + Gaussian 代理理论（[2610.26797](https://arxiv.org/abs/2610.26797)） | 实证无 |
-| Q4.3 | 版本漂移：同一规则库在相邻版本间的决策级翻转率 | 2610.35826 的 8 展示累计失败集方法可借 | 无 |
-| Q4.4 | 同一判断用 Noul / Choice / Score 表达时的一致性，按任务类型分 | 2609.33209（和为 1.14）、2610.18529、2610.16655（−8.7） | 需按任务类型系统化 |
-| Q4.5 | 中文下的 E5（语言）、E6（风格）、B3（选项名）效应 | 英文方法可移植 | 中文无 |
-| Q4.6 | 决策级配对评测应成为复现工作的报告规范：至少报翻转率、累计失败集、公理违反、读出类型 | 2610.35826、2609.27678、2609.33209、2610.00054 | 需要规范而非新方法 |
+| Q4.1 | A joint profile of the 30 sub-dimensions (06 §4.2.2) on the same model and the same data | Each sub-dimension has its own metric | **No unified benchmark**; DecisionPivot / TypedBench / System1-Arena each cover a part |
+| Q4.2 | The correlation between the distilled student and its teacher on order, IIA, ordinal compression and negation violations (teacher-bias inheritance) | The individual metrics + Gaussian proxy theory ([2610.26797](https://arxiv.org/abs/2610.26797)) | No empirical evidence |
+| Q4.3 | Version drift: the decision-level flip rate of the same rule base between adjacent versions | The cumulative-failure-set method over 8 presentations in 2610.35826 can be borrowed | None |
+| Q4.4 | Consistency of the same judgment expressed as Noul / Choice / Score, broken down by task type | 2609.33209 (sum of 1.14), 2610.18529, 2610.16655 (−8.7) | Needs systematization by task type |
+| Q4.5 | The E5 (language), E6 (style) and B3 (option name) effects in Chinese | English methods are portable | None in Chinese |
+| Q4.6 | Decision-level paired evaluation should become the reporting norm for reproduction work: report at least flip rate, cumulative failure set, axiom violations, readout type | 2610.35826, 2609.27678, 2609.33209, 2610.00054 | Needs a norm rather than a new method |
 
-### 8.4.5 D5：Agent 与知识
+### 8.4.5 D5: Agent and Knowledge
 
-| # | 问题 | 已有度量 | 度量缺口 |
+| # | Question | Existing measurement | Measurement gap |
 | --- | --- | --- | --- |
-| Q5.1 | "每个成功交付的资源"作为统一核算（含预筛成本、保留集阈值） | [2610.13092](https://arxiv.org/abs/2610.13092) 的三指标；[2610.02267](https://arxiv.org/abs/2610.02267) 的自审计清单 | 需要规范 |
-| Q5.2 | 什么信号能预测"需要慢思考"而不只是"答案不确定"？ | System Switch 的 AUROC-收益相关（[2610.09683](https://arxiv.org/abs/2610.09683)）；VoI（[2610.21160](https://arxiv.org/abs/2610.21160)）；SOMA 的行为判断（[2610.26793](https://arxiv.org/abs/2610.26793)） | 语言 Agent 上无理论 |
-| Q5.3 | S1 决策 vs 确定性规则 vs 逻辑回归作为微任务控制器的头对头 | Good Judgment 的规则臂与安慰剂臂设计（[2610.24649](https://arxiv.org/abs/2610.24649)）；Measure Before You Train（[2610.32955](https://arxiv.org/abs/2610.32955)） | 系统比较无 |
-| Q5.4 | S1 训练集包含"犯错后状态"与"记录-观察冲突"后，Claim Laundering 的 53–100% 降到多少？ | 配对状态构造（[2610.25947](https://arxiv.org/abs/2610.25947)）；AgentDecision-4B 的轨迹采集（[2610.21412](https://arxiv.org/abs/2610.21412)） | 两者未结合 |
-| Q5.5 | S1 维护结构化知识（本体节点、规则版本、事实有效期）的任务定义 | Jarvis 的版本化任务记录（[2610.23804](https://arxiv.org/abs/2610.23804)）；Jev-DLC 的有界通道（[2610.31521](https://arxiv.org/abs/2610.31521)）；退役门三元契约（[2610.15710](https://arxiv.org/abs/2610.15710)） | 任务本身没有定义 |
-| Q5.6 | 为当前问题压缩 vs 为后续问题压缩的权衡在 S1 判断下如何 | [2610.27301](https://arxiv.org/abs/2610.27301) 的后续问题协议 | S1 侧无 |
+| Q5.1 | "Resources per successful delivery" as the unified accounting (including pre-screening cost and held-out-set thresholds) | The three metrics of [2610.13092](https://arxiv.org/abs/2610.13092); the self-audit checklist of [2610.02267](https://arxiv.org/abs/2610.02267) | Needs a norm |
+| Q5.2 | Which signal can predict "needs slow thinking" rather than merely "the answer is uncertain"? | System Switch's AUROC-benefit correlation ([2610.09683](https://arxiv.org/abs/2610.09683)); VoI ([2610.21160](https://arxiv.org/abs/2610.21160)); SOMA's behavioral judgment ([2610.26793](https://arxiv.org/abs/2610.26793)) | No theory for language Agents |
+| Q5.3 | Head-to-head: S1 decisions vs deterministic rules vs logistic regression as a microtask controller | The rule arm and placebo arm design of Good Judgment ([2610.24649](https://arxiv.org/abs/2610.24649)); Measure Before You Train ([2610.32955](https://arxiv.org/abs/2610.32955)) | No systematic comparison |
+| Q5.4 | After the S1 training set includes "post-error states" and "record-observation conflicts", how far does Claim Laundering's 53–100% drop? | Paired state construction ([2610.25947](https://arxiv.org/abs/2610.25947)); AgentDecision-4B's trajectory collection ([2610.21412](https://arxiv.org/abs/2610.21412)) | The two have not been combined |
+| Q5.5 | A task definition for S1 maintaining structured knowledge (ontology nodes, rule versions, fact validity periods) | Jarvis's versioned task records ([2610.23804](https://arxiv.org/abs/2610.23804)); Jev-DLC's bounded channel ([2610.31521](https://arxiv.org/abs/2610.31521)); the retirement gate's ternary contract ([2610.15710](https://arxiv.org/abs/2610.15710)) | The task itself is undefined |
+| Q5.6 | How the trade-off between compressing for the current question vs for follow-up questions behaves under S1 judgment | The follow-up-question protocol of [2610.27301](https://arxiv.org/abs/2610.27301) | None on the S1 side |
 
-### 8.4.6 骨干
+### 8.4.6 Backbone
 
-| # | 问题 | 已有度量 | 度量缺口 |
+| # | Question | Existing measurement | Measurement gap |
 | --- | --- | --- | --- |
-| Q6.1 | 在混合骨干上，分叉缓存的梯度是否等价于逐行训练？ | qwen-rlcd 的推理等价测试（4.8e-5） | 训练侧无 |
-| Q6.2 | 同参数量下混合 vs 纯注意力：准确率、校准、顺序翻转率、延迟 | 各复现的单点数字（08 §1.3.5） | 对照无 |
-| Q6.3 | 递归层对无关细节/多次更新干扰的敏感度是否高于注意力层 | What Can't Jev Decide 的单因素设计 | 架构对照无 |
-| Q6.4 | 顺序偏置的结构性缓解在混合骨干上的实现路径 | 块因果（掩码）、Runoff（两次前向）、Prism-1 | 混合骨干上无 |
+| Q6.1 | On a hybrid backbone, are the gradients through a forked cache equivalent to row-by-row training? | qwen-rlcd's inference equivalence test (4.8e-5) | None on the training side |
+| Q6.2 | Hybrid vs attention-only at equal parameter count: accuracy, calibration, order flip rate, latency | Single-point numbers from the individual reproductions (08 §1.3.5) | No controlled comparison |
+| Q6.3 | Are recurrent layers more sensitive than attention layers to irrelevant details / interference from repeated updates? | The single-factor design of What Can't Jev Decide | No architecture comparison |
+| Q6.4 | The implementation path for structural mitigation of order bias on hybrid backbones | Block-causal (masking), Runoff (two forward passes), Prism-1 | None on hybrid backbones |
 
-### 8.4.7 跨维度的三个元问题
+### 8.4.7 Three Cross-Dimension Meta-Questions
 
-1. **"读 / 组合 / 需中间步骤"三分法能否成为原语分级、一致性子维度与快慢切换的共同坐标？** 三个维度各自给了一条边界（Reading Right、Code Owns the Simulation、What Can't Jev Decide），没有被统一。
-2. **置信度要拆成几个数？** 校准、判别、敏感性、人类分歧 vs 决策风险、自知——至少五个含义，而接口只返回一个概率。
-3. **规则语言、一致性基准、Agent 收益核算都需要"决策级配对"评测**——这是三个维度共享的方法论缺口，而不是三个独立问题。
+1. **Can the three-way split "read / compose / needs intermediate steps" become the shared coordinate for primitive grading, consistency sub-dimensions and fast/slow switching?** Each of the three dimensions gives one boundary (Reading Right, Code Owns the Simulation, What Can't Jev Decide); they have not been unified.
+2. **Into how many numbers should confidence be split?** Calibration, discrimination, sensitivity, human disagreement vs decision risk, self-knowledge: at least five meanings, while the interface returns a single probability.
+3. **The rule language, the consistency benchmark and Agent benefit accounting all need "decision-level paired" evaluation**: this is a methodological gap shared by the three dimensions, not three independent problems.

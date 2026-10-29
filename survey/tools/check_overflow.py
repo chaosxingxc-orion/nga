@@ -22,7 +22,7 @@ def document():
         html, t = build_pdf.convert(f, used, first=(i == 0))
         parts.append(html)
         toc.extend(t)
-    toc_html = '<div id="toc"><h1 class="first">目录</h1><ul>' + ''.join(
+    toc_html = '<div id="toc"><h1 class="first">Contents</h1><ul>' + ''.join(
         f'<li class="lvl{l}"><a href="#{s}">{t}</a></li>' for l, t, s in toc) + '</ul></div>'
     body = build_pdf.cover_html() + toc_html + ''.join(parts)
     doc = f'<html><head><meta charset="utf-8"></head><body>{body}</body></html>'
@@ -62,8 +62,8 @@ def main():
                 worst, worst_box = over, box
         if worst > 0.5:  # ignore sub-half-pixel rounding
             bad += 1
-            print(f'p{n:>3}  超出 {worst / PX_PER_MM:6.1f} mm  {label(worst_box)}')
-    print(f'--- {len(pages)} 页，{bad} 页越界 ---')
+            print(f'p{n:>3}  overflow {worst / PX_PER_MM:6.1f} mm  {label(worst_box)}')
+    print(f'--- {len(pages)} pages, {bad} with overflow ---')
     return 1 if bad else 0
 
 
