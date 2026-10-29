@@ -262,3 +262,197 @@ and the `AutoModelForVision2Seq` shim. It adds one task, installing verl against
 
 Host policy fixed on 2026-10-29: **only `npu` (100.100.135.175) may be used.** `npu2` is fully
 occupied by other users, about 61 GB of HBM held on all 8 chips.
+
+## Rebase executed on `v0.30.0rc2`: throughput confirmed, verl working, a real SFT step, fla gated out (2026-10-29)
+
+Full detail and all deliverables: `/mnt/cephfs/xingchao/docker/verl_v030_20261029/README.md`.
+
+- **Throughput, one chip, stock image, before touching verl.** The old ~1,100 tok/s/chip ceiling
+  was the torch 2.7/CANN 8.3 stack, not the hardware and not batching: transformers alone (still on
+  the torch reference fallback for gated-delta-rule/causal-conv) reaches ~19,000 tok/s/chip at
+  batch 32 in the 0.30 stack, and vLLM (confirmed fused triton kernels: `ChunkGatedDeltaRuleFwd`,
+  `CausalConv1d`, `FusedInferAttentionScore` in a device profile) reaches ~34,000-50,000 tok/s/chip.
+  Profiler evidence: both engines run on NPU cores; the only `AI_CPU` tasks seen were two 0.4 ms
+  `ViewCopy` ops, not a host fallback. Conclusion: **use vLLM for the readout harness**; this does
+  not change training, which stays on transformers/FSDP.
+- **verl added on top, torch 2.10 untouched.** verl's tree (commit `e9405d70b77...`) copied out of
+  the official `verl-8.3.rc1-910b` image. The two fixes from the earlier (2026-10-29, same day,
+  pre-rebase) derived image were needed again, unchanged: the `npu_patch.py` `hasattr` guard around
+  the renamed `Qwen2RMSNorm`, and the `AutoModelForVision2Seq` -> `AutoModelForImageTextToText`
+  `_LazyModule` shim (ported, re-hooked at `verl/__init__.py` import time instead of
+  `sitecustomize.py` since this is a source tree, not a baked image). Dependencies (hydra, datasets,
+  tensordict, wandb, etc., none present in the stock image) installed as `--no-deps` wheels into a
+  side directory on `PYTHONPATH`; base image pins (torch, torch_npu, vllm, vllm_ascend, numpy, CANN)
+  untouched. Two extra pins were needed beyond upstream's "latest": `pyarrow==23.0.0`/
+  `datasets==4.5.0` (default-latest pyarrow needs NumPy >= 2.0, and the base numpy 1.26.4 pin was
+  correctly left alone), and `hydra-core==1.3.2`/`omegaconf==2.3.0`/`antlr4-python3-runtime==4.9.3`
+  (an ANTLR grammar-version mismatch between hydra-latest and antlr-latest).
+- **A real verl SFT step, fallback path, chips 6+7.** A third gap, new and unrelated to the two
+  above: verl's default `MultiTurnSFTDataset` fails rendering Qwen3.5's chat template on a lone
+  assistant turn (`jinja2.exceptions.TemplateError: No user query found in messages`); fixed with a
+  small custom dataset class via verl's own `data.custom_cls` extension point (no verl file edited),
+  matching the raw-completion format the R0 scoring harness already uses. Data: 4,096 train / 256
+  val records rendered from jev T1 `typed-decisions` through the existing `r0_code.prompt`
+  renderer. Run: `torchrun --nproc_per_node=2` FSDP, `attn_implementation=sdpa` (fallback, as
+  ordered), 20 steps, detached per section 7 (`docker run -d`, fixed name, no `--rm`, log+heartbeat
+  on cephfs, `DONE` marker, relaunch command recorded). Result: losses not identical across steps
+  (1.78 -> 0.43 -> ... -> 0.32, noisy-decreasing), val/loss 0.467 at step 20, ~6.9-7.4 s/it steady
+  state, peak HBM ~31.4 GiB (chip 6, rank 0) / ~21.8 GiB (chip 7, rank 1) by 3s external `npu-smi`
+  sampling. Open point sent back to the coordinator: the brief's "generation vs. update time split"
+  applies to a PPO/GRPO step (vLLM rollout + FSDP update); this proof is SFT, which has no
+  generation phase, so that split does not apply here — flagging rather than assuming which was
+  wanted.
+- **The fused `flash-linear-attention` path: a clean negative, confirmed architectural.** The image
+  already ships an Ascend-specific triton port (`flash-linear-attention-npu-a2`, module `fla_npu`,
+  same kernel family as vLLM's fused ops), not upstream `fla`. That distinction turned out not to
+  matter: transformers 5.14.1's own gates,
+  `is_flash_linear_attention_available()`/`is_causal_conv1d_available()`, unconditionally require
+  `is_torch_cuda_available()` before even checking for the `fla`/`causal_conv1d` package — confirmed
+  `False` on this NPU host regardless of what is installed. Training through transformers/FSDP
+  therefore cannot reach the fused path on this stack as released; it is not a missing-package
+  problem, and `pip install`-ing upstream `fla` would not change the outcome. Stopped here per the
+  brief: no numerical-agreement or backward-pass test (moot, the forward fast path is unreachable),
+  no patch to transformers' gate function.
+- **Task 6 (recording a built image) deliberately not done.** Whether `flash-linear-attention`
+  belongs in the image is now answered (no, the gate blocks it regardless), but the coordinator
+  asked to hold off on building/committing the image until this question was settled; it now is,
+  and image assembly is the next task, not done in this round.
+
+## Measured on the vllm-ascend 0.30 stack: the old ceiling was the stack, not the chip (2026-10-29)
+
+Evidence, scripts and raw profiler output: `/mnt/cephfs/xingchao/docker/verl_v030_20261029/`
+(`throughput.jsonl`, `logs/`, `profiler/*.summary.json`, `code/`, `launch.sh`). Everything below was
+measured in the **stock** `quay.io/ascend/vllm-ascend:v0.30.0rc2` image on host `npu`
+(100.100.135.175), **one 910B3 chip**, `Qwen3.5-0.8B` in bf16 from
+`/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B`, nothing installed on top. Stack as measured
+(`packages-base-v030.txt`): torch 2.10.0 / torch_npu 2.10.0.post7, CANN 9.2.0, transformers 5.14.1,
+vllm 0.30.0 / vllm-ascend 0.30.0rc2, triton 3.6.0 + `triton_ascend` 3.6.0+dev20260923.
+
+### 1. The earlier "compute-bound" reading was wrong
+
+Prefill throughput per chip, transformers path (`logs/bench_hf.log`, `logs/bench_hf_oldprotocol.log`,
+`throughput.jsonl`), against the previous section's table for the same model on the old stack:
+
+| Batch × length | Old stack | New stack | New stack, old protocol re-run | Speedup |
+| --- | --- | --- | --- | --- |
+| 1 × 500 | 930 tok/s | 1,197 tok/s | 1,259 tok/s | 1.3× |
+| 8 × 500 | 1,060 tok/s | 9,535 tok/s | 10,016 tok/s | 9.0× |
+| 32 × 500 | 1,130 tok/s | 18,557 tok/s | 19,362 tok/s | 16.4× |
+| 128 × 128 | 1,150 tok/s | 16,938 tok/s | 18,814 tok/s | 14.7× |
+
+The third column is the *old* benchmark script re-run unchanged on the new stack
+(`code/bench_hf_oldprotocol.py`: `attention_mask`, `use_cache=False`, `logits_to_keep=3`, peak-memory
+counter reset per cell), so the 16× is the stack and not the measurement. Peak HBM from that run is
+1.5 / 1.8 / 3.0 / 3.5 GiB, i.e. unchanged from the old stack; the peaks in `throughput.jsonl` are
+higher only because `code/bench_hf.py` never resets the peak counter between cells.
+
+**The earlier conclusion that the chip was compute-bound per token was a misdiagnosis, and so was the
+attribution to the "slow reference fallback".** transformers still reports `The fast path is not
+available because one of the required library is not installed. Falling back to torch
+implementation` on the new stack, naming the same two missing packages (`flash-linear-attention`,
+`causal-conv1d`) as before (first line of `logs/bench_hf.log` and of `logs/module_time.log`), and the
+attention implementation is still `sdpa` — the same reference gated-delta-rule path is running, and
+it is now 16× faster at batch 32. What was flat was the old CANN 8.3 / torch_npu 2.7.1 stack's
+behaviour under batching, not the hardware: single-row latency barely moved (1.3×), while batch
+scaling came back from nothing to roughly linear up to batch 32.
+
+Diagnostic lesson for next time: on Ascend, **throughput that is flat in batch size does not
+establish a hardware or algorithmic limit until the measurement has been repeated on a newer CANN
+and torch_npu.** Flatness is equally consistent with a host- or runtime-side serialization bug, and
+that is what it was here. Re-run the same script on the newest available image before concluding
+anything about the chip.
+
+### 2. Where the operations run: both engines are fully on the NPU
+
+`torch_npu.profiler` Level1, one batch-8 × length-500 input, core-type breakdown of every executed
+kernel. Source files: `profiler/hf_B8_L500.summary.json` (run
+`profiler/hf_B8_L500/k8s-node1_1_20261029093219854_ascend_pt`) and
+`profiler/vllm_B8_L500.summary.json` (run
+`profiler/vllm_B8_L500/rank0_124_20261029093704194_ascend_pt`), both produced by
+`code/analyze_prof.py` from the profiler's own `kernel_details.csv`.
+
+| Accelerator core | transformers: kernels / device time | vLLM: kernels / device time |
+| --- | --- | --- |
+| AI_VECTOR_CORE | 11,591 / 208,830 µs (73.93%) | 1,384 / 23,163 µs (26.53%) |
+| MIX_AIV | 1,341 / 41,540 µs (14.71%) | 36 / 5,045 µs (5.78%) |
+| AI_CORE | 979 / 30,901 µs (10.94%) | 230 / 19,278 µs (22.08%) |
+| MIX_AIC | 6 / 830 µs (0.29%) | 48 / 39,826 µs (45.61%) |
+| **AI_CPU** | **2 / 378 µs (0.13%)** | **0 / 0 µs (0%)** |
+
+Quotable: on the transformers path the device's AI CPU accounts for **0.13%** of device time, in
+exactly **two** task instances, both of the same copy operation
+(`ViewCopy` / `aclnnInplaceCopy_ViewCopyAiCpu_ViewCopy`); on the vLLM path there are **no** AI CPU
+tasks at all. No kernel on either path runs anywhere other than the NPU's AI core, AI vector core or
+(for the two copies) its AI CPU; nothing falls back to the host. The remaining 1,280 `ViewCopy`
+kernels on the transformers path (23,231 µs, 8.2% of its device time) are device-side copies on the
+AI vector core. This is the evidence for the requirement that all model operations sit on the NPU
+chips, and it holds for both engines.
+
+### 3. Why the two engines still differ, and what follows
+
+Same input (batch 8 × length 500), same chip, same files as above:
+
+| | transformers | vLLM |
+| --- | --- | --- |
+| Kernels per model forward | 13,919 | 849 |
+| Mean kernel duration | 20.3 µs | 80.6 µs (larger forward) |
+| Device-busy time | 282,480 µs (one forward) | 87,312 µs (whole profiled window, two forwards of 849 kernels) |
+| Device free / stage, same window | 216,961 / 499,437 µs = 43% idle | 218,294 / 305,606 µs |
+
+Reading the vLLM column: its profiled window contains **two** model forwards of 849 kernels each
+(18,879 µs and 68,433 µs of device time; they differ in matmul kernel choice, so they carried
+different token counts — shapes were not recorded, so the split of the 4,000 prompt tokens between
+them cannot be recovered). Its free/stage figures therefore include the scheduler and sampler gaps
+between two engine steps and are **not** comparable with the single-forward transformers figure; the
+transformers 43% idle is a within-one-forward number.
+
+The training path decomposes the gated delta rule into **13,919 kernels averaging 20 µs** and leaves
+the device idle **43%** of the profiled forward. Its device time is spent on `Slice` (3,709 kernels,
+21.0%), `Mul` (19.3%), `ReduceSum` (13.2%), `ViewCopy` (8.2%) and `Tril` (6.5%), with under 10% in
+matmuls (`MatMulV3` 6.2% + `BatchMatMulV2` 3.4%) — the signature of an unfused reference
+implementation, not of a saturated chip. Per-module timing confirms where it sits
+(`logs/module_time.log`, `code/module_time.py`, synchronised hooks, batch 8 × length 500): of a
+418 ms forward, the 18 **linear-attention layers take 367 ms (87.8%)**, the 24 MLPs 14 ms (3.3%) and
+the 6 full-attention layers 12 ms (2.8%).
+
+The inference path needs 849 kernels for the same work. Its device time is dominated by one CANN
+fused operator, `aclnnChunkGatedDeltaRuleFwd` (36 launches, 38,491 µs, 44.1%), plus `CausalConv1d`
+(5.8%) and `FusedInferAttentionScore` (1.5%). **Triton-compiled kernels do execute on this
+hardware**: 230 launches across seven of them appear by name in the profile —
+`l2norm_fwd_kernel2`, `_layer_norm_fwd_1pass_kernel_npu`, `split_qkv_rmsnorm_mrope_kernel`,
+`fused_gdn_gating_kernel`, `_gather_ssm_states_kernel`, `_scatter_ssm_states_kernel`,
+`_compute_slot_mapping_kernel` — together 5,532 µs, 6.3% of device time. Note for anyone reading the
+engine log rather than the profile: `logs/profile_vllm.log` line 69 announces `Using Triton/FLA GDN
+prefill kernel (requested=auto, head_k_dim=128)`, but the kernel that actually ran for the GDN core
+is the `aclnn` fused operator above. The profile, not the log line, is the source of truth for what
+executed.
+
+Two consequences:
+
+- Triton on Ascend is a usable route for a fused kernel here, demonstrated by measured kernels rather
+  than by documentation.
+- The inference engine's working kernels are **forward-only**. They say nothing about the backward
+  pass that training needs, so none of this transfers to the training path without new work.
+
+For completeness, the vLLM prefill/decode rates on the same chip (`throughput.jsonl`,
+`logs/bench_vllm.log`, `code/bench_vllm.py`): prefill 5,140 / 16,929 / 33,997 / 34,943 / 50,553
+tok/s at batch 1, 8, 32, 128 (×128), 256; decode 96 / 2,241 / 5,176 generated tok/s at batch 1, 32,
+128. One engine-side caveat worth knowing before choosing vLLM for decode-heavy work
+(`logs/profile_vllm.log` line 52): `NPU Triton causal_conv1d_update is unavailable ... falling back
+to the PyTorch implementation, which syncs per request and therefore stalls ACL graph capture at
+decode-FULL`.
+
+### Decisions recorded with these numbers
+
+- **The readout harness stays on the transformers path.** vLLM prefill is about 1.8× the transformers
+  rate at batch 32 and more at larger batches, but the frozen R0 input is about 59 million prompt
+  tokens, which at the measured 18.6 k tok/s per chip is on the order of one chip-hour of prefill —
+  comfortably inside a detached multi-chip run. A second scorer implementation would buy speed we do
+  not need while putting a correctness risk on the numbers the whole baseline rests on. Revisit only
+  if the input scale grows by an order of magnitude.
+- **Training gets the fused-kernel question asked once, with a bound.** The reasoning is finding 3:
+  triton kernels run on this hardware, but the inference engine's are forward-only, so a fused
+  gated-delta-rule kernel usable for training is new work of unknown size. Ask it once, inside a
+  fixed time box, and **record a negative result as a result** — the transformers path is already
+  fast enough for the readout harness, so a failed attempt closes the question instead of inviting a
+  retry.
