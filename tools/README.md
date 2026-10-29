@@ -12,7 +12,12 @@ orchestrator (tier 2) reads the digest and the tier-1 diagnosis only.
     python3 -P tools/watchdog.py --watch --interval 120
 
 Outputs go to `--out-dir` (default `<first root>/_watchdog/`): `digest.json` (complete but bounded) and
-`digest.md` (hard cap `--max-md-bytes`, default 6000, cut at a line with an explicit `[TRUNCATED ...]` note).
+`digest.md` (hard cap `--max-md-bytes`, default 12000).
+Over the cap, content is dropped by priority, not by position, in whole blocks: (0) summary line and status rows of
+failed/stalled/unknown runs, (1) other status rows, (2) pointers and errors of failed/stalled runs, (3) flags on the primary
+scorer (and pointers of runs that have them), (4) error signatures, (5) flags on other scorers, (6) everything else (clean-done
+and archived lines, suppression audit, notes). Once a block of some priority does not fit, every lower-priority block is dropped
+too. A final `[TRUNCATED ...]` line says how many blocks and bytes were dropped and which kinds. `digest.json` is never cut.
 Both are written to a temp file and renamed, under a lock, so a reader never sees a half-written file and
 concurrent invocations cannot interleave. Directories whose name starts with `.` or `_` are never scanned
 as runs, so the output directory is not mistaken for a run.
@@ -49,6 +54,12 @@ extrapolated only when a total is known and the rate is positive.
 Container state is never consulted. Without a `heartbeat.log` the newest log mtime is the heartbeat, and the digest says so
 (`heartbeat_source`). Heartbeats are compared with the clock of the host running the watchdog, so run it where clocks agree
 with the writer (cephfs mtimes and UTC heartbeat stamps are both fine across hosts that run NTP).
+
+### Explanations
+
+If a run directory holds `WHY_STOPPED.json` or `WHY_FAILED.json` (`--why-names`), its `note` (else `why`, `reason`, `summary`, or
+the first string value, else the raw text) is shown as one line, clipped, under that run, so an expected failure is not re-diagnosed.
+It does not change the state or the escalation level.
 
 ### Error signatures
 

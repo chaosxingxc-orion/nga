@@ -45,6 +45,8 @@ def build_parser():
     a("--window-seconds", type=float, default=900.0, help="throughput window (default 900)")
     a("--archive-seconds", type=float, default=21600.0,
       help="no marker, no heartbeat file, newest log older than this => archived, escalation none (default 21600 = 6h)")
+    a("--why-names", default="WHY_STOPPED.json,WHY_FAILED.json",
+      help="files whose note is surfaced in the digest as one short line")
     a("--max-depth", type=int, default=4, help="directory depth below a root to look for runs (default 4)")
     a("--marker-names", default="DONE,FAILED,exit_code,EXIT_CODE", help="terminal marker file names")
     a("--heartbeat-name", default="heartbeat.log")
@@ -58,7 +60,7 @@ def build_parser():
     a("--ctx-after", type=int, default=3, help="exemplar pointer: lines after the matching line")
     a("--ignore", default=r"(?i)\b(?:no|0|zero) (?:errors?|warnings?|failures?)\b|\b(?:error|errors|warnings?|failed|failures?)\s*[=:]\s*0\b|['\"]errors?['\"]\s*[,:]",
       help="regex; matching lines are not counted as warnings/errors")
-    a("--max-md-bytes", type=int, default=6000, help="hard cap on digest.md size in bytes (default 6000)")
+    a("--max-md-bytes", type=int, default=12000, help="hard cap on digest.md size in bytes (default 12000); sections are dropped by priority")
     a("--min-n", type=int, default=30, help="cells with a sample count below this are flagged (default 30)")
     a("--min-cells", type=int, default=3, help="a table needs at least this many cells for the identical-metric check")
     a("--suppress-roles", default="constant,uniform,mock-*",
@@ -91,6 +93,7 @@ def make_cfg(**kw):
     cfg.out_dir = os.path.abspath(cfg.out_dir)
     cfg.markers = [x for x in cfg.marker_names.split(",") if x]
     cfg.globs = [x for x in cfg.log_globs.split(",") if x]
+    cfg.why_files = [x for x in cfg.why_names.split(",") if x]
     cfg.skip = set(x for x in cfg.skip_dirs.split(",") if x)
     cfg.ignore_re = re.compile(cfg.ignore) if cfg.ignore else None
     cfg.suppress_pats = [] if cfg.no_suppress else [x for x in cfg.suppress_roles.split(",") if x]
@@ -478,6 +481,8 @@ def check_report(obj, cfg):
     pn = obj.get("primary") if isinstance(obj, dict) and isinstance(obj.get("primary"), str) else None
     for it in items:
         it["suppressed_by"] = None
+        segs = [p for p in it["_parts"] if isinstance(p, str)]
+        it["scope"] = "primary" if ("primary" in segs or (segs and segs[0] == "decision_lines")) else "other"
         if it["kind"] in ("exact_zero", "exact_one", "identical_across_cells"):
             it["suppressed_by"] = _suppressed_by(it.pop("_parts"), cfg, pn)
         else:
@@ -591,12 +596,13 @@ def group_flags(all_items, cfg):
             supp[i["suppressed_by"]] = supp.get(i["suppressed_by"], 0) + 1
     by = {}
     for it in items:
-        by.setdefault(it["kind"], []).append(it)
-    out = {"total": len(items), "by_kind": {}, "items": [], "omitted": 0,
+        by.setdefault((it["scope"], it["kind"]), []).append(it)
+    out = {"total": len(items), "by_kind": {}, "by_scope": {"primary": {}, "other": {}}, "items": [], "omitted": 0,
            "suppressed": {"total": sum(supp.values()), "by_role": dict(sorted(supp.items()))}}
-    for kind in sorted(by):
-        lst = by[kind]
-        out["by_kind"][kind] = len(lst)
+    for (scope, kind) in sorted(by):
+        lst = by[(scope, kind)]
+        out["by_kind"][kind] = out["by_kind"].get(kind, 0) + len(lst)
+        out["by_scope"][scope][kind] = len(lst)
         out["items"].extend(lst[:cfg.max_flags_per_kind])
         out["omitted"] += max(0, len(lst) - cfg.max_flags_per_kind)
     return out
@@ -747,6 +753,37 @@ def exemplar_range(sig, last_line):
     return s, max(s, min(e, last_line)) if last_line else e
 
 
+def read_why(d, cfg):
+    """One short line from WHY_STOPPED.json / WHY_FAILED.json, so an explained failure is not re-diagnosed."""
+    for name in cfg.why_files:
+        p = os.path.join(d, name)
+        if not os.path.isfile(p):
+            continue
+        try:
+            with open(p, "r", encoding="utf-8", errors="replace") as f:
+                raw = f.read(65536)
+        except OSError:
+            continue
+        note = None
+        try:
+            obj = json.loads(raw)
+            if isinstance(obj, dict):
+                for k in ("note", "why", "reason", "summary", "cause", "message"):
+                    if isinstance(obj.get(k), str):
+                        note = obj[k]
+                        break
+                if note is None:
+                    note = next((v for v in obj.values() if isinstance(v, str)), None)
+            elif isinstance(obj, str):
+                note = obj
+        except ValueError:
+            pass
+        if note is None:
+            note = raw
+        return {"file": name, "note": " ".join(note.split())[:300]}
+    return None
+
+
 def evaluate_run(run, cfg, states, now):
     d = run["path"]
     notes = []
@@ -824,7 +861,7 @@ def evaluate_run(run, cfg, states, now):
 
     # report.json
     rp = os.path.join(d, cfg.report_name)
-    sus = {"total": 0, "by_kind": {}, "items": [], "omitted": 0, "report": None,
+    sus = {"total": 0, "by_kind": {}, "items": [], "omitted": 0, "report": None, "by_scope": {"primary": {}, "other": {}},
            "suppressed": {"total": 0, "by_role": {}}}
     if os.path.isfile(rp):
         items, err = scan_report(rp, cfg)
@@ -858,7 +895,7 @@ def evaluate_run(run, cfg, states, now):
         "id": run["id"], "path": d, "state": state, "state_reason": reason, "escalation": esc, "escalation_reason": why,
         "heartbeat_utc": iso(hb_ts), "heartbeat_source": hb_src, "age_s": int(now - hb_ts) if hb_ts is not None else None,
         "marker": ({k: marker[k] for k in ("name", "path", "exit_code", "utc")} if marker else None),
-        "progress": progress, "errors": errors, "suspicious_metrics": sus, "pointers": pointers[:6], "notes": notes,
+        "progress": progress, "errors": errors, "suspicious_metrics": sus, "pointers": pointers[:6], "notes": notes, "why": read_why(d, cfg),
         "logs": logs,
     }
 
@@ -901,98 +938,160 @@ def _prog_cell(p):
     return s
 
 
-def render_md(dg, cfg):
-    L = []
-    c = dg["counts"]
-    L.append("# Watchdog digest %s" % dg["generated_utc"])
-    L.append("worst=%s exit=%d | runs=%d: failed %d, stalled %d, unknown %d, running %d, done %d, archived %d | stall>%ds | host %s" % (
-        dg["worst_state"], dg["exit_code"], len(dg["runs"]), c["failed"], c["stalled"], c["unknown"], c["running"],
-        c["done"], c["archived"], int(dg["stall_seconds"]), dg["host"]))
+def _scope_lines(r, scope):
+    sm = r["suspicious_metrics"]
+    kinds = sm["by_scope"][scope]
+    if not kinds:
+        return []
+    n = sum(kinds.values())
+    out = ["- %s suspicious_metrics (%s scorer) %d: %s" % (
+        r["id"], scope, n, ", ".join("%s x%d" % kv for kv in kinds.items()))]
+    seen = set()
+    for it in sm["items"]:
+        if it["scope"] == scope and it["kind"] not in seen and len(seen) < 4:
+            seen.add(it["kind"])
+            out.append("  - %s %s = %s" % (it["kind"], _clip(it["path"], 100), it["value"]))
+    return out
+
+
+def build_blocks(dg, cfg):
+    """Digest content as prioritised blocks: (priority, section, label, lines). Lower priority number survives longer.
+    0 summary + status rows of failed/stalled/unknown; 1 other status rows; 2 failed/stalled runs (pointers, errors);
+    3 flags on the primary scorer; 4 error signatures; 5 flags on other scorers; 6 everything else."""
     runs = dg["runs"]
+    B = []
+
+    def add(prio, section, label, lines):
+        if lines:
+            B.append((prio, section, label, lines))
+
+    c = dg["counts"]
+    add(0, "head", "summary", [
+        "# Watchdog digest %s" % dg["generated_utc"],
+        "worst=%s exit=%d | runs=%d: failed %d, stalled %d, unknown %d, running %d, done %d, archived %d | stall>%ds | host %s" % (
+            dg["worst_state"], dg["exit_code"], len(runs), c["failed"], c["stalled"], c["unknown"], c["running"],
+            c["done"], c["archived"], int(dg["stall_seconds"]), dg["host"])])
     clean = [r for r in runs if r["state"] == "done" and r["escalation"] == "none"]
     arch = [r for r in runs if r["state"] == "archived"]
     shown = [r for r in runs if r not in clean and r not in arch]
-    L.append("")
-    L.append("## Runs (worst first)")
-    if shown:
-        L.append("| run | state | esc | age | progress | why |")
-        L.append("|---|---|---|---|---|---|")
-        for r in shown:
-            L.append("| %s | %s | %s | %s | %s | %s |" % (
-                _clip(r["id"], 40), r["state"], r["escalation"], human_age(r["age_s"]), _clip(_prog_cell(r["progress"]), 48),
-                _clip(r["escalation_reason"] or r["state_reason"], 70)))
-    else:
-        L.append("(no runs needing attention)")
+    bad = ("failed", "stalled", "unknown")
+    for r in shown:
+        row = "| %s | %s | %s | %s | %s | %s |" % (
+            _clip(r["id"], 40), r["state"], r["escalation"], human_age(r["age_s"]), _clip(_prog_cell(r["progress"]), 48),
+            _clip(r["escalation_reason"] or r["state_reason"], 70))
+        add(0 if r["state"] in bad else 1, "runs", "status rows", [row])
+        if r["why"]:
+            add(0 if r["state"] in bad else 1, "runs", "explanatory notes",
+                ["  note %s (%s): %s" % (r["id"], r["why"]["file"], _clip(r["why"]["note"], 110))])
+    if not shown:
+        add(0, "runs", "status rows", ["(no runs needing attention)"])
     if clean:
-        L.append("Clean done: %d (%s)" % (len(clean), _clip(", ".join(r["id"] for r in clean[:6]) + (", ..." if len(clean) > 6 else ""), 120)))
+        add(6, "runs", "clean-done line", ["Clean done: %d (%s)" % (len(clean), _clip(
+            ", ".join(r["id"] for r in clean[:6]) + (", ..." if len(clean) > 6 else ""), 120))])
+    for r in arch:
+        w = " - %s" % _clip(r["why"]["note"], 100) if r["why"] else ""
+        add(6, "runs", "archived runs", ["Archived %s (idle %s, not escalated)%s" % (r["id"], human_age(r["age_s"]), w)])
 
-    if arch:
-        L.append("Archived (no marker, idle > %s, not escalated): %d (%s)" % (
-            human_age(cfg.archive_seconds), len(arch), _clip(", ".join(r["id"] for r in arch[:5]) + (", ..." if len(arch) > 5 else ""), 120)))
-    flagged = [r for r in runs if r["suspicious_metrics"]["total"] or r["suspicious_metrics"]["suppressed"]["total"] or r["notes"]]
-    L.append("")
-    L.append("## Flags")
-    if not flagged:
-        L.append("none")
-    for r in flagged:
+    for r in runs:
+        rid_bad = r["state"] in ("failed", "stalled")
         sm = r["suspicious_metrics"]
-        if sm["total"]:
-            kinds = ", ".join("%s x%d" % (k, v) for k, v in sm["by_kind"].items())
-            L.append("- %s suspicious_metrics %d: %s" % (r["id"], sm["total"], kinds))
-            seen = set()
-            for it in sm["items"]:
-                if it["kind"] not in seen and len(seen) < 4:
-                    seen.add(it["kind"])
-                    L.append("  - %s %s = %s" % (it["kind"], _clip(it["path"], 100), it["value"]))
+        add(3, "flags", "flags on primary scorer", _scope_lines(r, "primary"))
+        add(5, "flags", "flags on other scorers", _scope_lines(r, "other"))
         sp = sm["suppressed"]
         if sp["total"]:
-            L.append("%s suppressed %d expected-degenerate values (%s); --no-suppress shows them" % (
-                "  -" if sm["total"] else "- " + r["id"], 
-                sp["total"], ", ".join("%s x%d" % kv for kv in sp["by_role"].items())))
+            add(6, "flags", "suppression audit", ["- %s suppressed %d expected-degenerate values (%s); --no-suppress shows them" % (
+                r["id"], sp["total"], ", ".join("%s x%d" % kv for kv in sp["by_role"].items()))])
         for n in r["notes"]:
-            L.append("- %s note: %s" % (r["id"], _clip(n, 120)))
-
-    esc = [r for r in runs if r["escalation"] != "none"]
-    L.append("")
-    L.append("## Escalation (read: tier-1 reads these slices, paths relative to dir; decide: orchestrator chooses)")
-    if not esc:
-        L.append("none")
-    for r in esc:
-        L.append("- %s [%s] dir=%s" % (r["id"], r["escalation"], r["path"]))
-        for p in r["pointers"][:3]:
-            rel = p["path"][len(r["path"]) + 1:] if p["path"].startswith(r["path"] + "/") else p["path"]
-            if "json_paths" in p:
-                L.append("  - %s %s (%s)" % (rel, _clip(p["json_paths"][0], 70), p["why"]))
-            else:
-                L.append("  - %s:%d-%d (%s)" % (rel, p["line_start"], p["line_end"], p["why"]))
-
-    L.append("")
-    L.append("## Error signatures (count, first..last, exemplar pointer)")
-    any_sig = False
-    for r in runs:
+            add(6, "flags", "run notes", ["- %s note: %s" % (r["id"], _clip(n, 120))])
+        if r["escalation"] != "none":
+            lines = ["- %s [%s] dir=%s" % (r["id"], r["escalation"], r["path"])]
+            for p in r["pointers"][:3]:
+                rel = p["path"][len(r["path"]) + 1:] if p["path"].startswith(r["path"] + "/") else p["path"]
+                if "json_paths" in p:
+                    lines.append("  - %s %s (%s)" % (rel, _clip(p["json_paths"][0], 70), p["why"]))
+                else:
+                    lines.append("  - %s:%d-%d (%s)" % (rel, p["line_start"], p["line_end"], p["why"]))
+            prio = 2 if rid_bad else 3 if sm["by_scope"]["primary"] else 4 if r["errors"]["signatures"] else 6
+            add(prio, "esc", "escalation pointers", lines)
         e = r["errors"]
-        if not e["signatures"]:
+        if e["signatures"]:
+            lines = ["- %s: %d error lines, %d warning lines, %d signatures" % (
+                r["id"], e["error_lines"], e["warning_lines"], e["distinct_signatures"])]
+            for s_ in e["signatures"]:
+                ex = s_["exemplar"]
+                when = ("%s..%s" % ((s_["first_utc"] or "?")[5:19], (s_["last_utc"] or "?")[5:19])
+                        if s_["first_utc"] or s_["last_utc"] else "L%d..L%d" % (ex["line"], s_["last_line"]))
+                lg = ex["log"][len(r["path"]) + 1:] if ex["log"].startswith(r["path"] + "/") else ex["log"]
+                lines.append("  - %s x%d %s @%s:%d-%d \"%s\"" % ("ERR" if s_["severity"] == "error" else "WARN", s_["count"], when,
+                                                                lg, ex["line_start"], ex["line_end"], _clip(ex["text"], cfg.exemplar_width)))
+            if e["omitted_signatures"]:
+                lines.append("  - ... %d more signatures omitted (%d occurrences)" % (e["omitted_signatures"], e["omitted_occurrences"]))
+            add(2 if rid_bad else 4, "errors", "error signatures", lines)
+    return B
+
+
+SECTIONS = [("head", []), ("runs", ["", "## Runs (worst first)", "| run | state | esc | age | progress | why |", "|---|---|---|---|---|---|"]),
+            ("flags", ["", "## Flags"]),
+            ("esc", ["", "## Escalation (read: tier-1 reads these slices, paths relative to dir; decide: orchestrator chooses)"]),
+            ("errors", ["", "## Error signatures (count, first..last, exemplar pointer)"])]
+TAIL = ["", "Detail: digest.json beside this file."]
+NOTE_RESERVE = 520
+
+
+def _size(lines):
+    return sum(len(x.encode("utf-8")) + 1 for x in lines)
+
+
+def _assemble(blocks, keep):
+    out = []
+    for sec, head in SECTIONS:
+        mine = [b for i, b in enumerate(blocks) if i in keep and b[1] == sec]
+        if not mine:
             continue
-        any_sig = True
-        L.append("- %s: %d error lines, %d warning lines, %d signatures" % (
-            r["id"], e["error_lines"], e["warning_lines"], e["distinct_signatures"]))
-        for s in e["signatures"]:
-            ex = s["exemplar"]
-            when = "%s..%s" % ((s["first_utc"] or "?")[5:19], (s["last_utc"] or "?")[5:19]) if s["first_utc"] or s["last_utc"] else "L%d..L%d" % (s["exemplar"]["line"], s["last_line"])
-            lg = ex["log"][len(r["path"]) + 1:] if ex["log"].startswith(r["path"] + "/") else ex["log"]
-            L.append("  - %s x%d %s @%s:%d-%d \"%s\"" % ("ERR" if s["severity"] == "error" else "WARN", s["count"], when, lg, ex["line_start"],
-                                                         ex["line_end"], _clip(ex["text"], cfg.exemplar_width)))
-        if e["omitted_signatures"]:
-            L.append("  - ... %d more signatures omitted (%d occurrences)" % (e["omitted_signatures"], e["omitted_occurrences"]))
-    if not any_sig:
-        L.append("none")
-    L.append("")
-    L.append("Detail: digest.json beside this file.")
-    text = "\n".join(L) + "\n"
-    return enforce_cap(text, cfg.max_md_bytes)
+        out.extend(head)
+        for b in mine:
+            out.extend(b[3])
+    return out
+
+
+def render_md(dg, cfg):
+    blocks = build_blocks(dg, cfg)
+    cap = cfg.max_md_bytes
+    full = _assemble(blocks, set(range(len(blocks)))) + TAIL
+    if _size(full) <= cap:
+        return "\n".join(full) + "\n"
+    # Priority-ordered truncation: keep the lowest priority numbers; once a block of some priority does not fit,
+    # every block of a higher number is dropped too, so what survives is what matters.
+    order = sorted(range(len(blocks)), key=lambda i: (blocks[i][0], i))
+    keep, dropped, cut = set(), [], None
+    budget = cap - NOTE_RESERVE
+    for n, i in enumerate(order):
+        b = blocks[i]
+        if cut is not None and b[0] > cut:
+            dropped.append(i)
+            continue
+        trial = keep | {i}
+        if n == 0 or _size(_assemble(blocks, trial) + TAIL) <= budget:
+            keep = trial
+        else:
+            dropped.append(i)
+            cut = b[0] if cut is None else cut
+    agg = {}
+    for i in dropped:
+        lab = blocks[i][2]
+        cnt, byt = agg.get(lab, (0, 0))
+        agg[lab] = (cnt + 1, byt + _size(blocks[i][3]))
+    parts = ["%s x%d (%d B)" % (k, v[0], v[1]) for k, v in sorted(agg.items(), key=lambda kv: -kv[1][1])]
+    note = "[TRUNCATED to %d bytes: dropped %d blocks, %d B: %s; priority order kept summary, failed/stalled, primary flags, errors; full detail in digest.json]" % (
+        cap, len(dropped), sum(v[1] for v in agg.values()), "; ".join(parts))
+    if len(note.encode()) > NOTE_RESERVE - 10:
+        note = note.encode()[:NOTE_RESERVE - 20].decode("utf-8", "ignore") + "...]"
+    text = "\n".join(_assemble(blocks, keep) + TAIL + [note]) + "\n"
+    return enforce_cap(text, cap)
 
 
 def enforce_cap(text, cap):
+    """Last-resort hard cut at a line boundary (the priority logic normally keeps the text under the cap already)."""
     if len(text.encode("utf-8")) <= cap:
         return text
     lines = text.split("\n")

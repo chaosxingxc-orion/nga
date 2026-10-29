@@ -376,6 +376,76 @@ class Archived(unittest.TestCase):
         self.assertIn("Archived", md)
 
 
+class PriorityTruncation(unittest.TestCase):
+    def tree(self):
+        t = Tree()
+        t.run("a_failed", heartbeat=hb_line(-1, "x"), marker="rc=9", log="ERROR the failure %s\n" % ("w" * 50))
+        t.run("b_stalled", heartbeat=hb_line(-9999, "x"))
+        rep = {"primary": "real", "splits": {"primary": {"flip": {"rate": 0.0, "n": 99}},
+                                             "empty_input": {"flip": {"rate": 0.0, "n": 99}}}}
+        t.run("c_donebad", heartbeat=hb_line(-1, "x"), marker="rc=0", report=rep)
+        for i in range(12):
+            t.run("d_run%02d" % i, heartbeat=hb_line(-1, "x"), log="ERROR distinct%s problem\n" % ("abcdefghijkl"[i] * 5))
+        return t
+
+    def test_tiny_cap_keeps_summary_and_failed_rows_drops_low_priority(self):
+        t = self.tree()
+        big = t.cfg(max_md_bytes=10 ** 6)
+        dg = wd.build_digest(big, {}, NOW)
+        md_full = wd.render_md(dg, big)
+        self.assertIn("flags on", "flags on")
+        self.assertIn("empty_input", md_full)
+        cfg = t.cfg(max_md_bytes=1700)
+        md = wd.render_md(dg, cfg)
+        self.assertLessEqual(len(md.encode()), 1700)
+        self.assertIn("# Watchdog digest", md)
+        self.assertIn("worst=failed", md)
+        self.assertIn("| a_failed | failed", md)
+        self.assertIn("| b_stalled | stalled", md)
+        self.assertIn("TRUNCATED", md)
+        self.assertNotIn("empty_input", md)          # flags on other scorers dropped
+        self.assertNotIn("distinctlllll", md)        # low-priority error signatures dropped
+        note = [x for x in md.splitlines() if "TRUNCATED" in x][0]
+        self.assertIn("flags on other scorers", note)
+        self.assertRegex(note, r"dropped \d+ blocks, \d+ B")
+
+    def test_order_primary_flags_outlive_other_flags_and_errors(self):
+        t = self.tree()
+        dg = wd.build_digest(t.cfg(max_md_bytes=10 ** 6), {}, NOW)
+        sizes = []
+        for cap in range(1200, 6000, 150):
+            md = wd.render_md(dg, t.cfg(max_md_bytes=cap))
+            self.assertLessEqual(len(md.encode()), cap)
+            sizes.append(("(primary scorer)" in md, "(other scorer)" in md, "distinctaaaaa" in md))
+        for hi, lo in ((0, 2), (0, 1)):   # whenever a lower tier survives, the primary-flag tier survived first
+            self.assertFalse([s for s in sizes if s[lo] and not s[hi]])
+
+    def test_default_cap_is_12000(self):
+        self.assertEqual(wd.make_cfg().max_md_bytes, 12000)
+
+
+class WhyNote(unittest.TestCase):
+    def test_why_note_surfaces_for_failed_and_archived(self):
+        t = Tree()
+        d = t.run("f", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        json.dump({"note": "Stopped: scoring on slow fallback.", "other": 1}, open(os.path.join(d, "WHY_FAILED.json"), "w"))
+        d2 = t.run("old", log="x\n")
+        os.utime(os.path.join(d2, "run.log"), (NOW - 100000, NOW - 100000))
+        json.dump({"reason": "ad hoc smoke, finished"}, open(os.path.join(d2, "WHY_STOPPED.json"), "w"))
+        d3 = t.run("bad", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        open(os.path.join(d3, "WHY_FAILED.json"), "w").write("plain text, not json")
+        dg = t.digest()
+        by = {r["id"]: r for r in dg["runs"]}
+        self.assertEqual(by["f"]["why"]["note"], "Stopped: scoring on slow fallback.")
+        self.assertEqual(by["bad"]["why"]["note"], "plain text, not json")
+        md = wd.render_md(dg, t.cfg())
+        self.assertIn("scoring on slow fallback", md)
+        self.assertIn("ad hoc smoke, finished", md)
+        long_note = "x" * 5000
+        json.dump({"note": long_note}, open(os.path.join(d, "WHY_FAILED.json"), "w"))
+        self.assertLessEqual(len(t.digest()["runs"][0]["why"]["note"]) + len(t.digest()["runs"][1]["why"]["note"]), 400)
+
+
 class DigestOutput(unittest.TestCase):
     def test_size_cap_is_hard_and_explicit(self):
         t = Tree()
