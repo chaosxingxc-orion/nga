@@ -37,3 +37,29 @@ the RL image, or use `saea-base:20261027` (image python has `transformers` 5.21.
 NPU occupancy is unchanged: on both hosts all 8 chips sit at ~59 GB HBM per chip
 under `VLLMWorker_DP`, plus a `minimax_m31_flash` container up on each. Nothing
 is free to schedule on without coordination.
+
+## Update 2026-10-29
+
+Two facts above have changed, and one new blocker was found.
+
+**NPUs are free.** Both hosts now report 8 idle chips: no NPU-resident processes, 0% AICore,
+only the ~3.4 GB baseline HBM reservation per chip. The vLLM deployment and the
+`minimax_m31_flash` containers that held all cards on 2026-10-28 are gone. The machine owner has
+not granted an allocation, so this is an opportunity to confirm, not a reservation.
+
+**Chip family and the CANN kernel mismatch.** `npu` is `910B3`, `npu2` is `910B4-1`. The CANN
+8.3.RC2 toolkit inside `agentic-rl-ascend:20261026` ships op kernels for SoC `ascend910_93` only,
+which is the A3 family; it has no `ascend910b` kernel set. No Ascend op can execute inside that
+image on either host, which is why `import torch_npu` succeeds while a bare
+`torch.ones(..., device="npu")` fails with `Failed to ParseDynamicKernels`. The base image's own
+README only ever claimed CPU tensor and import validation, so this was never caught before.
+
+**Where the working stack is.** `npu2` already holds
+`quay.io/ascend/verl:verl-8.3.rc1-910b-ubuntu22.04-py3.11-latest`, which carries the matching
+`ascend910b` kernels with torch 2.7.1, torch_npu 2.7.1, vllm 0.11.0, vllm-ascend 0.11.0rc1 and
+verl 0.8.0.dev0 preinstalled. See `ENV-VERL.md` for the comparison and the recommended rebase.
+
+**Transformers remains split.** The 4.57.x line cannot load `Qwen3.5-0.8B` (`model_type: qwen3_5`).
+Under transformers 5.21.0 that model loads and runs a CPU forward pass, but verl 0.7.0 fails to
+import because `AutoModelForVision2Seq` was renamed; a one-line alias fixes the import and has not
+been validated further.

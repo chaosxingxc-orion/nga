@@ -308,7 +308,7 @@ The template declares slot types (for example: an intermediate question of at mo
 
 | WP id | title | role | inputs | outputs | acceptance check | depends on | size (S/M/L) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| WP-0.1 | Training and evaluation environment: verl + vllm-ascend image, 2 NPUs per container instance; resolves Block 1 (`M-0.1`) | training engineer (M) | `experiments/ENV-VERL.md` (being written in parallel; may not exist yet); `SERVER-175.md`; local model mirrors | primary: image with verl + vllm-ascend on the pinned stack (torch 2.7.1, torch_npu 2.7.1, transformers 4.57.1), a 2-NPU pair launcher, a verl smoke run on Qwen3-0.6B; secondary: a transformers 5.x variant (separate venv or tag) with a recorded pass / fail for loading Qwen3.5-0.8B | Qwen3-0.6B loads and matches a CPU reference within fp tolerance; prefix fork vs sequential error within 1e-3; one 2-NPU instance runs a short verl job; the 5.x variant's Qwen3.5-0.8B result is recorded either way; the largest ladder rung that fits one instance is recorded | NPU window (Block 2) | M |
+| WP-0.1 | Training and evaluation environment: verl + vllm-ascend image on the official Ascend 910b base, 2 NPUs per container instance; resolves Blocks 1 and 1b (`M-0.1`) | training engineer (M) | `experiments/ENV-VERL.md`; `SERVER-175.md`; `quay.io/ascend/verl:verl-8.3.rc1-910b-...` on `npu2`; the `start_pair.sh` launcher and `verl_smoke/` from the 2026-10-29 build | primary: image with verl + vllm-ascend on the pinned stack (torch 2.7.1, torch_npu 2.7.1, transformers 4.57.1), a 2-NPU pair launcher, a verl smoke run on Qwen3-0.6B; secondary: a transformers 5.x variant (separate venv or tag) with a recorded pass / fail for loading Qwen3.5-0.8B | Qwen3-0.6B loads and matches a CPU reference within fp tolerance; prefix fork vs sequential error within 1e-3; one 2-NPU instance runs a short verl job; the 5.x variant's Qwen3.5-0.8B result is recorded either way; the largest ladder rung that fits one instance is recorded | NPU window (Block 2) | M |
 
 **Dependency list.**
 
@@ -325,8 +325,9 @@ The template declares slot types (for example: an intermediate question of at mo
 
 **Blocks carried over from proposal §5.**
 
-- **Block 1**: the RL image pins transformers 4.57.1; Qwen3.5-0.8B needs 5.x. WP-0.1 resolves it or records why not.
-- **Block 2**: all NPUs on both hosts are held by a vLLM deployment. The machine owner must give card numbers or a time window. T1 to T3 run on CPU meanwhile.
+- **Block 1**: the RL image pins transformers 4.57.1; Qwen3.5-0.8B needs 5.x. WP-0.1 resolves it or records why not. **Update 2026-10-29**: still open. Under transformers 5.21.0 Qwen3.5-0.8B loads and runs a CPU forward pass, but verl 0.7.0 fails to import because `AutoModelForVision2Seq` was renamed; a one-line alias fixes the import and is not yet validated further (`experiments/ENV-VERL.md`).
+- **Block 1b (new, 2026-10-29)**: the CANN toolkit inside `agentic-rl-ascend:20261026` ships op kernels for SoC `ascend910_93` only, while both hosts are 910B. No Ascend op can execute in that image, so the custom verl build on top of it cannot train. A matching image, `quay.io/ascend/verl:verl-8.3.rc1-910b-...`, already exists on `npu2` with the same torch / vllm / vllm-ascend pins and verl preinstalled. WP-0.1 is rebased onto it.
+- **Block 2**: **largely lifted on 2026-10-29.** Both hosts now report 8 idle chips with no NPU-resident processes; the vLLM deployment that held them is gone. This has not been confirmed with the machine owner, so WP-0.1 still starts by asking for a window rather than assuming one. T1 to T3 can still run on CPU.
 - **Block 3**: natural-language convention labels and rule-silent labels come only from the business side, which must commit annotation hours and accept "the floor measures agreement with the convention". WP-2.3, WP-2.4 and WP-3.7 wait on it.
 
 ---
@@ -337,7 +338,7 @@ The template declares slot types (for example: an intermediate question of at mo
 | --- | --- | --- |
 | Input modality in production | **Answered (2026-10-29)**: whatever the agent harness loads; its content is a pre-designed task, or the model is trained to a template so the calling syntax is stable | Nothing; fixes direction 3's template-first design |
 | S1 position (A to E, §5) | **Open.** Default recommendation: B, with S2 questions admitted only through the versioned template contract | WP-4.4, WP-4.5, WP-4.9 |
-| NPU window | **Open.** Needs card numbers or a time window from the machine owner | WP-0.1 and every NPU run |
+| NPU window | **Likely resolved, needs confirmation (2026-10-29).** Both hosts now show 8 idle chips; the vLLM deployment that held them is gone. Still needs the machine owner to confirm we may use them, and how many | WP-0.1 and every NPU run |
 | Business annotation hours | **Open.** Needs a commitment from the business side and acceptance of the convention-floor protocol | WP-2.3, WP-2.4, WP-3.7; half of G2's confirmation; G3 |
 
 ---
