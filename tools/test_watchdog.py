@@ -567,7 +567,7 @@ class DigestOutput(unittest.TestCase):
         t.run("r", heartbeat="%s x\n" % wd.iso(time.time()))
         out = os.path.join(t.tmp.name, "_out")
         cmd = [sys.executable] + PFLAG + [os.path.join(HERE, "watchdog.py"), "--root", t.root, "--out-dir", out,
-               "--watch", "--interval", "1"]
+               "--watch", "--interval", "1", "--allow-fast-poll"]
         p1 = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         try:
             deadline = time.time() + 10
@@ -582,9 +582,10 @@ class DigestOutput(unittest.TestCase):
     def test_watch_rewrites_in_place(self):
         t = Tree()
         d = t.run("r", heartbeat="%s x\n" % wd.iso(time.time()))
+        open(os.path.join(d, "WATCH.json"), "w").write('{"tier": "fast"}')
         out = os.path.join(t.tmp.name, "_out")
         p = subprocess.Popen([sys.executable] + PFLAG + [os.path.join(HERE, "watchdog.py"), "--root", t.root, "--out-dir", out,
-                              "--watch", "--interval", "1"], stdout=subprocess.DEVNULL)
+                              "--watch", "--interval", "1", "--allow-fast-poll", "--fast-recheck", "1"], stdout=subprocess.DEVNULL)
         try:
             deadline = time.time() + 10
             while time.time() < deadline and not os.path.exists(os.path.join(out, "digest.json")):
@@ -649,6 +650,271 @@ class ExitCode(unittest.TestCase):
         t.run("a", heartbeat=hb_line(-1, "x"), marker="rc=0", report={"T1": {"n": 500, "rate": 1.0}})
         dg = t.digest()
         self.assertEqual(dg["runs"][0]["escalation"], "decide")
+
+
+def beats(period_s, n, end_offset=0):
+    """n heartbeat lines, period_s apart, the last at end_offset seconds from NOW."""
+    return "".join(hb_line(end_offset - period_s * (n - 1 - i), "alive rows: x=%d" % i) for i in range(n))
+
+
+def watch_json(d, text):
+    with open(os.path.join(d, "WATCH.json"), "w") as f:
+        f.write(text)
+
+
+class Tiers(unittest.TestCase):
+    def test_defaults_as_specified(self):
+        cfg = wd.make_cfg(root=["/nonexistent"])
+        self.assertEqual(cfg.interval, 600.0)
+        self.assertEqual(cfg.tiers, {"fast": {"recheck_s": 600.0, "stall_s": 600.0},
+                                     "medium": {"recheck_s": 1200.0, "stall_s": 1800.0},
+                                     "slow": {"recheck_s": 3600.0, "stall_s": 7200.0}})
+
+    def test_sub_600_refused_in_watch_and_override(self):
+        t = Tree()
+        t.run("r", heartbeat=hb_line(-5, "x"))
+        out = os.path.join(t.tmp.name, "_out")
+        base = [sys.executable] + PFLAG + [os.path.join(HERE, "watchdog.py"), "--root", t.root, "--out-dir", out]
+        r = subprocess.run(base + ["--watch", "--interval", "120"], capture_output=True, text=True, timeout=20)
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("floor", r.stderr)
+        self.assertIn("--allow-fast-poll", r.stderr)
+        self.assertFalse(os.path.exists(os.path.join(out, "digest.json")))
+        # one-shot is unaffected by --interval
+        r = subprocess.run(base + ["--interval", "5"], capture_output=True, text=True, timeout=20)
+        self.assertNotEqual(r.returncode, 2)
+        # override lets the watcher start
+        p = subprocess.Popen(base + ["--watch", "--interval", "1", "--allow-fast-poll"], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        try:
+            deadline = time.time() + 10
+            while time.time() < deadline and not os.path.exists(os.path.join(out, "digest.json")):
+                time.sleep(0.1)
+            self.assertTrue(os.path.exists(os.path.join(out, "digest.json")))
+            self.assertIsNone(p.poll())
+        finally:
+            p.terminate()
+            p.wait(10)
+
+    def test_each_tier_threshold_applied(self):
+        t = Tree()
+        for tier in wd.TIER_NAMES:
+            for age, tag in ((-500, "ok"), (-1000, "mid"), (-5000, "old"), (-9000, "vold")):
+                d = t.run("%s_%s" % (tier, tag), heartbeat=hb_line(age, "alive"))
+                watch_json(d, json.dumps({"tier": tier}))
+        st = t.states()
+        want = {"fast": {"ok": "running", "mid": "stalled", "old": "stalled", "vold": "stalled"},      # 600 s
+                "medium": {"ok": "running", "mid": "running", "old": "stalled", "vold": "stalled"},    # 1800 s
+                "slow": {"ok": "running", "mid": "running", "old": "running", "vold": "stalled"}}      # 7200 s
+        for tier, row in want.items():
+            for tag, state in row.items():
+                self.assertEqual(st["%s_%s" % (tier, tag)], state, "%s %s" % (tier, tag))
+
+    def test_flag_overrides_tier_defaults(self):
+        t = Tree()
+        d = t.run("r", heartbeat=hb_line(-1000, "alive"))
+        watch_json(d, '{"tier": "fast"}')
+        self.assertEqual(t.states()["r"], "stalled")
+        self.assertEqual(t.states(fast_stall=1500.0)["r"], "running")
+
+    def test_ten_minute_heartbeat_is_not_stalled(self):
+        """The bug being fixed: a job that beats every 10 minutes was flagged stalled by the fixed 300 s threshold."""
+        t = Tree()
+        t.run("slowbeat", heartbeat=beats(600, 8, end_offset=-540))     # last beat 9 min ago
+        t.run("latebeat", heartbeat=beats(600, 8, end_offset=-3600))    # silent for 1 h: 6 periods > 5x
+        dg = t.digest()
+        by = {r["id"]: r for r in dg["runs"]}
+        self.assertEqual(by["slowbeat"]["state"], "running")
+        self.assertEqual(by["latebeat"]["state"], "stalled")
+        self.assertEqual(by["slowbeat"]["tier"]["name"], "auto")
+        self.assertEqual(by["slowbeat"]["tier"]["stall_s"], 3000.0)
+        self.assertIn("heartbeat period", by["slowbeat"]["tier"]["source"])
+        # the old global default (300 s) would have said stalled
+        self.assertEqual(t.states(stall_seconds=300.0)["slowbeat"], "stalled")
+
+    def test_inference_floor_and_few_heartbeats(self):
+        t = Tree()
+        t.run("quick", heartbeat=beats(30, 10, end_offset=-100))        # 5 x 30 s = 150 s, floored to 600 s
+        t.run("one", heartbeat=hb_line(-1000, "alive"))                 # no gap at all: medium
+        by = {r["id"]: r for r in t.digest()["runs"]}
+        self.assertEqual(by["quick"]["tier"]["stall_s"], 600.0)
+        self.assertEqual(by["quick"]["state"], "running")
+        self.assertEqual(by["one"]["tier"]["name"], "medium")
+        self.assertIn("default", by["one"]["tier"]["source"])
+        self.assertEqual(by["one"]["tier"]["stall_s"], 1800.0)
+
+    def test_single_two_hour_gap_is_not_stalled(self):
+        t = Tree()
+        t.run("one_gap", heartbeat=hb_line(-7200 - 3000, "alive") + hb_line(-3000, "alive"))   # 1 gap of 2 h, silent 50 min
+        t.run("two_gaps", heartbeat=hb_line(-9000, "a") + hb_line(-7200, "a") + hb_line(-3600, "a"))   # gaps 30 min, 60 min
+        t.run("one_gap_dead", heartbeat=hb_line(-7200 - 40000, "alive") + hb_line(-40000, "alive"))    # silent 11 h > 10 h
+        by = {r["id"]: r for r in t.digest()["runs"]}
+        self.assertEqual(by["one_gap"]["state"], "running")
+        self.assertEqual(by["one_gap"]["tier"]["stall_s"], 36000.0)
+        self.assertIn("max of 1 gap", by["one_gap"]["tier"]["source"])
+        self.assertEqual(by["two_gaps"]["tier"]["stall_s"], 18000.0)
+        self.assertIn("max of 2 gaps", by["two_gaps"]["tier"]["source"])
+        self.assertEqual(by["one_gap_dead"]["state"], "stalled")
+
+    def test_inference_ignores_duplicate_and_disordered_timestamps(self):
+        # unique sorted timestamps 0,600,1200,1500,1800,2400 -> gaps 600,600,300,300,600 -> median 600
+        samples = [{"ts": x} for x in (0, 0, 600, 600, 1200, 1800, 1500, 2400)]
+        self.assertEqual(wd.infer_period(samples), (600, 5, "median"))
+        # thin evidence uses the MAX gap, not the median
+        self.assertEqual(wd.infer_period([{"ts": x} for x in (0, 0, 0, 0, 600, 1800)]), (1200, 2, "max"))
+        self.assertEqual(wd.infer_period([{"ts": x} for x in (0, 7200)]), (7200, 1, "max"))
+        self.assertEqual(wd.infer_period([{"ts": 5}, {"ts": 5}])[0], None)
+
+    def test_watch_file_beats_inference_and_invalid_errors(self):
+        t = Tree()
+        d = t.run("r", heartbeat=beats(600, 8, end_offset=-2500))       # inference would give 3000 s: running
+        self.assertEqual(t.states()["r"], "running")
+        watch_json(d, '{"tier": "fast"}')                               # explicit fast (600 s): stalled
+        r = t.digest()["runs"][0]
+        self.assertEqual((r["state"], r["tier"]["name"], r["tier"]["source"]), ("stalled", "fast", "WATCH.json"))
+        for bad in ('{"tier": "Slow"}', '{"tier": "hourly"}', '{"tier": 3}', '{"tier": null}', '[1]', '{not json'):
+            watch_json(d, bad)
+            r = t.digest()["runs"][0]
+            self.assertEqual(r["state"], "unknown", bad)
+            self.assertIn("WATCH.json", r["state_reason"], bad)
+        watch_json(d, '{"note": "no tier key"}')                        # no tier key: not an error, falls through
+        self.assertEqual(t.digest()["runs"][0]["tier"]["name"], "auto")
+
+    def test_row_shows_tier_and_times(self):
+        t = Tree()
+        d = t.run("r", heartbeat=hb_line(-10, "alive rows: x=1"))
+        watch_json(d, '{"tier": "slow"}')
+        cfg = t.cfg()
+        dg = wd.build_digest(cfg, {}, NOW)
+        md = wd.render_md(dg, cfg)
+        row = [ln for ln in md.splitlines() if ln.startswith("| r |")][0]
+        self.assertIn("slow/file 08:00>09:00", row)
+        self.assertEqual(dg["runs"][0]["watch"]["recheck_s"], 3600.0)
+
+
+class DueScheduling(unittest.TestCase):
+    def _tree(self, tier):
+        t = Tree()
+        d = t.run("r", heartbeat=hb_line(-10, "alive rows: x=1"))
+        watch_json(d, json.dumps({"tier": tier}))
+        return t, d
+
+    def test_not_due_run_is_skipped_and_due_run_is_read(self):
+        t, d = self._tree("slow")
+        cfg = t.cfg(interval=600.0, watch=True)
+        sched = {}
+        dg = wd.build_digest(cfg, {}, NOW, sched)
+        self.assertEqual(dg["runs"][0]["progress"]["done"], 1)
+        with open(os.path.join(d, "heartbeat.log"), "a") as f:           # new progress, but no marker
+            f.write(hb_line(3500, "alive rows: x=99"))
+        for tick in (600, 1200, 3000):                                  # ticks every 10 min, run is due hourly
+            dg = wd.build_digest(cfg, {}, NOW + tick, sched)
+            self.assertEqual(dg["runs"][0]["progress"]["done"], 1, "tick %d re-read a not-due run" % tick)
+            self.assertEqual(dg["runs"][0]["watch"]["last_eval_utc"], wd.iso(NOW))
+        dg = wd.build_digest(cfg, {}, NOW + 3600, sched)
+        self.assertEqual(dg["runs"][0]["progress"]["done"], 99)
+        self.assertEqual(dg["runs"][0]["watch"]["last_eval_utc"], wd.iso(NOW + 3600))
+        self.assertEqual(dg["runs"][0]["watch"]["next_eval_utc"], wd.iso(NOW + 7200))
+
+    def test_skipped_run_is_not_parsed(self):
+        t, d = self._tree("slow")
+        cfg = t.cfg(interval=600.0, watch=True)
+        sched = {}
+        calls = []
+        orig = wd.evaluate_run
+        wd.evaluate_run = lambda *a, **k: calls.append(1) or orig(*a, **k)
+        try:
+            for tick in range(0, 3600, 600):
+                wd.build_digest(cfg, {}, NOW + tick, sched)
+            self.assertEqual(len(calls), 1)
+            wd.build_digest(cfg, {}, NOW + 3600, sched)
+            self.assertEqual(len(calls), 2)
+        finally:
+            wd.evaluate_run = orig
+
+    def test_cached_age_keeps_growing(self):
+        t, d = self._tree("slow")
+        cfg = t.cfg(interval=600.0, watch=True)
+        sched = {}
+        wd.build_digest(cfg, {}, NOW, sched)
+        dg = wd.build_digest(cfg, {}, NOW + 1200, sched)
+        self.assertEqual(dg["runs"][0]["age_s"], 1210)
+
+    def test_failed_and_stalled_use_fast_cadence_despite_slow_tier(self):
+        t = Tree()
+        d1 = t.run("bad", heartbeat=hb_line(-10, "alive"), marker="rc=1")
+        d2 = t.run("hung", heartbeat=hb_line(-20000, "alive"))
+        d3 = t.run("ok", heartbeat=hb_line(-10, "alive"))
+        for d in (d1, d2, d3):
+            watch_json(d, '{"tier": "slow"}')
+        cfg = t.cfg(interval=600.0, watch=True)
+        sched = {}
+        dg = wd.build_digest(cfg, {}, NOW, sched)
+        by = {r["id"]: r for r in dg["runs"]}
+        self.assertEqual(by["bad"]["watch"]["recheck_s"], 600.0)
+        self.assertEqual(by["hung"]["watch"]["recheck_s"], 600.0)
+        self.assertEqual(by["ok"]["watch"]["recheck_s"], 3600.0)
+        os.unlink(os.path.join(d1, "FAILED"))
+        open(os.path.join(d1, "DONE"), "w").write("rc=0\n")
+        with open(os.path.join(d2, "heartbeat.log"), "a") as f:
+            f.write(hb_line(590, "alive"))
+        dg = wd.build_digest(cfg, {}, NOW + 600, sched)
+        by = {r["id"]: r for r in dg["runs"]}
+        self.assertEqual(by["bad"]["state"], "done")                    # re-read at +10 min
+        self.assertEqual(by["hung"]["state"], "running")
+        self.assertEqual(by["ok"]["watch"]["last_eval_utc"], wd.iso(NOW))   # still cached
+
+    def test_new_marker_makes_a_not_due_slow_run_due(self):
+        t, d = self._tree("slow")
+        cfg = t.cfg(interval=600.0, watch=True)
+        sched = {}
+        calls = []
+        orig = wd.evaluate_run
+        wd.evaluate_run = lambda *a, **k: calls.append(1) or orig(*a, **k)
+        try:
+            wd.build_digest(cfg, {}, NOW, sched)
+            wd.build_digest(cfg, {}, NOW + 600, sched)
+            self.assertEqual(len(calls), 1)                              # not due, no marker: skipped
+            open(os.path.join(d, "DONE"), "w").write("rc=0\n")
+            dg = wd.build_digest(cfg, {}, NOW + 1200, sched)             # next tick, far before the hour
+            self.assertEqual((len(calls), dg["runs"][0]["state"]), (2, "done"))
+            self.assertEqual(dg["runs"][0]["watch"]["last_eval_utc"], wd.iso(NOW + 1200))
+            wd.build_digest(cfg, {}, NOW + 1800, sched)                  # marker already seen: back to not-due
+            self.assertEqual(len(calls), 2)
+        finally:
+            wd.evaluate_run = orig
+
+    def test_marker_present_at_first_read_does_not_retrigger(self):
+        t = Tree()
+        d = t.run("r", heartbeat=hb_line(-10, "alive"), marker="rc=1")
+        watch_json(d, '{"tier": "slow"}')
+        os.unlink(os.path.join(d, "FAILED"))
+        open(os.path.join(d, "DONE"), "w").write("rc=0\n")
+        cfg = t.cfg(interval=600.0, watch=True)
+        sched = {}
+        wd.build_digest(cfg, {}, NOW, sched)
+        self.assertEqual(sched[d]["markers"], frozenset({"DONE"}))
+        self.assertTrue(wd.marker_set(d, cfg) <= sched[d]["markers"])
+
+    def test_vanished_run_is_forgotten(self):
+        t, d = self._tree("fast")
+        cfg = t.cfg(interval=600.0, watch=True)
+        sched = {}
+        wd.build_digest(cfg, {}, NOW, sched)
+        self.assertEqual(len(sched), 1)
+        import shutil
+        shutil.rmtree(d)
+        wd.build_digest(cfg, {}, NOW + 600, sched)
+        self.assertEqual(sched, {})
+
+    def test_digest_rewritten_every_tick_even_when_nothing_is_due(self):
+        t, d = self._tree("slow")
+        cfg = t.cfg(interval=600.0, watch=True)
+        sched = {}
+        wd.run_once(cfg, {}, NOW, sched)
+        first = json.load(open(os.path.join(cfg.out_dir, "digest.json")))["generated_utc"]
+        wd.run_once(cfg, {}, NOW + 600, sched)
+        second = json.load(open(os.path.join(cfg.out_dir, "digest.json")))["generated_utc"]
+        self.assertEqual((first, second), (wd.iso(NOW), wd.iso(NOW + 600)))
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ orchestrator (tier 2) reads the digest and the tier-1 diagnosis only.
 
     python3 -P tools/watchdog.py                       # one pass over /mnt/cephfs/xingchao/experiments/jev/
     python3 -P tools/watchdog.py --root DIR --print    # other root, also print digest.md
-    python3 -P tools/watchdog.py --watch --interval 120
+    python3 -P tools/watchdog.py --watch                # tick every 600 s (the floor); runs are re-read on their own tier cadence
 
 Outputs go to `--out-dir` (default `<first root>/_watchdog/`): `digest.json` (complete but bounded) and
 `digest.md` (hard cap `--max-md-bytes`, default 12000).
@@ -43,8 +43,8 @@ extrapolated only when a total is known and the rate is positive.
 ### States (exactly one per run, deterministic)
 
 - `done`: marker present, exit code 0.  `failed`: marker present, non-zero exit code.
-- `running`: no marker, heartbeat age <= `--stall-seconds` (default 300, five missed one-minute heartbeats).
-- `stalled`: no marker, log exists, heartbeat older than that.
+- `running`: no marker, heartbeat age <= the run's stall threshold (from its watch tier, see below; there is no global default).
+- `stalled`: no marker, log exists, heartbeat older than the run's stall threshold.
 - `archived`: no marker, **no heartbeat file**, and the newest log older than `--archive-seconds` (default 21600, 6 h). An ad hoc
   run that finished long ago; escalation `none`, exit code 0, listed on one summary line. Anything newer stays `stalled`, and a
   run that has a heartbeat file or a marker is never archived.
@@ -54,6 +54,65 @@ extrapolated only when a total is known and the rate is positive.
 Container state is never consulted. Without a `heartbeat.log` the newest log mtime is the heartbeat, and the digest says so
 (`heartbeat_source`). Heartbeats are compared with the clock of the host running the watchdog, so run it where clocks agree
 with the writer (cephfs mtimes and UTC heartbeat stamps are both fine across hosts that run NTP).
+
+### Watch tiers (how often each run is looked at, and when it counts as stalled)
+
+One global poll rate is the wrong model: a 30-second smoke test and an 8-hour training run do not deserve the same attention, and
+a fixed stall threshold wrongly flags any job whose heartbeat period is longer than it. Each run therefore gets a tier.
+
+| Tier | Intended for | Re-read every | Stall threshold | flags |
+|---|---|---|---|---|
+| `fast` | short jobs, smoke tests, under about 30 min | 10 min | 10 min | `--fast-recheck`, `--fast-stall` |
+| `medium` | roughly 30 min to 4 h | 20 min | 30 min | `--medium-recheck`, `--medium-stall` |
+| `slow` | over about 4 h, training runs | 60 min | 2 h | `--slow-recheck`, `--slow-stall` |
+
+**How a run gets its tier** (first match wins; the digest row shows the tier and its source):
+
+1. `WATCH.json` in the run directory, e.g. `{"tier": "slow"}`. Only the exact strings `fast`, `medium`, `slow` are accepted. Anything
+   else (wrong case, another word, a non-string, unreadable JSON, not an object) makes the run `unknown` with a reason naming the file;
+   it is never silently defaulted. A `WATCH.json` without a `tier` key is ignored (so it can carry other notes).
+2. Inference from the run's own heartbeat period, over its last 20 distinct heartbeat timestamps. One positive gap is enough.
+   With 3 or more gaps the period is their **median**; with 1 or 2 gaps it is the **maximum** gap, because thin evidence errs long
+   (a false stall costs an escalation and trains us to ignore the flag; a stall noticed one cycle late costs almost nothing).
+   Stall threshold = `--stall-multiple` (default 5) x the period, never below `--stall-floor` (default 600 s). Re-read cadence =
+   the period, clamped between the `fast` and `slow` cadences. The source is shown, e.g. `max of 1 gap` or `median of 7 gaps`
+   in `digest.json`, `hb2.0h` in the row. A job that beats every 10 minutes is stalled after 50 minutes of silence, not 5; a run
+   with a single 2-hour gap is stalled only after 10 hours.
+3. Otherwise `medium` (no positive heartbeat gap, that is at most one distinct timestamp; source `dflt`).
+
+`--stall-seconds N` still exists as a global override of the stall threshold for every run; leave it unset normally.
+
+**Declare a tier when you launch a job** (a one-line `WATCH.json` beside the log). Inference needs several heartbeats and sees only
+the past, so a run that is just starting, or whose heartbeat period changes (for example a long evaluation phase between training
+steps), is best declared. Guidance for this project:
+
+- `slow`: the R0 baseline rerun, every verl or other training run, full-benchmark sweeps, anything planned to run past 4 hours.
+- `medium`: single-model evaluation passes, data-build jobs, cell sweeps of 30 minutes to a few hours.
+- `fast`: smoke tests, one-cell checks, import or config checks, anything you expect to finish in under about 30 minutes.
+
+**Scheduling.** The `--watch` loop ticks every `--interval` seconds (default and minimum 600) and rewrites `digest.json` and
+`digest.md` on every tick, so the digest's own `generated_utc` stays a reliable liveness signal. A run is re-read (markers, tail of
+heartbeat, new log bytes, report) only when its own next-due time has arrived; between those times its last result is reused with the
+age refreshed. A slow run is parsed once an hour. A `failed` or `stalled` run is re-checked at the `fast` cadence whatever its tier,
+because something is already wrong. **A terminal marker overrides the due time:** on every tick the watcher stats the marker files (`--marker-names`) of every run, due or
+not, and a marker not seen at the run's last read makes it due at once. A finished run is reported on the next tick, and the cost is
+one stat per marker name per run. A run that dies without writing a marker is still found only at its own cadence (or the stall
+threshold), as before.
+
+**Floor.** `--watch` refuses `--interval` below 600 and exits 2 with the reason, unless `--allow-fast-poll` is given (tests, debugging).
+A one-shot run (no `--watch`) reads everything and is unaffected.
+
+**In the digest**, each status row has a `watch` cell: `tier/source last>next` with UTC HH:MM times, for example `slow/file 08:00>09:00`
+(source `file` = WATCH.json, `hbNm` = inferred period, `dflt` = default). `digest.json` has per run `tier` (name, source, recheck_s,
+stall_s) and `watch` (last_eval_utc, next_eval_utc, recheck_s).
+
+**Making the declaration happen.** Documentation alone gets forgotten, so the launcher should write the file with the other
+per-run files (relaunch command, log). For a shell launcher such as `experiments/run_sharded.sh`, one line next to the line that
+writes the relaunch command is the natural place (that file is outside `tools/` and not edited here):
+
+    echo '{"tier": "slow"}' > "$OUT_DIR/WATCH.json"      # R0 baseline rerun, verl training; use "fast" for smoke tests
+
+Default to `slow` in the launchers for the R0 rerun and verl, and let smoke-test launchers write `fast`.
 
 ### Explanations
 
@@ -121,7 +180,7 @@ pass's code on SIGTERM; usage errors exit 2; a second `--watch` on the same out-
 
 ### Running it detached (rule 7)
 
-    nohup setsid python3 -P tools/watchdog.py --watch --interval 120 \
+    nohup setsid python3 -P tools/watchdog.py --watch \
         >> /mnt/cephfs/xingchao/experiments/jev/_watchdog/watchdog.log 2>&1 < /dev/null &
 
 One watcher per out-dir (enforced with a lock; a restarted watcher takes over). A stale digest shows in `generated_utc`.
@@ -137,7 +196,7 @@ own directory lands on `sys.path`.
 ## Final interface summary
 
 **States** (one per run): `done` (marker, exit 0), `failed` (marker, non-zero), `running` (no marker, heartbeat within
-`--stall-seconds`, default 300), `stalled` (no marker, older heartbeat), `archived` (no marker, no heartbeat file, newest log older
+the run's tier stall threshold: fast 10 min, medium 30 min, slow 2 h, or 5x its inferred period), `stalled` (no marker, older heartbeat), `archived` (no marker, no heartbeat file, newest log older
 than `--archive-seconds`, default 21600), `unknown` (reason given). The marker is the source of truth; container state is never read.
 
 **Escalation**: `none`; `read` (tier-1 model reads the listed pointers); `decide` (orchestrator chooses, after the read). `decide`:
@@ -162,14 +221,14 @@ was dropped; `digest.json` is complete.
 This host (Python 3.11, `-P`):
 
     mkdir -p /mnt/cephfs/xingchao/experiments/jev/_watchdog
-    cd /home/xingchao/workspace/nga && nohup setsid python3 -P tools/watchdog.py --watch --interval 120 \
+    cd /home/xingchao/workspace/nga && nohup setsid python3 -P tools/watchdog.py --watch \
         >> /mnt/cephfs/xingchao/experiments/jev/_watchdog/watchdog.log 2>&1 < /dev/null &
 
 `npu` (Python 3.10 has no `-P`, so plain `python3`; run it from a directory you do not distrust, and the repo checkout path there
 may differ, so give the script's absolute path):
 
     mkdir -p /mnt/cephfs/xingchao/experiments/jev/_watchdog
-    cd / && nohup setsid python3 /path/to/nga/tools/watchdog.py --watch --interval 120 \
+    cd / && nohup setsid python3 /path/to/nga/tools/watchdog.py --watch \
         >> /mnt/cephfs/xingchao/experiments/jev/_watchdog/watchdog.log 2>&1 < /dev/null &
 
 Run one watcher per out-dir (a second exits with code 3). Both hosts write the same out-dir, so run it on only one of them. Check

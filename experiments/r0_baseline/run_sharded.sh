@@ -13,6 +13,10 @@ out=$1; n=$2; shift 2
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 mkdir -p "$out/logs"
 rm -f "$out/DONE" "$out/FAILED"
+# Declare the watch tier for tools/watchdog.py: a scoring pass over the frozen data runs for hours
+# and heartbeats once a minute, so it belongs in the slow tier. Without this file the watchdog has
+# to infer a stall threshold from the heartbeat period. Override with WATCH_TIER=fast|medium|slow.
+printf '{"tier": "%s"}\n' "${WATCH_TIER:-slow}" > "$out/WATCH.json"
 exec >> "$out/run.log" 2>&1
 echo "$(date -u +%FT%TZ) start out=$out shards=$n args: $*"
 

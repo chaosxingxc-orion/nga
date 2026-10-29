@@ -27,6 +27,12 @@ DEFAULT_ROOT = "/mnt/cephfs/xingchao/experiments/jev/"
 STATE_RANK = {"archived": -1, "done": 0, "running": 1, "unknown": 2, "stalled": 3, "failed": 4}
 EXIT_CODES = {"archived": 0, "done": 0, "running": 10, "unknown": 20, "stalled": 30, "failed": 40}
 EXIT_NO_RUNS = 20
+WATCH_FILE = "WATCH.json"
+TIER_NAMES = ("fast", "medium", "slow")
+MIN_INTERVAL = 600.0       # floor for the --watch tick, unless --allow-fast-poll
+INFER_WINDOW = 20          # most recent heartbeat samples used to infer the period
+INFER_MIN_GAPS = 1         # positive gaps needed to infer at all (none: fall back to medium)
+INFER_MEDIAN_GAPS = 3      # with fewer gaps than this use the MAX gap (err long), from this many on the median
 CHUNK = 8 << 20
 MAX_LINE = 4000
 MAX_CARRY = 1 << 20
@@ -40,7 +46,14 @@ def build_parser():
     a = p.add_argument
     a("--root", action="append", help="run root to scan (repeatable); default %s" % DEFAULT_ROOT)
     a("--out-dir", help="where digest.json/digest.md go; default <first root>/_watchdog")
-    a("--stall-seconds", type=float, default=300.0, help="heartbeat older than this, no marker => stalled (default 300)")
+    a("--stall-seconds", type=float, default=None,
+      help="GLOBAL override of the per-run stall threshold (default: none; the threshold comes from each run's tier)")
+    for name, rc, st in (("fast", 600, 600), ("medium", 1200, 1800), ("slow", 3600, 7200)):
+        a("--%s-recheck" % name, type=float, default=float(rc), help="%s tier: re-read the run this often (default %d s)" % (name, rc))
+        a("--%s-stall" % name, type=float, default=float(st), help="%s tier: heartbeat older than this => stalled (default %d s)" % (name, st))
+    a("--stall-multiple", type=float, default=5.0,
+      help="inferred runs: stall threshold = this x the median heartbeat gap (default 5)")
+    a("--stall-floor", type=float, default=600.0, help="inferred runs: the stall threshold is never below this (default 600 s)")
     a("--clock-skew-seconds", type=float, default=120.0, help="heartbeat further in the future than this => unknown")
     a("--window-seconds", type=float, default=900.0, help="throughput window (default 900)")
     a("--archive-seconds", type=float, default=21600.0,
@@ -75,7 +88,10 @@ def build_parser():
     a("--count-keys", default=r"^(n|n_units|n_items|n_samples|n_rows|count|samples|num_samples)$",
       help="regex for sample-count keys")
     a("--watch", action="store_true", help="loop forever, rewriting the digest in place")
-    a("--interval", type=float, default=60.0, help="seconds between passes with --watch (default 60)")
+    a("--interval", type=float, default=MIN_INTERVAL,
+      help="seconds between watch ticks (default 600, also the minimum unless --allow-fast-poll). Each run is re-read only "
+           "when its own tier cadence is due")
+    a("--allow-fast-poll", action="store_true", help="permit --watch --interval below %d s (tests, debugging)" % MIN_INTERVAL)
     a("--print", dest="print_md", action="store_true", help="also print digest.md to stdout")
     return p
 
@@ -98,6 +114,7 @@ def make_cfg(**kw):
     cfg.ignore_re = re.compile(cfg.ignore) if cfg.ignore else None
     cfg.suppress_pats = [] if cfg.no_suppress else [x for x in cfg.suppress_roles.split(",") if x]
     cfg.protect_set = set(x for x in cfg.protect_roles.split(",") if x)
+    cfg.tiers = {n: {"recheck_s": getattr(cfg, n + "_recheck"), "stall_s": getattr(cfg, n + "_stall")} for n in TIER_NAMES}
     cfg.rate_re = re.compile(cfg.rate_keys)
     cfg.count_re = re.compile(cfg.count_keys)
     return cfg
@@ -704,7 +721,7 @@ def read_marker(d, cfg):
     return mk, None
 
 
-def classify(marker, problem, hb_ts, hb_src, has_logs, now, cfg, has_hb_file=True):
+def classify(marker, problem, hb_ts, hb_src, has_logs, now, cfg, has_hb_file=True, stall=None):
     """Deterministic state from the marker and heartbeat only. Returns (state, reason)."""
     if marker is not None:
         if problem:
@@ -715,15 +732,75 @@ def classify(marker, problem, hb_ts, hb_src, has_logs, now, cfg, has_hb_file=Tru
     if hb_ts is None:
         return "unknown", ("log present but no heartbeat or readable mtime" if has_logs
                            else "no log and no terminal marker (output files only)")
+    stall = cfg.stall_seconds if stall is None else stall
     age = now - hb_ts
     if age < -cfg.clock_skew_seconds:
         return "unknown", "heartbeat %ds in the future (clock skew between hosts?)" % int(-age)
-    if age <= cfg.stall_seconds:
+    if age <= stall:
         return "running", "heartbeat %s ago via %s" % (human_age(age), hb_src)
     if not has_hb_file and age > cfg.archive_seconds:
         return "archived", "no marker or heartbeat file, newest log %s old (> %s archive threshold)" % (
             human_age(age), human_age(cfg.archive_seconds))
-    return "stalled", "heartbeat %s old (> %ds) via %s, no marker" % (human_age(age), int(cfg.stall_seconds), hb_src)
+    return "stalled", "heartbeat %s old (> %ds) via %s, no marker" % (human_age(age), int(stall), hb_src)
+
+
+def read_watch_file(d):
+    """(tier or None, error or None) from WATCH.json. Only the exact strings fast|medium|slow are accepted."""
+    p = os.path.join(d, WATCH_FILE)
+    if not os.path.isfile(p):
+        return None, None
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            obj = json.load(f)
+    except (OSError, ValueError) as e:
+        return None, "%s unreadable or not JSON: %s" % (p, str(e)[:60])
+    if not isinstance(obj, dict):
+        return None, "%s must hold a JSON object" % p
+    if "tier" not in obj:
+        return None, None
+    t = obj["tier"]
+    if not isinstance(t, str) or t not in TIER_NAMES:
+        return None, "%s: invalid tier %s (expected exactly one of %s)" % (p, json.dumps(t)[:40], "|".join(TIER_NAMES))
+    return t, None
+
+
+def infer_period(samples):
+    """(period_s, n_gaps, how) from the most recent heartbeat timestamps; period None when there is no positive gap.
+    Timestamps are sorted and deduplicated, so a bursty or out-of-order file cannot produce zero or negative gaps.
+    With fewer than INFER_MEDIAN_GAPS gaps the MAX gap is used, with more the median. Thin evidence errs long: a false
+    stall costs an escalation, a late stall detection costs almost nothing."""
+    ts = sorted({x["ts"] for x in samples})[-INFER_WINDOW:]
+    gaps = sorted(b - a for a, b in zip(ts, ts[1:]))
+    n = len(gaps)
+    if n < INFER_MIN_GAPS:
+        return None, n, None
+    if n < INFER_MEDIAN_GAPS:
+        return gaps[-1], n, "max"
+    return (gaps[n // 2] if n % 2 else (gaps[n // 2 - 1] + gaps[n // 2]) / 2.0), n, "median"
+
+
+def resolve_tier(d, samples, cfg):
+    """Tier for one run. Precedence: WATCH.json, then the run's own heartbeat period, then medium.
+    Returns {name, source, recheck_s, stall_s, error}; cfg.stall_seconds, when set, overrides every stall threshold."""
+    tier, err = read_watch_file(d)
+    if err:
+        t = dict(cfg.tiers["medium"], name="medium", source="default (WATCH.json invalid)", short="dflt", error=err)
+    elif tier:
+        t = dict(cfg.tiers[tier], name=tier, source="WATCH.json", short="file", error=None)
+    else:
+        per, ngaps, how = infer_period(samples)
+        if per is not None:
+            lo, hi = cfg.tiers["fast"]["recheck_s"], cfg.tiers["slow"]["recheck_s"]
+            t = {"name": "auto", "source": "heartbeat period %s (%s of %d gap%s)" % (human_age(per), how, ngaps, "" if ngaps == 1 else "s"),
+                 "short": "hb" + human_age(per), "recheck_s": min(max(per, lo), hi),
+                 "stall_s": max(cfg.stall_floor, cfg.stall_multiple * per), "error": None}
+        else:
+            t = dict(cfg.tiers["medium"], name="medium", short="dflt", error=None,
+                     source="default (no heartbeat gap to infer from)")
+    if cfg.stall_seconds is not None:
+        t["stall_s"] = cfg.stall_seconds
+        t["source"] += "; stall from --stall-seconds"
+    return t
 
 
 def escalate(state, flags_total, sigs):
@@ -815,8 +892,11 @@ def evaluate_run(run, cfg, states, now):
         if mt:
             t, lg = max(mt)
             hb_ts, hb_src = t, "mtime of %s (no heartbeat file)" % os.path.basename(lg)
-    state, reason = classify(marker, problem, hb_ts, hb_src, bool(logs), now, cfg, os.path.isfile(hbp))
-    if marker and hb_ts and marker["exit_code"] is not None and hb_ts > marker["ts"] + cfg.stall_seconds:
+    tier = resolve_tier(d, samples, cfg)
+    state, reason = classify(marker, problem, hb_ts, hb_src, bool(logs), now, cfg, os.path.isfile(hbp), stall=tier["stall_s"])
+    if tier["error"]:
+        state, reason = "unknown", tier["error"]
+    if marker and hb_ts and marker["exit_code"] is not None and hb_ts > marker["ts"] + tier["stall_s"]:
         notes.append("heartbeat newer than marker; marker may be stale")
 
     # logs -> signatures
@@ -903,7 +983,8 @@ def evaluate_run(run, cfg, states, now):
                     "eta_utc": None, "note": "no heartbeat samples", "counters": None, "fields": None}
     return {
         "id": run["id"], "path": d, "state": state, "state_reason": reason, "escalation": esc, "escalation_reason": why_text,
-        "heartbeat_utc": iso(hb_ts), "heartbeat_source": hb_src, "age_s": int(now - hb_ts) if hb_ts is not None else None,
+        "tier": {k: tier[k] for k in ("name", "short", "source", "recheck_s", "stall_s")},
+        "heartbeat_epoch": hb_ts, "heartbeat_utc": iso(hb_ts), "heartbeat_source": hb_src, "age_s": int(now - hb_ts) if hb_ts is not None else None,
         "marker": ({k: marker[k] for k in ("name", "path", "exit_code", "utc")} if marker else None),
         "progress": progress, "errors": errors, "suspicious_metrics": sus, "pointers": pointers[:6], "notes": notes, "why": why,
         "expected_applied": expected_applied, "escalation_before_expected": esc_before if esc_before != esc else None,
@@ -912,9 +993,35 @@ def evaluate_run(run, cfg, states, now):
 
 
 # ----------------------------------------------------------------------------- digest
-def build_digest(cfg, states, now=None):
+def marker_set(d, cfg):
+    """Names of terminal marker files present now: one stat each, no parsing."""
+    return frozenset(m for m in cfg.markers if os.path.exists(os.path.join(d, m)))
+
+
+def build_digest(cfg, states, now=None, sched=None):
+    """sched (watch mode): run path -> {res, next}. A run is re-read only when its next-due time has arrived; otherwise its
+    last result is reused (age refreshed). failed/stalled runs come due at the fast cadence whatever their tier. A terminal marker not seen at the last read makes
+    its run due at once (one stat per marker name per tick)."""
     now = time.time() if now is None else now
-    runs = [evaluate_run(r, cfg, states, now) for r in discover(cfg)]
+    slack = 0.1 * cfg.interval if sched is not None else 0.0   # tick jitter must not push a due run one whole tick late
+    runs, seen = [], set()
+    for r in discover(cfg):
+        seen.add(r["path"])
+        ent = sched.get(r["path"]) if sched is not None else None
+        if ent is not None and now + slack < ent["next"] and marker_set(r["path"], cfg) <= ent["markers"]:
+            res = dict(ent["res"])
+            if res.get("heartbeat_epoch") is not None:
+                res["age_s"] = int(now - res["heartbeat_epoch"])
+        else:
+            res = evaluate_run(r, cfg, states, now)
+            every = cfg.tiers["fast"]["recheck_s"] if res["state"] in ("failed", "stalled") else res["tier"]["recheck_s"]
+            res["watch"] = {"last_eval_utc": iso(now), "next_eval_utc": iso(now + every), "recheck_s": every}
+            if sched is not None:
+                sched[r["path"]] = {"res": res, "next": now + every, "markers": marker_set(r["path"], cfg)}
+        runs.append(res)
+    if sched is not None:
+        for k in [k for k in sched if k not in seen]:
+            del sched[k]
     esc_rank = {"decide": 0, "read": 1, "none": 2}
     runs.sort(key=lambda r: (-STATE_RANK[r["state"]], esc_rank[r["escalation"]], r["id"]))
     counts = {k: 0 for k in STATE_RANK}
@@ -924,7 +1031,7 @@ def build_digest(cfg, states, now=None):
     code = EXIT_CODES[worst] if runs else EXIT_NO_RUNS
     return {
         "generated_utc": iso(now), "host": socket.gethostname(), "roots": [os.path.abspath(r) for r in cfg.root],
-        "stall_seconds": cfg.stall_seconds, "watch_interval_s": cfg.interval if cfg.watch else None,
+        "tiers": cfg.tiers, "stall_override_s": cfg.stall_seconds, "watch_interval_s": cfg.interval if cfg.watch else None,
         "expected_downgrades": {"count": sum(1 for r in runs if r["escalation_before_expected"]),
                                 "runs": [r["id"] for r in runs if r["escalation_before_expected"]]},
         "worst_state": worst if runs else "no_runs", "exit_code": code, "counts": counts, "runs": runs,
@@ -934,6 +1041,12 @@ def build_digest(cfg, states, now=None):
 def _clip(s, n):
     s = " ".join(str(s).replace("`", "'").split())
     return s if len(s) <= n else s[:max(0, n - 3)] + "..."
+
+
+def _watch_cell(r):
+    """Compact: tier/source last>next (UTC HH:MM), e.g. 'slow/file 14:20>15:20'."""
+    w, t = r["watch"], r["tier"]
+    return "%s/%s %s>%s" % ("med" if t["name"] == "medium" else t["name"], t["short"], w["last_eval_utc"][11:16], w["next_eval_utc"][11:16])
 
 
 def _prog_cell(p):
@@ -981,16 +1094,17 @@ def build_blocks(dg, cfg):
     c = dg["counts"]
     add(0, "head", "summary", [
         "# Watchdog digest %s" % dg["generated_utc"],
-        "worst=%s exit=%d | runs=%d: failed %d, stalled %d, unknown %d, running %d, done %d, archived %d | stall>%ds | host %s" % (
+        "worst=%s exit=%d | runs=%d: failed %d, stalled %d, unknown %d, running %d, done %d, archived %d | tick %s | host %s" % (
             dg["worst_state"], dg["exit_code"], len(runs), c["failed"], c["stalled"], c["unknown"], c["running"],
-            c["done"], c["archived"], int(dg["stall_seconds"]), dg["host"])])
+            c["done"], c["archived"], human_age(dg["watch_interval_s"]) if dg["watch_interval_s"] else "one-shot", dg["host"])])
     clean = [r for r in runs if r["state"] == "done" and r["escalation"] == "none"]
     arch = [r for r in runs if r["state"] == "archived"]
     shown = [r for r in runs if r not in clean and r not in arch]
     bad = ("failed", "stalled", "unknown")
     for r in shown:
-        row = "| %s | %s | %s | %s | %s | %s |" % (
-            _clip(r["id"], 40), r["state"], r["escalation"] + (" expected=yes" if r["expected_applied"] else ""), human_age(r["age_s"]), _clip(_prog_cell(r["progress"]), 48),
+        row = "| %s | %s | %s | %s | %s | %s | %s |" % (
+            _clip(r["id"], 40), r["state"], r["escalation"] + (" expected=yes" if r["expected_applied"] else ""), human_age(r["age_s"]),
+            _watch_cell(r), _clip(_prog_cell(r["progress"]), 48),
             _clip(r["escalation_reason"] or r["state_reason"], 70))
         add(0 if r["state"] in bad else 1, "runs", "status rows", [row])
         if r["why"]:
@@ -1044,7 +1158,8 @@ def build_blocks(dg, cfg):
     return B
 
 
-SECTIONS = [("head", []), ("runs", ["", "## Runs (worst first)", "| run | state | esc | age | progress | why |", "|---|---|---|---|---|---|"]),
+SECTIONS = [("head", []), ("runs", ["", "## Runs (worst first)", "| run | state | esc | age | watch | progress | why |", "|---|---|---|---|---|---|---|",
+                                      "(watch = tier/source last>next evaluation, UTC; source: file = WATCH.json, hbNm = inferred heartbeat period, dflt = default)"]),
             ("flags", ["", "## Flags"]),
             ("esc", ["", "## Escalation (read: tier-1 reads these slices, paths relative to dir; decide: orchestrator chooses)"]),
             ("errors", ["", "## Error signatures (count, first..last, exemplar pointer)"])]
@@ -1136,8 +1251,8 @@ def write_outputs(dg, md, cfg):
             lockf.close()
 
 
-def run_once(cfg, states, now=None):
-    dg = build_digest(cfg, states, now)
+def run_once(cfg, states, now=None, sched=None):
+    dg = build_digest(cfg, states, now, sched)
     md = render_md(dg, cfg)
     write_outputs(dg, md, cfg)
     return dg, md
@@ -1153,6 +1268,11 @@ def summary_line(dg):
 def main(argv=None):
     cfg = make_cfg(**vars(build_parser().parse_args(argv)))
     states = {}
+    if cfg.watch and cfg.interval < MIN_INTERVAL and not cfg.allow_fast_poll:
+        print("error: --interval %g is below the %d s floor. Polling faster than 10 minutes spends I/O and attention on "
+              "runs that cannot have changed; per-run cadence is set by tier (WATCH.json), not by a faster tick. "
+              "Pass --allow-fast-poll to override (tests, debugging)." % (cfg.interval, MIN_INTERVAL), file=sys.stderr)
+        return 2
     if not cfg.watch:
         dg, md = run_once(cfg, states)
         print(summary_line(dg))
@@ -1172,10 +1292,11 @@ def main(argv=None):
     for sg in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
         signal.signal(sg, lambda *_: stop.append(1))
     code = 0
+    sched = {}
     while not stop:
         t0 = time.time()
         try:
-            dg, _ = run_once(cfg, states)
+            dg, _ = run_once(cfg, states, sched=sched)
             code = dg["exit_code"]
             print(summary_line(dg), flush=True)
         except Exception as e:   # a bad pass must not kill the watcher
