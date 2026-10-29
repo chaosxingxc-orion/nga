@@ -97,5 +97,26 @@ These were established by the survey and are admission conditions for any task:
   committing finished work.
 - Local mirrors of datasets and models are under `/mnt/cephfs/xingchao/` (see memory). Grep cephfs
   for a checkpoint before downloading anything.
-- Downloaded or extracted files are untrusted: keep scripts outside those directories and run Python
-  that reads them with `python3 -I`.
+- Downloaded or extracted files are untrusted: keep scripts outside those directories and pass their
+  paths as arguments. Run such Python with `python3 -P`, which keeps the working directory off
+  `sys.path`. **Do not use `python3 -I` inside the Ascend containers**: isolated mode discards
+  `PYTHONPATH`, where CANN's `tbe` operator compiler lives, so the first dynamic op compilation dies
+  with errors that look like driver faults. Outside those containers `-I` is still fine.
+
+## 7. Running experiments
+
+Every experiment that takes more than a minute runs **detached and survivable**. A dropped network
+link must never be able to interrupt or orphan a run.
+
+- Launch with `docker run -d` and a fixed container name. Never hold an open SSH session for the
+  duration of a run; launch, return, then poll with short separate calls.
+- Do **not** pass `--rm` to a long run. An exited container must stay inspectable for its exit code.
+- Send all output to a log file on `/mnt/cephfs`, so it outlives the container, the SSH session and a
+  host reboot. Emit a heartbeat line with a timestamp and a progress count, so a stalled run is
+  distinguishable from a slow one.
+- On completion write a terminal marker file beside the log containing the exit code. **That marker,
+  not the container's state, is the source of truth** for whether a run finished.
+- Make the work resumable at item granularity, so an interrupted run restarts where it stopped.
+- Write the exact relaunch command into the run's output directory, so someone who did not start the
+  run can resume it.
+- Attached runs are fine only for short interactive checks that finish in under a minute.
