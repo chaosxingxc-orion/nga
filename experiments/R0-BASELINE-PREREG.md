@@ -155,3 +155,136 @@ Stated now so the result is not over-read later.
 5. **No hybrid versus attention-only control.** That needs `Qwen3-0.6B` alongside, which is also gone
    from cephfs. Defect 11 stays measurement-blocked.
 6. **T3 is missing**, so question-set add/remove invariance is unmeasured.
+
+---
+
+## 8. Amendment 1, 2026-10-29, before any scored run
+
+No scored number has been produced. Building the harness exposed one logical error and several
+under-specifications in §1 to §7. They are corrected here rather than silently in code. Everything
+below is frozen on the same terms as the rest of this file.
+
+### 8.1 Correction: the baseline renders level **names**, not neutral identifiers
+
+§1 said the readout renders levels as neutral identifiers plus definitions. Applied to T1 that is
+**self-defeating**. T1's four variants differ **only** in each level's `name`; `id` and `definition`
+are byte-identical across them, which I verified directly. Rendering by neutral id therefore makes
+all four prompts identical, the flip rate is 0 by construction, it equals the empty-input baseline,
+and decision line B-2 can never pass.
+
+The deeper error: neutral rendering **is the mitigation** for defect 1 (names override definitions,
+survey §2.2.4 row 1). A baseline that applies the mitigation cannot measure the defect.
+
+**Corrected.** The baseline renders the level `name` as written in the record, plus the definition.
+This is the unmitigated model, and it is what R0-3 asks for. Neutral rendering becomes a **separate,
+later arm** measuring the rendering fix as an intervention (proposal R2-1), not part of this
+baseline. The rendering mode is recorded in every report header.
+
+### 8.2 The move metric is scored on argmax, not on the thresholded decision
+
+The cumulative-mass operator for ordinal levels is a two-tail quantile rule along the declared
+order. It is **not permutation-equivariant**, so a model that follows a definition swap correctly
+can still be scored "unmoved" purely as an artifact of the operator.
+
+**Corrected.** The T2 move rate (§3 metric 3) is primarily scored on **argmax**, which is the honest
+measure of whether the readout distribution tracks the definitions. It is a statement about the
+model, not a harness decision, and is labelled as such. The thresholded version is reported beside
+it as a secondary column. P3″ is unaffected: the **accuracy floor** remains the cumulative-mass
+operator, and no expectation is computed anywhere.
+
+### 8.3 Threshold fitting constants, frozen now
+
+§2.1 required fitting on train only but gave no objective or grid. Frozen: grid τ from 0.50 to 0.95
+in steps of 0.05; utility +1 correct, −1 wrong, 0 for C; ties resolved to the **larger** τ. When a
+(question, level-set version) cell has fewer than **20** fitting rows, fall back in order to
+(question), then (source, level type, number of levels), then τ = 0.5. Tier usage is reported.
+"Question" means the record's `qname` field; the diversity counts in §2.1 are counts of `qname`.
+
+### 8.4 Known defects in the task files, and what they force
+
+Found while building the harness, and confirmed as defects in the 2026-10-28 builder, not in the
+harness:
+
+1. On `reversed` T2 items the level ids are reversed but `gold` was **not** updated.
+2. On akhilaaa3 boolean swap items the gold map misses capitalised `True` / `False`, so 256 items
+   keep a stale gold.
+
+Therefore **gold on T2 `swap_*` and `reversed` items is not trusted**. Consequences, frozen: τ is
+fitted only on T1 and on T2 `base` rows; the move metric is computed from **level list positions**,
+never from gold; and T2 swap and reversed items are decided under their own unit's base τ. These
+files should be rebuilt when the source datasets are restored, and until then no accuracy claim may
+be made on T2 swap or reversed rows.
+
+### 8.5 Decision line B-3 gets a number
+
+§3.1 left "clearly above" unquantified. Frozen: B-3 passes when the T2 followed-rate exceeds 30%
+**and** exceeds the T1 flip rate on the same groups by at least 10 points.
+
+### 8.6 Subsampling rule
+
+Scoring cost is roughly item count times number of levels, for each of the three model-backed roles.
+If the measured throughput from the smoke run implies the full 95,690 records cannot be scored for
+all roles within the available window, a subsample is drawn **before** scoring and frozen: sample
+whole `group_id`s, never individual variants, with a fixed seed, stratified per source and per
+`level_type`, and use the **same frozen group list for every scorer** so all arms stay comparable.
+The group list and seed are written into the report header. All sources that fit entirely are taken
+whole. No number is produced before the sample is frozen.
+
+### 8.7 Prompt is shared and versioned
+
+The prompt builder is a single pure function with a version constant, shared by the baseline and by
+any later training run, and locked by a test against stored expected strings. The version is written
+into every report header. Baseline and post-training reports whose prompt versions differ **cannot**
+be compared, which makes decision line B-4 void if the prompt changes. Whether the chat template is
+applied, or scoring runs on a raw completion prompt, is recorded in the header.
+
+---
+
+## 9. Amendment 2, 2026-10-29, before any scored run
+
+Still no scored number. This amendment corrects a factual error in §2 and adds a task.
+
+### 9.1 Correction: T3 exists and is in scope
+
+§2 states "T3 is unavailable. Its directory is empty". **That is wrong.** I misread a truncated
+directory listing. The file is present and matches the manifest:
+
+| File | Records | Groups | Variants |
+| --- | --- | --- | --- |
+| `T3_question_set/typed-decisions.jsonl` | 24,000 | 1,200 | `prefix_1q`, `prefix_3q`, `prefix_5q`, `prefix_5q_shuffled` |
+
+Level types split 7,200 nominal, 7,200 boolean, 9,600 ordinal. The total frozen data for this run is
+therefore **119,690 records**, not 95,690.
+
+T3 holds the same input, the same target question and the same gold across its four variants, and
+varies **only the number and order of unrelated prefix questions**, carried in an extra
+`prefix_questions` field. It is an invariance task along the question-set axis, and it is the new
+invariance item of P1″ ("adding, removing or reordering unrelated questions in the prefix").
+Limitation 6 of §7 is withdrawn.
+
+### 9.2 T3 in the metrics
+
+- **T3 flip rate** is defined exactly as the T1 flip rate of §3 metric 2, over each group's six
+  unordered variant pairs, reported per source and per `level_type`, with the per-variant-pair
+  breakdown. The pair `prefix_5q` against `prefix_5q_shuffled` isolates the **pure ordering effect**
+  and is reported separately.
+- T3 `gold` is **trustworthy**, unlike T2 `swap_*` and `reversed` rows (§8.4). T3 therefore
+  contributes to the accuracy floor and may be used for threshold fitting on the same terms as T1.
+- The degenerate baselines of §4 apply to T3 unchanged. B-2 extends to T3: if the empty-input
+  baseline's T3 flip rate is within 5 points of the real model's, the T3 invariance result is void.
+
+### 9.3 The prefix questions must be rendered
+
+The prompt builder must render `prefix_questions` into the prompt, preserving their given order. If
+that field is ignored, the four T3 variants render identically and the T3 flip rate is **0 by
+construction**, which is the same defect as §8.1. Two tests guard this: the four variants of a group
+must produce four different prompt strings, and records without the field must render
+byte-identically to before, so T1 and T2 are unaffected. The prompt version becomes
+`r0-prompt-v2`; nothing is invalidated because no scored run has occurred.
+
+### 9.4 A note on how both errors were found
+
+§8.1 and §9.1 are the same kind of mistake: a measurement that would have returned a clean,
+publishable zero for a reason that has nothing to do with the model. Both were caught by asking what
+the number would be if the model were replaced by a constant. That check is cheap and belongs before
+every scored run in this project, not only this one.
