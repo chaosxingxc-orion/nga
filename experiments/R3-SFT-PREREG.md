@@ -567,3 +567,18 @@ merge was also found to be a silent no-op for this checkpoint class. Recipe clau
 unchanged. The trainer's own tests (LoRA-only trainable, response-only loss mask, K2 equality with
 an independent computation, right-padding invariance, exact resume) are recorded in each run
 directory.
+
+14.4 **Amendment 4, kernel verdict and a downstream kernel test, 2026-10-30.** Applying §14.1 as
+written: (a′) passed (fp32 logits relative L2 5.85e-5, minimum gradient cosine 0.9999984), (b′)
+failed (96.6% of tensors within the bound against 99% required; no tensor beyond 3×; logits ratio
+1.016), and (c) failed (mean |Δloss| 0.0281, last-50-step mean −6.65%). Every round-1 arm at 0.8B
+therefore trains on the **reference** kernel. The (c) tolerance was found to sit below run-to-run
+noise: the reference against its own same-seed rerun gives 0.0272 and −3.03%. It is not relaxed
+retroactively.
+For the ladder only (2B, 4B, 9B), the fast kernel becomes admissible through one downstream test,
+fixed now, before it is run: K1 seed 2 at 0.8B is trained a second time with the fast kernel (arm
+K1-FLA, engineering only, never a candidate for adoption and never read on test). The fast kernel is
+admissible for the ladder if, on **both** decision-v7 dev and transfer-v4 dev, K1-FLA's accuracy lies
+within [min − 1.0, max + 1.0] points of the two reference-kernel K1 seeds, **and** the paired
+per-question disagreement between K1-FLA and reference K1 seed 2 is no larger than the disagreement
+between reference K1 seeds 2 and 3. Otherwise the ladder trains on the reference kernel.
