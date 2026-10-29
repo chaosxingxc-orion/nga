@@ -631,11 +631,94 @@ def test_question_disjoint_split_reported_for_akhilaaa3_only():
         assert set(rep["splits"]) == {"group70", "question70"}
         assert "constant@question70" in {v["scorer"] for v in rep["thresholds"]["question70"].values()}
         # Under the question-disjoint split no question is on both sides.
-        rows, _ = run_baseline.load_all_readouts(out)
+        rows, _, _ = run_baseline.load_all_readouts(out)
         sides = {}
         for r in rows["mock-oracle"]:
             sides.setdefault(r["qname"], set()).add(S.QUESTION70.assign(r))
         assert all(len(v) == 1 for v in sides.values())
+
+
+def _keys(out):
+    rdir = os.path.join(out, "readouts")
+    keys = []
+    for fn in sorted(os.listdir(rdir)):
+        with open(os.path.join(rdir, fn)) as f:
+            hdr = json.loads(f.readline())["_header"]
+            keys += [(hdr["scorer"], hdr["task"], hdr["source_file"], json.loads(l)["k"]) for l in f]
+    return keys
+
+
+def test_shards_partition_the_item_set_exactly_and_merge_to_the_unsharded_report():
+    with _tmp() as tmp:
+        data = os.path.join(tmp, "data")
+        _write_fixture_tree(data)
+        whole, sharded = os.path.join(tmp, "whole"), os.path.join(tmp, "sharded")
+        _run(data, whole, "mock-random")
+        n = 5
+        for i in range(n):
+            _run(data, sharded, "mock-random", ("--shard", str(i), "--num-shards", str(n)))
+            assert not os.path.exists(os.path.join(sharded, "report.json")) or i == n   # shards do not emit a partial report
+        _run(data, sharded, "mock-random", ("--report-only", "--num-shards", str(n)))
+        a, b = _keys(whole), _keys(sharded)
+        assert len(b) == len(set(b)), "duplicate items across shards"
+        assert sorted(a) == sorted(b), "union of shards differs from the unsharded item set"
+        # a group never splits across shards
+        recs = [r for _, (_, rr) in run_baseline.load_task_files(run_baseline.parse_args(
+            ["--data-root", data, "--sources", "src-a,src-b"])).items() for r in rr]
+        by_group = {}
+        for r in recs:
+            by_group.setdefault((r["source"], r["group_id"]), set()).add(run_baseline.shard_of(r["group_id"], n))
+        assert all(len(v) == 1 for v in by_group.values())
+        assert len({s for v in by_group.values() for s in v}) > 1, "fixture should use more than one shard"
+        # merged report equals the unsharded one apart from the shard bookkeeping in the header
+        ra, rb = _report(whole), _report(sharded)
+        for rep in (ra, rb):
+            for k in ("shard_layout",):
+                rep["header"].pop(k)
+        assert ra == rb
+        assert rb["header"]["incomplete_scorers"] == []
+
+
+def test_missing_shard_is_visible_in_the_report_header():
+    with _tmp() as tmp:
+        data = os.path.join(tmp, "data")
+        _write_fixture_tree(data)
+        out = os.path.join(tmp, "o")
+        for i in (0, 1, 2):   # shard 3 of 4 never ran
+            _run(data, out, "mock-random", ("--shard", str(i), "--num-shards", "4"))
+        _run(data, out, "mock-random", ("--report-only", "--num-shards", "4"))
+        # headers only know their own file's expected count, so a wholly missing shard shows up as
+        # fewer readout files than num_shards per scorer
+        h = _report(out)["header"]
+        assert h["shard_layout"]["num_shards"] == 4
+        assert all(v < 4 * 4 for v in h["shard_layout"]["readout_files_per_scorer"].values())
+
+
+def test_frozen_sample_restricts_every_scorer_to_the_same_whole_groups():
+    with _tmp() as tmp:
+        data = os.path.join(tmp, "data")
+        _write_fixture_tree(data)
+        recs = [r for _, (_, rr) in run_baseline.load_task_files(run_baseline.parse_args(
+            ["--data-root", data, "--sources", "src-a,src-b"])).items() for r in rr]
+        gids = sorted({r["group_id"] for r in recs if r["source"] == "src-a"})[:7]
+        sample = os.path.join(tmp, "sample.json")
+        with open(sample, "w") as f:
+            json.dump({"seed": 1, "rule": "test", "full": False, "groups": {
+                "T1/src-a": gids, "T2/src-a": gids, "T1/src-b": None, "T2/src-b": None}}, f)
+        out = os.path.join(tmp, "o")
+        _run(data, out, "mock-random", ("--sample", sample))
+        keys = _keys(out)
+        by_scorer = {}
+        for sc_name, task, src, k in keys:
+            by_scorer.setdefault(sc_name, set()).add((task, src, k))
+        sizes = {k: len(v) for k, v in by_scorer.items() if not k.startswith("constant@question")}
+        assert len(set(sizes.values())) == 1, sizes              # same item set for every scorer
+        h = _report(out)["header"]
+        assert h["sample_sha256"] and h["seed"] == 1
+        with open(os.path.join(out, "report.json")) as f:
+            assert json.load(f)["header"]["sample_groups"]["T1/src-a"] == gids
+        used = {r["group_id"] for r in recs if r["source"] == "src-a" and r["group_id"] in set(gids)}
+        assert len(used) == 7
 
 
 def test_real_data_smoke_if_present():
