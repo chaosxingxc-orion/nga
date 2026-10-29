@@ -313,3 +313,111 @@ A `mock-prefix-driven` scorer was added so that the T3 metric can be shown to re
 held-out side it gives flip rates of 0.39 to 0.56 against exactly 0.000 for the invariant mock,
 which demonstrates the pipeline is sensitive to the prefix. That is a statement about the harness,
 not about any model.
+
+---
+
+## 11. Amendment 4, 2026-10-29, before any scored run
+
+The smoke run produced its first numbers and one of them was false. `flip_T1` for the **primary**
+scorer read exactly 0.0 on `openjev-synth` / ordinal and on `typed-decisions` / ordinal, which reads
+as perfect name invariance. It is not. Rendering is correct and compliant with §8.1: the four T1
+prompts for a group hash to four distinct values, and within the flagged cell all 24 units produce
+four different probability vectors with four different argmax positions. The model is strongly name
+sensitive. Measured on argmax, the T1 flip rate in that cell is **0.625** overall and runs from
+0.458 to 1.000 across variant pairs.
+
+The zero comes from the threshold stage. With the §8.3 objective (+1 correct, −1 wrong, 0 for C,
+ties to the larger τ), every decisive τ scored negative utility for this untuned model, so the fit
+selected τ = 0.95 and the operator abstained on 96 of 96 rows. Every `cum_id` was the constant `"C"`,
+so all six variant pairs agreed trivially and the flip rate was 0.0 by construction. `openjev-synth`
+carries exactly one `qname`, so one τ covers the whole cell and the collapse is cell-wide.
+
+This is the third time this project has reported a perfect number that came from a broken
+measurement rather than a good model, and the first time the error pointed the dangerous way: defect
+1 was maximally present and the baseline read as if it were absent.
+
+### 11.1 A flip rate with no decisions to flip is undefined, not zero
+
+**Frozen.** Any flip rate (T1 or T3) computed over a cell whose abstention rate is 1.0 is reported
+as **null**, never as 0.0. More generally every reported flip rate carries the cell's C-branch rate
+beside it, so a degenerate regime is visible at the point of reading rather than two metrics away.
+A rate whose denominator of actual decisions is zero is undefined. The harness already returns null
+rather than 0.0 when a denominator is empty; that convention extends to this case, where the
+denominator is non-empty in rows but empty in decisions.
+
+### 11.2 The T1 and T3 flip rates are scored on argmax, extending §8.2
+
+§8.2 already moved the T2 move metric to argmax, because the ordinal cumulative-mass operator is not
+permutation-equivariant and can score a correct model as unmoved purely as an artifact. The same
+reasoning applies to the flip rate, with a second mechanism on top: when threshold fitting selects
+total abstention the operator output is constant, so the operator-level flip rate measures the
+harness rather than the model. That principle was never extended to metric 2, which is why this run
+could report a harness artifact as a model property.
+
+**Frozen.** The T1 flip rate and the T3 flip rate (§3 metric 2, §9.2) are **primarily scored on
+argmax**, labelled as a statement about the model. The thresholded version is reported beside them
+as a secondary column, labelled as a statement about the operator. **Decision line B-2 and its T3
+extension are evaluated on the argmax-scored flip rate.** P3″ is unaffected and the accuracy floor
+remains the cumulative-mass operator, exactly as in §8.2. No expectation is computed anywhere.
+
+**B-3 follows.** §8.5 quantified B-3 as the T2 followed-rate exceeding 30% and exceeding the T1 flip
+rate by at least 10 points. §8.2 already scores the T2 move rate on argmax, so with this amendment
+both sides of that comparison are argmax-scored and B-3 is evaluated that way. Comparing an
+argmax-scored move rate against a thresholded flip rate would have compared two different operators
+and is not what §8.5 intended.
+
+### 11.3 The threshold objective is not changed, and the collapse is a result
+
+**Frozen, and this is a prohibition.** §8.3's grid, utility and tie rule stand unaltered. It is
+explicitly forbidden to refit, reweight or re-grid the objective in order to avoid total abstention.
+
+The reason is that the collapse is itself one of this baseline's findings. For the untuned
+Qwen3.5-0.8B readout on these tasks, every decisive threshold in the grid scores **negative**
+utility and abstaining on everything scores zero. A system that is better off refusing to answer
+than answering is the honest baseline result, and it is the motivation for the training program
+rather than an obstacle to measuring one. It must be reported as a headline finding of the run, per
+cell, with the fitted τ and the utility of the best decisive τ beside it. Tuning the objective until
+the operator commits would convert that finding into a worse number that looked better.
+
+### 11.4 The margin metric counts rows, not decisions
+
+`margin_distribution` increments its denominator for every variant row without checking whether the
+operator actually decided, and the ordinal operator returns a distance even when it abstains. The
+flagged cell therefore reported `n_decisions: 96` and a margin quality statistic in a cell whose
+C-branch rate was 1.0: a share computed over zero actual decisions. §3 metric 4 says "share of
+decisions", so the code did not match this file.
+
+**Frozen.** The margin distribution counts only rows that produced a decision. `n_decisions` and
+`n_rows` are reported separately, and the statistic is null when `n_decisions` is 0. This is a
+conformance fix to §3 metric 4, not a change to it, and it affects every cell with a nonzero
+C-branch rate.
+
+### 11.5 The C-branch rate is uninformative at the grid's ends
+
+At τ = 0.50 and a two-level candidate set the operator requires top mass > 0.5 + ε to decide, which
+holds for every input except an exact tie, so abstention is **arithmetically impossible** and a
+C-branch rate of 0.0 says nothing about the model. At τ = 0.95 on a weak readout the converse
+occurs. **Frozen.** A cell whose C-branch rate is 0.0 or 1.0 is flagged as forced by the fitted τ
+rather than reported as a property of the model, and the fitted τ is reported with it.
+
+### 11.6 Re-deriving metrics from frozen readouts is not a rerun
+
+The readouts are sound: the probability vectors vary correctly across variants and are the frozen
+evidence of this run. Recomputing metrics from the existing `readouts/*.jsonl` under this amendment
+is therefore permitted and does **not** constitute a new scored run, provided the readout files,
+the prompt version, the splits and the fitted thresholds are unchanged. The model is not re-invoked.
+Any recomputation records the amendment level it was produced under.
+
+### 11.7 How this one was found
+
+The watchdog flagged `identical_across_cells` on a primary-scorer flip rate, which escalated to a
+bounded read rather than to a rerun. The decisive evidence cost nothing on the hardware: render one
+group's four variants with the harness's own renderer and hash the strings, then compare the
+argmax positions in the readouts already on disk. Both checks are cheap and belong before any
+invariance claim.
+
+Note also that §3.1's B-2 would have caught the consequence without catching the cause. With the
+primary and the empty-input baseline both abstaining, the primary's flip rate is not 10 points below
+the baseline's, B-2 fails, and all T1 numbers in the run are void. The protocol would have refused
+the false claim and discarded a real finding along with it. The argmax column in §11.2 is what keeps
+the finding.
