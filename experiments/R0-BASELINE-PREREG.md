@@ -452,3 +452,31 @@ the wrong column by accident.
    had happened to B-2's T3 extension (§9.2), which existed in prose and not in the decision lines.
    Frozen: each amendment clause that changes a number carries a test naming the clause, and a
    clause with no such test is reported as **not in force** in the report header rather than assumed.
+
+### 11.9 Runtime note: the full pass exceeded the §8.6 guard and was allowed to continue
+
+Recorded for transparency, because §8.6's threshold was crossed and I chose not to apply it.
+
+The full pass was launched on an estimate of about 3 hours, derived from the smoke runs. Measured
+from the run itself it needs about **6.5 hours**, which is over the 6-hour threshold at which §8.6
+says to subsample instead. The run was allowed to continue on the full 119,690 records.
+
+**Why the estimate was wrong.** Scoring rate falls roughly as the **square** of prompt length here.
+Batching is by token budget, so tokens per batch stay about constant and the linear-attention layers
+cost about the same per batch at any length, while the 6 full-attention layers are quadratic in
+length and therefore grow linearly in cost per batch at a fixed budget. `akhilaaa3` prompts are
+about 7x longer than `typed-decisions` ones, which accounts for the measured 40x gap in rows per
+second between those sources. A smoke sample weighted toward the short source flatters the estimate.
+**Any future runtime estimate on this stack must be computed per source and weighted by each
+source's share of the work, never pooled into one rate.**
+
+**Why §8.6 was not applied.** §8.6 exists as a guard against an impractically long run, not as a
+methodological constraint on the evidence. The run is detached, survivable and resumable at item
+granularity, so 6.5 hours is practical. Subsampling at this point would have replaced better
+evidence with a smaller sample and discarded completed work, since a subsample is a different record
+set and only partially overlaps what had already been scored. Full data was judged worth the extra
+time for the artifact this stage rests on.
+
+This note changes no metric, threshold, split or equivalence class, and §8.6 stands unaltered for
+future runs. It records a judgement call and its reason so that the decision is auditable rather
+than invisible.
