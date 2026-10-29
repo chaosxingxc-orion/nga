@@ -11,13 +11,17 @@ import os
 
 # Variant names, fixed by the task builder (experiments/build_tasks.py).
 T1_VARIANTS = ("original", "digits", "letters", "random")
-FLOOR_VARIANT = {"T1": "original", "T2": "base"}  # accuracy-floor variant per task (pre-reg 3, item 1)
+T3_VARIANTS = ("prefix_1q", "prefix_3q", "prefix_5q", "prefix_5q_shuffled")
+# Variant sets of the invariance tasks (flip rate is defined over all unordered pairs of these).
+INVARIANCE_VARIANTS = {"T1": T1_VARIANTS, "T3": T3_VARIANTS}
+FLOOR_VARIANT = {"T1": "original", "T2": "base", "T3": "prefix_1q"}  # accuracy-floor variant per task (pre-reg 3, item 1)
 LEVEL_TYPES = ("boolean", "nominal", "ordinal")
-TASKS = ("T1", "T2")
+TASKS = ("T1", "T2", "T3")
 
 # Relative to the cephfs experiment root.
-TASK_DIRS = {"T1": "T1_level_names", "T2": "T2_definition_swap"}
-SOURCE_FILES = ("typed-decisions", "openjev-synth", "akhilaaa3")
+TASK_DIRS = {"T1": "T1_level_names", "T2": "T2_definition_swap",
+             "T3": "T3_question_set"}
+SOURCE_FILES = ("typed-decisions", "openjev-synth", "akhilaaa3")  # T3 exists for typed-decisions only
 
 DEFAULT_DATA_ROOT = "/mnt/cephfs/xingchao/experiments/jev"
 DEFAULT_OUT_ROOT = "/mnt/cephfs/xingchao/experiments/jev/r0_baseline"
@@ -61,7 +65,7 @@ def unit_key(rec):
 def item_key(rec):
     """Stable identity of one scored record; used for resume and for the mock scorer's seed."""
     return sha256_hex(canonical_json([
-        rec["task"], rec["variant"], unit_key(rec), rec["question"], rec["task_definition"],
+        rec["task"], rec["variant"], unit_key(rec), rec["question"], rec["task_definition"], rec.get("prefix_questions"),
         [[l["id"], l["name"], l["definition"]] for l in rec["levels"]],
     ]))[:24]
 
@@ -102,6 +106,11 @@ def _validate(rec, where):
     for l in levels:
         if not (isinstance(l, dict) and all(isinstance(l.get(k), str) for k in ("id", "name", "definition"))):
             raise ValueError(f"{where}: malformed level entry")
+    pq = rec.get("prefix_questions")
+    if pq is not None and not (isinstance(pq, list) and pq and all(isinstance(q, str) for q in pq)):
+        raise ValueError(f"{where}: prefix_questions must be a non-empty list of strings")
+    if rec["task"] == "T3" and pq is None:
+        raise ValueError(f"{where}: T3 record without prefix_questions")
     if len({l["id"] for l in levels}) != len(levels):
         raise ValueError(f"{where}: duplicate level ids")
 

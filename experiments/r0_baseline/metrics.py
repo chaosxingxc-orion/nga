@@ -24,7 +24,7 @@ import math
 from collections import defaultdict
 from itertools import combinations
 
-from common import FLOOR_VARIANT, T1_VARIANTS, swap_positions
+from common import FLOOR_VARIANT, INVARIANCE_VARIANTS, swap_positions
 from decision import argmax_index, cumulative_decision
 
 C = "C"  # the residual branch
@@ -88,18 +88,20 @@ def accuracy_floor(decided, task):
     return {"n": n, "acc_cumulative": _rate(cum_ok, n), "acc_argmax_reference": _rate(arg_ok, n)}
 
 
-def failure_sets(decided):
-    """T1 cumulative failure set across the four name variants (A4)."""
+def failure_sets(decided, task="T1"):
+    """Cumulative failure set across the variants of an invariance task (A4)."""
+    variant_set = INVARIANCE_VARIANTS[task]
+    ref = FLOOR_VARIANT[task]
     fail_orig = fail_cum = fail_orig_arg = fail_cum_arg = n = 0
-    for variants in _units(decided, "T1").values():
-        if set(variants) != set(T1_VARIANTS) or variants["original"].row["gold"] is None:
+    for variants in _units(decided, task).values():
+        if set(variants) != set(variant_set) or variants[ref].row["gold"] is None:
             continue
         n += 1
-        gold = variants["original"].row["gold"]
+        gold = variants[ref].row["gold"]
         wrong = [v.cum_id != gold for v in variants.values()]
         wrong_arg = [v.arg_id != gold for v in variants.values()]
-        fail_orig += variants["original"].cum_id != gold
-        fail_orig_arg += variants["original"].arg_id != gold
+        fail_orig += variants[ref].cum_id != gold
+        fail_orig_arg += variants[ref].arg_id != gold
         fail_cum += any(wrong)
         fail_cum_arg += any(wrong_arg)
     return {
@@ -114,13 +116,14 @@ def failure_sets(decided):
 
 # 2. T1 flip rate -----------------------------------------------------------------------------
 
-def flip_rate(decided):
+def flip_rate(decided, task="T1"):
     """Fraction of the 6 unordered variant pairs of a unit whose decisions differ (C is a decision)."""
-    pairs = list(combinations(T1_VARIANTS, 2))
+    variant_set = INVARIANCE_VARIANTS[task]
+    pairs = list(combinations(variant_set, 2))
     flips = {p: 0 for p in pairs}
     n = 0
-    for variants in _units(decided, "T1").values():
-        if set(variants) != set(T1_VARIANTS):
+    for variants in _units(decided, task).values():
+        if set(variants) != set(variant_set):
             continue
         n += 1
         for a, b in pairs:
@@ -184,13 +187,13 @@ def _quantiles(values):
     return {f"q{int(q * 100):02d}": s[min(len(s) - 1, int(q * (len(s) - 1) + 0.5))] for q in QUANTILES}
 
 
-def margin_distribution(decided):
+def margin_distribution(decided, task="T1"):
     """Share of T1 decisions whose distance to tau exceeds the within-unit score variance (A6)."""
     dists, above, n = [], 0, 0
-    for variants in _units(decided, "T1").values():
-        if set(variants) != set(T1_VARIANTS):
+    for variants in _units(decided, task).values():
+        if set(variants) != set(INVARIANCE_VARIANTS[task]):
             continue
-        ids = variants["original"].row["ids"]
+        ids = variants[FLOOR_VARIANT[task]].row["ids"]
         per_level = []
         for j, level_id in enumerate(ids):
             ps = [v.row["p"][v.row["ids"].index(level_id)] for v in variants.values()]
@@ -247,4 +250,11 @@ def cell_metrics(decided, side):
     }
     if side == "heldout":
         out["ece"] = ece(decided)
+    # T3 (question-set invariance): same definitions as T1, along the prefix-question axis.
+    if any(d.row["task"] == "T3" for d in decided):
+        out["floor_T3"] = accuracy_floor(decided, "T3")
+        out["failure_set_T3"] = failure_sets(decided, "T3")
+        out["flip_T3"] = flip_rate(decided, "T3")
+        out["margin_T3"] = margin_distribution(decided, "T3")
+        out["c_branch"]["T3"] = c_branch_rate(decided, "T3")
     return out

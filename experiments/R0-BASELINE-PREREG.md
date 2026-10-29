@@ -288,3 +288,28 @@ byte-identically to before, so T1 and T2 are unaffected. The prompt version beco
 publishable zero for a reason that has nothing to do with the model. Both were caught by asking what
 the number would be if the model were replaced by a constant. That check is cheap and belongs before
 every scored run in this project, not only this one.
+
+---
+
+## 10. Amendment 3, 2026-10-29, before any scored run
+
+Still no scored number. Three choices made while implementing T3 were not covered by §9 and are
+ratified here so they are fixed in this file rather than only in code.
+
+1. **T3's accuracy-floor variant is `prefix_1q`.** §9.2 put T3 into the accuracy floor without
+   naming which variant carries it. `prefix_1q` is the least-confounded condition, holding the
+   fewest unrelated questions, so it is the floor for T3 exactly as `original` is for T1 and `base`
+   for T2.
+2. **Prefix layout, frozen in `r0-prompt-v2`.** The unrelated questions render as a numbered block
+   headed "Other questions about this input (not asked now):", placed between the input and the
+   target question, in the order given by the record. The target question itself is excluded from
+   that block. This relies on a property I verified over all 24,000 T3 records: the target question
+   always appears in `prefix_questions` and is always its **last** entry.
+3. **Prompt version `r0-prompt-v2`** is written into every report header. Records without
+   `prefix_questions` render byte-identically to `v1`, which a test asserts against the full string,
+   so T1 and T2 are unaffected by the bump.
+
+A `mock-prefix-driven` scorer was added so that the T3 metric can be shown to respond at all. On the
+held-out side it gives flip rates of 0.39 to 0.56 against exactly 0.000 for the invariant mock,
+which demonstrates the pipeline is sensitive to the prefix. That is a statement about the harness,
+not about any model.

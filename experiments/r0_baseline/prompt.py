@@ -25,6 +25,14 @@ readout header:
 * ``neutral``: positional identifiers L1, L2, ... independent of the record's names.  Use it to
   verify the rendering fix (R2-1); on T1 it must give flip rate 0 by construction.
 
+Prefix questions (T3).  A record may carry ``prefix_questions``: the questions put in front of the
+target question, the target itself being the last entry.  The unrelated ones (everything before the
+target) are rendered, in the given order, as a numbered "Other questions about this input" block
+placed between the input and the target question.  Order matters: prefix_5q_shuffled differs from
+prefix_5q only by that order.  If the field is ignored all four T3 variants give the same prompt and
+the T3 flip rate is 0 by construction (tests/test_t3_variants_differ guard this).  Records without
+the field (T1, T2) render byte-identically to r0-prompt-v1.
+
 Input modes, used by the degenerate baselines (pre-reg section 4):
 
 * ``full``: the record's input as given.
@@ -32,7 +40,7 @@ Input modes, used by the degenerate baselines (pre-reg section 4):
 * ``drop``: question-only baseline.  The whole input section is removed.
 """
 
-PROMPT_VERSION = "r0-prompt-v1"
+PROMPT_VERSION = "r0-prompt-v2"
 PROMPT_FORMAT = "raw-completion (no chat template)"
 RENDER_MODES = ("record_name", "neutral")
 
@@ -57,6 +65,18 @@ def input_mode_of(item):
     return item.get("input_mode", "full")
 
 
+def _prefix_block(item):
+    """Lines for the unrelated prefix questions; empty for T1/T2 and for prefix_1q."""
+    pq = item.get("prefix_questions")
+    if not pq:
+        return []
+    unrelated = pq[:-1] if pq[-1] == item["question"] else pq
+    if not unrelated:
+        return []
+    return ["Other questions about this input (not asked now):"] + [
+        f"{i}. {q.strip()}" for i, q in enumerate(unrelated, 1)] + [""]
+
+
 def build_prompt(record, render="record_name", input_mode=None):
     """Render one record. Returns a ``Prompt``; ``Prompt.text`` is the string.
 
@@ -78,6 +98,7 @@ def build_prompt(record, render="record_name", input_mode=None):
     parts = [item["task_definition"].strip(), ""]
     if mode != "drop":
         parts += ["Input:", "" if mode == "blank" else item["input"].strip(), ""]
+    parts += _prefix_block(item)
     parts += [f"Question: {item['question'].strip()}", "", "Options:"]
     parts += [f"- {lab}: {lv['definition'].strip()}" for lab, lv in zip(labels, item["levels"])]
     parts += ["", "Answer with the identifier of exactly one option.", ANSWER_CUE]

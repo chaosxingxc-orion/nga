@@ -158,6 +158,19 @@ def render_markdown(report, header):
             out += ["### T1 invariance: cumulative failure set and flip rate", "",
                     _table(["source", "level_type", "scorer", "units", "fail (original)", "fail (cumulative, 4 variants)",
                             "growth", "flip overall"] + [f"flip {p.replace('|', ' / ')}" for p in pair_names], rows), ""]
+            t3 = [(s, lt, role, m) for s, lt, role, m in _iter_cells(cells) if "flip_T3" in m]
+            if t3:
+                pair_names3 = list(t3[0][3]["flip_T3"]["per_pair"])
+                rows = [[s, lt, role, m["floor_T3"]["n"], _f(m["floor_T3"]["acc_cumulative"]),
+                         _f(m["floor_T3"]["acc_argmax_reference"]), _f(m["c_branch"]["T3"]["rate"]),
+                         m["failure_set_T3"]["failures_original"], m["failure_set_T3"]["failures_cumulative"],
+                         _f(m["failure_set_T3"]["growth"]), m["flip_T3"]["n_units"], _f(m["flip_T3"]["overall"])]
+                        + [_f(v) for v in m["flip_T3"]["per_pair"].values()] for s, lt, role, m in t3]
+                out += ["### T3 question-set invariance (floor variant prefix_1q; flip rate defined as in T1; "
+                        "prefix_5q / prefix_5q_shuffled is the pure ordering effect)", "",
+                        _table(["source", "level_type", "scorer", "floor n", "acc (cum-mass)", "acc (argmax ref)", "C-rate",
+                                "fail (prefix_1q)", "fail (cumulative, 4 variants)", "growth", "units", "flip overall"]
+                               + [f"flip {p.replace('|', ' / ')}" for p in pair_names3], rows), ""]
             rows = []
             for s, lt, role, m in _iter_cells(cells):
                 sw, rv = m["move_T2"]["swap"], m["move_T2"]["reversed"]

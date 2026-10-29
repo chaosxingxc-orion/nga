@@ -48,6 +48,7 @@ SCORER_CHOICES = ("base", "empty_input", "question_only", "constant", "uniform")
 MOCKS = {
     "mock-invariant": scorer_mod.MockScorer.invariant,
     "mock-name-driven": scorer_mod.MockScorer.name_driven,
+    "mock-prefix-driven": scorer_mod.MockScorer.prefix_driven,
     "mock-random": scorer_mod.MockScorer.random,
     "mock-oracle": scorer_mod.MockScorer.oracle,
 }
@@ -79,6 +80,8 @@ def load_task_files(args):
     for task in args.tasks:
         for src in args.sources:
             path = common.task_path(args.data_root, task, src)
+            if task == "T3" and not os.path.exists(path):
+                continue  # T3 exists for typed-decisions only
             recs = common.load_records(path)
             if args.limit_groups:
                 groups = sorted({r["group_id"] for r in recs}, key=lambda g: (S.bucket(g), g))[:args.limit_groups]
@@ -209,7 +212,7 @@ def parse_args(argv):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--base", default="hf", choices=("hf",) + tuple(MOCKS), help="base scorer")
     ap.add_argument("--scorers", default="all", help=f"comma list of {SCORER_CHOICES} or 'all'")
-    ap.add_argument("--tasks", default="T1,T2", type=lambda s: s.split(","))
+    ap.add_argument("--tasks", default="T1,T2,T3", type=lambda s: s.split(","))
     ap.add_argument("--sources", default=",".join(common.SOURCE_FILES), type=lambda s: s.split(","))
     ap.add_argument("--data-root", default=common.DEFAULT_DATA_ROOT)
     ap.add_argument("--out-root", default=common.DEFAULT_OUT_ROOT)

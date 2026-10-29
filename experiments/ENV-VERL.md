@@ -133,3 +133,48 @@ harmless but should be cleaned up by whoever created them.
 - The image's `camem.py` does NOT contain the team sleep-mode backport (`gc.collect`, `empty_cache`, `synchronize`); it must be applied.
 - transformers 4.57.6 cannot load `qwen3_5`. transformers 5.21.0 (installed side-by-side) loads Qwen3.5-0.8B and runs a bf16 forward and generate on NPU, and vllm/vllm_ascend still import, but `import verl` fails in `verl/models/transformers/npu_patch.py:241` (`Qwen2RMSNorm` missing from `modeling_qwen2_5_vl` in tf 5.x). Default stays 4.57.6; Qwen3.5 training needs a patched `npu_patch.py`.
 - Deliverables, launcher, logs and details: `/mnt/cephfs/xingchao/docker/verl_910b_20261029/` (see its `README.md`).
+
+## Derived image `nga-verl-qwen35:20261029`: npu_patch.py made resilient, new verl-side gap found (2026-10-29)
+
+- Built `FROM` the official 910b image on host `npu`: derived image id
+  `sha256:0a0a2f5c2c2cdd1ef39d9b9dfece40ea8606de486c6437c6d9e758326f7c10c0`, tag
+  `nga-verl-qwen35:20261029`. Only the HF stack is upgraded (`transformers` 4.57.6 -> 5.21.0,
+  `huggingface_hub` -> 2.3.0, `tokenizers` -> 0.23.3, `safetensors` -> 0.8.0, plus the HF-stack
+  packages these import at module load time: `httpx2`/`httpcore2`/`anyio`/`h11`/`idna`, `hf_xet`, and
+  a `rich`/`typer`/`click`/`pygments`/`markdown-it-py`/`mdurl`/`shellingham`/`truststore`/
+  `annotated-doc` CLI chain), all installed `--no-deps` from the offline wheelhouse already staged at
+  `/mnt/cephfs/xingchao/docker/rl_ascend_verl_20261029/wheelhouse-tf5/`. torch/torch_npu/vllm/
+  vllm_ascend/CANN/verl's own code are untouched; `numpy` deliberately excluded and left at the base
+  pin.
+- `verl/models/transformers/npu_patch.py` unconditionally reaches into named classes in six
+  `transformers.models.*` modules (`qwen2`, `qwen2_5_vl`, `qwen3`, `qwen3_moe`, `qwen3_vl`,
+  `qwen3_vl_moe`) to install NPU-optimised RMSNorm/SiLU/RoPE. None of these is `qwen3_5`, so none of
+  this ever helped our model — but under transformers 5.21.0 one target
+  (`modeling_qwen2_5_vl.Qwen2RMSNorm`) was renamed, and the unconditional assignment raised
+  `AttributeError` at `import verl` time. Patched (`npu_patch.resilient.patch`, applied in the
+  Dockerfile via `git apply`/`patch` fallback) with one helper, `_patch(module, attr_path, value)`,
+  that walks `attr_path` with `hasattr` and only `setattr`s if every component exists; otherwise it
+  logs `logger.warning(...)` naming exactly what was skipped and returns, instead of raising. No
+  patch is deleted; behaviour for every family whose symbols are present is unchanged (verified: the
+  other five families still patch silently under transformers 5.21.0). `import verl` now succeeds,
+  logging exactly one expected warning for the renamed `Qwen2RMSNorm`.
+- **New blocker, found right after, unrelated to `npu_patch.py`:** `import verl.workers.fsdp_workers`
+  fails with `ImportError: cannot import name 'AutoModelForVision2Seq' from 'transformers'`.
+  transformers 5.21.0 removed this class outright (successor: `AutoModelForImageTextToText`, confirmed
+  present). verl imports the old name at module level in five files (`verl/utils/model.py`,
+  `verl/utils/checkpoint/fsdp_checkpoint_manager.py`, `verl/experimental/vla/fsdp_workers.py`,
+  `verl/model_merger/base_model_merger.py`, `verl/workers/fsdp_workers.py`), about a dozen call sites
+  total. The fix looks mechanical (rename to `AutoModelForImageTextToText`, same `_model_mapping`/
+  `.register()` interface, no logic change) but was **not applied** — it is outside this task's scope
+  (`npu_patch.py` only) and edits verl's own code, so it is reported rather than fixed, per the "no
+  elaborate workaround without asking first" instruction.
+- Consequently **no verl training step ran** (SFT/GRPO both route through `fsdp_workers`): no loss
+  values, no peak-HBM or step-time numbers to report yet. What did verify on NPU in the derived image
+  (pair 0, physical NPUs 0,1, both idle before/after): `import verl`, `import vllm`, `import
+  vllm_ascend` all pass; `Qwen3.5-0.8B` loads, runs a bf16 forward (finite logits) and greedy
+  `generate` ("The capital of France is Paris.") on `npu:0` — this path does not go through
+  `fsdp_workers`, so it is unaffected by the blocker above.
+- Deliverables: `/mnt/cephfs/xingchao/docker/verl_qwen35_20261029/` — `ctx/Dockerfile`, `build.sh`,
+  `npu_patch.resilient.patch`, `image-info.txt`, `packages-image.txt`, `model-test-pair0.log`,
+  `README.md` (full detail, including the exact launch command and the five file/line list for the
+  `AutoModelForVision2Seq` gap).

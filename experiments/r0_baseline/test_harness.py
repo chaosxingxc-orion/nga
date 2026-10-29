@@ -176,7 +176,7 @@ def test_prompt_input_modes_and_render_modes():
     assert "Input:" in blank and "business input 0" not in blank
     assert "Input:" not in drop and "Question:" in drop and "definition 0-0" in drop
     assert full.index("Workflow") < full.index("Input:") < full.index("Question:") < full.index("Options:")
-    names = {v: prompting.build_prompt(r, "record_name").text for v, r in t1.items()}
+    names = {v: prompting.build_prompt(r).text for v, r in t1.items()}   # default is record_name
     neutral = {v: prompting.build_prompt(r, "neutral").text for v, r in t1.items()}
     assert len(set(names.values())) == 4
     assert len(set(neutral.values())) == 1               # neutral render: T1 flip is 0 by construction
@@ -213,19 +213,77 @@ _LOCK_2_TEXT = ("Workflow: demo. Answer using only the criteria given.\n\nInput:
 def test_prompt_is_locked_against_stored_strings():
     # If this fails you changed the prompt: bump PROMPT_VERSION in prompt.py, update the strings
     # here, and treat every earlier report as not comparable (B-4).
-    assert prompting.PROMPT_VERSION == "r0-prompt-v1"
-    p1, p2 = prompting.build_prompt(_LOCK_1), prompting.build_prompt(_LOCK_2)
+    assert prompting.PROMPT_VERSION == "r0-prompt-v2"
+    p1, p2 = prompting.build_prompt(_LOCK_1, "neutral"), prompting.build_prompt(_LOCK_2, "neutral")
     assert p1.text == _LOCK_1_TEXT and p2.text == _LOCK_2_TEXT
     assert p1.labels == ("L1", "L2") and dict(p1.to_original) == {"L1": "stop", "L2": "go"}
     assert p2.candidates == (" L1", " L2", " L3") and dict(p2.to_original) == {"L1": "0", "L2": "1", "L3": "2"}
 
 
-def test_prompt_is_pure_and_ignores_names_and_key_order():
+def test_prompt_is_pure_and_names_matter_only_under_record_name():
     shuffled = dict(reversed(list(_LOCK_1.items())))
     renamed = dict(_LOCK_1, levels=[dict(l, name="zzz" + l["name"]) for l in _LOCK_1["levels"]])
-    assert prompting.build_prompt(shuffled) == prompting.build_prompt(_LOCK_1)
-    assert prompting.build_prompt(renamed).text == _LOCK_1_TEXT      # neutral render ignores names
-    assert prompting.build_prompt(_LOCK_1).text == prompting.build_prompt(_LOCK_1).text
+    for mode in ("record_name", "neutral"):
+        assert prompting.build_prompt(shuffled, mode) == prompting.build_prompt(_LOCK_1, mode)
+        assert prompting.build_prompt(_LOCK_1, mode).text == prompting.build_prompt(_LOCK_1, mode).text
+    # neutral: a renamed level must NOT change the prompt; record_name: it MUST.
+    assert prompting.build_prompt(renamed, "neutral").text == _LOCK_1_TEXT
+    assert prompting.build_prompt(renamed, "record_name").text != prompting.build_prompt(_LOCK_1, "record_name").text
+    assert "- zzzx1: Halt now." in prompting.build_prompt(renamed, "record_name").text
+    assert prompting.build_prompt(_LOCK_1).text == prompting.build_prompt(_LOCK_1, "record_name").text  # default
+
+
+_T3_BASE = dict(_LOCK_1, task="T3", question="What should happen?")
+_T3_VARIANTS = {
+    "prefix_1q": ["What should happen?"],
+    "prefix_3q": ["Q-b?", "Q-c?", "What should happen?"],
+    "prefix_5q": ["Q-a?", "Q-b?", "Q-c?", "Q-d?", "What should happen?"],
+    "prefix_5q_shuffled": ["Q-c?", "Q-a?", "Q-d?", "Q-b?", "What should happen?"],
+}
+_T3_LOCK_5Q = ("Workflow: demo. Answer using only the criteria given.\n\nInput:\n{\"steps\": 7}\n\n"
+               "Other questions about this input (not asked now):\n1. Q-a?\n2. Q-b?\n3. Q-c?\n4. Q-d?\n\n"
+               "Question: What should happen?\n\nOptions:\n- L1: Halt now.\n- L2: Proceed.\n\n"
+               "Answer with the identifier of exactly one option.\nAnswer:")
+
+
+def test_t3_prompt_lock_and_variants_differ():
+    recs = {v: dict(_T3_BASE, variant=v, prefix_questions=pq) for v, pq in _T3_VARIANTS.items()}
+    assert prompting.build_prompt(recs["prefix_5q"], "neutral").text == _T3_LOCK_5Q
+    texts = {v: prompting.build_prompt(r).text for v, r in recs.items()}
+    assert len(set(texts.values())) == 4            # guards the flip-rate-0-by-construction bug
+    assert texts["prefix_5q"].replace("Q-a?", "@").replace("Q-b?", "#") != texts["prefix_5q_shuffled"].replace("Q-a?", "@").replace("Q-b?", "#")
+    assert texts["prefix_5q"].index("Q-a?") < texts["prefix_5q"].index("Q-b?")          # given order kept
+    assert texts["prefix_5q_shuffled"].index("Q-c?") < texts["prefix_5q_shuffled"].index("Q-a?")
+    assert texts["prefix_1q"] == prompting.build_prompt(_T3_BASE).text                  # no unrelated questions
+
+
+def test_records_without_prefix_questions_render_as_v1():
+    # v1 layout reproduced literally; T1/T2 must be unaffected by the T3 addition.
+    expect = ("Workflow: demo. Answer using only the criteria given.\n\nInput:\n{\"steps\": 7}\n\n"
+              "Question: What should happen?\n\nOptions:\n- x1: Halt now.\n- x2: Proceed.\n\n"
+              "Answer with the identifier of exactly one option.\nAnswer:")
+    assert prompting.build_prompt(_LOCK_1).text == expect
+
+
+def test_t3_flip_responds_to_question_set_dependence():
+    with _tmp() as d:
+        recs = []
+        for g in range(60):
+            for v, pq in _T3_VARIANTS.items():
+                lv = [{"id": str(i), "name": f"n{i}", "definition": f"def {g}-{i}"} for i in range(3)]
+                recs.append(dict(_record("T3", v, g, lv, "0", "nominal"), prefix_questions=pq))
+        loaded = load_fixture(recs, d)
+    class PrefixDriven(sc.Scorer):
+        name = "prefix-driven"
+        def score(self, items):
+            return [sc.MockScorer("m", random_weight=1.0, sharpness=40.0).score(
+                [dict(it, key=it["key"] + "|".join(it["prefix_questions"]))])[0] for it in items]
+    inv = M.flip_rate(decided_for(sc.MockScorer.invariant(), loaded), "T3")
+    drv = M.flip_rate(decided_for(PrefixDriven(), loaded), "T3")
+    assert inv["n_units"] == 60 and inv["overall"] == 0.0
+    assert drv["overall"] > 0.4 and "prefix_5q|prefix_5q_shuffled" in drv["per_pair"]
+    assert M.accuracy_floor(decided_for(sc.MockScorer.oracle(), loaded, 0.9), "T3")["acc_cumulative"] == 1.0
+    assert TH.fitting_row(common.make_row(loaded[0], [1/3]*3) | {})
 
 
 # ---------------------------------------------------------------------------------------------

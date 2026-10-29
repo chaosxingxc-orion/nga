@@ -11,7 +11,7 @@ applied unchanged to held-out.  What it leaves open, and what is set here as har
 * TAU_GRID: 0.50, 0.55, ..., 0.95.
 * Objective: utility = +1 per correct decision, -1 per wrong decision, 0 per C, summed over the
   fitting rows; the best grid value wins, ties go to the larger tau.
-* Fitting rows: gold-trusted rows only, i.e. every T1 variant and the T2 ``base`` variant.  T2
+* Fitting rows: gold-trusted rows only, i.e. every T1 and T3 variant (T3 gold is the unchanged target gold) and the T2 ``base`` variant.  T2
   swap / reversed rows carry gold that is partly wrong in the task files (see the run report) and
   are never used for fitting; they are decided under the tau of their unit's base level set.
 * "Question" = (source, qname), the unit the pre-registration counts (545 for akhilaaa3, 1 for
@@ -36,7 +36,7 @@ def fitting_row(row):
     """True for rows whose gold is trusted enough to fit tau on."""
     if row["gold"] is None:
         return False
-    return row["task"] == "T1" or row["variant"] == "base"
+    return row["task"] in ("T1", "T3") or row["variant"] == "base"
 
 
 def tier_keys(row):

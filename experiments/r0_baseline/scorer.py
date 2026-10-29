@@ -163,13 +163,14 @@ class MockScorer(Scorer):
     """
 
     def __init__(self, name="mock", definition_weight=0.0, name_weight=0.0, random_weight=0.0,
-                 signal=0.0, sharpness=6.0):
+                 signal=0.0, sharpness=6.0, prefix_weight=0.0):
         self.name = name
         self.definition_weight = definition_weight
         self.name_weight = name_weight
         self.random_weight = random_weight
         self.signal = signal
         self.sharpness = sharpness
+        self.prefix_weight = prefix_weight  # follows the T3 prefix questions (order included)
 
     @classmethod
     def invariant(cls):
@@ -178,6 +179,10 @@ class MockScorer(Scorer):
     @classmethod
     def name_driven(cls):
         return cls("mock-name-driven", name_weight=1.0)
+
+    @classmethod
+    def prefix_driven(cls):
+        return cls("mock-prefix-driven", definition_weight=1.0, prefix_weight=1.0)
 
     @classmethod
     def random(cls):
@@ -198,6 +203,8 @@ class MockScorer(Scorer):
                 z += self.name_weight * _unit_noise("name", *base, l["name"])
             if self.random_weight:
                 z += self.random_weight * _unit_noise("rand", it["key"], l["id"])
+            if self.prefix_weight:
+                z += self.prefix_weight * _unit_noise("prefix", *base, l["definition"], "\x1e".join(it.get("prefix_questions") or []))
             z *= self.sharpness
             if self.signal and l["id"] == it.get("gold_id"):
                 z += self.signal * 8.0
