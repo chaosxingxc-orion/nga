@@ -453,7 +453,11 @@ the wrong column by accident.
    Frozen: each amendment clause that changes a number carries a test naming the clause, and a
    clause with no such test is reported as **not in force** in the report header rather than assumed.
 
-### 11.9 Runtime note: the full pass exceeded the §8.6 guard and was allowed to continue
+### 11.9 Runtime note: the §8.6 guard was probably never crossed, and my own estimate was wrong twice
+
+**Superseded by §11.10 below.** The text of §11.9 is kept unaltered because the decision it records
+was actually taken on the information available at the time, and rewriting it would hide that the
+reasoning was wrong. Read §11.10 for what the measurement showed.
 
 Recorded for transparency, because §8.6's threshold was crossed and I chose not to apply it.
 
@@ -480,3 +484,40 @@ time for the artifact this stage rests on.
 This note changes no metric, threshold, split or equivalence class, and §8.6 stands unaltered for
 future runs. It records a judgement call and its reason so that the decision is auditable rather
 than invisible.
+
+
+### 11.10 Correction to §11.9: measured per source, the pass needs about 2.2 hours
+
+§11.9 recorded a 6.5-hour estimate, said the §8.6 six-hour guard was crossed, and recorded a
+decision to continue anyway. Measurement from the run itself says the estimate was wrong and the
+guard was probably never crossed. Both of my errors are recorded here rather than edited away.
+
+**Error 1: the cost model.** §11.9 said scoring rate falls "roughly as the square of prompt length".
+It does not. The measured exponent is **about 1.45**, consistent across all three source pairs. Cost
+per row fits a mixed linear-plus-quadratic model, `row seconds ~= 2.0e-4·L + 1.8e-7·L²`, which is
+about 30% quadratic at L = 336 tokens, 40% at L = 711 and 66% at L = 2,224. Only the 6 full-attention
+layers are quadratic; the linear-attention layers and the MLPs are linear in tokens and, under
+token-budget batching, cost about the same per batch at any length. That is why the exponent sits
+between 1 and 2 rather than at 2. Measured rows/s/chip for the primary scorer: **11.4** at L = 336
+(`typed-decisions`), **4.0** at L = 711 (`openjev-synth`), **0.75** at L = 2,224 (`akhilaaa3`). The
+40x gap quoted in §11.9 came from comparing the smoke run's `akhilaaa3` T2 figure, which has 7 levels
+and warmup mixed in, against a short-source figure; the real ratio is about 15x.
+
+**Error 2: rows are not a measure of work.** The 11% progress reading that produced the 6.5-hour
+figure divided completed rows by the declared total of all scorers' rows. Those rows are not
+equal in cost. The constant and uniform classifiers cost essentially nothing, and the empty-input and
+question-only scorers drop the input and so carry much shorter prompts. At the same moment the
+**primary** scorer was about 60% complete. Re-estimated per source with the fitted model, the pass
+needs about **2.2 hours** in total rather than 6.5.
+
+**Consequences, frozen.**
+
+1. Any runtime estimate on this stack is computed **per source with the fitted cost model, weighted
+   by each source's share of the work**. A single pooled rate is wrong in both directions: a sample
+   weighted toward short prompts flatters it, and counting rows overstates the work remaining.
+2. A row count is a valid **progress** signal and an invalid **work** signal. Where a completion
+   estimate is derived from a row count, it carries the assumption that cost per row is uniform, and
+   that assumption is false here and must be stated wherever such an estimate is shown.
+3. §8.6 stands unaltered and was, on the corrected estimate, never actually triggered. The override
+   recorded in §11.9 was therefore unnecessary. It is left in the file because a decision log that
+   quietly deletes the decisions that turned out to rest on bad numbers is worth nothing.

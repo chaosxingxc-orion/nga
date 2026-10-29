@@ -304,14 +304,27 @@ class HFScorer(Scorer):
     # Throughput notes, measured 2026-10-29 on the vllm-ascend 0.30 stack. Neither is a defect and
     # neither affects a score, but both cost wall clock and both have surprised a reader already.
     #
-    # 1. Rows per second falls roughly with the SQUARE of prompt length, not linearly. Batching is by
-    #    token budget (size = token_budget // longest), so the tokens per batch stay about constant
-    #    and the linear-attention layers cost about the same per batch at any length. The 6 full
-    #    attention layers are quadratic in length, so at a constant token budget their cost per batch
-    #    grows LINEARLY with length, and rows/s therefore falls about as length squared. Measured:
-    #    about 8 rows/s/chip on typed-decisions (about 260 tokens) against about 0.2 on akhilaaa3
-    #    (about 1,800 tokens), a factor near 40 for a 7x length ratio. Expected for a hybrid
-    #    architecture under this batching rule; do not go looking for a bug.
+    # 1. Rows per second falls with prompt length at an exponent near 1.45, NOT 2. An earlier version
+    #    of this note said "about the square of length"; that was wrong, and measurement on the full
+    #    run corrected it. Cost per row fits a mixed linear-plus-quadratic model,
+    #
+    #        row seconds ~= 2.0e-4 * L + 1.8e-7 * L**2            (L = prompt tokens)
+    #
+    #    which is about 30% quadratic at L=336, 40% at L=711 and 66% at L=2224. The mechanism: with
+    #    token-budget batching (size = token_budget // longest) the tokens per batch stay about
+    #    constant, so the linear-attention layers and the MLPs cost about the same per token at any
+    #    length, while the 6 full-attention layers are quadratic and so grow linearly in cost per
+    #    batch. Only that last part is quadratic, which is why the exponent sits between 1 and 2.
+    #    Measured rows/s/chip on the full run: 11.4 at L=336 (typed-decisions), 4.0 at L=711
+    #    (openjev-synth), 0.75 at L=2224 (akhilaaa3) -- ratios of 2.85x and 5.3x, against the 4.5x
+    #    and 9.8x a squared law predicts. The model predicts 4.3 rows/s for openjev-synth against 4.0
+    #    measured. Expected behaviour for a hybrid architecture under this batching rule, not a bug.
+    #
+    #    For a runtime estimate, use the fitted model PER SOURCE weighted by that source's share of
+    #    the work. A single pooled rate is wrong in both directions: a sample weighted toward short
+    #    prompts flatters it, and counting rows rather than work overstates what is left, because the
+    #    empty-input and question-only scorers have much shorter prompts and the constant and uniform
+    #    classifiers cost essentially nothing.
     #
     # 2. The prefix is recomputed once PER CANDIDATE. Each item expands to one row per level, and
     #    every row re-runs the whole prompt even though the rows share a byte-identical prefix and
