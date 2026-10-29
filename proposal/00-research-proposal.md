@@ -3,6 +3,8 @@
 > 2026-10-28 · This file is **not part of** the survey report (chapters 1–9). The report's scope is "analysis only, no plan" (§2.3 omission 8: the strengthening plan is a separate document). This file is that separate document.
 >
 > Upstream basis: report §2.2.1 (the fixed structure), §2.2.4 (the 18-row defect registry), §2.2.5 (final framework P0″–P5″), §2.3 (nine omissions), §6.1.4.3 (local data check), §8.2.2 (which measurement is missing), §8.2.4 (what would overturn the framework). This file only does **task decomposition and pre-registration** on top of those conclusions; it adds no new claims about the literature.
+>
+> Work plan: [`01-work-plan-four-directions.md`](01-work-plan-four-directions.md) (2026-10-29) assigns and sequences these rounds as work packages along the user's four exploration directions; it does not replace the pre-registrations here.
 
 ---
 
