@@ -125,3 +125,11 @@ opportunity to be checked rather than as a granted allocation.
 created during this session's build window, none of which hold a davinci device. They are
 harmless but should be cleaned up by whoever created them.
 
+
+## Outcome: official 910b image working on `npu` (2026-10-29)
+
+- Image `quay.io/ascend/verl:verl-8.3.rc1-910b-ubuntu22.04-py3.11-latest`, id `sha256:6023dda1d354...`, now present and identical on `npu` and `npu2` (transferred via `docker save` to cephfs, then `docker load`).
+- Real NPU compute verified on `npu` (910B3): device_count, ones/arithmetic/`.cpu()` round trip, fp32 and bf16 matmul all pass, both in a plain container and through the ported pair launcher (pair 3, NPUs 6,7: exactly 2 visible devices). This replaces the failing `agentic-rl-ascend-verl:20261029`. A real GRPO step has not yet been run.
+- The image's `camem.py` does NOT contain the team sleep-mode backport (`gc.collect`, `empty_cache`, `synchronize`); it must be applied.
+- transformers 4.57.6 cannot load `qwen3_5`. transformers 5.21.0 (installed side-by-side) loads Qwen3.5-0.8B and runs a bf16 forward and generate on NPU, and vllm/vllm_ascend still import, but `import verl` fails in `verl/models/transformers/npu_patch.py:241` (`Qwen2RMSNorm` missing from `modeling_qwen2_5_vl` in tf 5.x). Default stays 4.57.6; Qwen3.5 training needs a patched `npu_patch.py`.
+- Deliverables, launcher, logs and details: `/mnt/cephfs/xingchao/docker/verl_910b_20261029/` (see its `README.md`).
