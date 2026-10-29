@@ -16,7 +16,10 @@ rm -f "$out/DONE" "$out/FAILED"
 # Declare the watch tier for tools/watchdog.py: a scoring pass over the frozen data runs for hours
 # and heartbeats once a minute, so it belongs in the slow tier. Without this file the watchdog has
 # to infer a stall threshold from the heartbeat period. Override with WATCH_TIER=fast|medium|slow.
-printf '{"tier": "%s"}\n' "${WATCH_TIER:-slow}" > "$out/WATCH.json"
+# WATCH_TOTAL is the number of readout rows the run intends to write, which the launcher knows and
+# the watchdog cannot infer; declaring it turns the digest's bare row count into a fraction and an
+# estimated finish. A wrong value is loud rather than silent (TOTAL EXCEEDED / UNREACHABLE).
+printf '{"tier": "%s"%s}\n' "${WATCH_TIER:-slow}" "${WATCH_TOTAL:+, \"total\": $WATCH_TOTAL}" > "$out/WATCH.json"
 exec >> "$out/run.log" 2>&1
 echo "$(date -u +%FT%TZ) start out=$out shards=$n args: $*"
 

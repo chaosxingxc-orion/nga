@@ -1041,5 +1041,119 @@ class ProgressAndFlat(unittest.TestCase):
         self.assertFalse([n for n in r["notes"] if n.startswith("shards:")])
 
 
+
+def steady_hb(n, step, rate_per_step, start_count=0):
+    """n rows: lines, step seconds apart, the last at NOW, advancing rate_per_step rows per line."""
+    return "".join(rows_line(-(n - 1 - i) * step, 6, 6, hf=start_count + rate_per_step * i) for i in range(n))
+
+
+class DeclaredTotal(unittest.TestCase):
+    def test_undeclared_total_stays_unknown_no_estimate(self):
+        t = Tree()
+        t.run("r", heartbeat=steady_hb(40, 60, 100))
+        p = t.digest()["runs"][0]["progress"]
+        self.assertIsNone(p["total"])
+        self.assertIsNone(p["left_s"])
+        self.assertIsNone(p["eta_utc"])
+        self.assertIn("total unknown", p["note"])
+
+    def test_declared_total_gives_fraction_and_a_range(self):
+        t = Tree()
+        d = t.run("r", heartbeat=steady_hb(61, 60, 100))               # 6000 rows in 1 h, 100/min
+        watch_json(d, '{"tier": "slow", "total": 24000}')
+        r = t.digest()["runs"][0]
+        p = r["progress"]
+        self.assertEqual((p["done"], p["total"], p["percent"], p["total_source"]), (6000, 24000, 25.0, "WATCH.json"))
+        lo, hi = p["left_s"]
+        base = 18000 / (100 / 60.0)                                     # 10800 s at a constant rate
+        w = 1.0 + 0.75
+        self.assertAlmostEqual(lo, base / w, delta=5)                   # widened both ways, more when early
+        self.assertAlmostEqual(hi, base * w, delta=5)
+        self.assertEqual(p["eta_quality"], "range")
+        self.assertEqual(r["escalation"], "none")
+        cfg = t.cfg()
+        row = [ln for ln in wd.render_md(wd.build_digest(cfg, {}, NOW), cfg).splitlines() if ln.startswith("| r |")][0]
+        self.assertIn("6000/24000 25%", row)
+        self.assertIn("left", row)
+
+    def test_range_is_narrower_late_and_rate_changes_widen_it(self):
+        t = Tree()
+        # fast early, slow now: the two rates disagree, so the range spans both
+        lines = [(-(49 - i) * 60, 300 * i if i < 30 else 300 * 29 + 20 * (i - 29)) for i in range(50)]
+        d = t.run("r", heartbeat="".join(rows_line(o, 6, 6, hf=c) for o, c in lines))
+        watch_json(d, '{"tier": "slow", "total": 20000}')
+        p = t.digest()["runs"][0]["progress"]
+        self.assertGreater(p["left_s"][1] / float(p["left_s"][0]), 4)  # wide: recent and average rates differ a lot
+        self.assertEqual(wd.fmt_left(7200, 14400), "~2-4h")
+        self.assertEqual(wd.fmt_left(2400, 7200), "~40m-2h")
+        self.assertEqual(wd.fmt_left(36000, 36000), "~10h")
+
+    def test_few_minutes_of_data_is_labelled_rough(self):
+        t = Tree()
+        d = t.run("r", heartbeat=steady_hb(4, 60, 100))
+        watch_json(d, '{"tier": "slow", "total": 90000}')
+        r = t.digest()["runs"][0]
+        self.assertEqual(r["progress"]["eta_quality"], "rough")
+        cfg = t.cfg()
+        row = [ln for ln in wd.render_md(wd.build_digest(cfg, {}, NOW), cfg).splitlines() if ln.startswith("| r |")][0]
+        self.assertIn("rough", row)
+
+    def test_total_exceeded_is_flagged(self):
+        t = Tree()
+        d = t.run("r", heartbeat=steady_hb(30, 60, 100))               # 2900 rows
+        watch_json(d, '{"tier": "slow", "total": 2000}')
+        r = t.digest()["runs"][0]
+        self.assertEqual((r["state"], r["escalation"]), ("running", "read"))
+        self.assertIn("TOTAL EXCEEDED", r["escalation_reason"])
+        cfg = t.cfg()
+        self.assertIn(">100%", wd.render_md(wd.build_digest(cfg, {}, NOW), cfg))
+        d2 = t.run("fin", heartbeat=steady_hb(30, 60, 100), marker="rc=0")
+        watch_json(d2, '{"tier": "slow", "total": 2000}')
+        by = {x["id"]: x for x in t.digest()["runs"]}
+        self.assertIn("TOTAL EXCEEDED", by["fin"]["escalation_reason"])  # a finished run that overshot is also wrong
+
+    def test_unreachable_total_is_flagged_only_on_the_optimistic_bound(self):
+        t = Tree()
+        d = t.run("hopeless", heartbeat=steady_hb(61, 60, 1))           # 1 row/min, 10 million to go
+        watch_json(d, '{"tier": "slow", "total": 10000000}')
+        d2 = t.run("fine", heartbeat=steady_hb(61, 60, 100))
+        watch_json(d2, '{"tier": "slow", "total": 40000}')
+        by = {x["id"]: x for x in t.digest()["runs"]}
+        self.assertIn("TOTAL UNREACHABLE", by["hopeless"]["escalation_reason"])
+        self.assertEqual(by["fine"]["escalation"], "none")
+
+    def test_no_anomaly_without_a_declaration(self):
+        t = Tree()
+        t.run("r", heartbeat=steady_hb(61, 60, 1))
+        r = t.digest()["runs"][0]
+        self.assertEqual(r["escalation"], "none")
+        self.assertIsNone(r["total_anomaly"])
+
+    def test_invalid_total_errors_naming_the_file(self):
+        t = Tree()
+        d = t.run("r", heartbeat=steady_hb(10, 60, 1))
+        for bad in ('{"total": "5000"}', '{"total": 0}', '{"total": -3}', '{"total": 12.5}', '{"total": true}', '{"total": null}'):
+            watch_json(d, bad)
+            r = t.digest()["runs"][0]
+            self.assertEqual(r["state"], "unknown", bad)
+            self.assertIn("WATCH.json", r["state_reason"], bad)
+            self.assertIn("total", r["state_reason"], bad)
+
+    def test_declared_total_wins_and_cached_ticks_keep_the_estimate_current(self):
+        t = Tree()
+        d = t.run("r", heartbeat=steady_hb(61, 60, 100))
+        watch_json(d, '{"tier": "slow", "total": 24000}')
+        with open(os.path.join(d, "total.txt"), "w") as f:
+            f.write("999999")
+        cfg = t.cfg(interval=600.0, watch=True)
+        sched = {}
+        p0 = wd.build_digest(cfg, {}, NOW, sched)["runs"][0]["progress"]
+        self.assertEqual(p0["total"], 24000)
+        with open(os.path.join(d, "heartbeat.log"), "a") as f:
+            f.write(rows_line(600, 6, 6, hf=7000))
+        r = wd.build_digest(cfg, {}, NOW + 600, sched)["runs"][0]
+        self.assertEqual((r["progress"]["done"], r["progress"]["total"]), (7000, 24000))
+        self.assertEqual(r["watch"]["last_eval_utc"], wd.iso(NOW))      # estimate refreshed without a full read
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

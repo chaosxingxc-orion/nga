@@ -109,6 +109,32 @@ are longer than the threshold should be declared `slow`.
 normally; if alive + finished falls short of M the digest notes "K of M shards neither alive nor finished". With any other layout it
 says finished vs lost is not determinable (in `digest.json` `shards`) and does not guess. Healthy completions add no digest line.
 
+**Declared total, estimate and anomalies.** `WATCH.json` may also carry `"total"`: a positive JSON integer, the run's own count of
+rows it intends to write, in the unit of the progress count (the sum of the heartbeat row counters over all scorers). Example:
+`{"tier": "slow", "total": 601980}`. Anything else (string, zero, negative, float, bool, null) makes the run `unknown` with the
+file named. Without a declaration the digest keeps saying `(total unknown)`: the watchdog never derives a total from file sizes or
+record counts (a total in the heartbeat line or `total.txt` is still honoured, and a `WATCH.json` total wins over both).
+With a total the progress cell reads `27584/601980 5% 2561/min ~2-4h left`:
+
+- The remaining time is a **range**, not a time of day. The optimistic end uses the faster of (the last `--window-seconds` rate,
+  the average rate since the run or its last restart began), the pessimistic end the slower, and both ends are widened by
+  `1 + (1 - fraction complete)`: wide early, narrow late. Scoring speed depends on prompt length and the sources are interleaved,
+  so no early estimate is reliable; the range says so. It is prefixed `rough` while fewer than 5 samples or 15 minutes have been
+  observed. `digest.json` has `left_s`, `eta_lo_utc`, `eta_hi_utc`, `eta_utc` (midpoint of the two rates) and `eta_quality`.
+- `TOTAL EXCEEDED` (running or done, only with a declared total): rows written exceed the declaration, so the declaration or the run is
+  wrong. `TOTAL UNREACHABLE` (running): even the optimistic end is further than `--deadline-hours` (default 48) away, checked only
+  once the estimate is no longer `rough`. Both raise the run to escalation `read` with the text in the `why` cell.
+
+**Launcher line** (a run's launcher knows the count; the watchdog cannot). In a shell launcher, replace the line that writes
+`WATCH.json` by one that also takes an optional `WATCH_TOTAL`:
+
+    printf '{"tier": "%s"%s}\n' "${WATCH_TIER:-slow}" "${WATCH_TOTAL:+, \"total\": $WATCH_TOTAL}" > "$out/WATCH.json"
+
+and pass `WATCH_TOTAL=<rows>` in the launch environment. For the R0 full pass over the default tasks and sources (no `--limit-groups`,
+no `--sample`, `--scorers all`) the count is 5 x N + N_akhilaaa3 = 5 x 119690 + 3530 = 601980: five scorers score every record and
+`constant@question70` only the akhilaaa3 sources (this reproduces the `r0_smoke2` coverage 8685 / 2085). Recompute it from the loader if
+the scorer set, tasks or sources change.
+
 **Scheduling.** The `--watch` loop ticks every `--interval` seconds (default and minimum 600) and rewrites `digest.json` and
 `digest.md` on every tick, so the digest's own `generated_utc` stays a reliable liveness signal. A run is re-read (markers, tail of
 heartbeat, new log bytes, report) only when its own next-due time has arrived; between those times its last result is reused with the
