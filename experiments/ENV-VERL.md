@@ -571,7 +571,7 @@ addendum" in that directory's own top-level `README.md`.
 - **`micro_bs=32`'s slower-than-24 throughput is a real, late-onset allocator-pressure event, not
   a uniform per-batch cost**: steps 1-8 run normally, steps 9-10 spike to 3x the per-step time
   exactly when reserved memory ticks up to within 1.1 GiB of the 60.96 GiB device ceiling.
-  `micro_bs=24` keeps 5.6 GiB of headroom and never hits this; that margin, not just the measured
+  `micro_bs=24` keeps about 6.9 GiB of headroom and never hits this; that margin, not just the measured
   peak, is why it is the right pick.
 - **Image built and verified**: `nga-verl-qwen35-v030:20261029`. Carries all three required fixes;
   records both closed questions (CUDA-gated transformers fast path, the CANN op's backward-free,
@@ -651,3 +651,23 @@ and the wider allocated-to-reserved gap is plausibly larger transient all-gather
 reassemble parameters from more, smaller shards. **Both of those are untested hypotheses**, recorded
 as such. The practical consequence is firm either way: **adding chips does not buy per-chip memory
 headroom here, it costs it**, so a configuration chosen at 2 chips cannot be assumed safe at 8.
+
+
+## CORRECTION: MiB was converted to GiB by dividing by 1000 (2026-10-29)
+
+Every GiB figure in the sweep tables of this file and of the two READMEs under
+`/mnt/cephfs/xingchao/docker/verl_v030_20261029/` was computed as MiB/1000 rather than MiB/1024, so
+each was about **2.4% too high**. Corrected values: 61,286 MiB is **59.85** GiB (not 61.3), 55,352 MiB
+is **54.05** (not 55.4), 60,804 MiB is **59.38** (not 60.8), 25,484 MiB is **24.89** (not 25.5).
+Reserved headroom at micro-batch 24 is therefore about **6.9 GiB**, not 5.6.
+
+**The percentages were never wrong**, because they were computed from the MiB values directly; only
+the converted GiB figures were. No conclusion changes: the binding resource is still the reserved
+pool, micro-batch 32 still sits at 98.2% of the ceiling, and micro-batch 24 remains the selection.
+
+**The reading lesson is the part worth keeping.** The error produced the sentence "reserved was
+already at 61.3 GiB of the 60.96 GiB usable ceiling", which is self-contradicting on its face: a
+quantity cannot exceed the ceiling it is being compared against. It survived several readings,
+including mine, and was caught only when someone recomputed the conversion. **A figure that exceeds
+its own stated limit is a unit error, not a finding.** Whenever a memory figure and its ceiling appear
+in the same sentence, do the subtraction.
