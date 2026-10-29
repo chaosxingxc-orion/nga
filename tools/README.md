@@ -35,9 +35,12 @@ descend into a run directory.
 | logs scanned for warnings/errors | `*.log`, `logs/*.log` | `--log-globs` |
 | report scanned for suspicious metrics | `report.json` | `--report-name` |
 
-Progress is read from heartbeat lines: `done=N total=M`, `N/M`, or `rows: name=N ...` (sum of counters; the total is
-then unknown and stated as such; a `total.txt` in the run directory supplies one). Throughput is measured over the last
-`--window-seconds` (default 900) of heartbeat samples, restarting after a counter decrease. The projected finish is
+Progress is read from heartbeat lines: `done=N total=M`, `N/M`, or `rows: name=N ...`. **For a `rows:` line the progress is the SUM of
+all its counters across scorers** (the scorers are not weighted or deduplicated, so subset scorers such as a constant baseline count
+too; the sum is monotone and comparable between reads, not a count of distinct items). An empty `rows:` section is zero rows. A
+`rows:` line never falls through to the `N/M` matcher, so `alive_shards=6/6` is not read as 6 of 6 done. The total is then unknown and
+stated as such; a `total.txt` in the run directory supplies one. The rate is the change between the first and last heartbeat sample inside the last
+`--window-seconds` (default 900) of heartbeat samples divided by the time between them (never total divided by a fixed period), restarting after a counter decrease. The projected finish is
 extrapolated only when a total is known and the rate is positive.
 
 ### States (exactly one per run, deterministic)
@@ -89,6 +92,22 @@ steps), is best declared. Guidance for this project:
 - `slow`: the R0 baseline rerun, every verl or other training run, full-benchmark sweeps, anything planned to run past 4 hours.
 - `medium`: single-model evaluation passes, data-build jobs, cell sweeps of 30 minutes to a few hours.
 - `fast`: smoke tests, one-cell checks, import or config checks, anything you expect to finish in under about 30 minutes.
+
+**Progress tracks the run between full reads.** On a tick where a run is not due, only its heartbeat tail is re-read, so
+progress, rate, heartbeat time and age follow the run every tick; state, errors and the report change only at a full read (or when a
+new terminal marker appears).
+
+**Fresh heartbeat, flat progress** (a wedged shard, hung device call or deadlock: the heartbeat thread lives, the work has stopped).
+A `running` run is flagged when its progress count has been unchanged over at least 3 consecutive heartbeat samples spanning
+`--flat-multiple` (default 2) x its stall threshold, and, in `--watch`, two consecutive full reads both saw it flat at the same
+count. A one-shot pass cannot count reads and uses the heartbeat history alone. The state stays `running` (the heartbeat is alive);
+the run's escalation becomes `read` with the reason `PROGRESS FLAT <duration> at <count> with a fresh heartbeat`, and the row's
+`why` cell shows it. Exit code is still 10. Runs without a progress counter are not checked. Err long: a tier whose quiet patches
+are longer than the threshold should be declared `slow`.
+
+**Shards.** With `alive_shards=a/M` in the heartbeat and exactly M `logs/shard*.log`, a shard whose log ends in `shard N/M done` finished
+normally; if alive + finished falls short of M the digest notes "K of M shards neither alive nor finished". With any other layout it
+says finished vs lost is not determinable (in `digest.json` `shards`) and does not guess. Healthy completions add no digest line.
 
 **Scheduling.** The `--watch` loop ticks every `--interval` seconds (default and minimum 600) and rewrites `digest.json` and
 `digest.md` on every tick, so the digest's own `generated_utc` stays a reliable liveness signal. A run is re-read (markers, tail of

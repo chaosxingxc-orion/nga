@@ -808,8 +808,8 @@ class DueScheduling(unittest.TestCase):
             f.write(hb_line(3500, "alive rows: x=99"))
         for tick in (600, 1200, 3000):                                  # ticks every 10 min, run is due hourly
             dg = wd.build_digest(cfg, {}, NOW + tick, sched)
-            self.assertEqual(dg["runs"][0]["progress"]["done"], 1, "tick %d re-read a not-due run" % tick)
-            self.assertEqual(dg["runs"][0]["watch"]["last_eval_utc"], wd.iso(NOW))
+            self.assertEqual(dg["runs"][0]["progress"]["done"], 99, "progress must track the run on every tick")
+            self.assertEqual(dg["runs"][0]["watch"]["last_eval_utc"], wd.iso(NOW), "tick %d fully re-read a not-due run" % tick)
         dg = wd.build_digest(cfg, {}, NOW + 3600, sched)
         self.assertEqual(dg["runs"][0]["progress"]["done"], 99)
         self.assertEqual(dg["runs"][0]["watch"]["last_eval_utc"], wd.iso(NOW + 3600))
@@ -915,6 +915,130 @@ class DueScheduling(unittest.TestCase):
         wd.run_once(cfg, {}, NOW + 600, sched)
         second = json.load(open(os.path.join(cfg.out_dir, "digest.json")))["generated_utc"]
         self.assertEqual((first, second), (wd.iso(NOW), wd.iso(NOW + 600)))
+
+
+
+def rows_line(offset_s, alive, total, **counters):
+    return hb_line(offset_s, "alive_shards=%d/%d rows: %s" % (alive, total, " ".join("%s=%d" % kv for kv in counters.items())))
+
+
+class ProgressAndFlat(unittest.TestCase):
+    def test_progress_is_the_sum_of_row_counters_and_advances_across_reads(self):
+        t = Tree()
+        d = t.run("r", heartbeat=rows_line(-120, 6, 6, hf=100, uniform=50))
+        watch_json(d, '{"tier": "slow"}')
+        cfg = t.cfg(interval=600.0, watch=True)
+        sched = {}
+        seen = []
+        for k, tick in enumerate((0, 600, 1200)):                       # run advances; run is only fully read hourly
+            with open(os.path.join(d, "heartbeat.log"), "a") as f:
+                f.write(rows_line(tick - 60, 6, 6, hf=100 + 60 * (k + 1), uniform=50 + 30 * (k + 1)))
+            dg = wd.build_digest(cfg, {}, NOW + tick, sched)
+            seen.append(dg["runs"][0]["progress"]["done"])
+        self.assertEqual(seen, [240, 330, 420])
+
+    def test_empty_rows_line_is_zero_not_a_fraction(self):
+        s = wd.parse_heartbeat_line(hb_line(0, "alive_shards=6/6 rows: ").strip())
+        self.assertEqual(s["done"], 0)
+        self.assertIsNone(s["total"])
+        self.assertEqual(s["fields"], {"alive_shards": 6, "shards_total": 6})
+
+    def test_rate_comes_from_two_observations_not_from_the_total(self):
+        t = Tree()
+        # the live bug: an empty first rows: line was read as '6/6 done', so the first rate was 1726/min beside a total of 1732
+        t.run("r", heartbeat=rows_line(-180, 6, 6) + rows_line(-120, 6, 6, hf=1732) + rows_line(-60, 6, 6, hf=2800))
+        p = t.digest()["runs"][0]["progress"]
+        self.assertEqual(p["done"], 2800)
+        self.assertEqual(p["rate_per_min"], 1400.0)                     # (2800 - 0) over 120 s, not 1732/min
+        t2 = Tree()
+        t2.run("r", heartbeat=rows_line(-120, 1, 6, hf=8685) + rows_line(-60, 1, 6, hf=8685))
+        self.assertEqual(t2.digest()["runs"][0]["progress"]["rate_per_min"], 0.0)
+
+    def _flat_hb(self, n_flat, step=60):
+        return rows_line(-(n_flat + 1) * step, 6, 6, hf=10) + "".join(rows_line(-i * step, 6, 6, hf=500) for i in range(n_flat, -1, -1))
+
+    def test_fresh_heartbeat_flat_progress_flagged_after_two_reads_not_one(self):
+        t = Tree()
+        d = t.run("r", heartbeat=self._flat_hb(25))                    # flat for 25 min under a fast tier (flag at 2 x 10 min)
+        watch_json(d, '{"tier": "fast"}')
+        cfg = t.cfg(interval=600.0, watch=True)
+        sched = {}
+        dg = wd.build_digest(cfg, {}, NOW, sched)
+        r = dg["runs"][0]
+        self.assertEqual(r["state"], "running")
+        self.assertEqual(r["escalation"], "none")                       # one flat read: not flagged
+        self.assertFalse(r["progress_flat"]["confirmed"])
+        r = wd.build_digest(cfg, {}, NOW + 600, sched)["runs"][0]       # second consecutive full read, still flat
+        self.assertEqual(r["state"], "running")
+        self.assertEqual(r["escalation"], "read")
+        self.assertTrue(r["progress_flat"]["confirmed"])
+        self.assertIn("PROGRESS FLAT", r["escalation_reason"])
+        md = wd.render_md(wd.build_digest(cfg, {}, NOW + 600, sched), cfg)   # a cached tick still shows it
+        self.assertIn("PROGRESS FLAT", md)
+
+    def test_flat_read_counter_resets_when_progress_moves(self):
+        t = Tree()
+        d = t.run("r", heartbeat=self._flat_hb(25))
+        watch_json(d, '{"tier": "fast"}')
+        cfg = t.cfg(interval=600.0, watch=True)
+        sched = {}
+        wd.build_digest(cfg, {}, NOW, sched)
+        with open(os.path.join(d, "heartbeat.log"), "a") as f:
+            f.write(rows_line(5, 6, 6, hf=900))
+        r = wd.build_digest(cfg, {}, NOW + 600, sched)["runs"][0]
+        self.assertIsNone(r["progress_flat"])
+        self.assertEqual(r["escalation"], "none")
+
+    def test_short_flat_stretch_and_long_tier_do_not_cry_wolf(self):
+        t = Tree()
+        t.run("short", heartbeat=self._flat_hb(8))                     # 8 min flat, below 2 x fast stall
+        d = t.run("slowtier", heartbeat=self._flat_hb(25))             # 25 min flat is normal for a slow tier (flag at 4 h)
+        watch_json(d, '{"tier": "slow"}')
+        t.run("two", heartbeat=rows_line(-60, 6, 6, hf=5) + rows_line(-30, 6, 6, hf=5))   # only 2 samples: never flat
+        watch_json(os.path.join(t.root, "short"), '{"tier": "fast"}')
+        for r in t.digest()["runs"]:
+            self.assertEqual(r["escalation"], "none", r["id"])
+            self.assertIsNone(r["progress_flat"], r["id"])
+
+    def test_one_shot_flags_on_heartbeat_history_alone(self):
+        t = Tree()
+        d = t.run("r", heartbeat=self._flat_hb(25))
+        watch_json(d, '{"tier": "fast"}')
+        r = t.digest()["runs"][0]
+        self.assertEqual((r["state"], r["escalation"]), ("running", "read"))
+
+    def test_dead_heartbeat_is_still_stalled_not_flat(self):
+        t = Tree()
+        d = t.run("r", heartbeat=self._flat_hb(25).replace(wd.iso(NOW), wd.iso(NOW - 5000)), log="x\n")
+        watch_json(d, '{"tier": "fast"}')
+        r = t.digest()["runs"][0]
+        self.assertEqual(r["state"], "stalled")
+        self.assertIsNone(r["progress_flat"])
+
+    def test_finished_shards_are_told_from_lost_shards(self):
+        t = Tree()
+        d = t.run("r", heartbeat=rows_line(-60, 1, 6, hf=5) + rows_line(-30, 1, 6, hf=6))
+        os.makedirs(os.path.join(d, "logs"))
+        for i in range(6):                                             # shards 0-4 finished, shard 5 alive
+            with open(os.path.join(d, "logs", "shard%d.log" % i), "w") as f:
+                f.write("work\n" + ("shard %d/6 done; merge with --report-only\n" % i if i < 5 else ""))
+        r = t.digest()["runs"][0]
+        self.assertEqual((r["shards"]["finished"], r["shards"]["lost"]), (5, 0))
+        self.assertFalse([n for n in r["notes"] if n.startswith("shards:")])
+        os.unlink(os.path.join(d, "logs", "shard3.log"))                # now the count does not match: say so, do not guess
+        with open(os.path.join(d, "logs", "shard3.log"), "w") as f:
+            f.write("Traceback\n")                                     # shard 3 died without a done line
+        r = t.digest()["runs"][0]
+        self.assertEqual(r["shards"]["lost"], 1)
+        self.assertTrue([n for n in r["notes"] if "neither alive nor finished" in n])
+
+    def test_shards_not_determinable_without_matching_logs(self):
+        t = Tree()
+        t.run("r", heartbeat=rows_line(-60, 1, 6, hf=5) + rows_line(-30, 1, 6, hf=6))
+        r = t.digest()["runs"][0]
+        self.assertIsNone(r["shards"]["lost"])
+        self.assertIn("not determinable", r["shards"]["note"])
+        self.assertFalse([n for n in r["notes"] if n.startswith("shards:")])
 
 
 if __name__ == "__main__":

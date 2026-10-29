@@ -51,6 +51,8 @@ def build_parser():
     for name, rc, st in (("fast", 600, 600), ("medium", 1200, 1800), ("slow", 3600, 7200)):
         a("--%s-recheck" % name, type=float, default=float(rc), help="%s tier: re-read the run this often (default %d s)" % (name, rc))
         a("--%s-stall" % name, type=float, default=float(st), help="%s tier: heartbeat older than this => stalled (default %d s)" % (name, st))
+    a("--flat-multiple", type=float, default=2.0,
+      help="running run whose progress count is unchanged for this x its stall threshold, with a fresh heartbeat, is flagged (default 2)")
     a("--stall-multiple", type=float, default=5.0,
       help="inferred runs: stall threshold = this x the median heartbeat gap (default 5)")
     a("--stall-floor", type=float, default=600.0, help="inferred runs: the stall threshold is never below this (default 600 s)")
@@ -324,6 +326,7 @@ def scan_log(path, st, cfg, now):
 
 # ----------------------------------------------------------------------------- heartbeat / progress
 _PAIR = re.compile(r"([A-Za-z][\w@.+\-]*)=(\d+)")
+_SHARDS = re.compile(r"alive_shards=(\d+)/(\d+)")
 _FRAC = re.compile(r"(?<![\w.])(\d+)\s*/\s*(\d+)(?![\w.])")
 _DONE = re.compile(r"\b(?:done|completed|processed|items|n_done|step)\s*[=:]\s*(\d+)", re.I)
 _TOTAL = re.compile(r"\b(?:total|n_total|of)\s*[=:]?\s*(\d+)", re.I)
@@ -343,9 +346,13 @@ def parse_heartbeat_line(line):
     if "rows:" in rest:
         head, tail = rest.split("rows:", 1)
         fields = {k: int(v) for k, v in _PAIR.findall(head)}
+        sm = _SHARDS.search(head)
+        if sm:
+            fields["shards_total"] = int(sm.group(2))
         counters = {k: int(v) for k, v in _PAIR.findall(tail)}
-        if counters:
-            done = sum(counters.values())
+        # A line with a rows: section is explicit: progress is the sum of its counters, and an empty section is zero rows.
+        # It must never fall through to the N/M matcher, which would read alive_shards=6/6 as "6 of 6 done".
+        done = sum(counters.values())
     if done is None:
         fm = _FRAC.search(rest)
         if fm:
@@ -863,13 +870,10 @@ def read_why(d, cfg):
     return None
 
 
-def evaluate_run(run, cfg, states, now):
-    d = run["path"]
-    notes = []
-    marker, problem = read_marker(d, cfg)
-    logs = run_logs(d, cfg)
+def read_heartbeat(d, cfg):
+    """(samples, hb_ts, hb_src, notes) from the heartbeat file; empty/None when there is none."""
+    samples, hb_ts, hb_src, notes = [], None, None, []
     hbp = os.path.join(d, cfg.heartbeat_name)
-    samples, hb_ts, hb_src = [], None, None
     if os.path.isfile(hbp):
         try:
             for ln in read_tail(hbp, 256 << 10)[-2000:]:
@@ -882,6 +886,77 @@ def evaluate_run(run, cfg, states, now):
                 hb_ts, hb_src = os.path.getmtime(hbp), cfg.heartbeat_name + " mtime (no timestamped lines)"
         except OSError as e:
             notes.append("heartbeat unreadable: %s" % str(e)[:60])
+    return samples, hb_ts, hb_src, notes
+
+
+def flat_stretch(samples):
+    """The trailing run of heartbeat samples with an unchanged progress count, or None when there are fewer than 3 of them
+    (one repeated value is just a slow moment). since = when that count was first seen."""
+    wd_ = [x for x in samples if x["done"] is not None]
+    if len(wd_) < 3:
+        return None
+    i = len(wd_) - 1
+    while i > 0 and wd_[i - 1]["done"] == wd_[-1]["done"]:
+        i -= 1
+    n = len(wd_) - i
+    if n < 3:
+        return None
+    return {"since": wd_[i]["ts"], "flat_s": wd_[-1]["ts"] - wd_[i]["ts"], "samples": n, "done": wd_[-1]["done"]}
+
+
+_SHARD_DONE = re.compile(r"\bshard\s+(\d+)\s*/\s*(\d+)\s+done\b", re.I)
+
+
+def shard_status(d, last_sample):
+    """Tell shards that finished from shards that vanished, from the evidence only. The heartbeat gives alive/total; each
+    logs/shard*.log of a finished shard ends with 'shard N/M done'. Returns a dict, or None when the heartbeat has no shard
+    counts. 'lost' is set only when the number of shard logs equals the total and alive + finished falls short of it;
+    otherwise the cause is stated as not determinable. Never guessed."""
+    f = (last_sample or {}).get("fields") or {}
+    if "alive_shards" not in f or "shards_total" not in f:
+        return None
+    alive, total = f["alive_shards"], f["shards_total"]
+    logs = sorted(glob.glob(os.path.join(d, "logs", "shard*.log")))
+    out = {"alive": alive, "total": total, "finished": None, "lost": None, "note": None}
+    if len(logs) != total:
+        out["note"] = "%d shard logs for %d shards: finished vs lost not determinable" % (len(logs), total)
+        return out
+    fin = 0
+    for lg in logs:
+        try:
+            if _SHARD_DONE.search("\n".join(read_tail(lg, 4096)[-5:])):
+                fin += 1
+        except OSError:
+            pass
+    out["finished"] = fin
+    out["lost"] = max(0, total - alive - fin)
+    if out["lost"]:
+        out["note"] = "%d of %d shards neither alive nor finished (no 'done' line in their logs)" % (out["lost"], total)
+    return out
+
+
+def refresh_cached(res, d, cfg, now):
+    """Cheap per-tick refresh of a not-due run: only the heartbeat tail is re-read, so its progress, heartbeat time and age
+    track the run. State, errors and report stay as of the last full read."""
+    samples, hb_ts, hb_src, _ = read_heartbeat(d, cfg)
+    if samples:
+        res["progress"] = summarize_progress(samples, d, cfg)
+        res["heartbeat_epoch"], res["heartbeat_utc"], res["heartbeat_source"] = hb_ts, iso(hb_ts), hb_src
+        res["age_s"] = int(now - hb_ts)
+    elif res.get("heartbeat_epoch") is not None:
+        res["age_s"] = int(now - res["heartbeat_epoch"])
+    return res
+
+
+def evaluate_run(run, cfg, states, now, prev=None):
+    """prev: None in a one-shot pass; in --watch the previous result for this run ({} on the first read)."""
+    d = run["path"]
+    notes = []
+    marker, problem = read_marker(d, cfg)
+    logs = run_logs(d, cfg)
+    hbp = os.path.join(d, cfg.heartbeat_name)
+    samples, hb_ts, hb_src, hb_notes = read_heartbeat(d, cfg)
+    notes.extend(hb_notes)
     if hb_ts is None and logs:
         mt = []
         for lg in logs:
@@ -953,9 +1028,29 @@ def evaluate_run(run, cfg, states, now):
             notes.append(err)
 
     esc, why_text = escalate(state, sus["total"], out_sigs)
+    # Fresh heartbeat, flat progress: the heartbeat thread lives but the work has stopped. Flagged only when the flat stretch is
+    # at least --flat-multiple x the run's stall threshold AND (in --watch) it was seen flat by two consecutive full reads.
+    flat_info, flat_reads, flat_done = None, 0, None
+    st_flat = flat_stretch(samples) if state == "running" else None
+    if st_flat and st_flat["flat_s"] >= cfg.flat_multiple * tier["stall_s"]:
+        flat_done = st_flat["done"]
+        flat_reads = (prev.get("flat_reads", 0) + 1) if prev and prev.get("flat_done") == flat_done else 1
+        flat_info = dict(st_flat, since_utc=iso(st_flat["since"]), reads=flat_reads,
+                         confirmed=(prev is None or flat_reads >= 2))
+        del flat_info["since"]
+    flat_on = bool(flat_info and flat_info["confirmed"])
+    if flat_on:
+        ftxt = "PROGRESS FLAT %s at %d with a fresh heartbeat (wedged shard or hung call?)" % (human_age(flat_info["flat_s"]), flat_done)
+        if esc == "none":
+            esc, why_text = "read", ftxt
+        else:
+            why_text = ftxt + "; " + (why_text or "")
+    shards = shard_status(d, samples[-1]) if samples and state == "running" else None
+    if shards and shards["note"] and shards["lost"]:
+        notes.append("shards: " + shards["note"])
     pointers = []
     if esc != "none":
-        if state in ("failed", "stalled", "unknown") and newest is not None:
+        if (state in ("failed", "stalled", "unknown") or flat_on) and newest is not None:
             n = last_lines.get(newest[1], 0)
             if n:
                 pointers.append({"path": newest[1], "line_start": max(1, n - 39), "line_end": n, "why": "tail of newest log"})
@@ -987,6 +1082,7 @@ def evaluate_run(run, cfg, states, now):
         "heartbeat_epoch": hb_ts, "heartbeat_utc": iso(hb_ts), "heartbeat_source": hb_src, "age_s": int(now - hb_ts) if hb_ts is not None else None,
         "marker": ({k: marker[k] for k in ("name", "path", "exit_code", "utc")} if marker else None),
         "progress": progress, "errors": errors, "suspicious_metrics": sus, "pointers": pointers[:6], "notes": notes, "why": why,
+        "progress_flat": flat_info, "flat_reads": flat_reads, "flat_done": flat_done, "shards": shards,
         "expected_applied": expected_applied, "escalation_before_expected": esc_before if esc_before != esc else None,
         "logs": logs,
     }
@@ -1009,11 +1105,9 @@ def build_digest(cfg, states, now=None, sched=None):
         seen.add(r["path"])
         ent = sched.get(r["path"]) if sched is not None else None
         if ent is not None and now + slack < ent["next"] and marker_set(r["path"], cfg) <= ent["markers"]:
-            res = dict(ent["res"])
-            if res.get("heartbeat_epoch") is not None:
-                res["age_s"] = int(now - res["heartbeat_epoch"])
+            res = refresh_cached(dict(ent["res"]), r["path"], cfg, now)
         else:
-            res = evaluate_run(r, cfg, states, now)
+            res = evaluate_run(r, cfg, states, now, None if sched is None else (ent["res"] if ent else {}))
             every = cfg.tiers["fast"]["recheck_s"] if res["state"] in ("failed", "stalled") else res["tier"]["recheck_s"]
             res["watch"] = {"last_eval_utc": iso(now), "next_eval_utc": iso(now + every), "recheck_s": every}
             if sched is not None:
@@ -1159,7 +1253,7 @@ def build_blocks(dg, cfg):
 
 
 SECTIONS = [("head", []), ("runs", ["", "## Runs (worst first)", "| run | state | esc | age | watch | progress | why |", "|---|---|---|---|---|---|---|",
-                                      "(watch = tier/source last>next evaluation, UTC; source: file = WATCH.json, hbNm = inferred heartbeat period, dflt = default)"]),
+                                      "(watch = tier/source last>next full read, UTC; file = WATCH.json, hbNm = inferred period, dflt = default. progress = SUM of the heartbeat row counters of all scorers, rate = change over the last 15 min of heartbeats)"]),
             ("flags", ["", "## Flags"]),
             ("esc", ["", "## Escalation (read: tier-1 reads these slices, paths relative to dir; decide: orchestrator chooses)"]),
             ("errors", ["", "## Error signatures (count, first..last, exemplar pointer)"])]
