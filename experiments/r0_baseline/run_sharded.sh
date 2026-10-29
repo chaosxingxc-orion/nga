@@ -25,18 +25,23 @@ run_shard() {   # $1 = shard index
   done
   return $rc
 }
-heartbeat() {
+heartbeat() {   # $@ = the shard job PIDs to watch
+  local pids=("$@") p alive
   while true; do
-    alive=$(pgrep -fc "run_baseline.py --out-root $out --shard" || true)
+    # Count live shard jobs by PID, not by pattern. A pattern match over the command line
+    # double-counts, because each shard's python process spawns a child that inherits its
+    # cmdline, which reported 16 alive for 8 shards and would have hidden a dead shard.
+    alive=0
+    for p in "${pids[@]}"; do kill -0 "$p" 2>/dev/null && alive=$((alive + 1)); done
     rows=$(for f in "$out"/readouts/*.jsonl; do [ -f "$f" ] && echo "$(basename "$f" | sed 's/__.*//') $(($(wc -l < "$f") - 1))"; done 2>/dev/null \
            | awk '{c[$1]+=$2} END {for (k in c) printf "%s=%d ", k, c[k]}')
-    echo "$(date -u +%FT%TZ) alive_shards=$alive rows: $rows" >> "$out/heartbeat.log"
+    echo "$(date -u +%FT%TZ) alive_shards=$alive/${#pids[@]} rows: $rows" >> "$out/heartbeat.log"
     sleep 60
   done
 }
-heartbeat & hb=$!
 pids=()
 for ((i = 0; i < n; i++)); do run_shard "$i" "$@" & pids+=($!); done
+heartbeat "${pids[@]}" & hb=$!
 rc=0
 for p in "${pids[@]}"; do wait "$p" || rc=1; done
 echo "$(date -u +%FT%TZ) all shards exited, rc=$rc"
