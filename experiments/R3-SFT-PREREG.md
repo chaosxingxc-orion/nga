@@ -522,3 +522,48 @@ size effects.
 | F3 | Pair siblings and steps | Accepted: 3,116 steps, siblings ride in the parent's step, realized K3 share reported | §7.2, §7.4 (as written) |
 | F4 | Shuffling vs row 6 | Shuffling kept for K-align; the flip rate of shuffled arms is in-distribution, a sanity metric only; the row-6 spend is declared | §1.3, §4.5, new §4.8 |
 | F5–F9 | Seed-handling choices, extra test reads, R0-configuration comparison, smaller cells | Accepted as written | §6.2, §6.3, §6.5, §8.4, §9.1–§9.3, §2.5, §2.6 (as written) |
+
+---
+
+## 14. Amendments (made before any arm was trained or scored on test)
+
+14.1 **Amendment 1, the kernel gate (§11.3 a and b), 2026-10-30.** The §11.3 (a) and (b) thresholds
+were ratified without a measured noise floor, and they sit below it. On 8 real training rows the
+*reference* kernel in bf16, compared with an fp32 gold run of itself, already has logits relative L2
+1.07e-2 and fails the per-tensor relative L2 ≤ 1e-2 on 311 of 320 tensors
+(`speedup/runs/modelcheck/model_check.json`). No bf16 run of this model can pass (a) and (b) as
+written, so they test rounding, not the kernel. They are replaced, before the fp32-only check
+(`speedup/runs/modelcheck32/`) has reported, by:
+- (a′) **Same function, fp32.** With the model in fp32 and both kernels in fp32 on the same rows, the
+  logits relative L2 between the fast and the reference kernel is ≤ 1e-4, and every trainable
+  parameter tensor's gradient has cosine ≥ 0.9999.
+- (b′) **No worse than the reference in bf16.** With e_X(t) the relative L2 of tensor t's gradient
+  from kernel X in bf16 against the fp32 gold: e_fast(t) ≤ 1.5 · e_ref(t) + 1e-3 for at least 99% of
+  tensors, and no tensor has e_fast(t) > 3 · e_ref(t) + 1e-3. The logits relative L2 against gold
+  satisfies e_fast ≤ 1.2 · e_ref.
+- (c) is unchanged. If any of (a′), (b′) and (c) fails, the run uses the reference kernel.
+
+14.2 **Amendment 2, scorer padding, 2026-10-30.** A second, independent implementation of the
+option log-probability (the K2 loss test) found that `r0_code/scorer.py`'s `HFScorer`, at its default
+`token_budget`, LEFT-pads a question's candidates of different token lengths in one batch, and that
+the padding changes the score (0.157 nats on one decision-v7 train row; repro
+`r3_code/diag_padding.py`). Therefore:
+- Every R3 readout, Track K and Track T, every arm including K0 and the degenerate baselines, is
+  produced by a scorer whose rows are unpadded or RIGHT-padded. Both layers types are causal, so tokens
+  after a position cannot affect it, and right padding is exact up to bf16 batch-size effects. A
+  scorer is admissible only after it matches the unpadded layout (`token_budget=1`, one row per
+  candidate) within the measured bf16 batch-size floor on a fixed sample of every suite.
+- §6.3 and §6.5 (K1-PT against R0): the R0 side is re-scored with the admissible scorer on the same
+  base checkpoint and prompt version. The published `r0_baseline` and `r0_baseline_rederived`
+  readouts are not used as the R0 side of any comparison. The size of the defect in the published R0
+  numbers is measured on a fixed sample and reported as an erratum to R0-BASELINE-RESULTS.md.
+- K0 numbers produced before this amendment with the padded scorer are void and are re-scored.
+
+14.3 **Amendment 3, trainer, 2026-10-30.** Round 1 trains with a single-chip PyTorch + peft trainer
+(`r3_code/train_r3.py`) on the same image, not verl's FSDP SFT trainer. verl's trainer was measured at
+7.3 s per step for 8 short questions on 2 chips, and it lacks four things this pre-registration
+requires: LoRA dropout, the one-cycle schedule, per-epoch augmentation, and the K2 loss. Its LoRA
+merge was also found to be a silent no-op for this checkpoint class. Recipe clauses (§3, §7) are
+unchanged. The trainer's own tests (LoRA-only trainable, response-only loss mask, K2 equality with
+an independent computation, right-padding invariance, exact resume) are recorded in each run
+directory.
