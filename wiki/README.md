@@ -54,11 +54,11 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E29](E29-typed-openjev-reference-20261030.md) | Open-Jev on Typed Decisions | engineering / reference evaluation | both full common tests/audits complete; 2B/9B accuracy 58.25%/67.80%, zero flags |
 
 | [E30](E30-typed-recovery-controller-20261030.md) | deterministic recovery controller | engineering | real CPU worker and audit SIGKILL recovery passed; 24 items, 3 prefix receipts preserved |
-| [E31](E31-jeval-native-preflight-20261030.md) | full JEVal native eligibility | engineering | Kev three sizes and Nimble v2 full eligibility complete; Open-Jev token preflights running; no inference scores |
+| [E31](E31-jeval-native-preflight-20261030.md) | full JEVal native eligibility | engineering | all six full eligibility and artifact audits complete; no inference scores |
 
 | [E32](E32-openjev-original-ood-20261030.md) | original complete Open-Jev OOD | reference evaluation | both full length preflights accepted; 2B/9B actual NPU inference and CPU finishers running on chips 4/2 |
 
-| [E33](E33-jeval-reference-inference-20261030.md) | native JEVal reference inference | reference evaluation | Kev0.8B real probe accepted; full inference and independent finisher running; other sizes pending probes |
+| [E33](E33-jeval-reference-inference-20261030.md) | native JEVal reference inference | reference evaluation | Kev0.8B formal inference running; Kev4 real probe complete; Kev9 corrected v2 probe running |
 
 ## Where the artifacts live
 

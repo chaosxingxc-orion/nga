@@ -93,3 +93,14 @@ created and original frozen files remain untouched. `LAUNCH_FAILURE.json`
 records exact lists and cause. Future generation compares sorted exact mount
 strings and full device triples, preserving paths/options/multiplicity.
 This was a launcher false rejection, not a model forward failure.
+
+## 18:56 UTC — corrected Kev9 probe actually running
+
+New v2 configuration `aefba9ec015691d03125e3b75d117fda6ad2a7b7a9cc180285227e3a0742624d`
+freezes80files; inference code remains byte-identical to the reviewed0.8B probe.
+Only future launch/finish resource-order checking and explicit generation support
+changed. Four negative mapping tests pass. Parent approved and launched retained
+`nga-jeval-kev9-probe-v2`, ID
+`a408eff9da038857d001a9886287134d80caea353ee0aee43b79228d115277b1`,
+chip5, actual running; digest18:55:30UTC model loading. Failed v1 created container
+and LAUNCH_FAILURE remain untouched. No9B fullJEVal inference yet.
