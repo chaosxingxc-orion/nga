@@ -4,6 +4,8 @@ This directory holds the owner-supplied enterprise architecture baseline and NGA
 
 **Current organizing view:** [V0.2 — three states, four planes, agent evolution](13-nga-architecture-v0.2.md). Read it with the [V0 adversarial review](14-v0-adversarial-review.md), which challenges both the supplied source and our earlier proposals. Development/runtime/operations are lifecycle states; user/runtime/management/control are responsibility planes; agent evolution coordinates the whole.
 
+**Current discussion:** [Graph, Agent Loop, and Workflow control review](15-graph-loop-workflow-control-review.md) challenges their composition, decision-basis ownership, nested execution, and the S1/S2/framework authority boundaries. Its refinements are proposals, not a replacement of the established organizing axes or an implemented guarantee.
+
 ## Reading order and document status
 
 | Document | Role | Status |
@@ -18,6 +20,7 @@ This directory holds the owner-supplied enterprise architecture baseline and NGA
 | [12 — Replay and audit contract](12-replay-and-audit-contract.md) | Historical inspection, executable control replay, reevaluation, live recovery, and audit evidence. | Replay/audit are required; mechanisms and acceptance contracts are proposed. |
 | [13 — NGA architecture V0.2](13-nga-architecture-v0.2.md) | Three-state/four-plane matrix, integrated agent evolution, release continuity, and the credit lifecycle. | Current organizing proposal; axes are owner-defined, detailed mechanisms are proposed. |
 | [14 — V0 adversarial review](14-v0-adversarial-review.md) | Source-linked findings, counterexamples, corrections, and acceptance obligations for V0 and our own drafts. | Design review; no implementation tests claimed. |
+| [15 — Graph, Agent Loop, and Workflow control review](15-graph-loop-workflow-control-review.md) | Eight adversarial findings; decision-basis ownership, common execution contracts, three-state/four-plane responsibilities, logical interfaces, and governed evolution. | Discussion proposal; technology and topology choices remain open. |
 
 The [NGA overall design](../design/nga-overall-design.md) remains the program-level source for the three projects and established principles. This directory develops the architecture for project 2 and its integration into project 3.
 
