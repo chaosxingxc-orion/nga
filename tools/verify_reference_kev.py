@@ -119,11 +119,41 @@ def compare_metrics(observed, expected, context):
         close(observed[key], expected[key], context + '.' + key)
 
 
+def verify_dependency_coverage(config):
+    """Check necessary loader inputs independently of the supplied hash list."""
+    frozen = set(config['files'])
+    required = set()
+    for role in ('base', 'checkpoint'):
+        root = Path(config[role])
+        require(root.is_dir(), 'Missing dependency directory: ' + role)
+        required.update(str(p) for p in root.iterdir() if p.is_file() and
+                        (p.suffix in ('.json', '.safetensors', '.pt', '.txt', '.jinja') or p.name == '.complete'))
+    base, checkpoint = Path(config['base']), Path(config['checkpoint'])
+    for filename in ('config.json', 'tokenizer.json', '.complete'):
+        require((base/filename).is_file(), 'Missing base dependency: ' + filename)
+    require(bool(list(base.glob('*.safetensors'))), 'Missing base weight shards')
+    for filename in ('head.pt', 'adapter_config.json', 'adapter_model.safetensors'):
+        require((checkpoint/filename).is_file(), 'Missing checkpoint dependency: ' + filename)
+    code = Path(config['kev_code'])/'kev'
+    for filename in ('checkpoint.py', 'model.py', 'predictors.py', 'benchmark.py', 'metrics.py', 'api.py', 'suite.py'):
+        require((code/filename).is_file(), 'Missing native source dependency: ' + filename)
+    required.update(str(p) for p in code.rglob('*.py'))
+    root = Path(config['out'])
+    for filename in ('reference_kev_eval.py', 'run.sh', 'launch.sh', 'LAUNCH_EXACT.sh', 'PREREGISTRATION.md'):
+        p = root/filename
+        require(p.is_file(), 'Missing execution dependency: ' + filename)
+        required.add(str(p))
+    missing = sorted(required - frozen)
+    require(not missing, 'Unfrozen loader/execution dependencies: ' + ', '.join(missing[:5]))
+    return len(required)
+
+
 def audit(config_path, partial=False):
     config = read(config_path)
     stamp = object_digest(config)
     root = Path(config['out'])
     require(bool(config['files']) and bool(config['suites']), 'Empty frozen inputs or suites')
+    dependency_count = verify_dependency_coverage(config)
     for path, expected in config['files'].items():
         require(digest(path) == expected, 'Frozen file hash mismatch: ' + path)
     require(read(root / 'CONFIG_RECEIPT.json') == {'stamp': stamp}, 'Config receipt mismatch')
@@ -144,6 +174,7 @@ def audit(config_path, partial=False):
                 aggregate['suite_reports'] == terminal['suites'], 'Aggregate receipt mismatch')
     result = {'status': 'PARTIAL_NOT_ACCEPTED' if partial else 'VERIFIED_SCOPED',
               'stamp': stamp, 'frozen_files_verified': len(config['files']), 'suites': {},
+              'required_dependency_files_verified': dependency_count,
               'scope': 'Native/raw clean accuracy, Brier, ECE10, NLL and artifact identities; other diagnostics not independently verified.'}
     for suite in config['suites']:
         source = Path(suite['path'])

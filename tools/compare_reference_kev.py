@@ -20,11 +20,25 @@ def softmax(z):
     return [v/sum(e) for v in e]
 
 
+RELEASES = {'jaredpalmer__kev-0.8b': 'kev-08b-r15',
+            'jaredpalmer__kev-4b': 'kev-4b-r10',
+            'jaredpalmer__kev-9b': 'kev-9b-r27'}
+
+
+def confidence_bin(value):
+    # Match upstream numpy.linspace(0, 1, 11), including floating-point edges.
+    edges = [i * 0.1 for i in range(10)] + [1.]
+    return next(i for i, (lo, hi) in enumerate(zip(edges[:-1], edges[1:]))
+                if value >= lo and (value < hi or hi == 1 and value <= hi))
+
+
 def compare(root, upstream):
     terminal = load(root/'REFERENCE_COMPLETE.json')
     if type(terminal.get('rc')) is not int or terminal['rc'] != 0:
         raise ValueError('Complete successful reference run required')
-    release = upstream/'runs/release/kev-08b-r15.json'
+    config = load(root/'config.json')
+    release_id = RELEASES[Path(config['checkpoint']).name]
+    release = upstream/'runs/release'/(release_id + '.json')
     published = load(release)['candidate']
     result = {'kind': 'descriptive_comparison_not_equivalence_gate',
               'sources': {str(release): sha(release)}, 'suites': {}}
@@ -33,6 +47,8 @@ def compare(root, upstream):
         if sha(report_path) != terminal['suites'][name]['report_sha256']:
             raise ValueError('Report binding changed')
         report = load(report_path)
+        if report['reference_model'] != config['checkpoint']:
+            raise ValueError('Report checkpoint differs from configured release')
         local, original = report['native']['clean'], published[panel]
         if local['n'] != original['n'] or report['native_serving_temperature'] != published['temperature']:
             raise ValueError('Published/local denominator or temperature mismatch')
@@ -43,7 +59,7 @@ def compare(root, upstream):
         native_rows = root/name/'rows.json'
         if sha(native_rows) != terminal['suites'][name]['rows_sha256']:
             raise ValueError('Rows binding changed')
-        old_rows = upstream/'runs/locked/kev-08b-r15-ungated'/('decision' if name=='decision-v7' else 'transfer')/'rows.json'
+        old_rows = upstream/'runs/locked'/(release_id + '-ungated')/('decision' if name=='decision-v7' else 'transfer')/'rows.json'
         if not old_rows.exists():
             entry['paired_comparison'] = {'status': 'upstream_rows_missing', 'expected_path': str(old_rows)}
         else:
@@ -69,7 +85,7 @@ def compare(root, upstream):
                 max_dp = max(max_dp, max(abs(x-y) for x,y in zip(p,q)))
                 flips += max(range(len(p)),key=p.__getitem__)!=max(range(len(q)),key=q.__getitem__)
                 # Descriptive equal-width bin movement, not a correctness criterion.
-                bin_changes += min(9,int(max(p)*10))!=min(9,int(max(q)*10))
+                bin_changes += confidence_bin(max(p)) != confidence_bin(max(q))
             entry['paired_comparison'] = {'status': 'keys_and_metadata_aligned',
                 'all_questions':len(old),'clean_questions':clean_count,
                 'clean_max_abs_probability_delta':max_dp,'clean_argmax_disagreements':flips,

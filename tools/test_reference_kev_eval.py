@@ -5,6 +5,7 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import threading
 import unittest
 
 spec = importlib.util.spec_from_file_location('reference_eval', Path(__file__).with_name('reference_kev_eval.py'))
@@ -13,6 +14,24 @@ spec.loader.exec_module(m)
 
 
 class EvidenceTests(unittest.TestCase):
+    def test_concurrent_atomic_status_writers(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d)/'STATUS.json'
+            errors = []
+            barrier = threading.Barrier(8)
+            def writer(i):
+                try:
+                    barrier.wait()
+                    for n in range(20): m.atomic(path, {'writer': i, 'n': n})
+                except BaseException as exc:
+                    errors.append(exc)
+            threads = [threading.Thread(target=writer,args=(i,)) for i in range(8)]
+            for t in threads: t.start()
+            for t in threads: t.join()
+            self.assertEqual(errors, [])
+            self.assertEqual(json.loads(path.read_text())['n'], 19)
+            self.assertEqual(list(Path(d).glob('*.tmp')), [])
+
     def setUp(self):
         self.record = {'_meta': {'id': 'a'}, 'questions': {'q': {}}}
         self.pred = {'probabilities': {'q': {'a': .5, 'b': .5}},

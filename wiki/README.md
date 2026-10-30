@@ -31,6 +31,8 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E6](E6-reference-inference-20261030.md) | native Kev-0.8B inference compatibility on Ascend | reference evaluation | two development records completed; full test evaluation pending |
 | [E7](E7-reference-kev-test-20261030.md) | automatic native Kev-0.8B inference on decision-v7 and transfer-v4 test | reference evaluation | complete; main metrics independently recomputed; Astra review pending |
 | [E8](E8-reference-kev-scale-probe-20261030.md) | native Kev-4B development compatibility and efficiency probe | reference evaluation | four development records completed; 9B not run |
+| [E9](E9-reference-kev4-test-20261030.md) | native Kev-4B on the same official test suites | reference evaluation | running; main-metric audit pending |
+| [E10](E10-reference-recovery-20261030.md) | real process interruption and prefix-preserving inference recovery | engineering | bounded eight-record recovery verified; broader fault modes not claimed |
 
 ## Where the artifacts live
 

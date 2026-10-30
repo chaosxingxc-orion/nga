@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import sys
 import threading
+import tempfile
 import time
 
 
@@ -38,12 +39,16 @@ def objhash(obj):
 
 def atomic(path, obj):
     path = Path(path)
-    tmp = path.with_suffix(path.suffix + '.tmp')
-    with tmp.open('wb') as f:
-        f.write(canonical(obj) + b'\n')
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
+    fd, tmp = tempfile.mkstemp(prefix=path.name + '.', suffix='.tmp', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'wb') as f:
+            f.write(canonical(obj) + b'\n')
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
 
 
 def verify_files(config):
@@ -114,7 +119,8 @@ def main():
             with (out / 'heartbeat.log').open('a') as f:
                 f.write(utc() + ' ' + ' '.join(f'{k}={v}' for k, v in status.items()) + '\n')
 
-    threading.Thread(target=heartbeat, daemon=True).start()
+    heartbeat_thread = threading.Thread(target=heartbeat, daemon=True)
+    heartbeat_thread.start()
     terminal = out / 'REFERENCE_COMPLETE.json'
     try:
         verify_files(config)
@@ -245,6 +251,7 @@ def main():
         raise
     finally:
         stop.set()
+        heartbeat_thread.join()
         atomic(out / 'STATUS.json', {'utc': utc(), **status})
 
 
