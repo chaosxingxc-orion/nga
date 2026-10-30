@@ -1,5 +1,38 @@
 # tools/
 
+## Native reference inference
+
+`reference_kev_eval.py --config FILE` executes frozen native Kev inference and scoring on
+175 inside the existing image. The run config binds model/base files, original source,
+tokenizer, official split manifests, execution scripts and expected counts. It stores
+atomic per-record receipts, supports validated item-level resume and writes a structured
+terminal. E7/E9 wiki entries specify the current protocols; changing the script does not
+change already frozen runs.
+
+`verify_reference_kev.py --config FILE --out REPORT` independently checks necessary
+dependency coverage and file hashes, every persisted input/prediction identity, complete
+question sets, and native/raw clean accuracy, Brier, ECE10 and NLL. It uses stdlib arithmetic,
+not the inference driver's scorer. `--partial` returns exit code 3 and never grants acceptance.
+`compare_reference_kev.py --run DIR --upstream KEV_REPO --out REPORT` reports descriptive
+differences against the matching 0.8B/4B/9B release; no numerical-equivalence gate is implied.
+
+`reference_finish.py --plan FILE` is a detached CPU downstream stage: wait for inference
+terminal and wrapper success, audit, then compare. Its plan freezes the checker scripts and
+source reports. It writes its own `FINISH_COMPLETE.json`, heartbeat and report hashes, and
+stops if any dependency fails. It neither uses NPUs nor restarts inference. Launch it with a
+retained named Docker container and CephFS output as recorded in E9.
+
+`resume_reference_kev.py --config FILE --container NAME` runs on host 175. It requires a
+launch receipt binding container ID, command, entrypoint, immutable image and config/wrapper
+hashes; exact chip mapping and current allocation must match. It refuses successful-run
+restarts and archives stale markers before restarting an exited failed/interrupted container.
+Do not use older minimal restart scripts after resource reassignment.
+
+Relevant CPU checks are `test_reference_kev_eval.py`, `test_verify_reference_kev.py`,
+`test_resume_reference_kev.py`, `test_reference_recovery.py` and `test_reference_finish.py`.
+E10 records actual SIGKILL/restart evidence; these checks do not prove all possible failure
+modes or constitute independent Astra review.
+
 ## watchdog.py
 
 Tier-0 of the escalation design: a deterministic script (Python 3 standard library only, no model) that

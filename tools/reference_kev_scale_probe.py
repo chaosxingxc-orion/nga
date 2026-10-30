@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import sys
 import time
+import tempfile
 
 
 def digest(path):
@@ -24,12 +25,17 @@ def digest(path):
 
 
 def atomic(path, obj):
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    with open(tmp, "w") as f:
-        json.dump(obj, f, indent=2, allow_nan=False)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
+    fd, tmp = tempfile.mkstemp(prefix=path.name + '.', suffix='.tmp', dir=path.parent)
+    try:
+        os.fchmod(fd, 0o644)
+        with os.fdopen(fd, "w") as f:
+            json.dump(obj, f, indent=2, allow_nan=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
 
 
 def main():
@@ -58,7 +64,8 @@ def main():
             atomic(out / "STATUS.json", {"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), **status})
             with (out / "heartbeat.log").open("a") as f:
                 f.write(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) + " " + " ".join(f"{k}={v}" for k,v in status.items()) + "\n")
-    threading.Thread(target=heartbeat, daemon=True).start()
+    heartbeat_thread = threading.Thread(target=heartbeat, daemon=True)
+    heartbeat_thread.start()
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
     import torch
@@ -149,6 +156,7 @@ def main():
         if digest(filename) != expected:
             raise ValueError("Frozen file changed during probe: " + filename)
     stop.set()
+    heartbeat_thread.join()
     status["stage"] = "complete"
     atomic(out / "STATUS.json", status)
     atomic(out / "REFERENCE_PROBE_COMPLETE.json", {"rc": 0, "stamp": stamp, "records": len(results), "test_metrics": False})

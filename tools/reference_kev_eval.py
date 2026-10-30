@@ -45,6 +45,7 @@ def atomic(path, obj):
             f.write(canonical(obj) + b'\n')
             f.flush()
             os.fsync(f.fileno())
+        os.chmod(tmp, 0o644)
         os.replace(tmp, path)
     finally:
         if os.path.exists(tmp):

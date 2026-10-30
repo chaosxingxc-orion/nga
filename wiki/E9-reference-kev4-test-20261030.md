@@ -69,6 +69,40 @@ live container and labels itself as post-launch evidence. See
 Independent Astra substantive review remains pending; acknowledgments of rules are not review
 verdicts. No training or locked NGA candidate test is involved.
 
+**Pre-launch registration for the downstream CPU stage, 2026-10-30:** while inference is
+running, freeze a separate finisher at `reference_inference/kev4_test_20261030_finish/`.
+It waits for both structured inference success and wrapper DONE, then runs the independent
+auditor and descriptive release comparison in order. Failure, malformed terminal, or missing
+evidence prevents acceptance. This adds automation without changing inference inputs,
+metrics or thresholds. Fixed detached container `nga-reference-kev4-finish` uses the same
+immutable image, no NPU device mappings, retained on exit; CephFS receives 15-second
+heartbeat, log files, exact launch, provenance hashes and `FINISH_COMPLETE.json` plus
+DONE/FAILED. The output is a scoped automated verification, not an Astra verdict.
+
 ## Verdict
 
-Pending complete inference and evidence review.
+**Completion, 2026-10-30 15:08 UTC:** the inference structured terminal, wrapper and retained
+container all record success. The detached CPU finisher then independently checked all 72
+frozen files, 63 required dependency files, 1,940 records and 2,204 question rows, recomputed
+the primary native/raw metrics and generated the release comparison. Its structured terminal
+is `COMPLETED_SCOPED`, rc 0; its container also exited 0. The orchestrator verified the hashes
+of both finisher outputs against its terminal. Chip 2 was released after completion checks.
+
+| Test | Clean n | Local accuracy | Published accuracy | Local Brier | Published Brier | Local ECE10 | Published ECE10 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| decision-v7 | 1,200 | .865000 | .865000 | .186240156 | .186253097 | .019310292 | .019285055 |
+| transfer-v4 | 656 | .838414634 | .838414634 | .224156698 | .224210081 | .016704248 | .016767486 |
+
+Raw-temperature-one Brier/ECE10 are .210427075/.080424065 for decision and
+.241839087/.085532335 for transfer. No parameter was fitted on test. Published per-question
+rows for these two 4B release panels were absent in the mirror, so aggregate accuracy equality
+does not establish identical predictions. Calibration deltas remain reported; no cross-device
+equivalence verdict is claimed. Full audit and source hashes live in the separate finisher
+directory's `INDEPENDENT_AUDIT.json` and `PUBLISHED_COMPARISON.json`.
+
+The first frozen finisher used mkstemp's default 0600 permissions. It executed successfully,
+but its root-owned JSON status/terminal files were unreadable from the host until their modes
+were explicitly set to 0644 after completion. This changed permissions only, not contents;
+output hashes still match. Repository writers now set shared artifact permissions before
+publication. The finisher's subprocess tests cover a valid chain and an audit failure blocking
+comparison; this is not independent Astra approval. No training benefit is claimed.
