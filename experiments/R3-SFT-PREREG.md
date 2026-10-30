@@ -574,10 +574,11 @@ directory.
 14.4 **Amendment 4, kernel verdict and a downstream kernel test, 2026-10-30.** Applying §14.1 as
 written: (a′) passed (fp32 logits relative L2 5.85e-5, minimum gradient cosine 0.9999984), (b′)
 failed (96.6% of tensors within the bound against 99% required; no tensor beyond 3×; logits ratio
-1.016), and (c) failed (mean |Δloss| 0.0281, last-50-step mean −6.65%). Every round-1 arm at 0.8B
-therefore trains on the **reference** kernel. The (c) tolerance was found to sit below run-to-run
-noise: the reference against its own same-seed rerun gives 0.0272 and −3.03%. It is not relaxed
-retroactively.
+1.016), and (c) failed (mean |Δloss| 0.0281, last-50-step mean −6.65%). This amendment's verdict and
+its kernel references are to the fused gated-delta-rule / FLA kernel under `speedup/` only; a third
+implementation is governed by §14.7 item 1. Every round-1 arm at 0.8B therefore trains on the
+**reference** kernel. The (c) tolerance was found to sit below run-to-run noise: the reference against
+its own same-seed rerun gives 0.0272 and −3.03%. It is not relaxed retroactively.
 For the ladder only (2B, 4B, 9B), the fast kernel becomes admissible through one downstream test,
 fixed now, before it is run: K1 seed 2 at 0.8B is trained a second time with the fast kernel (arm
 K1-FLA, engineering only, never a candidate for adoption and never read on test). The fast kernel is
@@ -843,3 +844,163 @@ generated 03:26Z) was read and before any readout of record exists.
    reference stage-1 numbers' measurement precision is unknown and that this round's side is fp32.
 7. **Harness fixes required before scoring**: `measure_floor.py` writes `rows.json`/`enc_info.json`
    per tag, and every score file carries per-item keys and the sample sha1.
+
+14.7 **Amendment 7, a third gated-delta-rule kernel (`gdn_fast_ref`), K2 prompt sharing and its
+dropout mask, and a backward-pass nondeterminism defect in the trainer, 2026-10-30.** Made before any
+arm of wave 1 was trained and before any readout of record exists.
+1. **§14.4's scope is narrowed, and the gap it leaves is closed.** §11.3, §14.1 and §14.4 are read as
+   governing one specific implementation: the fused gated-delta-rule / FLA kernel under
+   `/mnt/cephfs/xingchao/docker/verl_v030_20261029/speedup/`. §14.4's verdict ((b′) and (c) failed;
+   the ladder route through K1-FLA) applies to that kernel and to no other. §14.4's sentence "every
+   round-1 arm at 0.8B therefore trains on the reference kernel" is read as "…trains on a kernel
+   admitted under §11.3 as amended", and the only kernels so admitted are the in-tree reference
+   (`transformers.models.qwen3_5.modeling_qwen3_5.torch_chunk_gated_delta_rule`) and any kernel that
+   passes item 2 below. A third implementation does not inherit the word "reference" by being
+   mathematically the same function; it is admitted by measurement or not at all.
+2. **`gdn_fast_ref` (`r3_code/gdn_fast_ref.py`, `--gdn-impl fast_ref`): its gate, fixed before the
+   runs it needs exist.** The reference kernel's math re-implemented with a block-doubling matrix
+   inverse and an analytic backward in place of the 63-iteration in-place inverse. Motivation is
+   launch-bound execution, not precision: ~69,000 device tasks per step at 21% device-busy wall time,
+   corroborated by 9–22% AICore on host 175 under three concurrent jobs. It is admitted for wave 1 and
+   for the ladder only after all of (G1)–(G4) pass, on fixed batches of real decision-v7 train rows,
+   with every number and the sha256 of `r3_code/train_r3.py`, `gdn_fast_ref.py`, `test_gdn_e2e.py` and
+   `test_gdn_fast_ref.py` written into `r3_runs/eff/gate_fast_ref/` and committed before any arm of
+   wave 1 launches. All four are measured on the trainer **after** the item 4 fix.
+   - **(G1) Same function in fp32, layer and model level.** Layer level, already measured and recorded
+     here as the declared prior: fast-vs-ref max relative L2 2.63e-07 to 3.51e-07 over shapes
+     (B2,T64), (B3,T100), (B2,T700), (B1,T1024), (B4,T257), with and without an initial state; against
+     an fp64 gold both kernels agree to ~1e-6; worst over the 18 real layers 3.1e-05 forward and
+     8.3e-05 gradient (`r3_runs/eff/final_test_gdn/run.log`). Required in addition, at model level with
+     the whole model in fp32 and no autocast: logits relative L2 between the two kernels ≤ 1e-4, and
+     every trainable tensor's gradient cosine ≥ 0.9999. This is §14.1 (a′) applied unchanged.
+   - **(G2) §14.1 (b′) per tensor, at model level.** With e_X(t) the relative L2 of LoRA tensor t's
+     gradient from kernel X in bf16 against the whole-model fp32 gold on the same step:
+     e_fast(t) ≤ 1.5 · e_ref(t) + 1e-3 for at least 99% of the 372 tensors, and no tensor has
+     e_fast(t) > 3 · e_ref(t) + 1e-3. This is the identical bound the FLA kernel failed at 96.6%
+     (§14.4), and it is the number that decides this kernel. The stacked figures already recorded
+     (e(F,G) 4.02e-02 against e(R,G) 3.79e-02, ratio 1.06) do not discharge it.
+   - **(G3) A same-config replicate floor, which did not exist when this kernel was proposed.** Two
+     invocations of the reference kernel with identical micro-batch, seed, data and chunk plan: report
+     d(R,R′) over the stacked LoRA gradient and |loss_R − loss_R′| per step. This replicate floor, and
+     not re-batching, is the floor of record for every bf16 statement about this kernel. The floor used
+     when the kernel was proposed — d(R2,R) = 3.77e-02 / 3.78e-02 with R2 at one row per chunk
+     (`r3_runs/eff/gdn_e2e2`, `final_test_gdn`) — is **void as a floor** under item 4: one row per
+     chunk is the habitat of the defect found there, measured at 1.8e-02 relative L2 against the
+     corrected path, so that number mixes re-batching with the defect. d(R3,R) is also not a second
+     composition: R3 has R's chunk count and padding and its median per-tensor difference is 0.0e+00.
+   - **(G4) Trajectory, 100 steps, judged on the trend and not only the mean.** Both kernels run 100
+     optimizer steps with the same seed, data and chunk plan. (G3) is measured and written into
+     `gate_fast_ref/` before (G4) is run, so (G4)'s bar is fixed before its own data exists. The per-step |Δloss| series is reported
+     in full. Pass requires **both**: mean |Δloss| ≤ max(the (G3) floor, 0.5 · |loss_R − loss_G| as
+     measured on the same rows, i.e. 1.14e-02 against the recorded |loss_R − loss_G| = 2.28e-02); and
+     the mean of the last 20 steps ≤ 3 × the mean of the first 20 steps. The second clause exists
+     because the four-step evidence offered (1.5e-3, 1.4e-3, 4.4e-3, 1.2e-2, mean 4.7e-3) grows
+     monotonically by 8× while its proposed floor series (7.5e-3, 2.5e-3, 8.8e-3, 9.7e-4) does not, so
+     a four-step mean cannot distinguish bf16 noise from divergence. §14.1 (c) is **not** relaxed
+     retroactively and remains as written for the FLA kernel (§14.4); (G4) is a different test,
+     pre-registered for a different kernel before it runs, and its floor is same-config rather than a
+     second draw of composition noise, which is why §14.6 item 1's objection to criterion (i) does not
+     apply to it.
+   - **If any of (G1)–(G4) fails, wave 1 and the ladder train on the reference kernel**, at the
+     measured cost of about 2.8 h per K1 run at three processes per chip and about 6.8 h per K2-shared
+     run, roughly a day for the wave. That consequence is recorded here so the gate is not reopened
+     under schedule pressure after a result is seen.
+   - **Ladder.** Every `fast_ref` number is at 0.8B over 18 layers. Before each of 2B, 4B and 9B trains
+     with `fast_ref`, (G1) is repeated at that size on real rows of that size and recorded; a size that
+     fails trains on the reference kernel. (G2)–(G4) are not repeated per size.
+   - **No `K1-fast_ref` arm is created.** §14.4's downstream route existed because the FLA kernel had
+     failed the numeric gate and a coarse accuracy check was the only remaining instrument. A ±1.0-point
+     one-seed accuracy band cannot resolve what this gate resolves in fp32, and a ninth run is not
+     spent on it.
+   - **Discrimination counterpart (rule 2).** The unconstrained optimum of a speedup gate is a kernel
+     that is bit-identical and therefore passes trivially; the counterpart is a wrong fast kernel that
+     must fail. Recorded: the first attempt, a Neumann-product inverse, fails the 1e-3 forward check on
+     3 of the first 8 real layers, and its NaN-loss benchmarks are excluded in
+     `r3_runs/eff/INVALID_nan_square_inverse/` and cited in no number of this round.
+   - **Speed figures carry the host's own noise.** `r3_runs/eff/bench_record.json`'s note records
+     ~10–15% repeat-to-repeat variation from other tenants on the same chips and CPUs, so every
+     throughput and wall-clock estimate in this item is ±15%. `mk_bench_record.py` adds `gdn_impl`,
+     `k2_impl` and the trainer sha256 as fields, since §7.7 requires a kernel record per run and the
+     implementation is currently recoverable only by parsing `train_command`.
+3. **§7.3: K2 trains with the prompt forwarded once, and with the prompt-side LoRA-dropout mask shared
+   across a question's options.** `--k2-impl shared` (`r3_code/k2_shared.py`) forwards each question's
+   prompt once and continues every option from the cached attention keys and values, convolution state
+   and recurrent state, with gradients through both passes. Admitted, for `--arm k2`, as the K2
+   configuration of record.
+   - **Equality, measured, dropout off, fp32, real decision-v7 rows of 2 to 78 options**: per-option s
+     worst |s_rows − s_shared| 4.2e-05 nats against §7.3's 1e-3; step loss |Δ| ≤ 2.0e-06; LoRA
+     gradients over 372 tensors worst relative L2 1.7e-05, worst cosine 0.9999998; a left-padded batch
+     of 8 ragged prompts equals each question scored alone to 2.7e-05; discrimination counterpart
+     (options continued from another question's state) differs by 35.57 nats
+     (`r3_runs/eff/final_test_k2_shared/run.log`). §7.3's independent-scorer equality holds at 4.58e-05
+     nats on 2 to 77 options (`final_test_train_r3d`). §7.3's 1e-3 bar is unchanged and is met.
+   - **Declared deviation from §7.2's regularizer, which equality does not cover.** The two forms are
+     equal with dropout off. With dropout 0.05 they are different regularizers: the shared form draws
+     one prompt-side LoRA-dropout mask per question, the row form draws one per option. The shared form
+     is chosen, and not for speed: K1 contributes one row per question (§3.4 siblings being their own
+     rows) and therefore already draws one prompt mask per question, so the shared form is the one
+     whose dropout granularity matches K1's, and §8.2's K1-against-K2 decision then compares objectives
+     rather than regularizers. The row form would introduce that confound. Because the K2 loss is a
+     softmax across a question's options, a shared mask partly cancels inside the softmax, so the row
+     form is also the higher-variance one. Dropout 0.05 is unchanged; dropout is **not** turned off for
+     K2, which would confound objective with regularization in the one comparison this wave exists to
+     make.
+   - **The row form is not a fallback.** It is 91 s per step, about 79 h per run, and is not runnable in
+     round 1 on any kernel. If K2 runs in wave 1, the prompt is forwarded once.
+   - **Semantics pinned by test, not by implication.** A test naming this clause asserts that the
+     prompt-side dropout mask is identical across a question's options within a step and differs
+     between steps (`train_r3.py` seeds dropout per step as seed·1000003 + step), and is recorded in
+     every K2 run directory under §7.7. Every K2 report of record states `k2_impl` and the realized
+     dropout.
+   - **The weakest measured cell is the production one and is re-measured before launch.** In bf16 with
+     `fast_ref`, the shared form's RMS per-question loss error against the fp32 gold is 0.0746 against
+     the row form's 0.0642 with a re-batching floor of 0.0640 — the floor does not cover the difference,
+     and the cell passes only on the test's `1.5 · e_rows + 0.005` slack; under the reference kernel the
+     same cell is clean (0.0585 against 0.0586, floor 0.0887) (`final_test_k2_shared/run.log`). That
+     cell is repeated with the item 2 (G3) same-config replicate floor in place of the re-batching
+     floor, and recorded, before K2 launches.
+4. **A backward-pass nondeterminism defect in `r3_code/train_r3.py`, found before any run of record.**
+   With a plain 2D attention mask, transformers drops the mask when a chunk has no padding — a single
+   row, or rows of equal length — and sdpa takes the causal flash path, whose backward is not bitwise
+   reproducible on this stack: repeat-to-repeat LoRA-gradient differences of about 2% relative L2, and
+   1.8e-02 relative L2 against the corrected path (`r3_runs/eff/diag_det`, `diag_det2`, `diag_det3`).
+   `row_logprob_sums` now always builds an explicit 4D mask, at no measured speed cost.
+   - **Scope, stated precisely: the defect is in the backward pass.** Scoring performs no backward, so
+     no readout of record is affected, and §14.2, §14.5 item 7 and §14.6 stand unchanged. §14.6 item 1's
+     finding that `exact` and `exact2` are bit-identical in 9 of 9 cells is direct evidence on the
+     point: `exact` (one row per candidate) and `eq` (equal-length rows, no padding) are exactly this
+     defect's habitat on the forward path and are reproducible there, which is why §14.6's "the
+     variation is batch composition, not nondeterminism" survives. That reason is recorded here because
+     it is now load-bearing.
+   - **No determinism claim about a run of record is corrected, because no run of record exists yet.**
+     This is not a precedent that nondeterministic gradients are tolerable; it is the reason the finding
+     is cheap.
+   - **§14.3's "exact resume" is restated as measured, post-fix, and not as "bitwise".** Across five
+     post-fix repeats the final adapter is identical at 0.00e+00 in all five; the logged per-step loss
+     is 0.00e+00 in three and 5.96e-08 / 2.98e-08 on steps 5 and 6 in two, reproducibly the same values
+     (`r3_runs/eff/res_fixed_a`, `res_fixed_b`, `final_test_train_r3d`). The admissible claim is
+     "bit-identical in the adapter; the logged loss agrees to 6e-08".
+   - **The fix is verified for only half of its stated scope, and that is closed before launch.**
+     `diag_determinism.py` probes the corrected path for one long row and one short row (both bitwise
+     reproducible) but its only "2 identical-length rows" probe calls the uncorrected path, where it is
+     nondeterministic at 2.0e+00. A probe of two identical-length rows **through the corrected path** is
+     added and must come out bitwise reproducible before wave 1 launches. Equal-length chunks are the
+     common case for a question's options, so this is the half that matters for K2.
+   - **Every pre-fix number used as a floor is void as a floor**, by name: the d(R2,R) = 3.77e-02 and
+     3.78e-02 figures of `gdn_e2e2` and `final_test_gdn` (item 2 (G3)). Pre-fix numbers used as speed
+     measurements stand.
+   - **Smoke-run note, no correction.** §14.5 item 5's adapter was trained before this fix and is not a
+     run of record. Its conclusion is unaffected: 0.755 / 0.760 / 0.750 compares one adapter under two
+     folding treatments, so it does not depend on how that adapter was trained.
+
+**Launch checklist (§14.7).** All of the following are committed before `docker run -d` on any wave-1
+arm:
+1. This amendment (§14.7).
+2. `r3_runs/eff/gate_fast_ref/` holding (G1)–(G4) with the four sha256s of item 2, or the recorded
+   decision to train on the reference kernel.
+3. The corrected equal-length determinism probe (item 4), green.
+4. The K2 dropout-mask-semantics test (item 3), green.
+5. The production bf16 K2 cell — shared K2 on whichever kernel item 2 leaves of record — re-measured
+   against the (G3) floor (item 3), recorded.
+6. `r3_runs/eff/bench_record.json` carrying `gdn_impl`, `k2_impl` and the trainer sha256.
+7. The §14.5 item 4 step 2 chip-assignment file, written with its sha256 recorded.
