@@ -1368,5 +1368,13 @@ whose §6 carries this text; §14.8 is a different amendment, from a different r
      discharged by the rewrite**: the full suite must still be re-run on a chip with its output
      recorded in the run directory before the first readout of record. This note exists so the
      paragraph above is not read later as a false statement about the tree; it was true of the tree
-     the ruling examined. This is not a relaxation of any
+     the ruling examined.
+   - *Discharged, 2026-10-30 05:46:41Z.* The full suite was re-run on chip 2 into
+     `r3_runs/scorer_r3/test_rerun/`, marker `DONE` with `rc=0`: **8 tests, 8 passed, 0 failed**, no
+     traceback. The replacement test measures max |Δ| from `exact` of 3.9e-5 to 7.7e-5 over `eq_a`,
+     `eq_c`, `rp_a`, `rp_b`, `fast_a` and `fast_b` against the 1e-3 bar, with 25 of 25 rows
+     evaluated; its discrimination counterpart fails as required, bf16 `eq_c` against bf16 `exact`
+     being 0.356 nats. A second test asserts HF32 is off for the precision of record and that
+     `fp32_verdict` refuses an fp32 cell whose `hf32` flag is not false. This clause is therefore
+     no longer outstanding against the first readout of record. This is not a relaxation of any
    bar: the bf16 bar is not lowered, the precision it governed is no longer admissible.

@@ -240,7 +240,14 @@ re-derived here from the sidecars (`fp32/layout_audit.md`, produced by `layout_a
   rule and failed (a known-red test in the scorer of record's file). It is **replaced** (not skipped)
   by `test_fp32_candidates_meet_the_amendment6_bar`, which applies the §14.6 item 3 bar in fp32 and
   fails bf16 as its counterpart, plus `test_s14_6_2_hf32_is_off_for_the_precision_of_record_and_a_readout_header_says_so`.
-  Rerun result: see the run directory `r3_runs/scorer_r3/test_rerun`.
+  Rerun on one chip (fp32 and bf16 cases, 05:29Z to about 05:50Z, run directory
+  `r3_runs/scorer_r3/test_rerun`, `DONE`): **8 of 8 tests pass**. The new bar test, n = 25 fixed rows, 25 evaluated:
+  max |Δ| from `exact` 7.1e-5 (`eq_a`), 3.9e-5 (`eq_c`), 5.8e-5 and 7.7e-5 (`rp_a`, `rp_b`), 5.2e-5 and 5.7e-5
+  (`fast_a`, `fast_b`); the counterpart bf16 `eq` (3 rows per batch) against bf16 `exact` is 0.356 nats, so the bar
+  fails bf16 as it should. The chip-free suites that touch the evaluation harness also pass after the census
+  change: `test_full_eval_r3` 10, `test_track_t_r3` 14, `test_variants_r3` 11, `test_prechecks_r3` 13,
+  `test_harness_identity_r3` 9, `test_sample_r3` 5 (`test_select_r3` needs numpy, which the login host lacks, and
+  was not run).
 - The near-tie census of §14.9 item 5 (`core_r3.near_tie_census`, listed items carry their top-2 candidates) and the string-level duplicate audit
   (`core_r3.duplicate_option_audit`) ride with every Track K headline and every Track T cell in
   `full_eval_r3.py`; the duplicate-candidate rule is kept as a declared-vacuous safeguard whose
