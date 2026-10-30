@@ -38,11 +38,14 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E13](E13-openjev2-native-probe-20261030.md) | native Open-Jev-2B typed synthetic compatibility | reference evaluation | three synthetic requests completed; public test not yet run |
 | [E14](E14-openjev2-public-test-20261030.md) | native Open-Jev-2B on 10,356 public test rows | reference evaluation | complete length preflight passed; full inference launched on 175 chip 2 |
 | [E15](E15-openjev-independent-finish-20261030.md) | independent Open-Jev metric audit and automatic finish | engineering | CPU waiter launched; whole-test audit awaits inference completion |
-| [E16](E16-nimble-native-probe-20261030.md) | restored initial Nimble native candidate-token readout | engineering | eight synthetic outputs completed; public-test data restoration remains |
+| [E16](E16-nimble-native-probe-20261030.md) | restored initial Nimble native candidate-token readout | engineering | eight synthetic outputs completed; exact public-test restoration completed in E19 |
 | [E17](E17-openjev9-native-probe-20261030.md) | native Open-Jev-9B typed compatibility | engineering | three synthetic fixtures completed and verified |
 | [E18](E18-openjev9-public-test-20261030.md) | native Open-Jev-9B on the same 10,356 public test rows | reference evaluation | full length preflight passed; inference running on 175 chip 1 |
-| [E19](E19-nimble-public-test-20261030.md) | original Nimble on seven exact public test subsets | reference evaluation | 1,884 rows restored with matching hashes; native inference running on chip 3 |
-| [E20](E20-kev-extended-test-20261030.md) | Kev 0.8B/4B/9B on hard-v1 and documents-v1 | reference evaluation | longest-development probes passed; three automatic inference/audit chains running |
+| [E19](E19-nimble-public-test-20261030.md) | original Nimble on seven exact public test subsets | reference evaluation | 1,884-row inference complete; E21 audit failed and diagnosis pending |
+| [E20](E20-kev-extended-test-20261030.md) | Kev 0.8B/4B/9B on hard-v1 and documents-v1 | reference evaluation | all three sizes complete with scoped audits at 16:36 UTC |
+| [E21](E21-nimble-independent-finish-20261030.md) | independent Nimble scoring audit and automatic finish | engineering | independent audit failed at 16:33:52 UTC; diagnosis pending |
+| [E22](E22-kev-devtools-reference-20261030.md) | Kev devtools full/release dual-population inference | reference evaluation | all three automatically launched; 0.8B scoped audit complete, 4B/9B running |
+| [E23](E23-openjev-original-data-restoration-20261030.md) | exact original Open-Jev split restoration | data restoration | completed; five original split hashes match; inference not implied |
 
 ## Where the artifacts live
 

@@ -101,3 +101,51 @@ positive finite timings and matching token counts; five valid/corrupt/empty/timi
 tests passed. Running frozen code remains unchanged. Do not automatically restart these
 three runs through the old probe reuse branch: independently review existing probe evidence
 first, or register a corrected new run. No actual crash/recovery claim is made for E20.
+
+
+**2026-10-30 16:29 UTC completion update:** 0.8B completed at 16:23:51 UTC,
+with wrapper `DONE rc=0` at 16:24:00 and retained container exited/0.
+`INDEPENDENT_AUDIT.json` reports `VERIFIED_SCOPED`, 68 frozen files and 58 required
+dependencies checked, all 1,274 records / 2,024 questions covered.
+
+| Suite | n | Accuracy | Serving Brier | Serving ECE10 | Serving NLL | Raw T=1 Brier | Raw ECE10 | Raw NLL |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| hard-v1 | 1088 | .666360294118 | .459719074612 | .125548387874 | .862586683630 | .435635256853 | .045529391553 | .810524748249 |
+| documents-v1 | 936 | .851495726496 | .244001496780 | .071009331426 | .491122215279 | .249443193413 | .078570712270 | .575928811965 |
+
+Hard accuracy is one correct question above release .665441176471; documents accuracy
+matches release. Upstream 0.8B hard/documents per-row files were not available, so the
+flipped question cannot be identified from aggregate scores. This is a scoped reference
+reproduction with retained differences, not exact numerical equivalence or NGA benefit.
+At 16:28:47 / 16:28:48 UTC, 4B / 9B remained in documents test at 535/574 and 454/574
+records. Their complete results and final verdict remain pending. E22 has taken chip 0
+through its dependency-checked controller and started devtools inference; E20 evidence
+remains retained. No substantive Astra approval is claimed.
+
+**2026-10-30 16:36 UTC completion update (supersedes the running status above):**
+All three sizes completed both suites and scoped independent audits. Wrapper completion times
+were 16:24:00 / 16:29:54 / 16:31:50 UTC for 0.8B / 4B / 9B. Retained containers exited/0;
+launch identities and successful structured terminals were checked. Frozen/required dependency
+counts are 68/58, 73/63 and 72/62. Each model covers 1,274 records / 2,024 questions.
+
+| Model | Test | n | Temperature | Accuracy % | Brier | ECE10 | NLL |
+| --- | --- | ---: | --- | ---: | ---: | ---: | ---: |
+| Kev-0.8B | hard-v1 | 1,088 | Released serving temperature | 66.636029 | 0.459719075 | 0.125548388 | 0.862586684 |
+| Kev-0.8B | hard-v1 | 1,088 | raw T=1 | 66.636029 | 0.435635257 | 0.045529392 | 0.810524748 |
+| Kev-0.8B | documents-v1 | 936 | Released serving temperature | 85.149573 | 0.244001497 | 0.071009331 | 0.491122215 |
+| Kev-0.8B | documents-v1 | 936 | raw T=1 | 85.149573 | 0.249443193 | 0.078570712 | 0.575928812 |
+| Kev-4B | hard-v1 | 1,088 | Released serving temperature | 80.330882 | 0.277582963 | 0.084146933 | 0.510298577 |
+| Kev-4B | hard-v1 | 1,088 | raw T=1 | 80.330882 | 0.266842485 | 0.048480941 | 0.488188227 |
+| Kev-4B | documents-v1 | 936 | Released serving temperature | 90.277778 | 0.170655143 | 0.100830150 | 0.356801403 |
+| Kev-4B | documents-v1 | 936 | raw T=1 | 90.277778 | 0.152238923 | 0.043752814 | 0.327753587 |
+| Kev-9B | hard-v1 | 1,088 | Released serving temperature | 83.455882 | 0.233743052 | 0.054294197 | 0.425359759 |
+| Kev-9B | hard-v1 | 1,088 | raw T=1 | 83.455882 | 0.240956076 | 0.062900228 | 0.451785035 |
+| Kev-9B | documents-v1 | 936 | Released serving temperature | 89.957265 | 0.151423755 | 0.017013200 | 0.297516503 |
+| Kev-9B | documents-v1 | 936 | raw T=1 | 89.957265 | 0.165813476 | 0.062541371 | 0.412029369 |
+
+9B hard accuracy is also one correct question above upstream .833639705882; 4B hard and
+all documents accuracies agree with the corresponding upstream aggregates. This is not
+per-item or probability equivalence. For 4B documents, the supplementary upstream report
+supports accuracy only until calibration comparability is established. Full native/raw tables
+are independently recomputed; no NGA training benefit or substantive Astra approval follows.
+All three released chips have been transferred by E22's guarded dependency controller.
