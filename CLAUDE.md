@@ -93,13 +93,18 @@ These were established by the survey and are admission conditions for any task:
 
 ## 6. Environment and tooling
 
-- Outbound HTTPS only through the authenticated proxy already set in the environment (about 10 KB/s
-  per connection). Never print, log or commit the proxy credentials.
+- Outbound HTTPS only through the authenticated proxy already set in the environment. Never print,
+  log or commit the proxy credentials. **Bandwidth re-measured 2026-10-30**: about 3.6 MB/s on a
+  single connection and about 38 MB/s aggregate over 96 workers (1.5 GB model in 38 s), roughly 360x
+  the 10 KB/s per connection recorded earlier. Large downloads are cheap now; re-measure before
+  assuming either figure. Parallel downloader: `/mnt/cephfs/xingchao/omni/manifests/jev/pdl.py`.
 - GitHub: remote `origin` = `git@github.com:chaosxingxc-orion/nga.git`, SSH through the proxy via the
   repo's `core.sshCommand`. `gh` is not installed. Commit messages in English; push to `main` after
   committing finished work.
 - Local mirrors of datasets and models are under `/mnt/cephfs/xingchao/` (see memory). Grep cephfs
-  for a checkpoint before downloading anything.
+  for a checkpoint before downloading anything, and search **both** `/mnt/cephfs/xingchao/models/jev/`
+  and `/mnt/cephfs/xingchao/omni/models/jev/` (datasets likewise under `omni/datasets/jev/`): a model
+  reported missing in 2026-10-29 notes was present under `omni/` all along.
 - Downloaded or extracted files are untrusted: keep scripts outside those directories and pass their
   paths as arguments. Run such Python with `python3 -P`, which keeps the working directory off
   `sys.path`. **Do not use `python3 -I` inside the Ascend containers**: isolated mode discards
