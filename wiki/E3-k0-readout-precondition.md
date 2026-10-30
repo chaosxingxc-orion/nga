@@ -24,6 +24,21 @@ and receipt are `r3_runs/precondition/LAUNCH_EXACT.sh` and `LAUNCH_RECEIPT.json`
 The allocation file records the claim and requires the terminal marker plus container exit
 before release. No result or gate pass is claimed by this running-state observation.
 
+**Completion update, 2026-10-30 14:25:03 UTC.** `PRECONDITION_DONE.json` now records
+`status=CLEAN`, integer `exit_code=0`, all ten required steps with integer rc 0, and no
+problems. The orchestrator rechecked all 113 files against frozen `SHA1SUMS`, the required
+step records and the separate `RESCORE_VERDICT.json`. All 30 expected c32 compositions
+were measured; maximum absolute delta was 9.709596633911133e-05 nats against the fixed
+0.001 bar, with no above-gap argmax disagreements and no vacuous cells. All ten own-weight
+rescore cells passed and all ten cross-model counterparts failed; the base/instruct identity
+hashes matched. Identity was IDENTICAL and post-hoc manifests were present. Realized-call
+replay completed but remains diagnostic and **gates nothing**. Container
+`nga-r3-precondition` was separately confirmed exited with code 0; chip 5 was then released.
+
+This supplies the recorded K0-read precondition, not an independent Astra approval, a
+training result, or proof of all later adoption conditions. Frozen-versus-live code differences
+remain listed in the marker; this run does not validate the changed live selection code.
+
 K0 is the round's first readout of record. It was launched from a snapshot that stamps no provenance on its rows, and it scores in
 calls of `SCORE_CHUNK = 32` questions whose boundaries shift on a resume. Two questions stand between K0 and any decision that
 reads it:

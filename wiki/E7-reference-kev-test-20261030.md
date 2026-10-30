@@ -79,4 +79,37 @@ snapshot is preserved as `PREREGISTRATION.md` in the run directory.
 
 ## Verdict
 
-Pending execution and evidence review. No new formal training or locked NGA test is involved.
+**Completion update, 2026-10-30 14:39:25 UTC.** The driver terminal and wrapper DONE both
+record rc 0; the retained container independently reports exited/0. The complete run contains
+1,176 decision-v7 records (1,440 questions) and 764 transfer-v4 records/questions. A separate
+stdlib verifier, which imports neither the driver nor upstream metrics, checked all 66 frozen
+files, input and prediction identities, terminal/report bindings, full record/question coverage,
+and recomputed native/raw clean accuracy, Brier, ECE10 and NLL. It returned
+`VERIFIED_SCOPED` in `INDEPENDENT_AUDIT.json`; 15 synthetic audit tests passed, including
+forged metrics after updating their file hashes. This does not independently validate every
+upstream diagnostic or constitute Astra review.
+
+| Official test | Clean n | Local accuracy | Published accuracy | Local serving Brier | Published serving Brier | Local ECE10 | Published ECE10 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| decision-v7 | 1,200 | 0.837500 | 0.837500 | 0.230501236 | 0.230489268 | 0.018980717 | 0.018159859 |
+| transfer-v4 | 656 | 0.696646341 | 0.696646341 | 0.396638059 | 0.396631916 | 0.046375031 | 0.044841305 |
+
+Raw-temperature-one Brier/ECE10 are 0.261037402/0.100331076 for decision and
+0.416444911/0.099264052 for transfer. Temperature was not fitted or modified.
+`PUBLISHED_COMPARISON.json` preserves exact deltas and source hashes. The transfer upstream
+predictions align on all 764 question keys and metadata; among 656 clean questions there are
+zero argmax disagreements, maximum absolute probability delta 0.002194709, and two changed
+confidence bins. No equivalence threshold was preregistered for that cross-hardware difference;
+therefore this is a descriptive comparison, not a numerical-equivalence pass. Decision upstream
+per-question rows are absent in the mirror, so its calibration discrepancy cannot yet be
+localized. Identical aggregate accuracy alone does not prove identical predictions there.
+
+After terminal, independent audit and container exit were checked, chip 1 was released.
+No new formal training or locked NGA test was involved. **Astra review remains incomplete.**
+
+**Recovery correction, same date:** the first frozen `RESUME_EXACT.sh` checks only container
+exit and must not be used after resource reassignment. The repository now provides
+`tools/resume_reference_kev.py`, which refuses successful-run restarts and checks allocation,
+running-device mappings and image identity before starting a failed/interrupted run; it archives
+stale terminal files first. This correction does not alter the completed run's frozen files.
+Failure injection against a real interrupted inference run remains to be exercised separately.
