@@ -215,6 +215,8 @@ Record both invariance cases and required distinctions. A system that always ref
 
 ## 10. Open decisions for the next discussion
 
+The [architecture discussion register](16-architecture-discussion-register.md) expands these six directions into stable question IDs, alternatives, proposed starting positions and closure evidence. All remain open until explicitly decided.
+
 1. **Graph commitment:** require only the shared contracts initially, or also select a common graph representation? What adapter evidence is sufficient for an existing workflow engine?
 2. **S2 adaptation envelope:** proposed starting point is registered workflow composition and bounded subgraph patches, with protected obligations immutable. What business case requires broader generated structure?
 3. **Jev placement:** prioritize a business-judgment boundary and one genuine evidence/applicability boundary. Which additional placement improves complete-task results enough to justify its complexity?
