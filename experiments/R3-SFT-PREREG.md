@@ -598,8 +598,11 @@ arm was trained and before any admissible readout exists (the pre-§14.2 K0 numb
 set the goal of this round on 2026-10-30: train Qwen3.5 models below 10B on host 175 on local data
 and report on Kev's own test sets (§9.4 wording). Each item names the clauses it changes, the reason,
 and the resolution.
-1. **§6.3, §6.5: the R0 side.** Reason: both clauses still name `r0_baseline_rederived/report.json`
-   as the R0 comparison target, which §14.2 forbids as the R0 side of any comparison. Resolution:
+1. **§6.3, §6.5: the R0 side.** *Re-grounded by §14.9 item 6: the re-score requirement stands, on
+   precision instead of padding; (i) below stays pinned as written but is no longer evidence about
+   padding, and (ii)'s erratum headline gains a second sentence.* Reason: both clauses still name
+   `r0_baseline_rederived/report.json` as the R0 comparison target, which §14.2 forbids as the R0
+   side of any comparison. Resolution:
    - The R0 side is `Qwen3.5-0.8B` (§2.1) re-scored by an admissible scorer (item 7) under the R0
      configuration of §6.3 (prompt `r0-prompt-v2`, τ fitted on the full `group70` train side, the whole
      held-out side, and the tie rule the published report used, pre-§13.1). K1-PT's B-4 against R0 is
@@ -765,7 +768,8 @@ and the resolution.
 10. **§14.2 widened: the padding defect is not confined to candidates of unequal length.**
     *Superseded in part by §14.6 item 5: the padding diagnosis is withdrawn; the consequences stand on
     the corrected ground. The RoPE statement below is corrected there — a uniform position offset
-    leaves relative positions unchanged.*
+    leaves relative positions unchanged. §14.9 item 6 keeps the R0 §12.1 retest and corrects its
+    stated reason: the length effect was measured in bf16, whose composition noise swamps it.*
     `r0_code/scorer.py:342-383` flattens every candidate of every item into one list, sorts it globally
     by descending length, and cuts batches at `token_budget // longest`. A row's pad count is therefore
     set by the longest row in its batch, usually from another question, and one question's candidates
@@ -829,14 +833,20 @@ generated 03:26Z) was read and before any readout of record exists.
    the ruling quoted 3.1e-3 to 3.8e-3, corrected here after recomputation). The verdict is the same
    for any τ_s in [1e-4, 3e-3], and every mode's HF32 error exceeds the top of that interval, which
    is the only use this clause makes of the figure.
-4. **Duplicate candidates.** Every tied maximum in the `exact` layout on the fixed samples is between
+4. **Duplicate candidates.** *Superseded in part by §14.9 item 1: the factual premise of the next
+   sentence is false and is withdrawn in full — no duplicate candidate exists anywhere, and the
+   bf16 tied maxima are between distinct options. The readout rule stands as a declared-vacuous
+   safeguard and its reporting requirement is kept as a vacuity audit, extended by §14.9 item 5's
+   near-tie census.* Every tied maximum in the `exact` layout on the fixed samples is between
    candidates of equal token length with bit-identical scores, i.e. identical token sequences. The
-   readout definition is fixed: candidates of one question with identical token sequences receive one
-   forward pass and share the score bit for bit in every layout. The count of such questions is
-   reported per suite beside the tie count of §4.2. The engineer confirms identity at string level
-   before this is relied on.
-5. **Status of §14.2 and §14.5 item 10.** The padding diagnosis is withdrawn: in fp32 with HF32 off,
-   left-padded `r0` vs `exact` is ≤ 8e-5 nats with zero argmax changes on five suites; in bf16 its
+   readout definition is fixed: candidates of one question with identical token sequences receive
+   one forward pass and share the score bit for bit in every layout. The count of such questions
+   is reported per suite beside the tie count of §4.2. The engineer confirms identity at string
+   level before this is relied on.
+5. **Status of §14.2 and §14.5 item 10.** *Re-grounded by §14.9 item 6: the consequences below
+   stand on precision rather than on padding, and the erratum headline this item fixes becomes two
+   sentences.* The padding diagnosis is withdrawn: in fp32 with HF32 off, left-padded `r0` vs
+   `exact` is ≤ 8e-5 nats with zero argmax changes on five suites; in bf16 its
    difference from `exact` (0.74 nats, decision-v7) equals that of the unpadded controls (0.74, 0.81).
    The 0.157-nats figure was one bf16 composition draw. Item 10's RoPE statement is corrected: a
    uniform position offset leaves relative positions unchanged. §14.2's three consequences stand on
@@ -1187,3 +1197,176 @@ convention).
    reduce the sample — is **rejected**: the (i) check is defined as reproducing
    `r0_baseline_rederived/report.json` over R0's exact shards, a subset cannot produce the report, and
    the item set is a pre-registered element that rule 3 bars changing after the run started.
+
+14.9 **Amendment 9, the withdrawal of amendment 6 item 4, the verified tie mechanism, the scorer
+of record, what the fp32 verdict table establishes, and the re-grounding of the R0 re-score,
+2026-10-30.** Made after the fp32 verdict table (`r3_runs/scorer_r3/fp32/fp32_verdict.md`, 05:03Z)
+and the string- and token-level tie audits (`tie_audit_bf16.md`, `tie_audit_fp32.md`, 05:04Z) were
+read and verified independently by the reviewer, and before any readout of record exists. Source:
+the review ruling `reviews/R3-SCORER-VERDICT-RULING-fable-20261030.md` (Fable 5.1, CLAUDE.md §2),
+whose §6 carries this text; §14.8 is a different amendment, from a different ruling.
+1. **§14.6 item 4 is withdrawn as to fact and kept as to rule.** Item 4's first sentence — "every
+   tied maximum in the `exact` layout on the fixed samples is between candidates of equal token
+   length with bit-identical scores, i.e. identical token sequences" — is **false and is withdrawn
+   in full**. It was written from the orchestrator's instruction to the engineer, not from a
+   measurement, and the inference "equal score, therefore identical token sequence" was never
+   valid. The measured facts replacing it:
+   - **No duplicate candidate exists anywhere.** Questions with a repeated option string: 0 of
+     1,264 decision-v7, 0 of 656 transfer-v4, 0 of 24,000 T1 typed-decisions, 0 of 30,720 T1
+     openjev-synth, 0 of 2,216 T1 akhilaaa3 — in the fixed samples and in the whole source
+     partitions (`tie_audit_bf16.md`, `tie_audit_fp32.md`; re-run independently by the reviewer).
+     At token level, `n_dup_questions` = 0 in all 10 fp32 sidecars.
+   - **The bf16 tied maxima are between distinct options with exactly equal scores**:
+     ` no`/` yes`, ` reject`/` accept`, ` true`/` false`, ` c`/` d`, ` 3`/` 4`; 1 to 12 ties per
+     cell over 11 audited cells, 0 of them duplicates. **fp32 has 0 ties in all 10 cells** over
+     1,344 items.
+   - The duplicate-candidate **readout rule** of item 4 — candidates of one question with
+     identical token sequences receive one forward pass and share the score bit for bit in every
+     layout, never applied to mode `r0` — **stands as written**, relabelled a **declared-vacuous
+     safeguard**. It is measured to act on 0 questions in every suite, so it changes no number of
+     this round; it is kept because its behaviour on any future duplicate is the correct one (the
+     duplicate becomes an exact tie, resolved by §4.2's stored order, rather than by batch
+     composition), because keeping it costs nothing, and because deleting implemented and tested
+     harness code after a result has been seen, for no measured reason, is not something this
+     round does (§14.4's precedent). Its unit test (`dedup_test_run2`, PASS) constructs the
+     duplicate synthetically, since no real one exists; that is recorded as the reason the test is
+     synthetic.
+   - Item 4's reporting requirement is **kept and extended by item 5 below**: the per-suite count
+     of questions with duplicate candidate token sequences stays as the audit that the safeguard
+     remains vacuous. It must read 0; a non-zero value is a flag to be investigated before the
+     readout is reported, not a routine number.
+   - Item 4's last sentence, "the engineer confirms identity at string level before this is relied
+     on", is **discharged**: the confirmation was performed and returned negative. The clause did
+     its work and is replaced by these facts rather than deleted.
+2. **The tie mechanism, verified, and the limit of the verification.** The explanation recorded
+   for the bf16 ties is **bf16 logit quantisation**, not bf16 score quantisation: scores are fp32
+   (`scorer_r3._token_logprobs` casts logits to float32 before `log_softmax`) and the bf16 `exact`
+   files contain top-2 gaps as fine as 1.675e-4, far below bf16 resolution, so the scores are not
+   on a bf16 grid. For a question whose candidates are single-token, all candidates are read off
+   one prefix forward, the `logsumexp` term is common, and the top-2 score gap is exactly the
+   difference of two bf16 logits, which does lie on the bf16 grid. Two checks, both run on data
+   already on disk at no NPU cost, before this explanation was written down:
+   - **Grid test**: of the single-token-candidate items with a nonzero top-2 gap, **888 of 926**
+     have a gap that is an exact multiple of a power of two in bf16, against **0 of 719** in fp32.
+   - **Composition fragility**: the bf16 `exact` ties are mostly not ties under the unpadded
+     equal-length controls (`eq_a` 0 of 5, 0 of 6, 4 of 12, 0 of 2 in the cells with ties), which
+     excludes a structural cause — an indexing or position defect that read one logit for two
+     candidates would tie in every layout.
+   **Limit, stated rather than smoothed over**: for multi-token candidates (31 bf16 ties of 674
+   multi-token items) only the first-token term shares a `logsumexp`, and 269 of 643 nonzero gaps
+   are on-grid. The mechanism is therefore recorded as **verified for single-token candidates and
+   consistent with, but not individually verified for, multi-token candidates**; the
+   composition-fragility evidence covers both. No further measurement is required, because the
+   scorer of record is fp32, where the phenomenon does not occur. **fp32's 0 ties is not a
+   by-construction zero**: the same tie code reports 137 ties over 2,048 bf16 items, and fp32's
+   smallest top-2 gaps are 9.82e-5 and 6.50e-4, so the measurement resolves and lists near-ties it
+   could have called ties.
+3. **Scorer of record.** Both `rp` and `fast` passed §14.6 item 3 on all five suites. Under that
+   clause's own order the first is the scorer of record, and it is also the conservative layout,
+   so **the scorer of record of R3 is `r3_code/scorer_r3.py` `R3Scorer` mode `rightpad`**: one row
+   per candidate, **right**-padded with an explicit attention mask, the LM head applied only at
+   the scored positions, `token_budget = 16384`; the model and activations in **float32**; the NPU
+   **HF32 matmul and conv flags off**; the duplicate-candidate safeguard of item 1 on; and the
+   model of record the **unmerged** adapter applied at scoring time (§14.5 item 5). Code identity:
+   `scorer_r3.py` sha1 `d4ad266162660d3f269ddc14703089e3b4118eb7`, `measure_floor.py`
+   `44d80526d4a9238d6c55567a0ab3dfe1584e7375`, `sample_r3.py`
+   `6f1277f954ff6b3c352258e27de8ed74a506bdd6` (frozen copy `fp32/code2/SHA1SUMS`, verified equal
+   to the live files). Mode `fast` is the **retained check** of §14.6 item 3 and is not a scorer
+   of record; a reported number produced by `fast` requires a new amendment. Mode `r0` remains
+   inadmissible for any readout (§14.2), whatever item 6 below measures about it. Every readout's
+   header records mode, `token_budget`, `dtype`, `hf32` and batch composition (§14.6 item 2).
+4. **What the fp32 verdict table establishes, and what it does not.** The table is accepted: the
+   null gate passes 10 of 10 cells (worst 1.26e-4 against τ_s = 1e-3), (i′)/(ii′)/(iii′) pass in
+   all 20 cell-by-candidate rows (worst 1.13e-4; 0 argmax disagreements under either tie rule),
+   `exact` vs `exact2` is bit-identical in 10 of 10 cells, and the discrimination counterpart
+   fails as required (synthetic +0.01-per-candidate 0.04 to 0.77; bf16 matched by key 0.0989 to
+   0.657 nats with 0 to 10 argmax disagreements per cell). Four qualifications are recorded with
+   it, so that later readers do not credit the table with more than it measured:
+   - **(iii′) is implied by (ii′)** — equal argmaxes force equal correct counts — and is not
+     independent corroboration. Its content is that gold is re-derived from the source partition
+     by key, independently of the scores.
+   - **`exact` vs `exact2` bit-identity is near-tautological**: in the `exact` layout every
+     forward is a single unpadded row. It bears only on run-to-run nondeterminism (its use in
+     §14.6 item 1) and is not evidence about any batched layout.
+   - **The null gate measures batch-size arithmetic, not padding**: the `eq_*` layouts contain no
+     padding anywhere.
+   - **Vacuity, labelled.** `T1__akhilaaa3/adapter` `rp_b` is batch size 1 for 100% of rows and is
+     therefore the `exact` layout, so (i′) is vacuous for it (self-flagged, max |Δ| 0).
+     `T1__akhilaaa3/r0model` `rp_b` is batch size 1 for 91% of rows (maximum 3) and is
+     **near-vacuous** as a second composition. On those two cells the second composition of record
+     for `rp` is `rp_chunk`/`rp_rev` (1.74e-5 to 3.08e-5, 0 argmax disagreements). More generally,
+     because `_rightpad` sorts rows by descending length, `rp` exercises only 0.4% to 2.6% padded
+     tokens in 8 of 10 cells (13.7% on transfer-v4): **(i′) for `rp` is a strong test of batch
+     composition and a weak test of padding.** The strong padding evidence in this table is `fast`
+     (3.7% to 41.8% padded prompt tokens, ≤1.13e-4) and `r0` (left padding without position ids,
+     ≤9.61e-5). No suite's verdict rests on a vacuous cell: every cell has a genuinely batched
+     composition of each candidate mode (`rp_a` 9 to 218 rows per batch, `fast_a` groups of 13 to
+     128).
+5. **§4.2 reporting, extended: the near-tie census travels with every readout of record.** Beside
+   the tie count and the two tie-rule accuracies, every readout of record reports the **count and
+   the list of questions whose `exact` top-2 gap is ≤ τ_s = 1e-3**, with each listed question's
+   top-2 candidates, and the duplicate-candidate count of item 1. Reason: an item whose top-2 gap
+   is below the measured layout difference is decided by arithmetic rather than by the model — on
+   the fixed samples one item sits at 9.82e-5 against a worst measured layout difference of
+   1.26e-4 — and "0 argmax disagreements" is interpretable only beside that count. A tie or
+   near-tie is now known to be between **distinct** levels, so it is a statement about the harness
+   and the precision (R0 §11.8 item 1), never about the model's indifference between two copies
+   of one option. On the fp32 fixed samples Kev's first-maximal-index rule and the R0 "a tie is not
+   correct" convention **coincide** (0 ties over 1,344 items); §4.2 keeps both numbers, and that
+   coincidence is reported.
+6. **§14.5 item 1 and item 10, re-grounded on precision.** Left padding without position ids is
+   now measured **harmless in fp32**: max |Δ| 1.88e-5 to 9.61e-5 against `exact` with **0 argmax
+   disagreements in all 10 cells** under either tie rule. The §14.2 consequences nevertheless
+   stand, on this ground instead:
+   - The published R0 readouts are **bf16**, and bf16 is not an admissible precision for a readout
+     of record (§14.6 item 2); bf16 `exact` against fp32 `exact`, matched by key, differs by
+     **0.0989 to 0.657 nats with 0 to 10 Kev-rule argmax disagreements per cell**, against
+     decision lines with 1.0- and 2.0-point bars. The R0 side of every R3 comparison is therefore
+     still a re-score by the scorer of record (item 3), and the published `r0_baseline` and
+     `r0_baseline_rederived` readouts are still not the R0 side of any comparison.
+   - **§14.5 item 1 (i) stands, pinned as written**, and its purpose is narrowed: it is the
+     control separating bf16 composition noise and environment drift from a code defect, and it is
+     **not** evidence about padding.
+   - **The erratum's headline becomes two sentences**: "the padding claim does not survive a noise
+     floor" and "what survives is precision: the published bf16 readout differs from the fp32
+     scorer of record by 0.10 to 0.66 nats with up to 10 argmax disagreements per 128-item cell,
+     while the left padding it was blamed on contributes ≤1e-4 with none." §14.5 item 1 (ii)'s
+     metric-by-metric structure — (padded bf16 rerun − fp32) and (unpadded bf16 − fp32) — is
+     unchanged, and the erratum still has no pass bar and no stopping power.
+   - **§14.5 item 10's R0 §12.1 retest is kept, with its stated reason corrected.** The suspension
+     of R0 §12.1's "do not retest it" no longer rests on the padding shift (0.157 nats, one bf16
+     composition draw) matching the length effect (+0.154 nats per token); it rests on the length
+     effect having been measured in bf16, whose composition noise on these samples is 0.10 to 0.66
+     nats and therefore swamps an effect of that size. The retest happens in fp32, on the scorer
+     of record.
+7. **R0 erratum text for the tie rate.** The §14.5 item 1 (ii) erratum carries this sentence,
+   which corrects the cause but not the number recorded in `R0-BASELINE-RESULTS.md` §9 item 3:
+   "R0's 5.21% of T1 rows with exact top ties are ties between **distinct** level names whose bf16
+   *logits* collided, not rows whose within-item difference was lost in storage, and they are
+   composition-fragile: a different batch composition produces a different set of tied rows. The
+   tie rate is therefore a property of R0's precision and batching, not of its data and not of the
+   model's indifference between levels. In fp32 on the fixed samples the same measurement yields 0
+   ties over 1,344 items." Nothing in R0 §6's identifier-prior mechanism depends on ties, and it
+   is unaffected.
+8. **The scorer of record's own test suite must be green before the first readout of record.**
+   `test_scorer_r3.py::test_bf16_fast_within_measured_two_order_floor` was failing when the ruling
+   was written (recorded floor 0.4203, `fast` vs `exact` 0.3587 on 25 items). It asserts a bf16
+   property that §14.6
+   items 1 and 2 retired, so it voids nothing — the fp32 verdict was reproduced from the raw score
+   files without it, and wave-1 training does not call the scorer. It does block the first readout
+   of record: a red suite in the scorer of record's own test file leaves the suite unable to
+   signal a new break. Before the first readout of record is written, the assertion is either
+   rewritten as the §14.6 item 3 fp32 bar (max |Δ| vs `exact` ≤ 1e-3 and 0 argmax disagreements;
+   it currently measures 5.2e-5) or removed with a comment naming §14.6 item 1 as the clause that
+   retired it, and the full suite is re-run on a chip with its output recorded in the run
+   directory. A skip marker or an expected-failure annotation is not an acceptable fix, because it
+   would leave the suite's green state meaning less than it says.
+   - *State of the tree when this amendment was committed:* the assertion has already been replaced
+     in `r3_code/test_scorer_r3.py` by `test_fp32_candidates_meet_the_amendment6_bar`, which asserts
+     the §14.6 item 3 fp32 bar with a discrimination counterpart — the first of the two remedies
+     above. The old assertion survives in `r3_code_dev/test_scorer_r3.py`. The **obligation is not
+     discharged by the rewrite**: the full suite must still be re-run on a chip with its output
+     recorded in the run directory before the first readout of record. This note exists so the
+     paragraph above is not read later as a false statement about the tree; it was true of the tree
+     the ruling examined. This is not a relaxation of any
+   bar: the bf16 bar is not lowered, the precision it governed is no longer admissible.

@@ -1,22 +1,26 @@
 # R0 readout baseline: results
 
-> **Erratum pending (note added 2026-10-30, corrected the same day).** **The padding claim does not
-> survive a noise floor.** `R3-SFT-PREREG.md` §14.2 and §14.5 item 10 diagnosed the left padding in
-> `r0_code/scorer.py`'s `HFScorer` as a systematic perturbation of every batched row. Measurement
-> withdrew that diagnosis (§14.6 item 5): in float32 with HF32 matmul disabled, the left-padded R0
-> layout differs from the exact unpadded layout by **≤ 1e-4 nats with zero argmax changes** on five
-> suites, so left padding itself is not the defect. The 0.157-nats figure was one draw of **bf16
-> batch-composition noise**, which is what the numbers below actually carry: in bf16 the padded layout's
-> difference from exact (0.74 nats on decision-v7) is the same size as that of unpadded controls (0.74
-> and 0.81), and composition noise alone moves sample accuracy by up to 2.6 points. The magnitude of
-> that noise in these numbers is being measured on the fixed samples recorded in `R3-SFT-PREREG.md`
-> §14.5 item 7 and §14.6 item 3, and the result will be published as an erratum to this file. Until
-> then the numbers stand as published with this caveat, and, per R3 §14.2, **they are not used as the
-> R0 side of any comparison**. §12.1's and §7.3's "do not retest it" stays **suspended** until the
-> erratum reports — but note the expected direction has changed: the retest is now expected to
-> **reproduce** §12.1 ground 3's length effect at fp32 rather than overturn it, since the padding
-> artifact that could have manufactured it is gone. Ground 1's "an identical constant to every
-> candidate" is still not exact under this scorer, because batch composition varies per row.
+> **Erratum pending (note added 2026-10-30, corrected twice the same day; the second headline
+> sentence is `R3-SFT-PREREG.md` §14.9 item 6's).** **The padding claim does not survive a noise
+> floor. What survives is precision: the published bf16 readout differs from the fp32 scorer of
+> record by 0.10 to 0.66 nats with up to 10 argmax disagreements per 128-item cell, while the left
+> padding it was blamed on contributes ≤1e-4 with none.** `R3-SFT-PREREG.md` §14.2 and §14.5 item 10
+> diagnosed the left padding in `r0_code/scorer.py`'s `HFScorer` as a systematic perturbation of
+> every batched row. Measurement withdrew that diagnosis (§14.6 item 5): in float32 with HF32 matmul
+> disabled, the left-padded R0 layout differs from the exact unpadded layout by **≤ 1e-4 nats with
+> zero argmax changes** on five suites, so left padding itself is not the defect. The 0.157-nats
+> figure was one draw of **bf16 batch-composition noise**, which is what the numbers below actually
+> carry: in bf16 the padded layout's difference from exact (0.74 nats on decision-v7) is the same
+> size as that of unpadded controls (0.74 and 0.81), and composition noise alone moves sample
+> accuracy by up to 2.6 points. The magnitude of that noise in these numbers is being measured on
+> the fixed samples recorded in `R3-SFT-PREREG.md` §14.5 item 7 and §14.6 item 3, and the result
+> will be published as an erratum to this file. Until then the numbers stand as published with this
+> caveat, and, per R3 §14.2, **they are not used as the R0 side of any comparison**. §12.1's and
+> §7.3's "do not retest it" stays **suspended** until the erratum reports — but note the expected
+> direction has changed: the retest is now expected to **reproduce** §12.1 ground 3's length effect
+> at fp32 rather than overturn it, since the padding artifact that could have manufactured it is
+> gone. Ground 1's "an identical constant to every candidate" is still not exact under this scorer,
+> because batch composition varies per row.
 
 > 2026-10-29. Results of the first scored pass of the R0 readout baseline, judged against
 > `R0-BASELINE-PREREG.md` as it stood before the run. Numbers are taken from
@@ -649,6 +653,17 @@ document still changes no pre-registration, harness, data or run output.
    arithmetic, but the 5.21% of T1 rows with exact ties are rows where that difference has already
    been lost to bf16 and to the stored precision. The raw-score field §12.6 mandates will fix this
    going forward; the sentence as written overstates what the existing readouts support.
+
+   > **Correction, 2026-10-30, same day, after amendment 9.** The 5.21% and this item's substantive
+   > point stand; the **mechanism** named above — the difference "lost to bf16 and to the stored
+   > precision" — does not. The corrected cause, carried by `R3-SFT-PREREG.md` §14.9 item 7 and by
+   > the §14.5 item 1 (ii) erratum: "R0's 5.21% of T1 rows with exact top ties are ties between
+   > **distinct** level names whose bf16 *logits* collided, not rows whose within-item difference was
+   > lost in storage, and they are composition-fragile: a different batch composition produces a
+   > different set of tied rows. The tie rate is therefore a property of R0's precision and batching,
+   > not of its data and not of the model's indifference between levels. In fp32 on the fixed samples
+   > the same measurement yields 0 ties over 1,344 items." Nothing in §6's identifier-prior mechanism
+   > depends on ties, and it is unaffected.
 4. **Specification fixed by amendment 6 (§13.2); the numbers in this document are not re-derived
    under it.** **§12.6's equal-tokenization requirement conflicts with §8.1 on
    T1.** §8.1 freezes the baseline to render the level `name` **as written in the record**, because

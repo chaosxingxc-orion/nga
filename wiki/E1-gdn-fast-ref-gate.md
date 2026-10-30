@@ -67,6 +67,29 @@ paid on the reference kernel. The stacked aggregate already recorded (**e(F,G) 4
 it did: a ratio of stacked norms cannot show that no individual tensor is off by 3×, which is the
 half of the bound that catches a kernel that is right on average.
 
+> **Correction, 2026-10-30, same day, after amendment 8.** Three statements in this entry are
+> superseded in part by `R3-SFT-PREREG.md` **§14.8 item 1**, which fixed (G2)'s population before
+> any gate number was read: the "*identical* per-tensor bound … 96.6%" sentence in §1, H2 above,
+> and §4's results line, which asks only for the pass fraction over the 372 tensors. The **bound
+> is identical; the population is not.** (G2)'s 372 are the LoRA tensors asserted by
+> `r3_code/gate_model_level.py` on the LoRA-wrapped model's trainable list, while §14.4's 96.6% is
+> **309 of 320 full-model trainable** parameters built from `named_parameters()` on a plain,
+> non-LoRA model (`speedup/runs/modelcheck2/model_check.json`, `speedup/code/gate_bprime.py`). The
+> decisive finding is sharper than the mismatch: the eleven tensors the FLA kernel actually failed
+> (b′) on — L0/L1/L9/L20/L21 `dt_bias`, `A_log`, `linear_attn.norm`, `post_attention_layernorm`,
+> `in_proj_a`, per `speedup/README.md:51` — are **all frozen under LoRA and so cannot appear in
+> the 372**. (G2) as first written was therefore **blind to its predecessor's only failure mode,
+> and the FLA kernel would have passed it**; H2's "fails exactly as the FLA kernel failed" does
+> not follow, and a 96.6% over the 372 would not be the event §14.4 recorded. The ruled remedy,
+> pre-registered in §14.8 item 1 before the numbers are read: the **372 LoRA tensors gate** the
+> decision, because they are the only tensors any arm of this round updates; the **320 full-model
+> trainable tensors are measured in the same backward, recorded in `gate_fast_ref/`, and reported
+> beside them as a non-gating cross-check**; **only one population may gate**; and the split
+> verdict is fixed in advance — 372 pass with 320 fail **admits** the kernel and obliges every
+> statement resting on it to name the split, while both failing sends wave 1 and the ladder to the
+> reference kernel. §4 and §5 are filled accordingly: both pass fractions, with the 320 labelled
+> non-gating.
+
 **H3 ((G3), the same-config replicate floor — the criterion that exists because the floor did
 not).** Two invocations of the *reference* kernel with identical micro-batch, seed, data and chunk
 plan, reporting d(R,R′) over the stacked LoRA gradient and |loss_R − loss_R′| per step. We expect a
