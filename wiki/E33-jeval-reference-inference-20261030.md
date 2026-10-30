@@ -335,3 +335,36 @@ All are planned on chip 1, with no formal launch or chip claim by this preparer.
 Directories: `reference_inference/jeval_{openjev2,openjev9,nimble}_inference_20261030`.
 Open-Jev remains blocked on the newly identified padded-workload memory admission,
 not on preparation. Nimble is available for parent review and separate launch.
+
+## 2026-10-31 — actual Kev-0.8B and Nimble native results closed out
+
+This dated addition supersedes the earlier pending-result observations without
+changing them or the frozen E33 protocol. Both completed 11,257 original receipts;
+inference, native independent finisher and hardened audit terminal/wrapper/actual
+retained-container exits are 0. A new CPU-only closeout rehashed all 22,514 receipts,
+checked terminal/report/config/audit bindings, and diagnosed every flagged cell.
+It completed at 2026-10-30 21:49:51 UTC (2026-10-31 Asia/Shanghai).
+
+| Model | Classification correct / all 10,938 | Accuracy | Brier / ECE valid n | Raw Brier | ECE10 | Score MAE / valid n |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Kev-0.8B | 5,089 / 10,938 | 46.525873% | 9,911 | 0.598302104 | 0.163216356 | 1.121768025 / 319 |
+| Nimble v1 | 5,394 / 10,938 | 49.314317% | 7,694 | 0.433576240 | 0.135360806 | 0.842948718 / 312 |
+
+Kev retains 1,027 overlength rows; Nimble retains 2,253 unsupported and 998
+overlength rows, including 7 excluded scores against the full score denominator
+319. The hardened audit statuses remain REVIEW_REQUIRED with all 6 / 30 flags.
+Kev's zero retrieval-en cell is 200/200 overlength (state 10,052–15,248 tokens);
+the small cells are finqa noul n=22 and jevbench score n=16. Nimble's perfect
+CUAD valid subset is 31/31 (29 false, 2 true), with 169 additional overlength
+rows, so full-cell accuracy is 15.5%. All flagged populations and evidence hashes
+are retained in the new report; no flag is erased by this diagnosis.
+
+See [native result report](../experiments/JEVAL-REFERENCE-RESULTS-2026-10-31.md) and
+[machine-readable evidence](../experiments/JEVAL-REFERENCE-RESULTS-2026-10-31.json).
+CephFS evidence: `reference_inference/jeval_results_closeout_20261031/`; retained
+CPU container `fffd539c67f6dd655ca3373e2a5653651c8d2e2d1a10d51df7323f5b364953d2`.
+These are preregistered local response-formula native-budget measurements, not
+exact paper-scorer reproduction, a source-macro aggregate, paired consistency,
+or training/business benefit. No raw-T1/NOTA/permuted variant panel was added.
+Parent result acceptance and current locked resource checks remain separate;
+this closeout did not release chips or launch training.
