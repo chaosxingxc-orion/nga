@@ -196,3 +196,35 @@ The separate 9B CPU preparation then started in retained device-free container
 request SHA256 `db7745c72df4b35a074625b8535458650f93e701e95c3ed1ed9abfaf0286697e`.
 This uses the same reviewed v2 source and unchanged selection/protocol; 9B NPU
 execution still awaits successful CPU completion and exact plan review.
+
+## 2026-10-31 — 9B diagnostic actual launch
+
+The 9B CPU preparation completed terminal/wrapper/actual exit 0 at
+2026-10-30 21:26:10 UTC, producing a 144-file frozen plan with SHA256
+`6cf91782e92465ed1d1856e4fc392a398faca3737d559b3898597e63adf93e4c`.
+The parent checked that preparation and exact plan before NPU launch.
+Fresh host/allocation/Docker/physical occupancy checks passed; retained container
+`2e9f9357bd30744d64f622b79f8d46c18ee07bb1078e6faf9b964de2495b8d25`
+(`nga-e37-openjev9-20261031-v2`) started on chip 4. Output directory:
+`reference_inference/openjev_batch_diagnostic_openjev9_20261031_v2/`.
+At 21:32:02 UTC its bounded digest reported 10/16 forwards; no final result or
+independent completion verification is claimed at this launch update.
+
+## 2026-10-31 — 9B diagnostic verified and released
+
+The 9B diagnostic completed 16/16 with terminal rc 0 at 21:33:54 UTC and the
+retained NPU container exited 0 at 21:33:58 UTC. Its detached CPU verifier
+exited 0 at 21:34:51 UTC and checked all 16 receipts and comparison arithmetic;
+verifier report SHA256 is
+`3c42cb3a1070957f2b84ff544be343d788d0466cd7e4f1b5407bbb9dd7d8c742`.
+
+`diagnostic_valid=true`; original/no-op/hook checks are exact. Original versus
+chunk8 probability deltas are 9.391012487e-06 (9027), 0.013869159693189886
+(4200), and 0.0033092720357775773 (8409), with 0/3 returned-decision flips.
+The short input's larger difference remains visible; it is not valid to report
+only the longest input. E36 and full JEVal admissions remain false.
+
+The parent performed a fresh actual-exit and Docker/device occupancy check and
+released chip 4 under the allocation lock at 21:36:04 UTC. Full tables and
+bounded memory evidence for both sizes are in
+[E37 results](../experiments/OPENJEV-BATCH-DIAGNOSTIC-RESULTS-2026-10-31.md).
