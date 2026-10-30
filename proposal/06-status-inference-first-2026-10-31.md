@@ -213,3 +213,9 @@ Kev-0.8B、4B、9B 的 decision-v7、transfer-v4、hard-v1、documents-v1、devt
 原始 OOD 的 15,920 行推理与独立审计完成，hard 15,446、soft 474；推理和 finisher 实际退出均为 0，审计为 `VERIFIED_SCOPED`、review flags 为 0。原生温度 hard accuracy 为 **86.028745%**，expected accuracy 为 **84.616890%**；两者使用不同定义及分母，不能混写。原生温度 Brier 为 0.246288900、ECE15 为 0.105578241；raw T=1 另列，未按 OOD 调温度。
 
 该结果是固定 58 面板快照之后的新完成项，见 [E32 记录](../wiki/E32-openjev-original-ood-20261030.md)，不静默改写旧矩阵中的 pending 状态。其余三个 Kev 与 Nimble 的 JEVal、Open-Jev-9B OOD 仍待最终验收；两项 Open-Jev JEVal 仍受 E36 数值准入限制。E37 接续只在合法资源释放及自身工程门禁通过后执行，实际诊断状态见 E37 记录。
+
+### 2026-10-31 05:17 北京时间：E37 2B 实际 NPU 诊断启动
+
+E32 释放芯片 4 后，E37 的 CPU 全依赖准备在保留容器中实际退出 0，生成固定运行计划。主机检查此前因非 root 用户不可读 `/proc/1/root/proc` 而阻断；局部修订改用可读的主机/容器身份检查，主会话复核并通过 52 项相关测试，新版本另行冻结，未冒称已包含在旧 Astra 审查中。
+
+主会话核对 CPU 实际退出、计划哈希、固定输入选择和资源映射后，诊断容器 `nga-e37-openjev2-20261031-v2` 在芯片 4 实际启动。此次仅执行预注册的 16 forwards/model 诊断；尚需真实终态和独立 CPU 验收，不能提前声称 no-op/profiling 数值一致，也不改变 E36 的失败准入或代表 Open-Jev JEVal 全量测试完成。执行中的后续记录以 [E37 wiki](../wiki/E37-openjev-batch-diagnostic-20261030.md) 为准。
