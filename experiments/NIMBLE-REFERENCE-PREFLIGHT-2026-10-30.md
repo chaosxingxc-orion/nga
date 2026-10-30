@@ -64,3 +64,23 @@
 
 后续先完成原生探测，再恢复七个子集、冻结数据与计分协议，执行完整分区并独立重算。
 本文件没有声称数据恢复或正式测试已完成。
+
+## 4. 2026-10-30 原测试数据恢复与正式执行
+
+七个子集共 **1,884 行**已恢复到 `reference_inference/nimble_public_restore_20261030_v2/`。
+每个 `all.jsonl` 的 SHA256 和有序 IDs 均与原 manifests 完全一致，父目录
+`RESTORE_COMPLETE.json` 为 rc 0；独立二次核对通过。MASSIVE、PAWS、Civil Comments、SummEval
+的原 converter 输入 source SHA256 也与原文相同。Aegis 从 pinned revision 的 JSON 数组导出，
+中间 JSONL 字节不等于历史 parquet 导出（显式记录 `original_export_byte_equal=false`），
+但最终固定 250 行数据逐字节完全相同；不将这个源格式差异隐藏或称原始源文件完全复现。
+选择只使用原 manifest IDs、保留完整 families，没有重新抽样或根据标签选择。
+正式推理前将对全部原 prompt 再检查 2048 token 限制。
+
+第一次下载容器因 CA 信任缺失和超时失败，原目录及容器保留；其结构化恢复终态 rc 1
+优先于错误返回 0 的旧 wrapper。v2 使用现有可信 CA bundle，不关闭 TLS 校验，并修正
+不完整恢复的进程返回码。下载与转换均在 retained CPU 容器完成，没有占用 NPU。
+
+[E19](../wiki/E19-nimble-public-test-20261030.md) 已预登记，正式推理容器
+`nga-reference-nimble-public-test` 在 175 chip 3 启动，目录
+`reference_inference/nimble_public_test_20261030/`。149 个输入与执行文件冻结；五项 receipt
+负例/正例测试通过。完整测试成绩和独立指标重算尚未完成，不能称为已复现文献指标。

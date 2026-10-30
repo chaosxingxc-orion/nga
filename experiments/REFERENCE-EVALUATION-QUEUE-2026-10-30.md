@@ -11,7 +11,7 @@
 | P0 | Kev-0.8B／4B／9B × decision-v7／transfer-v4 | 三个尺寸均完成两套完整 test 及独立核对；9B 于 15:37 UTC 完成自动后处理验收 | 相同官方 test、原生 pointer head、发布温度下的本地复测；raw T=1 单列 |
 | P1 | Open-Jev-2B／9B × release-v2 公共投影 test | 两尺寸原生 scalar-head 合成探测与完整长度预检已完成；均已启动完整 **10,356** 行公共 test；2B 的独立 CPU 后处理已启动等待终态 | 公共投影上的新本地结果；不能直接称为已发布 **10,532** 行完整 old test 的复现 |
 | P1b | Open-Jev-2B／9B × 完整 old test／OOD | 查找本地 Wikispeedia archive；若可得，按固定源哈希和恢复工具重建缺失行；完整 split SHA 必须与 original manifest 一致，再跑或复用身份完全一致的公共行 | 才能与原 **10,532 test／15,920 OOD** 总体指标同分母比较；test 与 OOD 各自报告 |
-| P2 | 初始 Bespoke-Nimble-9B × 原文七个真正 test 子集 | 先还原相同 ids/checksum 的公开子集，适配原生候选 token scorer 到 NPU，并验证 prompt/schema；初始 checkpoint 优先，v2/v3 另行标记 | 文献对应 test 子集复测；不能把原 3,880 行混合分区总数当 test |
+| P2 | 初始 Bespoke-Nimble-9B × 原文七个真正 test 子集 | 原 revision 已恢复，七子集 1,884 行最终哈希与 IDs 全匹配；最长 1,356 tokens，原生 NPU 正式推理已启动。初版冻结恢复检查的限制见 E19，完成后须独立重算 | 文献对应 test 子集复测；不能把原 3,880 行混合分区总数当 test |
 | P3 | 已跑通原生接口的模型 × JEVal／typed-decisions | 用现有完整公开 test 形成共同评测面，先冻结 adapter、字段映射、无效输出计分和原生方法；独立记录新 protocol | 同一公共任务集下的新跨模型比较，不冒称复现各模型自家内部 test |
 
 P1 与 P2 的适配／数据核验可以在 Kev 正式推理运行时并行推进。缺少某个完整数据分区不会阻断其他已经就绪的组合。

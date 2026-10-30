@@ -1,0 +1,120 @@
+{
+  "rc": 0,
+  "subsets": {
+    "massive-en-US": {
+      "status": "VERIFIED_DATASET_IDENTITY",
+      "records": 350,
+      "dataset_sha256": "f173a34108c1f785f5e5bf1d83534c34393651e7f7b0b2eba19deb0d5d0f2681",
+      "manifest_sha256": "d4b40879ebb3e1e159caf066a94163a36930b5546aa40d2e3e5aa613db739ec2",
+      "download": {
+        "url": "https://amazon-massive-nlu-dataset.s3.amazonaws.com/amazon-massive-dataset-1.1.tar.gz",
+        "sha256": "4cba5faa11c71437928e17cb1b9b3d8b8e727e7ea363a3a9a8045e19c0491577",
+        "bytes": 40251390
+      },
+      "converter_input_sha256": "4cba5faa11c71437928e17cb1b9b3d8b8e727e7ea363a3a9a8045e19c0491577",
+      "original_export_sha256": "4cba5faa11c71437928e17cb1b9b3d8b8e727e7ea363a3a9a8045e19c0491577",
+      "original_export_byte_equal": true,
+      "converted": 2974,
+      "selection": "exact manifest IDs; no resampling; complete families; no length-based substitution"
+    },
+    "massive-de-DE": {
+      "status": "VERIFIED_DATASET_IDENTITY",
+      "records": 350,
+      "dataset_sha256": "6eacfdfd5f55ee664ddf5d385deda17cbed248c18aabc06be0c643518b74ab28",
+      "manifest_sha256": "86c5783d106c3621340cd901ac79b4e8bfaf5efd2cdd62656495ac46b8e7b7ab",
+      "download": {
+        "url": "https://amazon-massive-nlu-dataset.s3.amazonaws.com/amazon-massive-dataset-1.1.tar.gz",
+        "sha256": "4cba5faa11c71437928e17cb1b9b3d8b8e727e7ea363a3a9a8045e19c0491577",
+        "bytes": 40251390
+      },
+      "converter_input_sha256": "4cba5faa11c71437928e17cb1b9b3d8b8e727e7ea363a3a9a8045e19c0491577",
+      "original_export_sha256": "4cba5faa11c71437928e17cb1b9b3d8b8e727e7ea363a3a9a8045e19c0491577",
+      "original_export_byte_equal": true,
+      "converted": 2974,
+      "selection": "exact manifest IDs; no resampling; complete families; no length-based substitution"
+    },
+    "paws": {
+      "status": "VERIFIED_DATASET_IDENTITY",
+      "records": 250,
+      "dataset_sha256": "ffc7388bbf027272b1c2175cd8d4d3591b63006696b2f9889bf70fccd457d167",
+      "manifest_sha256": "4e7359ab58484e4bf716e916f688360f5dd3da41e3760a5d3cdeef03ee553069",
+      "download": {
+        "url": "https://huggingface.co/datasets/google-research-datasets/paws/resolve/161ece9501cf0a11f3e48bd356eaa82de46d6a09/labeled_final/test-00000-of-00001.parquet",
+        "sha256": "ae342ff12bb84b84b95f468abf5db6cb7c7bd578271299fe9c99be75b8132f4d",
+        "bytes": 1235128
+      },
+      "converter_input_sha256": "7d2f9c7973b04d83cde2d87ef20fb9001157e79fb6cfa27597223db9d5b86f3c",
+      "original_export_sha256": "7d2f9c7973b04d83cde2d87ef20fb9001157e79fb6cfa27597223db9d5b86f3c",
+      "original_export_byte_equal": true,
+      "converted": 8000,
+      "selection": "exact manifest IDs; no resampling; complete families; no length-based substitution"
+    },
+    "civil_comments": {
+      "status": "VERIFIED_DATASET_IDENTITY",
+      "records": 300,
+      "dataset_sha256": "7f76c916faa51a8e67325dd4a8a1b70ee678ef124f1a551f5a32f26ebd66234e",
+      "manifest_sha256": "fba54a1619335382181ec4d9f874764d7cf710ac31ea80930e7d196459a04199",
+      "download": {
+        "url": "https://huggingface.co/datasets/google/civil_comments/resolve/f2970eb3a55777454c94069077cc8d9b5866312d/data/test-00000-of-00001.parquet",
+        "sha256": "410f803ff161e7c4ba005db7de5b444cac413f4861bf056b0fd69d670d75aa08",
+        "bytes": 20800265
+      },
+      "converter_input_sha256": "655a9eebb8c6f93981955782a9ec6fc26015136890bc99cc6080a05dc456f5ea",
+      "original_export_sha256": "655a9eebb8c6f93981955782a9ec6fc26015136890bc99cc6080a05dc456f5ea",
+      "original_export_byte_equal": true,
+      "converted": 97320,
+      "selection": "exact manifest IDs; no resampling; complete families; no length-based substitution"
+    },
+    "aegis2": {
+      "status": "VERIFIED_DATASET_IDENTITY",
+      "records": 250,
+      "dataset_sha256": "2d10424f7d2b06e9c38fe443f9cfb10eb958b4eb37cbec2bed4d990d109374b2",
+      "manifest_sha256": "5c76ac713ec33eb5515349a6b04bc03696805cc5e08ebdafbd1695ed08f8846b",
+      "download": {
+        "url": "https://huggingface.co/datasets/nvidia/Aegis-AI-Content-Safety-Dataset-2.0/resolve/d86bb8bedff51d25ac834ab7838f1cc61acb7a2c/test.json",
+        "sha256": "b0a6d602260524866053cb34105194f074f2c2906e3691b68d43b9e6e9318f35",
+        "bytes": 1731373
+      },
+      "converter_input_sha256": "c05cc5f475dac2f3fdfa8f3be3d53d04dea2eb1c4a1beed70b6aa4d336faee4f",
+      "original_export_sha256": "b63f6febd9f7392862d1d48c5ba7be5d7efef32b1f998f70d19adec24cb096fd",
+      "original_export_byte_equal": false,
+      "converted": 1928,
+      "selection": "exact manifest IDs; no resampling; complete families; no length-based substitution"
+    },
+    "summeval-relevance": {
+      "status": "VERIFIED_DATASET_IDENTITY",
+      "records": 240,
+      "dataset_sha256": "e10be11770eeaf34b6b39e529796de89d2a2341e05805071c47e716bc90f2255",
+      "manifest_sha256": "5dcb0a2eeabacc1fe4be08a7636adc557d6db1a65265ff90b66a409847936558",
+      "download": {
+        "url": "https://huggingface.co/datasets/mteb/summeval/resolve/bfc121155064afa2d81b5505682ffc0d96f4334c/data/test-00000-of-00001-35901af5f6649399.parquet",
+        "sha256": "7ff6f3f4d044223bd6922c5434d27bf28473950346fcfc2a3b7352c19163690e",
+        "bytes": 422779
+      },
+      "converter_input_sha256": "75c9f59d60455f83cb9cf2eb442ed924350863ac3f3dea9b7bcfc34d1fd6bfe0",
+      "original_export_sha256": "75c9f59d60455f83cb9cf2eb442ed924350863ac3f3dea9b7bcfc34d1fd6bfe0",
+      "original_export_byte_equal": true,
+      "converted": 1600,
+      "selection": "exact manifest IDs; no resampling; complete families; no length-based substitution"
+    },
+    "summeval-consistency": {
+      "status": "VERIFIED_DATASET_IDENTITY",
+      "records": 144,
+      "dataset_sha256": "86cc3627a2ddd8ca5ab10c1af43a9ee9e007b8d7d25dbf952f1a7452246e9e00",
+      "manifest_sha256": "7f0bd62128ded696ab61c8fbd57e9ce94411ddc9d42a73f580619b93700ffbbd",
+      "download": {
+        "url": "https://huggingface.co/datasets/mteb/summeval/resolve/bfc121155064afa2d81b5505682ffc0d96f4334c/data/test-00000-of-00001-35901af5f6649399.parquet",
+        "sha256": "7ff6f3f4d044223bd6922c5434d27bf28473950346fcfc2a3b7352c19163690e",
+        "bytes": 422779
+      },
+      "converter_input_sha256": "75c9f59d60455f83cb9cf2eb442ed924350863ac3f3dea9b7bcfc34d1fd6bfe0",
+      "original_export_sha256": "75c9f59d60455f83cb9cf2eb442ed924350863ac3f3dea9b7bcfc34d1fd6bfe0",
+      "original_export_byte_equal": true,
+      "converted": 1600,
+      "selection": "exact manifest IDs; no resampling; complete families; no length-based substitution"
+    }
+  },
+  "run_directory": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/nimble_public_restore_20261030_v2",
+  "scope": "Restoration identity only; not model inference or model-quality validation",
+  "restore_script_sha256": "d8c05eae2310a26ce49208bdf2f7e8b965d61a752a2a9cd60d63aecf1b6e0b87"
+}
