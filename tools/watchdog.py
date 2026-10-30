@@ -1006,7 +1006,7 @@ def discover(cfg, queued=None):
                     queued.append(rid)
             if is_run_dir(d, ents, depth, cfg):
                 seen.add(real)
-                runs.append({"id": rid, "path": d})
+                runs.append({"id": rid, "path": d, "root": root, "id_prefix": os.path.basename(root) + ":" if len(roots) > 1 else ""})
                 return
             if depth >= cfg.max_depth:
                 return
@@ -1190,12 +1190,13 @@ def read_why(d, cfg):
         except OSError:
             continue
         note = None
-        expected = False
+        expected = subtree = False
         try:
             obj = json.loads(raw)
             if isinstance(obj, dict):
                 expected = obj.get("expected") is True   # strictly the boolean true; never inferred from prose
-                for k in ("note", "why", "reason", "summary", "cause", "message"):
+                subtree = obj.get("applies_to_subtree") is True
+                for k in ("subtree_note", "note", "why", "reason", "summary", "cause", "message"):
                     if isinstance(obj.get(k), str):
                         note = obj[k]
                         break
@@ -1207,7 +1208,29 @@ def read_why(d, cfg):
             pass
         if note is None:
             note = raw
-        return {"file": name, "note": " ".join(note.split())[:300], "expected": expected}
+        return {"file": name, "note": " ".join(note.split())[:300], "expected": expected, "applies_to_subtree": subtree}
+    return None
+
+
+def inherited_why(run, cfg):
+    """Disposition inherited from a directory above the run, or None. Walk up from the run's parent to (not including) its root;
+    the NEAREST ancestor whose WHY file sets "applies_to_subtree": true decides: with "expected": true the run inherits it; with
+    anything else the search stops and nothing is inherited (a nearer explicit refusal is not overridden by a farther file). A WHY
+    file without applies_to_subtree: true never reaches below its own directory, and neither does one at a root. Both keys must be the
+    JSON boolean true. A run's own WHY file is consulted before this and always wins."""
+    root = run.get("root")
+    if not root:
+        return None
+    d = os.path.dirname(run["path"].rstrip("/"))
+    root = root.rstrip("/")
+    while d.startswith(root + os.sep):
+        w = read_why(d, cfg)
+        if w and w["applies_to_subtree"]:
+            if not w["expected"]:
+                return None
+            rel = os.path.relpath(d, root)
+            return dict(w, inherited_from=run.get("id_prefix", "") + rel, inherited_dir=d)
+        d = os.path.dirname(d)
     return None
 
 
@@ -1438,6 +1461,9 @@ def evaluate_run(run, cfg, states, now, prev=None):
         pointers.insert(0, {"path": pj, "json_paths": ["$.window", "$.baseline", "$.ratio_to_baseline"],
                             "why": "throughput %.2fx of baseline" % perf["ratio"]})
     why = read_why(d, cfg)
+    if why is None:
+        why = inherited_why(run, cfg)
+    inh = why.get("inherited_from") if why else None
     esc_before, expected_applied = esc, False
     # "expected": true downgrades only a run with a terminal marker (done/failed), an archived run, or a STALLED run (no marker and no
     # heartbeat: someone wrote the file to say the stop is deliberate). Running and unknown runs keep their escalation whatever the file
@@ -1445,7 +1471,7 @@ def evaluate_run(run, cfg, states, now, prev=None):
     if why and why["expected"] and (state in ("archived", "stalled") or (marker is not None and state in ("done", "failed"))):
         expected_applied = True
         if esc != "none":
-            esc, why_text = "none", "expected=yes (was %s: %s)" % (esc_before, why_text)
+            esc, why_text = "none", "expected=yes%s (was %s: %s)" % (" inherited from %s/%s" % (inh, why["file"]) if inh else "", esc_before, why_text)
     if progress is None and state in ("running", "stalled"):
         progress = {"done": None, "total": None, "percent": None, "rate_per_min": None, "window_s": None,
                     "eta_utc": None, "note": "no heartbeat samples", "counters": None, "fields": None}
@@ -1457,7 +1483,10 @@ def evaluate_run(run, cfg, states, now, prev=None):
         "progress": progress, "errors": errors, "suspicious_metrics": sus, "pointers": pointers[:6], "notes": notes, "why": why,
         "declared_total": tier.get("declared_total"), "uniform_cost": tier.get("uniform_cost", True), "total_anomaly": anomaly, "progress_flat": flat_info, "flat_reads": flat_reads, "flat_done": flat_done, "shards": shards,
         "perf": perf, "perf_regression": perf_on,
-        "expected_applied": expected_applied, "escalation_before_expected": esc_before if esc_before != esc else None,
+        "expected_applied": expected_applied,
+        "expected_from": ({"kind": "inherited" if inh else "own", "id": inh, "dir": why.get("inherited_dir"), "file": why["file"]}
+                          if expected_applied else None),
+        "escalation_before_expected": esc_before if esc_before != esc else None,
         "logs": logs,
     }
 
@@ -1762,6 +1791,23 @@ def _expected_by_state(runs):
     return out
 
 
+def _inherited_sources(runs):
+    """One entry per ancestor directory WHY file that dispositioned runs below it: who, where, how many runs, which states, and the
+    run ids (at most 60), so 'N runs are fine' reads as 'N runs dispositioned by M files at these paths'."""
+    by = {}
+    for r in runs:
+        ef = r.get("expected_from")
+        if not ef or ef["kind"] != "inherited":
+            continue
+        e = by.setdefault(ef["id"], {"id": ef["id"], "dir": ef["dir"], "file": ef["file"], "note": (r["why"] or {}).get("note"),
+                                     "applies_to_subtree": True, "runs": 0, "by_state": {}, "run_ids": []})
+        e["runs"] += 1
+        e["by_state"][r["state"]] = e["by_state"].get(r["state"], 0) + 1
+        if len(e["run_ids"]) < 60:
+            e["run_ids"].append(r["id"])
+    return sorted(by.values(), key=lambda e: (-e["runs"], e["id"]))
+
+
 CLUSTER_MAX = 100
 CLUSTER_MAX_RUNS = 50
 
@@ -1826,7 +1872,8 @@ def build_digest(cfg, states, now=None, sched=None):
         "generated_utc": iso(now), "host": socket.gethostname(), "roots": [os.path.abspath(r) for r in cfg.root],
         "tiers": cfg.tiers, "stall_override_s": cfg.stall_seconds, "watch_interval_s": cfg.interval if cfg.watch else None,
         "expected_downgrades": {"count": sum(1 for r in runs if r["escalation_before_expected"]),
-                                "runs": [r["id"] for r in runs if r["escalation_before_expected"]]},
+                                "runs": [r["id"] for r in runs if r["escalation_before_expected"]],
+                                "inherited_sources": _inherited_sources(runs)},
         "expected_by_state": _expected_by_state(runs),
         "signature_clusters": cluster_signatures(runs),
         "worst_state": worst if runs else "no_runs", "exit_code": code, "counts": counts, "queued": sorted(set(queued)), "runs": runs,
@@ -1877,6 +1924,25 @@ def _scope_lines(r, scope):
     return out
 
 
+def _audit_lines(dg):
+    """The disposition audit, in the always-kept summary block: counts per state, how many runs carry their own WHY file and how many
+    inherited one from a directory file (applies_to_subtree), and each inheriting directory with its run count and note."""
+    if not dg.get("expected_by_state"):
+        return []
+    inh = dg["expected_downgrades"]["inherited_sources"]
+    n_inh = sum(e["runs"] for e in inh)
+    n_all = sum(dg["expected_by_state"].values())
+    out = ["Dispositioned by a WHY file with expected=true (escalation none, still counted above, flags kept in digest.json): %s | %d own, %d inherited by %d subtree file%s" % (
+        ", ".join("%s %d" % kv for kv in sorted(dg["expected_by_state"].items())), n_all - n_inh, n_inh, len(inh), "" if len(inh) == 1 else "s")]
+    for e in inh[:4]:
+        out.append("  inherited: %s/%s (applies_to_subtree) covers %d runs (%s)%s" % (
+            e["id"], e["file"], e["runs"], ", ".join("%s %d" % kv for kv in sorted(e["by_state"].items())),
+            ": " + _clip(e["note"], 110) if e["note"] else ""))
+    if len(inh) > 4:
+        out.append("  inherited: +%d more subtree files, see digest.json expected_downgrades.inherited_sources" % (len(inh) - 4))
+    return out
+
+
 def build_blocks(dg, cfg):
     """Digest content as prioritised blocks: (priority, section, label, lines). Lower priority number survives longer.
     0 summary (with the NPU fragment and the dispositioned-by-WHY audit line) + status rows of unexplained failed/stalled/unknown runs;
@@ -1897,8 +1963,7 @@ def build_blocks(dg, cfg):
             dg["worst_state"], dg["exit_code"], len(runs), c["failed"], c["stalled"], c["unknown"], c["running"],
             c["done"], c["archived"], human_age(dg["watch_interval_s"]) if dg["watch_interval_s"] else "one-shot", dg["host"])
         + npu_fragment(dg.get("npu"))]
-        + (["Dispositioned by a WHY file with expected=true (escalation none, still counted above, flags kept in digest.json): %s" % (
-            ", ".join("%s %d" % kv for kv in sorted(dg["expected_by_state"].items())))] if dg.get("expected_by_state") else []))
+        + _audit_lines(dg))
     clean = [r for r in runs if r["state"] == "done" and r["escalation"] == "none"]
     arch = [r for r in runs if r["state"] == "archived"]
     shown = [r for r in runs if r not in clean and r not in arch]
@@ -1909,9 +1974,11 @@ def build_blocks(dg, cfg):
             _watch_cell(r), _clip(_prog_cell(r["progress"]), 48),
             _clip(_perf_cell(r.get("perf")) if r["state"] in ("running", "stalled") else "-", 64),
             _clip(r["escalation_reason"] or r["state_reason"], 70))
-        prio = 0 if r["state"] in bad and not r["expected_applied"] else 1     # an explained stop ranks as an ordinary row
+        # An explained stop (own WHY file or inherited from a directory) never outranks an unexplained run for space: its rows come
+        # last; the audit lines in the summary block carry the counts, the files and their paths whether or not the rows fit.
+        prio = 5 if r["expected_applied"] else 0 if r["state"] in bad else 1
         add(prio, "runs", "status rows", [row])
-        if r["why"]:
+        if r["why"] and not r["why"].get("inherited_from"):
             add(prio, "runs", "explanatory notes",
                 ["  note %s (%s): %s" % (r["id"], r["why"]["file"], _clip(r["why"]["note"], 110))])
     if not shown:

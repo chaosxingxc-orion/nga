@@ -15,9 +15,10 @@ Outputs go to `--out-dir` (default `<first root>/_watchdog/`): `digest.json` (co
 `--max-md-bytes`, default 16000) and `npu_history.json` (a few KB: the last 6 h of per-chip AICore passes, see Host utilisation).
 Over the cap, content is dropped by priority, not by position, in whole blocks: (0) summary line (with the NPU fragment and the
 dispositioned-by-WHY audit line) and status rows of failed/stalled/unknown runs that have no `expected` disposition, (1) other status
-rows (explained stops included), (2) pointers and ERROR signatures of failed/stalled runs, (3) flags on the primary scorer (and pointers
+rows, (2) pointers and ERROR signatures of failed/stalled runs, (3) flags on the primary scorer (and pointers
 of runs that have them), then the host-utilisation (NPU) block, (4) ERROR signatures of other runs, (5) WARNING signatures and flags on
-other scorers, (6) everything else (clean-done and archived lines, suppression audit, notes). Once a block of some priority does not fit, every lower-priority block is dropped
+other scorers, (5 also holds the status rows of runs with an `expected` disposition, own or inherited, so they never take space from an unexplained
+run), (6) everything else (clean-done and archived lines, suppression audit, notes). Once a block of some priority does not fit, every lower-priority block is dropped
 too. A final `[TRUNCATED ...]` line says how many blocks and bytes were dropped and which kinds. `digest.json` is never cut.
 Both are written to a temp file and renamed, under a lock, so a reader never sees a half-written file and
 concurrent invocations cannot interleave. Directories whose name starts with `.` or `_` are never scanned
@@ -289,8 +290,31 @@ downgrade is audited, never silent: the status row shows `expected=yes` (the rea
 second line of `digest.md` says `Dispositioned by a WHY file with expected=true ...: stalled 11, failed 2`; `digest.json` has
 `expected_downgrades` (count and run ids) and `expected_by_state`; the run keeps its `state`, the summary-line counts and its
 exit-code contribution (30 for a stalled run); flags and error lines are still reported. An explained row ranks as an ordinary
-status row (priority 1), below an unexplained failed or stalled one, and its errors do not count as a failed run's. Deciding that a
-failure is acceptable is a judgement, so it needs this explicit key.
+status row but at priority 5, so it never takes digest space from an unexplained run (the audit lines in the summary block carry the
+counts and files whether or not the rows fit), and its errors do not count as a failed run's. Deciding that a failure is acceptable
+is a judgement, so it needs this explicit key.
+
+**Directory dispositions (`applies_to_subtree`).** Quarantine is a property of a directory, not of one run. A run with no WHY file of its
+own inherits a disposition from an ancestor directory:
+
+- the walk goes up from the run's parent to, but **not including**, the root; the nearest ancestor whose WHY file has
+  `"applies_to_subtree": true` decides. With `"expected": true` the run is dispositioned exactly as if it had its own file (same state
+  rules: done, failed, archived or stalled only; a running or unknown run is never downgraded; a resumed heartbeat cancels it).
+  With anything else (`"expected": false`, absent) the search stops and nothing is inherited: a nearer explicit refusal is not
+  overridden by a farther file.
+- both keys must be the JSON boolean `true` (strings and `1` do not count). A WHY file without `applies_to_subtree: true` never reaches
+  below its own directory, and one placed at a root applies to nothing, so a single run's file cannot silently disposition its
+  neighbours or a whole tree.
+- a run's own WHY file always wins, whatever it says (an own `"expected": false` beside a quarantine file keeps the run escalating).
+- the note shown for the directory is its `subtree_note`, else `note`.
+
+Audit, so that the digest reads "N runs dispositioned by M files at these paths" and never "N runs are fine": the status row's reason
+reads `expected=yes inherited from <dir id>/WHY_FAILED.json (was decide: ...)`; the summary block of `digest.md` says
+`... | 7 own, 27 inherited by 1 subtree file` followed by one line per directory (`inherited: <id>/WHY_FAILED.json
+(applies_to_subtree) covers 27 runs (done 26, failed 1): <note>`, at most four, then a count of the rest); `digest.json` has per run
+`expected_from` (`kind` `own` or `inherited`, `id`, `dir`, `file`) and in `expected_downgrades.inherited_sources` one entry per
+directory file (`id`, `dir`, `file`, `note`, `runs`, `by_state`, `run_ids`). The runs stay in the state counts and the exit code.
+`expected_downgrades.runs` lists, as before, the runs whose escalation actually fell.
 
 ### Error signatures
 
@@ -365,7 +389,7 @@ own directory lands on `sys.path`.
 
 ### Tests
 
-    python3 -P tools/test_watchdog.py          # 138 tests; the module sets WATCHDOG_NO_NPU=1 so no test ever opens an ssh session
+    python3 -P tools/test_watchdog.py          # 147 tests; the module sets WATCHDOG_NO_NPU=1 so no test ever opens an ssh session
 
 The NPU tests use a fake `npu-smi`, `ps` and `ssh` on `PATH` (`--npu-host local` for the end-to-end probe).
 

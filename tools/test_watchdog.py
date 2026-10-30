@@ -471,7 +471,8 @@ class Expected(unittest.TestCase):
         self.assertEqual(by["unknown"]["escalation"], "read")
         self.assertEqual(by["running"]["escalation"], "read")
         self.assertFalse(by["unknown"]["expected_applied"] or by["running"]["expected_applied"])
-        self.assertEqual(dg["expected_downgrades"], {"count": 2, "runs": ["failed", "stalled"]})
+        self.assertEqual({k: v for k, v in dg["expected_downgrades"].items() if k != "inherited_sources"}, {"count": 2, "runs": ["failed", "stalled"]})
+        self.assertEqual(dg["expected_downgrades"]["inherited_sources"], [])
         self.assertEqual(dg["expected_by_state"], {"failed": 1, "stalled": 1})
         self.assertEqual(dg["counts"]["stalled"], 1)                      # still counted
         self.assertEqual(dg["exit_code"], 40)                             # exit codes follow state
@@ -1771,6 +1772,162 @@ class NpuProbeAndRender(unittest.TestCase):
         self.assertIn("WARN x40 in 40 runs", md)
         self.assertIn("| chip |", md)
         self.assertNotIn("TRUNCATED", md)
+
+
+class SubtreeDisposition(unittest.TestCase):
+    """A WHY file with expected: true AND applies_to_subtree: true dispositions every run below its directory that has no WHY file of
+    its own. The nearest ancestor with applies_to_subtree decides; a run's own file wins; the roots themselves never apply."""
+
+    def why(self, t, sub, **body):
+        d = os.path.join(t.root, sub) if sub else t.root
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "WHY_FAILED.json"), "w") as f:
+            json.dump(body, f)
+
+    def quarantine(self, t, n_failed=3):
+        self.why(t, "q", expected=True, applies_to_subtree=True, note="void: NaN loss under the Neumann inverse")
+        for i in range(n_failed):
+            t.run("q/sub%d" % i, heartbeat=hb_line(-1, "x"), marker="rc=1", log="ERROR nan loss\n")
+        t.run("q/stuck", heartbeat=hb_line(-9999, "x"))
+        t.run("q/donebad", heartbeat=hb_line(-1, "x"), marker="rc=0", log="ERROR nan loss\n")
+
+    def test_runs_inherit_and_the_audit_says_from_where(self):
+        t = Tree()
+        self.quarantine(t)
+        t.run("z_new_failure", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        dg = t.digest()
+        by = {r["id"]: r for r in dg["runs"]}
+        for i in ("q/sub0", "q/sub1", "q/sub2", "q/stuck", "q/donebad"):
+            r = by[i]
+            self.assertEqual((r["escalation"], r["expected_applied"]), ("none", True), i)
+            self.assertEqual(r["expected_from"], {"kind": "inherited", "id": "q", "dir": os.path.join(t.root, "q"), "file": "WHY_FAILED.json"})
+        self.assertEqual((by["z_new_failure"]["escalation"], by["z_new_failure"]["expected_from"]), ("decide", None))
+        self.assertIn("inherited from q/WHY_FAILED.json (was decide", by["q/sub0"]["escalation_reason"])
+        src = dg["expected_downgrades"]["inherited_sources"]
+        self.assertEqual(len(src), 1)
+        self.assertEqual((src[0]["id"], src[0]["file"], src[0]["runs"], src[0]["by_state"], src[0]["applies_to_subtree"]),
+                         ("q", "WHY_FAILED.json", 5, {"failed": 3, "stalled": 1, "done": 1}, True))
+        self.assertIn("void: NaN loss", src[0]["note"])
+        self.assertEqual(len(src[0]["run_ids"]), 5)
+        # counted, not erased
+        self.assertEqual((dg["counts"]["failed"], dg["counts"]["stalled"], dg["exit_code"]), (4, 1, 40))
+        self.assertEqual(dg["expected_by_state"], {"failed": 3, "stalled": 1, "done": 1})
+        md = wd.render_md(dg, t.cfg())
+        self.assertIn("5 inherited by 1 subtree file", md.splitlines()[2])
+        self.assertIn("inherited: q/WHY_FAILED.json (applies_to_subtree) covers 5 runs", md.splitlines()[3])
+        self.assertIn("| z_new_failure | failed | decide", md)
+        self.assertIn("| q/sub0 | failed | none expected=yes", md)
+        self.assertEqual(md.count("note q/sub"), 0)          # the directory's note is shown once, not once per run
+
+    def test_both_keys_are_required_and_must_be_boolean_true(self):
+        cases = [dict(expected=True), dict(applies_to_subtree=True), dict(expected=True, applies_to_subtree="true"),
+                 dict(expected="true", applies_to_subtree=True), dict(expected=True, applies_to_subtree=1),
+                 dict(expected=False, applies_to_subtree=True), dict(note="expected and applies_to_subtree")]
+        for body in cases:
+            t = Tree()
+            self.why(t, "q", **body)
+            t.run("q/r", heartbeat=hb_line(-1, "x"), marker="rc=1")
+            r = t.digest()["runs"][0]
+            self.assertEqual((r["escalation"], r["expected_applied"]), ("decide", False), body)
+
+    def test_a_single_run_file_does_not_disposition_its_siblings_or_descendants(self):
+        t = Tree()
+        d = t.run("q/a", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        with open(os.path.join(d, "WHY_FAILED.json"), "w") as f:
+            json.dump({"expected": True}, f)
+        t.run("q/b", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        by = {r["id"]: r for r in t.digest()["runs"]}
+        self.assertEqual((by["q/a"]["escalation"], by["q/b"]["escalation"]), ("none", "decide"))
+
+    def test_nearest_subtree_ancestor_decides(self):
+        t = Tree()
+        self.why(t, "a", expected=True, applies_to_subtree=True, note="far")
+        self.why(t, "a/b", expected=True, applies_to_subtree=True, note="near")
+        t.run("a/b/r", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        t.run("a/c/r", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        by = {r["id"]: r for r in t.digest()["runs"]}
+        self.assertEqual(by["a/b/r"]["expected_from"]["id"], "a/b")        # nearer wins
+        self.assertEqual(by["a/c/r"]["expected_from"]["id"], "a")
+        src = {e["id"]: e for e in t.digest()["expected_downgrades"]["inherited_sources"]}
+        self.assertEqual((src["a/b"]["runs"], src["a"]["runs"]), (1, 1))
+        # a nearer file that explicitly refuses (applies_to_subtree true, expected false) is not overridden by a farther one
+        self.why(t, "a/b", expected=False, applies_to_subtree=True, note="not expected here")
+        by = {r["id"]: r for r in t.digest()["runs"]}
+        self.assertEqual((by["a/b/r"]["escalation"], by["a/b/r"]["expected_from"]), ("decide", None))
+        self.assertEqual(by["a/c/r"]["escalation"], "none")
+        # a nearer file without applies_to_subtree does not reach below its own directory, so the farther one still applies
+        self.why(t, "a/b", expected=True, note="only for a/b itself")
+        by = {r["id"]: r for r in t.digest()["runs"]}
+        self.assertEqual(by["a/b/r"]["expected_from"]["id"], "a")
+
+    def test_a_runs_own_file_beats_any_ancestor(self):
+        t = Tree()
+        self.why(t, "q", expected=True, applies_to_subtree=True, note="quarantine")
+        mine = t.run("q/mine", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        with open(os.path.join(mine, "WHY_FAILED.json"), "w") as f:
+            json.dump({"expected": False, "note": "this one is a real failure"}, f)
+        own = t.run("q/own", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        with open(os.path.join(own, "WHY_FAILED.json"), "w") as f:
+            json.dump({"expected": True, "note": "own reason"}, f)
+        t.run("q/plain", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        by = {r["id"]: r for r in t.digest()["runs"]}
+        self.assertEqual((by["q/mine"]["escalation"], by["q/mine"]["expected_from"]), ("decide", None))
+        self.assertEqual(by["q/own"]["expected_from"]["kind"], "own")
+        self.assertEqual(by["q/own"]["why"]["note"], "own reason")
+        self.assertEqual(by["q/plain"]["expected_from"]["kind"], "inherited")
+        self.assertEqual(t.digest()["expected_downgrades"]["inherited_sources"][0]["runs"], 1)
+
+    def test_a_resumed_heartbeat_cancels_an_inherited_disposition(self):
+        t = Tree()
+        self.why(t, "q", expected=True, applies_to_subtree=True)
+        d = t.run("q/r", heartbeat=hb_line(-9999, "x"))
+        r = t.digest()["runs"][0]
+        self.assertEqual((r["state"], r["escalation"], r["expected_applied"]), ("stalled", "none", True))
+        with open(os.path.join(d, "heartbeat.log"), "a") as f:
+            f.write(hb_line(-5, "x"))
+        t2 = t.digest()["runs"][0]
+        self.assertEqual((t2["state"], t2["expected_applied"]), ("running", False))
+        with open(os.path.join(d, "run.log"), "w") as f:
+            f.write("RuntimeError: x\n")
+        r = t.digest()["runs"][0]
+        self.assertEqual((r["state"], r["escalation"], r["expected_applied"]), ("running", "read", False))
+
+    def test_a_root_level_file_never_applies_and_unknown_runs_are_not_downgraded(self):
+        t = Tree()
+        self.why(t, "", expected=True, applies_to_subtree=True)
+        t.run("r", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        self.assertEqual(t.digest()["runs"][0]["escalation"], "decide")
+        t2 = Tree()
+        self.why(t2, "q", expected=True, applies_to_subtree=True)
+        t2.run("q/u", report={"a": 1})
+        r = t2.digest()["runs"][0]
+        self.assertEqual((r["state"], r["escalation"], r["expected_applied"]), ("unknown", "read", False))
+
+    def test_ids_carry_the_root_prefix_with_several_roots(self):
+        a, b = Tree(), Tree()
+        self.why(b, "q", expected=True, applies_to_subtree=True)
+        b.run("q/r", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        cfg = wd.make_cfg(root=[a.root, b.root], out_dir=os.path.join(a.tmp.name, "_o"))
+        dg = wd.build_digest(cfg, {}, NOW)
+        pfx = os.path.basename(b.root) + ":"
+        self.assertEqual(dg["runs"][0]["expected_from"]["id"], pfx + "q")
+        self.assertEqual(dg["expected_downgrades"]["inherited_sources"][0]["id"], pfx + "q")
+
+    def test_dispositioned_rows_never_outrank_undispositioned_ones_for_space(self):
+        t = Tree()
+        self.why(t, "q", expected=True, applies_to_subtree=True)
+        for i in range(6):
+            t.run("q/f%d" % i, heartbeat=hb_line(-1, "x"), marker="rc=1")
+            t.run("n%d" % i, heartbeat=hb_line(-1, "x"), log="RuntimeError: x\n")        # undispositioned, escalation read
+            t.run("s%d" % i, heartbeat=hb_line(-9999, "x"))                                  # undispositioned stalled
+        dg = t.digest(max_md_bytes=10 ** 6)
+        for cap in range(1500, 7000, 100):
+            md = wd.render_md(dg, t.cfg(max_md_bytes=cap))
+            self.assertLessEqual(len(md.encode()), cap)
+            if "| q/f" in md:
+                lines = md.splitlines()
+                self.assertEqual((sum(ln.startswith("| n") for ln in lines), sum(ln.startswith("| s") for ln in lines)), (6, 6), cap)
+            self.assertIn("inherited: q/WHY_FAILED.json", md)                  # the audit is in the summary block at every cap
 
 
 class SignatureClusters(unittest.TestCase):
