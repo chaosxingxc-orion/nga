@@ -2,7 +2,7 @@
 
 > Date: 2026-10-30.
 > Scope: project 2's S1 + S2 collaboration and its integration into project 3's enterprise workbench.
-> Status: proposed logical architecture, not an implementation or approved mechanism set.
+> Status: earlier logical architecture draft, not an implementation or approved mechanism set. Its three-view organization is superseded by [V0.2](13-nga-architecture-v0.2.md). Interpret retained contracts with the corrections and validation obligations in the [adversarial review](14-v0-adversarial-review.md).
 > Read with: [analysis](07-nga-architecture-analysis.md), [diagrams](09-nga-architecture-diagrams.md), and [program principles](../design/nga-overall-design.md).
 
 ## 1. Design premise and status

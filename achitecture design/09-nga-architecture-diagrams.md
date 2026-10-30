@@ -1,61 +1,56 @@
-# NGA Architecture Diagrams — V0.1 Discussion Draft
+# NGA Architecture Diagrams — V0.2 Discussion Draft
 
 > Date: 2026-10-30.
-> Companion: [architecture V0.1](08-nga-architecture-v0.1.md).
+> Companion: [architecture V0.2](13-nga-architecture-v0.2.md), with the [V0 adversarial review](14-v0-adversarial-review.md). Earlier decision-contract detail remains in [V0.1](08-nga-architecture-v0.1.md).
 > These diagrams show proposed logical responsibilities and transitions, not deployment topology or implemented guarantees. The original [V0 diagrams](06-architecture-diagrams-md.md) remain available for comparison.
 
 For a concrete credit application, see the [complete walkthrough](10-credit-decision-walkthrough.md), including S2's change permissions before and after adoption and the race between new evidence and dispatch.
 
-## 1. Enterprise views and control authority
+## 1. Four planes coordinated through agent evolution
 
 ```mermaid
 flowchart TB
-    U["Accountable user / enterprise task"] --> F
+    subgraph EV["Agent evolution — coordinated improvement across the four planes"]
+        subgraph U["User plane"]
+            UI["Intent, authoring, interaction, review and feedback"]
+        end
+        subgraph M["Management plane"]
+            DEF["Versioned semantics, models, capabilities and workflows"]
+            REL["Candidate/release lineage and reviewed evaluation evidence"]
+        end
+        subgraph C["Control plane"]
+            ADM["Admission, binding, adoption and lifecycle gates"]
+            ST["Authoritative transitions, operation identities and audit correlation"]
+            ADM --> ST
+        end
+        subgraph R["Runtime plane"]
+            RUN["Admitted S1/S2, graphs, loops, workflows, evaluations and replays"]
+            IO["Admitted tool/resource execution and observations"]
+        end
 
-    subgraph M["Management view — project 3"]
-        K["Knowledge engineering: semantic specifications"]
-        C["Capability catalog and authorization policies"]
-        P["Adoption policies and release records"]
+        UI -->|"Requests, review and improvement cases"| ADM
+        DEF -->|"Applicable published definitions"| ADM
+        REL -->|"Candidate evidence and release dependencies"| ADM
+        ADM -->|"Admitted computational work"| RUN
+        RUN -->|"Judgments, plans, evaluation results and action requests"| ADM
+        ST -->|"Admitted operation / current conditions"| IO
+        IO -->|"Receipts, evidence and unresolved outcomes"| ADM
+        ST -->|"Effective state, evidence and results"| UI
+        ST -->|"Authorized registration, promotion or withdrawal"| REL
+        ST -->|"Authorized artifact publication"| DEF
     end
-
-    subgraph R["Control view — framework responsibilities"]
-        F["Task admission and identity"]
-        B["Specification and evidence binding"]
-        A["Guarded decision adoption"]
-        D["Action admission, dispatch and recovery"]
-        F --> B
-        B --> A
-        A --> D
-    end
-
-    subgraph X["Execution/data view — bounded capabilities"]
-        S1["S1: typed business judgment"]
-        S2["S2: reasoning and plan proposals"]
-        E["Evidence adapters"]
-        T["Tools and external resources"]
-    end
-
-    K --> B
-    C --> F
-    C --> D
-    P --> A
-    B -->|"Bound decision frame"| S1
-    S1 -->|"Typed observation"| A
-    F -->|"Goal, context and allowed scope"| S2
-    S2 -->|"Evidence requests and plan revisions"| B
-    B -->|"Admitted evidence read"| E
-    E -->|"Versioned evidence"| B
-    D -->|"Authorized stable operation"| T
-    T -->|"Receipt or unresolved outcome"| D
-
-    H["Task, evidence, plan, decision and operation history"]
-    F --> H
-    B --> H
-    A --> H
-    D --> H
 ```
 
-S1/S2 have no direct policy-publication or business-effect bypass. Plans and evidence requests entering the binding step are proposals to validate, not automatic changes to a decision frame. Views can share infrastructure.
+The enclosure represents the integrating whole, not a fifth plane or a privileged evolution service. The planes cooperate in all three lifecycle states. User inputs and management declarations gain effect through their control contracts; runtime workers execute admitted work. The drawing does not prescribe services, storage ownership, or physical topology.
+
+| Plane | Development | Runtime | Operations |
+| --- | --- | --- | --- |
+| User | Express goals, author cases, review candidates. | Initiate tasks, supply evidence, inspect and approve/challenge. | Inspect business outcomes, resolve issues, contribute reviewed feedback. |
+| Runtime | Execute tests, simulations, training/evaluation and replay. | Execute models, tools, graphs, loops and workflows. | Execute monitoring, diagnosis, replay and admitted recovery. |
+| Management | Maintain definitions, candidates and evaluation artifacts. | Resolve applicable published versions and configuration. | Maintain cases, ownership, release history and rollout declarations. |
+| Control | Admit development work and validate publication gates. | Enforce transitions, adoption, authority, budgets and effects. | Enforce interventions, releases, withdrawal and recovery policy. |
+
+Evolution links **intent and outcomes → reviewed candidate → evaluation → authorized release → observed behavior** across this matrix. Version and task/decision/operation lineage preserve the relationship between improvement and past behavior. See [V0.2](13-nga-architecture-v0.2.md) for the contracts and [the review](14-v0-adversarial-review.md) for counterexamples.
 
 ## 2. Fast and S2-assisted paths
 

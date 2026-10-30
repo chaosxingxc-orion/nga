@@ -4,6 +4,7 @@
 > Status: architectural analysis and proposed reference organization, not an approved topology or implementation.
 > Premise: the required Jev-like capability is available within its declared semantic scope.
 > Inputs: [V0.1 architecture](08-nga-architecture-v0.1.md), [credit walkthrough](10-credit-decision-walkthrough.md), and the owner's requirements for replay and audit.
+> Placement: this proposal develops runtime cooperation and its control contracts inside the broader [V0.2 three-state/four-plane architecture](13-nga-architecture-v0.2.md). Its structural and model-placement hypotheses remain subject to the [adversarial review](14-v0-adversarial-review.md).
 
 ## 1. The architectural question
 

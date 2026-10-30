@@ -6,7 +6,9 @@ The preceding generation of agent frameworks centers on an **agentic model**: th
 
 The research direction starts from the required business behavior. The [survey](survey/README.md) and its [PDF](survey/nga-survey.pdf) identify useful evidence, defects, and gaps in Jev-class research. They inform task definition and controlled comparisons; published architectures and benchmarks do not determine NGA's objectives.
 
-Start with the [NGA overall design](design/nga-overall-design.md) for the three-project scope, idempotence goals, semantic-specification ownership, S1/S2/framework boundaries, and V0 evolution. **These are design objectives, not demonstrated runtime guarantees.**
+Start with the [NGA overall design](design/nga-overall-design.md) for the program and established principles, then the [V0.2 architecture](achitecture%20design/13-nga-architecture-v0.2.md) and [V0 adversarial review](achitecture%20design/14-v0-adversarial-review.md). **These are design objectives and proposed mechanisms, not demonstrated runtime guarantees.**
+
+NGA is organized across **three lifecycle states — development, runtime, and operations — and four responsibility planes — user, runtime, management, and control**. **Agent evolution is the integrating whole across the planes and states**: business experience informs versioned improvements to models, semantics, capabilities, workflows, and their controls. Each plane participates in all three states; operations includes business performance and improvement, not only infrastructure maintenance. The three repository projects below are a separate work organization.
 
 ## Three projects and how they connect
 
@@ -51,7 +53,7 @@ The workbench turns enterprise requirements into maintained business contracts a
 
 The objective is that decision execution never silently invents a missing convention. Ambiguous rules, uncovered cases, missing evidence, and model uncertainty must lead to declared handling rather than an improvised business answer. An unresolved state is distinct from a business rejection unless the published policy explicitly equates them. Model detection and framework handling of these states still require work in projects 1 and 2; specification governance belongs to project 3.
 
-**Workbench V0 retains the existing enterprise architecture design as its starting baseline.** Its management, control, and execution views, capability contracts, authority boundaries, context handling, and adoption/accountability path provide the structure. S1 + S2 collaboration will be incorporated incrementally, followed by architecture revisions based on measured behavior. Concrete technologies and unresolved mechanisms in the reference design remain open.
+**The supplied enterprise architecture remains the V0 source baseline.** NGA's current V0.2 organizes the workbench by three states and four planes, with agent evolution connecting them. Capability contracts, bounded authority, context provenance, and adoption/accountability remain useful foundations; inherited assumptions are corrected where counterexamples invalidate them. S1 + S2, Graph, Loop, and Workflow designs operate within this broader structure. Concrete technologies and unvalidated mechanisms remain open.
 
 ## Decision idempotence and traceability
 
@@ -72,7 +74,7 @@ The [overall design document](design/nga-overall-design.md) records established 
 
 The current [orchestration discussion](achitecture%20design/11-jev-agentic-orchestration.md) compares loops, typed execution graphs, and reusable workflows as ways to combine Jev and agentic models. The [replay and audit contract](achitecture%20design/12-replay-and-audit-contract.md) separates executable control replay, model reevaluation, and live recovery. These are proposed mechanisms under established business objectives.
 
-The [architecture workspace](achitecture%20design/README.md) preserves the two supplied V0 reference documents and contains the NGA analysis, V0.1 discussion draft, and updated diagrams. The draft assumes the required Jev-like capability is available and develops contract-bound and S2-assisted paths through a shared adoption/execution boundary. The reference documents' reported artifacts and implementation status belong to their original context; their pending decisions and host platform are not automatically selected for NGA.
+The [architecture workspace](achitecture%20design/README.md) preserves the two supplied V0 references and earlier NGA drafts alongside the current V0.2 proposal, adversarial findings, and diagrams. It assumes the required Jev-like capability is available for architectural analysis. The references' implementation claims belong to their original context; pending decisions and technologies are not automatically imported into NGA.
 
 | Design area | Questions to resolve |
 | --- | --- |

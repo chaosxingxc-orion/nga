@@ -5,6 +5,8 @@
 > Status: proposed information, execution, and acceptance contracts; no replay engine or audit certification is claimed.
 > Applies to: graphs, agent loops, nested workflows, and the [credit decision walkthrough](10-credit-decision-walkthrough.md).
 
+Under [V0.2](13-nga-architecture-v0.2.md), the same contract applies to development evaluations, business execution, and operational interventions across the four planes. Candidate evaluation, publication, rollout, and withdrawal are also attributable lifecycle actions. Replaying them must not publish a real release or alter live routing.
+
 ## 1. Separate four operations
 
 | Operation | What runs | Treatment of original history | Live effects |
@@ -24,7 +26,7 @@ All consequential work must cross an instrumented framework boundary, including 
 
 | Record family | Information required for its supported replay/audit scope |
 | --- | --- |
-| Definitions | Semantic specifications, candidate meanings/order, graph/workflow versions, admitted patches, capability contracts, decision operators, threshold/calibration policies, and their retrievable contents. |
+| Definitions | Agent/release identity and dependency manifest; semantic specifications, candidate meanings/order, graph/workflow versions, admitted patches, capability contracts, decision operators, threshold/calibration policies, and their retrievable contents. |
 | Initial and changing state | Request/business identities, frame and node-activation identities, initial snapshot, state revisions, consumed dependency versions, and before/after transition references. |
 | Evidence and context | Actual supplied content or preserved retrievable versions, source authority/coverage/freshness, visibility, provenance, and distinctions between source facts and model assertions. |
 | Model invocations | S1/S2 request context, visible prompts/inputs, candidate set, model/configuration identity, actual returned observations/proposals, invocation identity, and input digest. Hidden internal reasoning is not required. |
@@ -33,6 +35,7 @@ All consequential work must cross an instrumented framework boundary, including 
 | Decisions and transitions | Guard outputs actually used, selected and rejected/ineligible branches with recorded reasons, dependency checks, adoption/override basis, committed state version, and effective authority. |
 | Operations | Stable business-operation identity, immutable material parameters or explicit amendment history, attempt identities, grants by reference, receipts, unresolved outcomes, and reconciliation/correction links. |
 | Parent/child execution | Workflow and loop instance identities, call/return correlation, inherited authority and budget, consumed child results, and suspend/resume relationships. |
+| Evolution lineage | Reviewed issue/case provenance, candidate changes, evaluation runs, publication/promotion authority, actual rollout selection, and declared handling of active tasks and withdrawals. |
 | Executable artifacts | Retrievable controller/operator code or equivalent executable version, schemas/serialization behavior, compatibility information, and runtime dependencies needed for control replay. |
 
 Record grant references and relevant attributes, not reusable credentials. Preserve data only within the declared access/retention contract; a deployment must state the interval over which full replay is supported.

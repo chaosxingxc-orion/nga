@@ -26,9 +26,17 @@ These projects exchange requirements and evidence rather than form strict sequen
 
 ### 1.2 V0 continuity and evolution
 
-The enterprise workbench's **V0 retains the existing enterprise architecture design as its starting baseline**. Its management, control, and execution/data views, capability contracts, bounded authority, context sharing, and adoption/accountability path remain the organizing structure.
+The supplied enterprise design is NGA's V0 source baseline. Its capability contracts, bounded delegation, context provenance, and adoption/accountability ideas remain useful foundations. Their suitability is subject to adversarial review; preserving the source does not require retaining invalid assumptions.
 
-S1 + S2 collaboration is incorporated progressively as its contracts and behavior are clarified and measured. Later architecture revisions should explain what changed and why. Retaining V0 does not import the reference project's implementation claims, settle its pending decisions, or select its technologies. Section 5.4 maps the baseline to the three-project scope.
+The owner's three-state/four-plane framing supersedes the earlier three-view organization. The [V0.2 architecture](../achitecture%20design/13-nga-architecture-v0.2.md) develops that structure, and the [adversarial review](../achitecture%20design/14-v0-adversarial-review.md) identifies defects, missing contracts, and unvalidated hypotheses in V0 and our subsequent drafts. Concrete technologies remain open.
+
+### 1.3 Three states, four planes, and agent evolution
+
+- **States:** development, runtime, and operations are lifecycle/activity perspectives. They can coexist for different releases and tasks of the same logical agent.
+- **Planes:** user, runtime, management, and control are responsibility perspectives. Each participates in every state; the runtime plane also performs development evaluation and operational replay.
+- **Integrating whole:** agent evolution coordinates business intent, actual behavior/outcomes, reviewed candidate changes, evaluation, publication, rollout, and further observation across all four planes.
+
+Evolution includes models, semantic specifications, knowledge/context, capabilities, graphs/workflows, interaction, and control contracts. It does not confer authority for silent changes to active tasks or history. Operations includes business value, adoption, quality, exceptions, and improvement, not just technical monitoring.
 
 This document defines logical responsibilities and design questions. It does not amend frozen experiment protocols or claim an implemented NGA runtime.
 
@@ -65,8 +73,9 @@ These are the agreed direction and logical boundaries, not claims that the corre
 | P8 | Evaluation must exclude degenerate solutions and measure useful behavior. | Every invariance target has a discrimination counterpart and an accuracy floor. |
 | P9 | Concrete technology choices remain open. | Logical interfaces and acceptance requirements precede platform and implementation choices. |
 | P10 | Semantic gray areas must not become implicit model discretion. Project 3 owns semantic-specification management through knowledge engineering. | Undefined conventions, conflicts, and coverage gaps require explicit treatment; S1/S2 cannot silently complete business policy. |
-| P11 | Workbench V0 retains the prior enterprise architecture design, then incorporates S1 + S2 collaboration incrementally. | Preserve the baseline's organizing boundaries while reviewing and versioning subsequent changes. |
+| P11 | The prior enterprise design is the V0 source baseline; its assumptions remain subject to adversarial review as NGA evolves. | Preserve source history and useful contracts, correct invalid assumptions, and version subsequent architectural changes. |
 | P12 | Decision chains must be replayable and auditable, including consequential work inside loops and workflows. | Preserve executable definitions and consumed external/model observations as required; distinguish historical inspection, control replay, reevaluation, and live recovery. |
+| P13 | NGA has development, runtime, and operations states; user, runtime, management, and control planes; agent evolution integrates and coordinates the four planes. | Do not equate a plane with a lifecycle time or reduce evolution to model tuning, monitoring, or an additional privileged plane. |
 
 “Business-configurable” is a capability to validate, not a promise that every natural-language rule is immediately supported without engineering or training.
 
@@ -140,17 +149,20 @@ flowchart TB
 
 The diagram shows responsibility boundaries. It does not select a loop, graph engine, messaging protocol, or physical topology.
 
-### 5.4 Workbench V0 and the collaboration design
+### 5.4 Four-plane responsibilities across the lifecycle
 
-| V0 view | Role retained from the enterprise design | Incremental NGA work |
+| Plane | Main responsibility | Relation to S1/S2 and evolution |
 | --- | --- | --- |
-| **Management** | Capability catalog and publication, business policy, review, and accountability access. | Project 3 adds the semantic-specification lifecycle: terms, rules, examples, unresolved cases, ownership, versions, and impact review. |
-| **Control** | Task admission, authority and resource bounds, verification/adoption gates, and recorded state transitions. | Project 2 defines how S1 observations and S2 plans are admitted, revised, adopted, and recovered; the framework retains effective control. |
-| **Execution/data** | Capability/model/tool invocation, bounded context, intermediate results, and execution events. | Integrate measured S1 judgment capabilities and S2 reasoning at selected points without granting either model control over authoritative policies or adoption history. |
+| **User** | Intent, authoring/review interaction, task status, approvals/challenges, and operational feedback. | Make behavior and evidence usable for business users, developers, and operators; submit changes through authorized contracts. |
+| **Runtime** | Execute admitted models, skills, graphs, loops, workflows, tools, evaluations, and replays. | Produce actual judgments, proposals, observations, and outcome evidence in all three states. |
+| **Management** | Maintain definitions, specifications, catalogs, ownership, versioned artifacts, candidates, and release lineage. | Bind compatible model/rule/workflow/operator versions and curated improvement evidence. |
+| **Control** | Admit work and changes; enforce effective transitions, adoption, authority, budgets, effects, recovery, and lifecycle policy. | Preserve the authority and state boundaries while candidates are evaluated, promoted, rolled out, or withdrawn. |
 
-These are views of responsibilities, not three prescribed services. The baseline's deterministic control boundary governs authority and state transitions; it does not imply that all business semantic judgment can be replaced by code. Model observations can affect decisions only through the published adoption contract.
+These are logical responsibilities, not four required services. The framework spans the planes. Runtime workers perform admitted actions; control contracts determine which state changes and effects become effective. Management declarations and user requests do not bypass those contracts.
 
-V0 need not wait for the final S1 + S2 design. Subsequent revisions can introduce a measured S1 insertion point, adapt the loop, and revise workbench workflows while preserving traceability. The first insertion point and its acceptance criteria remain open.
+The [V0.2 matrix](../achitecture%20design/13-nga-architecture-v0.2.md) maps each plane to development, runtime, and operations. Agent evolution links release definitions, task/decision history, actual outcomes, reviewed cases, evaluations, and subsequent releases. It preserves historical decisions and defines treatment of active tasks explicitly.
+
+Semantic judgment remains a model capability where appropriate; deterministic control cannot substitute for all business understanding. S1/S2 and Graph/Loop/Workflow choices remain proposals within this larger organization.
 
 ## 6. Proposed logical interfaces
 

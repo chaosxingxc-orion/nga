@@ -2,6 +2,8 @@
 
 This directory holds the owner-supplied enterprise architecture baseline and NGA's subsequent analysis and revisions. The directory spelling is retained so existing local references continue to work.
 
+**Current organizing view:** [V0.2 — three states, four planes, agent evolution](13-nga-architecture-v0.2.md). Read it with the [V0 adversarial review](14-v0-adversarial-review.md), which challenges both the supplied source and our earlier proposals. Development/runtime/operations are lifecycle states; user/runtime/management/control are responsibility planes; agent evolution coordinates the whole.
+
 ## Reading order and document status
 
 | Document | Role | Status |
@@ -9,11 +11,13 @@ This directory holds the owner-supplied enterprise architecture baseline and NGA
 | [05 — Architecture brief and decisions](05-architecture-brief-and-decisions.md) | Original agent-festival architecture brief and nine decision requests. | Archived V0 source, retained as supplied in Chinese. |
 | [06 — Architecture diagrams](06-architecture-diagrams-md.md) | Original overview, task walkthrough, and mechanism inventory. | Archived V0 source, retained as supplied in Chinese. |
 | [07 — NGA architecture analysis](07-nga-architecture-analysis.md) | What survives the assumed availability of a capable Jev-like model; gaps and proposed corrections. | Analysis, 2026-10-30. |
-| [08 — NGA architecture V0.1](08-nga-architecture-v0.1.md) | Proposed S1/S2/framework responsibilities, decision lifecycle, contracts, and engineering work packages. | Discussion draft; proposed mechanisms are not approved or implemented. |
-| [09 — NGA architecture diagrams](09-nga-architecture-diagrams.md) | Views of the proposed architecture and its normal, revision, and recovery paths. | Companion to 08, with the same status. |
+| [08 — NGA architecture V0.1](08-nga-architecture-v0.1.md) | Earlier S1/S2/framework responsibilities, decision lifecycle, and contracts. | Earlier draft; its three-view organization is superseded by V0.2. Mechanisms require review and validation. |
+| [09 — NGA architecture diagrams](09-nga-architecture-diagrams.md) | Current four-plane/evolution view, lifecycle matrix, and decision/recovery views. | Companion to V0.2; detailed mechanisms remain proposed. |
 | [10 — Credit decision walkthrough](10-credit-decision-walkthrough.md) | Complete credit example: S1 participation, S2 change boundaries, adoption, retries, new evidence, and reconstruction. | Demonstration fixture and proposed contracts; no execution claimed. |
 | [11 — Jev and agentic orchestration](11-jev-agentic-orchestration.md) | Compare loops, graphs, and workflows; typed nodes, semantic transitions, local S1/S2 cooperation, and architecture-driven model tasks. | Proposed reference organization; alternatives remain under evaluation. |
 | [12 — Replay and audit contract](12-replay-and-audit-contract.md) | Historical inspection, executable control replay, reevaluation, live recovery, and audit evidence. | Replay/audit are required; mechanisms and acceptance contracts are proposed. |
+| [13 — NGA architecture V0.2](13-nga-architecture-v0.2.md) | Three-state/four-plane matrix, integrated agent evolution, release continuity, and the credit lifecycle. | Current organizing proposal; axes are owner-defined, detailed mechanisms are proposed. |
+| [14 — V0 adversarial review](14-v0-adversarial-review.md) | Source-linked findings, counterexamples, corrections, and acceptance obligations for V0 and our own drafts. | Design review; no implementation tests claimed. |
 
 The [NGA overall design](../design/nga-overall-design.md) remains the program-level source for the three projects and established principles. This directory develops the architecture for project 2 and its integration into project 3.
 

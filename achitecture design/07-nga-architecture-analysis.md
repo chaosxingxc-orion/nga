@@ -3,7 +3,7 @@
 > Date: 2026-10-30.
 > Basis: [V0 brief](05-architecture-brief-and-decisions.md), [V0 diagrams](06-architecture-diagrams-md.md), and [NGA overall design](../design/nga-overall-design.md).
 > Premise: the required Jev-like decision capability is available within its declared scope.
-> Status: analysis and recommendations; the corresponding architecture is a [V0.1 discussion draft](08-nga-architecture-v0.1.md).
+> Status: earlier analysis supporting the [V0.1 draft](08-nga-architecture-v0.1.md). Its recommendation to retain three organizing views is superseded by [V0.2](13-nga-architecture-v0.2.md); the [adversarial review](14-v0-adversarial-review.md) reassesses both source and NGA assumptions.
 
 ## 1. What the model assumption changes
 
