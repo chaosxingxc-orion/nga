@@ -448,6 +448,11 @@ functions called directly, and must be byte-identical.
 10.5 A clause of this file that changes a number is **in force** only when a test naming the clause
 asserts it. The report header lists the clauses in force and those not in force (R0 §11.8 item 3).
 
+*Added by §14.10 item 15: a **counterfactual declaration** is a standing clause of this section. Any
+amendment that changes a decision rule after a result the old rule bore on states what the new rule
+would have decided about that result. The clause's full text, its two scope conditions and its one
+caution are in §14.10 item 15.*
+
 ---
 
 ## 11. Compute and run hygiene
@@ -463,7 +468,10 @@ chip count of every run is recorded. Scoring and training use `python3 -P` insid
 - resumable at step (training) or item (scoring) granularity — *corrected for the §14.5 item 1 (i)
   identity run by §14.8 item 5: that run is resumable at readout-file granularity, and resuming a
   partial readout file in place is barred*;
-- the relaunch command written into the run directory.
+- the relaunch command written into the run directory;
+- *added by §14.10 item 11: a relaunch never deletes or overwrites a run directory that holds a
+  terminal marker; it moves it aside to a sibling `<name>.crash-<utc>/` first. The clause's text,
+  and the digest-retention clause it is committed and cited with (§14.10 item 14), are there.*
 
 11.3 **Kernel choice.** The fast gated-delta-rule kernel under validation
 (`/mnt/cephfs/xingchao/docker/verl_v030_20261029/speedup/`) may change speed and nothing else. A run
@@ -498,6 +506,14 @@ swap) on other groups of the same sources. They are not evidence of transfer to 
 12.6 K4's result is not an R3 result until proposal R3 is amended (§7.5). The ladder sizes have one
 seed each, so differences between sizes that fall inside the 0.8B seed spread are not reportable as
 size effects.
+
+12.7 This round cannot claim that its `in_proj_a` LoRA adapters learned a well-conditioned signal
+(added by §14.10 item 4). Under the reference kernel in bf16 the gate path carries the noisiest
+gradient in the model: `e_ref` of 0.034 to 0.051 relative error against the fp32 gold on `in_proj_a`,
+`A_log` and `dt_bias`. A 3–5% relative gradient error on the one gate-path adapter LoRA trains is a
+plausible low-SNR channel. If a later round finds `in_proj_a` adapters contributing little, this
+measurement is the first place to look, rather than a finding about gating's importance in the
+architecture. §7.2's precision is unchanged and no experiment in this round is authorised by this.
 
 ---
 
@@ -570,8 +586,11 @@ the padding changes the score (0.157 nats on one decision-v7 train row; repro
 requires: LoRA dropout, the one-cycle schedule, per-epoch augmentation, and the K2 loss. Its LoRA
 merge was also found to be a silent no-op for this checkpoint class. Recipe clauses (§3, §7) are
 unchanged. The trainer's own tests (LoRA-only trainable, response-only loss mask, K2 equality with
-an independent computation, right-padding invariance, exact resume) are recorded in each run
-directory.
+an independent computation, right-padding invariance, resume) are recorded in each run
+directory. *The word "exact" is struck from that test list by §14.10 item 6, which rewrites the
+resume test as two assertions — bit-identity for a step-3-to-6 resume, the measured trajectory floor
+for a step-40 resume — because as written the test passed for the wrong reason. §14.7 item 4's
+numbers stand; their scope is withdrawn there.*
 
 14.4 **Amendment 4, kernel verdict and a downstream kernel test, 2026-10-30.** Applying §14.1 as
 written: (a′) passed (fp32 logits relative L2 5.85e-5, minimum gradient cosine 0.9999984), (b′)
@@ -663,7 +682,11 @@ and the resolution.
    1. K0 on `Qwen3.5-0.8B-Base` and `Qwen3.5-0.8B` with the admissible scorer, both tracks, all
       degenerate arms, and the item 1 identity check and erratum measurement.
    2. Wave 1, concurrent, one chip per run (§14.3), eight runs: K1 seeds 2 and 3, K2 seeds 2 and 3,
-      K1-PT seeds 2 and 3, K1-QO seed 2, K1-FLA seed 2 (§14.4). K-align, K-floor, K1 against K2
+      K1-PT seeds 2 and 3, K1-QO seed 2, K1-FLA seed 2 (§14.4). *The wave becomes **ten** runs under
+      §14.10 items 8 and 13: the eight registered arms unchanged, plus the K1 seed 2 same-config
+      replicates `w1_k1_s2_replicate_diffchip` (chip 3, the gating floor) and
+      `w1_k1_s2_replicate_samechip` (chip 2, reported and non-gating). Neither is an arm and neither
+      enters any arm's seed mean.* K-align, K-floor, K1 against K2
       (§8.2, item 2) and the ladder kernel test (§14.4) are decided from this wave. Every trained arm
       is also scored with `input_mode = drop` (§5.2) and `blank` (§5.3) on both dev partitions, since
       §9.2's question-only comparator is the arm itself. Wave 1 is 8 single-chip trainings on a host
@@ -896,7 +919,12 @@ arm of wave 1 was trained and before any readout of record exists.
      is identical, the population is not — the FLA kernel's 96.6% is over 320 full-model trainable
      tensors, every one of the eleven tensors it failed on is frozen under LoRA and cannot appear in
      the 372, and the replacement sentence, the gating population and the consequence of a split
-     verdict are fixed there.* The stacked figures already recorded (e(F,G) 4.02e-02 against
+     verdict are fixed there. Decided by §14.10 item 1: (G2) **failed** on the declared verdict batch
+     at 368 of 372 against the 369 required, the 320 population failed it too, and §14.8 item 1's
+     pre-registered "both fail" branch is the one taken — wave 1 and the ladder train on the
+     reference kernel. The pooled three-batch reading, which would have passed, is recorded and
+     refused there, and §14.10 item 3 fixes a five-batch median rule for the next gate without
+     applying it to this one.* The stacked figures already recorded (e(F,G) 4.02e-02 against
      e(R,G) 3.79e-02, ratio 1.06) do not discharge it.
    - **(G3) A same-config replicate floor, which did not exist when this kernel was proposed.** Two
      invocations of the reference kernel with identical micro-batch, seed, data and chunk plan: report
@@ -927,7 +955,11 @@ arm of wave 1 was trained and before any readout of record exists.
    - **If any of (G1)–(G4) fails, wave 1 and the ladder train on the reference kernel**, at the
      measured cost of about 2.8 h per K1 run at three processes per chip and about 6.8 h per K2-shared
      run, roughly a day for the wave. That consequence is recorded here so the gate is not reopened
-     under schedule pressure after a result is seen.
+     under schedule pressure after a result is seen. *This clause has fired: §14.10 item 1 records
+     (G2)'s failure and sends wave 1 and the ladder to the reference kernel. (G4) was not run and is
+     not required. The realized cost is the one-chip-per-run figure of §14.10 item 8 — about 1.84 h
+     per K1 run and 6.76 h for the wave, set by the two K2-shared runs — not the
+     three-processes-per-chip estimate above.*
    - **Ladder.** Every `fast_ref` number is at 0.8B over 18 layers. Before each of 2B, 4B and 9B trains
      with `fast_ref`, (G1) is repeated at that size on real rows of that size and recorded; a size that
      fails trains on the reference kernel. (G2)–(G4) are not repeated per size.
@@ -1002,7 +1034,10 @@ arm of wave 1 was trained and before any readout of record exists.
      post-fix repeats the final adapter is identical at 0.00e+00 in all five; the logged per-step loss
      is 0.00e+00 in three and 5.96e-08 / 2.98e-08 on steps 5 and 6 in two, reproducibly the same values
      (`r3_runs/eff/res_fixed_a`, `res_fixed_b`, `final_test_train_r3d`). The admissible claim is
-     "bit-identical in the adapter; the logged loss agrees to 6e-08".
+     "bit-identical in the adapter; the logged loss agrees to 6e-08". *Scope withdrawn by §14.10
+     item 6: these numbers stand, but they were measured inside the five-to-ten-step window in which
+     this trainer is bitwise reproducible, and the "6e-08" is itself that window's step-5 half-ULP
+     event. The four claims this round may make, and the rewritten resume test, are there.*
    - **The fix is verified for only half of its stated scope, and that is closed before launch.**
      `diag_determinism.py` probes the corrected path for one long row and one short row (both bitwise
      reproducible) but its only "2 identical-length rows" probe calls the uncorrected path, where it is
@@ -1017,9 +1052,11 @@ arm of wave 1 was trained and before any readout of record exists.
      folding treatments, so it does not depend on how that adapter was trained.
 
 **Launch checklist (§14.7).** All of the following are committed before `docker run -d` on any wave-1
-arm:
-1. This amendment (§14.7) and §14.8, which corrects (G2) and adds the (G3) obligation to both
-   branches.
+arm. *Extended by §14.10 with items 8 and 9; the item-by-item status as of the gate verdict, which
+leaves items 1, 7, 8 and 9 **open** and wave 1 **not cleared to launch**, is the table at the end of
+§14.10.*
+1. This amendment (§14.7), §14.8, which corrects (G2) and adds the (G3) obligation to both
+   branches, and §14.10, which records the gate verdict and adds items 8 and 9 below.
 2. `r3_runs/eff/gate_fast_ref/` holding (G1)–(G4) with the four sha256s of item 2, or the recorded
    decision to train on the reference kernel. That recorded decision carries the failing numbers and
    the same four sha256s, names which of the four gates ran, and states that it follows from a gate
@@ -1032,7 +1069,16 @@ arm:
    its 0.0585 against 0.0586 figures rest on the re-batching floor of 0.0887 that item 2 (G3)
    declares void as a floor (§14.8 item 3).
 6. `r3_runs/eff/bench_record.json` carrying `gdn_impl`, `k2_impl` and the trainer sha256.
-7. The §14.5 item 4 step 2 chip-assignment file, written with its sha256 recorded.
+7. The §14.5 item 4 step 2 chip-assignment file, written with its sha256 recorded. *It must now
+   carry **ten** runs (§14.10 items 8 and 13) and lose its `DRAFT` status; items 7 and 9 are
+   discharged together.*
+8. *Added by §14.10 item 6:* §14.3's resume test rewritten as two assertions — bit-identity for a
+   step-3-to-6 resume, and the §14.10 item 6 (iii) trajectory floor for a step-40 resume — and the
+   trainer's full test suite re-run on a chip with its output recorded in the run directory.
+9. *Added by §14.10 items 8 and 13:* the ninth and tenth runs, `w1_k1_s2_replicate_diffchip` on
+   chip 3 and `w1_k1_s2_replicate_samechip` on chip 2, named in the item 7 assignment file before
+   the wave launches, with the gating rule (only the different-chip floor gates) and the dev-readout
+   sequence written there.
 
 14.8 **Amendment 8, (G2)'s gating population, the three §14.7 edits ratified with their
 conditions, (G3) on every branch, and two corrections to the orchestrator's own record,
@@ -1081,7 +1127,10 @@ convention).
      wave-1 statement that rests on the kernel to name the split, as "admitted on the LoRA
      population; the full-trainable population fails at X%, as the FLA kernel did at 96.6%, on the
      same class of small-norm gate and normalization tensors". It is not a silent pass. If both fail,
-     wave 1 and the ladder train on the reference kernel, per §14.7 item 2's existing clause.
+     wave 1 and the ladder train on the reference kernel, per §14.7 item 2's existing clause. *The
+     branch taken, recorded by §14.10 item 1: **both populations failed the declared verdict batch**
+     — 368 of 372 against 369, and 315 of 320 against 317 — so this is the "both fail" branch and not
+     the contestable split verdict. Wave 1 and the ladder train on the reference kernel.*
 
    §14.7 item 2 (G2)'s sentence "This is the identical bound the FLA kernel failed at 96.6% (§14.4),
    and it is the number that decides this kernel" is replaced by:
@@ -1129,7 +1178,13 @@ convention).
      fail it quietly. (b) **It distinguishes "the gate ran and returned a verdict" from "the gate did
      not complete".** A `FAILED` marker under `gate_fast_ref/` is not by itself a gate result, and a
      reader may not treat one as triggering the reference-kernel fallback: that would launch wave 1
-     with the measurement silently never taken. The live instance:
+     with the measurement silently never taken. *The sentence beginning "The live instance:" is
+     replaced by §14.10 item 10, which settles the error string's provenance from six surviving logs
+     of this round plus `CHIP-ALLOCATION.json` rather than from anyone's testimony, records that
+     `aclInit` 507899 and `Resource_Busy(EL0005)` are two lines of one CANN error block and not two
+     accounts, and corrects two attributions (the 370 MB figure is the reviewer's and is
+     uncorroborated; `_watchdog/digest.json` is rolling and cannot be cited after the fact). The
+     clause's function is unaffected. The superseded sentence is kept below.* The live instance:
      `r3_runs/eff/gate_fast_ref/model_level/FAILED` recorded `rc=1 utc=2026-10-30T04:41:39Z` with an
      `EL0005 Resource_Busy … rtGetDeviceCount execution failed` log tail — an infrastructure fault at
      process start on a chip that was not free, **not a (G1) result**, and not admissible as one. The
@@ -1378,3 +1433,491 @@ whose §6 carries this text; §14.8 is a different amendment, from a different r
      `fp32_verdict` refuses an fp32 cell whose `hf32` flag is not false. This clause is therefore
      no longer outstanding against the first readout of record. This is not a relaxation of any
    bar: the bf16 bar is not lowered, the precision it governed is no longer admissible.
+
+14.10 **Amendment 10, the `gdn_fast_ref` gate verdict, the reproducibility limit and what resume may
+claim, two replicates inside wave 1, `TASK_QUEUE_ENABLE`, a future kernel gate's batch rule, two
+corrections to the orchestrator's record, and three standing clauses, 2026-10-30.** Made after the
+gate reported and before any arm of wave 1 was trained and before any readout of record exists.
+Source: the review ruling `reviews/R3-GATE-VERDICT-RULING-fable-20261030.md` (Fable 5.1, CLAUDE.md
+§2), whose §10 carries the text of items 1 to 12 and whose dated addendum (§§14–17, 06:35Z–06:48Z)
+carries items 13 to 15; each item names the ruling section it comes from. **Stated precisely,
+because the engineer's conduct is part of the record:** the gate failed narrowly on its declared
+verdict batch, three of the four natural readings of the same data pass, and the engineer used the
+declared one, reported the passing alternative as an undeclared alternative rather than as a result,
+and asked for a ruling. Items 1 and 3 exist because it did.
+1. **(G2) failed; wave 1 and the ladder train on the reference kernel (ruling §2).** Applying §14.7
+   item 2 as amended by §14.8 item 1: (G1) **passed** on all three batches (whole-model fp32 logits
+   relative L2 1.63e-06 / 1.52e-06 / 1.50e-06 against 1e-4; minimum gradient cosine 0.9999997 over
+   the 372 against 0.9999, none below). **(G2) failed** on the declared verdict batch: 368 of 372
+   LoRA tensors within `e_fast ≤ 1.5 · e_ref + 1e-3` where ⌈0.99 × 372⌉ = 369 are required, with 0
+   beyond 3×. Batch 1 gives 371 (a pass) and batch 2 gives 367 (a fail). The non-gating 320
+   full-trainable population also fails the verdict batch (315 of 320 against 317 required) and
+   carries one tensor beyond 3× on batch 2 (`layers.21.linear_attn.dt_bias`, e_fast 3.29e-02 against
+   e_ref 9.74e-03). This is §14.8 item 1's pre-registered **"both fail"** branch, not its split
+   verdict. (G4) was not run and is not required: §14.7 item 2's consequence clause fires on any one
+   of (G1)–(G4) failing, and a number produced after the branch is decided could serve only to argue
+   against it. **Every arm of wave 1 and every size of the ladder trains on the in-tree reference
+   kernel.** Numbers, the four sha256s and the full per-tensor out-of-bound lists are in
+   `r3_runs/eff/gate_fast_ref/` (`GATE_RESULT.json`, `GATE_RECORD.txt`, `SHA256SUMS.txt`).
+   - **The verdict batch was pre-declared in this pre-registration's own terms**, not only in the
+     gate script's docstring: §14.7 item 2 (G4) records `|loss_R − loss_G| = 2.28e-02` before the
+     gate ran, and of the three batches only step 0 matches it (0.0228285, against 0.016142 and
+     0.028856). The docstring sentence "Verdict of record = step 0" is also present in the preserved
+     `gate_fast_ref/gate_model_level.run1.py`, whose sha256 `615d5afb06c6…` is the script of the
+     first run that produced a number.
+   - **The pooled reading is recorded and refused (ruling §3.1).** Pooling the three batches gives
+     1106 of 1116 = 99.104% and **would pass**; so would the mean of the three per-batch fractions
+     (99.105%). Neither was declared beforehand, neither is used, and both are written here rather
+     than omitted, so that a later reader can see the gate was decided against the reading that
+     would have let the work proceed faster. Rule 3 bars choosing among readings after the data, and
+     §14.7 item 2's consequence clause ("so the gate is not reopened under schedule pressure after a
+     result is seen") and §14.8 item 1's "only one population may gate" each refuse the same move.
+     A further objection stands independently of the timing: the out-of-bound tensors are clustered
+     by tensor identity and by batch, so 1,116 is not a sample of 1,116 and a bar calibrated on 372
+     correlated tensors does not transfer to a pool of three correlated batches.
+   - **§14.7 checklist item 2's recorded decision is satisfied by this item together with
+     `gate_fast_ref/`**, which carries the failing numbers, the same four sha256s a passing gate
+     would have recorded, the statement that (G1)–(G3) ran and (G4) did not, and the statement that
+     the branch follows from **a gate verdict and not from a gate crash** (§14.8 item 3).
+   - **`fast_ref` is not retired.** It passed (G1) with two orders of margin and is a correct
+     implementation that failed a bf16-rounding bar. Item 3 below fixes the terms on which a revised
+     version may be re-gated.
+2. **The failure's structure, recorded as a finding of this round (ruling §4).** All ten
+   out-of-bound LoRA tensors across the three batches are `linear_attn.in_proj_a` (layers 0, 1, 16;
+   9; 9, 20, 21) and nothing else out of 372, and the non-gating population's out-of-bound tensors
+   are `A_log`, `dt_bias`, `linear_attn.norm`, `in_proj_a` and two attention norms — the same
+   gate-and-normalisation family on which the FLA kernel failed §14.1 (b′) (`speedup/README.md:51`),
+   and whose only LoRA-trainable member is `in_proj_a` (§7.2's target list; `A_log`, `dt_bias` and
+   the norms are frozen).
+   - **This is not an artefact of small-norm tensors carrying large relative error.** On the verdict
+     batch the median e_ref over the 372 is 0.035145 and the median e_fast is 0.035052 — the two
+     kernels are indistinguishable in bulk — and the four failing tensors have e_ref of 0.03398,
+     0.03710, 0.04826 and 0.03563, i.e. **at or barely above the median**, against e_fast of
+     0.05348, 0.06336, 0.07676 and 0.05469. The reference kernel finds nothing unusual about these
+     tensors; only `fast_ref` does.
+   - **The mechanism, labelled as this report's own construct and not a literature result (CLAUDE.md
+     §4 rule 4).** `g`, the cumulative gate, enters the kernel **only** through the matrix that is
+     inverted (`A = −((k_beta @ kᵀ) · exp(g_i − g_j))`), while `q`, `k` and `v` also enter through
+     paths outside it. `gdn_fast_ref` replaces the reference's replayed forward-substitution backward
+     with the analytic `dL/dA = Xᵀ (dL/dX) Xᵀ`, `X = (I − A)⁻¹`, so the entire rounding difference of
+     the change is deposited in `dL/dA`, which is the sole route to the gate parameters, and it is
+     applied through `X` twice, so it scales with cond(X)² where the forward scales with cond(X)
+     once. That predicts a kernel that passes (G1) in fp32 with two orders of margin while failing
+     (G2) in bf16, a per-batch count that varies with the batch's decay profile (the observed
+     367–371), and the worst batch being the one with the longest chunks and most padding (step 2).
+     **Two independent re-expressions of this inverse, by different authors with different
+     algorithms, degrade the same path**, which makes it a property of the operator rather than of
+     either implementation.
+   - **Nothing about the reference kernel's admissibility changes.** It is the baseline against which
+     e_ref is defined and its fp32 form is the gold; no measurement here is evidence about it.
+3. **A future kernel gate's batch rule, fixed now and not applied to the gate just decided (ruling
+   §3.2 and §3.3).** The instrument that decided item 1 above has a batch-to-batch spread of four
+   tensors (367–371) and decided by a margin of one, which is a badly calibrated gate whether or not
+   it reached the right verdict. For **any kernel gate whose data does not yet exist** — a revised
+   `fast_ref`, any fourth implementation, and (G1) at each ladder size — (G2) is measured as follows,
+   and this rule is **not retroactive** (§14.4's precedent: "it is not relaxed retroactively"):
+   - **Five batches, not three**, named in advance by their index in the trainer's own data order,
+     in both the gate script's docstring and the amendment that authorises the gate, before it runs.
+   - **Each batch is judged separately against the unchanged bound** (`e_fast ≤ 1.5 · e_ref + 1e-3`
+     for ≥ 99% of the gating population) **and the verdict is the median of the five per-batch
+     counts.** The median keeps the batch as the unit of analysis, which is the unit the noise lives
+     in; it cannot be gamed after the data; and it does not pool correlated tensors. *On the data of
+     item 1 above the median of {368, 371, 367} is 368 and the verdict would be unchanged, which is
+     the only honest condition under which to pre-register a replacement rule.*
+   - **All five per-batch counts are reported.** A spread greater than 2 across the five is reported
+     as a flag that the gate is under-powered for its own bar, not averaged away.
+   - **The 3× clause binds on every batch**: no tensor may exceed `3 · e_ref + 1e-3` on **any** of
+     the five. Catastrophic error is not a quantity to take a median of.
+   - Pooling tensors across batches is **not** admitted, in this or any other form.
+4. **§12, added: what this round cannot claim about the gate path (ruling §4.4).** Under the
+   reference kernel in bf16, the gate path is the noisiest gradient in the model: e_ref of 0.034 to
+   0.051 relative error against the fp32 gold on `in_proj_a`, `A_log` and `dt_bias`. bf16 compute
+   over fp32 master weights is this round's pre-registered precision (§7.2) and nothing changes. The
+   claim that is **not** available: *this round cannot claim that its `in_proj_a` LoRA adapters
+   learned a well-conditioned signal.* A 3–5% relative gradient error on the one gate-path adapter
+   is a plausible low-SNR channel, and if a later round finds `in_proj_a` adapters contributing
+   little, this measurement is the first place to look rather than a finding about gating's
+   importance in the architecture. No experiment in this round is authorised by this item.
+5. **(G3) is measured on both branches as §14.8 item 4 required, and the model-level floor is
+   exactly zero (ruling §5.1).** Recorded: two invocations of the reference kernel with identical
+   micro-batch, seed, rows and chunk plan — one in-process, one in a **separate process** — give
+   d(R,R′) = **0.0** over the stacked 372-tensor LoRA gradient, **372 of 372 tensors bitwise equal**,
+   and |loss_R − loss_R′| = 0, on six batches across `model_level_final` and `diag_steps9_11`; an
+   independently written second script (`r3_code/tq_check.py`) reports `max_rel_l2` **exactly 0.0**
+   and 372 of 372 bitwise equal on five further batches in every one of six pairings. **This zero is
+   not a by-construction zero** (CLAUDE.md §7.1): the same code reports 3.3062e-02 for the
+   fast-against-reference comparison on the same step and 318 and 319 of 320 rather than 320 for
+   base tensors on steps 1 and 2, and the reviewer verified the cross-process bit-identity
+   independently by hashing the 372 serialized storages of `grads_R_step0.pt` and
+   `grads_Rprime_step0.pt` (43,290,624 bytes, all equal, `data.pkl` streams equal). **Scope, stated
+   rather than implied:** one chip, one container, one host, one CANN version, sequential in time. It
+   is **not** evidence of reproducibility across chips, hosts or images and no claim of that kind is
+   licensed.
+   - **The model-level replicate is the floor of record for every model-level bf16 statement about a
+     kernel**, as §14.7 item 2 (G3) intended, and it is zero, which is why item 9 below has an
+     instrument of unlimited resolution.
+   - **The trajectory replicate is the floor of record for (G4) and for every trajectory statement,
+     and it is not zero**: mean |loss_R − loss_R2| over 100 steps = **6.046e-03** (max 3.587e-02,
+     8 of 100 steps bitwise equal, first-20 mean 4.342e-03, last-20 mean 7.181e-03); the first
+     replicate gave 5.430e-03. §14.7 checklist item 5's K2 cell was re-measured against it:
+     reference + shared K2 0.0585 against the row form's 0.0586 — clean — and `fast_ref` + shared
+     0.0746 against 0.0642, not covered by the floor, which is consistent with item 1 above's verdict
+     and is now moot since `fast_ref` does not train.
+6. **The reproducibility limit, and §14.3's "exact resume" restated for the second and last time
+   (ruling §5.2, §5.3, §5.4 and §6).** §14.7 item 4 restated §14.3's claim as "bit-identical in the
+   adapter; the logged loss agrees to 6e-08". **Those numbers stand; their scope is withdrawn.** They
+   were measured over a handful of steps, and a handful of steps is precisely the window in which
+   this trainer is bitwise reproducible. The "6e-08" is itself the step-5 half-ULP event described
+   below, caught in two of five repeats before anyone was looking for it.
+   - **The mechanism first proposed — that Adam amplifies a last-bit gradient difference — is
+     withdrawn, refuted by the engineer's own test.** Under SGD with momentum 0.9 and the same
+     schedule the same replicate pair diverges **earlier** (first differing step 3 against AdamW's
+     5) and ends **twice as far apart** (final-weight relative L2 2.69e-04 against 1.31e-04), with
+     0 of 372 tensors bitwise equal at step 40 under both
+     (`gate_fast_ref/sgd_replicate/out/diag_sgd_replicate.json`). Adam's second moment is not
+     necessary for the phenomenon. *Limits, recorded rather than waived: one replicate pair per
+     optimizer, and the two optimizers are not on the same trajectory (mean loss over the last ten
+     steps 0.521 against 0.451, mean gradient norm 35.8 against 26.3), so only the qualitative
+     reading — SGD is not closer, and is earlier — is supported. That is all it is used for.*
+   - **The admissible mechanism statement.** *A rare last-bit nondeterminism on the forward /
+     loss-reduction path, not present in the gradients at any measured cell, amplified to the 1e-2
+     scale within about ten optimizer steps by a mechanism that is optimizer-independent and has not
+     been identified.* The evidence that the seed is in the forward and not in the gradients: across
+     six pairings of five batches (1,860 tensor cells) **no gradient tensor ever differs**
+     (`max_rel_l2` exactly 0.0) while the loss scalar differs by one half-ULP (1.1920929e-07) on two
+     batches **between two runs of the same configuration**; and at the first differing step of
+     every trajectory pair — AdamW 5, dropout-0.0 8, SGD 3 — the `grad_norm` difference is **exactly
+     0.0**.
+   - **The amplification is a jump, not a growth, and is this round's hypothesis rather than its
+     finding (CLAUDE.md §4 rule 4).** 1.19e-07 at step 10 becomes 3.59e-02 at step 11 — five orders
+     in one optimizer step at lr ≈ 1e-5 — and then stops growing (first-20 4.34e-03, last-20
+     7.18e-03). Smooth amplification by any optimizer cannot produce the first and would not produce
+     the second. The hypothesis on record: this trainer holds **bf16 compute weights over fp32
+     master weights** (§7.2), so a sub-ULP fp32 master-weight difference is invisible until it
+     crosses a **bf16 rounding boundary**, whereupon the compute weight moves by a full bf16 ULP — a
+     finite jump of about 0.4% — after which the two runs are two valid trajectories a bounded
+     distance apart. The global grad-norm clip at 1.0 against measured gradient norms of 20 to 150
+     is a second candidate threshold. **No ruling in this amendment depends on which it is.**
+   - **The claims this round may make, and no others.** (i) The backward is bitwise reproducible
+     from identical state, same chip and image (item 5 above). (ii) **A same-seed training run is
+     bitwise reproducible for about 5 to 10 optimizer steps and not beyond**; no claim of bitwise
+     equality past **step 3** is admissible for any configuration. (iii) Beyond that window two
+     same-config runs are two samples from one distribution, separated by a mean |Δloss| of
+     **6.05e-03** over 100 steps and a final-adapter relative L2 of **1.31e-04** with **0 of 372
+     tensors bitwise equal**; that number, not zero, is the floor for any trajectory-level
+     comparison. (iv) **Resume is not bit-exact and is not described as "exact" anywhere in this
+     round.** A resumed run is a different sample from the same distribution, which is what §11.2's
+     resumability requires of it, and is **not** evidence that two runs are the same run. The word
+     "exact" is struck from §14.3's test list and replaced by "resume", with these four claims as
+     its content.
+   - **§14.3's resume test is rewritten before wave 1 launches, because as written it passes for the
+     wrong reason.** It resumes after a handful of steps, inside the reproducible window, so it
+     would stay green if resume were badly broken past step 10 — the defect §14.9 item 8 named in
+     the scorer's own suite, with the same remedy. The replacement asserts **two** things: that a
+     checkpoint at step 3 resumed to step 6 gives a **bit-identical** adapter, which is a real and
+     sharp property inside the measured window; and that a resume at step 40 reproduces the
+     remaining trajectory **to within the (iii) floor above**, with the test naming that floor and
+     its source file. Neither assertion overclaims. The suite is re-run on a chip with its output
+     recorded in the run directory, as §14.3 requires. A skip marker or an expected-failure
+     annotation is not an acceptable alternative (§14.9 item 8's convention).
+   - **No readout of record is affected, and this is not reopened.** §14.7 item 4 fixed the scope —
+     scoring performs no backward — and §14.9 item 3 made the scorer of record fp32. The limit is a
+     property of **training** trajectories. The `harness_identity` pin, whose completed files were
+     byte-identical to R0's eighteen hours later on different chips (§14.8 item 6), is scoring and
+     is unaffected. Nothing about the scorer, the readouts or the erratum is reopened.
+7. **One cheap localisation experiment, pre-registered and explicitly not a blocker (ruling §5.3 and
+   §5.4).** Two same-config runs of 15 steps dump, after each step, the fp32 master weights and
+   their bf16 cast, and the report names **the first step at which each first differs**. If the bf16
+   cast diverges a step or more after the fp32 master weights, the bf16 rounding boundary of item 6
+   above is the amplifier; if they diverge together, it is not. It costs minutes on one chip, it is
+   recorded in `r3_runs/eff/` with a wiki entry (CLAUDE.md §8), and **wave 1 does not wait for it**:
+   items 6 above and 8 below are written so as to hold whatever it returns. It is not permitted to
+   change any floor, threshold or claim of this round; a result that suggests one needs a further
+   amendment.
+8. **A same-config replicate inside wave 1: K1 seed 2, a ninth run, named in the chip-assignment
+   file before launch (ruling §7).** §14.5 item 4 step 2's wave becomes **nine runs**: the eight
+   registered arms unchanged, plus **K1 seed 2 trained a second time with an identical
+   configuration** on the reference kernel and **scored on both dev partitions with the scorer of
+   record**, exactly as the arm is. Reason: every decision line in this round is in **accuracy
+   points** (§8.2 (b) 1.0, §8.2 (c) 2.0, §9.1 0.80 / 0.60, §14.4's ±1.0 band) while the measured
+   floor is **6.05e-03 nats of training loss**, and a loss floor cannot be converted into an
+   accuracy floor. The standing project rule — measure the same-config replicate floor before
+   ratifying any equivalence threshold — therefore has never been satisfied for §8.2 (b) or (c), and
+   item 6 above removes the only reason it might have been thought vacuous. *Item 13 below, from the
+   ruling's dated addendum, fixes this run on chip 3 as `w1_k1_s2_replicate_diffchip`, adds a tenth
+   run as its same-chip companion, and names which of the two floors gates; read the two items
+   together.*
+   - **Arm and seed**: K1 seed 2, because it is the arm §9.1 K-align is judged on, the arm §8.2's
+     first adoption decision uses, the seed §9.3 K-ladder uses for like-for-like, the base of
+     §14.4's K1-FLA band, and the cheapest run in the wave.
+   - **Cost: no additional wave wall clock.** The wave is 6.76 h, set entirely by the two K2-shared
+     runs at 1.280 q/s/chip (`bench_record.json` `v4_ref_k2sh_mt3000_r48`, measured with
+     `TASK_QUEUE_ENABLE=2` already in effect, so the figure does not shrink under item 9 below); a
+     K1 run on the reference kernel is 1.84 h at 4.715 q/s/chip (`ref_tq2_nockpt`, 30.5 GiB). From
+     about t = 1.9 h six of eight chips are idle for roughly five hours. The ninth run takes the
+     first chip a K1 run frees, finishes about t = 3.7 h, and is scored well inside the envelope.
+   - **It is named in the §14.5 item 4 step 2 (b) chip-assignment file before the wave launches**,
+     as the sequential successor on a specific chip, with that file's sha256 recorded per §14.7
+     checklist item 7. It is a **run of record** and therefore does not share a chip with another
+     (step 2 (a)). Adding it after any dev number is read would be barred by step 2 (b), which is
+     why it is fixed here.
+   - **It is a floor measurement, not a third seed.** It must **not** enter K1's two-seed mean, be
+     averaged into any arm's accuracy, or be used to break a tie; each would change a pre-registered
+     estimator after the data. Its single use is to report, in accuracy points on each dev suite,
+     how far apart two identical configurations land.
+   - **What happens if the floor is large, fixed before the number exists.** If the replicate's
+     dev-accuracy difference on a suite is **below** 1.0 point, §8.2 (b)'s bar stands and the floor
+     is reported beside every comparison. If it **meets or exceeds** 1.0 point on either dev suite,
+     the bar **is not relaxed** (§14.1 and §14.4's precedent); instead any §8.2 (b) comparison whose
+     margin falls inside the floor is reported as **indeterminate**, the arm is **not adopted on
+     that basis**, and adoption must be carried by §8.2 (a) and (c) with the floor reported. **No
+     arm is adopted on a margin smaller than the measured floor.** The same test applies to §8.2
+     (c)'s 2-point flip-rate bar on the gating cells. §9.1 K-align is an absolute line, not a
+     difference tolerance, so the floor does not move it; the floor is reported beside the gap and
+     §9.1's "the gap is reported as a gap" stands.
+   - **§8.2 (a)'s estimator is unchanged and is labelled.** The bootstrap resamples **questions** and
+     therefore estimates question-sampling variance only; run-to-run variance (seed, and same-seed
+     run noise) is averaged by the two-seed mean and never estimated, so it does not enter the
+     interval. Changing the statistic now is barred by rule 3. Every §8.2 report therefore states
+     that **the interval is conditional on the realized runs and does not include run-to-run
+     variance**, and reports this item's replicate floor beside it. Additive and restrictive.
+   - **Not ordered**: no K2 replicate (6.8 h, would double the wave), no third seed of any arm, no
+     change to the eight registered arms, no re-run of anything measured. If K1's floor turns out
+     large enough to matter for the K1-against-K2 comparison specifically, a K2 replicate is
+     requested then, with a number in hand.
+9. **`TASK_QUEUE_ENABLE`: an efficiency defect fixed, and the §9 obligation discharged by the right
+   instrument (ruling §8).** The container image exports `TASK_QUEUE_ENABLE=1`, so `train_r3.py`'s
+   `os.environ.setdefault("TASK_QUEUE_ENABLE", "2")` **never took effect inside a container** and a
+   performance fix believed to be in force had never once run. The trainer now **assigns**
+   (`os.environ["TASK_QUEUE_ENABLE"] = os.environ.get("NGA_TASK_QUEUE_ENABLE", "2")`), overridable
+   by `NGA_TASK_QUEUE_ENABLE`, with the realized value in every manifest.
+   - **Measured effect, in the form CLAUDE.md §9 requires**: the same 100 reference-kernel steps run
+     at **1.94 q/s/chip** with 1 and **4.4 q/s/chip** with 2 over all 100 steps (1.93 → 4.84 over
+     steps 11–100), **one chip**, **30.5 GiB reserved**, K1, micro-tokens 4096, ±15% host noise — a
+     **2.3 to 2.5× speedup**. The quoted headline is this pair, not the end-of-run windowed
+     "2.00 → 4.96".
+   - **It changes speed only, and the usual check could not have shown that.** A loss-curve
+     comparison cannot resolve anything below item 6 above's (iii) floor of 6.05e-03 nats and is
+     blind past about step 10, so it would pass a change that perturbed the arithmetic by 1e-3 nats.
+     The admissible instrument is the opposite of a trajectory: a **single-step, identical-state,
+     cross-process** comparison, whose floor is **exactly 0.0** (item 5 above) and which therefore
+     has unlimited resolution. Evidence of record, all three independent: (i)
+     `gate_fast_ref/tq_check/out/tq_check.json` (`DONE rc=0` 06:04:19Z) — TQ = 1, 2, 1, 2 in four
+     separate processes, five fixed batches from identical weights, **`max_rel_l2` exactly 0.0 and
+     372 of 372 LoRA gradients bitwise equal in all six pairings**, the only non-zero quantity being
+     a half-ULP loss difference on two batches **which occurs in the TQ2-against-TQ2′ same-config
+     pair**, so it is inside the replicate floor and not attributable to the flag; (ii) the three
+     model-level gate runs, TQ=1 and TQ=2 with two different trainer hashes, giving bf16 losses
+     equal **to all 17 significant digits** on all three batches and identical (G2) counts of
+     368 / 371 / 367; (iii) the 100-step TQ=1-against-TQ=2 trajectory being **step-for-step
+     indistinguishable from a same-config replicate**. The flag is **admitted for wave 1 with no
+     further measurement**.
+   - **Standing rule, which is the generalisable part.** Any future change to this trainer claimed
+     to affect **speed only** discharges CLAUDE.md §9 by the instrument in (i) — identical weights,
+     fixed batches, separate processes, bitwise on all 372 gradients — and **not** by a loss-curve
+     comparison. A loss-curve check is admissible only as a secondary report, never as the evidence.
+   - **And the defect's own lesson.** Every environment variable this trainer sets for performance
+     is **read back from `os.environ` after import and written to the manifest**, so that an image's
+     inherited value cannot silently defeat it again; `task_queue_enable` already is. A defect that
+     hid behind a `setdefault` for this long is one the manifest must make visible. Two chips of
+     wave 1 were about to spend 6.8 h each at 2.4× less than necessary.
+10. **§14.8 item 3 is corrected: the crash's error string, and who observed what (ruling §9.1, §9.2
+    and §11).** §14.8 item 3's live instance describes the gate's first launch as having an "`EL0005
+    Resource_Busy … rtGetDeviceCount execution failed` log tail". The engineer reports that the log
+    showed `aclInit` error 507899 and `rtGetDeviceCount execution failed` and that it did not see
+    `EL0005`; it also **deleted the original `run.log` before relaunching**, so the file cannot be
+    re-read. The record is corrected, and the correction is **not** that one account was wrong:
+    **`aclInit` error 507899 and `Resource_Busy(EL0005)` are two lines of one CANN error block**, not
+    two competing accounts. The identical three-line cluster — `NPU function error: aclInit, error
+    code is 507899`, then `Resource_Busy(EL0005): The resources are busy.`, then `rtGetDeviceCount
+    execution failed, reason=driver error:internal error` — is present in six logs of this round
+    that are still on disk: `scorer_r3/fp32/run_w{1,2,3}_failed_startup_npu_busy/run.log`,
+    `scorer_r3/smoke_mf/run.log`, and `harness_identity/logs/shard{0,1,2}.log`. The engineer
+    reported the first and third lines and not the second, four lines below a line it had already
+    matched, which is what its partial read predicts. **The clause's function is unaffected**: this
+    was an infrastructure fault at process start, **not a (G1) result**, and a `FAILED` marker is
+    not admissible as a gate verdict.
+
+    §14.8 item 3's sentence beginning "The live instance:" is replaced by:
+
+    > The live instance: `r3_runs/eff/gate_fast_ref/model_level/FAILED` recorded `rc=1
+    > utc=2026-10-30T04:41:39Z` — attested by two independent contemporaneous reads, the
+    > orchestrator's of the watchdog `digest.json` and the reviewer's in
+    > `reviews/R3-CHIP-PRIORITY-RULING-fable-20261030.md`, and by neither now, since the marker went
+    > with the deleted directory and `_watchdog/digest.json` is **a rolling file, rewritten every
+    > poll, which cannot be cited as evidence after the fact**. The failure was the CANN startup
+    > fault whose block reads `NPU function error: aclInit, error code is 507899` /
+    > `Resource_Busy(EL0005): The resources are busy.` / `rtGetDeviceCount execution failed,
+    > reason=driver error:internal error`; the engineer observed the first and third lines in the
+    > original log, the second line is the same block's symbolic condition and is attested in six
+    > other logs of this round (`scorer_r3/fp32/run_w{1,2,3}_failed_startup_npu_busy/run.log`,
+    > `scorer_r3/smoke_mf/run.log`, `harness_identity/logs/shard{0,1,2}.log`), and the original
+    > `run.log` was deleted before the relaunch so it cannot be re-read. A third surviving artefact,
+    > independent of both the digest and either ruling, is `CHIP-ALLOCATION.json`'s
+    > `why_this_file_exists`, which records that "chip 1 was sampled unclaimed at 04:37Z between
+    > shards of the fp32 scorer wave, was handed to the gate measurement, and
+    > `r3_runs/eff/gate_fast_ref/model_level` failed at 04:41Z with 'Get device cnt failed /
+    > CheckDeviceIdIsValid' because the device was not actually free" — fixing the time, the cause
+    > and the signature in the form the orchestrator's digest carried.
+    > `gate_fast_ref/CRASH_NOTE.txt` is the reconstruction of record and marks itself as one. The
+    > fault was an **infrastructure fault at process start on a chip that was not free** (the scorer
+    > wave still held chip 1), **not a (G1) result**, and not admissible as one. The earlier
+    > ruling's further detail that chip 1 "still carried pid 1527259 with 370 MB" was a live
+    > device-state read with **no surviving artefact**; it is uncorroborated, carries no weight, and
+    > the conclusion does not rest on it — the chip-not-free finding is carried by the three
+    > artefacts above. The recorded decision states which of the four gates ran, their numbers, and
+    > that it follows from a verdict rather than from a crash.
+11. **§11.2, added: a relaunch never destroys a terminal marker or its log (ruling §9.3).**
+    CLAUDE.md §7 makes the marker file the source of truth for whether a run finished; a source of
+    truth a relaunch can delete is not one. Twice on 2026-10-30 evidence was overwritten by a
+    relaunch, and in the case of §14.8 item 3 the destroyed artefact was evidence in a dispute about
+    whether a gate had failed — exactly the distinction between "the gate ran and returned a
+    verdict" and "the gate did not complete" that §14.8 item 3 exists to draw. Added to §11.2:
+
+    > **A relaunch never deletes or overwrites a run directory that holds a terminal marker.** It
+    > moves it aside first, to a sibling `<name>.crash-<utc>/`, keeping the log, the marker and the
+    > launch record together. This costs one command and applies only to directories that already
+    > carry a marker; a directory with no marker may be reused freely. Where a crash log has already
+    > been lost, the reconstruction is written as a dated note that marks itself a reconstruction and
+    > attributes each fact to whoever observed it (`gate_fast_ref/CRASH_NOTE.txt` is the model).
+
+    This clause does **not** stand alone: it preserves the run directory, and item 14 below
+    preserves the digest's pointer and error signature. Neither alone would have prevented the loss
+    behind item 10 above, and the two are committed and cited as a pair.
+12. **Wiki (CLAUDE.md §8).** `wiki/E1-gdn-fast-ref-gate.md` records this verdict as a dated
+    results-and-verdict section written from `gate_fast_ref/`'s own report files, including the
+    refused pooled reading of item 1 and the item 2 mechanism. §14.8 item 1's existing obligation to
+    correct that entry's lines 36, 60-64 and 180 as a dated note is unchanged — and the correction
+    is now more interesting than it was, since the entry's pre-run prediction that the kernel "fails
+    exactly as the FLA kernel failed" is, on the evidence of item 2, **substantially right for a
+    reason the entry did not give**: not the same tensors, but the same gate-and-normalisation path,
+    seen through the one member of it that LoRA trains. That is recorded as a dated note, not a
+    silent edit, and the hypothesis section is not rewritten. The item 7 localisation run and the
+    item 8 replicates each get their own entry, written before they launch.
+13. **The replicate's chip, and a second replicate (ruling addendum §14).** Item 8 above's ninth run
+    is placed on a **different chip** from `w1_k1_s2`, deliberately: the floor bounds §8.2 (b) and
+    (c), whose comparisons are between arms on different chips, so the floor must carry any
+    chip-to-chip term or it bounds the wrong quantity. The two errors are also **not symmetric**. A
+    floor too small calls a margin that is really inside the noise **real**, which yields a **wrong
+    adoption**, carried into the ladder and into every downstream claim. A floor too large calls a
+    real margin **indeterminate**, which is costly but visible, recoverable and already this
+    pre-registration's culture (§9.1: "the gap is reported as a gap; it is not explained away"). A
+    research round absorbs a Type II error far better than a false adoption, so different-chip
+    dominates for the floor's stated purpose. A **tenth** run is added,
+    `w1_k1_s2_replicate_samechip` on **chip 2**, sequentially after `w1_k1_s2`, so the composite
+    floor can be decomposed; the chip-3 run is named `w1_k1_s2_replicate_diffchip`. Both are named
+    in `r3_runs/w1/CHIP-ASSIGNMENT.json` before launch with its sha256 recorded (§14.5 item 4 step 2
+    (b)) — revision 2, ten runs on eight chips, sha256
+    `0e680df32d9217f6f465818c0f8ab9ebb86bc17c9812ed442b15706ae188f962` in `CHIP-ASSIGNMENT.sha256`,
+    `DRAFT` until this amendment is committed — both complete by about t = 3.7 h inside the 6.76 h
+    envelope, and that file **sequences the dev readouts of record explicitly** rather than leaving
+    them to be discovered at runtime, since from t ≈ 1.9 h only chips 4–7 are free for scoring until
+    the replicates finish.
+    - **Why a same-chip companion exists at all.** Item 5 above's bitwise-reproducibility finding is
+      scoped to one chip, one container and one host and is explicitly **not** evidence of
+      reproducibility across chips. §14.8 item 6's existing cross-chip evidence does not reach it:
+      that evidence is **scoring** — forward only, no backward, no optimizer — while this is a claim
+      about **training**. The pair measures precisely the gap item 5 above left open.
+    - **Only the different-chip floor gates.** It is the floor of record for §8.2 (b) and (c) and for
+      item 8 above's "no arm is adopted on a margin smaller than the measured floor". The same-chip
+      floor is measured, reported beside it and **does not gate**, **even if it is the larger of the
+      two** — the gating floor is named by its role, not by its size, and it is named here before
+      either number exists. Two floors with no pre-named decider would be two chances to call a
+      margin inside the floor, chosen after the numbers, which is what §14.8 item 1 refused for the
+      two tensor populations and what item 1 above refused for batch pooling; the reviewer applied
+      that rule to itself here rather than inventing a new one for this case.
+    - **The contrast is chip identity only.** Both replicates run at a different time and under
+      different co-tenancy than the original, so the difference between the two floors isolates the
+      **chip-identity** term with time and co-tenancy varying in both; it is not a general chip
+      effect. If the composite is indistinguishable from the same-chip floor, the chip term is
+      negligible and the floor is run-to-run noise. If the composite is materially larger, a
+      chip-identity term exists **in training**: the composite still gates, the split is named in
+      every §8.2 report, item 5 above's single-chip scope limit is restated as a measured finding
+      rather than an untested gap, and **every future wave states whether an arm's two seeds shared
+      a chip**, since a chip term would make that a confound inside the seed-mean itself.
+    - Neither replicate enters any arm's two-seed mean, is averaged into any accuracy, or breaks any
+      tie. No third chip, no replicate of any other arm, no K2 replicate.
+14. **Watchdog digest retention (ruling addendum §15).** `_watchdog/digest.json` and `digest.md` are
+    rewritten every pass, so evidence existing only there has the lifetime of one poll — the defect
+    that made item 10 above's error string unverifiable. The watchdog retains a **dated copy of every
+    pass that carries a flag**, and the trigger is **any** flag — failure, stall **or suspicious
+    success** per CLAUDE.md §7.1 — not failures alone: this round's most load-bearing number is a
+    rate of exactly 0.0 (item 5 above), which §7.1 classes as suspicious and which a failure-only
+    rule would have discarded. "Unexplained" is **not** a criterion, because tier 0 is a script and
+    may not judge what is explained; the watchdog retains on the flag and tier 1 decides what it
+    meant. Retention is capped by count or age, and **the retained copies, not the live file, are
+    the citable artefact.**
+    - Recorded with it: retention preserves **pointers and clustered error signatures, never the
+      evidence** (§7.1 — "full tracebacks never enter the digest"), so it reproduces a marker, a
+      timestamp and an error exemplar but **not the log the pointer names**. It therefore **does not
+      stand alone**: item 11 above preserves the run directory and this item preserves the
+      signature, neither alone would have prevented the loss behind item 10 above, and they are
+      committed and cited as a pair.
+15. **Counterfactual declaration, a standing clause on rule changes (ruling addendum §16).** Added
+    to §10 ("Reporting and measurement-trap checks") as a standing clause, carried here in full:
+
+    > **Counterfactual declaration.** Any amendment that changes a **decision rule** of this
+    > pre-registration — a metric, a threshold, a population, an estimator or an aggregation — and
+    > that is written **after** a result the old rule bore on, states in the amendment itself **what
+    > the new rule would have decided about that result**, computed from the data already in hand.
+    > - If the new rule reaches the **same** verdict, the amendment says so. This is the cheap and
+    >   ordinary case and it discharges the clause.
+    > - If the new rule reaches a **different** verdict, the amendment says so **prominently**, is
+    >   **not applied retroactively** to that result, and must carry a justification that does not
+    >   reference it. A rule that reverses the case that prompted it needs an argument that would
+    >   have been made before the case arose.
+    > - The clause does **not** apply to a correction of fact, which has no counterfactual verdict
+    >   (§14.9 item 1 is the model), nor to a new obligation that no prior rule could have decided
+    >   (§14.10 item 8 is the model). An amendment in either class says which, in one sentence,
+    >   rather than omitting the declaration silently.
+    >
+    > Reason: a rule written after a result is suspect in exactly one way, that it was shaped to
+    > change that result. The counterfactual is determinate, costs nothing to compute from data
+    > already held, and cannot be gamed, so stating it converts an unfalsifiable question about
+    > motive into a checkable claim. It is the rule-level counterpart of rule 3's pre-registration
+    > requirement, for the cases where pre-registration has already been overtaken by events.
+
+    - **Scope, tested against this round's own amendments.** §14.1 replaced §11.3's (a)/(b)
+      thresholds after finding they sat below the noise floor, and the replacement (b′) also fails
+      the FLA kernel (96.6% against 99%), so the counterfactual **agrees**. Item 3 above's
+      five-batch median gives median {368, 371, 367} = 368 and leaves item 1's verdict unchanged, so
+      it **agrees** and its own text discharges the clause. §14.9 item 1 withdrew a factual premise,
+      where there is no decision rule and no counterfactual verdict, so the clause **does not
+      apply**. Item 8 above creates a new obligation, which no prior rule could have decided, so the
+      clause **does not apply** to it either — stated here rather than omitted silently, as the
+      clause requires. The reviewer tested §14.1, item 3, §14.9 item 1 and item 8; the extension of
+      the same class to **item 13** (the placement of the two replicates) is the applying writer's
+      classification, not the reviewer's, and is flagged as such so that a later reader can
+      disagree with it without having to reconstruct who decided what.
+    - **One caution, which is part of the clause and not a gloss on it.** The clause must not become
+      a reason to *avoid* fixing a broken rule. A badly calibrated instrument is fixed when it is
+      discovered, and the fact that fixing it would have changed a verdict is a reason to declare
+      loudly and not apply retroactively — **not** a reason to leave the instrument broken. §14.1 is
+      the precedent in the right direction: thresholds below their own noise floor were replaced the
+      moment that was known, with the old verdict left standing.
+
+**Launch-checklist status (§14.7's checklist as extended by §14.8 and by this amendment, ruling §12
+and the addendum's closing status).** This is a status, not an authorisation: **wave 1 is not
+cleared to launch**, because items 1, 7, 8 and 9 are open and three of them are open *because of*
+this amendment.
+
+| # | Checklist item | Status |
+| --- | --- | --- |
+| 1 | §14.7 and §14.8 committed | **Open** — this amendment (§14.10), now with items 13–15, must be committed too |
+| 2 | `gate_fast_ref/` with (G1)–(G4) **or** the recorded reference-kernel decision, with the four sha256s, naming which gates ran and that it follows from a verdict not a crash | **Met** — `GATE_RECORD.txt`, `GATE_RESULT.json`, `SHA256SUMS.txt`, `CRASH_NOTE.txt`; item 1 above is the pre-registration half |
+| 2b | (G3) on this branch, model-level **and** trajectory (§14.8 item 4) | **Met** — `model_level_final`, `trajectory_final`; verified independently by the reviewer |
+| 3 | Corrected equal-length determinism probe, green | **Met** — `tests_chip1/run.log`: all four corrected-path probes including "2 identical-length rows, explicit 4D mask" at 0.000e+00, `DONE rc=0` |
+| 4 | K2 dropout-mask-semantics test, green | **Met** — "ALL 8 K2-SHARED TESTS PASSED (ref, fast_ref)", with the per-question prompt mask asserted (batch 3 for 43 options) |
+| 5 | Production bf16 K2 cell re-measured against the (G3) floor | **Met for the branch that now trains** — reference + shared 0.0585 against the row form's 0.0586; the `fast_ref` cell (0.0746 against 0.0642, not covered) is moot under item 1 above |
+| 6 | `bench_record.json` carrying `gdn_impl`, `k2_impl`, trainer sha256 | **Met** — verified present on every row |
+| 7 | §14.5 item 4 step 2 chip-assignment file, sha256 recorded | **Open** — `r3_runs/w1/CHIP-ASSIGNMENT.json` now exists at revision 2, ten runs on eight chips, sha256 `0e680df32d9217f6f465818c0f8ab9ebb86bc17c9812ed442b15706ae188f962` recorded in `CHIP-ASSIGNMENT.sha256`, but it is marked `DRAFT` and is not authoritative until this amendment is committed; it discharges items 7 and 9 together |
+| 8 | §14.3 resume test rewritten and the suite re-run on a chip (item 6 above) | **Open** — new obligation from this amendment; minutes on one chip |
+| 9 | The ninth and tenth runs named in the assignment file before launch (items 8 and 13 above) | **Open** — new obligation from this amendment; the file must carry **ten** runs and lose its `DRAFT` status, and this must be fixed before launch, not after |
+
+Not on the critical path and explicitly not blocking: item 7 above's master-weight localisation run,
+and item 12 above's wiki entries for the new runs (written *before* those runs launch, per CLAUDE.md
+§8, but neither run blocks the wave). One item outside this checklist is still the actual gate on
+launching: §14.5 item 4 **step 1 must be complete and read on dev** before step 2 begins, and §14.8
+item 6 left `harness_identity` holding chips 5–7 to its own `DONE`, expected about 09:00Z. That
+ruling stands as written — option (a), let it finish; nothing is stopped — and nothing in this
+amendment changes the step order.
