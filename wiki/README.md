@@ -50,7 +50,8 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E25](E25-nimble-reference-rerun-20261030.md) | Nimble rerun with complete dependency freeze | reference evaluation | 1,884 rows and independent audit complete; 152 frozen / 150 required dependencies; no review flags |
 | [E26](E26-typed-common-reference-20261030.md) | Typed Decisions common reference interface | engineering / reference evaluation | three Kev full 2,000-question runs and independent audits complete; zero review flags |
 | [E27](E27-kev-checkpoint-binding-audit-20261030.md) | independent checkpoint temperature and publication binding | engineering audit | nine completed Kev runs verified within stated scope |
-| [E28](E28-typed-nimble-reference-20261030.md) | initial Nimble on Typed Decisions | engineering / reference evaluation | full CPU preflight complete: 400 states / 2,000 prompts, maximum 1,312 tokens; model inference pending |
+| [E28](E28-typed-nimble-reference-20261030.md) | initial Nimble on Typed Decisions | engineering / reference evaluation | native probe complete; full 2,000-question inference and CPU verifier launched at 17:51 UTC |
+| [E29](E29-typed-openjev-reference-20261030.md) | Open-Jev on Typed Decisions | engineering / reference evaluation | both full token preflights complete: 2,000 questions / 6,500 prompts each; formal execution preparation |
 
 ## Where the artifacts live
 

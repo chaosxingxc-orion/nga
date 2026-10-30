@@ -79,3 +79,13 @@ container identity/image/command/exit were checked. PROBE SHA256:
 `a2d1a8de544239086ce6788d681623bf711cf9c3dc58f28726a0d64b698fc393`.
 Formal test inference remains unlaunched and subject to parent acceptance of this
 probe plus its separately frozen configuration.
+
+17:51 UTC formal execution: after the real probe and 31 driver/verifier/finisher
+tests passed, parent review admitted a new 141-file frozen inference configuration
+SHA256 `90aea1118abcead77a37c67d59526d2044d5b5be5a726dbc9d2a605ea477eaeb`.
+Retained `nga-typed-nimble-inference` launched on chip 3 with ID
+`c3c20de30cce60132476936cbc3bdc1a95b6ae434f55fdf8718bddba41068f71`.
+CPU finisher ID `03d69c9e01a53e5f640c641d8eb89cebc527b318daa823e42d9a13abc0462277`;
+actual image, command, config receipt and device maps were checked. Initial stage
+is dependency verification. Full inference and scores remain pending. Outputs are
+`reference_inference/typed_nimble_inference_20261030/` and sibling `_finish/`.
