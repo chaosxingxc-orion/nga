@@ -150,3 +150,30 @@ precision, CPU arithmetic or candidate chunk8 changes arithmetic and cannot be
 labelled a pure memory optimization. No candidate is currently selected or
 accepted; a failed original-path optimization leaves the corresponding reference
 cell blocked until an alternative protocol is explicitly registered and labelled.
+
+## 2026-10-31 implementation clarification before NPU execution
+
+The runtime closure is now implemented in `openjev_path_trace_run.py`,
+`prepare_openjev_path_trace.py`, and `verify_openjev_path_trace.py`, with separate
+E38 schemas. This updates the earlier implementation-to-do status, without
+changing the fixed input, schedule or exact-control criteria above. A passive
+full-padded-input identity guard runs in every traced and untraced forward; it
+checks the same 15 ordered token rows and mask rows before the native backbone
+call, and returns no modified inputs. Internal tensor fingerprints are added only
+in the four traced forwards. Every receipt and its independent reconstruction
+must retain these full-input identities.
+
+Execution success and scientific trace validity are separate. Completed execution
+with a failed exact repeat/hook/trace control retains `rc=0` as process evidence,
+but the terminal explicitly carries `trace_valid=false`, one `review_flags` entry
+per failed control, and `status=COMPLETED_SCOPED_REVIEW_REQUIRED`. The independent
+verifier reconstructs and checks both the controls and terminal flags. Runtime or
+instrumentation exceptions retain a nonzero terminal; neither condition permits
+E36 admission or a full-test claim.
+
+CPU preparation and verification use the fixed image's original entrypoint and
+`python3 -P`; the entrypoint initializes the native import paths needed even by
+CPU Transformers. Each CPU request and the later NPU plan are separate immutable
+generations. Parent approval of a CPU request does not approve NPU execution;
+that requires the final plan/source closure and an independent review bound to
+that exact plan. Historic failure/skipped fixture generations remain retained.
