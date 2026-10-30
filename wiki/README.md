@@ -47,7 +47,9 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E22](E22-kev-devtools-reference-20261030.md) | Kev devtools full/release dual-population inference | reference evaluation | all three sizes completed scoped audits; 9B release differs by one correct question |
 | [E23](E23-openjev-original-data-restoration-20261030.md) | exact original Open-Jev split restoration | data restoration | completed; five original split hashes match; inference not implied |
 | [E24](E24-openjev-original-test-supplement-20261030.md) | original Open-Jev test supplement and exact join | reference evaluation | CPU dependency queue running; component review flags preserved; supplement awaits public completion |
-| [E25](E25-nimble-reference-rerun-20261030.md) | Nimble rerun with complete dependency freeze | reference evaluation | 152 frozen files cover 150 required dependencies; inference and observer running |
+| [E25](E25-nimble-reference-rerun-20261030.md) | Nimble rerun with complete dependency freeze | reference evaluation | 1,884 rows and independent audit complete; 152 frozen / 150 required dependencies; no review flags |
+| [E26](E26-typed-common-reference-20261030.md) | Typed Decisions common reference interface | engineering / reference evaluation | three Kev token preflights complete, 400 states / 2,000 questions each; NPU inference pending |
+| [E27](E27-kev-checkpoint-binding-audit-20261030.md) | independent checkpoint temperature and publication binding | engineering audit | nine completed Kev runs verified within stated scope |
 
 ## Where the artifacts live
 

@@ -81,6 +81,24 @@ Nimble E25 已于 16:43 UTC 启动同协议全量复跑，152 个冻结文件覆
 
 E24 自动补测队列已启动，仍等待公共推理；完整原 test 指标尚未产生。共同测试的[接口预检](COMMON-REFERENCE-EVALUATION-PREFLIGHT-2026-10-30.md) 已明确 Nimble 候选上限、JEVal 原始来源 train/dev/test 混合及 typed-decisions 原生 uniform fallback，后续表格须分别保留这些方法与分母。
 
+## 17:07 UTC：初始 Nimble 七个 test 子集本地验收完成
+
+E25 复跑覆盖原 manifest 的全部 1,884 行，独立重算全部通过；152 个冻结文件覆盖 150 个必需依赖，推理与 CPU 后处理容器均 exited/0，终态为 `COMPLETED_SCOPED`，异常指标标记为 0。原 E19／E21 依赖遗漏记录保留，不追溯修改。初始 adapter revision、T=1、原生 candidate-token 接口与七子集身份均固定；不宣称跨硬件完全数值复现或新训练收益。
+
+| 子集 | n | accuracy % | NLL | multiclass Brier | binary Brier | ECE10 | expected-score MAE |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| massive-en-US | 350 | 86.857143 | 0.566444583 | 0.215612244 | — | 0.069903500 | — |
+| massive-de-DE | 350 | 84.000000 | 0.664880929 | 0.256618634 | — | 0.081899113 | — |
+| paws | 250 | 82.800000 | 0.541910675 | 0.279648319 | 0.139824160 | 0.100160241 | — |
+| civil_comments | 300 | 70.000000 | 0.641568115 | 0.413403503 | 0.206701752 | 0.135850765 | — |
+| aegis2 | 250 | 81.600000 | 0.568025637 | 0.289384455 | 0.144692227 | 0.098642061 | — |
+| summeval-relevance | 240 | 48.750000 | 1.305991113 | 0.676895632 | — | 0.090175031 | 0.695520387 |
+| summeval-consistency | 144 | 75.000000 | 0.905904174 | 0.419423051 | — | 0.171724079 | 0.567382163 |
+
+binary Brier 仅针对 true 概率；multiclass Brier 对 false／true 两维求和，二元情形近似二倍，不能混用。score MAE 按原预注册概率期望计算，不能替换成 JEVal 论文的 returned-score 指标。Civil Comments 另有基于人类分布的 JS bits .175792225、TV .292534998；不把其 one-hot Brier 冒称软标签 Brier。
+
+与上游公共表的一位小数相比，英语 MASSIVE 与 PAWS 相符；德语 84.0% 对 83.4%，Civil 70.0% 对 70.3%，Aegis 81.6% 对 81.2%，SummEval consistency 75.0% 对 75.7%，relevance 48.75% 对 49.2%。上游显示值有舍入，完整差异诊断另列；不得由接近总分推断逐题完全相同。
+
 ## 1. 能直接回答什么
 
 现有镜像包括 24 个数据仓库和 42 个模型目录；部分参考模型只有上游结果，没有本地 checkpoint。已存在足够多的 test 证据来比较准确率、概率质量、成对全部正确、扰动敏感性和成本边界，暂不需要先训练 NGA 模型才能形成参考表。
