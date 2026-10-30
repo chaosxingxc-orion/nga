@@ -1215,7 +1215,17 @@ def read_marker(d, cfg):
             with open(p, "r", encoding="utf-8", errors="replace") as f:
                 content = f.read(MARKER_MAX_BYTES + 1)
             mtime = os.path.getmtime(p)
-        except OSError:
+        except OSError as e:
+            # Presence of a terminal filename is itself evidence that the run attempted to
+            # finish.  Do not silently turn an unreadable marker into a stale heartbeat: retain
+            # a marker record and classify the run as unknown/read with a named condition.
+            try:
+                mtime = os.path.getmtime(p)
+            except OSError:
+                mtime = None
+            found.append({"name": name, "path": p, "exit_code": None,
+                          "utc": iso(mtime), "ts": mtime, "empty": False,
+                          "problem": "marker unreadable (%s)" % str(e)[:120], "review": None})
             continue
         rc, jutc, prob = parse_marker_content(content, name) if len(content) <= MARKER_MAX_BYTES else (
             None, None, "terminal marker exceeds size limit")
@@ -1234,7 +1244,9 @@ def read_marker(d, cfg):
     if bad:                      # a marker we cannot read is never ignored, even beside one we can
         m = bad[0]
         kind = MARKER_CONFLICT if m["exit_code"] is not None else MARKER_UNPARSEABLE
-        return mk, "%s: marker %s: %s" % (kind, m["name"], m["problem"])
+        # Make the evidence pointer identify the actual problematic marker, not an earlier
+        # readable EXIT that may say success while this file carries the audit flags.
+        return dict(m, reviews=mk["reviews"]), "%s: marker %s: %s" % (kind, m["name"], m["problem"])
     if not rcs:
         return mk, "%s: marker %s present but holds no parseable exit code" % (MARKER_UNPARSEABLE, names)
     if len(rcs) > 1:

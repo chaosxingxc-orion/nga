@@ -8,6 +8,7 @@ import threading
 import time
 import unittest
 import warnings
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # -P removes the script dir from sys.path
 import watchdog as wd  # noqa: E402
@@ -2012,6 +2013,39 @@ class ReferenceTerminalMarkers(unittest.TestCase):
         t.run("old_attempt", marker='{"rc": 1, "error": "failed"}', marker_name="COMPLETE.json")
         t.run("retry", marker='{"rc": 0}', marker_name="COMPLETE.json")
         self.assertEqual(t.states(), {"old_attempt": "failed", "retry": "done"})
+
+    def test_unreadable_terminal_marker_is_unknown_read_not_stalled(self):
+        t = Tree()
+        d = t.run("r", heartbeat=hb_line(-99999, "alive"), marker='{"rc": 0}', marker_name="COMPLETE.json")
+        cfg = t.cfg()
+        real_open = open
+        def deny(path, *args, **kwargs):
+            if os.path.abspath(path) == os.path.join(d, "COMPLETE.json"):
+                raise PermissionError("permission denied")
+            return real_open(path, *args, **kwargs)
+        with mock.patch("builtins.open", side_effect=deny):
+            r = wd.build_digest(cfg, {}, NOW)["runs"][0]
+        self.assertEqual((r["state"], r["condition"], r["escalation"]), ("unknown", "marker_unparseable", "read"))
+        self.assertIn("marker unreadable", r["escalation_reason"])
+        self.assertEqual(r["marker"]["path"], os.path.join(d, "COMPLETE.json"))
+        self.assertIn(os.path.join(d, "COMPLETE.json"), [p["path"] for p in r["pointers"]])
+
+    def test_unreadable_complete_beside_success_exit_cannot_hide_review(self):
+        t = Tree()
+        d = t.run("r", heartbeat=hb_line(-99999, "alive"), marker="rc=0", marker_name="EXIT")
+        path = os.path.join(d, "COMPLETE.json")
+        with open(path, "w") as f:
+            json.dump({"rc": 0, "status": "VERIFIED_HARDENED_SCOPED_REVIEW_REQUIRED", "review_flags": ["flag"]}, f)
+        real_open = open
+        def deny(candidate, *args, **kwargs):
+            if os.path.abspath(candidate) == path:
+                raise PermissionError("permission denied")
+            return real_open(candidate, *args, **kwargs)
+        with mock.patch("builtins.open", side_effect=deny):
+            r = t.digest()["runs"][0]
+        self.assertEqual((r["state"], r["condition"], r["escalation"]), ("unknown", "marker_unparseable", "read"))
+        self.assertEqual(r["marker"]["path"], path)
+        self.assertIn(path, [p["path"] for p in r["pointers"]])
 
 
 class DeliberateShutdownLines(unittest.TestCase):
