@@ -4,7 +4,7 @@
 
 ## 当前快照：先读这一页
 
-**06:25 后续增量：** Open-Jev-9B OOD 已完成独立回执复核，hard accuracy 为 91.978506%，保留 3 个科学审查标记。E33 Kev/Nimble 的实际 Astra 审查已完成，支持更正 unsupported 原因说明后限定发布；勘误已追加，详见第 9 节。两尺寸 OOD 的实际 Astra 审查正在运行。下表保留 06:02 的观察，避免把之后获得的证据混入原截点。
+**06:33 后续增量：** 两尺寸 Open-Jev 原始 OOD 已完成实际 Astra 审查，支持限定发布，9B 的 3 个科学审查标记保留。E33 Kev-0.8B/Nimble 也已完成实际 Astra 审查与原因勘误。Kev-4B/9B JEVal 已完成推理和原生 finisher，强化审计与收尾继续。E38 两份计划经 CPU 准备冻结，实际 Astra 执行前审查已启动，尚无 NPU 诊断；详见第 9 节。下表保留 06:02 的观察，避免把之后获得的证据混入原截点。
 
 **本次核对：2026-10-31 北京时间 06:02 左右。** 全局监控摘要生成于 05:59:16；单任务摘要最新到 06:02:23。它们是带时间的观察，不是实时承诺。第 2、3 节保留 **05:03 的历史固定快照**；第 9 节保留各次带日期增量。新结果不静默改写旧证据。本文是阶段交接，不代表全部参考实验或自动执行链已完成。
 
@@ -159,7 +159,7 @@ Kev-0.8B、4B、9B 的 decision-v7、transfer-v4、hard-v1、documents-v1、devt
 
 ### 阶段 A：完成参考实验交付
 
-- 当前继续自动驱动 Kev-4B/9B JEVal；Open-Jev-9B OOD 已完成独立终态与回执复核，正在进行两尺寸 OOD 的实际 Astra 审查。Kev-0.8B/Nimble JEVal 已完成实际 Astra 审查与原因勘误，保留 flags 及限定发布边界。原计划的“四项 JEVal 与两项 OOD 均运行”属于 05:03 历史状态。
+- 当前继续自动驱动 Kev-4B/9B JEVal 的强化审计与收尾；两尺寸 Open-Jev OOD 已完成独立终态、回执复核和实际 Astra 审查。Kev-0.8B/Nimble JEVal 已完成实际 Astra 审查与原因勘误，保留 flags 及限定发布边界。原计划的“四项 JEVal 与两项 OOD 均运行”属于 05:03 历史状态。
 - 对每个完成项执行 receipt manifest、实际 exit、report/audit/terminal hash、公式/温度/分母核对。
 - Typed Decisions 与 E33 已分别完成实际 Astra bounded release review；将各自限定结论和 OOD 新结果纳入新版本矩阵，保留旧快照与既有缺口，不将一个实验的审查结论移用于另一个实验。
 - 对缺少历史审计终态绑定的 28 个 Kev 面板，保留原证据并安排新一轮逐项复核和带日期的绑定记录；不能通过补写旧终态声称历史链已完整。
@@ -189,8 +189,8 @@ Kev-0.8B、4B、9B 的 decision-v7、transfer-v4、hard-v1、documents-v1、devt
 
 | 优先序 / 工作 | 依赖与可并行关系 | 必须交付的产物 | 出口条件 | 当前状态 |
 | --- | --- | --- | --- | --- |
-| A1：收尾 Kev-4B/9B JEVal | 现有冻结计划和 controller；不等 Open-Jev 修复 | 每模型全 11,257 receipts、native report、finisher/hardened audit、terminal/EXIT、实际 Docker exit 与哈希绑定 | 逐项完整、来源一致；异常有保留的诊断和限定结论，缺失不算通过 | 两任务继续运行，约 9.8k/11.3k |
-| A2：收尾 Open-Jev-9B OOD | 自己的推理终态；独立于 A1 | 15,920 行完整审计、hard/soft 分母、native/T1 面板与终态绑定 | 计算完成和独立验收分开确认；未验收不发布最终分数 | 已完成独立闭环核对，3 flags 保留；两尺寸 OOD 的实际 Astra 审查中 |
+| A1：收尾 Kev-4B/9B JEVal | 现有冻结计划和 controller；不等 Open-Jev 修复 | 每模型全 11,257 receipts、native report、finisher/hardened audit、terminal/EXIT、实际 Docker exit 与哈希绑定 | 逐项完整、来源一致；异常有保留的诊断和限定结论，缺失不算通过 | 均已处理 11,257/11,257，推理/原生 finisher 退出 0；强化审计和新两模型结果复核继续 |
+| A2：收尾 Open-Jev-9B OOD | 自己的推理终态；独立于 A1 | 15,920 行完整审计、hard/soft 分母、native/T1 面板与终态绑定 | 计算完成和独立验收分开确认；未验收不发布最终分数 | 独立闭环和两尺寸实际 Astra 审查均完成，支持限定发布；3 flags 保留 |
 | A3：E33 已完成结果的限定审查 | 已有 22,514 receipts 重哈希与 flag-directed diagnosis | Kev/Nimble 指标、6/30 flags 逐项解释、实际 Astra 审查产物 | 清楚记录结论适用范围及遗留问题；不抹掉 flags、不挪用 Typed 审查 | Astra 已完成；unsupported 原因勘误已落实，支持限定发布 |
 | A4：版本化参考汇报与矩阵 | A1/A2/A3 可分批输入；保留未完成格；D1 第一阶段范围待答 | 文献/上游/本地三类来源，公式/温度/分母/有效覆盖，结果与缺口清单 | 每个登记单元有可信结果或具体 pending/blocked 及影响；是否满足完整第一阶段出口还取决于待答的交叉覆盖范围 | 历史 30 组合/58 面板已存在，新增结果待一致更新 |
 | B1：E38 运行闭包 | E37 已完成；CPU 6/6 只作工程输入 | driver、preparer、独立 verifier、固定 4200 输入与每模型 8 次前向身份、source/image/plan 哈希、wiki 与 exact relaunch | 完整事件/候选检查、预测对照、失败封闭及实际资源约束通过；固定快照可复核 | helper 与草案已有，driver 闭包正在准备 |
@@ -304,3 +304,11 @@ E33 的新一轮实际 `gpt-6-astra` 只读审查于北京时间 06:08 启动，
 必须修正的是冻结 closeout README 的解释：Nimble 的 2,253 条 unsupported 中，2,047 条是候选数超过 26，206 条是空 context（ARC challenge 95、ARC easy 111）；另有 998 条 overlength。仓库主表原先只写 unsupported，并无该错误归因，现在补充准确原因分项。原始预测、指标、6/30 flags 与冻结包不变，采用带日期的补充勘误；原 closeout 目录新增 `ERRATUM-20261031.md`，SHA-256 为 `73a81a296f3dc39acd61303023b671e2bea7f8ff342b33c8002db537d5781015`。
 
 审查仍有限制：没有重新解码 Parquet、重分词、读取外部权重或重查实时 Docker；gold 重算基于带提取哈希绑定的 JSON，退出证据基于保存记录。它不批准训练，也不证明精确论文复现、配对一致性或真实业务收益。E38 工程与剩余参考验收继续推进。
+
+### 2026-10-31 06:33 北京时间：OOD 发布审查完成；E38 冻结计划进入实际审查
+
+[两尺寸原始 OOD 的实际 Astra 审查](../experiments/ASTRA-OPENJEV-OOD-RESULTS-REVIEW-2026-10-31.md) 于 06:29 完成，真实子进程退出 0，审查原文 SHA256 为 `cbea46b7695117328836dbca5745505c83d718819b5fa7c17ab0f912736c5bc9`。审查核对 63,759 个文件及两尺寸共 31,840 条推理、31,840 条长度回执，从保存 logits 独立重算 native/T1 总体、来源、题型和 coverage 子项，支持限定发布。2B 的零主面板 flags 不代表所有 coverage 子格没有精确边界；9B 三 flags、合成数据 group 相关性及训练污染未知均保留。
+
+Kev-4B/9B JEVal 分别于 06:27:37 / 06:28:08 完成 11,257 条推理，实际推理与原生 finisher 均退出 0。强化审计和独立 closeout 尚在收尾；此前 Kev-0.8B/Nimble 的 Astra 结论不能覆盖这两个新结果。
+
+E38 的 CPU 准备器修复了覆盖镜像 entrypoint 导致原生 Qwen 导入失败的问题，最终固定镜像测试 65/65 通过、无跳过。两份 detached CPU 准备任务实际退出 0，冻结了每模型 8 次前向的计划；2B/9B 的计划 SHA256 分别为 `14b95a2f9c4f8c25aecd46c01077d2f94045d926c43b0535abd6bbd5ee81662f`、`0f839e1153a968f81c8033ff2463c982648ffc8152e381ef369eda6303c198b5`。实际 Astra 执行前审查已启动，尚无放行结论或 NPU 运行。源代码现在会在 exact control 失败时显式保留 `trace_valid=false` 和 review flags，不能把 rc=0 当成科学诊断有效。E36 的 false admission 维持不变。
