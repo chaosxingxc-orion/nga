@@ -12,13 +12,13 @@ orchestrator (tier 2) reads the digest and the tier-1 diagnosis only.
     python3 -P tools/watchdog.py --watch                # tick every 600 s (the floor); runs are re-read on their own tier cadence
 
 Outputs go to `--out-dir` (default `<first root>/_watchdog/`): `digest.json` (complete but bounded), `digest.md` (hard cap
-`--max-md-bytes`, default 12000) and `npu_history.json` (a few KB: the last 6 h of per-chip AICore passes, see Host utilisation).
-Over the cap, content is dropped by priority, not by position, in whole blocks: (0) summary line and status rows of
-failed/stalled/unknown runs, (1) other status rows, (2) pointers and errors of failed/stalled runs, (3) flags on the primary
-scorer (and pointers of runs that have them), (4) error signatures, (5) flags on other scorers, (6) everything else (clean-done
-and archived lines, suppression audit, notes). Once a block of some priority does not fit, every lower-priority block is dropped
+`--max-md-bytes`, default 16000) and `npu_history.json` (a few KB: the last 6 h of per-chip AICore passes, see Host utilisation).
+Over the cap, content is dropped by priority, not by position, in whole blocks: (0) summary line (with the NPU fragment and the
+dispositioned-by-WHY audit line) and status rows of failed/stalled/unknown runs that have no `expected` disposition, (1) other status
+rows (explained stops included), (2) pointers and ERROR signatures of failed/stalled runs, (3) flags on the primary scorer (and pointers
+of runs that have them), then the host-utilisation (NPU) block, (4) ERROR signatures of other runs, (5) WARNING signatures and flags on
+other scorers, (6) everything else (clean-done and archived lines, suppression audit, notes). Once a block of some priority does not fit, every lower-priority block is dropped
 too. A final `[TRUNCATED ...]` line says how many blocks and bytes were dropped and which kinds. `digest.json` is never cut.
-NPU content (see Host utilisation) is added to `digest.md` only where it displaces nothing: see "Digest size" below.
 Both are written to a temp file and renamed, under a lock, so a reader never sees a half-written file and
 concurrent invocations cannot interleave. Directories whose name starts with `.` or `_` are never scanned
 as runs, so the output directory is not mistaken for a run.
@@ -264,15 +264,13 @@ a claimant that is not `running` is shown as `run(done)`). A process whose comma
 `queued_runs`, `flags[]` (`kind`, `escalation`, `chips`, `text`) and `escalation`. `queued` (run ids) sits at the top level. The probe adds
 about 10 s to a pass. The NPU flags do not change the exit code (exit codes follow run states).
 
-**Digest size.** NPU content has three levels in `digest.md`: (0) a fragment on the summary line, such as
-`| npu UNCLAIMED 4 (2 run, 0 queued); low 0,3 of 8`, `| npu 8/8 claimed` or `| npu n/a`; (1) the escalation line(s) in a
-`## Host utilisation` section; (2) the per-chip table (AICore latest [earlier passes], HBM GiB, state, claimed by). The renderer uses
-the richest level at which it displaces nothing: the fragment only if every block of priority 0-3 (summary rows of failed/stalled/unknown
-runs, other status rows, failed-run pointers, primary-scorer flags) that survives truncation without NPU content still survives with it;
-levels 1 and 2 only if nothing else that survives changes. So the NPU content can never push the summary, a failed row or a primary
-flag out. The cost is that on a saturated digest (the live one is: 47 status rows and 118 error signatures against 12000 bytes)
-only the fragment shows, or nothing; the complete block is always in `digest.json`. Raise `--max-md-bytes` (for example 30000) to show
-the table.
+**In `digest.md`.** A fragment on the summary line, always present (`| npu UNCLAIMED 4 (2 run, 0 queued); low 0,3 of 8`,
+`| npu 8/8 claimed`, `| npu n/a`), and one `## Host utilisation` block at **priority 3**, after the primary-scorer flags: the escalation
+lines and the per-chip table (AICore latest [earlier passes], HBM GiB, state, claimed by), about 1 KB. It ranks above the ERROR
+signatures of ordinary runs and above every warning, and below the status rows, the failed/stalled runs' pointers and their own errors.
+Whether it fits depends on how much sits above it: on the live tree at the default 16000 bytes it does not (the failures and
+stalls ahead of it need about 22500 bytes before it shows; with every stalled run dispositioned about 20750; with every stalled and
+failed run dispositioned about 12250). `digest.json` always has the full block.
 
 ### Explanations
 
@@ -283,10 +281,15 @@ A note alone changes nothing.
 ### Expected failures (the only downgrade)
 
 An explicit boolean `"expected": true` in the WHY file (strictly JSON `true`; not a string, not `1`, not a keyword in the note)
-sets the escalation to `none` when, and only when, the run has a terminal marker that parsed (state `done` or `failed`) or is
-`archived`. A `running`, `stalled` or `unknown` run keeps its escalation whatever the file says. When applied, the status row shows
-`expected=yes` (the reason reads "expected=yes (was decide: ...)"), the digest's `expected_downgrades` lists the count and run ids
-for audit, and the run keeps its `state` and its exit-code contribution; flags and error lines are still reported. Deciding that a
+sets the escalation to `none` when, and only when, the run has a terminal marker that parsed (state `done` or `failed`), is
+`archived`, or is `stalled` (no marker and an old heartbeat: the file is someone's written statement that the stop is deliberate, for
+example a run superseded by later work). A `running` or `unknown` run keeps its escalation whatever the file says, and a stalled run
+whose heartbeat resumes is `running` again and loses the downgrade. The watchdog never guesses which stalls are expected. The
+downgrade is audited, never silent: the status row shows `expected=yes` (the reason reads "expected=yes (was decide: ...)"); the
+second line of `digest.md` says `Dispositioned by a WHY file with expected=true ...: stalled 11, failed 2`; `digest.json` has
+`expected_downgrades` (count and run ids) and `expected_by_state`; the run keeps its `state`, the summary-line counts and its
+exit-code contribution (30 for a stalled run); flags and error lines are still reported. An explained row ranks as an ordinary
+status row (priority 1), below an unexplained failed or stalled one, and its errors do not count as a failed run's. Deciding that a
 failure is acceptable is a judgement, so it needs this explicit key.
 
 ### Error signatures
@@ -296,7 +299,13 @@ Lines matching error words (error, exception, traceback, fatal, failed, OOM, kil
 become placeholders) and grouped. Per signature the digest has the count, first and last occurrence (timestamp when the
 log has one, otherwise line numbers), one exemplar line cut to `--exemplar-width` (default 160), and a pointer: log path,
 line range (`--ctx-before` 10, `--ctx-after` 3) and byte offset. At most `--max-signatures` (default 8) per run, errors
-before warnings, then by count; the number omitted is stated. Only the exemplar line is shown, never a traceback. Credentials
+before warnings, then by count; the number omitted is stated. Only the exemplar line is shown, never a traceback.
+
+**Clustered across runs.** In `digest.md` and `digest.json` `signature_clusters`, an identical normalised signature in several runs is
+one entry: total count, number of runs, first..last, one exemplar, and a pointer (log, line range, count) per run. `digest.md` lists
+three pointers and says how many more runs there are; `digest.json` lists up to 50 runs per cluster (`runs_omitted` counts the rest)
+and 100 clusters, errors first, then by number of runs. Each run's own `errors.signatures` is unchanged. Priority: ERROR clusters
+involving a failed or stalled run that has no `expected` disposition are 2, other ERROR clusters 4, WARNING clusters 5. Credentials
 (URL userinfo, `token=`, `password=` ...) are redacted before anything is stored. Logs are scanned incrementally in
 `--watch` mode (only appended bytes).
 
@@ -356,7 +365,7 @@ own directory lands on `sys.path`.
 
 ### Tests
 
-    python3 -P tools/test_watchdog.py          # 132 tests; the module sets WATCHDOG_NO_NPU=1 so no test ever opens an ssh session
+    python3 -P tools/test_watchdog.py          # 138 tests; the module sets WATCHDOG_NO_NPU=1 so no test ever opens an ssh session
 
 The NPU tests use a fake `npu-smi`, `ps` and `ssh` on `PATH` (`--npu-host local` for the end-to-end probe).
 
@@ -368,7 +377,7 @@ than `--archive-seconds`, default 21600), `unknown` (reason given). The marker i
 
 **Escalation**: `none`; `read` (tier-1 model reads the listed pointers); `decide` (orchestrator chooses, after the read). `decide`:
 failed, stalled, or done with suspicious metrics. `read`: unknown, suspicious metrics in a running run, or error lines. `none`:
-otherwise, archived, and runs downgraded by `"expected": true`.
+otherwise, archived, and runs downgraded by `"expected": true` (done, failed, archived or stalled; audited in the summary and `expected_by_state`).
 
 **Exit codes**: 0 all done or archived, 10 some running, 20 some unknown or no runs, 30 some stalled, 40 some failed; 2 usage error;
 3 a second `--watch` on the same out-dir. Exit codes follow state, not escalation, so an expected failure still exits 40 until it is
@@ -380,8 +389,9 @@ names are counted, not flagged, with an audit line per run. **Protection** (`--p
 primary (`primary` whose report name matches a suppress pattern) is suppressed as `primary=<name>`. The rule keys off the scorer name;
 `--no-suppress` shows everything.
 
-**Digest size**: `digest.md` is capped at `--max-md-bytes` (default 12000) with priority-ordered dropping and an explicit note of what
-was dropped; `digest.json` is complete. NPU content is shown in `digest.md` only where it displaces nothing else.
+**Digest size**: `digest.md` is capped at `--max-md-bytes` (default 16000) with priority-ordered dropping and an explicit note of what
+was dropped; `digest.json` is complete. Signatures are clustered across runs; the NPU block is priority 3 (after status rows, failure
+pointers and the primary flags, before ordinary-run errors and all warnings).
 
 **Throughput and NPUs**: `perf` per run (per chip, chip count, reserved GiB; `host` for chip-less runs; `r=` against the run's declared
 `perf.json` baseline, `decide` below 0.7 for a running run, `base?` when undeclared); `npu` block (claimed by a resident process vs

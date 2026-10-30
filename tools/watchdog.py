@@ -77,7 +77,7 @@ def build_parser():
     a("--ctx-after", type=int, default=3, help="exemplar pointer: lines after the matching line")
     a("--ignore", default=r"(?i)\b(?:no|0|zero) (?:errors?|warnings?|failures?)\b|\b(?:error|errors|warnings?|failed|failures?)\s*[=:]\s*0\b|['\"]errors?['\"]\s*[,:]",
       help="regex; matching lines are not counted as warnings/errors")
-    a("--max-md-bytes", type=int, default=12000, help="hard cap on digest.md size in bytes (default 12000); sections are dropped by priority")
+    a("--max-md-bytes", type=int, default=16000, help="hard cap on digest.md size in bytes (default 16000); sections are dropped by priority")
     a("--min-n", type=int, default=30, help="cells with a sample count below this are flagged (default 30)")
     a("--min-cells", type=int, default=3, help="a table needs at least this many cells for the identical-metric check")
     a("--suppress-roles", default="constant,uniform,mock-*",
@@ -1439,9 +1439,10 @@ def evaluate_run(run, cfg, states, now, prev=None):
                             "why": "throughput %.2fx of baseline" % perf["ratio"]})
     why = read_why(d, cfg)
     esc_before, expected_applied = esc, False
-    # "expected": true downgrades only a run with a terminal marker (done/failed) or an archived run. Running, stalled
-    # and unknown runs keep their escalation whatever the file claims. A note alone never changes anything.
-    if why and why["expected"] and (state == "archived" or (marker is not None and state in ("done", "failed"))):
+    # "expected": true downgrades only a run with a terminal marker (done/failed), an archived run, or a STALLED run (no marker and no
+    # heartbeat: someone wrote the file to say the stop is deliberate). Running and unknown runs keep their escalation whatever the file
+    # claims. A note alone never changes anything, and the watchdog never guesses which stalls are expected.
+    if why and why["expected"] and (state in ("archived", "stalled") or (marker is not None and state in ("done", "failed"))):
         expected_applied = True
         if esc != "none":
             esc, why_text = "none", "expected=yes (was %s: %s)" % (esc_before, why_text)
@@ -1751,6 +1752,47 @@ def marker_set(d, cfg):
     return frozenset(m for m in cfg.markers if os.path.exists(os.path.join(d, m)))
 
 
+def _expected_by_state(runs):
+    """Audit of dispositioned runs: how many runs of each state carry expected=true (applied), so 11 stalls that were explained are
+    visibly 11 explained stalls and not 11 stalls that stopped existing. Includes archived runs that were already escalation none."""
+    out = {}
+    for r in runs:
+        if r["expected_applied"]:
+            out[r["state"]] = out.get(r["state"], 0) + 1
+    return out
+
+
+CLUSTER_MAX = 100
+CLUSTER_MAX_RUNS = 50
+
+
+def cluster_signatures(runs):
+    """Identical normalised signatures are ONE entry across runs: total count, number of runs, an exemplar, and one pointer per run
+    (log, line range, count; at most CLUSTER_MAX_RUNS listed per cluster, the rest counted). Errors sort before warnings, then by
+    the number of runs, then by count. Per-run signatures stay in each run's `errors`."""
+    by = {}
+    for r in runs:
+        for s_ in r["errors"]["signatures"]:
+            c = by.get(s_["signature"])
+            ex = s_["exemplar"]
+            if c is None:
+                c = by[s_["signature"]] = {"signature": s_["signature"], "severity": s_["severity"], "count": 0, "n_runs": 0,
+                                           "exemplar": ex["text"], "first_utc": None, "last_utc": None, "runs": [], "any_bad_run": False}
+            c["count"] += s_["count"]
+            c["n_runs"] += 1
+            c["any_bad_run"] = c["any_bad_run"] or (r["state"] in ("failed", "stalled") and not r["expected_applied"])
+            for k, f in (("first_utc", min), ("last_utc", max)):
+                if s_[k]:
+                    c[k] = s_[k] if c[k] is None else f(c[k], s_[k])
+            if len(c["runs"]) < CLUSTER_MAX_RUNS:
+                c["runs"].append({"id": r["id"], "state": r["state"], "count": s_["count"], "run_path": r["path"], "log": ex["log"],
+                                  "line_start": ex["line_start"], "line_end": ex["line_end"]})
+    out = sorted(by.values(), key=lambda c: (c["severity"] != "error", -c["n_runs"], -c["count"], c["signature"]))
+    for c in out:
+        c["runs_omitted"] = c["n_runs"] - len(c["runs"])
+    return out[:CLUSTER_MAX]
+
+
 def build_digest(cfg, states, now=None, sched=None):
     """sched (watch mode): run path -> {res, next}. A run is re-read only when its next-due time has arrived; otherwise its
     last result is reused (age refreshed). failed/stalled runs come due at the fast cadence whatever their tier. A terminal marker not seen at the last read makes
@@ -1785,6 +1827,8 @@ def build_digest(cfg, states, now=None, sched=None):
         "tiers": cfg.tiers, "stall_override_s": cfg.stall_seconds, "watch_interval_s": cfg.interval if cfg.watch else None,
         "expected_downgrades": {"count": sum(1 for r in runs if r["escalation_before_expected"]),
                                 "runs": [r["id"] for r in runs if r["escalation_before_expected"]]},
+        "expected_by_state": _expected_by_state(runs),
+        "signature_clusters": cluster_signatures(runs),
         "worst_state": worst if runs else "no_runs", "exit_code": code, "counts": counts, "queued": sorted(set(queued)), "runs": runs,
     }
 
@@ -1833,10 +1877,12 @@ def _scope_lines(r, scope):
     return out
 
 
-def build_blocks(dg, cfg, level=0):
+def build_blocks(dg, cfg):
     """Digest content as prioritised blocks: (priority, section, label, lines). Lower priority number survives longer.
-    0 summary + status rows of failed/stalled/unknown; 1 other status rows; 2 failed/stalled runs (pointers, errors);
-    3 flags on the primary scorer; 4 error signatures; 5 flags on other scorers; 6 everything else."""
+    0 summary (with the NPU fragment and the dispositioned-by-WHY audit line) + status rows of unexplained failed/stalled/unknown runs;
+    1 other status rows (including explained ones, expected=yes); 2 pointers and ERROR signatures of failed/stalled runs;
+    3 flags on the primary scorer, then the host-utilisation (NPU) block; 4 ERROR signatures of other runs; 5 WARNING signatures and
+    flags on other scorers; 6 everything else. Signatures are clustered across runs (one entry, count, runs, pointers)."""
     runs = dg["runs"]
     B = []
 
@@ -1850,9 +1896,9 @@ def build_blocks(dg, cfg, level=0):
         "worst=%s exit=%d | runs=%d: failed %d, stalled %d, unknown %d, running %d, done %d, archived %d | tick %s | host %s" % (
             dg["worst_state"], dg["exit_code"], len(runs), c["failed"], c["stalled"], c["unknown"], c["running"],
             c["done"], c["archived"], human_age(dg["watch_interval_s"]) if dg["watch_interval_s"] else "one-shot", dg["host"])
-        + npu_fragment(dg.get("npu"))])
-    if level >= 1 and dg.get("npu"):
-        add(0, "host", "host utilisation", npu_block_lines(dg["npu"], level))
+        + npu_fragment(dg.get("npu"))]
+        + (["Dispositioned by a WHY file with expected=true (escalation none, still counted above, flags kept in digest.json): %s" % (
+            ", ".join("%s %d" % kv for kv in sorted(dg["expected_by_state"].items())))] if dg.get("expected_by_state") else []))
     clean = [r for r in runs if r["state"] == "done" and r["escalation"] == "none"]
     arch = [r for r in runs if r["state"] == "archived"]
     shown = [r for r in runs if r not in clean and r not in arch]
@@ -1863,9 +1909,10 @@ def build_blocks(dg, cfg, level=0):
             _watch_cell(r), _clip(_prog_cell(r["progress"]), 48),
             _clip(_perf_cell(r.get("perf")) if r["state"] in ("running", "stalled") else "-", 64),
             _clip(r["escalation_reason"] or r["state_reason"], 70))
-        add(0 if r["state"] in bad else 1, "runs", "status rows", [row])
+        prio = 0 if r["state"] in bad and not r["expected_applied"] else 1     # an explained stop ranks as an ordinary row
+        add(prio, "runs", "status rows", [row])
         if r["why"]:
-            add(0 if r["state"] in bad else 1, "runs", "explanatory notes",
+            add(prio, "runs", "explanatory notes",
                 ["  note %s (%s): %s" % (r["id"], r["why"]["file"], _clip(r["why"]["note"], 110))])
     if not shown:
         add(0, "runs", "status rows", ["(no runs needing attention)"])
@@ -1898,20 +1945,24 @@ def build_blocks(dg, cfg, level=0):
                     lines.append("  - %s:%d-%d (%s)" % (rel, p["line_start"], p["line_end"], p["why"]))
             prio = 2 if rid_bad else 3 if sm["by_scope"]["primary"] else 4 if r["errors"]["signatures"] else 6
             add(prio, "esc", "escalation pointers", lines)
-        e = r["errors"]
-        if e["signatures"]:
-            lines = ["- %s: %d error lines, %d warning lines, %d signatures" % (
-                r["id"], e["error_lines"], e["warning_lines"], e["distinct_signatures"])]
-            for s_ in e["signatures"]:
-                ex = s_["exemplar"]
-                when = ("%s..%s" % ((s_["first_utc"] or "?")[5:19], (s_["last_utc"] or "?")[5:19])
-                        if s_["first_utc"] or s_["last_utc"] else "L%d..L%d" % (ex["line"], s_["last_line"]))
-                lg = ex["log"][len(r["path"]) + 1:] if ex["log"].startswith(r["path"] + "/") else ex["log"]
-                lines.append("  - %s x%d %s @%s:%d-%d \"%s\"" % ("ERR" if s_["severity"] == "error" else "WARN", s_["count"], when,
-                                                                lg, ex["line_start"], ex["line_end"], _clip(ex["text"], cfg.exemplar_width)))
-            if e["omitted_signatures"]:
-                lines.append("  - ... %d more signatures omitted (%d occurrences)" % (e["omitted_signatures"], e["omitted_occurrences"]))
-            add(2 if rid_bad else 4, "errors", "error signatures", lines)
+    for c in dg.get("signature_clusters", []):
+        err = c["severity"] == "error"
+        lines = ["- %s x%d in %d run%s %s \"%s\"" % (
+            "ERR" if err else "WARN", c["count"], c["n_runs"], "" if c["n_runs"] == 1 else "s",
+            "%s..%s" % ((c["first_utc"] or "?")[5:19], (c["last_utc"] or "?")[5:19]) if c["first_utc"] or c["last_utc"] else "",
+            _clip(c["exemplar"], cfg.exemplar_width))]
+        ptr = []
+        for x in c["runs"][:3]:
+            rel = x["log"][len(x["run_path"]) + 1:] if x["log"].startswith(x["run_path"] + "/") else x["log"]
+            ptr.append("%s@%s:%d-%d" % (_clip(x["id"], 44), rel, x["line_start"], x["line_end"]))
+        more = c["n_runs"] - len(ptr)
+        lines.append("  - %s%s" % ("; ".join(ptr), " (+%d more runs: pointers in digest.json signature_clusters)" % more if more > 0 else ""))
+        add(2 if err and c["any_bad_run"] else 4 if err else 5, "errors", "error signatures" if err else "warning signatures", lines)
+    if dg.get("npu"):
+        # Chip state ranks right after the status rows, the failure pointers and the failed runs' own errors (priority 2) and the
+        # primary-scorer flags, and above the error signatures of ordinary runs and every warning (a benign CANN warning that
+        # appears in every run is the lowest-value line in the digest). One block (escalation lines + per-chip table), about 1 KB.
+        add(3, "host", "host utilisation", npu_block_lines(dg["npu"], 2))
     return B
 
 
@@ -1920,7 +1971,7 @@ SECTIONS = [("head", []), ("host", ["", "## Host utilisation (NPU: claimed = a r
                                       "(watch = tier/source last>next full read, UTC; file = WATCH.json, hbNm = inferred period, dflt = default. progress = SUM of the heartbeat row counters of all scorers, rate = change over the last 15 min of heartbeats; 'left' only with a declared total: a widened range assuming UNIFORM cost per row, wrong when work per row varies; 'no ETA' = run declared uniform_cost false; 'rough' = under 15 min seen. perf (running/stalled): per chip, xN chips, r= vs declared baseline, base? = none; host = CPU run)"]),
             ("flags", ["", "## Flags"]),
             ("esc", ["", "## Escalation (read: tier-1 reads these slices, paths relative to dir; decide: orchestrator chooses)"]),
-            ("errors", ["", "## Error signatures (count, first..last, exemplar pointer)"])]
+            ("errors", ["", "## Signatures, clustered across runs (count, runs, first..last, exemplar, pointers)"])]
 TAIL = ["", "Detail: digest.json beside this file."]
 NOTE_RESERVE = 520
 
@@ -1941,16 +1992,12 @@ def _assemble(blocks, keep):
     return out
 
 
-def _block_key(b):
-    return (b[0], b[1], b[2], tuple(b[3]))
-
-
 def _render_blocks(blocks, cap):
-    """(text, kept non-host block keys, whether the host block survived). Priority-ordered truncation: keep the lowest priority numbers;
+    """Priority-ordered truncation: keep the lowest priority numbers;
     once a block of some priority does not fit, every block of a higher number is dropped too, so what survives is what matters."""
     full = _assemble(blocks, set(range(len(blocks)))) + TAIL
     if _size(full) <= cap:
-        return "\n".join(full) + "\n", frozenset(_block_key(b) for b in blocks if b[1] not in ("host", "head")), True
+        return "\n".join(full) + "\n"
     order = sorted(range(len(blocks)), key=lambda i: (blocks[i][0], i))
     keep, dropped, cut = set(), [], None
     budget = cap - NOTE_RESERVE
@@ -1976,30 +2023,12 @@ def _render_blocks(blocks, cap):
     if len(note.encode()) > NOTE_RESERVE - 10:
         note = note.encode()[:NOTE_RESERVE - 20].decode("utf-8", "ignore") + "...]"
     text = "\n".join(_assemble(blocks, keep) + TAIL + [note]) + "\n"
-    return enforce_cap(text, cap), frozenset(_block_key(blocks[i]) for i in keep if blocks[i][1] not in ("host", "head")), \
-        any(blocks[i][1] == "host" for i in keep)
+    return enforce_cap(text, cap)
 
 
 def render_md(dg, cfg):
-    """NPU content is added only where it displaces nothing that matters. Level 0 is a compact fragment on the summary line; level 1
-    adds the escalation line(s), level 2 the per-chip table. The fragment is used only if every block of priority 0..3 (summary rows of
-    failed/stalled/unknown runs, other status rows, failed-run pointers, primary-scorer flags) that survives truncation without any NPU
-    content still survives with it; levels 1 and 2 only if NOTHING else changes. So on a saturated digest the host block is simply not
-    shown (digest.json always has it), and it can never push a failed row or a primary flag out."""
-    cap = cfg.max_md_bytes
-    base_dg = {k: v for k, v in dg.items() if k != "npu"}
-    text_base, keys_base, _ = _render_blocks(build_blocks(base_dg, cfg, 0), cap)
-    if not dg.get("npu"):
-        return text_base
-    text0, keys0, _ = _render_blocks(build_blocks(dg, cfg, 0), cap)
-    crit = lambda keys: {k for k in keys if k[0] <= 3}   # noqa: E731
-    if not crit(keys_base) <= crit(keys0):
-        return text_base
-    for level in (2, 1):
-        text, keys, host_in = _render_blocks(build_blocks(dg, cfg, level), cap)
-        if host_in and keys == keys0:
-            return text
-    return text0
+    """digest.md: priority-ordered truncation of the blocks from build_blocks (see there for the order)."""
+    return _render_blocks(build_blocks(dg, cfg), cfg.max_md_bytes)
 
 
 def enforce_cap(text, cap):

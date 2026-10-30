@@ -421,8 +421,8 @@ class PriorityTruncation(unittest.TestCase):
         for hi, lo in ((0, 2), (0, 1)):   # whenever a lower tier survives, the primary-flag tier survived first
             self.assertFalse([s for s in sizes if s[lo] and not s[hi]])
 
-    def test_default_cap_is_12000(self):
-        self.assertEqual(wd.make_cfg().max_md_bytes, 12000)
+    def test_default_cap_is_16000(self):
+        self.assertEqual(wd.make_cfg().max_md_bytes, 16000)
 
 
 class WhyNote(unittest.TestCase):
@@ -456,7 +456,7 @@ class Expected(unittest.TestCase):
         json.dump(body, open(os.path.join(d, "WHY_FAILED.json"), "w"))
         return d
 
-    def test_expected_true_downgrades_failed_marker_but_not_stalled(self):
+    def test_expected_true_downgrades_failed_marker_and_stalled_but_not_running_or_unknown(self):
         t = Tree()
         self.mk(t, "failed", True, heartbeat=hb_line(-1, "x"), marker="rc=1")
         self.mk(t, "stalled", True, heartbeat=hb_line(-9999, "x"))
@@ -466,14 +466,47 @@ class Expected(unittest.TestCase):
         by = {r["id"]: r for r in dg["runs"]}
         self.assertEqual((by["failed"]["state"], by["failed"]["escalation"]), ("failed", "none"))
         self.assertTrue(by["failed"]["expected_applied"])
-        self.assertEqual(by["stalled"]["escalation"], "decide")
+        self.assertEqual((by["stalled"]["state"], by["stalled"]["escalation"]), ("stalled", "none"))   # a written disposition, state unchanged
+        self.assertTrue(by["stalled"]["expected_applied"])
         self.assertEqual(by["unknown"]["escalation"], "read")
         self.assertEqual(by["running"]["escalation"], "read")
-        self.assertFalse(by["stalled"]["expected_applied"])
-        self.assertEqual(dg["expected_downgrades"], {"count": 1, "runs": ["failed"]})
+        self.assertFalse(by["unknown"]["expected_applied"] or by["running"]["expected_applied"])
+        self.assertEqual(dg["expected_downgrades"], {"count": 2, "runs": ["failed", "stalled"]})
+        self.assertEqual(dg["expected_by_state"], {"failed": 1, "stalled": 1})
+        self.assertEqual(dg["counts"]["stalled"], 1)                      # still counted
+        self.assertEqual(dg["exit_code"], 40)                             # exit codes follow state
         md = wd.render_md(dg, t.cfg())
         self.assertIn("none expected=yes", md)
-        self.assertEqual(md.count("expected=yes"), 1 + md.count("was decide"))
+        self.assertEqual(md.count("expected=yes"), 2 + md.count("was decide"))
+        self.assertIn("stalled 1", md.split("Dispositioned", 1)[1].splitlines()[0])
+
+    def test_stalled_without_the_file_or_with_a_non_true_value_keeps_shouting_and_the_summary_audits_the_rest(self):
+        t = Tree()
+        t.run("bare", heartbeat=hb_line(-9999, "x"))
+        self.mk(t, "false", False, heartbeat=hb_line(-9999, "x"))
+        self.mk(t, "note", None, heartbeat=hb_line(-9999, "x"))
+        self.mk(t, "yes1", True, heartbeat=hb_line(-9999, "x"))
+        self.mk(t, "yes2", True, heartbeat=hb_line(-9999, "x"))
+        dg = t.digest()
+        by = {r["id"]: r["escalation"] for r in dg["runs"]}
+        self.assertEqual(by, {"bare": "decide", "false": "decide", "note": "decide", "yes1": "none", "yes2": "none"})
+        md = wd.render_md(dg, t.cfg())
+        self.assertIn("Dispositioned", md.splitlines()[2])                # in the summary block, not buried
+        self.assertIn("stalled 2", md.splitlines()[2])
+        self.assertIn("worst=stalled", md.splitlines()[1])
+        self.assertIn("stalled 5", md.splitlines()[1])                    # all five are still counted as stalled
+
+    def test_an_explained_stop_ranks_below_an_unexplained_one_when_space_is_short(self):
+        t = Tree()
+        for i in range(6):
+            t.run("a_unexplained%d" % i, heartbeat=hb_line(-9999, "x"))
+            self.mk(t, "b_explained%d" % i, True, heartbeat=hb_line(-9999, "x"))
+        dg = t.digest(max_md_bytes=10 ** 6)
+        for cap in range(1100, 4000, 100):
+            cfg = t.cfg(max_md_bytes=cap)
+            md = wd.render_md(dg, cfg)
+            un, ex = md.count("| a_unexplained"), md.count("| b_explained")
+            self.assertTrue(ex == 0 or un == 6, (cap, un, ex))
 
     def test_note_alone_or_non_boolean_changes_nothing(self):
         t = Tree()
@@ -1704,34 +1737,85 @@ class NpuProbeAndRender(unittest.TestCase):
         self.assertIn("| 1 | 0% | 3.4/64 | unclaimed | - |", md)
         self.assertEqual(dg["npu"]["escalation"], "decide")
 
-    def test_host_block_never_displaces_anything_else(self):
+    def test_host_block_outranks_warnings_and_ordinary_error_signatures_but_not_failed_run_errors(self):
         t = Tree()
-        for i in range(12):
-            t.run("f%02d" % i, heartbeat=hb_line(-50, "alive"), marker="rc=3 utc=x", log="Traceback\nValueError: boom %d\n" % i)
-        t.run("p_run", heartbeat=hb_line(-60, "alive") + hb_line(-30, "alive"), report={"primary": {"acc": 1.0}})
-        shown, hidden, fragment_only = [], [], []
-        for cap in range(1300, 9000, 100):
+        t.run("a_failed", heartbeat=hb_line(-50, "alive"), marker="rc=3 utc=x", log="Traceback\nValueError: boom\n")
+        for i in range(8):
+            t.run("e%02d" % i, heartbeat=hb_line(-60, "alive") + hb_line(-30, "alive"), log="RuntimeError: distinct%s problem\n" % ("abcdefgh"[i] * 6))
+            t.run("w%02d" % i, heartbeat=hb_line(-60, "alive") + hb_line(-30, "alive"), log="UserWarning: distinct%s thing\n" % ("ijklmnop"[i] * 6))
+        seen = []
+        for cap in range(2400, 12000, 100):
             cfg, dg = self._dg(t)
             cfg.max_md_bytes = cap
             md = wd.render_md(dg, cfg)
             self.assertLessEqual(len(md.encode()), cap)
-            base = wd.render_md({k: v for k, v in dg.items() if k != "npu"}, cfg)
-            failed_rows = {ln for ln in base.splitlines() if ln.startswith("| f")}
-            primary = {ln for ln in base.splitlines() if "(primary scorer)" in ln}
-            self.assertLessEqual(failed_rows | primary, set(md.splitlines()), "cap %d: failed rows or primary flags pushed out" % cap)
-            self.assertIn("worst=", md.splitlines()[1])
-            lvl0 = wd._render_blocks(wd.build_blocks(dg, cfg, 0), cap)[0]
-            if "## Host utilisation" in md:
-                shown.append(cap)
-                host = ("| chip", "|---", "| 0 |", "| 1 |", "| 2 |", "- [decide] NPU", "- info: claimed")
-                strip = lambda m: [ln for ln in m.splitlines() if ln and not ln.startswith(host) and "## Host" not in ln]  # noqa: E731
-                self.assertEqual(strip(md), strip(lvl0), "cap %d: the host block displaced content" % cap)
-            elif "| npu " in md.splitlines()[1]:
-                fragment_only.append(cap)
-            else:
-                hidden.append(cap)
-        self.assertTrue(shown and fragment_only, (shown, fragment_only, hidden))   # the block appears when there is room, only the fragment when saturated
-        self.assertEqual(max(shown), 8900)                  # with room it is always shown; in between it depends on the slack
+            self.assertIn("worst=failed", md)
+            self.assertIn("| a_failed | failed", md)
+            if "| chip |" in md:
+                self.assertIn("ValueError: boom", md)     # the failed run's own error signature (priority 2) outlives the chip table
+            seen.append(("RuntimeError: distinct" in md, "| chip |" in md, "WARN x" in md))
+        for err, host, warn in seen:
+            self.assertFalse(warn and not host)       # a warning never survives without the chip table
+            self.assertFalse(err and not host)        # nor does an ordinary run's error signature
+        self.assertTrue(any(h for _, h, _ in seen) and any(not h for _, h, _ in seen))
+
+    def test_the_chip_table_fits_at_the_default_cap_when_signatures_are_clustered(self):
+        t = Tree()
+        for i in range(40):                                      # the same benign warning in 40 run directories, plus status rows
+            d = t.run("r%02d" % i, heartbeat=hb_line(-60, "alive") + hb_line(-30, "alive"),
+                      log="[W1030 04:01:%02d.084 NPUCachingAllocator.cpp:204] Warning: The current CANN and HDK(driver) versions require processing for 32 padding size\n" % i)
+        cfg, dg = self._dg(t)
+        self.assertEqual(cfg.max_md_bytes, 16000)
+        md = wd.render_md(dg, cfg)
+        self.assertEqual(md.count("32 padding size"), 1)
+        self.assertIn("WARN x40 in 40 runs", md)
+        self.assertIn("| chip |", md)
+        self.assertNotIn("TRUNCATED", md)
+
+
+class SignatureClusters(unittest.TestCase):
+    LINE = "[W1030 04:01:%02d.084 NPUCachingAllocator.cpp:204] Warning: The current CANN and HDK(driver) versions require processing for 32 padding size\n"
+
+    def test_identical_signatures_are_one_entry_across_runs(self):
+        t = Tree()
+        for i in range(5):
+            t.run("run%d" % i, heartbeat=hb_line(-1, "alive"), log="started\n" + self.LINE % (10 + i) + self.LINE % (20 + i))
+        t.run("other", heartbeat=hb_line(-1, "alive"), log="ValueError: something else\n")
+        dg = t.digest()
+        cl = dg["signature_clusters"]
+        self.assertEqual([c["severity"] for c in cl], ["error", "warning"])          # errors first
+        w = cl[1]
+        self.assertEqual((w["count"], w["n_runs"], len(w["runs"]), w["runs_omitted"]), (10, 5, 5, 0))
+        self.assertEqual(sorted(x["id"] for x in w["runs"]), ["run%d" % i for i in range(5)])
+        self.assertTrue(all(x["log"].endswith("run.log") and x["line_end"] >= x["line_start"] for x in w["runs"]))
+        md = wd.render_md(dg, t.cfg())
+        self.assertEqual(md.count("32 padding size"), 1)                              # one entry, not five
+        self.assertIn("WARN x10 in 5 runs", md)
+        self.assertIn("(+2 more runs: pointers in digest.json signature_clusters)", md)     # three pointers shown
+        self.assertIn("ERR x1 in 1 run ", md)
+        for r in dg["runs"]:
+            if r["id"] != "other":
+                self.assertEqual(r["errors"]["signatures"][0]["count"], 2)             # per-run detail is unchanged
+
+    def test_run_list_is_bounded_but_counted(self):
+        t = Tree()
+        for i in range(wd.CLUSTER_MAX_RUNS + 7):
+            t.run("r%03d" % i, heartbeat=hb_line(-1, "alive"), log="ValueError: same everywhere\n")
+        c = t.digest()["signature_clusters"][0]
+        self.assertEqual((c["n_runs"], len(c["runs"]), c["runs_omitted"], c["count"]), (wd.CLUSTER_MAX_RUNS + 7, wd.CLUSTER_MAX_RUNS, 7, wd.CLUSTER_MAX_RUNS + 7))
+
+    def test_distinct_signatures_stay_distinct_and_failed_run_errors_keep_priority_two(self):
+        t = Tree()
+        t.run("a_failed", heartbeat=hb_line(-1, "alive"), marker="rc=1", log="ValueError: boom in failed\n")
+        for i in range(3):
+            t.run("b%d" % i, heartbeat=hb_line(-1, "alive"), log="ValueError: boom in ok run %s\n" % ("xyz"[i] * 3))
+        cfg = t.cfg()
+        blocks = wd.build_blocks(wd.build_digest(cfg, {}, NOW), cfg)
+        prios = {b[3][0].split('"')[1]: b[0] for b in blocks if b[2] == "error signatures"}
+        self.assertEqual(prios["ValueError: boom in failed"], 2)
+        self.assertEqual({v for k, v in prios.items() if "ok run" in k}, {4})
+        host_free = [b for b in blocks if b[2] == "warning signatures"]
+        self.assertEqual(host_free, [])
 
 
 if __name__ == "__main__":
