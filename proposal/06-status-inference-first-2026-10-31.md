@@ -219,3 +219,5 @@ Kev-0.8B、4B、9B 的 decision-v7、transfer-v4、hard-v1、documents-v1、devt
 E32 释放芯片 4 后，E37 的 CPU 全依赖准备在保留容器中实际退出 0，生成固定运行计划。主机检查此前因非 root 用户不可读 `/proc/1/root/proc` 而阻断；局部修订改用可读的主机/容器身份检查，主会话复核并通过 52 项相关测试，新版本另行冻结，未冒称已包含在旧 Astra 审查中。
 
 主会话核对 CPU 实际退出、计划哈希、固定输入选择和资源映射后，诊断容器 `nga-e37-openjev2-20261031-v2` 在芯片 4 实际启动。此次仅执行预注册的 16 forwards/model 诊断；尚需真实终态和独立 CPU 验收，不能提前声称 no-op/profiling 数值一致，也不改变 E36 的失败准入或代表 Open-Jev JEVal 全量测试完成。执行中的后续记录以 [E37 wiki](../wiki/E37-openjev-batch-diagnostic-20261030.md) 为准。
+
+随后该 2B 诊断已写入 `COMPLETE.json`，16/16 forwards、实际退出 0，`diagnostic_valid=true`。三组选定输入的原始重复、chunk 重复均保持精确一致；边界输入上的 no-op 和 passive-hook 对照也保持精确一致；但原始路径与 chunk 路径的概率最大差分别约为 0.014141、0.003515、0.002626，三组决策翻转为 0/3，`candidate_batch_admission` 仍为 false。独立 CPU 验收于北京时间 05:21 完成，核对 16 条回执、报告和终态哈希并重算比较，NPU 与验收容器实际退出均为 0。它确认了可复现的数值差异，却没有证明具体 kernel 原因，也不准许原 JEVal 全量运行；9B 同协议诊断继续按资源与计划门禁接续。
