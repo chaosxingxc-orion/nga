@@ -117,11 +117,13 @@ Dispatch has a second gate: the adopted-decision dependency, operation identity,
 
 A read-before-write freshness check alone may race with a resource change. Where the guarantee requires it, the execution boundary needs an enforced conditional operation or equivalent contract. Where this is unavailable, state the weaker guarantee and reconciliation path.
 
+An admitted execution hold or decision supersession must also be ordered against dispatch using the relevant current state. If dispatch has already started, a local hold does not prove that the external effect stopped. The [credit walkthrough](10-credit-decision-walkthrough.md) develops the pre-adoption, pending-action, in-flight, and completed-effect cases separately.
+
 ### 5.3 Recovery
 
 | Event | Required behavior |
 | --- | --- |
-| Same request and material content | Return the existing decision or pending state; resume needed work without reopening settled decisions. |
+| Same request and material content | Return the existing effective revision or pending state; resume needed work without reopening settled decisions. Expose an authorized revision explicitly rather than presenting it as an unchanged historical response. |
 | Same identity with changed material content | Surface a conflict or explicit amendment; do not silently overwrite. |
 | Crash before adoption | Resume from recorded inputs; repeated inference must not create multiple effective decisions. |
 | Crash after adoption, before dispatch | Reuse the adopted decision and the same operation identity, subject to current execution checks. |
@@ -166,6 +168,8 @@ Historical reconstruction uses preserved observations, specification/adoption ve
 
 ## 8. Illustrative credit-rule walkthrough
 
+The credit example is selected for the next architecture exercise. The [complete decision walkthrough](10-credit-decision-walkthrough.md) provides a concrete main path, a phase-by-phase S2 change matrix, proposed S1 insertion points, retry and new-evidence branches, and reconstruction obligations.
+
 This uses the owner's example to exercise boundaries, not to publish a complete lending policy. Project 3 must first settle asset denomination/valuation, exact time and overdue conventions, evidence authority, and uncovered bands.
 
 The stated business requirements are:
@@ -207,7 +211,7 @@ Begin with one bounded workflow through E1, E2, E4, and a minimal E6 view; add t
 
 | Decision | Proposed direction or remaining choice |
 | --- | --- |
-| First S1 insertion and scenario | Start by comparing contract-bound decision/adoption with an S2-assisted route. The credit example is a candidate; its semantic gaps must be resolved first. |
+| First S1 insertion and scenario | The credit example is selected for the walkthrough. Its proposed first required S1 role is the full business judgment feeding adoption. Production-pilot scope, auxiliary S1 checks, and unresolved business conventions still require decisions. |
 | Decision composition | Select the approved decomposition/composition contract and allowed S2 variation. Do not assume question-graph equivalence. |
 | Reopening and freshness | Define which evidence changes invalidate a pending decision/action, when decisions expire, and who may reopen them. |
 | Trust root and enforcement (V0 questions 1–2) | Preserve live authority checks and per-property enforcement obligations; registry design, token lifetime/format, and revocation mechanism remain open. |

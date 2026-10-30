@@ -4,6 +4,8 @@
 > Companion: [architecture V0.1](08-nga-architecture-v0.1.md).
 > These diagrams show proposed logical responsibilities and transitions, not deployment topology or implemented guarantees. The original [V0 diagrams](06-architecture-diagrams-md.md) remain available for comparison.
 
+For a concrete credit application, see the [complete walkthrough](10-credit-decision-walkthrough.md), including S2's change permissions before and after adoption and the race between new evidence and dispatch.
+
 ## 1. Enterprise views and control authority
 
 ```mermaid
