@@ -97,7 +97,7 @@ E25 复跑覆盖原 manifest 的全部 1,884 行，独立重算全部通过；15
 
 binary Brier 仅针对 true 概率；multiclass Brier 对 false／true 两维求和，二元情形近似二倍，不能混用。score MAE 按原预注册概率期望计算，不能替换成 JEVal 论文的 returned-score 指标。Civil Comments 另有基于人类分布的 JS bits .175792225、TV .292534998；不把其 one-hot Brier 冒称软标签 Brier。
 
-与上游公共表的一位小数相比，英语 MASSIVE 与 PAWS 相符；德语 84.0% 对 83.4%，Civil 70.0% 对 70.3%，Aegis 81.6% 对 81.2%，SummEval consistency 75.0% 对 75.7%，relevance 48.75% 对 49.2%。上游显示值有舍入，完整差异诊断另列；不得由接近总分推断逐题完全相同。
+与上游公共表的一位小数相比，英语 MASSIVE 与 PAWS 相符；德语 84.0% 对 83.4%，Civil 70.0% 对 70.3%，Aegis 81.6% 对 81.2%，SummEval consistency 75.0% 对 75.7%，relevance 48.75% 对 49.2%。上游显示值有舍入，完整差异、上游 ECE／Brier／MAE 与验收边界见 [Nimble 复测报告](NIMBLE-REFERENCE-RESULTS-2026-10-30.md)；不得由接近总分推断逐题完全相同。
 
 ## 1. 能直接回答什么
 

@@ -46,3 +46,31 @@ including the inference config and launch receipt. `DEPENDENCY_CLOSURE.json`,
 `TRANSFER_EVIDENCE.json` and both `LAUNCH_RECEIPT.json` files bind the preparation
 and launch evidence. Full inference and independent metric acceptance remain
 pending; this launch does not repair or supersede the original failed evidence.
+
+2026-10-30 17:07 UTC completion update: E25 completed all 1,884 rows at 17:05:53;
+inference wrapper rc 0 at 17:05:57, independent observer wrapper rc 0 at 17:06:38.
+Both retained containers were inspected exited/0 with the exact IDs above and the
+frozen image. Independent audit is VERIFIED_SCOPED: 152 frozen / 150 required
+files, all 1,884 records and seven manifest data hashes/ordered IDs checked, no
+current review flags. Independent follow-up rechecked all 152 inference and 9
+observer hashes plus terminal/output bindings. No allocation was released here.
+
+| Subset | Correct / n | Accuracy |
+| --- | ---: | ---: |
+| massive-en-US | 304 / 350 | .868571429 |
+| massive-de-DE | 294 / 350 | .840000000 |
+| paws | 207 / 250 | .828000000 |
+| civil_comments | 210 / 300 | .700000000 |
+| aegis2 | 204 / 250 | .816000000 |
+| summeval-relevance | 117 / 240 | .487500000 |
+| summeval-consistency | 108 / 144 | .750000000 |
+
+Full NLL, multiclass/binary Brier, ECE10, score MAE, distribution metrics and
+published rounded-value comparisons are in [the reference result report](../experiments/NIMBLE-REFERENCE-RESULTS-2026-10-30.md).
+Report SHA256 `8d54869ee54f566ffc1b5c7aa7813ea97f986d6d52351a27d947cc7f7f7b6e2c`;
+audit SHA256 `0a7476130ee3d55c1fb661e2bb8d127cc240ba1e242c6014c024f2e372a8929b`.
+Scoped acceptance does not establish prompt retokenization parity, unseen
+generalization, same-hardware reproduction, family-complete metrics, new training
+benefit or substantive Astra approval. Published per-row predictions were not
+available, so the different aggregates cannot identify individual flipped records.
+E19/E21 failed evidence remains unchanged.
