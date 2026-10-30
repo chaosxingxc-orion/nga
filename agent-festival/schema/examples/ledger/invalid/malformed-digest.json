@@ -28,7 +28,25 @@
       "idempotency": {
         "operation_id": "op-credit-1",
         "payload_digest": "not-a-digest"
-      }
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://credit/a1",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        },
+        {
+          "kind": "tool",
+          "selector": "tool://credit-transfer",
+          "actions": [
+            "execute"
+          ],
+          "effect": "irreversible"
+        }
+      ]
     },
     {
       "event_type": "effect",
@@ -81,6 +99,6 @@
       }
     }
   ],
-  "_expect": "REJECT: payload_digest must be sha256:<64 lowercase hex> \u2014 the replay matcher's key format",
+  "_expect": "REJECT: payload_digest must be sha256:<64 lowercase hex> — the replay matcher's key format",
   "_expect_match": "payload_digest"
 }

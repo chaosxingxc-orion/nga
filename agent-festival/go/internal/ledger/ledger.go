@@ -94,9 +94,13 @@ type Document struct {
 
 // Errors validates a ledger document against the schema plus the cross-event
 // rules: arbitration_seq non-decreasing; one payload digest per operation —
-// a changed payload under the same key is a rejection (15 §B4); an effect
-// event needs an earlier adoption event for the same operation (the
-// single-writer discipline: effects only exist downstream of an adoption).
+// a changed payload under the same key is a rejection (15 §B4); and the
+// event-sequence grammar of the single writer — each operation opens with
+// exactly one adopted adoption event, and every later event for it (reused /
+// conflict / effects) only exists downstream of that adoption. A violation
+// of the grammar is a bypass write into the ledger, not a machine
+// transition. Status families never cross the event-type boundary, and
+// effect events carry no grants_at_decision.
 func Errors(doc map[string]any) []string {
 	if err := schema.Validate(doc); err != nil {
 		return []string{"schema: " + err.Error()}
@@ -129,12 +133,45 @@ func Errors(doc map[string]any) []string {
 		}
 		seen[op] = dig
 	}
+	// status families: the machine's status vocabulary never crosses the
+	// event-type boundary (adoption events carry adopted/reused/conflict,
+	// effect events carry dispatched/unresolved/completed/failed). Checked in
+	// code on both sides — schema if/then rejects the same shapes but its
+	// validator messages do not name the offending value, so the
+	// wrong-reason pins could not match on both validators.
+	adoptStatuses := map[string]bool{"adopted": true, "reused": true, "conflict": true}
+	effectStatuses := map[string]bool{"dispatched": true, "unresolved": true, "completed": true, "failed": true}
+	for i, e := range d.Events {
+		ok := adoptStatuses[e.Outcome.Status]
+		if e.EventType == "effect" {
+			ok = effectStatuses[e.Outcome.Status]
+		}
+		if !ok {
+			family := "effect"
+			if effectStatuses[e.Outcome.Status] {
+				family = "adoption"
+			}
+			errs = append(errs, fmt.Sprintf("events/%d: %s event carries the %s-family status %q — the status vocabulary never crosses the event-type boundary", i, e.EventType, family, e.Outcome.Status))
+		}
+		if e.EventType == "effect" && len(e.GrantsAtDecision) > 0 {
+			errs = append(errs, fmt.Sprintf("events/%d: effect event for operation %q carries grants_at_decision — the grant pin rides the adopted event only (stamped once, at the decision point)", i, e.Identity.OperationID))
+		}
+	}
 	adopted := map[string]bool{}
 	for i, e := range d.Events {
+		op := e.Identity.OperationID
 		if e.EventType == "adoption" {
-			adopted[e.Identity.OperationID] = true
-		} else if !adopted[e.Identity.OperationID] {
-			errs = append(errs, fmt.Sprintf("events/%d: effect event for operation %q has no earlier adoption event — a bypass write into the ledger, not a machine transition", i, e.Identity.OperationID))
+			if e.Outcome.Status == "adopted" {
+				if adopted[op] {
+					errs = append(errs, fmt.Sprintf("events/%d: operation %q already has an adopted event — a second adopted event would re-pin the machine's state mid-flight (a bypass write, not a machine transition)", i, op))
+				}
+				adopted[op] = true
+			} else if !adopted[op] {
+				// reused/conflict before any adopted event for the operation
+				errs = append(errs, fmt.Sprintf("events/%d: %s event for operation %q precedes its adopted event — a bypass write into the ledger, not a machine transition", i, e.EventType, op))
+			}
+		} else if !adopted[op] {
+			errs = append(errs, fmt.Sprintf("events/%d: effect event for operation %q precedes its adopted event — a bypass write into the ledger, not a machine transition", i, op))
 		}
 	}
 	return errs

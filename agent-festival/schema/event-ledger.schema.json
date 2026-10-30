@@ -77,7 +77,6 @@
                 "adopted",
                 "reused",
                 "conflict",
-                "rejected",
                 "dispatched",
                 "unresolved",
                 "completed",
@@ -120,15 +119,26 @@
           "if": {
             "properties": {
               "event_type": {
-                "const": "effect"
+                "const": "adoption"
+              },
+              "outcome": {
+                "properties": {
+                  "status": {
+                    "const": "adopted"
+                  }
+                }
               }
             }
           },
           "then": {
+            "required": [
+              "grants_at_decision"
+            ],
             "properties": {
-              "grants_at_decision": false
-            },
-            "description": "grants_at_decision rides adoption events only — the pin is stamped once, at the decision point."
+              "grants_at_decision": {
+                "minItems": 1
+              }
+            }
           }
         }
       ]
@@ -211,7 +221,7 @@
       }
     },
     "grant": {
-      "description": "One entry of a grant set. Shape is shared with the adoption contract schema (each schema stays self-contained; the two copies must stay in lockstep — checked by the shared fixture suites).",
+      "description": "One entry of a grant set. Shape is shared with the adoption contract schema (each schema stays self-contained, frozen-engine stake C5-a); the two copies are kept in lockstep by a direct subtree diff in ledger.py plus the fixture suites on both sides.",
       "type": "object",
       "additionalProperties": false,
       "required": [

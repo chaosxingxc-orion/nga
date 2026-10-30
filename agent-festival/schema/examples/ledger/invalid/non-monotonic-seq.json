@@ -28,7 +28,25 @@
       "idempotency": {
         "operation_id": "op-credit-1",
         "payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      }
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://credit/a1",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        },
+        {
+          "kind": "tool",
+          "selector": "tool://credit-transfer",
+          "actions": [
+            "execute"
+          ],
+          "effect": "irreversible"
+        }
+      ]
     },
     {
       "event_type": "effect",
@@ -81,6 +99,6 @@
       }
     }
   ],
-  "_expect": "REJECT: events must be non-decreasing in arbitration_seq \u2014 ledger monotonicity",
+  "_expect": "REJECT: events must be non-decreasing in arbitration_seq — ledger monotonicity",
   "_expect_match": "arbitration_seq"
 }

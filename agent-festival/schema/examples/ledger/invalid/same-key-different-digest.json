@@ -28,7 +28,25 @@
       "idempotency": {
         "operation_id": "op-credit-2",
         "payload_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-      }
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://credit/a2",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        },
+        {
+          "kind": "tool",
+          "selector": "tool://credit-transfer",
+          "actions": [
+            "execute"
+          ],
+          "effect": "irreversible"
+        }
+      ]
     },
     {
       "event_type": "adoption",
@@ -60,6 +78,6 @@
       }
     }
   ],
-  "_expect": "REJECT-context fixture: same operation_id with a different payload digest \u2014 the schema shape is valid (the STATE MACHINE in piece 2 rejects the match, 15 sB4 / 14-A5 counterexample four); this pins the digest field's schema presence",
+  "_expect": "REJECT-context fixture: same operation_id with a different payload digest — the schema shape is valid (the STATE MACHINE in piece 2 rejects the match, 15 sB4 / 14-A5 counterexample four); this pins the digest field's schema presence",
   "_expect_match": "payload_digest"
 }

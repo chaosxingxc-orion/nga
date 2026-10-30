@@ -16,8 +16,10 @@
 package suite
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -44,7 +46,14 @@ func Load(path string) (*Fixture, error) {
 	}
 	f := &Fixture{}
 	var doc map[string]any
-	if err := json.Unmarshal(raw, &doc); err != nil {
+	// UseNumber: integers survive the map domain exactly — the double
+	// charter keeps integer-domain checks (arbitration_seq monotonicity) out
+	// of float64, where adjacent values past 2^53 fold equal and the Go
+	// verdict forks from Python's exact-int one (R2 M-4). santhosh accepts
+	// json.Number as a number, and the checkers' typed re-parse is exact.
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.UseNumber()
+	if err := dec.Decode(&doc); err != nil {
 		f.ParseError = "document rejected at parse: " + err.Error()
 		return f, nil
 	}
@@ -139,6 +148,26 @@ func Run(label, validDir, invalidDir string, check Checker) int {
 		fmt.Println("ALL GREEN")
 	}
 	return bad
+}
+
+// Capture runs f with stdout captured and returns the captured text (one
+// exported helper for the drivers' count-pin tests — R2 m-2: the local
+// copies had reached three and growing).
+func Capture(f func()) string {
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		return ""
+	}
+	os.Stdout = w
+	f()
+	w.Close()
+	os.Stdout = old
+	all, err := io.ReadAll(r)
+	if err != nil {
+		return string(all)
+	}
+	return string(all)
 }
 
 func glob(pattern string) []string {

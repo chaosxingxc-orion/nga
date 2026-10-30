@@ -1,7 +1,6 @@
 package suite
 
 import (
-	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -54,7 +53,7 @@ func corpus(t *testing.T) (valid, invalid string) {
 // count-floor tests of future pieces will match against.
 func TestRunCleanCorpusIsGreen(t *testing.T) {
 	valid, invalid := corpus(t)
-	buf := capture(t, func() int { return Run("t", valid, invalid, poisonCheck) })
+	buf := Capture(func() { Run("t", valid, invalid, poisonCheck) })
 	if bad := summaryFailures(t, buf); bad != 0 {
 		t.Fatalf("clean corpus: failures = %d\n%s", bad, buf)
 	}
@@ -71,7 +70,7 @@ func TestRunCleanCorpusIsGreen(t *testing.T) {
 func TestWrongReasonPoison(t *testing.T) {
 	valid, invalid := corpus(t)
 	write(t, invalid, "wrong-reason.json", `{"poison": "x", "_expect_match": "zzz-no-such-reason"}`)
-	buf := capture(t, func() int { return Run("t", valid, invalid, poisonCheck) })
+	buf := Capture(func() { Run("t", valid, invalid, poisonCheck) })
 	if summaryFailures(t, buf) == 0 {
 		t.Fatalf("wrong-reason poison was green:\n%s", buf)
 	}
@@ -85,7 +84,7 @@ func TestWrongReasonPoison(t *testing.T) {
 func TestWasAcceptedPoison(t *testing.T) {
 	valid, invalid := corpus(t)
 	write(t, invalid, "actually-valid.json", `{"_expect_match": "anything"}`)
-	buf := capture(t, func() int { return Run("t", valid, invalid, poisonCheck) })
+	buf := Capture(func() { Run("t", valid, invalid, poisonCheck) })
 	if summaryFailures(t, buf) == 0 {
 		t.Fatalf("was-accepted poison was green:\n%s", buf)
 	}
@@ -111,7 +110,7 @@ func TestWrongTypedPinPoison(t *testing.T) {
 			d = invalid
 		}
 		write(t, d, "bad-pin.json", `{"poison": "keep", "_expect_match": 5}`)
-		buf := capture(t, func() int { return Run("t", valid, invalid, poisonCheck) })
+		buf := Capture(func() { Run("t", valid, invalid, poisonCheck) })
 		if summaryFailures(t, buf) == 0 {
 			t.Fatalf("wrong-typed pin in %s phase was green:\n%s", phase.dir, buf)
 		}
@@ -127,7 +126,7 @@ func TestWrongTypedPinPoison(t *testing.T) {
 func TestParseFailedInvalidCountsAsRejected(t *testing.T) {
 	valid, invalid := corpus(t)
 	write(t, invalid, "not-json.json", `{"poison": "unterminated`)
-	buf := capture(t, func() int { return Run("t", valid, invalid, poisonCheck) })
+	buf := Capture(func() { Run("t", valid, invalid, poisonCheck) })
 	if !strings.Contains(buf, "PASS must-reject not-json.json") {
 		t.Fatalf("parse-failed invalid not counted as rejected:\n%s", buf)
 	}
@@ -177,25 +176,6 @@ func TestLoadPinSemantics(t *testing.T) {
 	if fx.Doc != nil || fx.ParseError == "" {
 		t.Fatalf("parse failure not recorded: %+v", fx)
 	}
-}
-
-// capture runs f with stdout captured and returns the captured text.
-func capture(t *testing.T, f func() int) string {
-	t.Helper()
-	old := os.Stdout
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	os.Stdout = w
-	f()
-	w.Close()
-	os.Stdout = old
-	all, err := io.ReadAll(r)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return string(all)
 }
 
 // summaryFailures extracts the failure count from the summary line, failing

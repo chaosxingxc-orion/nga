@@ -19,17 +19,13 @@ from pathlib import Path
 
 import jsonschema
 
+import _suite
+
 HERE = Path(__file__).resolve().parent
 LEDGER_SCHEMA = json.loads((HERE / "event-ledger.schema.json").read_text())
+ADOPTION_SCHEMA = json.loads((HERE / "adoption.schema.json").read_text())
 
 
-def load(path: Path):
-    """(doc, _expect_match). The fixture's own _expect* keys are read
-    permissively (so the suite can assert on them) then popped."""
-    doc = json.loads(path.read_text())
-    doc.pop("_expect", None)
-    match = doc.pop("_expect_match", None)
-    return doc, match
 
 
 def ledger_errors(doc: dict) -> list[str]:
@@ -55,49 +51,81 @@ def ledger_errors(doc: dict) -> list[str]:
             errs.append(f"events: operation_id {op!r} carries payload_digest {dig!r} "
                         f"but an earlier event recorded {seen[op]!r} — changed payload under the same key")
         seen[op] = dig
-    # cross-event rule: the single-writer discipline — an effect event only
-    # exists downstream of an adoption event for the same operation (mirrors
-    # the Go checker; a violation is a bypass write, not a machine transition)
+    # cross-event rule: status families never cross the event-type boundary
+    # (adoption events carry adopted/reused/conflict, effect events carry
+    # dispatched/unresolved/completed/failed) — checked in code on both sides
+    # because schema if/then validator messages do not name the offending
+    # value, so wrong-reason pins could not match on both validators
+    adopt_statuses = {"adopted", "reused", "conflict"}
+    effect_statuses = {"dispatched", "unresolved", "completed", "failed"}
+    for i, e in enumerate(doc["events"]):
+        ok = e["outcome"]["status"] in (effect_statuses if e["event_type"] == "effect" else adopt_statuses)
+        if not ok:
+            family = "adoption" if e["outcome"]["status"] in effect_statuses else "effect"
+            errs.append(f"events/{i}: {e['event_type']} event carries the {family}-family status "
+                        f"{e['outcome']['status']!r} — the status vocabulary never crosses the "
+                        f"event-type boundary")
+        if e["event_type"] == "effect" and e.get("grants_at_decision"):
+            errs.append(f"events/{i}: effect event for operation {e['identity']['operation_id']!r} "
+                        f"carries grants_at_decision — the grant pin rides the adopted event only "
+                        f"(stamped once, at the decision point)")
+    # cross-event rule: the single-writer event-sequence grammar — each
+    # operation opens with exactly one adopted adoption event, and every
+    # later event for it (reused / conflict / effects) only exists downstream
+    # of that adoption. A violation is a bypass write, not a machine
+    # transition (mirrors the Go checker).
     adopted: set[str] = set()
     for i, e in enumerate(doc["events"]):
+        op = e["identity"]["operation_id"]
         if e["event_type"] == "adoption":
-            adopted.add(e["identity"]["operation_id"])
-        elif e["identity"]["operation_id"] not in adopted:
-            errs.append(f"events/{i}: effect event for operation {e['identity']['operation_id']!r} "
-                        f"has no earlier adoption event — a bypass write into the ledger, not a machine transition")
+            if e["outcome"]["status"] == "adopted":
+                if op in adopted:
+                    errs.append(f"events/{i}: operation {op!r} already has an adopted event — "
+                                f"a second adopted event would re-pin the machine's state mid-flight "
+                                f"(a bypass write, not a machine transition)")
+                adopted.add(op)
+            elif op not in adopted:
+                errs.append(f"events/{i}: {e['event_type']} event for operation {op!r} "
+                            f"precedes its adopted event — a bypass write into the ledger, "
+                            f"not a machine transition")
+        elif op not in adopted:
+            errs.append(f"events/{i}: effect event for operation {op!r} precedes its adopted "
+                        f"event — a bypass write into the ledger, not a machine transition")
+    return errs
+
+
+def check_grant_lockstep() -> list[str]:
+    """The grant shape exists as two self-contained schema copies (frozen
+    engine stake C5-a). 'Stay in lockstep' is only real if something
+    compares them: this check diffs the two grant subtrees directly (R2 m-4
+    — the previous 'checked by the shared fixture suites' claim only covered
+    the values fixtures happened to use).
+    """
+    def strip_desc(node):
+        if isinstance(node, dict):
+            return {k: strip_desc(v) for k, v in node.items() if k != "description"}
+        if isinstance(node, list):
+            return [strip_desc(v) for v in node]
+        return node
+
+    errs = []
+    ledger_grant = strip_desc(LEDGER_SCHEMA["$defs"]["grant"])
+    adoption_grant = strip_desc(ADOPTION_SCHEMA["properties"]["grants_at_decision"]["items"])
+    if ledger_grant != adoption_grant:
+        errs.append(f"grant shape lockstep broken: event-ledger $defs.grant != adoption "
+                    f"grants_at_decision items ({json.dumps(ledger_grant, ensure_ascii=False)} vs "
+                    f"{json.dumps(adoption_grant, ensure_ascii=False)})")
     return errs
 
 
 def main() -> int:
     ex = HERE / "examples" / "ledger"
-    bad = 0
-    valid = sorted((ex / "valid").glob("*.json"))
-    invalid = sorted((ex / "invalid").glob("*.json"))
-    if not valid or not invalid:
-        print("[ledger] suite incomplete: need at least one valid and one invalid example")
-        return 1
-    for f in valid:
-        doc, _ = load(f)
-        errs = ledger_errors(doc)
-        if not errs:
-            print(f"[ledger] PASS must-accept {f.name}")
-        else:
-            print(f"[ledger] FAIL must-accept {f.name}")
-            for e in errs:
-                print(f"      {e}")
-            bad += 1
-    for f in invalid:
-        doc, match = load(f)
-        errs = ledger_errors(doc)
-        if not errs:
-            print(f"[ledger] FAIL must-reject {f.name}  (was accepted!)")
-            bad += 1
-        elif match and not any(match in e for e in errs):
-            print(f"[ledger] FAIL must-reject {f.name}  (rejected for the wrong reason: {errs[0]!r} lacks {match!r})")
-            bad += 1
-        else:
-            print(f"[ledger] PASS must-reject {f.name}  ({errs[0]})")
-    print(f"[ledger] {len(valid)} must-accept + {len(invalid)} must-reject, {bad} failures")
+    bad = _suite.run_suite("ledger", ex / "valid", ex / "invalid", ledger_errors)
+    for e in check_grant_lockstep():
+        print(f"[ledger] FAIL {e}")
+        bad += 1
+    if bad == 0:
+        print("[ledger] grant lockstep: event-ledger $defs.grant == adoption grants_at_decision items")
     return 1 if bad else 0
 
 

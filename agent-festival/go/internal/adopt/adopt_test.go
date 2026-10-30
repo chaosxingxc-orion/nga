@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -488,6 +489,10 @@ func TestBypassWriteRejectedAtLoad(t *testing.T) {
 		Idempotency: &ledger.Idempotency{OperationID: "op-bypass", PayloadDigest: digestA},
 		Outcome:     ledger.Outcome{Status: "dispatched"},
 	}
+	// adoption events carry the grant pin (schema-required on adopted
+	// events) so each bypass form below is rejected by the rule it means to
+	// exercise, not incidentally by the grants rule
+	adoptedGrants := pinGrants()
 	line, err := json.Marshal(effectOnly)
 	if err != nil {
 		t.Fatal(err)
@@ -503,6 +508,7 @@ func TestBypassWriteRejectedAtLoad(t *testing.T) {
 	adopted := *effectOnly
 	adopted.EventType = "adoption"
 	adopted.Outcome = ledger.Outcome{Status: "adopted"}
+	adopted.GrantsAtDecision = adoptedGrants
 	flipped := *effectOnly
 	flipped.ArbitrationSeq = 1
 	// fresh Idempotency value: *effectOnly shares the pointer, mutating it
@@ -576,5 +582,143 @@ func TestAccountabilityRidesEveryEvent(t *testing.T) {
 			}
 			t.Fatalf("event %d (%s) accountability = %q, want %q", i, e.Outcome.Status, got, want[i])
 		}
+	}
+}
+
+// TestLoadRejectsLaunderedShapes is the R2 BLOCKER regression: the load-time
+// checker must see the RAW line documents — a typed re-projection would fold
+// "grants_at_decision": [] into absence (making the 14-A4 pin vacuous) and
+// silently drop unknown fields. Raw lines carrying those shapes must be
+// refused at Open.
+func TestLoadRejectsLaunderedShapes(t *testing.T) {
+	dir := t.TempDir()
+	// a well-formed adopted line, used as the template
+	m := mustOpen(t, filepath.Join(dir, "seed.jsonl"))
+	if o := m.Adopt(testRequest("op-seed", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("seed adopt = %q", o.Status)
+	}
+	seedEvents, _ := m.Events()
+	if len(seedEvents) != 1 {
+		t.Fatalf("seed events = %d", len(seedEvents))
+	}
+	seedLine, err := json.Marshal(seedEvents[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// shape 1: an adopted event with an empty grants array — the typed
+	// re-projection launders "grants": [] into absence, but the raw document
+	// keeps the key present with zero items, which the schema's minItems
+	// rejects. Empty pin = vacuous revocation check (the empty-grants
+	// fixture's declared attack surface).
+	emptyGrants := string(seedLine)
+	emptyGrants = strings.Replace(emptyGrants,
+		`"grants_at_decision":[{"kind":"data","selector":"ledger://credit/t","actions":["read"],"effect":"none"},{"kind":"tool","selector":"tool://credit-transfer","actions":["execute"],"effect":"irreversible"}]`,
+		`"grants_at_decision":[]`, 1)
+	if !strings.Contains(emptyGrants, `"grants_at_decision":[]`) {
+		t.Fatalf("shape 1 construction failed — grants not emptied: %s", emptyGrants)
+	}
+	p := filepath.Join(dir, "empty-grants.jsonl")
+	if err := os.WriteFile(p, []byte(emptyGrants+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(p); err == nil {
+		t.Fatal("adopted event with empty grants array was accepted at load (laundered projection)")
+	}
+
+	// shape 2: an unknown side-channel field on the event line — the typed
+	// projection drops unknown fields; the raw document keeps "decider",
+	// which additionalProperties rejects.
+	unknownField := strings.Replace(string(seedLine), `"event_type":"adoption"`,
+		`"event_type":"adoption","decider":"hedge-v1"`, 1)
+	if !strings.Contains(unknownField, `"decider"`) {
+		t.Fatalf("shape 2 construction failed")
+	}
+	p = filepath.Join(dir, "unknown-field.jsonl")
+	if err := os.WriteFile(p, []byte(unknownField+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(p); err == nil {
+		t.Fatal("event line with an unknown side-channel field was accepted at load (laundered projection)")
+	}
+
+	// control: the unmodified machine line opens cleanly
+	p = filepath.Join(dir, "clean.jsonl")
+	if err := os.WriteFile(p, append(append([]byte{}, seedLine...), '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(p); err != nil {
+		t.Fatalf("clean machine line rejected at load: %v", err)
+	}
+}
+
+// TestHealKeepsNoTrailingNewlineEvent is the R2 BLOCKER regression: a final
+// complete line without a trailing newline is a complete event (the loader
+// accepts it) — the append-path rewrite must keep it, not drop the whole
+// file for lack of a newline.
+func TestHealKeepsNoTrailingNewlineEvent(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-nl", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	// strip the trailing newline: a complete line without it must still load
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if raw[len(raw)-1] != '\n' {
+		t.Fatalf("machine did not newline-terminate its own line")
+	}
+	if err := os.WriteFile(path, raw[:len(raw)-1], 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m2, err := Open(path)
+	if err != nil {
+		t.Fatalf("no-trailing-newline complete line rejected at load: %v", err)
+	}
+	if m2.State("op-nl") != StateAdopted {
+		t.Fatalf("state = %q, want adopted", m2.State("op-nl"))
+	}
+	// the next append must KEEP the adopted event and only add its own
+	if o := m2.MarkUnresolved("op-nl"); o.Status != "unresolved" {
+		t.Fatalf("mark unresolved = %q, want unresolved: %s", o.Status, o.Detail)
+	}
+	m3, err := Open(path)
+	if err != nil {
+		t.Fatalf("file rejected after append onto no-newline form: %v", err)
+	}
+	if m3.State("op-nl") != StateUnresolved {
+		t.Fatalf("state after reopen = %q, want unresolved — the adopted event was dropped on heal", m3.State("op-nl"))
+	}
+	events, _ := m3.Events()
+	if len(events) != 2 {
+		t.Fatalf("events = %d, want 2 (adopted preserved + unresolved): %+v", len(events), events)
+	}
+}
+
+// TestAdoptRejectsNonconformingRequests pins the single-writer's
+// construction guarantee (R2): the machine schema-checks every request, so
+// no in-process caller can drive a non-conforming document into the durable
+// form — an empty grant pin or a malformed digest is rejected at the gate
+// with nothing written.
+func TestAdoptRejectsNonconformingRequests(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	noGrants := testRequest("op-bad", digestA, nil)
+	if o := m.Adopt(noGrants); o.Status != "rejected" {
+		t.Fatalf("empty-grant request = %q, want rejected", o.Status)
+	}
+	badDigest := testRequest("op-bad", "not-a-digest", pinGrants())
+	if o := m.Adopt(badDigest); o.Status != "rejected" {
+		t.Fatalf("malformed-digest request = %q, want rejected", o.Status)
+	}
+	events, _ := m.Events()
+	if len(events) != 0 {
+		t.Fatalf("nonconforming requests wrote %d events, want 0", len(events))
+	}
+	// the machine is still usable afterwards
+	if o := m.Adopt(testRequest("op-good", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("good request after rejections = %q, want adopted: %s", o.Status, o.Detail)
 	}
 }

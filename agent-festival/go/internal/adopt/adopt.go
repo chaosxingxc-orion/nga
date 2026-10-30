@@ -58,8 +58,11 @@ const (
 )
 
 // Request is an adoption request. The document form is validated against
-// adoption.schema.json (this package's CheckRequest, or the Python oracle);
-// the machine itself trusts its caller and enforces only the state rules.
+// adoption.schema.json — externally by the fixture suites (CheckRequest /
+// the Python oracle) and internally by Adopt itself: the single writer
+// refuses to adopt a request whose document is non-conforming, so the
+// durable form is conforming by construction even for in-process callers
+// that skip every external validation.
 type Request struct {
 	AdoptionVersion  string                 `json:"adoption_version"`
 	Identity         ledger.Identity        `json:"identity"`
@@ -100,6 +103,8 @@ type opState struct {
 // Open loads (or starts) the durable form at path. A torn tail line — the
 // residue of a crash between 'write full content' and 'rename' — is skipped:
 // events end at the last complete line, and the machine resumes from there.
+// The loaded lines are checked BEFORE any state is absorbed: a file this
+// machine did not write fails the open (see checkLoaded).
 func Open(path string) (*Machine, error) {
 	m := &Machine{ops: map[string]*opState{}, seq: -1, path: path}
 	raw, err := os.ReadFile(path)
@@ -109,51 +114,60 @@ func Open(path string) (*Machine, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, e := range parseCompleteLines(raw) {
-		m.replayEvent(&e)
-	}
-	if err := m.checkLoaded(); err != nil {
+	lines := parseCompleteLines(raw)
+	if err := m.checkLoaded(lines); err != nil {
 		return nil, err
+	}
+	for i := range lines {
+		m.replayEvent(&lines[i].ev)
 	}
 	return m, nil
 }
 
-// checkLoaded runs the loaded complete events through the ledger checker —
-// the single-writer discipline's load-time integrity boundary. A document
-// that was not written by this machine (an effect event with no adoption
-// predecessor, a registered digest flipped, a non-conforming event) fails
-// the open: the machine refuses to resume from a bypassed or tampered file
-// rather than silently absorbing it as legal state.
-func (m *Machine) checkLoaded() error {
-	events, err := m.Events()
-	if err != nil {
-		return err
-	}
-	if len(events) == 0 {
+// checkLoaded runs the RAW line documents — what is on disk, byte for byte —
+// through the ledger checker: the single-writer discipline's load-time
+// integrity boundary. A typed re-projection would launder the file (omitempty
+// folds an empty grants array into absence, unknown fields vanish), so the
+// schema sees exactly the bytes a bypass writer could have put there (R2
+// BLOCKER). A file this machine did not write — an event sequence that
+// violates the ledger grammar, a registered digest flipped, a non-conforming
+// event — fails the open: the machine refuses to resume from a bypassed or
+// tampered file rather than silently absorbing it as legal state.
+func (m *Machine) checkLoaded(lines []parsedLine) error {
+	if len(lines) == 0 {
 		return nil // fresh (or fully torn) file: nothing to check
 	}
-	doc := ledger.Document{LedgerVersion: "0.1.0", Events: events}
-	raw, err := json.Marshal(doc)
-	if err != nil {
-		return err
+	events := make([]any, 0, len(lines))
+	for _, l := range lines {
+		events = append(events, l.doc)
 	}
-	var asMap map[string]any
-	if err := json.Unmarshal(raw, &asMap); err != nil {
-		return err
-	}
-	if errs := ledger.Errors(asMap); len(errs) > 0 {
+	doc := map[string]any{"ledger_version": "0.1.0", "events": events}
+	if errs := ledger.Errors(doc); len(errs) > 0 {
 		return fmt.Errorf("durable form rejected at load: %s", errs[0])
 	}
 	return nil
 }
 
-// parseCompleteLines returns the events in the complete lines of a JSONL
-// byte stream. A torn tail line — the residue of a crash between 'write
-// full content' and 'rename' — is skipped: events end at the last complete
-// line. This is the one parser for the durable form, shared by Open and
-// Events (R1 m-4: two inline copies had to be edited in lockstep).
-func parseCompleteLines(raw []byte) []ledger.Event {
-	var events []ledger.Event
+// parsedLine is one complete durable-form line in three views: the raw bytes
+// (what append rewrites from — no laundering on the heal path either), the
+// raw document (what the schema validates — the on-disk truth), and the
+// typed event (the replay projection). A line yields a parsedLine only when
+// it parses as BOTH; otherwise it is not an event boundary.
+type parsedLine struct {
+	raw []byte
+	doc map[string]any
+	ev  ledger.Event
+}
+
+// parseCompleteLines returns the parsed lines of a JSONL byte stream. The
+// final line without a trailing newline is still a complete line (the loader
+// accepts it); a torn or unparseable line is not. This is the ONE boundary
+// definition for the durable form — the loader, the load-time checker, and
+// the append-path rewrite all consume it (R1 m-4, R2 BLOCKER: the rewrite
+// previously kept its own newline-based definition and dropped no-newline
+// complete lines on heal).
+func parseCompleteLines(raw []byte) []parsedLine {
+	var lines []parsedLine
 	lineStart := 0
 	for i := 0; i <= len(raw); i++ {
 		if i != len(raw) && raw[i] != '\n' {
@@ -164,13 +178,31 @@ func parseCompleteLines(raw []byte) []ledger.Event {
 		if len(line) == 0 {
 			continue
 		}
-		var e ledger.Event
-		if json.Unmarshal(line, &e) != nil {
-			continue // torn or unparseable tail: not an event boundary
+		var ev ledger.Event
+		if json.Unmarshal(line, &ev) != nil {
+			continue // torn or unparseable: not an event boundary
 		}
-		events = append(events, e)
+		doc, err := decodeLineDoc(line)
+		if err != nil || doc == nil {
+			continue
+		}
+		lines = append(lines, parsedLine{raw: line, doc: doc, ev: ev})
 	}
-	return events
+	return lines
+}
+
+// decodeLineDoc parses one line into a raw map with UseNumber, so integers
+// survive the map domain exactly (the double charter: integer-domain checks
+// — arbitration_seq — compare in the native domain, not through float64
+// rounding at 2^53; R2 M-4).
+func decodeLineDoc(line []byte) (map[string]any, error) {
+	dec := json.NewDecoder(bytes.NewReader(line))
+	dec.UseNumber()
+	var doc map[string]any
+	if err := dec.Decode(&doc); err != nil {
+		return nil, err
+	}
+	return doc, nil
 }
 
 func (m *Machine) replayEvent(e *ledger.Event) {
@@ -226,6 +258,14 @@ func (m *Machine) State(op string) State {
 // registry, not the battlefield (the concurrent-double-adoption fixture's
 // shape, 12 §2: the loser's event is a fact, not an error).
 func (m *Machine) Adopt(req *Request) Outcome {
+	// The single writer must not write non-conforming ledger documents: the
+	// request is schema-checked before anything is adopted, so the durable
+	// form is conforming by construction (R2: the machine previously trusted
+	// its caller, and an in-process caller could bypass every external
+	// validation — an empty grant pin would then reach the file).
+	if errs := m.checkRequest(req); len(errs) > 0 {
+		return Outcome{Status: "rejected", Detail: "request rejected: " + errs[0]}
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	op := req.Identity.OperationID
@@ -382,14 +422,20 @@ func (m *Machine) Events() ([]ledger.Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	return parseCompleteLines(raw), nil
+	lines := parseCompleteLines(raw)
+	events := make([]ledger.Event, 0, len(lines))
+	for _, l := range lines {
+		events = append(events, l.ev)
+	}
+	return events, nil
 }
 
 // append writes one event as a JSON line. The write is atomic at file scope:
-// the full new content (existing complete lines + this line) goes to a temp
-// file in the same directory, which is then renamed over the target — a
-// crash leaves either the old or the new file. A torn tail left by whatever
-// crashed earlier is thereby healed away on the next successful append.
+// the full new content (the parsed complete lines + this line) goes to a
+// temp file in the same directory, which is then renamed over the target —
+// a crash leaves either the old or the new file. A torn tail left by
+// whatever crashed earlier is thereby healed away on the next successful
+// append.
 func (m *Machine) append(ev *ledger.Event) error {
 	if m.path == "" {
 		return nil
@@ -402,16 +448,18 @@ func (m *Machine) append(ev *ledger.Event) error {
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	// heal a torn tail: the durable unit is the complete line, so anything
-	// after the last newline is crash residue and is dropped — concatenating
-	// onto it would fuse two events into one unparseable line.
-	if n := bytes.LastIndexByte(existing, '\n'); n >= 0 {
-		existing = existing[:n+1]
-	} else {
-		existing = nil
-	}
+	// rebuild from the parser's boundary definition, byte for byte: the
+	// durable unit is the parsed complete line, so a torn tail is crash
+	// residue and drops away, while a final complete line without a trailing
+	// newline survives (the loader accepts it; the rewrite must not delete
+	// what the loader accepted — R2 BLOCKER). Concatenating onto raw bytes
+	// instead would fuse a torn tail and the new line into one unparseable
+	// line.
 	next := make([]byte, 0, len(existing)+len(line)+1)
-	next = append(next, existing...)
+	for _, l := range parseCompleteLines(existing) {
+		next = append(next, l.raw...)
+		next = append(next, '\n')
+	}
 	next = append(next, line...)
 	next = append(next, '\n')
 	dir, base := filepath.Split(m.path)
@@ -428,6 +476,22 @@ func (m *Machine) append(ev *ledger.Event) error {
 		return err
 	}
 	return os.Rename(tmp.Name(), m.path)
+}
+
+// checkRequest validates the request's document form against
+// adoption.schema.json.
+func (m *Machine) checkRequest(req *Request) []string {
+	raw, err := json.Marshal(req)
+	if err != nil {
+		return []string{"request marshal failed: " + err.Error()}
+	}
+	var doc map[string]any
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.UseNumber()
+	if err := dec.Decode(&doc); err != nil {
+		return []string{"request decode failed: " + err.Error()}
+	}
+	return CheckRequest(doc)
 }
 
 // grantsCover reports whether the live set still covers every pinned grant:

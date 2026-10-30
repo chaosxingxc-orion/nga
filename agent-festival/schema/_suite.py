@@ -1,0 +1,91 @@
+"""Shared fixture-suite harness for the Python oracles (NOT an oracle itself).
+
+Mirrors go/internal/suite: valid must be accepted, invalid must be rejected —
+and, when an invalid fixture pins a reason via _expect_match, rejected for
+that reason. Pin loading follows the base's hardened semantics: a
+wrong-typed _expect_match fails LOUD (V28 F-1 — a silent downgrade to "no
+pin" would bypass the wrong-reason checks; the Go twin enforces the same),
+and a fixture whose JSON failed to parse is rejected-at-parse with its pin
+still matchable against the parse error (V32 M-1's two-path split).
+
+The oracles (ledger.py, adoption.py) stay deliberately independent in their
+CHECKERS — that is the dual-validator cross-check — but the harness around
+them is not a checked semantic, so it is shared (R2 m-3: the two inline
+runners had to be edited in lockstep).
+"""
+import json
+import re
+from pathlib import Path
+
+_PIN_RE = re.compile(r'"_expect_match"\s*:\s*"([^"]*)"')
+
+
+def load(path: Path):
+    """(doc, expect_match, error).
+
+    error is either a parse failure (doc is None; the pin, if any, is still
+    best-effort extracted from the raw text — the base's LoadFixture does the
+    same) or a wrong-typed pin (the doc parsed; the suite FAILs loud instead
+    of running unpinned).
+    """
+    raw = path.read_text()
+    try:
+        doc = json.loads(raw)
+    except json.JSONDecodeError as e:
+        m = _PIN_RE.search(raw)
+        return None, (m.group(1) if m else None), f"document rejected at parse: {e}"
+    doc.pop("_expect", None)  # descriptive only
+    match = doc.pop("_expect_match", None)
+    if match is not None and not isinstance(match, str):
+        return doc, None, f"_expect_match must be a string, got {type(match).__name__}"
+    return doc, match, None
+
+
+def run_suite(label: str, valid_dir: Path, invalid_dir: Path, errors) -> int:
+    """Run the two-phase suite; returns the failure count (0 = green)."""
+    valid = sorted(valid_dir.glob("*.json"))
+    invalid = sorted(invalid_dir.glob("*.json"))
+    if not valid or not invalid:
+        print(f"[{label}] suite incomplete: need at least one valid and one invalid example")
+        return 1
+    bad = 0
+    for f in valid:
+        doc, _, err = load(f)
+        if doc is None or err:
+            print(f"[{label}] FAIL must-accept {f.name}  ({err})")
+            bad += 1
+            continue
+        errs = errors(doc)
+        if errs:
+            print(f"[{label}] FAIL must-accept {f.name}")
+            for e in errs:
+                print(f"      {e}")
+            bad += 1
+        else:
+            print(f"[{label}] PASS must-accept {f.name}")
+    for f in invalid:
+        doc, match, err = load(f)
+        name = f.name
+        if doc is not None and err:
+            # the DOCUMENT parsed; the error is a malformed pin. An unreadable
+            # pin cannot verify the rejection and must not MASK the
+            # was-accepted verdict (V32 M-1).
+            print(f"[{label}] FAIL must-reject {name}  ({err} — an unreadable pin cannot verify the rejection)")
+            bad += 1
+            continue
+        errs = [err] if doc is None else errors(doc)
+        if not errs:
+            print(f"[{label}] FAIL must-reject {name}  (was accepted!)")
+            bad += 1
+        elif match and not any(match in e for e in errs):
+            print(f"[{label}] FAIL must-reject {name}  (rejected for the wrong reason: {errs[0]!r} lacks {match!r})")
+            bad += 1
+        else:
+            print(f"[{label}] PASS must-reject {name}  ({errs[0]})")
+    print(f"[{label}] {len(valid)} must-accept + {len(invalid)} must-reject, {bad} failures")
+    return bad
+
+
+def main(label: str, valid_dir: Path, invalid_dir: Path, errors) -> int:
+    bad = run_suite(label, valid_dir, invalid_dir, errors)
+    return 1 if bad else 0

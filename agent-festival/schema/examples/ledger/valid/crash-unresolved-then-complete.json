@@ -28,7 +28,25 @@
       "idempotency": {
         "operation_id": "op-credit-4",
         "payload_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
-      }
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://credit/a4",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        },
+        {
+          "kind": "tool",
+          "selector": "tool://credit-transfer",
+          "actions": [
+            "execute"
+          ],
+          "effect": "irreversible"
+        }
+      ]
     },
     {
       "event_type": "effect",
@@ -81,5 +99,5 @@
       }
     }
   ],
-  "_expect": "ACCEPT: crash between dispatch and completion \u2014 'unresolved' is a first-class state (14-A5 counterexample three), later resolved to completed with the same operation_id"
+  "_expect": "ACCEPT: crash between dispatch and completion — 'unresolved' is a first-class state (14-A5 counterexample three), later resolved to completed with the same operation_id"
 }

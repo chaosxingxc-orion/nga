@@ -27,7 +27,25 @@
       "idempotency": {
         "operation_id": "op-credit-1",
         "payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      }
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://credit/a1",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        },
+        {
+          "kind": "tool",
+          "selector": "tool://credit-transfer",
+          "actions": [
+            "execute"
+          ],
+          "effect": "irreversible"
+        }
+      ]
     },
     {
       "event_type": "effect",
@@ -80,6 +98,6 @@
       }
     }
   ],
-  "_expect": "REJECT: P5 is a five-dimension version binding \u2014 dropping the model version breaks the identifiable-versions requirement",
+  "_expect": "REJECT: P5 is a five-dimension version binding — dropping the model version breaks the identifiable-versions requirement",
   "_expect_match": "model"
 }

@@ -45,6 +45,15 @@
             "execute"
           ],
           "effect": "irreversible"
+        },
+        {
+          "kind": "network",
+          "selector": "https://regulator.gov/report",
+          "actions": [
+            "read",
+            "delegate"
+          ],
+          "effect": "reversible"
         }
       ]
     },
@@ -99,5 +108,5 @@
       }
     }
   ],
-  "_expect": "ACCEPT: A001's adoption-dispatch-complete chain; P5 five-dimension version binding all present (evidence/rule/model/readout/policy); idempotency on the adoption event; grants_at_decision rides the adoption event (the 14-A4 pin) — and only the adoption event"
+  "_expect": "ACCEPT: A001's adoption-dispatch-complete chain; P5 five-dimension version binding all present (evidence/rule/model/readout/policy); idempotency on the adoption event; grants_at_decision rides the adoption event (the 14-A4 pin) — and only the adoption event; grant enum coverage: kinds data/tool/network, actions read/execute/delegate, effects none/reversible/irreversible"
 }
