@@ -20,6 +20,22 @@ import (
 	"festival-dev/go/internal/schemalib"
 )
 
+// AdoptStatuses / EffectStatuses are the status families. Package-level so
+// the lockstep test can compare them against the schema enum (the status
+// vocabulary exists as several copies — schema enum, these sets, the Python
+// sets, the machine's State constants — and the lockstep test is what makes
+// the schema enum the enforced single source, R3 m-2).
+var AdoptStatuses = map[string]bool{"adopted": true, "reused": true, "conflict": true}
+var EffectStatuses = map[string]bool{"dispatched": true, "unresolved": true, "completed": true, "failed": true}
+
+// notATransition formats the illegal-transition error.
+func notATransition(i int, op, status, from string) string {
+	if from == "" {
+		from = "nothing"
+	}
+	return fmt.Sprintf("events/%d: operation %q: status %q after %q is not a legal state-machine transition — a bypass write into the ledger, not a machine transition", i, op, status, from)
+}
+
 // SchemaPath is where event-ledger.schema.json was found ("" = not found;
 // exported so drivers can resolve the fixture directory from it).
 var SchemaPath = schemalib.FindSchema("event-ledger.schema.json")
@@ -99,8 +115,9 @@ type Document struct {
 // exactly one adopted adoption event, and every later event for it (reused /
 // conflict / effects) only exists downstream of that adoption. A violation
 // of the grammar is a bypass write into the ledger, not a machine
-// transition. Status families never cross the event-type boundary, and
-// effect events carry no grants_at_decision.
+// transition. Status families never cross the event-type boundary; effect
+// events carry no grants_at_decision; and each operation's effect events
+// follow the machine's own transition DAG in file order.
 func Errors(doc map[string]any) []string {
 	if err := schema.Validate(doc); err != nil {
 		return []string{"schema: " + err.Error()}
@@ -112,7 +129,7 @@ func Errors(doc map[string]any) []string {
 		return []string{"ledger: internal re-marshal failed: " + err.Error()}
 	}
 	if err := json.Unmarshal(raw, &d); err != nil {
-		return []string{"ledger: internal re-parse failed: " + err.Error()}
+		return []string{"ledger: document does not fit the typed ledger view (an integer field beyond the int64 domain, or a type mismatch — the machine never writes such values): " + err.Error()}
 	}
 	var errs []string
 	prevSeq := -1
@@ -133,28 +150,60 @@ func Errors(doc map[string]any) []string {
 		}
 		seen[op] = dig
 	}
-	// status families: the machine's status vocabulary never crosses the
-	// event-type boundary (adoption events carry adopted/reused/conflict,
-	// effect events carry dispatched/unresolved/completed/failed). Checked in
-	// code on both sides — schema if/then rejects the same shapes but its
-	// validator messages do not name the offending value, so the
-	// wrong-reason pins could not match on both validators.
-	adoptStatuses := map[string]bool{"adopted": true, "reused": true, "conflict": true}
-	effectStatuses := map[string]bool{"dispatched": true, "unresolved": true, "completed": true, "failed": true}
+	// status families, transitions, and the grants-on-effect rule
 	for i, e := range d.Events {
-		ok := adoptStatuses[e.Outcome.Status]
+		ok := AdoptStatuses[e.Outcome.Status]
 		if e.EventType == "effect" {
-			ok = effectStatuses[e.Outcome.Status]
+			ok = EffectStatuses[e.Outcome.Status]
 		}
 		if !ok {
-			family := "effect"
-			if effectStatuses[e.Outcome.Status] {
-				family = "adoption"
+			if e.Outcome.Status == "" {
+				errs = append(errs, fmt.Sprintf("events/%d: %s event carries no outcome status — every event's verdict must name one of the machine's statuses", i, e.EventType))
+			} else {
+				family := "effect"
+				if EffectStatuses[e.Outcome.Status] {
+					family = "adoption"
+				}
+				errs = append(errs, fmt.Sprintf("events/%d: %s event carries the %s-family status %q — the status vocabulary never crosses the event-type boundary", i, e.EventType, family, e.Outcome.Status))
 			}
-			errs = append(errs, fmt.Sprintf("events/%d: %s event carries the %s-family status %q — the status vocabulary never crosses the event-type boundary", i, e.EventType, family, e.Outcome.Status))
 		}
 		if e.EventType == "effect" && len(e.GrantsAtDecision) > 0 {
 			errs = append(errs, fmt.Sprintf("events/%d: effect event for operation %q carries grants_at_decision — the grant pin rides the adopted event only (stamped once, at the decision point)", i, e.Identity.OperationID))
+		}
+	}
+	// per-operation transition order: mirror the adopt machine's own DAG —
+	// adopted -> dispatched | unresolved; dispatched -> unresolved |
+	// completed | failed; unresolved -> completed | failed. An effect event
+	// that is not a legal transition from the operation's current state is a
+	// bypass write; without this the loader absorbs e.g. completed-before-
+	// dispatched and the machine resumes from a state it can never be in,
+	// then writes events that violate its own DAG (R3 M-1).
+	state := map[string]string{}
+	for i, e := range d.Events {
+		op := e.Identity.OperationID
+		if e.EventType != "effect" {
+			if e.Outcome.Status == "adopted" {
+				state[op] = "adopted"
+			}
+			continue // reused / conflict record facts, they do not transition
+		}
+		from := state[op]
+		switch e.Outcome.Status {
+		case "dispatched":
+			if from != "adopted" {
+				errs = append(errs, notATransition(i, op, "dispatched", from))
+			}
+			state[op] = "dispatched"
+		case "unresolved":
+			if from != "adopted" && from != "dispatched" {
+				errs = append(errs, notATransition(i, op, "unresolved", from))
+			}
+			state[op] = "unresolved"
+		case "completed", "failed":
+			if from != "dispatched" && from != "unresolved" {
+				errs = append(errs, notATransition(i, op, e.Outcome.Status, from))
+			}
+			state[op] = e.Outcome.Status
 		}
 	}
 	adopted := map[string]bool{}

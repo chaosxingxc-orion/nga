@@ -197,3 +197,57 @@ func summaryFailures(t *testing.T, buf string) int {
 	t.Fatalf("no summary line in:\n%s", buf)
 	return -1
 }
+
+// TestParseFailedPinStaysArmed pins R3 M-3: a fixture whose JSON does not
+// parse still has its wrong-reason check armed — the pin is extracted from
+// the raw bytes and matched against the parse error. A non-matching pin
+// must FAIL; a matching pin must PASS as rejected-for-that-reason.
+func TestParseFailedPinStaysArmed(t *testing.T) {
+	dir := t.TempDir()
+	valid := filepath.Join(dir, "valid")
+	invalid := filepath.Join(dir, "invalid")
+	for _, d := range []string{valid, invalid} {
+		if err := os.Mkdir(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(t, valid, "ok.json", `{"_expect": "clean"}`)
+
+	// a pinless unparseable fixture: rejected at parse, no wrong-reason check
+	write(t, invalid, "unparseable-matching.json", `{"poison": "unterminated`)
+	fx, err := Load(filepath.Join(invalid, "unparseable-matching.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fx.Doc != nil || fx.ParseError == "" {
+		t.Fatalf("parse failure not recorded: %+v", fx)
+	}
+	if fx.ExpectMatch != "" {
+		t.Fatalf("pin extracted from a pinless fixture: %q", fx.ExpectMatch)
+	}
+	buf := Capture(func() { Run("t", valid, invalid, poisonCheck) })
+	if summaryFailures(t, buf) != 0 {
+		t.Fatalf("pinless parse-failed fixture made the suite red:\n%s", buf)
+	}
+
+	// an armed pin that does not match the parse error: the wrong-reason
+	// check must FAIL the suite — a silently disarmed pin is exactly the
+	// bypass V28 F-1 legislates against
+	write(t, invalid, "unparseable-wrong-reason.json",
+		`{"poison": "unterminated", "_expect_match": "zzz-no-such-reason"`)
+	buf = Capture(func() { Run("t", valid, invalid, poisonCheck) })
+	if !strings.Contains(buf, "rejected for the wrong reason") {
+		t.Fatalf("wrong-reason check disarmed on a parse-failed fixture:\n%s", buf)
+	}
+
+	// an armed pin that DOES match the parse error: rejected for that reason
+	write(t, invalid, "unparseable-right-reason.json",
+		`{"poison": "unterminated", "_expect_match": "parse"`)
+	buf = Capture(func() { Run("t", valid, invalid, poisonCheck) })
+	if !strings.Contains(buf, "PASS must-reject unparseable-right-reason.json") {
+		t.Fatalf("matching pin on a parse-failed fixture not PASSed:\n%s", buf)
+	}
+	// the wrong-reason fixture from the previous case still fails by design
+	// in this shared directory, so the suite is red here — only the
+	// right-reason fixture's own verdict is under assertion
+}

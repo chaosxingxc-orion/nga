@@ -22,9 +22,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 )
+
+// expectMatchRe pulls a string _expect_match out of raw fixture bytes whose
+// JSON does not parse (the base's discipline).
+var expectMatchRe = regexp.MustCompile(`"_expect_match"\s*:\s*"([^"]*)"`)
 
 // Fixture is a loaded fixture document with its pins popped.
 type Fixture struct {
@@ -34,11 +39,12 @@ type Fixture struct {
 }
 
 // Load reads a fixture and pops its _expect* pins. A document whose JSON
-// does not parse yields Doc == nil with ParseError set (the
-// rejected-at-parse path — the driver may still match its pin against the
-// parse error). A document that parses but carries a wrong-typed
-// _expect_match yields Doc != nil with ParseError set (the loud
-// pin-authoring failure — the driver must FAIL, not silently run unpinned).
+// does not parse yields Doc == nil with ParseError set; its pin, if the raw
+// bytes carry one, is still extracted so the wrong-reason check stays armed
+// against the parse error (the rejected-at-parse path). A document that
+// parses but carries a wrong-typed _expect_match yields Doc != nil with
+// ParseError set (the loud pin-authoring failure — the driver must FAIL,
+// not silently run unpinned).
 func Load(path string) (*Fixture, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
@@ -55,6 +61,13 @@ func Load(path string) (*Fixture, error) {
 	dec.UseNumber()
 	if err := dec.Decode(&doc); err != nil {
 		f.ParseError = "document rejected at parse: " + err.Error()
+		// the pin, if any, is still extracted from the raw bytes — a
+		// parse-failed fixture's wrong-reason check must stay armed (the
+		// base's expectMatchRe discipline; R3 M-3 found this promised in
+		// the comment but never implemented, silently disarming the pin)
+		if m := expectMatchRe.FindSubmatch(raw); m != nil {
+			f.ExpectMatch = string(m[1])
+		}
 		return f, nil
 	}
 	delete(doc, "_expect") // descriptive only
@@ -152,7 +165,9 @@ func Run(label, validDir, invalidDir string, check Checker) int {
 
 // Capture runs f with stdout captured and returns the captured text (one
 // exported helper for the drivers' count-pin tests — R2 m-2: the local
-// copies had reached three and growing).
+// copies had reached three and growing). A reader goroutine drains the pipe
+// while f runs — a synchronous read after f would deadlock once the output
+// exceeds the pipe buffer — and the defer restores stdout even on panic.
 func Capture(f func()) string {
 	old := os.Stdout
 	r, w, err := os.Pipe()
@@ -160,14 +175,20 @@ func Capture(f func()) string {
 		return ""
 	}
 	os.Stdout = w
+	var buf []byte
+	done := make(chan struct{})
+	go func() {
+		buf, _ = io.ReadAll(r)
+		close(done)
+	}()
+	defer func() {
+		os.Stdout = old
+		w.Close()
+	}()
 	f()
 	w.Close()
-	os.Stdout = old
-	all, err := io.ReadAll(r)
-	if err != nil {
-		return string(all)
-	}
-	return string(all)
+	<-done
+	return string(buf)
 }
 
 func glob(pattern string) []string {

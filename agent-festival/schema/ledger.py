@@ -2,9 +2,13 @@
 """Validate event-ledger fixtures (piece 4 oracle).
 
 Ledger documents: JSON Schema + the cross-event rules JSON Schema cannot
-express (arbitration_seq monotonicity). Fixtures follow the base's pin
-discipline: valid must be accepted, invalid must be rejected for the reason
-its _expect_match names.
+express — five families: arbitration_seq monotonicity (+int64 domain), one
+payload digest per operation (15 B4), status families never crossing the
+event-type boundary, effect events carrying no grant pin, and the
+single-writer event-sequence grammar (each operation opens with exactly one
+adopted event and its effect events follow the machine's transition DAG).
+Fixtures follow the base's pin discipline: valid must be accepted, invalid
+must be rejected for the reason its _expect_match names.
 
 Exit 0 iff every examples/ledger/valid/* passes AND every invalid/* is
 rejected — and, when an invalid example carries _expect_match, rejected for
@@ -25,6 +29,13 @@ HERE = Path(__file__).resolve().parent
 LEDGER_SCHEMA = json.loads((HERE / "event-ledger.schema.json").read_text())
 ADOPTION_SCHEMA = json.loads((HERE / "adoption.schema.json").read_text())
 
+# status families — module level so the lockstep check can compare them with
+# the schema enum (R3 m-2: the vocabulary exists as several copies; the
+# lockstep check makes the schema enum the enforced single source)
+ADOPT_STATUSES = {"adopted", "reused", "conflict"}
+EFFECT_STATUSES = {"dispatched", "unresolved", "completed", "failed"}
+INT64_MAX = 9223372036854775807
+
 
 
 
@@ -34,10 +45,16 @@ def ledger_errors(doc: dict) -> list[str]:
             for e in v.iter_errors(doc)]
     if errs:
         return errs
-    # cross-event rule: arbitration_seq must be non-decreasing
+    # cross-event rule: arbitration_seq must be non-decreasing, and within
+    # the int64 domain (the machine's counter domain — Python's bignum would
+    # otherwise accept a document the Go typed view rejects, forking the
+    # dual validators' verdicts)
     seqs = [e["arbitration_seq"] for e in doc["events"]]
     if any(seqs[i] > seqs[i + 1] for i in range(len(seqs) - 1)):
         errs.append(f"events: arbitration_seq must be non-decreasing, got {seqs}")
+    if any(s > INT64_MAX for s in seqs):
+        errs.append("events: arbitration_seq exceeds the int64 domain — the machine's "
+                    "counter domain; such a document is not machine-writable")
     # cross-event rule: a payload digest is a function of the operation — the same
     # operation_id across idempotency entries must carry the same digest (15 B4:
     # 'changed payload under the same key' is a rejection, not a second opinion)
@@ -56,19 +73,56 @@ def ledger_errors(doc: dict) -> list[str]:
     # dispatched/unresolved/completed/failed) — checked in code on both sides
     # because schema if/then validator messages do not name the offending
     # value, so wrong-reason pins could not match on both validators
-    adopt_statuses = {"adopted", "reused", "conflict"}
-    effect_statuses = {"dispatched", "unresolved", "completed", "failed"}
     for i, e in enumerate(doc["events"]):
-        ok = e["outcome"]["status"] in (effect_statuses if e["event_type"] == "effect" else adopt_statuses)
+        status = e.get("outcome", {}).get("status", "")
+        ok = status in (EFFECT_STATUSES if e["event_type"] == "effect" else ADOPT_STATUSES)
         if not ok:
-            family = "adoption" if e["outcome"]["status"] in effect_statuses else "effect"
-            errs.append(f"events/{i}: {e['event_type']} event carries the {family}-family status "
-                        f"{e['outcome']['status']!r} — the status vocabulary never crosses the "
-                        f"event-type boundary")
+            if not status:
+                errs.append(f"events/{i}: {e['event_type']} event carries no outcome status — "
+                            f"every event's verdict must name one of the machine's statuses")
+            else:
+                family = "adoption" if status in EFFECT_STATUSES else "effect"
+                errs.append(f"events/{i}: {e['event_type']} event carries the {family}-family status "
+                            f"{status!r} — the status vocabulary never crosses the "
+                            f"event-type boundary")
         if e["event_type"] == "effect" and e.get("grants_at_decision"):
             errs.append(f"events/{i}: effect event for operation {e['identity']['operation_id']!r} "
                         f"carries grants_at_decision — the grant pin rides the adopted event only "
                         f"(stamped once, at the decision point)")
+
+    # cross-event rule: per-operation transition order — mirror the adopt
+    # machine's own DAG (adopted -> dispatched | unresolved; dispatched ->
+    # unresolved | completed | failed; unresolved -> completed | failed).
+    # An effect event that is not a legal transition from the operation's
+    # current state is a bypass write; without this the loader absorbs e.g.
+    # completed-before-dispatched and the machine resumes from a state it
+    # can never be in (R3 M-1, mirrors the Go checker).
+    def not_a_transition(i: int, op: str, status: str, from_state: str) -> str:
+        return (f"events/{i}: operation {op!r}: status {status!r} after "
+                f"{from_state or 'nothing'!r} is not a legal state-machine transition — "
+                f"a bypass write into the ledger, not a machine transition")
+
+    state: dict[str, str] = {}
+    for i, e in enumerate(doc["events"]):
+        op = e["identity"]["operation_id"]
+        if e["event_type"] != "adoption":
+            status = e["outcome"]["status"]
+            from_state = state.get(op, "")
+            if status == "dispatched":
+                if from_state != "adopted":
+                    errs.append(not_a_transition(i, op, "dispatched", from_state))
+                state[op] = "dispatched"
+            elif status == "unresolved":
+                if from_state not in ("adopted", "dispatched"):
+                    errs.append(not_a_transition(i, op, "unresolved", from_state))
+                state[op] = "unresolved"
+            elif status in ("completed", "failed"):
+                if from_state not in ("dispatched", "unresolved"):
+                    errs.append(not_a_transition(i, op, status, from_state))
+                state[op] = status
+            continue
+        if e["outcome"].get("status") == "adopted":
+            state[op] = "adopted"
     # cross-event rule: the single-writer event-sequence grammar — each
     # operation opens with exactly one adopted adoption event, and every
     # later event for it (reused / conflict / effects) only exists downstream
@@ -92,6 +146,19 @@ def ledger_errors(doc: dict) -> list[str]:
             errs.append(f"events/{i}: effect event for operation {op!r} precedes its adopted "
                         f"event — a bypass write into the ledger, not a machine transition")
     return errs
+
+
+def check_status_lockstep() -> list[str]:
+    """The status vocabulary exists as several copies (schema enum, these
+    family sets, the Go sets, the machine's State constants) — this check
+    makes the schema enum the enforced single source (R3 m-2).
+    """
+    enum = set(LEDGER_SCHEMA["$defs"]["event"]["properties"]["outcome"]["properties"]["status"]["enum"])
+    union = ADOPT_STATUSES | EFFECT_STATUSES
+    if enum != union:
+        return [f"status lockstep broken: schema enum {sorted(enum)} != checker families "
+                f"{sorted(union)}"]
+    return []
 
 
 def check_grant_lockstep() -> list[str]:
@@ -121,11 +188,11 @@ def check_grant_lockstep() -> list[str]:
 def main() -> int:
     ex = HERE / "examples" / "ledger"
     bad = _suite.run_suite("ledger", ex / "valid", ex / "invalid", ledger_errors)
-    for e in check_grant_lockstep():
+    for e in check_status_lockstep() + check_grant_lockstep():
         print(f"[ledger] FAIL {e}")
         bad += 1
     if bad == 0:
-        print("[ledger] grant lockstep: event-ledger $defs.grant == adoption grants_at_decision items")
+        print("[ledger] lockstep: status enum == checker families; grant subtree == adoption copy")
     return 1 if bad else 0
 
 

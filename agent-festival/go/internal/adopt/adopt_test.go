@@ -722,3 +722,99 @@ func TestAdoptRejectsNonconformingRequests(t *testing.T) {
 		t.Fatalf("good request after rejections = %q, want adopted: %s", o.Status, o.Detail)
 	}
 }
+
+// TestOpenRejectsFoldedSeq is the machine-side 2^53 pin (R3 M-2): the
+// seq-2e53-adjacent fixture pins the suite.Load path; this pins the Open
+// path — decodeLineDoc's UseNumber is what keeps the folded sequence
+// visible to the load-time checker. Without it, 9007199254740993 and
+// ...992 collapse equal in the map domain and the bypass file loads.
+func TestOpenRejectsFoldedSeq(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-f53", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	events, _ := m.Events()
+	first, err := json.Marshal(events[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	// hand-write a second line whose seq precedes the first's by exactly 1
+	// past 2^53 — distinct only in the exact-integer domain
+	tail := strings.Replace(string(first),
+		`"arbitration_seq":0`, `"arbitration_seq":9007199254740993`, 1)
+	tail = strings.Replace(tail, `"outcome":{"status":"adopted"`,
+		`"outcome":{"status":"dispatched"`, 1)
+	tail = strings.Replace(tail, `"event_type":"adoption"`, `"event_type":"effect"`, 1)
+	raw := string(first) + "\n" + strings.Replace(tail, `"arbitration_seq":9007199254740993`,
+		`"arbitration_seq":9007199254740992`, 1) + "\n"
+	if err := os.WriteFile(path, []byte(raw), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err == nil {
+		t.Fatal("folded adjacent seqs past 2^53 were accepted at load — the map domain lost the integers")
+	}
+}
+
+// TestOpenRejectsTransitionOrderBypass pins the machine path of the
+// transition-order grammar (R3 M-1): a hand-written adopted→completed
+// sequence must be refused at Open — absorbing it would let the machine
+// resume from a state it can never be in and write events that violate its
+// own DAG.
+func TestOpenRejectsTransitionOrderBypass(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-tr", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	events, _ := m.Events()
+	first, err := json.Marshal(events[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	// an effect event carrying completed straight after adopted — built from
+	// the typed event so only the intended field differs (string surgery on
+	// the marshaled line drifted into family-violation shapes twice)
+	late := events[0]
+	late.EventType = "effect"
+	late.ArbitrationSeq = 1
+	late.Outcome = ledger.Outcome{Status: string(StateCompleted)}
+	late.GrantsAtDecision = nil
+	second, err := json.Marshal(late)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(string(first)+"\n"+string(second)+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err == nil {
+		t.Fatal("completed-without-dispatched bypass was accepted at load")
+	}
+	// control: the legal chain adopted→dispatched→completed loads cleanly
+	disp := events[0]
+	disp.EventType = "effect"
+	disp.ArbitrationSeq = 1
+	disp.Outcome = ledger.Outcome{Status: string(StateDispatched)}
+	disp.GrantsAtDecision = nil
+	dispLine, err := json.Marshal(disp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	comp := disp
+	comp.ArbitrationSeq = 2
+	comp.Outcome = ledger.Outcome{Status: string(StateCompleted)}
+	compLine, err := json.Marshal(comp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(string(first)+"\n"+string(dispLine)+"\n"+string(compLine)+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m2, err := Open(path)
+	if err != nil {
+		t.Fatalf("legal chain rejected at load: %v", err)
+	}
+	if m2.State("op-tr") != StateCompleted {
+		t.Fatalf("state = %q, want completed", m2.State("op-tr"))
+	}
+}

@@ -82,6 +82,11 @@ type Outcome struct {
 }
 
 // Machine is the adoption gate. Use Open to attach a durable JSONL file.
+// The durable form supports at most ONE Machine instance per file: the
+// rewrite is read-rebuild-rename under this instance's lock only — a second
+// instance on the same path interleaves renames and silently loses events
+// (contract-external use; a crashed process leaves at most one live
+// instance, and restart goes through Open again).
 type Machine struct {
 	mu   sync.Mutex
 	ops  map[string]*opState // keyed by operation_id

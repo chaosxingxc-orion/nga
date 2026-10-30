@@ -30,7 +30,8 @@
         "event_type",
         "arbitration_seq",
         "identity",
-        "versions"
+        "versions",
+        "outcome"
       ],
       "properties": {
         "event_type": {
