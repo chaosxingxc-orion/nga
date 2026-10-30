@@ -1,6 +1,6 @@
 # Typed Decisions 共同测试：本地参考结果
 
-2026-10-30 17:44 UTC 初版，18:23 UTC 更新。Kev 三尺寸、initial Nimble 及 Open-Jev-2B 均完成原始 400 states／2,000 questions，独立验收 `COMPLETED_SCOPED`、审查标记 0，推理与验收容器、结构化终态及 wrapper 均退出 0。Open-Jev-9B 的共同推理尚未完成，不能称六模型比较已齐全。Kev 协议见 [E26](TYPED-COMMON-REFERENCE-2026-10-30.md)，Nimble 见 [E28](../wiki/E28-typed-nimble-reference-20261030.md)，Open-Jev 见 [E29](../wiki/E29-typed-openjev-reference-20261030.md)。
+2026-10-30 17:44 UTC 初版，18:31 UTC 更新。Kev 三尺寸、initial Nimble 及 Open-Jev-2B／9B 均完成原始 400 states／2,000 questions，独立验收 `COMPLETED_SCOPED`、审查标记 0，推理与验收容器、结构化终态及 wrapper 均退出 0。六个参考模型的本集合推理与限定范围独立验收已齐全。Kev 协议见 [E26](TYPED-COMMON-REFERENCE-2026-10-30.md)，Nimble 见 [E28](../wiki/E28-typed-nimble-reference-20261030.md)，Open-Jev 见 [E29](../wiki/E29-typed-openjev-reference-20261030.md)。
 
 数据 SHA256：`4f294f218ea1da27f3efef936359389c62ea4d3973a41457732990f1d31b647c`。保留原始题目与候选顺序，未截断、未选择子集；每模型返回并验证全部 2,000 个分布，无 invalid／unsupported／overlength／failed。该集不同于 NGA 派生分区。
 
@@ -19,6 +19,8 @@ Accuracy 为问题等权、预测与金标首次 argmax 相等；gold 保留原�
 | Nimble initial v1 | 原生 T=1 | 65.10 | .706027650 | .254995374 | .172864315 |
 | Open-Jev-2B | 原生 1.518796342858676 | 58.25 | .410910644 | .193816502 | .081003319 |
 | Open-Jev-2B | raw T=1 | 58.25 | .659782229 | .245027524 | .159234993 |
+| Open-Jev-9B | 原生 1.8969118766347646 | 67.80 | .369436036 | .147618002 | .058201569 |
+| Open-Jev-9B | raw T=1 | 67.80 | .885942246 | .224382522 | .148582028 |
 
 每行 n=2,000。两温度来自相同预测记录，服务温度使用保存的原生概率，T=1 从 logits 复算；没有按 test 拟合温度。Kev 的 noul wire 缺原评分器所需概率字段，因此这里明确是原方法算术作用于原生概率，不冒称 HTTP／vLLM／wire 完全复现。预注册的 expected-score MAE 已暂缓，不从 ordinal accuracy 推断该指标。
 
@@ -65,3 +67,13 @@ Nimble 的 2,000 个分布全部有效，invalid／unsupported／overlength／fa
 - audit SHA256：`8481faf3d2ef4f0e58aaf5c76fa3221a9dc2dc650e6d4b82ca802b36c6626341`
 
 最终累计吞吐 1.449861 questions/s/chip，1 chip，reserved memory 4.146484 GiB。结论限于该配置共同测试，不能以原生 test 的高分替代此处成绩，也不据此直接判断训练机制。
+
+## 18:31 UTC：Open-Jev-9B 完成追加
+
+全部 400 states／2,000 questions 有效；choice／noul／score accuracy 分别为 66.166667%／80.833333%／59.25%，分母为 600／600／800。独立重分词、wire 重建及计分核对通过，96／93 冻结／必需文件，审查标记 0。推理／验收 wrapper 于 18:29:32／18:30:26 UTC 退出 0；父会话另核对实际容器退出与配置、终态、全部产物哈希。
+
+- config SHA256：`ecbb6411a67f59d18300962d8549eca33c9ac74bf74e651f9a8ea61874b6d4bb`
+- report SHA256：`dcd2d16f995e5f4db8a5e5316daa6a2ea7bdc33a3d1c8e638d896d3f90e14bd1`
+- audit SHA256：`acd97b8bced8d8c43f148c08472244abd34d3d37a6d0340c9ec738756a10d4ca`
+
+最终累计吞吐 1.113950 questions/s/chip，1 chip，reserved memory 17.587891 GiB。原生温度下，Kev-9B accuracy 68.05% 对 Open-Jev-9B 67.80%，但后者 noul accuracy 较高；分项差异必须保留，0.25 个百分点的总体差距没有显著性或机制因果结论。该集合六模型完成不代表 JEVal／原始 OOD 完成，也不是我们的训练增益。

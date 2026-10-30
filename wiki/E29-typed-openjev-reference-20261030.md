@@ -90,3 +90,15 @@ and wrappers exit 0. Report SHA256
 `8481faf3d2ef4f0e58aaf5c76fa3221a9dc2dc650e6d4b82ca802b36c6626341`.
 Parent checked config/terminal/output hashes and actual container exits.
 9B still running; no six-model final table or Astra approval claim.
+
+## 2026-10-30 18:31 UTC — 9B completion
+
+9B full 400 states / 2,000 questions independently accepted; zero flags,
+96 frozen / 93 required files. Native accuracy .678, KL .3694360361634201,
+Brier .14761800153300642, ECE10 .05820156905884213. T=1 KL .8859422459381542,
+Brier .2243825218585017, ECE10 .14858202772384743. All valid, no skipped items.
+Actual inference/finisher containers and wrappers exited 0; parent checked
+config and terminal output hashes. Report
+`dcd2d16f995e5f4db8a5e5316daa6a2ea7bdc33a3d1c8e638d896d3f90e14bd1`, audit
+`acd97b8bced8d8c43f148c08472244abd34d3d37a6d0340c9ec738756a10d4ca`.
+No training-benefit or substantive Astra approval claim.

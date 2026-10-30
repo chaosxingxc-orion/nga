@@ -53,3 +53,23 @@ At 18:26:00 UTC, 2B had checked 5,535/15,920 rows; 9B was verifying
 dependencies. Full eligibility and NPU inference acceptance remain pending.
 NPU launch still requires separate parent review of complete preflight and
 physical-chip mapping, explicit allocation release and live-conflict checks.
+
+## 18:34 UTC — full preflight accepted, actual NPU inference launched
+
+Both CPU preflights completed exited/0 with 15,920 rows and 49,227 candidate
+prompts, maximum 742 tokens, zero overlength. Parent verified actual CPU
+container/command/config/wrapper/terminal bindings and all 15,920 length receipts
+for each size, including exact row identity and aggregated lengths.
+Preflight reports: 2B `62f756e5d054a0cd1799328675674704cf7289a31f26f2fa14ef7cbff8e62adc`;
+9B `7cd00a263e4a4d6e14a34ff6ca980463be8292dc5456b2c93de18d169c26a197`.
+
+2B inference launched chip 4 at 18:30:29 UTC, container
+`981ac8b2584284fe12918bb62ce62f6516e2f236788c00710e5078e302b64242`;
+finisher `aa5ff9a8052bfd404946e1bac5b5b3e8f8ba166ead279c0ceef9569ac6e86f12`.
+After independently checking E24's completed 2B supplement and exact original
+join, parent explicitly released chip 2 under allocation lock with live-device
+checks. 9B OOD then launched on chip 2, container
+`370d251b216baa8d6ecb8030d1fd8419c07e4a9158161e55d15170325a470f0b`;
+finisher `c62f4476bc164de5eab5dbf8201cfda79117fd61c17e418a9347b2736eccbb52`.
+Both actual containers and CPU finishers were running at final verification.
+No final OOD metrics, training gain or substantive Astra approval yet.

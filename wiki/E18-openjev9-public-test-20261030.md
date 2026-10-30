@@ -33,3 +33,16 @@ Before launch, the frozen driver rechecked every dependency hash and length rece
 ## Verdict
 
 Pending complete inference and independent audit. No new training launched.
+
+## 18:34 UTC completion update
+
+Full 10,356 public rows independently verified, 9,995 hard / 361 soft.
+Hard accuracy 9,773/9,995=.9777888944472236; expected accuracy .9583563243760231.
+Native NLL .09618040043686439, soft Brier .03433513665330479, expected Brier
+.053785558768848524, ECE15 .006158152686400621. 92/92 frozen/required files.
+Eight review flags retained (perfect source cells, four-row trex), with bounded
+diagnosis pending. Actual inference/finisher Docker, terminals and wrappers exit0;
+parent checked config/output hashes. E24 automatically proceeded to supplement.
+Report `f8629708b4a8939d8cc6f62989a802658944085c2321e2b1c4b32cfd8c6382c5`;
+audit `28659624076fcfcb7387c1c3a532a808bdc6ce9a654d822355d17ff90adb7e1b`.
+This is public projection only, not the original 10,532-row test or Astra approval.

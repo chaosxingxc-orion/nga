@@ -112,6 +112,17 @@ binary Brier 仅针对 true 概率；multiclass Brier 对 false／true 两维求
 
 NLL／Brier／expected Brier／ECE 均使用全部 10,356 行；expected Brier 在 soft-target Brier 上加目标分布不可约项 `1−Σq²`，ECE15 使用目标质量定义的 expected correctness。不能与 Kev 的 one-hot Brier／ECE10 混为同口径。来源与哈希见 [E14](../wiki/E14-openjev2-public-test-20261030.md)；未获实质 Astra 放行，不宣称新训练收益。
 
+## 18:34 UTC：Open-Jev-9B 公共 test 完成，保留审查标记
+
+公共投影 10,356 行（9,995 hard／361 soft）完整推理及独立重算完成，92／92 冻结／必需依赖。父会话核对实际容器退出 0、配置与全部终态产物哈希；8 个审查标记保留，涉及完美子集和 trex 的 4 行小样本，正在定向诊断。不是原始完整 10,532 行成绩；E24 已自动启动 176 行补测。
+
+| 温度口径 | hard accuracy % | expected accuracy % | NLL | soft Brier | expected Brier | ECE15 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 原生 T=1.8969118766347646 | 97.778889 | 95.835632 | .096180400 | .034335137 | .053785559 | .006158153 |
+| raw T=1 | 97.778889 | 95.835632 | .104997249 | .036538229 | .055988651 | .011252975 |
+
+Hard 正确 9,773／9,995，其余指标分母 10,356。公式沿用本文件 Open-Jev 原方法定义。report SHA256 `f8629708b4a8939d8cc6f62989a802658944085c2321e2b1c4b32cfd8c6382c5`，audit SHA256 `28659624076fcfcb7387c1c3a532a808bdc6ce9a654d822355d17ff90adb7e1b`。共同测试六模型已齐全，另见[共同测试表](TYPED-REFERENCE-RESULTS-2026-10-30.md)，不能混用两个集合分数。
+
 ## 1. 能直接回答什么
 
 **17:48 UTC 完整原 test 追加：** E24 自动完成 Open-Jev-2B 的 176 行补测及身份合并。原始 10,532 行上，本地 hard accuracy **94.634680%（9,507／10,046）**，expected accuracy **91.876577%**；上游 hard 为 9,515／10,046，保留少 8 题的差异。温度分表、原公式与审查标记见[完整原 test 结果](OPENJEV-ORIGINAL-TEST-RESULTS-2026-10-30.md)。9B、OOD 与共同测试不由这一结果替代。
