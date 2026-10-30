@@ -11,7 +11,7 @@
   "added_model_dataset_combinations": 6,
   "indexed_model_dataset_combinations_with_results": 36,
   "new_panel_count": null,
-  "panel_count_note": "Not added to legacy58: four OOD overall temperature panels are displayed from two saved inference runs; four JEVal model rows include classification/score with different valid/full denominators and are not a standardized count of panels. Six added model-dataset combinations: four actual-Astra scoped reviewed, two scientific publication review pending.",
+  "panel_count_note": "Not added to legacy58: four OOD overall temperature panels are displayed from two saved inference runs; four JEVal model rows include classification/score with different valid/full denominators and are not a standardized count of panels. Six added model-dataset combinations: six actual-Astra scoped reviewed, zero scientific publication review pending; all original flags and limits retained.",
   "added_results": [
     {
       "model": "Kev-0.8B",
@@ -2198,7 +2198,7 @@
     {
       "model": "Kev-4B",
       "dataset": "JEVal original test",
-      "status": "measured_scientific_publication_review_pending",
+      "status": "bounded_reference_after_actual_astra_review_flags_retained",
       "rows": 11257,
       "native_temperature": 2.406050072164233,
       "metrics": {
@@ -2229,7 +2229,7 @@
       },
       "source": {
         "path": "/home/xingchao/workspace/nga/experiments/JEVAL-KEV4-KEV9-RESULTS-2026-10-31.json",
-        "sha256": "5192a06884d4879d29feadfad193fb1e820b0e1bb8ae5ed23be609b453f76c3d",
+        "sha256": "b74ed97b654065f5219c46b7de0ef0aa20f10b812e31f489407970f96411a62e",
         "json_pointer": "/models/kev4"
       },
       "audit_status": "VERIFIED_HARDENED_SCOPED_REVIEW_REQUIRED",
@@ -2275,15 +2275,55 @@
           "evidence": "records/008657.json"
         }
       ],
-      "astra_record": null,
-      "actual_astra_review_sha256": null,
-      "astra_bundle_manifest_sha256": null,
-      "interpretation": "Formal measured result and hardened/closeout evidence available; older Kev08/Nimble Astra review does not cover these checkpoints. 8/7 flags retained."
+      "astra_record": {
+        "path": "/home/xingchao/workspace/nga/experiments/ASTRA-JEVAL-KEV4-KEV9-REVIEW-2026-10-31.json",
+        "sha256": "a488af6ad67eae3cbdce082c74a81e554e7061ebd4f8e6704d2248a9ef4dbb9e"
+      },
+      "actual_astra_review_sha256": "dd080fa863d95b8af45f4198f6f0a6b4b47796c46a7a39d8c4fef962def80c64",
+      "astra_bundle_manifest_sha256": "dc076f5ffa1e7979e26035868a8f6fb3b815b3e6551db0613fc641473a732c0d",
+      "interpretation": "Actual Astra independently supports bounded native-budget response-formula publication after additive length-description correction; 8/7 flags and full/valid denominators retained. No training gain, exact paper scorer or full execution admission claim.",
+      "length_description_erratum": {
+        "recorded_utc": "2026-10-30T23:03:37.980383+00:00",
+        "metric_change": false,
+        "historical_range_scope": "Non-null state_tokens only; not all overlength rows.",
+        "per_model_reason_counts": {
+          "helmet": {
+            "overlength": 150,
+            "state": 102,
+            "state_plus_branch": 48
+          },
+          "longbench-retrieval-en-e": {
+            "overlength": 100,
+            "state": 99,
+            "state_plus_branch": 1
+          }
+        },
+        "examples": [
+          {
+            "receipt": "records/006507.json",
+            "state_tokens_field": null,
+            "native_state_tokens": 7379,
+            "native_branch_tokens": 3543,
+            "row_limit": 8192
+          },
+          {
+            "receipt": "records/008729.json",
+            "state_tokens_field": null,
+            "native_state_tokens": 7995,
+            "native_branch_tokens": 295,
+            "row_limit": 8192
+          }
+        ],
+        "erratum_path": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/jeval_kev49_closeout_20261031_v2/ERRATUM-LENGTH-20261031.md",
+        "erratum_sha256": "0813612a6d3db9bcd1e6db135fc5823e28204a2188d49ec352fb2f1850fa0343",
+        "actual_astra_review_sha256": "dd080fa863d95b8af45f4198f6f0a6b4b47796c46a7a39d8c4fef962def80c64",
+        "frozen_manifest_sha256": "dc076f5ffa1e7979e26035868a8f6fb3b815b3e6551db0613fc641473a732c0d"
+      }
     },
     {
       "model": "Kev-9B",
       "dataset": "JEVal original test",
-      "status": "measured_scientific_publication_review_pending",
+      "status": "bounded_reference_after_actual_astra_review_flags_retained",
       "rows": 11257,
       "native_temperature": 2.193649959389252,
       "metrics": {
@@ -2314,7 +2354,7 @@
       },
       "source": {
         "path": "/home/xingchao/workspace/nga/experiments/JEVAL-KEV4-KEV9-RESULTS-2026-10-31.json",
-        "sha256": "5192a06884d4879d29feadfad193fb1e820b0e1bb8ae5ed23be609b453f76c3d",
+        "sha256": "b74ed97b654065f5219c46b7de0ef0aa20f10b812e31f489407970f96411a62e",
         "json_pointer": "/models/kev9"
       },
       "audit_status": "VERIFIED_HARDENED_SCOPED_REVIEW_REQUIRED",
@@ -2355,10 +2395,50 @@
           "evidence": "records/008457.json"
         }
       ],
-      "astra_record": null,
-      "actual_astra_review_sha256": null,
-      "astra_bundle_manifest_sha256": null,
-      "interpretation": "Formal measured result and hardened/closeout evidence available; older Kev08/Nimble Astra review does not cover these checkpoints. 8/7 flags retained."
+      "astra_record": {
+        "path": "/home/xingchao/workspace/nga/experiments/ASTRA-JEVAL-KEV4-KEV9-REVIEW-2026-10-31.json",
+        "sha256": "a488af6ad67eae3cbdce082c74a81e554e7061ebd4f8e6704d2248a9ef4dbb9e"
+      },
+      "actual_astra_review_sha256": "dd080fa863d95b8af45f4198f6f0a6b4b47796c46a7a39d8c4fef962def80c64",
+      "astra_bundle_manifest_sha256": "dc076f5ffa1e7979e26035868a8f6fb3b815b3e6551db0613fc641473a732c0d",
+      "interpretation": "Actual Astra independently supports bounded native-budget response-formula publication after additive length-description correction; 8/7 flags and full/valid denominators retained. No training gain, exact paper scorer or full execution admission claim.",
+      "length_description_erratum": {
+        "recorded_utc": "2026-10-30T23:03:37.980383+00:00",
+        "metric_change": false,
+        "historical_range_scope": "Non-null state_tokens only; not all overlength rows.",
+        "per_model_reason_counts": {
+          "helmet": {
+            "overlength": 150,
+            "state": 102,
+            "state_plus_branch": 48
+          },
+          "longbench-retrieval-en-e": {
+            "overlength": 100,
+            "state": 99,
+            "state_plus_branch": 1
+          }
+        },
+        "examples": [
+          {
+            "receipt": "records/006507.json",
+            "state_tokens_field": null,
+            "native_state_tokens": 7379,
+            "native_branch_tokens": 3543,
+            "row_limit": 8192
+          },
+          {
+            "receipt": "records/008729.json",
+            "state_tokens_field": null,
+            "native_state_tokens": 7995,
+            "native_branch_tokens": 295,
+            "row_limit": 8192
+          }
+        ],
+        "erratum_path": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/jeval_kev49_closeout_20261031_v2/ERRATUM-LENGTH-20261031.md",
+        "erratum_sha256": "0813612a6d3db9bcd1e6db135fc5823e28204a2188d49ec352fb2f1850fa0343",
+        "actual_astra_review_sha256": "dd080fa863d95b8af45f4198f6f0a6b4b47796c46a7a39d8c4fef962def80c64",
+        "frozen_manifest_sha256": "dc076f5ffa1e7979e26035868a8f6fb3b815b3e6551db0613fc641473a732c0d"
+      }
     }
   ],
   "remaining_registered_units": [
@@ -2447,10 +2527,77 @@
           "reason": "E36/E37 candidate_batch_admission=false; E38 is diagnostic only and cannot itself admit full JEVal."
         }
       ]
+    },
+    {
+      "recorded_utc": "2026-10-30T23:03:37.980383+00:00",
+      "change": "Kev4/9 actual Astra bounded review completed; required length-description erratum appended without metric changes. Six new combinations now reviewed; two Open-Jev JEVal units remain blocked/null.",
+      "previous_kev49_publication_states": [
+        {
+          "model": "Kev-4B",
+          "status": "measured_scientific_publication_review_pending",
+          "source": {
+            "path": "/home/xingchao/workspace/nga/experiments/JEVAL-KEV4-KEV9-RESULTS-2026-10-31.json",
+            "sha256": "5192a06884d4879d29feadfad193fb1e820b0e1bb8ae5ed23be609b453f76c3d",
+            "json_pointer": "/models/kev4"
+          },
+          "astra_record": null
+        },
+        {
+          "model": "Kev-9B",
+          "status": "measured_scientific_publication_review_pending",
+          "source": {
+            "path": "/home/xingchao/workspace/nga/experiments/JEVAL-KEV4-KEV9-RESULTS-2026-10-31.json",
+            "sha256": "5192a06884d4879d29feadfad193fb1e820b0e1bb8ae5ed23be609b453f76c3d",
+            "json_pointer": "/models/kev9"
+          },
+          "astra_record": null
+        }
+      ],
+      "review_record": {
+        "path": "/home/xingchao/workspace/nga/experiments/ASTRA-JEVAL-KEV4-KEV9-REVIEW-2026-10-31.json",
+        "sha256": "a488af6ad67eae3cbdce082c74a81e554e7061ebd4f8e6704d2248a9ef4dbb9e"
+      },
+      "length_description_erratum": {
+        "recorded_utc": "2026-10-30T23:03:37.980383+00:00",
+        "metric_change": false,
+        "historical_range_scope": "Non-null state_tokens only; not all overlength rows.",
+        "per_model_reason_counts": {
+          "helmet": {
+            "overlength": 150,
+            "state": 102,
+            "state_plus_branch": 48
+          },
+          "longbench-retrieval-en-e": {
+            "overlength": 100,
+            "state": 99,
+            "state_plus_branch": 1
+          }
+        },
+        "examples": [
+          {
+            "receipt": "records/006507.json",
+            "state_tokens_field": null,
+            "native_state_tokens": 7379,
+            "native_branch_tokens": 3543,
+            "row_limit": 8192
+          },
+          {
+            "receipt": "records/008729.json",
+            "state_tokens_field": null,
+            "native_state_tokens": 7995,
+            "native_branch_tokens": 295,
+            "row_limit": 8192
+          }
+        ],
+        "erratum_path": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/jeval_kev49_closeout_20261031_v2/ERRATUM-LENGTH-20261031.md",
+        "erratum_sha256": "0813612a6d3db9bcd1e6db135fc5823e28204a2188d49ec352fb2f1850fa0343",
+        "actual_astra_review_sha256": "dd080fa863d95b8af45f4198f6f0a6b4b47796c46a7a39d8c4fef962def80c64",
+        "frozen_manifest_sha256": "dc076f5ffa1e7979e26035868a8f6fb3b815b3e6551db0613fc641473a732c0d"
+      }
     }
   ],
-  "new_combinations_actual_astra_scoped_review_complete": 4,
-  "new_combinations_scientific_publication_review_pending": 2,
-  "last_updated_utc": "2026-10-30T22:48:42.502272+00:00",
-  "snapshot_utc_note": "Initial snapshot time; dated_updates and last_updated_utc include subsequently published Kev4/9 measured reports."
+  "new_combinations_actual_astra_scoped_review_complete": 6,
+  "new_combinations_scientific_publication_review_pending": 0,
+  "last_updated_utc": "2026-10-30T23:03:37.980383+00:00",
+  "snapshot_utc_note": "Initial snapshot time; dated_updates and last_updated_utc include subsequent measured reports, actual reviews and additive errata."
 }

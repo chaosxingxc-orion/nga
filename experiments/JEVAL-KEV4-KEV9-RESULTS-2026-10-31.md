@@ -1,5 +1,7 @@
 # E33 — Kev-4B / Kev-9B JEVal native reference results
 
+**Current status: actual Astra bounded result review is complete, with the required length-description erratum appended and all 8/7 flags retained.** The original measurement text below preserves the 2026-10-30T22:43:17Z snapshot; its pending statements are historical. See the final dated review/correction section and [actual review](ASTRA-JEVAL-KEV4-KEV9-REVIEW-2026-10-31.md) for current status.
+
 2026-10-31 dated addition to the existing Kev-0.8B/Nimble result snapshot. Both checkpoints completed the original **11,257** JEVal rows, native independent scoring and hardened audit, with all retained inference/finisher/hardened containers actually exited 0. A fresh detached CPU closeout rechecked **22,514** receipts and input/payload hashes. The status remains **`VERIFIED_HARDENED_SCOPED_REVIEW_REQUIRED`**, with **8 Kev-4B flags and 7 Kev-9B flags**. The older actual Astra E33 review applies only to Kev-0.8B/Nimble; it is not approval of these newly completed sizes.
 
 The [E33 protocol](JEVAL-REFERENCE-INFERENCE-2026-10-30.md) remains normative. Defects 12/16 concern identity, measurement and external generalization. Dropping unsupported/overlength rows is the degenerate way to improve apparent accuracy; the complete-denominator counterpart keeps all original rows. No metric, split, temperature, threshold or prediction was selected or changed after the run.
@@ -56,3 +58,19 @@ These are run-reported forward throughput observations, not end-to-end audit-inc
 ## Claim boundary
 
 These are local native-budget reference measurements on the original JEVal population. They do not establish exact paper-scorer reproduction, source-macro performance, paired consistency, raw-T1/NOTA/permuted variants, training gain or real-business benefit. Different reference checkpoint sizes are not a Jev before/after training comparison. Actual Astra result review for these two newly completed models remains pending.
+
+## 2026-10-31 dated review and length-description correction
+
+Recorded UTC: 2026-10-30T23:03:37.980383+00:00. The initial pending statements above describe the original measurement snapshot. The [actual Astra review](ASTRA-JEVAL-KEV4-KEV9-REVIEW-2026-10-31.md) subsequently completed at 2026-10-30T22:55:48.805489Z, real child exit 0, and supports bounded publication after this correction. All 8/7 flags, full/valid denominators and original metrics remain unchanged.
+
+The original result paragraph's state-length ranges (helmet 10,431–15,413; longbench-retrieval-en 10,052–15,248; Kev-4B longbench-retrieval-en-e 8,260–15,001) describe only excluded rows with non-null `state_tokens`. They do not describe every overlength row or imply every overflow is a state-only overflow.
+
+For each model, helmet's 150 overlength rows comprise **102 state overflows and 48 state-plus-branch overflows**; the latter have `state_tokens: null`. For each model, retrieval-en-e's 100 overlength rows comprise **99 state overflows and 1 state-plus-branch overflow**, with the latter field null. For example, each model's `records/006507.json` saves `branch too long: 3543 tokens with a 7379-token state (row limit 8192)`; 7,379 + 3,543 = 10,922 > 8,192 although the state alone fits. `records/008729.json` saves `branch too long: 295 tokens with a 7995-token state (row limit 8192)`; 7,995 + 295 = 8,290 > 8,192.
+
+All original aggregate values remain unchanged: 11,257 rows/model, 1,027 overlength/model, full classification correct/total 6,741/10,938 and 6,931/10,938, 9,911 valid classifications/model, 319 valid scores/model, and 8/7 retained flags. Helmet remains valid 50/50 and full 50/200; retrieval-en remains valid 0/200 and valid accuracy null. Kev-4B retrieval-en-e remains valid 100/100 and full 100/200; Kev-9B is valid 99/100 and full 99/200.
+
+Evidence: frozen bundle `/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_kev49_candidate_20261031`, manifest SHA-256 `dc076f5ffa1e7979e26035868a8f6fb3b815b3e6551db0613fc641473a732c0d`; actual review `/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_kev49_astra_20261031/review.md`. The frozen source result snapshot and its original explanation remain untouched; this erratum is appended to the repository result documents and indexed separately.
+
+External weights, native model source and some original probes are not in the review package; the extraction-source hash is recorded but its source was not included. The reviewer checked the Parquet identity and hash-bound JSON but did not independently decode Parquet, re-tokenize, rerun the model or query live Docker. The review does not establish no contamination, paper-exact reproduction, paired consistency, training/business gains, resource release or full execution admission.
+
+Additive closeout erratum SHA-256: `0813612a6d3db9bcd1e6db135fc5823e28204a2188d49ec352fb2f1850fa0343`.

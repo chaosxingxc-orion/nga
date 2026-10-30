@@ -507,3 +507,23 @@ plus 100 overflow, zero-valid null metrics and small cells. It may not grant
 paper-exact reproduction, paired consistency, training/business gain or resource
 release. All stages retain heartbeat, terminal, actual exit and exact relaunch;
 failed generations are preserved, not overwritten. No verdict is implied here.
+
+### 2026-10-30 22:48 UTC — actual Kev-4B/9B Astra review launched
+
+The detached CPU builder completed 22,514 receipt copies, 22,598 manifest files,
+original Parquet/decoded gold binding and full audit/source/terminal snapshots.
+Its retained container `fdf543720062d862d84243b75e1d14c30375ef2d0360d1e1d731e09cb465313f`
+actually exited 0 at 22:46:00 UTC. Frozen manifest SHA256:
+`dc076f5ffa1e7979e26035868a8f6fb3b815b3e6551db0613fc641473a732c0d`.
+The actual `gpt-6-astra` read-only CLI review launched detached with runner PID
+1599853; `PROCESS.json`, launch receipt and heartbeat retain the exact child
+identity and command. Existing-generation guards prohibit overwriting terminal
+or process evidence. Substantive review and actual child exit remain pending.
+
+## 2026-10-31 dated Kev-4B / Kev-9B actual Astra review and erratum
+
+At 2026-10-30T22:55:48.805489+00:00, actual `codex exec --model gpt-6-astra --sandbox read-only` completed with real child/runner exit 0. [Full verbatim review and evidence](../experiments/ASTRA-JEVAL-KEV4-KEV9-REVIEW-2026-10-31.md) support bounded publication of these two newly completed checkpoints. All 22,598 bundle files, 22,514 inference receipts, 66 cells/model and scoring arithmetic were reviewed; 8/7 flags remain. Full accuracy remains 6,741/10,938 and 6,931/10,938; Brier/ECE use 9,911 valid classifications, MAE 319 valid scores.
+
+A dated [result clarification](../experiments/JEVAL-KEV4-KEV9-RESULTS-2026-10-31.md) records that historical length ranges cover only non-null state_tokens: helmet 150 overflows/model = 102 state + 48 state-plus-branch; retrieval-en-e 100 = 99 + 1. The state-plus-branch example 7,379 + 3,543 > 8,192 explains why state alone may fit. No counts, predictions, flags or metrics changed. Additive closeout erratum `/mnt/cephfs/xingchao/experiments/jev/reference_inference/jeval_kev49_closeout_20261031_v2/ERRATUM-LENGTH-20261031.md`, SHA `0813612a6d3db9bcd1e6db135fc5823e28204a2188d49ec352fb2f1850fa0343`; frozen bundle unchanged.
+
+Review SHA `dd080fa863d95b8af45f4198f6f0a6b4b47796c46a7a39d8c4fef962def80c64`; MANIFEST SHA `dc076f5ffa1e7979e26035868a8f6fb3b815b3e6551db0613fc641473a732c0d`; COMPLETE SHA `02871287007e3cb889e97d6f03bf72f228647bbfee466af7d581ae02056dc021`. This review does not re-read external weights/native source/probe originals, independently decode Parquet or query live Docker; extraction source was absent. No contamination exclusion, paired consistency, training/business gain, resource release or Open-Jev JEVal admission follows.

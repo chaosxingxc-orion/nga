@@ -3394,5 +3394,53 @@
     "Original native finisher owns independent response reconstruction and metric arithmetic; hardened audit owns cell reconstruction and receipt manifests; current closeout rechecks complete receipt/input hashes, source/report/audit/terminal binding and actual exits.",
     "All eight Kev4 and seven Kev9 flags retained; zero-valid accuracy is null, not valid model failure score.",
     "No raw-T1/NOTA/permuted variant panel registered for E33; no paired consistency, training/business gain or resources released."
-  ]
+  ],
+  "dated_updates": [
+    {
+      "recorded_utc": "2026-10-30T23:03:37.980383+00:00",
+      "status": "ACTUAL_ASTRA_SCOPED_RESULT_REVIEW_COMPLETE_BOUNDED_PUBLICATION",
+      "historical_status_note": "The original status/astrascope above describe the initial 22:43:17Z measurement snapshot and are preserved. This dated update records the later independent review.",
+      "review_record": "experiments/ASTRA-JEVAL-KEV4-KEV9-REVIEW-2026-10-31.json",
+      "review_sha256": "dd080fa863d95b8af45f4198f6f0a6b4b47796c46a7a39d8c4fef962def80c64",
+      "length_description_erratum": {
+        "recorded_utc": "2026-10-30T23:03:37.980383+00:00",
+        "metric_change": false,
+        "historical_range_scope": "Non-null state_tokens only; not all overlength rows.",
+        "per_model_reason_counts": {
+          "helmet": {
+            "overlength": 150,
+            "state": 102,
+            "state_plus_branch": 48
+          },
+          "longbench-retrieval-en-e": {
+            "overlength": 100,
+            "state": 99,
+            "state_plus_branch": 1
+          }
+        },
+        "examples": [
+          {
+            "receipt": "records/006507.json",
+            "state_tokens_field": null,
+            "native_state_tokens": 7379,
+            "native_branch_tokens": 3543,
+            "row_limit": 8192
+          },
+          {
+            "receipt": "records/008729.json",
+            "state_tokens_field": null,
+            "native_state_tokens": 7995,
+            "native_branch_tokens": 295,
+            "row_limit": 8192
+          }
+        ],
+        "erratum_path": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/jeval_kev49_closeout_20261031_v2/ERRATUM-LENGTH-20261031.md",
+        "erratum_sha256": "0813612a6d3db9bcd1e6db135fc5823e28204a2188d49ec352fb2f1850fa0343",
+        "actual_astra_review_sha256": "dd080fa863d95b8af45f4198f6f0a6b4b47796c46a7a39d8c4fef962def80c64",
+        "frozen_manifest_sha256": "dc076f5ffa1e7979e26035868a8f6fb3b815b3e6551db0613fc641473a732c0d"
+      }
+    }
+  ],
+  "current_publication_status": "ACTUAL_ASTRA_SCOPED_RESULT_REVIEW_COMPLETE_BOUNDED_PUBLICATION",
+  "snapshot_scope": "Top-level status/astrascope and recorded_utc preserve the original 2026-10-30T22:43:17Z measurement snapshot. Current publication status is current_publication_status; subsequent actual bounded review and additive length erratum are recorded in dated_updates. Historical text is not the current pending state."
 }
