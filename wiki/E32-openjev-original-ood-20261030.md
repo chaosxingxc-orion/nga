@@ -156,3 +156,45 @@ and output hashes. It may only inspect the frozen evidence and review directory,
 perform short CPU arithmetic, and report a limited result-release verdict. No new
 NPU inference, resource release, training-benefit or absence-of-leakage claim.
 Preparation and runner completion do not themselves constitute a passing review.
+
+### 2026-10-30 22:22 UTC — actual OOD Astra review launched
+
+Frozen bundle contains 63,759 manifest-bound files, including all 63,680
+inference/length receipts, original OOD data and fresh four-container exit
+metadata. `MANIFEST.json` SHA256:
+`cc46408dcf5d0482fd4d1b84c8ad39d48d72433791cd6f67a6ba4d8ea4cbac26`.
+Actual runner PID 1582046 and CLI child PID 1582048 were live-checked, with
+`codex exec --model gpt-6-astra --sandbox read-only` recorded in `PROCESS.json`.
+`LAUNCH.json` binds runner, prompt, process and manifest hashes. The first nohup
+shell attempt produced no live runner, process receipt or review; it is retained
+as `LAUNCH_ATTEMPT_1.json`. The successful launch used a detached new process
+session. Review remains running; no result-release verdict is claimed yet.
+
+### 2026-10-30 22:29:17 UTC — actual Astra bounded OOD result review complete
+
+The real `gpt-6-astra` CLI child returned 0, recorded by `Popen.wait`, and the
+runner wrote `COMPLETE.json` rc 0 with a substantive review. The reviewer verified
+all 63,759 manifest files, 31,840 inference and 31,840 length receipts, exact
+original OOD population, saved-logit arithmetic for native/T1 overall and all
+source/kind/coverage panels, and package-level config/report/audit/terminal/launch
+and four saved live-container metadata bindings. It found no blocker to bounded
+reference-metric publication, retaining all three 9B exact-one flags and the 2B
+coverage-subcell caveats. This does not turn flags into clean/global approval.
+
+Review SHA256: `cbea46b7695117328836dbca5745505c83d718819b5fa7c17ab0f912736c5bc9`.
+Runner terminal SHA256: `b2b55e3496d0953db2b1c57b7400e540ddb9e845e9c4cb12796ce0995baf1750`.
+Manifest SHA256 remains
+`cc46408dcf5d0482fd4d1b84c8ad39d48d72433791cd6f67a6ba4d8ea4cbac26`.
+The [full review](../experiments/ASTRA-OPENJEV-OOD-RESULTS-REVIEW-2026-10-31.md)
+and [machine-readable record](../experiments/ASTRA-OPENJEV-OOD-RESULTS-REVIEW-2026-10-31.json)
+preserve the actual report verbatim, process/terminal hashes and limitations.
+
+Astra directly mapped 19 copied dependencies per model; external weight and
+remaining dependency checks belong to the original audits. The 2B historical
+before-audit receipt manifest was not copied, so current integrity is verified
+but historical before/after immutability was not independently re-enacted. Its
+older acceptance file does not certify the later resource release described in
+other records; this review makes no resource-state decision. Synthetic source
+rows share groups and are not independent real-business scenarios. No absence of
+contamination, training/business gain, paired consistency, exact paper scorer
+reproduction, hardware equivalence or JEVal numerical admission is established.

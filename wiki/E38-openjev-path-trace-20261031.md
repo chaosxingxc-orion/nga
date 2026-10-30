@@ -144,3 +144,45 @@ Before reissuing preparation requests, the corrected closure will be checked in
 using the original image entrypoint and no devices. v3 adds rejection of a
 rehashed CPU spec that bypasses the native entrypoint. Earlier v1/v2 test and
 preparation generations are preserved.
+
+## 2026-10-31 final CPU fixture and request review
+
+The corrected v3 engineering closure ran 65/65 CPU tests with no skips in retained
+container `nga-e38-execution-cpu-tests-20261031-v3`, Docker exit 0. Source manifest
+SHA is `8e1e6509cfcb97f9cb6b8a8cfe6f953384cab6757bd5c73d9e00a0bc7384ecd1`;
+terminal SHA `1eb0646d1ed3a096284e34e9d9c2d6abbadf184885a65cb0a1a813d5355595e0`,
+EXIT SHA `d785f77453bccee61e9f9bc027bca5ea7ae2cf6ff16eb8d3b71128d25385bf97`.
+
+New preparation requests are
+`e38_openjev2_prepare_20261031_v2/request.json` (SHA
+`389a7443ba675c66fa89d293a36e7693d22e52618f8a213a2af00bbaa966113b`) and
+`e38_openjev9_prepare_20261031_v2/request.json` (SHA
+`e40a1bb44f28c61788dcc48c054841cf5051dacb65efe41d3f19e4b203844dac`), under the
+reference-inference root. The parent session checked both complete request hashes,
+all 18 frozen files, no devices, network `none`, original image entrypoint,
+`python3 -P`, and correspondence with the v3 source manifest. It approved only
+these two detached CPU preparation jobs. This records the actual parent review;
+it is not a claim of review by a named Fable model. NPU launch remains prohibited
+until the resulting exact plans and closure receive the separate required review.
+
+## 2026-10-31 detached CPU preparation completed
+
+Both approved v2 CPU jobs completed full source/input hashing and native tokenizer
+reconstruction, with matching wrapper/terminal reports and actual Docker exit 0.
+The parent-checkable host binding was rerun after exit. Physical chip 4 remains
+unclaimed and its allocation digest is unchanged; no NPU container was created.
+
+| Checkpoint | Frozen target plan (under reference-inference root) | Plan SHA-256 | Frozen files | Scheduled forwards | Expected trace events |
+| --- | --- | --- | ---: | ---: | ---: |
+| 2B | `openjev_path_trace_openjev2_20261031_v2/plan.json` | `14b95a2f9c4f8c25aecd46c01077d2f94045d926c43b0535abd6bbd5ee81662f` | 196 | 8 | 696 |
+| 9B | `openjev_path_trace_openjev9_20261031_v2/plan.json` | `0f839e1153a968f81c8033ff2463c982648ffc8152e381ef369eda6303c198b5` | 199 | 8 | 928 |
+
+The exact canonical input digest in both plans is
+`bb54ecd6f4dafbda582b4a81a5b9c9a68fc3b1a8f62f7b455f51506bb807c0bb`. CPU preparation
+terminal SHAs are 2B `371f49022d78d6b5d26edf40f8ee412134d2c82fd77f9fde77035c763eb9db6d`
+and 9B `19b1b1297a76ba151397724da0213934e3c452762ee735838d156a034fdc18c0`.
+Each preparation directory contains its original report/terminal/EXIT and
+`PARENT-CHECKABLE-EVIDENCE-v2.json`. A dated correction in that v2 evidence fixes
+an auxiliary v1 `input_sha256` field that accidentally repeated the plan digest;
+the frozen plans and CPU reports were never modified. Final plan parent review,
+actual independent review and NPU execution are still pending.
