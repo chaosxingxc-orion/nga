@@ -56,6 +56,8 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E30](E30-typed-recovery-controller-20261030.md) | deterministic recovery controller | engineering | real CPU worker and audit SIGKILL recovery passed; 24 items, 3 prefix receipts preserved |
 | [E31](E31-jeval-native-preflight-20261030.md) | full JEVal native eligibility | engineering | Kev three sizes and Nimble v2 full eligibility complete; Open-Jev token preflights running; no inference scores |
 
+| [E32](E32-openjev-original-ood-20261030.md) | original complete Open-Jev OOD | reference evaluation | both full 15,920-row CPU length preflights launched; NPU inference pending |
+
 ## Where the artifacts live
 
 - Pre-registrations, protocol notes and results documents: `experiments/`

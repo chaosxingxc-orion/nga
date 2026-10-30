@@ -57,10 +57,11 @@ def softmax(logits, temperature):
     return [x / sum(weights) for x in weights]
 
 
-def validate_rows(rows, expected):
+def validate_rows(rows, expected, expected_split='test'):
     require(len(rows) == expected, 'Test row count changed')
     require(len({r['id'] for r in rows}) == len(rows), 'Duplicate IDs')
-    require(all(r['split'] == 'test' for r in rows), 'Non-test input')
+    require(expected_split in ('test', 'ood'), 'Unsupported evaluation split')
+    require(all(r['split'] == expected_split for r in rows), 'Wrong evaluation split')
     for r in rows:
         q = r['target']
         require(len(q) == len(r['options']) >= 2, 'Target/candidate mismatch')
@@ -385,7 +386,7 @@ def main(protocol_validator=None):
         sys.path.insert(0, config['code'])
         from jev.data import validate_records
         rows = [json.loads(line) for line in Path(config['data']).read_text().splitlines()]
-        validate_rows(rows, config['expected_rows'])
+        validate_rows(rows, config['expected_rows'], config.get('expected_split', 'test'))
         validate_records(rows)
         (protocol_validator or validate_protocol)(config, rows)
         require(Counter(max(r['target']) == 1.0 for r in rows)[True] == config['hard_count'], 'Hard denominator changed')

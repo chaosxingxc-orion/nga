@@ -153,7 +153,8 @@ def verify(config_path, dataset_validator=None):
     require(sha(c['data'])==manifest['raw_uncompressed_sha256'], 'Data manifest hash differs')
     require(len(rows)==c['expected_rows']==manifest['count'], 'Input count differs')
     require(len({r['id'] for r in rows})==len(rows), 'Duplicate input IDs')
-    require(all(r['split']=='test' for r in rows), 'Non-test row')
+    require(c.get('expected_split','test') in ('test','ood') and
+            all(r['split']==c.get('expected_split','test') for r in rows), 'Wrong evaluation split')
     require(dict(Counter(r['source'] for r in rows))==manifest['sources'] and
             dict(Counter(r['kind'] for r in rows))==manifest['kinds'], 'Source/kind counts differ')
     model=load(Path(c['checkpoint'])/'model.json')
