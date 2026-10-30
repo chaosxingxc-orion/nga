@@ -34,6 +34,8 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E9](E9-reference-kev4-test-20261030.md) | native Kev-4B on the same official test suites | reference evaluation | complete; detached independent audit and comparison completed |
 | [E10](E10-reference-recovery-20261030.md) | real process interruption and prefix-preserving inference recovery | engineering | bounded eight-record recovery verified; broader fault modes not claimed |
 | [E11](E11-reference-kev9-probe-20261030.md) | native Kev-9B development compatibility and efficiency | reference evaluation | four records completed after preserving a failed premature launch |
+| [E12](E12-reference-kev9-test-20261030.md) | native Kev-9B on decision-v7 and transfer-v4 test | reference evaluation | detached inference and CPU audit chain running |
+| [E13](E13-openjev2-native-probe-20261030.md) | native Open-Jev-2B typed synthetic compatibility | reference evaluation | three synthetic requests completed; public test not yet run |
 
 ## Where the artifacts live
 

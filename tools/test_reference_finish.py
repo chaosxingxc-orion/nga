@@ -6,12 +6,27 @@ import tempfile
 import unittest
 import subprocess
 import sys
+import os
 
 spec=importlib.util.spec_from_file_location('finish',Path(__file__).with_name('reference_finish.py'))
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 
 
 class TerminalTests(unittest.TestCase):
+    def test_wrapper_conflict_staleness_and_substring_refused(self):
+        with tempfile.TemporaryDirectory() as d:
+            r=Path(d);m.atomic(r/'REFERENCE_COMPLETE.json',{'rc':0})
+            self.assertEqual(m.wrapper_state(r),'pending')
+            (r/'DONE').write_text('rc=0 utc=2026-10-30T00:00:00Z\n')
+            self.assertEqual(m.wrapper_state(r),'ready')
+            (r/'FAILED').write_text('rc=1')
+            with self.assertRaises(ValueError):m.wrapper_state(r)
+            (r/'FAILED').unlink();(r/'DONE').write_text('bad rc=0 utc=garbage')
+            with self.assertRaises(ValueError):m.wrapper_state(r)
+            (r/'DONE').write_text('rc=0 utc=2026-10-30T00:00:00Z\n')
+            os.utime(r/'DONE',ns=(1,1))
+            with self.assertRaises(ValueError):m.wrapper_state(r)
+
     def test_missing_success_failure_and_invalid(self):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d)/'terminal.json'
@@ -28,7 +43,7 @@ class TerminalTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as d:
                 root=Path(d);run=root/'run';run.mkdir();out=root/'finish';out.mkdir()
                 config=root/'config.json';config.write_text(json.dumps({'out':str(run)}))
-                m.atomic(run/'REFERENCE_COMPLETE.json',{'rc':0});(run/'DONE').write_text('rc=0 utc=test\n')
+                m.atomic(run/'REFERENCE_COMPLETE.json',{'rc':0});(run/'DONE').write_text('rc=0 utc=2026-10-30T00:00:00Z\n')
                 audit=root/'audit.py';compare=root/'compare.py'
                 audit.write_text('import sys,json\nfrom pathlib import Path\n'+
                     ('raise SystemExit(1)\n' if fail else 'Path(sys.argv[sys.argv.index("--out")+1]).write_text(json.dumps({"status":"test"}))\n'))

@@ -9,6 +9,7 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -47,6 +48,19 @@ def terminal_state(path):
     return 'ready'
 
 
+def wrapper_state(run):
+    if (run/'FAILED').exists():
+        raise ValueError('Inference wrapper FAILED, including conflicting DONE/FAILED')
+    done = run/'DONE'
+    if not done.exists(): return 'pending'
+    if not re.fullmatch(r'rc=0 utc=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\n?', done.read_text()):
+        raise ValueError('Malformed wrapper DONE')
+    # A stale wrapper cannot certify a newer inference terminal.
+    if done.stat().st_mtime_ns < (run/'REFERENCE_COMPLETE.json').stat().st_mtime_ns:
+        raise ValueError('Wrapper DONE predates inference terminal')
+    return 'ready'
+
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--plan',required=True,type=Path)
@@ -73,10 +87,8 @@ def main():
         # The wrapper independently records process exit. Do not accept a marker
         # written just before a later process failure.
         status.update(stage='waiting_for_wrapper',progress=1)
-        while not (run/'DONE').exists():
-            if (run/'FAILED').exists(): raise ValueError('Inference wrapper FAILED after terminal')
+        while wrapper_state(run)=='pending':
             time.sleep(5)
-        if 'rc=0 ' not in (run/'DONE').read_text(): raise ValueError('Malformed wrapper DONE')
         status['stage']='independent_audit'
         with (out/'audit.log').open('ab') as log:
             subprocess.run([sys.executable,'-P',plan['auditor'],'--config',str(config),
@@ -86,6 +98,8 @@ def main():
             subprocess.run([sys.executable,'-P',plan['comparison'],'--run',str(run),
                 '--upstream',plan['upstream'],'--out',str(out/'PUBLISHED_COMPARISON.json')],
                 stdout=log,stderr=subprocess.STDOUT,check=True)
+        if wrapper_state(run)!='ready' or terminal_state(run/'REFERENCE_COMPLETE.json')!='ready':
+            raise ValueError('Inference completion changed during audit')
         report={'status':'COMPLETED_SCOPED','inference_run':str(run),'config_sha256':digest(config),
             'auditor_sha256':digest(plan['auditor']),'comparison_sha256':digest(plan['comparison']),
             'outputs':{n:digest(out/n) for n in ['INDEPENDENT_AUDIT.json','PUBLISHED_COMPARISON.json']},

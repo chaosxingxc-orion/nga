@@ -57,6 +57,13 @@ P1 与 P2 的适配／数据核验可以在 Kev 正式推理运行时并行推�
 公共 test **10,356**、OOD **15,701**，分别比旧完整集合少 **176／219** 个 Wiki 行。
 原文 2B／9B hard accuracy 的完整 test 分母是 **10,046**，另有 **486** 个 soft-target 行，不能把它搬给公共投影。
 
+**2026-10-30 实际数据核验更新：** 已将 public test 原 gzip 解压到
+`reference_inference/openjev_public_inventory_20261030/test.jsonl`，逐字节 SHA256 与 export manifest
+一致（`0c4b953282a4292272110536ca543fe6e2736ab729b81d9b0464dd8ab4eec86a`）。10,356 条 ID 全唯一，
+split 全为 test，source 计数与 manifest 一致；one-hot 硬标签 **9,995**，软标签 **361**。
+来源 hash、计数和公开投影限制已记录到同目录 `VALIDATION.json`。这是数据校验，不是推理成绩；
+未更改原始镜像、未重新采样，也未把缺失 Wiki 行补成零。
+
 原协议逐 decision row 加权，硬标签 accuracy 只统计 one-hot targets；soft 行仍进入 expected accuracy、NLL、Brier／expected Brier，ECE 使用 15 个 top-label bins。完整输出必须同时记录 total/hard/soft/failed 数量。
 test 的 `accuracy_all_rows_failures_incorrect` 字段名具有误导性，不能凭名字认定分母就是 total_count。
 
