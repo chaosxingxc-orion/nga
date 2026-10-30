@@ -81,3 +81,16 @@ Detailed original-test comparison, temperatures and hashes are in
 At 16:50:06 both sizes were `waiting_public`. Supplement inference and full-test
 metrics remain pending; CPU queue launch is not their completion. Existing public
 runs and their chip ownership remain unchanged until the guarded dependency transfer.
+
+## 18:41 UTC — both original test joins complete
+
+The live E24 controller automatically completed 9B supplement176 and exact
+original10532 join, JOIN_COMPLETE at18:39:16UTC. Controller and supplement actual
+retained containers and wrappers exited0. Parent checked plan/config/terminal and
+all output hashes. 9B hard9796/10046=.9751144734222577 versus upstream9799;
+expected .9468683292695825, native NLL .13080062975656853, Brier .03904720396579283,
+expectedBrier .0670981682776762, ECE15 .0075248277404350175. Public8 reviewflags
+and matching full8 flags are preserved; supplement independent audit has none.
+Join report `24d88fe39bc8f3a897430ac025aec3706f48bf267862355c825c07c3f1fbb882`,
+joinedrecords `edf73d9eb94fc47ff08b5a0a3bf2a03268c9f17d8d75317b6ee2658de6888e09`.
+2B and9B queue states both complete. No exact numerical reproduction or Astra pass.
