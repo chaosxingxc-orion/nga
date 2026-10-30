@@ -1,0 +1,52 @@
+{
+  "contract_version": "0.1.0",
+  "subject": {
+    "id": "doc-extractor",
+    "version": "1.4.0",
+    "card_url": "https://agents.example.com/doc-extractor/.well-known/agent-card.json"
+  },
+  "provides": [
+    {
+      "skill_id": "extract-fields",
+      "oasf_skill": "natural_language_processing/information_extraction",
+      "description": "Extract typed fields from PDF/DOCX contracts"
+    }
+  ],
+  "requires": [
+    {
+      "resource": {
+        "kind": "data",
+        "selector": "s3://tenant-{tenant}/inbox/*.pdf\n\n"
+      },
+      "actions": [
+        "read"
+      ],
+      "effect": "none",
+      "purpose": "source documents"
+    },
+    {
+      "resource": {
+        "kind": "tool",
+        "selector": "ocr.tesseract"
+      },
+      "actions": [
+        "execute"
+      ],
+      "effect": "none"
+    }
+  ],
+  "effects": {
+    "level": "none"
+  },
+  "bounds": {
+    "max_cost": {
+      "amount": 5,
+      "unit": "USD"
+    },
+    "max_seconds": 60,
+    "max_downstream_calls": 0
+  },
+  "notes": "Accuracy degrades on scanned documents below 200 dpi.",
+  "_expect": "Python re '$' concedes only ONE trailing newline: a second newline is a real pattern violation on every engine",
+  "_expect_match": "does not match"
+}

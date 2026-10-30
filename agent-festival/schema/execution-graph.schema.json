@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-festival.local/schema/execution-graph/0.1.0",
+  "title": "Execution graph for contract composition (ADR-0001 §2.4), draft 0.1.0",
+  "description": "Input document of schema/compose.py. `nodes` are full L3 contracts keyed by node id; `edges` are data-supply relations [upstream, downstream] used only to verify supplied_by=upstream declarations (D38: a declaration is checked, never subtracted); `plan` is the execution order (seq / par tree of node ids) used only to fold bounds. Shape rules JSON Schema cannot express (every node scheduled exactly once, edge order consistent with plan, delegate targets modeled) are enforced by compose.py. Round 16 X2-13: before this file the graph grammar lived only in code.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["nodes", "plan"],
+  "properties": {
+    "nodes": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+      "additionalProperties": { "$ref": "https://agent-festival.local/schema/capability-contract/0.1.0" }
+    },
+    "edges": {
+      "description": "Each item is [upstream_node_id, downstream_node_id]: the upstream node produces what the downstream node marks supplied_by=upstream. Direction is fixed; a reversed edge is rejected by compose.py against `plan`.",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": { "type": "string", "minLength": 1 }
+      }
+    },
+    "plan": { "$ref": "#/$defs/plan_node" },
+    "caller_holds": {
+      "description": "Grants the caller can issue. requires(G) must be covered by these (exact canonical selector match in 0.1.0).",
+      "type": "array",
+      "items": { "$ref": "https://agent-festival.local/schema/capability-contract/0.1.0#/$defs/grant" }
+    },
+    "parent_bounds": {
+      "description": "Budget the caller holds for the whole graph; par groups split it equally at issue time (D22).",
+      "$ref": "https://agent-festival.local/schema/capability-contract/0.1.0#/properties/bounds"
+    }
+  },
+  "$defs": {
+    "plan_node": {
+      "oneOf": [
+        { "type": "string", "minLength": 1, "description": "a node id" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "maxProperties": 1,
+          "properties": {
+            "seq": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/plan_node" } },
+            "par": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/plan_node" } }
+          }
+        }
+      ]
+    }
+  }
+}

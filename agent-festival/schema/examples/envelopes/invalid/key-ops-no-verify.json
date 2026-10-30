@@ -1,0 +1,62 @@
+{
+  "_expect": "REJECT: the kid's JWK has key_ops without 'verify' (RFC 7517 §4.3)",
+  "_expect_match": "without 'verify'",
+  "contract": {
+    "bounds": {
+      "max_cost": {
+        "amount": 5,
+        "unit": "USD"
+      },
+      "max_downstream_calls": 0,
+      "max_seconds": 60
+    },
+    "contract_version": "0.1.0",
+    "effects": {
+      "level": "none"
+    },
+    "notes": "Accuracy degrades on scanned documents below 200 dpi.",
+    "provides": [
+      {
+        "description": "Extract typed fields from PDF/DOCX contracts",
+        "oasf_skill": "natural_language_processing/information_extraction",
+        "skill_id": "extract-fields"
+      }
+    ],
+    "requires": [
+      {
+        "actions": [
+          "read"
+        ],
+        "effect": "none",
+        "purpose": "source documents",
+        "resource": {
+          "kind": "data",
+          "selector": "s3://tenant-{tenant}/inbox/*.pdf"
+        }
+      },
+      {
+        "actions": [
+          "execute"
+        ],
+        "effect": "none",
+        "resource": {
+          "kind": "tool",
+          "selector": "ocr.tesseract"
+        }
+      }
+    ],
+    "subject": {
+      "card_url": "https://agents.example.com/doc-extractor/.well-known/agent-card.json",
+      "id": "doc-extractor",
+      "version": "1.4.0"
+    }
+  },
+  "contract_hash": "sha256:83a5e78de6860bc303230a4c9b03e86e33074b8920b45f113afeac5cda76ec4e",
+  "envelope_version": "0.1.0",
+  "signatures": [
+    {
+      "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6Im9wcy1lbmMtMjAyNi0wOSIsInR5cCI6IkpPU0UifQ",
+      "signature": "YmJ37K0NzzIh2Bw4XzsPGHR_dGT9escmcfR1sBv93GFJi3eI8f0oY4fF1B7oa44PX8fWLUNyv2VbbUOmEbSQAQ"
+    }
+  ]
+}
