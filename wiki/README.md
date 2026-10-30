@@ -23,6 +23,7 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | --- | --- | --- | --- |
 | [F1](F1-fetch-qwen3-0.6b.md) | fetch `Qwen3-0.6B`, the attention-only control | R0 | done |
 | [K0](K0-untuned-readout.md) | untuned readout of the Qwen3.5 checkpoints on Kev's suites and our task set | R3 round 1 | planned |
+| [E1](E1-gdn-fast-ref-gate.md) | admissibility gate for `gdn_fast_ref`, a third gated-delta-rule kernel | R3 round 1 | planned |
 | [W1](W1-wave1-first-weight-updates.md) | wave 1: the first weight updates (K1, K2, K1-PT, K1-QO, K1-FLA) | R3 round 1 | planned |
 
 ## Where the artifacts live

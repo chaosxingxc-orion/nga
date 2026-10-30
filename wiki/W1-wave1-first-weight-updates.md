@@ -93,6 +93,15 @@ because it gives the degenerate strategy a full training budget to succeed with.
   per-chip throughput, terminal marker holding the exit code as the source of truth, resumable at
   step granularity, relaunch command in the run directory.
 
+> **Correction, 2026-10-30, same day, after amendment 7.** The **Kernel** bullet above is
+> superseded in part. `R3-SFT-PREREG.md` §14.7 item 1 reads §14.4's verdict as governing the fused
+> gated-delta-rule / FLA kernel under `speedup/` only, so the kernel of record for wave 1 is now
+> **whichever kernel §14.7 item 2's gate leaves admissible**: the in-tree reference, or
+> `gdn_fast_ref` if (G1)–(G4) all pass. That gate is recorded in
+> [`E1`](E1-gdn-fast-ref-gate.md). Wave 1 may not launch until the **seven-item launch checklist**
+> at the end of §14.7 is green. H1–H3 are unaffected. H4 is unaffected too: K1-FLA still runs,
+> since §14.4 governs the FLA kernel and §14.7 did not touch that arm.
+
 ## 4. Results
 
 Not run yet. To be filled from each run's own files: per-seed dev accuracy per suite with n and tie
