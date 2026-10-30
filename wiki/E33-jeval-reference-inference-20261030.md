@@ -260,3 +260,29 @@ and independent finisher
 were both actually running. The inference digest at 19:13:25 UTC was loading.
 Old formal-v1 created container and failure evidence remain untouched.
 No final JEVal score or training benefit is claimed.
+
+### 19:14 UTC — Open-Jev9 probe accepted
+
+Terminal 19:13:10 UTC, wrapper 19:13:13 UTC and retained actual container all
+completed with exit 0. All 100 frozen files, native/runtime/E31 and launch
+bindings passed. `PROBE_REVIEW.json` binds the prepared config and probe SHA256
+`c4cf4018c659621b63599142bf0367a91cb40a16e6e33f870a9dd62aaac79af7`.
+All four repeated groups had maximum probability delta 0. Longest eligible
+index 9027 (4,096 tokens, 30 candidates) took 27.429424/26.640149 seconds,
+reserved 56.728516 GiB on one chip; consumed-token hashes match E31.
+Chip 1 was explicitly released under lock after actual live-map checks.
+Nimble is next in the pre-registered serial probe sequence. This acceptance is
+limited to the observed probe workload; it does not establish all JEVal shapes
+fit memory or produce a full-test score.
+
+### 19:15 UTC — Nimble probe actually started
+
+The 148-file config
+`9cc49322c7a515e1e6fec56b4f34d4d1b1b404c089166589ee142ebe3ed17997`
+passed full hashes, v2 executable identity, E31 native closure, runtime and resource
+specification checks. Base and adapter revision both match
+`c202236235762e1c871ad0ccb60c8ee5ba337b9a`; native temperature remains 1.
+The guarded launcher acquired chip 1 and started retained container
+`9a13bfadfb65e6bfc8a36adf80231082de3cd989ed20a95a741f43ba55fa653b`
+at 19:15:47 UTC. Its longest eligible index is 6831, 2,046 tokens.
+The actual result remains pending; no formal inference was launched by this sequence.
