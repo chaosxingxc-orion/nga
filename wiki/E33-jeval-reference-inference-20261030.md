@@ -425,3 +425,85 @@ The original closeout directory now contains additive `ERRATUM-20261031.md`,
 SHA-256 `73a81a296f3dc39acd61303023b671e2bea7f8ff342b33c8002db537d5781015`, also bound in the result and review JSON.
 The main result report received a dated clarification of these reason counts;
 its original aggregate count was correct.
+
+## 2026-10-31 — Kev-4B/9B additive closeout registered before launch
+
+Both original inference/native-finisher pairs completed 11,257 rows and actual
+Docker exits 0. The two retained hardened v7r2 waiters also completed exited/0
+at 22:30:19/22:31:50 UTC. Their last progress digests still say hardened_audit;
+successful root COMPLETE/EXIT and actual Docker exit supersede that progress.
+Hardened states retain REVIEW_REQUIRED with 8/7 flags respectively.
+
+A fresh detached CPU-only closeout is registered at
+`reference_inference/jeval_kev49_closeout_20261031_v2/`, fixed retained container
+`nga-jeval-kev49-closeout-20261031-v2`. It mounts original CephFS read-only,
+its own output writable and Docker socket only for HTTP GET container inspection;
+no NPU devices or resource-release operation. The script rehashes every receipt
+against the hardened manifest, verifies original Parquet identity and full
+population, payload and input hashes, native report/audit/terminal bindings,
+flagged cell populations and actual retained-container exits. The native
+independent finisher owns full response reconstruction and metric arithmetic;
+this closeout does not pretend to be a new independent model/source audit.
+Per-item hash journals support identity-bound continuation; terminal generations
+are preserved, and exact launch/resume scripts, ten-second heartbeat and terminal
+EXIT are written. The new 4B/9B result files will be dated additions, preserving
+the earlier Kev-0.8B/Nimble snapshot and its separate Astra review scope.
+
+## 2026-10-31 06:39 Asia/Shanghai — Kev-4B/9B closeout completed
+
+Both newly completed references retain the original 11,257-row population and
+native temperatures. A detached CPU closeout rechecked all 22,514 receipt hashes,
+payload/input identities and ordered original Parquet IDs, report/native-audit/
+hardened-audit/terminal bindings, flagged-cell populations and actual Docker
+ID/image/command/wrapper/exits. The retained closeout container
+`888d0434d62f23418e15cca2d33327ccc48751895bd18a902acf9b816e30122e`
+actually exited 0 at 2026-10-30T22:39:12Z. It used no NPU and did not release cards.
+
+| Model | Correct / all classification | Accuracy | Raw summed Brier | ECE10 | Score MAE |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Kev-4B | 6,741/10,938 | 61.629183% | 0.436118754 | 0.173661124 | 0.914080878 |
+| Kev-9B | 6,931/10,938 | 63.366246% | 0.406847145 | 0.109838099 | 0.923336991 |
+
+Each model has 9,911 valid classifications, 319/319 valid scores and 1,027
+native-context overlength rows. Accuracy keeps the full classification denominator;
+Brier/ECE use valid classifications and MAE uses valid scores in original units.
+The native independent finisher owns response reconstruction and arithmetic; the
+new closeout verifies complete identity/hash/terminal/flag bindings rather than
+claiming a fresh external-weight or retokenization audit.
+
+Hardened states remain `VERIFIED_HARDENED_SCOPED_REVIEW_REQUIRED` with **8/7 flags**.
+Both have finqa n=22, jevbench-score n=16, helmet 50/50 valid correct with 150
+additional overlength rows, and retrieval-en 0/200 valid with valid-only accuracy
+null. Kev-4B additionally has retrieval-en-e 100/100 valid correct with 100
+additional overlength rows. Those perfect valid-subset rates are not perfect
+full-population results. Flags remain in the evidence.
+
+Fresh report SHA256:
+`8d2af0809eda8d1c7772051b33b91bb30e864fae8d972c119810109417de0649`.
+See [the additive 4B/9B results](../experiments/JEVAL-KEV4-KEV9-RESULTS-2026-10-31.md)
+and [complete JSON evidence](../experiments/JEVAL-KEV4-KEV9-RESULTS-2026-10-31.json).
+The previous E33 snapshot and actual Astra review still apply only to Kev-0.8B
+and Nimble; these newly completed sizes require their own actual Astra result
+review. No exact-paper reproduction, paired consistency, training/business gain,
+new raw-T1/NOTA/permuted panel or formal-training admission is claimed.
+
+## 2026-10-31 — new actual Astra review registered for Kev-4B/9B results
+
+This is a separate review of the newly completed sizes; it does not reuse the
+Kev-0.8B/Nimble verdict. Before invoking the reviewer, a new detached CPU builder
+will freeze each 11,257-row receipt population, all 66 hardened cells and 8/7
+flags, configs, report/native/hardened audit/terminal chains, retained Docker exit
+records, original Parquet plus a hash-bound decoded gold JSON and scoring source.
+External weights remain outside the package; the original audit owns their hash
+checks. Original experiment directories are read-only and no NPU is accessed.
+
+Bundle: `reference_inference/astra_reviews/jeval_kev49_candidate_20261031/`.
+Builder: `reference_inference/astra_reviews/jeval_kev49_prepare_20261031/`.
+Actual requested reviewer: `gpt-6-astra`, read-only detached CLI, output directory
+`reference_inference/astra_reviews/jeval_kev49_astra_20261031/`.
+The review must check complete-versus-valid denominators, native wire formulas,
+all flags, helmet's 50/50 valid plus 150 overflow, 4B retrieval-en-e's 100/100 valid
+plus 100 overflow, zero-valid null metrics and small cells. It may not grant
+paper-exact reproduction, paired consistency, training/business gain or resource
+release. All stages retain heartbeat, terminal, actual exit and exact relaunch;
+failed generations are preserved, not overwritten. No verdict is implied here.
