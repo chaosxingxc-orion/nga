@@ -38,3 +38,21 @@ counts, report/terminal bindings and actual container identity/exit. It does not
 independently re-tokenize prompts or establish model accuracy. Formal native NPU
 forward/recovery/independent scoring remains unimplemented for E29; no test model
 performance or Astra approval is claimed.
+
+Native inference preparation update: added separate execution driver, independent
+prompt/metric verifier, retained CPU finisher, and locked identity-bound launcher/
+resume. Actual forward token IDs are observed and compared with preflight;
+original wire is preserved. Unit/CLI/real-finisher subprocess tests use full
+400-state / 2,000-question fixtures and reject forged metrics, prompts, missing/
+extra receipts, wrong runtime/temperature, stale terminal and foreign devices.
+These are engineering checks, not model inference. No NPU run has launched yet.
+
+Execution implementation tests: 38 passed (8 adapter, 16 execution/resume,
+10 complete verifier CLI and 4 real finisher subprocess checks). Probe configs
+are prepared but unlaunched: `typed_openjev2_probe_20261030` on intended chip 0,
+93 frozen / 90 required files, config SHA256
+`12bbfa1ef3ecf0ce7465e686796537a19c4948b5b68e286f5e691b1b484c2952`;
+`typed_openjev9_probe_20261030` on intended chip 5, 96 / 93 files, config SHA256
+`3884e565ab5e218f6a660fb83fdcfc705f30b6dba24a2e49e3ee9c6c22640cd8`.
+Resource transfer requires reviewed completed E26 predecessors and live-device
+checks. Full formal inference remains unlaunched pending real probe evidence.
