@@ -1,70 +1,57 @@
 # NGA — Next Generation Agent
 
-**NGA designs System 1 + System 2 agent frameworks with decision idempotence and traceability as central goals, grounded in Jev-class engineering reproduction and business-configurable decision models.**
+**NGA develops a new enterprise-agent approach through three projects: Jev-like decision models, System 1 + System 2 agent loops, and an enterprise agent workbench. Decision and business-result idempotence, traceability, and business configurability are the shared objectives.**
 
-The preceding generation of agent frameworks centers on an **agentic model**: the model plans, executes actions, reflects on observations, and replans through an **agent loop**. As Jev-class decision models develop, NGA asks how inexpensive, typed judgments can work with generative reasoning to change the way an agent is organized.
+The preceding generation of agent frameworks centers on an **agentic model**: the model plans, executes actions, reflects on observations, and replans through an **agent loop**. NGA starts from a production concern: generative reconsideration can change a consequential decision even when its business basis has not changed. The project treats this instability as a central barrier to using agents in enterprise core processes.
 
-The central design problem is to make repeated processing stable and consequential decisions traceable while preserving adaptation when business facts or rules change. S1's core model requirements are **decision consistency** and **business-configurable development**. The framework must also manage decision adoption, duplicate requests, execution effects, versions, and recovery.
+The research direction starts from the required business behavior. The [survey](survey/README.md) and its [PDF](survey/nga-survey.pdf) identify useful evidence, defects, and gaps in Jev-class research. They inform task definition and controlled comparisons; published architectures and benchmarks do not determine NGA's objectives.
 
-Start with the [NGA overall design](design/nga-overall-design.md) for the goals, responsibilities, logical interfaces, and control boundaries. It separates established principles from proposed mechanisms and open questions.
+Start with the [NGA overall design](design/nga-overall-design.md) for the three-project scope, idempotence goals, semantic-specification ownership, S1/S2/framework boundaries, and V0 evolution. **These are design objectives, not demonstrated runtime guarantees.**
 
-The project connects three areas of work:
+## Three projects and how they connect
 
-1. **Jev engineering reproduction** establishes what the reference approach does, how it is built, and which results we can reproduce.
-2. **Business-driven model redesign** develops the decision capabilities and interfaces required by our intended workloads.
-3. **System 1 + System 2 framework design** brings those capabilities together with reasoning, planning, execution, and control.
-
-The integrated framework is the project vision. The model experiments provide its empirical foundation. **Concrete architecture and technology choices remain open; the design goals are not yet demonstrated runtime guarantees.**
-
-## How the work fits together
+| Project | Objective | Main outputs |
+| --- | --- | --- |
+| **1. Decision-model research and engineering** | Translate decision and business-result idempotence requirements into measurable academic tasks, synthesize data, and design and develop a Jev-like model. | Task definitions, evaluation protocols, synthetic datasets with provenance, reproduction baselines, model designs/checkpoints, and typed-readout interfaces. |
+| **2. S1 + S2 agent-loop redesign** | Use available Jev-class capabilities to redesign the agent loop, then incorporate validated improvements from project 1. | Collaboration mechanisms, component contracts, adoption/execution boundaries, recovery behavior, and end-to-end evaluations. |
+| **3. Enterprise agent workbench** | Turn the approach into a concrete enterprise product and manage business semantics through knowledge engineering. | Task and capability management, governed semantic specifications, execution/adoption controls, exception handling, and traceability/reconstruction interfaces. |
 
 ```mermaid
 flowchart LR
-    A["Jev engineering reproduction"] --> B["Business-driven model redesign"]
-    B --> C["System 1 + System 2 framework design"]
-    C -->|"Capability and interface requirements"| B
-    B -->|"Questions for controlled comparison"| A
+    M["1. Decision-model tasks, data, and Jev-like models"] -->|"Measured capabilities and interfaces"| L["2. S1 + S2 agent-loop redesign"]
+    L -->|"Collaboration and runtime contracts"| W["3. Enterprise agent workbench"]
+    L -->|"Required capabilities and failure cases"| M
+    W -->|"Semantic specifications and business cases"| M
+    W -->|"Operational constraints and outcome feedback"| L
 ```
 
-These are connected workstreams. Reproduction provides a baseline for evaluating changes; business objectives determine which changes matter; framework experiments test whether model capabilities produce useful system behavior. Findings from each workstream can revise the others.
+These are connected projects, not three sequential completion gates. Project 2 can start from currently available Jev capabilities. Project 3 can establish its V0 from the existing enterprise architecture design while S1 + S2 collaboration is developed and gradually integrated. Reproduction belongs to project 1; it is a baseline and engineering starting point, not a separate top-level project or the final objective.
 
-### 1. Reproduce Jev-class engineering
+### 1. Define the task, build the data, develop the model
 
-The first engineering objective is a reproducible path through **data preparation, training objectives, inference/readout, and evaluation**. This includes reference-recipe comparisons and the controls needed to separate genuine capability from label priors, prompt artifacts, or measurement defects.
+The model's central requirements are **decision consistency** and **business-configurable development**. It should apply supplied business definitions to evidence, preserve decisions across irrelevant variation, and change them when the rule or relevant facts require a distinction. The work must define these properties as falsifiable tasks before choosing a training recipe or architecture.
 
-The current model work starts with small Qwen-family decoders. The research plan uses `Qwen3-0.6B` as an attention-only control and explores the Qwen3.5 0.8B, 2B, 4B, and 9B ladder. Larger-model options remain part of the longer-term proposal.
+Data synthesis should vary the rules as well as the cases: equivalent cases under one rule, competing rules over the same case, relevant changes, boundary cases, and explicit unresolved outcomes. Held-out rule families and independent checks must distinguish reading the supplied specification from memorizing labels or a generator's grammar. Project 3 ultimately owns the business semantic specifications; research can begin with explicitly reviewed and versioned task specifications.
 
-Reproducing a training recipe, matching a benchmark, and reproducing a native typed-readout architecture are separate milestones. Every result must state which milestone it supports.
+Jev engineering reproduction establishes a path through **data preparation, training objectives, inference/readout, and evaluation**. Reproducing a recipe, matching a benchmark, and reproducing native typed readout remain separate milestones. Existing work starts with small Qwen-family decoders: `Qwen3-0.6B` is an attention-only control, and the proposal explores the Qwen3.5 0.8B, 2B, 4B, and 9B ladder. These research choices do not freeze NGA's final model architecture.
 
-### 2. Redesign the model around business objectives
+The current model proposal investigates `boolean`, `nominal`, and `ordinal` levels with `exclusive` or `stackable` candidate sets and an input order of **task definition → input → candidate branches**. Evaluation covers accuracy floors, definition following, semantic consistency, discrimination, unknown handling, and usable cost. A model improvement contributes to business-result idempotence; it cannot by itself prevent duplicate external effects.
 
-The intended use is **frequent semantic judgment inside business processes**. Business authors should be able to express criteria in questions, definitions, examples, and declared output states. The model should interpret those criteria and return typed observations that programs can use.
+### 2. Redesign the agent loop around S1 + S2 collaboration
 
-For example, two inputs can count as equivalent under one business question and require different decisions under another. The desired behavior is to preserve decisions when the business meaning is unchanged and change them when the supplied rule requires a distinction.
+**S1** contributes typed semantic judgments. **S2** contributes generative reasoning, planning, evidence requests, and adaptation. **The framework** validates contracts, controls adoption and execution, maintains state, and preserves the trace from evidence to outcome.
 
-The model-side foundation has three intended deliverables:
+S2 proposes plans and revisions; the framework controls whether and when they become effective. S1 observations inform the registered decision policy. Neither model can publish business rules, enlarge its authority, or replace adopted history on its own.
 
-| Deliverable | Purpose |
-| --- | --- |
-| **Business-authoring standard** | Specify questions, level names and definitions, types, criteria, and examples. |
-| **Decision model** | Read the supplied specification and produce a distribution over declared levels, or a probability for each independently applicable candidate. |
-| **Decision harness** | Apply registered thresholds, margins, abstention, and unknown handling to turn observations into program decisions. |
+The placement of S1 remains an engineering question: routing, monitoring, evidence selection, intermediate-state evaluation, and final readout have different requirements. Compare candidate loops on task success, cost per successful outcome, latency, semantic consistency, duplicate-effect prevention, and recovery. A cheaper isolated judgment does not establish a better agent.
 
-The current proposal investigates `boolean`, `nominal`, and `ordinal` level types, with `exclusive` or `stackable` candidate sets. Its proposed input order is **task definition → input → candidate branches**. These are model-interface choices to evaluate within the research program.
+### 3. Build the enterprise workbench and govern semantics
 
-The business case depends on useful decisions at a low enough cost to make repeated judgment practical. Evaluation therefore includes **accuracy floors, definition following, consistency within business equivalence classes, discrimination when rules change, and unknown handling**. Calibration and reliable escalation must be measured on the intended workload.
+The workbench turns enterprise requirements into maintained business contracts and usable task, execution, review, and accountability workflows. **Knowledge engineering in this third project owns the management of semantic gray areas.** Business experts need a way to define terms, units, time windows, boundaries, precedence, coverage, and exception behavior, then review, publish, version, and revise those specifications.
 
-The [survey's business-goal analysis](survey/05-system-business-goal-and-positions.md) and [interface definition](survey/02-propositions-and-core-logic.md) explain the rationale and its limits.
+The objective is that decision execution never silently invents a missing convention. Ambiguous rules, uncovered cases, missing evidence, and model uncertainty must lead to declared handling rather than an improvised business answer. An unresolved state is distinct from a business rejection unless the published policy explicitly equates them. Model detection and framework handling of these states still require work in projects 1 and 2; specification governance belongs to project 3.
 
-### 3. Design the combined System 1 + System 2 framework
-
-**System 1** contributes fast, typed judgments. **System 2** contributes generative reasoning, planning, and adaptation. **The framework** validates contracts, controls adoption and execution, maintains state, and preserves the trace from evidence to outcome.
-
-The proposed logical boundary distinguishes S2's planning and scheduling proposals from the framework's authority to admit and dispatch them. S1 observations and S2 proposals become effective through explicit adoption rules. Business and governance authority defines those rules and permissions; model confidence cannot override them.
-
-Candidate uses of System 1 include routing, process monitoring, evidence and memory selection, evaluation of intermediate states, and readout of System 2's reasoning. Each placement has different capability requirements and failure modes.
-
-Framework success must be measured end to end: **task success, cost per successful outcome, latency, recovery behavior, and the ability to trace consequential decisions**. A cheaper isolated judgment does not establish a better agent.
+**Workbench V0 retains the existing enterprise architecture design as its starting baseline.** Its management, control, and execution views, capability contracts, authority boundaries, context handling, and adoption/accountability path provide the structure. S1 + S2 collaboration will be incorporated incrementally, followed by architecture revisions based on measured behavior. Concrete technologies and unresolved mechanisms in the reference design remain open.
 
 ## Decision idempotence and traceability
 
@@ -81,12 +68,13 @@ Caching the same request does not prove semantic consistency. Historical reconst
 
 The [overall design document](design/nga-overall-design.md) records established principles, develops a proposed logical design, and maintains an open-question register. Its interfaces cover business specifications, capability contracts, evidence/context snapshots, plans, S1 observations, adopted decisions, and execution records.
 
-The supplied enterprise-agent architecture references contribute questions about capability contracts, execution graphs, permission boundaries, context sharing, and accountability. They inform NGA's design space; their implementation claims, host platforms, and proposed mechanisms are not NGA implementation status.
+The supplied enterprise-agent architecture references provide the workbench's V0 starting design. Their reported artifacts and implementation status belong to their original context, not to NGA. Keeping that baseline does not resolve its pending decisions or select its host platform. Project 2's S1 + S2 design will progressively refine it.
 
 | Design area | Questions to resolve |
 | --- | --- |
 | **Control and orchestration** | How much may S2 revise automatically within an admitted scope? Which runtime organization enforces adoption and execution boundaries? How are handoffs and failures handled? |
 | **Capability contracts** | How should a capability declare its inputs, outputs, required authority, effects, and resource bounds? |
+| **Semantic specifications** | How should project 3 author, check, publish, and revise business conventions? How are unresolved cases handled and released specifications consumed by projects 1 and 2? |
 | **Execution structure** | When should execution use a loop, graph, bounded workflow, or a combination? How should runtime planning interact with declared constraints? |
 | **Context and intermediate results** | What evidence does each component receive? How should results be isolated, shared, verified, and reused? |
 | **Authorization and enforcement** | How should delegated authority and budgets be constrained, and where should those constraints be enforced? |
@@ -96,11 +84,11 @@ These questions leave the runtime, implementation language, control topology, au
 
 ## What is in the repository today
 
-This is an active research and engineering repository. It currently contains analysis, plans, experiment code, and records; the integrated NGA framework remains to be implemented and evaluated.
+This is an active research and engineering repository. Most existing code and experiment records belong to project 1. Project 2 and project 3 currently have design foundations; the integrated loop and enterprise workbench remain to be implemented and evaluated. The three-project scope is a program organization, not a claim that three complete implementations or directory trees already exist.
 
 | Area | Contents and entry point |
 | --- | --- |
-| **Overall design** | Decision idempotence and traceability goals; S1/S2/framework responsibilities, logical interfaces, control boundaries, established principles, and open questions in [`design/nga-overall-design.md`](design/nga-overall-design.md). |
+| **Overall design** | Three-project scope, decision and business-result idempotence, semantic-specification ownership, S1/S2/framework boundaries, V0 evolution, and open questions in [`design/nga-overall-design.md`](design/nga-overall-design.md). |
 | **Survey** | Nine analytical chapters covering Jev-class models, semantics, consistency, business value, fast/slow cooperation, and limitations. Start with [`survey/README.md`](survey/README.md); a [PDF](survey/nga-survey.pdf) is also available. |
 | **Research plan** | R0–R8 hypotheses, work packages, dependencies, and decision gates. See the [proposal](proposal/00-research-proposal.md) and [four-direction work plan](proposal/01-work-plan-four-directions.md). |
 | **Tasks and protocols** | Data builders, manifests, frozen protocols and amendments, and result documents in [`experiments/`](experiments/README.md). |

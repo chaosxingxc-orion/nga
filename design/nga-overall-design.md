@@ -3,22 +3,32 @@
 **Decision Idempotence, Traceability, and S1/S2 Control Boundaries**
 
 > Status: conceptual design baseline for discussion; implementation and validation remain outstanding.
-> Date: 2026-10-29 (America/New_York).
-> Decision status: Section 3 records established principles. Sections 4-9 develop the proposed logical design. Section 10 lists unresolved questions. No runtime, language, storage engine, protocol, or model architecture is selected here.
+> Created: 2026-10-29. Scope clarified: 2026-10-30 (America/New_York).
+> Decision status: Sections 1 and 3 record the agreed project scope, V0 direction, and established principles. Sections 4-9 develop the proposed logical design. Section 10 lists unresolved questions. No runtime, language, storage engine, protocol, or model architecture is selected here.
 
 ## 1. Purpose and scope
 
-**NGA (Next Generation Agent) aims to make business decisions stable under repeated processing and traceable from evidence through adoption to execution.** It combines a business-configurable System 1 (S1) decision capability, a System 2 (S2) reasoning and planning capability, and a framework that governs how proposals become effective decisions and actions.
+**NGA (Next Generation Agent) aims at decision and business-result idempotence, with traceability from evidence through adoption to execution.** Its scope includes a business-configurable decision model, an agent loop redesigned around System 1 (S1) and System 2 (S2) collaboration, and a concrete enterprise agent workbench.
 
 The starting concern is that a generative agent loop can reconsider the same situation and produce a different plan or decision. NGA treats this as a system-design problem as well as a model-capability problem. It must preserve adaptation when facts or business rules change while preventing retries, recovery, or incidental wording from silently changing an already adopted decision.
 
-The work connects three streams:
+### 1.1 Three projects
 
-1. **Jev engineering reproduction:** reproduce and distinguish data, training, readout, and evaluation components; establish defensible reference baselines.
-2. **Business-driven model redesign:** develop consistent judgments that follow business-authored definitions and support typed observations and unknown handling.
-3. **S1 + S2 framework design:** organize reasoning, observation, adoption, execution, context, and feedback around explicit control boundaries.
+| Project | Responsibility | Outputs and boundary |
+| --- | --- | --- |
+| **1. Decision-model research and engineering** | Derive academic tasks from decision and business-result idempotence objectives; synthesize data; design and develop a Jev-like model. | Task definitions, data and evaluation protocols, reproduction baselines, trained models, and readout interfaces. Model consistency contributes to the business objective; a model alone cannot guarantee external-effect idempotence. |
+| **2. S1 + S2 agent-loop redesign** | Use available Jev capabilities to redesign how judgment, reasoning, planning, adoption, execution, and recovery cooperate. | Collaboration mechanisms, logical contracts, runtime prototypes, and end-to-end evaluations. This project can begin before project 1's new model is ready. |
+| **3. Enterprise agent workbench** | Build the enterprise product and manage business semantic specifications through knowledge engineering. | Task/capability management, semantic authoring and publication, execution and adoption workflows, exception resolution, and traceability/reconstruction. This project owns how human semantic gray areas become explicit, maintained conventions. |
 
-These streams inform each other. A better isolated model score does not establish a better agent; framework requirements must also inform model experiments.
+Jev reproduction is part of project 1, serving as an engineering baseline and a controlled comparison. It does not determine the research objective. The research path is **business property → falsifiable task → data and evaluation → model design and training → system validation**.
+
+These projects exchange requirements and evidence rather than form strict sequential completion gates. Project 1 supplies measured decision capabilities to project 2; project 2 supplies collaboration and runtime contracts to project 3. Project 3 returns governed semantic specifications, business cases, and operational failures to both. Research may start with reviewed, versioned task specifications before the workbench's knowledge tooling exists.
+
+### 1.2 V0 continuity and evolution
+
+The enterprise workbench's **V0 retains the existing enterprise architecture design as its starting baseline**. Its management, control, and execution/data views, capability contracts, bounded authority, context sharing, and adoption/accountability path remain the organizing structure.
+
+S1 + S2 collaboration is incorporated progressively as its contracts and behavior are clarified and measured. Later architecture revisions should explain what changed and why. Retaining V0 does not import the reference project's implementation claims, settle its pending decisions, or select its technologies. Section 5.4 maps the baseline to the three-project scope.
 
 This document defines logical responsibilities and design questions. It does not amend frozen experiment protocols or claim an implemented NGA runtime.
 
@@ -30,10 +40,12 @@ This document defines logical responsibilities and design questions. It does not
 | [Consistency analysis](../survey/04-consistency-the-primary-metric.md) | Decision-level paired evaluation; sensitivity to presentation, precision, version, and context. | Exact-request repeatability does not establish business-semantic consistency. |
 | [Business goals and S1/S2 positions](../survey/05-system-business-goal-and-positions.md) | Frequent business judgments, fast/slow cooperation, and workload-specific limits. | Calibration, unknown handling, and safe escalation need measurement. |
 | [Research proposal](../proposal/00-research-proposal.md) and [work plan](../proposal/01-work-plan-four-directions.md) | Experimental rounds, gates, and alternative S1 integration positions. | Existing recommendations are not automatically final framework decisions. |
-| Owner-supplied local reference: `achitecture design/05-architecture-brief-and-decisions.md` | Capability contracts, execution structure, authority attenuation, context isolation, adoption, and accountability. | Describes agent-festival, a separate design context. Its host platform and reported schemas are not NGA implementation evidence. |
-| Owner-supplied local reference: `achitecture design/06-architecture-diagrams-md.md` | Views of management, control, execution, and a task's path through them. | Its concrete topology and mechanisms remain reference material. |
+| Owner-supplied local reference: `achitecture design/05-architecture-brief-and-decisions.md` | Workbench V0 baseline: capability contracts, execution structure, authority attenuation, context isolation, adoption, and accountability. | Describes agent-festival, a separate design context. Its host platform and reported schemas are not NGA implementation evidence; its pending decisions remain pending. |
+| Owner-supplied local reference: `achitecture design/06-architecture-diagrams-md.md` | Workbench V0 views of management, control, execution, and a task's path through them. | View-level continuity does not freeze topology, implementation, or S1/S2 integration. |
 
-The two local reference documents are not bundled with this document. Their transferable design ideas are summarized here; their unresolved decisions and implementation claims are not imported as NGA commitments.
+The two local reference documents are not bundled with this document. Their V0 organizing ideas are summarized here; their unresolved decisions and implementation claims are not imported as NGA commitments.
+
+The survey is a source of problem analysis, evidence, counterexamples, and research gaps. NGA does not equate reproducing published results with meeting its business objectives. New tasks must expose the missing properties and exclude shortcuts, rather than assume a literature recipe already solves the enterprise problem.
 
 The source materials differ on scheduling authority: survey section 2.2.2 places it in S2, while the work plan recommends a deterministic controller for one integration position and leaves the choice open. This design distinguishes **planning proposals** from **runtime authority to make them effective**. Section 10 retains the concrete scheduling arrangement as an open question.
 
@@ -43,7 +55,7 @@ These are the agreed direction and logical boundaries, not claims that the corre
 
 | ID | Principle | Consequence |
 | --- | --- | --- |
-| P1 | NGA's overall objective is an integrated S1 + S2 framework with decision idempotence and traceability. | Reproduction and model redesign serve the system objective. |
+| P1 | NGA pursues decision and business-result idempotence and traceability through three projects: decision models, S1 + S2 loops, and an enterprise workbench. | Model research and runtime design serve the enterprise objective; reproduction is part of project 1. |
 | P2 | S1's central requirements are decision consistency and business-configurable development. | A business specification must affect the basis of judgment; equivalent cases should remain equivalent under that specification. |
 | P3 | Semantic judgment, decision adoption, and execution are distinct. | A model output becomes effective only through an explicit framework-controlled adoption and execution process. |
 | P4 | Business and governance authority defines criteria, permissions, and exception handling. | S1 and S2 cannot grant themselves authority or silently rewrite the effective rules. |
@@ -52,6 +64,8 @@ These are the agreed direction and logical boundaries, not claims that the corre
 | P7 | The framework must distinguish semantic consistency, request idempotence, and action idempotence. | A cache, fixed threshold, or repeated model answer does not prove all three. |
 | P8 | Evaluation must exclude degenerate solutions and measure useful behavior. | Every invariance target has a discrimination counterpart and an accuracy floor. |
 | P9 | Concrete technology choices remain open. | Logical interfaces and acceptance requirements precede platform and implementation choices. |
+| P10 | Semantic gray areas must not become implicit model discretion. Project 3 owns semantic-specification management through knowledge engineering. | Undefined conventions, conflicts, and coverage gaps require explicit treatment; S1/S2 cannot silently complete business policy. |
+| P11 | Workbench V0 retains the prior enterprise architecture design, then incorporates S1 + S2 collaboration incrementally. | Preserve the baseline's organizing boundaries while reviewing and versioning subsequent changes. |
 
 “Business-configurable” is a capability to validate, not a promise that every natural-language rule is immediately supported without engineering or training.
 
@@ -65,6 +79,8 @@ These are the agreed direction and logical boundaries, not claims that the corre
 | Repeated-request idempotence | Repeating or recovering the same identified request reuses its adopted decision rather than silently reconsidering it. | Framework identity, adoption, and state management. | A changed request payload must not be accepted as the same unchanged request. |
 | Action idempotence | Retrying one identified business operation does not duplicate its effect. | Framework and the external resource or tool. | Cannot be guaranteed universally by the framework without support or reconciliation at the execution boundary. |
 | Traceability | Reconstruct which evidence and versions led to which observation, adoption, action, and outcome, and who was responsible. | Framework records and preserved artifacts. | Missing source snapshots cannot be repaired by a plausible model explanation. |
+
+**Business-result idempotence is the end-to-end objective across these properties:** repeating the same defined business operation must not silently alter its adopted outcome or create additional effects. Semantically equivalent cases should also receive consistent decisions, but they can still be distinct business operations; equivalence must not collapse two legitimate transactions into one. A stable but wrong result is not success.
 
 A decision may legitimately change when a material fact or applicable business rule changes. That change must be visible and justified as a new evaluation or revision. Historical decisions remain identifiable.
 
@@ -82,7 +98,7 @@ Exact fresh-inference replay may depend on unavailable environments or numerical
 
 | Participant | Owns | Produces | Does not acquire by model output alone |
 | --- | --- | --- | --- |
-| Business/governance authority | Business criteria, capability permissions, acceptance conditions, exception policies, and authorized overrides. | Published specifications and policies. | Model confidence cannot substitute for this authority. |
+| Business/governance authority, supported by project 3's knowledge engineering | Business criteria and semantic conventions, capability permissions, acceptance conditions, exception policies, and authorized overrides. | Reviewed, versioned specifications and policies, with owners and effective scope. | Model confidence cannot substitute for this authority. |
 | S1 | Applying a supplied question and level definitions to the supplied evidence. | Typed observations, score distributions, supported unknown outcomes, and applicable diagnostics. | Permission to execute, publish rules, or change authoritative state. |
 | S2 | Goal interpretation, task decomposition, reasoning, evidence requests, proposed plans, and proposed revisions. | Plans, question requests, action proposals, and explanations or revision rationales. | Permission to bypass adoption, increase its authority, or overwrite adopted records. |
 | Framework | Contract validation, context delivery, invocation, adoption, runtime scheduling, state transitions, execution admission, recovery, and recording. | Effective decisions, admitted actions, execution states, and trace records. | Authority beyond the governing policy or capabilities actually granted. |
@@ -118,13 +134,25 @@ flowchart TB
 
 The diagram shows responsibility boundaries. It does not select a loop, graph engine, messaging protocol, or physical topology.
 
+### 5.4 Workbench V0 and the collaboration design
+
+| V0 view | Role retained from the enterprise design | Incremental NGA work |
+| --- | --- | --- |
+| **Management** | Capability catalog and publication, business policy, review, and accountability access. | Project 3 adds the semantic-specification lifecycle: terms, rules, examples, unresolved cases, ownership, versions, and impact review. |
+| **Control** | Task admission, authority and resource bounds, verification/adoption gates, and recorded state transitions. | Project 2 defines how S1 observations and S2 plans are admitted, revised, adopted, and recovered; the framework retains effective control. |
+| **Execution/data** | Capability/model/tool invocation, bounded context, intermediate results, and execution events. | Integrate measured S1 judgment capabilities and S2 reasoning at selected points without granting either model control over authoritative policies or adoption history. |
+
+These are views of responsibilities, not three prescribed services. The baseline's deterministic control boundary governs authority and state transitions; it does not imply that all business semantic judgment can be replaced by code. Model observations can affect decisions only through the published adoption contract.
+
+V0 need not wait for the final S1 + S2 design. Subsequent revisions can introduce a measured S1 insertion point, adapt the loop, and revise workbench workflows while preserving traceability. The first insertion point and its acceptance criteria remain open.
+
 ## 6. Proposed logical interfaces
 
 These information requirements are a starting point for interface design, not a frozen API or serialization schema.
 
 | Object | Required information | Producer/consumer boundary |
 | --- | --- | --- |
-| **Business judgment specification** | Question identity and version; level names, definitions and type; candidate-set semantics; examples; supported scope; treatment of missing/conflicting evidence. | Business authors publish; S1 reads; S2 can propose drafts or approved template instances; the framework validates and resolves versions. |
+| **Business judgment specification** | Question identity and version; terms, units and temporal conventions; level names, definitions and type; candidate-set semantics; precedence, coverage and exception rules; examples; supported scope; owner and effective scope. | Project 3's knowledge workflow supports authorized business publication; S1 reads; S2 can propose drafts or approved template instances; the framework validates and resolves versions. |
 | **Capability contract** | Input/output obligations; required authority; effects; resource bounds; verification and approval requirements. | Capability authors declare; governance approves; framework admits; S2 plans against available capabilities. |
 | **Evidence/context snapshot** | Source identity and retrievable version or preserved content; relevant time; visibility; provenance; distinction between source facts, reported history, and model inference. | Framework assembles from admitted sources; S1/S2 consume bounded views. |
 | **Plan or plan revision** | Goal; requested capabilities; dependencies; question/template references; evidence needs; proposed actions; stop/exception conditions; relation to prior plan. | S2 or an authorized author proposes; framework validates, adopts, and schedules. |
@@ -139,6 +167,32 @@ S1 values are model observations. Their interpretation as calibrated probabiliti
 Questions generated by S2 should use approved, versioned templates and declared slots. New question definitions or changed decision semantics enter an explicit specification-version process. The exact allowed runtime variation remains open.
 
 The current model proposal uses `boolean | nominal | ordinal` levels, `exclusive | stackable` candidate sets, and task definition → input → candidate branches. Existing experiments retain their registered rendering, operator, and threshold rules. This document introduces no replacement operator.
+
+### 6.1 Knowledge engineering and explicit semantic boundaries
+
+**Ownership is established; the workflow below is proposed.** Project 3 manages the conversion of human business requirements into maintained semantic specifications. The goal is to remove implicit discretion at the decision boundary, not to claim that all real-world uncertainty can be eliminated or that a model will detect every ambiguous case.
+
+A specification should make the following explicit:
+
+- Terms, measurement units, evidence sources, reference time, and time-window conventions.
+- Predicate boundaries, rule precedence, exclusions, and the scope of each condition.
+- Covered cases, declared defaults, conflicts, and cases requiring further definition.
+- Output states and the permitted action for each; missing evidence or an undefined rule is not automatically a negative business answer.
+- Examples and counterexamples, including boundaries, equivalent cases, competing rules, and unresolved cases.
+- Ownership, review authority, version, effective scope, change rationale, and links to impacted tasks, datasets, and decisions.
+
+A proposed lifecycle is **draft → identify gaps/conflicts → obtain the business owner's convention → validate with cases → publish a version → monitor and revise**. S2 may assist with drafts and counterexamples. Neither S2 nor a synthetic-data generator becomes the authority for an unstated convention. Full knowledge tooling belongs to project 3; project 1 still needs reviewed task semantics to generate defensible labels.
+
+| Condition | Required distinction | Logical handling |
+| --- | --- | --- |
+| Ambiguous, conflicting, or uncovered specification | The business meaning is not settled. | Record a semantic issue for the authorized knowledge/business owner; apply only an already declared exception path. |
+| Missing or conflicting evidence | The rule may be clear, but its facts are not established. | Request admissible evidence or use the published unresolved-case path. |
+| Model cannot reliably apply a settled rule to supplied evidence | Capability is insufficient for this case. | Use a validated alternative, bounded S2 assistance, or review under the contract. |
+| Invocation or execution failure | A technical result or external effect is unresolved. | Follow the framework's error/reconciliation path; do not reinterpret failure as a business judgment. |
+
+These are logical distinctions, not a frozen status enumeration. Project 1 evaluates whether the model respects specified unresolved outcomes and decision boundaries; project 2 preserves and routes them; project 3 manages the conventions and resolution workflow. A confidence threshold alone cannot certify that a specification is complete.
+
+The owner's illustrative credit rules show why this matters: assets above 30 million with no overdue loan in the past six months imply USD 50,000 credit; assets below 1 million imply USD 10,000; the historical "more than three months overdue" condition overrides both and denies credit. Turning this example into a task requires explicit asset units and valuation, the exact historical-overdue duration convention, time-window boundaries, and treatment of assets at the cutoffs or between the bands. The six-month condition was attached to the upper band, so it must not silently be added to the lower band. These gaps remain specification questions, not model-authored defaults or finalized lending policy.
 
 ## 7. Proposed adoption, execution, and recovery behavior
 
@@ -202,6 +256,8 @@ Traceability depends on observable evidence and recorded decisions; it does not 
 
 Business outcomes can support evaluation and threshold review. Delayed, selective outcomes for a whole decision do not automatically supply causal labels for every intermediate S1 observation. Changes to model or decision-policy versions follow evaluation and publication controls rather than silent online mutation.
 
+Project 3's resolved semantic issues can yield new specification versions and reviewed examples for project 1, and updated contracts for project 2. A later convention must not retroactively relabel historical decisions without an explicit re-evaluation. Synthetic labels need provenance back to the specification and labeling procedure; unreviewed generated answers are not business ground truth.
+
 ## 9. Validation approach
 
 This section identifies acceptance questions. It sets no new numerical thresholds or equivalence classes and authorizes no run. Experiment-specific metrics, samples, splits, thresholds, and decision lines must be registered before measurement.
@@ -231,7 +287,13 @@ Framework acceptance cases implement the system constraints in sections 3-8; the
 | Historical reconstruction | Recover the original adoption from preserved dependencies without live side effects. | Missing dependencies produce an explicit reconstruction limit. |
 | S1/S2 integration | Compare success, cost per successful outcome, latency, recovery, and trace completeness against the agent-loop baseline. | Include appropriate deterministic/no-model controls and scenarios needing S2 adaptation. |
 
-Reproduction must distinguish recipe replication, benchmark comparison, and native typed-readout reproduction. The current R0 scorer erratum and R3 scope restrictions continue to apply. G1/G2/G3 remain research gates, not proof of overall framework readiness.
+Reproduction must distinguish recipe replication, benchmark comparison, and native typed-readout reproduction. The current R0 erratum and R3 scope restrictions continue to apply; the 2026-10-30 experiment amendment withdrew the padding diagnosis and identified bf16 batch-composition noise as the outstanding comparison issue. G1/G2/G3 remain research gates, not proof of overall framework readiness.
+
+### 9.3 Enterprise semantics and workbench acceptance
+
+Project 3 must demonstrate that an ambiguous or incomplete draft cannot silently become effective decision policy, that declared unresolved cases follow their intended route, and that published conventions have an accountable owner and version. Changing a rule should expose affected tasks and evidence for review while preserving the original decisions. Include complete, valid specifications as counterparts so that rejecting every specification cannot pass.
+
+Model and data work should test held-out rule families, competing definitions over the same state, and missing-rule versus missing-evidence cases. Data diversity must include business definitions, not just many examples from a fixed generator grammar. These are task-design requirements to take into the research process; the existing registered protocols are unchanged.
 
 ## 10. Open questions and decisions to make
 
@@ -242,19 +304,23 @@ These are unresolved. Examples are alternatives to evaluate, not selected defaul
 | O1 | What business scenario and operation scope define the first idempotence contract? | Concrete tasks, material facts, irreversible effects, failure/retry cases, and an accountable owner. |
 | O2 | How much planning and scheduling may S2 change automatically within an admitted scope? | Compare adaptation, determinism, recovery, and review burden under explicit change envelopes. |
 | O3 | Where does S1 first enter the system: monitoring, evidence selection, routing, intermediate-state evaluation, or final readout? | Workload-specific paired capability and end-to-end results; confidence alone is insufficient. |
-| O4 | Which rules can be evaluated directly, which require decomposition or deterministic computation, and which require S2? | Executability categories and held-out counterexamples with accuracy floors. |
+| O4 | Which rules can be evaluated directly, which require decomposition or deterministic computation, and which require S2? | Executability categories and held-out counterexamples with accuracy floors; preserve semantic interpretation as an explicit capability under test. |
 | O5 | What is the request/evaluation/action identity scheme, and when does a decision expire or reopen? | Business identity and version semantics, freshness requirements, and concurrent-change examples. |
 | O6 | Which thresholds, unknown outcomes, escalation conditions, and human overrides apply? | Registered costs, validation data, coverage requirements, and risk-specific exception policies. |
 | O7 | What execution structure and enforcement boundaries meet these contracts? | Failure and bypass cases for candidate loop/graph/workflow organizations, delegation, and resource admission. |
 | O8 | What context can be shared, when, and with which provenance? | Cases comparing isolation, independent verification, controlled publication, and cooperative sharing. |
 | O9 | What reconstruction period and artifact retention are required? | Availability, access, accountability, and reconstruction acceptance requirements. |
-| O10 | Which implementation language, runtime, storage, model architecture, authorization mechanism, or protocol fits? | Decisions on O1-O9, integration constraints, and measured prototypes. |
+| O10 | Which implementation language, runtime, storage, model architecture, authorization mechanism, or protocol fits? | Business and interface decisions, integration constraints, and measured prototypes; choices remain open. |
+| O11 | How should project 3 author, check, approve, publish, and revise semantic specifications? | Business-owner workflow, conventions and coverage examples, unresolved-case handling, change impact, and release/consumption contracts with projects 1 and 2. |
+| O12 | Which V0 capability and S1 insertion point should anchor the first integrated iteration? | A bounded workbench workflow, available Jev capability evidence, explicit S1/S2/framework boundaries, and a comparison against the existing agent loop. |
 
 Recording an answer requires its rationale, evidence, affected principles/interfaces, and version impact. Changes to registered experiments still follow their amendment process.
 
 ## 11. Next design artifact
 
-Select one bounded business case and describe its judgment specification, capability contract, evidence snapshot, S2 plan, S1 observations, adoption conditions, and external operation.
+Select one bounded business case and describe its judgment specification, capability contract, evidence snapshot, S2 plan, S1 observations, adoption conditions, and external operation. The credit-rule example in section 6.1 is a candidate once its unresolved conventions are settled by the business owner.
+
+Use this case to produce three connected artifacts: a project 1 task/data/evaluation definition, a project 2 collaboration trace and control contract, and a project 3 V0 workbench flow with semantic authoring and exception resolution. Keep proposed mechanisms distinct from the principles already agreed.
 
 Walk it through unchanged repetition, changed evidence, changed rule, concurrent submission, interrupted execution, revoked authority, and reconstruction. Use the resulting conflicts to refine the logical interfaces before freezing schemas or choosing technologies.
 
