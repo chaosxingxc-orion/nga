@@ -30,6 +30,7 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E3](E3-k0-readout-precondition.md) | the precondition for reading K0: c32 composition control, realized-call replay, provenance re-score with counterpart | R3 round 1 | completed CLEAN; independent Astra review not claimed |
 | [E6](E6-reference-inference-20261030.md) | native Kev-0.8B inference compatibility on Ascend | reference evaluation | two development records completed; full test evaluation pending |
 | [E7](E7-reference-kev-test-20261030.md) | automatic native Kev-0.8B inference on decision-v7 and transfer-v4 test | reference evaluation | complete; main metrics independently recomputed; Astra review pending |
+| [E8](E8-reference-kev-scale-probe-20261030.md) | native Kev-4B development compatibility and efficiency probe | reference evaluation | four development records completed; 9B not run |
 
 ## Where the artifacts live
 
