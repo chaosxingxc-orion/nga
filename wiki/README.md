@@ -36,7 +36,7 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E11](E11-reference-kev9-probe-20261030.md) | native Kev-9B development compatibility and efficiency | reference evaluation | four records completed after preserving a failed premature launch |
 | [E12](E12-reference-kev9-test-20261030.md) | native Kev-9B on decision-v7 and transfer-v4 test | reference evaluation | complete; 2,204 questions and scoped independent audit verified |
 | [E13](E13-openjev2-native-probe-20261030.md) | native Open-Jev-2B typed synthetic compatibility | reference evaluation | three synthetic requests completed; public test not yet run |
-| [E14](E14-openjev2-public-test-20261030.md) | native Open-Jev-2B on 10,356 public test rows | reference evaluation | complete length preflight passed; full inference launched on 175 chip 2 |
+| [E14](E14-openjev2-public-test-20261030.md) | native Open-Jev-2B on 10,356 public test rows | reference evaluation | complete inference and scoped audit; perfect hard subset and four-row subset retain review flags |
 | [E15](E15-openjev-independent-finish-20261030.md) | independent Open-Jev metric audit and automatic finish | engineering | CPU waiter launched; whole-test audit awaits inference completion |
 | [E16](E16-nimble-native-probe-20261030.md) | restored initial Nimble native candidate-token readout | engineering | eight synthetic outputs completed; exact public-test restoration completed in E19 |
 | [E17](E17-openjev9-native-probe-20261030.md) | native Open-Jev-9B typed compatibility | engineering | three synthetic fixtures completed and verified |
@@ -48,7 +48,7 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E23](E23-openjev-original-data-restoration-20261030.md) | exact original Open-Jev split restoration | data restoration | completed; five original split hashes match; inference not implied |
 | [E24](E24-openjev-original-test-supplement-20261030.md) | original Open-Jev test supplement and exact join | reference evaluation | CPU dependency queue running; component review flags preserved; supplement awaits public completion |
 | [E25](E25-nimble-reference-rerun-20261030.md) | Nimble rerun with complete dependency freeze | reference evaluation | 1,884 rows and independent audit complete; 152 frozen / 150 required dependencies; no review flags |
-| [E26](E26-typed-common-reference-20261030.md) | Typed Decisions common reference interface | engineering / reference evaluation | three Kev formal test runs and independent CPU finishers launched at 17:37 UTC after native probes and implementation checks |
+| [E26](E26-typed-common-reference-20261030.md) | Typed Decisions common reference interface | engineering / reference evaluation | three Kev full 2,000-question runs and independent audits complete; zero review flags |
 | [E27](E27-kev-checkpoint-binding-audit-20261030.md) | independent checkpoint temperature and publication binding | engineering audit | nine completed Kev runs verified within stated scope |
 | [E28](E28-typed-nimble-reference-20261030.md) | initial Nimble on Typed Decisions | engineering / reference evaluation | full CPU preflight complete: 400 states / 2,000 prompts, maximum 1,312 tokens; model inference pending |
 

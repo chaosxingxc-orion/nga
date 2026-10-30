@@ -82,3 +82,21 @@ This is a launch record; complete test metrics and independent verification rema
 ## Verdict
 
 Pending. No new training or locked NGA candidate tests are authorized by this entry.
+
+2026-10-30 17:41 UTC completion update: v3 completed all 10,356 rows at 17:38:54,
+wrapper rc=0 at 17:38:57; retained inference and independent CPU finisher containers
+both exited 0. Independent audit verified 90 frozen / 89 required dependencies and
+all row identities, and recomputed the serving and T1 metrics. Status remains
+`COMPLETED_SCOPED_REVIEW_REQUIRED`: customer-control-v1 hard accuracy is exactly 1,
+and trex_runner-v1 contains only four rows. Bounded diagnosis is pending; neither
+flag is erased by the successful artifact checks.
+
+Hard accuracy: 94.917459% over 9,995 hard rows; expected accuracy: 93.004745% over
+all 10,356 rows. Serving / T1 NLL: .161449973 / .180290211; soft-target Brier:
+.071997176 / .076675304; expected Brier: .091447598 / .096125726; ECE15 with
+expected correctness: .011064231 / .024299533. These are the public projection,
+not the full original test. E24 automatically launched the separate 176-row
+supplement after dependency verification; its final joined result is still pending.
+
+Report SHA256 `fb1083b51963c4e06621fae50f4ad9f2f3132a7d24a23cd84dcfef649c635b7a`;
+audit SHA256 `051c99d8cad8c9fb40f62ab914d4324b401cb4611ae055af21eeba376ba27702`.

@@ -101,7 +101,22 @@ binary Brier 仅针对 true 概率；multiclass Brier 对 false／true 两维求
 
 与上游公共表的一位小数相比，英语 MASSIVE 与 PAWS 相符；德语 84.0% 对 83.4%，Civil 70.0% 对 70.3%，Aegis 81.6% 对 81.2%，SummEval consistency 75.0% 对 75.7%，relevance 48.75% 对 49.2%。上游显示值有舍入，完整差异、上游 ECE／Brier／MAE 与验收边界见 [Nimble 复测报告](NIMBLE-REFERENCE-RESULTS-2026-10-30.md)；不得由接近总分推断逐题完全相同。
 
+## 17:41 UTC：Open-Jev-2B 公共 test 推理与独立重算完成
+
+完整覆盖公共投影 10,356 行（9,995 hard／361 soft）；推理、验收器均 exited/0，90 个冻结文件覆盖全部 89 个必需依赖，逐行身份与计分独立复核通过。状态保留 `COMPLETED_SCOPED_REVIEW_REQUIRED`：customer-control-v1 的 hard accuracy 为 1.0，trex_runner-v1 仅 4 行，正在定向核查。下表不是原始完整 10,532 行 test 的成绩；E24 已自动接续 176 行补测，待按原身份合并后另列完整表。
+
+| 温度口径 | hard accuracy %（n=9,995） | expected accuracy %（n=10,356） | NLL | soft-target Brier | expected Brier | ECE15 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 原生 T=1.518796342858676 | 94.917459 | 93.004745 | .161449973 | .071997176 | .091447598 | .011064231 |
+| raw T=1 | 94.917459 | 93.004745 | .180290211 | .076675304 | .096125726 | .024299533 |
+
+NLL／Brier／expected Brier／ECE 均使用全部 10,356 行；expected Brier 在 soft-target Brier 上加目标分布不可约项 `1−Σq²`，ECE15 使用目标质量定义的 expected correctness。不能与 Kev 的 one-hot Brier／ECE10 混为同口径。来源与哈希见 [E14](../wiki/E14-openjev2-public-test-20261030.md)；未获实质 Astra 放行，不宣称新训练收益。
+
 ## 1. 能直接回答什么
+
+**17:48 UTC 完整原 test 追加：** E24 自动完成 Open-Jev-2B 的 176 行补测及身份合并。原始 10,532 行上，本地 hard accuracy **94.634680%（9,507／10,046）**，expected accuracy **91.876577%**；上游 hard 为 9,515／10,046，保留少 8 题的差异。温度分表、原公式与审查标记见[完整原 test 结果](OPENJEV-ORIGINAL-TEST-RESULTS-2026-10-30.md)。9B、OOD 与共同测试不由这一结果替代。
+
+**17:44 UTC 共同测试追加：** Kev-0.8B／4B／9B 在相同 Typed Decisions 2,000 问题上均已完成独立验收，accuracy 为 **45.95%／66.45%／68.05%**。服务温度和 raw T=1 的 KL／soft Brier／ECE10、题型分项及哈希见[共同测试结果](TYPED-REFERENCE-RESULTS-2026-10-30.md)。Nimble、Open-Jev 的对应推理仍待完成，不将此表写成六模型完整比较。
 
 现有镜像包括 24 个数据仓库和 42 个模型目录；部分参考模型只有上游结果，没有本地 checkpoint。已存在足够多的 test 证据来比较准确率、概率质量、成对全部正确、扰动敏感性和成本边界，暂不需要先训练 NGA 模型才能形成参考表。
 

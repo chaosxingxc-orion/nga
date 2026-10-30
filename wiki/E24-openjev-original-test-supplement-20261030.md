@@ -68,6 +68,16 @@ Retained CPU controller `nga-openjev-original-test-queue` was launched, ID
 Its plan SHA256 is `e42b87f44da235bc9cb8800cdc822e60b20c01ce6ab7659c12f16d5d88c0552d`;
 all 19 queue frozen inputs were rechecked after launch. The actual Docker identity,
 image, command, CPU-only mapping and wrapper hash are in `LAUNCH_RECEIPT.json`.
+
+17:48 UTC verified update: the queue actually completed the 2B path. Public
+inference was independently checked, the retained 176-row supplement container
+`f6f621435fdc767c3a598af4c1e8284441544ad7f9e14336f3e86d6087951554`
+completed exited/0, and the exact 10,532-row join finished at 17:42:33 UTC.
+Hard correct is 9,507/10,046 (94.634680%); expected accuracy is 91.876577% over
+all 10,532. The original component flags propagate and keep REVIEW_REQUIRED.
+Detailed original-test comparison, temperatures and hashes are in
+[the results](../experiments/OPENJEV-ORIGINAL-TEST-RESULTS-2026-10-30.md).
+9B remains waiting for its public run. The queue as a whole is not complete.
 At 16:50:06 both sizes were `waiting_public`. Supplement inference and full-test
 metrics remain pending; CPU queue launch is not their completion. Existing public
 runs and their chip ownership remain unchanged until the guarded dependency transfer.

@@ -112,3 +112,11 @@ Outputs: `reference_inference/typed_kev{08,4,9}_inference_20261030/`, with sibli
 `_finish/` CPU audit directories. This admission is a bounded implementation review,
 not substantive Astra approval. The completed tests comprise 35 driver/verifier
 chain checks and 9 launcher checks; 7 separate Nimble adapter tests also passed.
+
+17:44 UTC completion: all three formal 400-state / 2,000-question runs and CPU
+audits completed. Both retained containers per size and both wrappers exited 0;
+all audits are `COMPLETED_SCOPED` with zero flags. Exact output hashes were checked
+against terminal/audit bindings. Overall accuracy is 45.95% / 66.45% / 68.05%;
+serving and T1 probability panels, typed breakdown and provenance are recorded in
+[the common-test results](../experiments/TYPED-REFERENCE-RESULTS-2026-10-30.md).
+These are reference measurements, not new training gains or substantive Astra approval.
