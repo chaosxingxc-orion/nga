@@ -40,6 +40,9 @@ Rules of engagement:
   doing it; the allocation above is for anything larger.
 - Evaluation, feedback and "what to optimize next" always come from Fable; Opus applies the
   optimization guidance, Sonnet implements and verifies the resulting changes.
+- If the main session runs on another model (for example after `/model`), review and decisions are
+  still Fable's: spawn an Agent with `model: "fable"` for every adversarial review, result acceptance
+  and go/no-go call, hand it the artifacts rather than your own conclusion, and act on its verdict.
 
 ## 3. What this repository is
 
@@ -144,3 +147,23 @@ Rules:
   a metric identical across every cell, or a cell below the minimum sample count. This project has
   twice produced a perfect number that came from the measurement being broken rather than the model
   being good, so a clean zero is a reason to look harder, not to celebrate.
+
+## 8. Experiment records (wiki)
+
+Every experiment is recorded in `wiki/`, one file per experiment, and pushed to `origin/main`
+(`wiki/README.md` holds the rule and the index, `wiki/TEMPLATE.md` the sections).
+
+- Purpose, hypothesis and setup are written **before** the run launches; results and verdict after,
+  from the run's own report files. Corrections are dated notes, never silent edits.
+- The pre-registration files under `experiments/` stay normative for metrics, splits and thresholds.
+- Every subagent brief that launches a run includes the wiki-entry requirement.
+
+## 9. Training performance
+
+Training performance is monitored and optimized continuously. An engineering-efficiency problem is
+fixed before the training or evaluation it slows is launched.
+
+- Every throughput figure is per chip with the chip count stated, plus reserved memory.
+- Each training run's heartbeat carries its per-chip throughput, so the watchdog digest shows it.
+- A speedup may change speed only: loss and gradients must stay within the measured bf16 noise floor,
+  otherwise it needs a pre-registration amendment first.
