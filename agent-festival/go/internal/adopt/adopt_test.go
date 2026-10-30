@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -1118,5 +1119,102 @@ func TestReturnedEventsDoNotAliasPin(t *testing.T) {
 			}
 			t.Fatalf("event %d (%s) accountability = %q — the returned event aliased the machine's pin", i, e.Outcome.Status, got)
 		}
+	}
+}
+
+// TestOpenRejectsNoIdemBypass is the R10 BLOCKER regression: the machine
+// writes idempotency on every non-conflict event, and the replay skips
+// nil-idempotency events — absorbing a no-idem bypass file forks the
+// machine's state from the durable form and its next write bricks the
+// ledger (re-adopting the op, or re-writing a transition the file already
+// records).
+func TestOpenRejectsNoIdemBypass(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-ni", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	events, _ := m.Events()
+	// form 1: adopted event with idempotency stripped
+	stripped := events[0]
+	stripped.Idempotency = nil
+	line, err := json.Marshal(stripped)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, append(append([]byte{}, line...), '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err == nil {
+		t.Fatal("adopted event without idempotency was absorbed at load — replay would fork and re-adopt the op")
+	}
+	// form 2: a legal chain whose effect event lost its idempotency
+	effect := events[0]
+	effect.EventType = "effect"
+	effect.ArbitrationSeq = 1
+	effect.Outcome = ledger.Outcome{Status: string(StateDispatched)}
+	effect.GrantsAtDecision = nil
+	effectLine, err := json.Marshal(effect)
+	if err != nil {
+		t.Fatal(err)
+	}
+	noIdem := effect
+	noIdem.Idempotency = nil
+	noIdemLine, err := json.Marshal(noIdem)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := json.Marshal(events[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(string(first)+"\n"+string(noIdemLine)+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err == nil {
+		t.Fatal("effect event without idempotency was absorbed at load — replay would ignore the recorded transition")
+	}
+	// control: the intact chain loads
+	if err := os.WriteFile(path, []byte(string(first)+"\n"+string(effectLine)+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err != nil {
+		t.Fatalf("intact chain rejected: %v", err)
+	}
+}
+
+// TestCounterExhaustionRefusesWrites is the R10 MAJOR regression: a loaded
+// seq of MaxInt64 is legal for every check rule, but the machine's next
+// write would wrap negative and brick the file against its own schema — at
+// exhaustion every write is refused cleanly instead.
+func TestCounterExhaustionRefusesWrites(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-ex", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	events, _ := m.Events()
+	maxed := events[0]
+	maxed.ArbitrationSeq = math.MaxInt64
+	line, err := json.Marshal(maxed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, append(append([]byte{}, line...), '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m2, err := Open(path)
+	if err != nil {
+		t.Fatalf("maxed-seq file rejected at load: %v", err)
+	}
+	if o := m2.Dispatch("op-ex", pinGrants()); o.Status != "rejected" {
+		t.Fatalf("dispatch at exhausted counter = %q, want rejected: %s", o.Status, o.Detail)
+	}
+	if o := m2.Adopt(testRequest("op-ex2", digestA, pinGrants())); o.Status != "rejected" {
+		t.Fatalf("adopt at exhausted counter = %q, want rejected: %s", o.Status, o.Detail)
+	}
+	// nothing was written — the file still loads cleanly afterwards
+	if _, err := Open(path); err != nil {
+		t.Fatalf("file bricked after refused writes: %v", err)
 	}
 }

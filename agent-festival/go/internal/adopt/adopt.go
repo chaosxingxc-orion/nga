@@ -36,8 +36,10 @@ package adopt
 import (
 	"bytes"
 	"crypto/sha256"
+
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"sync"
@@ -93,6 +95,18 @@ type Machine struct {
 	ops  map[string]*opState // keyed by operation_id
 	seq  int64               // last arbitration sequence written (0-based)
 	path string              // append-only JSONL file ("" = in-memory only)
+}
+
+// seqExhausted reports whether the arbitration counter's int64 domain has
+// no write headroom left: a file loaded with seq == MaxInt64 is legal for
+// every check rule, but the machine's next m.seq+1 would wrap negative and
+// the durable form's schema (minimum 0) would reject the file forever after
+// — the machine writing a file its own loader refuses. At exhaustion every
+// write is refused cleanly (R10 MAJOR).
+const seqExhaustedMsg = "arbitration counter exhausted — the durable form's sequence domain is full, refusing to write rather than wrap"
+
+func (m *Machine) seqExhausted() bool {
+	return m.seq == math.MaxInt64
 }
 
 // opState is the in-memory projection of one operation's events. Every field
@@ -179,7 +193,10 @@ type parsedLine struct {
 // remnant at EOF WITHOUT a trailing newline, the exact shape a crash
 // between 'write full content' and 'rename' leaves. Any other unparseable
 // line (mid-file, or newline-terminated), or a line whose JSON parses but
-// whose fields do not fit the event type, is a bypass or corruption: an
+// whose fields do not fit the event type, is a bypass or corruption (empty
+// lines — zero-byte segments anywhere — are the one other tolerated
+// non-event content, carrying no audit data and healing away on rewrite):
+// an
 // append-only audit ledger must not silently drop (and the next append must
 // not silently erase) audit data — it fails (R4 M2). This is the ONE
 // boundary definition for the durable form — the loader, the load-time
@@ -305,6 +322,9 @@ func (m *Machine) Adopt(req *Request) Outcome {
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.seqExhausted() {
+		return Outcome{Status: "rejected", Detail: seqExhaustedMsg}
+	}
 	op := req.Identity.OperationID
 	if st, ok := m.ops[op]; ok {
 		if st.digest != req.PayloadDigest {
@@ -314,7 +334,7 @@ func (m *Machine) Adopt(req *Request) Outcome {
 				ArbitrationSeq: m.seq + 1,
 				Identity:       req.Identity,
 				Versions:       req.Versions,
-				Accountability: req.Accountability,
+				Accountability: copyAccountability(req.Accountability),
 				Outcome:        ledger.Outcome{Status: "conflict", Detail: detail},
 			}
 			if err := m.append(ev); err != nil {
@@ -329,7 +349,7 @@ func (m *Machine) Adopt(req *Request) Outcome {
 			Identity:       req.Identity,
 			Versions:       req.Versions,
 			Idempotency:    &ledger.Idempotency{OperationID: op, PayloadDigest: req.PayloadDigest},
-			Accountability: req.Accountability,
+			Accountability: copyAccountability(req.Accountability),
 			Outcome:        ledger.Outcome{Status: "reused", Detail: "retry under the same key and digest"},
 		}
 		if err := m.append(ev); err != nil {
@@ -352,11 +372,9 @@ func (m *Machine) Adopt(req *Request) Outcome {
 		Identity:         req.Identity,
 		Versions:         req.Versions,
 		Idempotency:      &ledger.Idempotency{OperationID: op, PayloadDigest: req.PayloadDigest},
-		GrantsAtDecision: req.GrantsAtDecision,
+		GrantsAtDecision: copyGrants(req.GrantsAtDecision),
+		Accountability:   copyAccountability(req.Accountability),
 		Outcome:          ledger.Outcome{Status: string(StateAdopted), Detail: "adopted by the gate"},
-	}
-	if req.Accountability != nil {
-		ev.Accountability = req.Accountability
 	}
 	if err := m.append(ev); err != nil {
 		return Outcome{Status: "rejected", Detail: "ledger append failed: " + err.Error()}
@@ -429,6 +447,9 @@ func (m *Machine) finish(op string, to State, detail string) Outcome {
 }
 
 func (m *Machine) commit(st *opState, to State, detail string) Outcome {
+	if m.seqExhausted() {
+		return Outcome{Status: "rejected", Detail: seqExhaustedMsg}
+	}
 	ev := &ledger.Event{
 		EventType:      "effect",
 		ArbitrationSeq: m.seq + 1,

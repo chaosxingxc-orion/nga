@@ -9,13 +9,14 @@ never crossing the event-type boundary, the grant pin riding the adopted
 event only, and the single-writer event-sequence grammar (each operation
 opens with exactly one adopted event and its effect events follow the
 machine's transition DAG). Aggregation contract: the code-rule families
-aggregate in the same order on both sides; the Go checker short-circuits
-at exactly three points (schema, float-syntax, typed-view parse) where
-this oracle appends and continues — so error-set composition may differ on
-documents violating those, and invalid fixtures are single-violation by
-discipline (the one designed exception: effect-before-adoption is one
-bypass fact that legitimately trips both the grammar and the transition
-table, identically on both sides). The verdict never differs.
+aggregate in the same order on both sides; both checkers short-circuit at
+the schema, and the Go checker additionally short-circuits at the
+float-syntax and typed-view-parse points where this oracle appends and
+continues — so error-set composition may differ on documents violating
+those two, and invalid fixtures are single-violation by discipline (the
+one designed exception: effect-before-adoption is one bypass fact that
+legitimately trips both the grammar and the transition table, identically
+on both sides). The verdict never differs.
 Fixtures follow the base's pin discipline: valid must be accepted, invalid
 must be rejected for the reason its _expect_match names.
 
@@ -144,6 +145,19 @@ def ledger_errors(doc: dict) -> list[str]:
             continue
         if e["outcome"].get("status") == "adopted":
             state[op] = "adopted"
+    # cross-event rule: idempotency presence — the machine writes
+    # idempotency on every event except conflict (the loser's digest never
+    # enters the registry); an adopted/reused/effect event without it is a
+    # bypass write, and absorbing one forks the replay state away from the
+    # durable form (R10 BLOCKER, mirrors the Go checker)
+    for i, e in enumerate(doc["events"]):
+        status = e.get("outcome", {}).get("status", "")
+        needs_idem = e["event_type"] == "effect" or status in ("adopted", "reused")
+        if needs_idem and not e.get("idempotency"):
+            errs.append(f"events/{i}: {e['event_type']} event (status {status!r}) must carry "
+                        f"idempotency — the machine writes it on every non-conflict event; its "
+                        f"absence is a bypass write, not a machine transition")
+
     # cross-event rule: the key coupling — the machine writes
     # idempotency.operation_id and identity.operation_id EQUAL on every event
     # carrying idempotency; a mismatch registers a phantom operation the
@@ -237,6 +251,13 @@ def check_lockstep() -> list[str]:
 def main() -> int:
     ex = HERE / "examples" / "ledger"
     bad = _suite.run_suite("ledger", ex / "valid", ex / "invalid", ledger_errors)
+    # D93 count-floor (the Go twin lives in cmd/ledger/main_test.go): a
+    # corpus that shrank without its pin rebased must fail here too
+    n_valid = len(list((ex / "valid").glob("*.json")))
+    n_invalid = len(list((ex / "invalid").glob("*.json")))
+    if (n_valid, n_invalid) != (9, 24):
+        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 9+24 (corpus shrank?)")
+        bad += 1
     for e in check_status_lockstep() + check_lockstep():
         print(f"[ledger] FAIL {e}")
         bad += 1

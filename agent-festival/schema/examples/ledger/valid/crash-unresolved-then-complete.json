@@ -71,6 +71,10 @@
         "session": "sess-1",
         "skill": "skill-credit",
         "role": "employee"
+      },
+      "idempotency": {
+        "operation_id": "op-credit-4",
+        "payload_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       }
     },
     {
@@ -96,6 +100,10 @@
         "session": "sess-1",
         "skill": "skill-credit",
         "role": "employee"
+      },
+      "idempotency": {
+        "operation_id": "op-credit-4",
+        "payload_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       }
     }
   ],

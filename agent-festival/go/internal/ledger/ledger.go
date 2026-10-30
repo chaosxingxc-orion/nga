@@ -218,15 +218,17 @@ type Document struct {
 // events carry no grants_at_decision (the pin rides the adopted event
 // only); idempotency.operation_id equals identity.operation_id on every
 // event carrying idempotency; and each operation's effect events follow the
-// machine's own transition DAG in file order. Aggregation contract: the
-// code-rule families aggregate in the same order on both sides; this
-// checker short-circuits at exactly three points (schema, float-syntax,
-// typed-view parse) where the Python oracle appends and continues — so
-// error-set composition may differ on documents violating those, and
-// invalid fixtures are single-violation by discipline (the one designed
-// exception: effect-before-adoption is one bypass fact that legitimately
-// trips both the grammar and the transition table, identically on both
-// sides). The verdict never differs. The monotonicity
+// machine's own transition DAG in file order; idempotency rides every
+// event except conflict. Aggregation contract: the
+// code-rule families aggregate in the same order on both sides; both
+// checkers short-circuit at the schema, and this checker additionally
+// short-circuits at the float-syntax and typed-view-parse points where the
+// Python oracle appends and continues — so error-set composition may
+// differ on documents violating those two, and invalid fixtures are
+// single-violation by discipline (the one designed exception:
+// effect-before-adoption is one bypass fact that legitimately trips both
+// the grammar and the transition table, identically on both sides). The
+// verdict never differs. The monotonicity
 // check assumes the map input was decoded with json.Decoder.UseNumber:
 // float64 rounding is monotonic, so DECREASING pairs are caught with or
 // without exact integers — what a float64-decoded map breaks is the other
@@ -343,6 +345,19 @@ func Errors(doc map[string]any) []string {
 				errs = append(errs, notATransition(i, op, e.Outcome.Status, from))
 			}
 			state[op] = e.Outcome.Status
+		}
+	}
+	// idempotency presence: the machine writes idempotency on EVERY event
+	// except conflict (the loser's digest never enters the registry) — an
+	// adopted/reused/effect event without it is a bypass write, and
+	// absorbing one forks the replay state away from the durable form: the
+	// loader skips nil-idempotency events entirely, so the machine resumes
+	// from a state the file contradicts and its next write bricks the
+	// ledger (R10 BLOCKER).
+	for i, e := range d.Events {
+		needsIdem := e.EventType == "effect" || e.Outcome.Status == "adopted" || e.Outcome.Status == "reused"
+		if needsIdem && e.Idempotency == nil {
+			errs = append(errs, fmt.Sprintf("events/%d: %s event (status %q) must carry idempotency — the machine writes it on every non-conflict event; its absence is a bypass write, not a machine transition", i, e.EventType, e.Outcome.Status))
 		}
 	}
 	// the key coupling: the machine writes idempotency.operation_id and
