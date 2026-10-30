@@ -71,4 +71,24 @@ still running; no terminal or final metric is claimed by this progress observati
 
 ## Verdict
 
-Pending complete inference and scoped independent audit.
+**2026-10-30 15:37 UTC completion update:** full inference wrote rc 0 at 15:36:38 UTC;
+both retained inference and CPU finisher containers exited 0, both wrapper DONE markers
+agree. The automated chain completed independent audit and published comparison without
+an attached session. Its `FINISH_COMPLETE.json` is `COMPLETED_SCOPED`; both output hashes
+were independently checked. Audit verified 71 frozen files including 62 required dependencies,
+all 1,940 records / 2,204 questions, and the clean native/raw accuracy, Brier, ECE10 and NLL.
+
+| Suite | Clean n | Accuracy | Serving Brier | Serving ECE10 | Serving NLL | Raw T=1 Brier | Raw T=1 ECE10 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| decision-v7 | 1,200 | .8725 | .1776655017981041 | .027077989164865014 | .339478203947507 | .20231737456027105 | .07500830174427692 |
+| transfer-v4 | 656 | .8521341463414634 | .19894883566876465 | .036219392757287576 | .3704156037175742 | .21639385494682906 | .08249244753079352 |
+
+Accuracy matches the published values. Serving Brier local-minus-published is
+-0.000001322659 / -0.000087501089, and ECE10 is -0.000326640848 / +0.001798387157.
+Decision upstream rows are unavailable. Transfer matches all 764 upstream question keys
+and metadata; its 656 clean questions have zero argmax disagreements, maximum probability
+delta 0.004895507443 and two confidence-bin changes. This is descriptive agreement, not
+an invented numerical equivalence gate or contamination audit. Other diagnostics have not
+all been independently recomputed. No NGA training benefit or substantive Astra approval
+is claimed. Chip 1 was released under the allocation lock after checking terminal, hashes,
+wrappers, exited containers and absence of a live mapping.
