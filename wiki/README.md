@@ -41,6 +41,7 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E16](E16-nimble-native-probe-20261030.md) | restored initial Nimble native candidate-token readout | engineering | eight synthetic outputs completed; public-test data restoration remains |
 | [E17](E17-openjev9-native-probe-20261030.md) | native Open-Jev-9B typed compatibility | engineering | three synthetic fixtures completed and verified |
 | [E18](E18-openjev9-public-test-20261030.md) | native Open-Jev-9B on the same 10,356 public test rows | reference evaluation | full length preflight passed; inference running on 175 chip 1 |
+| [E20](E20-kev-extended-test-20261030.md) | Kev 0.8B/4B/9B on hard-v1 and documents-v1 | reference evaluation | longest-development probes passed; three automatic inference/audit chains running |
 
 ## Where the artifacts live
 
