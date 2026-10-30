@@ -61,8 +61,10 @@ func TestStatusVocabularyLockstep(t *testing.T) {
 
 // TestErrorsDoesNotMutateInput pins the R6 m-8 deep copy: a validator must
 // not rewrite its caller's document — the normalization would otherwise
-// turn the caller's json.Number nodes into int64s under it (R7: the fix
-// existed but no test could see it being removed).
+// turn the caller's json.Number nodes into int64s under it. The fixture
+// deliberately uses FLOAT-SYNTAX numbers ("0.0", "1.0"): integer-syntax
+// json.Number("0") and int64(0) marshal identically, which is exactly why
+// the R7 version of this test was blind to the mutation (R8 M-1).
 func TestErrorsDoesNotMutateInput(t *testing.T) {
 	if SchemaPath == "" {
 		t.Fatal("event-ledger schema not found")
@@ -71,7 +73,7 @@ func TestErrorsDoesNotMutateInput(t *testing.T) {
 		"ledger_version": "0.1.0",
 		"events": []any{
 			map[string]any{
-				"event_type": "adoption", "arbitration_seq": json.Number("0"),
+				"event_type": "adoption", "arbitration_seq": json.Number("0.0"),
 				"identity":           map[string]any{"business_request_id": "br-m", "operation_id": "op-m"},
 				"versions":           map[string]any{"evidence": "e", "rule": "r", "model": "m", "readout": "ro", "policy": "p"},
 				"grants_at_decision": []any{map[string]any{"kind": "data", "selector": "s", "actions": []any{"read"}, "effect": "none"}},
@@ -79,7 +81,7 @@ func TestErrorsDoesNotMutateInput(t *testing.T) {
 				"idempotency":        map[string]any{"operation_id": "op-m", "payload_digest": "sha256:" + strings.Repeat("a", 64)},
 			},
 			map[string]any{
-				"event_type": "effect", "arbitration_seq": json.Number("1"),
+				"event_type": "effect", "arbitration_seq": json.Number("1.0"),
 				"identity":    map[string]any{"business_request_id": "br-m", "operation_id": "op-m"},
 				"versions":    map[string]any{"evidence": "e", "rule": "r", "model": "m", "readout": "ro", "policy": "p"},
 				"outcome":     map[string]any{"status": "dispatched"},

@@ -135,11 +135,7 @@
             "required": [
               "grants_at_decision"
             ],
-            "properties": {
-              "grants_at_decision": {
-                "minItems": 1
-              }
-            }
+            "properties": {}
           }
         }
       ]

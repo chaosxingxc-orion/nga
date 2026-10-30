@@ -2,11 +2,17 @@
 """Validate event-ledger fixtures (piece 4 oracle).
 
 Ledger documents: JSON Schema + the cross-event rules JSON Schema cannot
-express — five families: arbitration_seq strictly increasing (+int64 domain), one
-payload digest per operation (15 B4), status families never crossing the
-event-type boundary, effect events carrying no grant pin, and the
-single-writer event-sequence grammar (each operation opens with exactly one
-adopted event and its effect events follow the machine's transition DAG).
+express — seven families: arbitration_seq strictly increasing (+int64
+domain, +float syntax beyond ±2^53 rejected by rule), one payload digest
+per operation (15 B4), the idem-identity key coupling, status families
+never crossing the event-type boundary, the grant pin riding the adopted
+event only, and the single-writer event-sequence grammar (each operation
+opens with exactly one adopted event and its effect events follow the
+machine's transition DAG). Aggregation contract: invalid fixtures carry
+exactly one violation by discipline — the Go checker returns at the first
+failing family while this oracle appends and continues, so error-SET
+composition may differ on multi-violation documents; the verdict never
+does, and pins are designed against single-violation documents.
 Fixtures follow the base's pin discipline: valid must be accepted, invalid
 must be rejected for the reason its _expect_match names.
 

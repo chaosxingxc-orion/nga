@@ -95,7 +95,7 @@ func TestConcurrentDoubleAdoption(t *testing.T) {
 	if len(events) != n {
 		t.Fatalf("durable events = %d, want %d (the retries are facts)", len(events), n)
 	}
-	prev := -1
+	prev := int64(-1)
 	for i, e := range events {
 		if e.ArbitrationSeq <= prev {
 			t.Fatalf("event %d: arbitration_seq %d not increasing", i, e.ArbitrationSeq)
@@ -1070,6 +1070,45 @@ func TestPinIsNotCallerAliased(t *testing.T) {
 				got = e.Accountability.Role
 			}
 			t.Fatalf("event %d (%s) accountability role = %q, want the pinned 'employee' — the durable form forked with caller memory", i, e.Outcome.Status, got)
+		}
+	}
+}
+
+// TestReturnedEventsDoNotAliasPin is the R8 M-2 regression (the
+// output-direction twin of TestPinIsNotCallerAliased): the event a
+// transition returns must not alias the machine's accountability pin —
+// mutating the returned event's triple must not reach later durable events.
+func TestReturnedEventsDoNotAliasPin(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-out", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	d := m.Dispatch("op-out", pinGrants())
+	if d.Status != "dispatched" {
+		t.Fatalf("dispatch = %q, want dispatched: %s", d.Status, d.Detail)
+	}
+	// the caller forges the returned event's audit attribution...
+	if d.Event == nil || d.Event.Accountability == nil {
+		t.Fatal("dispatched event carries no accountability")
+	}
+	d.Event.Accountability.Role = "attacker"
+	d.Event.Accountability.Session = "sess-attacker"
+	// ...and the machine's later durable events keep the adopted stamp
+	if o := m.MarkUnresolved("op-out"); o.Status != "unresolved" {
+		t.Fatalf("unresolved = %q", o.Status)
+	}
+	if o := m.MarkCompleted("op-out"); o.Status != "completed" {
+		t.Fatalf("completed = %q", o.Status)
+	}
+	events, _ := m.Events()
+	for i, e := range events {
+		if e.Accountability == nil || e.Accountability.Role != "employee" || e.Accountability.Session != "sess-t" {
+			got := "<nil>"
+			if e.Accountability != nil {
+				got = e.Accountability.Session + "/" + e.Accountability.Role
+			}
+			t.Fatalf("event %d (%s) accountability = %q — the returned event aliased the machine's pin", i, e.Outcome.Status, got)
 		}
 	}
 }

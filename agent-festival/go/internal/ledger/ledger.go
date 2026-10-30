@@ -192,7 +192,7 @@ type Grant struct {
 // Event is one adoption or effect entry.
 type Event struct {
 	EventType        string          `json:"event_type"`
-	ArbitrationSeq   int             `json:"arbitration_seq"`
+	ArbitrationSeq   int64           `json:"arbitration_seq"`
 	Identity         Identity        `json:"identity"`
 	Versions         Versions        `json:"versions"`
 	Idempotency      *Idempotency    `json:"idempotency,omitempty"`
@@ -218,7 +218,11 @@ type Document struct {
 // events carry no grants_at_decision (the pin rides the adopted event
 // only); idempotency.operation_id equals identity.operation_id on every
 // event carrying idempotency; and each operation's effect events follow the
-// machine's own transition DAG in file order. The monotonicity
+// machine's own transition DAG in file order. Aggregation contract: this
+// checker returns at the first failing family while the Python oracle
+// appends and continues — error-set composition may differ on
+// multi-violation documents (the verdict never does), and invalid fixtures
+// are disciplined to carry exactly one violation. The monotonicity
 // check assumes the map input was decoded with json.Decoder.UseNumber:
 // float64 rounding is monotonic, so DECREASING pairs are caught with or
 // without exact integers — what a float64-decoded map breaks is the other
@@ -260,7 +264,7 @@ func Errors(doc map[string]any) []string {
 		return []string{"ledger: document does not fit the typed ledger view (an integer field beyond the int64 domain, or a type mismatch — the machine never writes such values): " + err.Error()}
 	}
 	var errs []string
-	prevSeq := -1
+	prevSeq := int64(-1)
 	for i, e := range d.Events {
 		if e.ArbitrationSeq <= prevSeq {
 			errs = append(errs, fmt.Sprintf("events/%d: arbitration_seq %d breaks the strictly-increasing order — the machine never repeats or rewinds an arbitration sequence", i, e.ArbitrationSeq))

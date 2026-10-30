@@ -91,7 +91,7 @@ type Outcome struct {
 type Machine struct {
 	mu   sync.Mutex
 	ops  map[string]*opState // keyed by operation_id
-	seq  int                 // last arbitration sequence written (0-based)
+	seq  int64               // last arbitration sequence written (0-based)
 	path string              // append-only JSONL file ("" = in-memory only)
 }
 
@@ -435,7 +435,11 @@ func (m *Machine) commit(st *opState, to State, detail string) Outcome {
 		Identity:       st.identity,
 		Versions:       st.versions,
 		Idempotency:    &ledger.Idempotency{OperationID: st.identity.OperationID, PayloadDigest: st.digest},
-		Accountability: st.accountability,
+		// a COPY, not the pin: the event is returned to the caller, and a
+		// caller mutating the returned event must not reach the machine's
+		// pin — later durable events keep the adopted stamp (R8 M-2, the
+		// output-direction twin of the R7 input-direction fix)
+		Accountability: copyAccountability(st.accountability),
 		Outcome:        ledger.Outcome{Status: string(to), Detail: detail},
 	}
 	if err := m.append(ev); err != nil {
