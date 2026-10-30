@@ -6,6 +6,12 @@ from pathlib import Path
 def require(v,m):
  if not v:raise ValueError(m)
 def load(p):return json.loads(Path(p).read_text())
+def resource_mapping(host):
+ # Docker may reorder these arrays; preserve every path, option and duplicate.
+ binds=sorted(host.get('Binds') or [])
+ devices=sorted((d['PathOnHost'],d['PathInContainer'],d['CgroupPermissions'])
+                for d in host.get('Devices') or [])
+ return binds,devices
 def sha(p):
  h=hashlib.sha256()
  with open(p,'rb') as f:
@@ -27,7 +33,7 @@ def main(path):
  try:frozen()
  except BaseException:lock.close();raise
  def binding():
-  require(sha(path)==ch,'Config changed');r=load(run/'LAUNCH_RECEIPT.json');d=inspect(c['container']);spec=load(run/'NPU_SPEC.json');require(d['Id']==r['container_id'] and d['Image']==c['image']==r['image'],'Container identity');require(d['Config']['Cmd']==r['command']==spec['Cmd'] and d['Config']['Entrypoint']==r['entrypoint']==spec['Entrypoint'],'Container command');require(d['HostConfig']['Devices']==spec['HostConfig']['Devices'] and d['HostConfig']['Binds']==spec['HostConfig']['Binds'],'Container resources');return d
+  require(sha(path)==ch,'Config changed');r=load(run/'LAUNCH_RECEIPT.json');d=inspect(c['container']);spec=load(run/'NPU_SPEC.json');require(d['Id']==r['container_id'] and d['Image']==c['image']==r['image'],'Container identity');require(d['Config']['Cmd']==r['command']==spec['Cmd'] and d['Config']['Entrypoint']==r['entrypoint']==spec['Entrypoint'],'Container command');require(resource_mapping(d['HostConfig'])==resource_mapping(spec['HostConfig']),'Container resources');return d
  try:
   while True:
    d=binding();state=d['State']['Status'];s=load(run/'STATUS.json') if (run/'STATUS.json').exists() else {};line=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())+' container='+state+' stage='+str(s.get('stage'))+' progress='+str(s.get('progress'))+'/'+str(s.get('total'))+' q/s/chip='+str(s.get('questions_per_second_per_chip'))+' chips=1 reserved_GiB='+str(s.get('reserved_gib'))+'\n';(out/'digest.md').write_text(line)
