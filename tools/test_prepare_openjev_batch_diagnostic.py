@@ -86,6 +86,32 @@ class Guards(unittest.TestCase):
         self.assertIn('ASCEND_RT_VISIBLE_DEVICES=0',result['Env'])
         with self.assertRaises(ValueError):p.spec_for(original,6,self.out,'x')
 
+    def test_chip4_mapping_and_launch_keep_source_chip(self):
+        self.plan['physical_chip'] = 4
+        self.s = p.spec_for(spec(self.out), 4, self.out, self.plan['container'])
+        q.atomic(self.out / 'NPU_SPEC.json', self.s)
+        q.atomic(self.path, self.plan)
+        q.atomic(self.out / 'PARENT_REVIEW.json', {'approved_plan_sha256': q.sha(self.path)})
+        q.atomic(self.allocation, {'allocation': [], 'free': [{'chip': 4}]})
+        self.assertEqual(self.start()['status'], 'STARTED')
+        self.assertEqual(q.devices(self.d), [('/dev/davinci4', '/dev/davinci4', 'rwm')])
+        self.assertEqual(q.load(self.config)['physical_chip'], 1)
+        self.assertIn('ASCEND_RT_VISIBLE_DEVICES=0', self.d['Config']['Env'])
+        self.assertEqual(q.load(self.allocation)['allocation'][0]['chip'], 4)
+
+    def test_reserved_chips_rejected_even_if_allocation_says_free(self):
+        for chip in (6, 7):
+            with self.subTest(chip=chip):
+                with self.assertRaises(ValueError):
+                    p.spec_for(spec(self.out), chip, self.out, 'nga-e37-test')
+                self.plan['physical_chip'] = chip
+                q.atomic(self.path, self.plan)
+                q.atomic(self.out / 'PARENT_REVIEW.json', {'approved_plan_sha256': q.sha(self.path)})
+                q.atomic(self.allocation, {'allocation': [], 'free': [{'chip': chip}]})
+                with self.assertRaisesRegex(ValueError, 'protocol'):
+                    self.start()
+                self.assertFalse(self.calls)
+
     def test_visibility_or_privilege_rejected(self):
         for change in ['visible','privileged']:
             s=spec(self.out)
@@ -284,6 +310,15 @@ class CPUWorkflow(unittest.TestCase):
         self.assertEqual(q.load(self.allocation)['allocation'],[])
         self.assertFalse(self.calls)
         for script in self.cpu.glob('*.sh'):subprocess.run(['bash','-n',str(script)],check=True)
+
+    def test_reserved_chip_request_rejected_before_file_creation(self):
+        for chip in (6, 7):
+            with self.subTest(chip=chip):
+                with self.assertRaisesRegex(ValueError, 'allowed chip'):
+                    self.real.make_request(self.source, self.prereg, self.config, self.e36,
+                        self.target, 'nga-e37-target', chip, self.cpu)
+                self.assertFalse(self.cpu.exists())
+                self.assertFalse(self.calls)
 
     def test_cpu_launch_has_no_devices_and_no_allocation(self):
         request=self.request();result=self.real.cpu_launch(request)

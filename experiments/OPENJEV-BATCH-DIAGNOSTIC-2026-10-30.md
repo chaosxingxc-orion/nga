@@ -130,3 +130,33 @@ E33/E36 artifacts are neither changed nor relabelled.
 A future chunk8 numerical-configuration evaluation, if pursued, requires a separate
 pre-registration and separately labelled full-test result. It cannot fill the
 original-batch E33 completion cell or overwrite E36 failed equivalence admission.
+
+## 2026-10-31 resource-selection amendment — before E37 preparation or execution
+
+E37 may select one physical chip from **0, 1, 2, 3, 4, 5** on 175 after its
+current experiment has completed the required inference/audit acceptance, its
+retained device-owning container has actually exited, and the allocation file
+explicitly records it as free. Chips **6 and 7 remain excluded**, even if a future
+allocation snapshot erroneously lists them free. The earlier preparer restriction
+to chips 0/1 was an orchestration choice, not a numerical or scientific condition;
+this amendment permits the first legitimately released reference-experiment chip,
+including chip 4 after E32 Open-Jev-2B OOD acceptance.
+
+This does not release any current allocation. Both CPU preparation request and
+NPU launch still check allocation ownership and actual Docker/device-process
+occupancy under the allocation lock. Every new plan records its actual physical
+chip; the new container exposes exactly that single physical davinci device and
+continues native logical `npu:0`. Historical source probe configurations and their
+original physical-chip fields stay immutable. Original inputs, ordered candidates,
+metadata-selected indices 9027/4200/8409, 16-forward schedule, dtype, temperature,
+wrapper comparison, thresholds and `candidate_batch_admission=false` are unchanged.
+
+Validation before use: 38 preparer CPU tests and 10 diagnostic CPU tests pass.
+Added counterparts reject chips 6/7 at request and launch even under a synthetic
+free-allocation claim, and verify chip-4 mapping/claim preserves the historical
+source chip and logical device. No E37 remote request, frozen runtime plan, NPU
+claim or diagnostic forward was created by this amendment. The completed Astra review found no deterministic blocking defect in its frozen
+code scope; its snapshot predates this chip-allowlist adjustment and associated
+tests/documentation. Parent review separately covers this resource-only delta;
+the scientific driver and chunk wrapper are byte-unchanged. The review does not
+certify actual resource release, remote plans or numerical outcomes.

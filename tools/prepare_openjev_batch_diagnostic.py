@@ -23,6 +23,7 @@ import time
 
 ROOT = Path('/mnt/cephfs/xingchao/experiments/jev/reference_inference')
 ALLOCATION = ROOT.parent / 'CHIP-ALLOCATION.json'
+ALLOWED_CHIPS = (0, 1, 2, 3, 4, 5)  # 6/7 remain reserved to other work.
 NAMES = ['openjev_batch_diagnostic.py', 'openjev_candidate_chunks.py',
          'prepare_openjev_batch_diagnostic.py', 'test_openjev_batch_diagnostic.py',
          'test_prepare_openjev_batch_diagnostic.py', 'jeval_reference_queue.py']
@@ -82,7 +83,7 @@ def allocation_check(a, chip, run, allow_owned=False):
 
 
 def spec_for(source_spec, chip, out, name):
-    require(chip in (0, 1), 'E37 approved physical choices are chips 0 or 1')
+    require(type(chip) is int and chip in ALLOWED_CHIPS, 'E37 allowed physical chips are 0 through 5; chips 6/7 excluded')
     s = copy.deepcopy(source_spec)
     devices = s['HostConfig']['Devices']
     selected = [x for x in devices if re.fullmatch(r'/dev/davinci\d+', x['PathOnHost'])]
@@ -226,7 +227,7 @@ def make_request(source, prereg, config, e36_path, out, name, chip, request_out,
     require(request_out.parent == ROOT and not request_out.exists(), 'New CPU request generation required')
     if verify is None:
         host(q)
-        require(chip in (0, 1) and out.parent == ROOT and not out.exists(), 'New target and chip required')
+        require(type(chip) is int and chip in ALLOWED_CHIPS and out.parent == ROOT and not out.exists(), 'New target and allowed chip required')
         require(re.fullmatch(r'nga-e37-[A-Za-z0-9_.-]+', name), 'Invalid diagnostic name')
         with Path(str(ALLOCATION) + '.lock').open('w') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
@@ -487,7 +488,7 @@ def launch(path, resume=False):
         fcntl.flock(lock, fcntl.LOCK_EX)
         p = q.load(path); ph = q.sha(path)
         require(p['out'] == str(out) and out.parent == ROOT and p['allocation'] == str(ALLOCATION), 'Run location differs')
-        require(p['image'] == q.IMAGE and p['physical_chip'] in (0, 1) and p['candidate_batch_admission'] is False, 'Diagnostic protocol differs')
+        require(p['image'] == q.IMAGE and type(p['physical_chip']) is int and p['physical_chip'] in ALLOWED_CHIPS and p['candidate_batch_admission'] is False, 'Diagnostic protocol differs')
         require(q.load(out / 'PARENT_REVIEW.json')['approved_plan_sha256'] == ph, 'Exact plan review required')
         preparation_binding(q, path, p)
         require(not any((out / n).exists() for n in ['COMPLETE.json', 'FAILURE.json', 'report.json']), 'Terminal/failure/report preserved; new review/generation required')
@@ -605,7 +606,7 @@ if __name__ == '__main__':
     for key in ['source', 'preregistration', 'config', 'e36-plan', 'out', 'request-out', 'verify-plan',
                 'launch', 'resume', 'verify-complete', 'cpu-launch', 'cpu-resume', 'cpu-task']:
         parser.add_argument('--' + key, type=Path)
-    parser.add_argument('--name'); parser.add_argument('--chip', type=int, choices=[0, 1])
+    parser.add_argument('--name'); parser.add_argument('--chip', type=int, choices=ALLOWED_CHIPS)
     args = parser.parse_args()
     if args.cpu_task:
         cpu_task(args.cpu_task.resolve()); result = {'status': 'CPU_TASK_COMPLETED'}
