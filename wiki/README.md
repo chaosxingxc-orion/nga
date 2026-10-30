@@ -58,7 +58,13 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 
 | [E32](E32-openjev-original-ood-20261030.md) | original complete Open-Jev OOD | reference evaluation | both full length preflights accepted; 2B/9B actual NPU inference and CPU finishers running on chips 4/2 |
 
-| [E33](E33-jeval-reference-inference-20261030.md) | native JEVal reference inference | reference evaluation | Kev0.8B formal inference running; Kev4 real probe complete; Kev9 corrected v2 probe running |
+| [E33](E33-jeval-reference-inference-20261030.md) | native JEVal reference inference | reference evaluation | Kev three sizes and Nimble formal inference running; Open-Jev formal held for candidate-batch numerical admission |
+
+| [E34](E34-jeval-serial-queue-20261030.md) | immutable JEVal inference queue | engineering / reference execution | Nimble production queue and three Kev read-only audit waiters running; CPU seam fixture passed |
+
+| [E35](E35-jeval-hardened-artifact-audit-20261030.md) | supplemental JEVal schema, token and artifact audit | engineering audit | six real probe-only audits complete; 16 tests pass; full-inference supplement pending |
+
+| [E36](E36-openjev-candidate-batch-20261030.md) | Open-Jev candidate batch memory | engineering admission | both 20-forward probes complete; memory improved but numerical admission failed; chip 1 released |
 
 ## Where the artifacts live
 

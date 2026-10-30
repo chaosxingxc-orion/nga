@@ -286,3 +286,52 @@ The guarded launcher acquired chip 1 and started retained container
 `9a13bfadfb65e6bfc8a36adf80231082de3cd989ed20a95a741f43ba55fa653b`
 at 19:15:47 UTC. Its longest eligible index is 6831, 2,046 tokens.
 The actual result remains pending; no formal inference was launched by this sequence.
+
+### 19:18 UTC — Nimble probe accepted; remaining formal preparation
+
+Nimble probe terminal 19:17:22 UTC and retained actual container exit 0 were
+verified after the earlier terminal-before-exit observation. Wrapper chronology,
+config/PROBE/output hashes, all 148 frozen files, v2 source/runtime/native E31
+closure and actual resource binding passed. `PROBE_REVIEW.json` binds config
+`9cc49322c7a515e1e6fec56b4f34d4d1b1b404c089166589ee142ebe3ed17997`
+and probe `fa28824157c5595fc31678845b54798b9d92d3ade2049e1d30fa436cc79f1a47`.
+All four repeated groups had maximum probability delta 0; longest eligible
+index 6831 (2,046 tokens) took 0.873322/0.821468 seconds, reserved 18.791016 GiB
+on one chip. Consumed token hashes match E31; this is provenance verification,
+not independent retokenization. Chip 1 was explicitly released under lock after
+checking exact ownership and all actual live device mappings.
+
+CPU-only detached preparation `nga-jeval-remaining-formal-prepare`, container
+`a932d84712e65f3669273235f8ab4bc4a1c58284acf3b9ec85ff3cbcad682667`, prepares
+Open-Jev2/9 and Nimble formal configurations from their own accepted frozen probes,
+all planned on chip 1 for serial execution. No formal inference or resource claim
+is made by this preparation. Persistent status/heartbeat/terminal and exact launch
+and resume commands are under `reference_inference/jeval_remaining_formal_prepare_20261030`.
+
+Parent review subsequently identified a separate Open-Jev memory-admission gap:
+the accepted longest-token boundary has 30 candidates at 4,096 padded tokens,
+whereas eligible rows 633/637 have 255 candidates at 2,156 tokens (549,780 padded
+tokens versus 122,880). The native implementation batches all candidates together.
+Thus Open-Jev formal configurations remain prepared only; the existing probe does
+not establish that the maximum padded workload fits. Additional admission or a
+numerically verified batching change is required before those formal launches.
+Frozen configurations and probe evidence remain unchanged. This specific batch
+workload finding does not apply to Nimble's single-sequence interface.
+
+### 19:21 UTC — remaining formal configurations prepared, not launched
+
+The CPU preparation completed 3/3 at 19:21:51 UTC, retained Docker exited 0,
+with no NPU devices. Full frozen hashes and exact accepted-probe executable,
+runtime/native closure were checked for each new configuration. Preparation audit
+SHA256: `6259fb89d0f10037891385149342c5f01c5bd04611afa21b9730027ff97525c4`.
+All are planned on chip 1, with no formal launch or chip claim by this preparer.
+
+| Model | Config SHA256 | Frozen files |
+| --- | --- | ---: |
+| Open-Jev2 | `07c820002e4663495a60c7d69b5b9798ffe12e5afb83bb0177003264e2cac11f` | 100 |
+| Open-Jev9 | `ca935b254e9e7c22abba0a3ff81494365b39f32320c01e46244ea30afa933f7c` | 103 |
+| Nimble | `b310b6271a7174f7efad1ba435fa2ad9ac53fecab3aec0f1944ee2f5fd703156` | 151 |
+
+Directories: `reference_inference/jeval_{openjev2,openjev9,nimble}_inference_20261030`.
+Open-Jev remains blocked on the newly identified padded-workload memory admission,
+not on preparation. Nimble is available for parent review and separate launch.

@@ -4,7 +4,20 @@
 
 版本说明：最初汇总仅包含上游结果，后续已追加实际推理证据。下文第 2–7 节仍是上游结果表；本地复测单独标记，不能混同来源。用户已明确要求自动驱动与实际推理评测继续完成；执行顺序见 [指令逻辑与执行次序](../proposal/05-instruction-order-and-execution-2026-10-30.md)。
 
+**19:19 UTC 当前状态索引（北京时间 10 月 31 日 03:19）：** Kev 三尺寸 × 五套原生 test、Nimble 七套原生 test、Open-Jev 两尺寸原始完整 test，以及 Typed Decisions 六模型共同测试均已完成本地推理和限定范围独立验收。原始 OOD 两尺寸、JEVal 三个 Kev 尺寸正式推理正在执行；JEVal 其余三模型的独立前向探测均已通过，正式配置及串行自动队列在准备。运行中的格没有最终成绩。Astra 尚无实质审查放行，也没有新的正式训练收益。
+
+- [Typed Decisions 六模型：原生温度／T=1、accuracy／KL／Brier／ECE](TYPED-REFERENCE-RESULTS-2026-10-30.md)
+- [Open-Jev 原始完整 test：两尺寸本地／上游、hard／expected 及概率指标](OPENJEV-ORIGINAL-TEST-RESULTS-2026-10-30.md)
+- [Nimble 七套原生 test 分口径表](NIMBLE-REFERENCE-RESULTS-2026-10-30.md)
+- [JEVal 论文公式与原生接口／预算差异](JEVAL-ORIGINAL-SCORER-AUDIT-2026-10-30.md)
+- [持续更新的任务顺序与实验状态](../proposal/05-instruction-order-and-execution-2026-10-30.md)
+
+<details>
+<summary>17:23 UTC 历史索引（已由上方更新，仅供追溯）</summary>
+
 **17:23 UTC 状态索引：** Kev 三尺寸 × 五套 test 已完成；初始 Nimble 七个 test 子集共 1,884 行已完成 E25 独立验收，指标见下方 17:07 UTC 表。Open-Jev-2B／9B 的实时摘要分别为 8,950／10,356、5,234／10,356 行，尚无最终成绩；E24 自动补测队列已启动，等待公共推理验收后接续各自缺失的 176 行。共同 Typed Decisions 的 E26 三个 Kev 尺寸已完成全量 token 预检及两次合成 NPU 前向，正式 test 推理待实现审查；E28 Nimble 全量 token 预检完成，正式推理尚未开始。以下较早时间的运行状态是历史记录，以此索引及后续有时间的更新为准。预检和合成前向不计作共同 test 成绩。
+
+</details>
 
 **2026-10-30 追加本地复测：** [E7](../wiki/E7-reference-kev-test-20261030.md) 已完成原生 Kev-0.8B 的 decision-v7／transfer-v4 全量 test 推理。下文原表继续保留上游值；本地 clean accuracy 分别为 **83.75%／69.664634%**，与上游一致。服务温度 Brier 为 **0.230501236／0.396638059**，ECE10 为 **0.018980717／0.046375031**；与上游校准指标存在差异，不能称为完全数值复现。独立审计已核对全量 2,204 问题的来源与覆盖，并重算两个温度口径的主要指标；Astra 实质审查仍未完成。该复测不是新训练收益。
 
