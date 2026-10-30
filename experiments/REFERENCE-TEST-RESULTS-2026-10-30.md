@@ -184,6 +184,10 @@ hard accuracy 只统计 one-hot targets；expected accuracy 是所有行 `q[argm
 
 `sel90` 指保留 90% coverage 时的准确率，**不是 confidence≥0.9**。ECE15 与前述 ECE10 不混；noul／choice 的 Brier 维度及 soft-label 指标在其分项表中保留。此处均是 Jevify 上游训练／测评结果，不能冠名 NGA 已训练完成。
 
+**2026-10-30 补充复算：** 全部 46 个设置已映射到 52 个源 `test_metrics.json`，共 1,012 个设置×config 行；各设置的原 macro 指标均在绝对差 `1e-12` 内复现，无缺失映射。另计算按问题数加权的 accuracy／Brier，例：Jev macro accuracy 为 0.732643714，问题加权为 0.723532253；macro Brier 为 0.348521971，问题加权为 0.357255034。两条多 seed 汇总按显式 seed 等权，重复测试题不计为新增独立样本。
+
+完整分项与公式见 [Jevify 分口径重算表](/mnt/cephfs/xingchao/experiments/jev/_reference_inventory_20261030/jevify_reaggregation.md)，可用 [重算脚本](../tools/reaggregate_jevify_reference.py) 复现。附录中的加权 config ECE **不是 pooled ECE**，加权 config sel90 **不是全体样本重排序后的 selective accuracy**；只凭聚合文件无法重建这两项全局指标。已独立核查 52 个来源哈希和各源 accuracy／Brier 加权运算；这仍是已发布结果复算，不是本地模型推理成绩。
+
 来源：`Praveenrajus__jev-bench/results/leaderboard/leaderboard.json`；逐 config 位于各 run 的 `test_metrics.json`。Tev 两行同时改变了 prompt、各类型温度与 noul bias，因此是不同 prompt 与各自校准配置的联合结果，不能把差值归因于 prompt 单一因素；后续训练对照须控制这些配置。
 
 ## 6. 更接近规则执行和稳定性目标的 evaluation

@@ -28,6 +28,8 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E2](E2-scorer-admissibility-fp32.md) | scorer admissibility: the bf16 table that failed and the fp32 verdict that replaced it | R3 round 1 | done |
 | [R0S](R0S-r0-side-fp32-rescore.md) | the R0 side of record: fp32 re-score of `Qwen3.5-0.8B` under the R0 configuration (adoption gate) | R3 round 1 | planned |
 | [E3](E3-k0-readout-precondition.md) | the precondition for reading K0: c32 composition control, realized-call replay, provenance re-score with counterpart | R3 round 1 | planned |
+| [E6](E6-reference-inference-20261030.md) | native Kev-0.8B inference compatibility on Ascend | reference evaluation | two development records completed; full test evaluation pending |
+| [E7](E7-reference-kev-test-20261030.md) | automatic native Kev-0.8B inference on decision-v7 and transfer-v4 test | reference evaluation | running; no final test score yet |
 
 ## Where the artifacts live
 

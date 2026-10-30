@@ -66,6 +66,8 @@ flowchart TD
 
 推理探测证据目录：`/mnt/cephfs/xingchao/experiments/jev/reference_inference/kev08_probe_20261030/`；固定容器 `nga-reference-kev08-probe` 已退出，exit_code=0。这项更新来自本次直接核对结构化终态与容器状态，不来自对运行意图的推断。
 
+**2026-10-30 14:24 UTC 追加执行进展：** [E7](../wiki/E7-reference-kev-test-20261030.md) 已在 175 chip 1 启动原生 Kev-0.8B 正式参考推理，自动依次执行 decision-v7 与 transfer-v4。心跳已进入 decision-v7:test，逐项预测持续写入；两套完整分区合计 2,204 问题，clean 主表分母分别为 1,200／656。尚未完成，不提前报告总分。驱动已有输入哈希、逐项恢复校验、互斥锁、完整分母检查和终态发布；更广泛模型覆盖、故障恢复实测和结果审查仍待完成。同次核对 trainer suite 结构化终态为 exit_code=0、all_executed=true，容器已退出；这不替代 E3，也不改变新正式训练需在参考汇报和方案讨论后的顺序。
+
 ## 5. 下一阶段具体任务与完成标准
 
 | 顺序 | 任务 | 完成标准 |
