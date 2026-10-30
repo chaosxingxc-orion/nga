@@ -2630,5 +2630,27 @@
     "cuad_flag_sha256": "ecd7c02969fcabdb692c9cdfec5b1a4a0db44a6fd052730d3458522f2250a6d1",
     "closeout_container": "fffd539c67f6dd655ca3373e2a5653651c8d2e2d1a10d51df7323f5b364953d2",
     "closeout_actual_exit": 0
-  }
+  },
+  "dated_clarifications": [
+    {
+      "date": "2026-10-31",
+      "scope": "Add accurate unsupported cause breakdown; original aggregate unsupported count is unchanged. Frozen closeout README candidate-limit-only explanation is corrected additively.",
+      "model": "nimble",
+      "unsupported_total": 2253,
+      "unsupported_reason_counts": {
+        "native_v1_candidate_limit_26": 2047,
+        "native_nonempty_context_required": 206
+      },
+      "empty_context_sources": {
+        "ai2-arc-challenge": 95,
+        "ai2-arc-easy": 111
+      },
+      "overlength": 998,
+      "metric_change": false,
+      "erratum_path": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/jeval_results_closeout_20261031/ERRATUM-20261031.md",
+      "erratum_sha256": "73a81a296f3dc39acd61303023b671e2bea7f8ff342b33c8002db537d5781015",
+      "review": "experiments/ASTRA-JEVAL-RESULTS-REVIEW-2026-10-31.md",
+      "review_sha256": "a2bbbd95d1627b1196347d0aaa5ce8a89009499e6cd80c9484abb55ee5d946f9"
+    }
+  ]
 }

@@ -387,3 +387,41 @@ and receipt evidence, copied original Docker exit records, and a pyarrow-decoded
 gold JSON linked by SHA-256 to its included Parquet. External checkpoint bytes are
 not recopied or rehashed. Actual review verdict and hashes will be appended after
 successful terminal and manifest verification; this paragraph is not approval.
+
+## 2026-10-31 — actual Astra review completed; unsupported-reason erratum
+
+Actual `gpt-6-astra` CLI review completed at 2026-10-30 22:19:10 UTC. Runner and
+actual child exit are 0; one transient reconnect was recovered without a new run.
+The reviewer independently checked all 22,514 receipts and 22,667 manifest-bound
+files, recomputed both overall panels and each model's 66 aggregate cells, and
+confirmed the existing scores and all 6/30 review flags. Post-review manifest
+verification also found no changed files.
+
+**The review identified a publication correction.** The frozen closeout README
+incorrectly calls all 2,253 Nimble unsupported rows candidate-limit failures.
+The actual split is **2,047 `native_v1_candidate_limit_26` and 206
+`native_nonempty_context_required`**. The latter comprise 95 ARC-Challenge and
+111 ARC-Easy rows with empty state and at most 26 candidates. There are still
+998 overlength rows. This correction changes no metric, population or prediction;
+the frozen snapshot and all audit flags remain intact. Any statement that all
+2,253 unsupported rows exceed the candidate limit is superseded by this dated
+erratum. The repository native-result report already states only “unsupported”
+and lists the nonempty-context requirement; it is not silently rewritten.
+
+The limited verdict supports native-budget local-formula reference publication
+**with this cause correction and all stated limitations**, not unconditional
+approval, exact paper reproduction, training gain or paired consistency.
+
+- Manifest SHA-256: `a4f9ec8476dfca250244d1b6372467c1b1d1787de41874663a376a4e27cfca5d`.
+- Actual review SHA-256: `a2bbbd95d1627b1196347d0aaa5ce8a89009499e6cd80c9484abb55ee5d946f9`.
+- Runner COMPLETE SHA-256: `175a06b43d67a35a070d4ad6ec8ae3c38f8e90a11217bb5f117df18d273e2030`.
+- Actual child EXIT SHA-256: `a17b052586af0f2343d9086b0aa9aca560555b9b2ffbe6674f44b32440a4e5a3`.
+
+Full original Astra report and machine-readable evidence are in
+[the review report](../experiments/ASTRA-JEVAL-RESULTS-REVIEW-2026-10-31.md) and
+[the JSON record](../experiments/ASTRA-JEVAL-RESULTS-REVIEW-2026-10-31.json).
+
+The original closeout directory now contains additive `ERRATUM-20261031.md`,
+SHA-256 `73a81a296f3dc39acd61303023b671e2bea7f8ff342b33c8002db537d5781015`, also bound in the result and review JSON.
+The main result report received a dated clarification of these reason counts;
+its original aggregate count was correct.

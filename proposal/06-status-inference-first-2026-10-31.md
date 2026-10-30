@@ -4,7 +4,7 @@
 
 ## 当前快照：先读这一页
 
-**06:13 后续增量：** Open-Jev-9B OOD 已完成独立回执复核，hard accuracy 为 91.978506%，保留 3 个科学审查标记；详见第 9 节。E33 Kev/Nimble 的实际 Astra 审查已启动但尚无结论。下表保留 06:02 的观察，避免把之后获得的证据混入原截点。
+**06:25 后续增量：** Open-Jev-9B OOD 已完成独立回执复核，hard accuracy 为 91.978506%，保留 3 个科学审查标记。E33 Kev/Nimble 的实际 Astra 审查已完成，支持更正 unsupported 原因说明后限定发布；勘误已追加，详见第 9 节。两尺寸 OOD 的实际 Astra 审查正在运行。下表保留 06:02 的观察，避免把之后获得的证据混入原截点。
 
 **本次核对：2026-10-31 北京时间 06:02 左右。** 全局监控摘要生成于 05:59:16；单任务摘要最新到 06:02:23。它们是带时间的观察，不是实时承诺。第 2、3 节保留 **05:03 的历史固定快照**；第 9 节保留各次带日期增量。新结果不静默改写旧证据。本文是阶段交接，不代表全部参考实验或自动执行链已完成。
 
@@ -159,9 +159,9 @@ Kev-0.8B、4B、9B 的 decision-v7、transfer-v4、hard-v1、documents-v1、devt
 
 ### 阶段 A：完成参考实验交付
 
-- 当前继续自动驱动 Kev-4B/9B JEVal，并收齐 Open-Jev-9B OOD 的独立终态与验收；Kev-0.8B/Nimble JEVal 已完成计算和强化审计，继续处理保留 flags 及限定发布审查。原计划的“四项 JEVal 与两项 OOD 均运行”属于 05:03 历史状态。
+- 当前继续自动驱动 Kev-4B/9B JEVal；Open-Jev-9B OOD 已完成独立终态与回执复核，正在进行两尺寸 OOD 的实际 Astra 审查。Kev-0.8B/Nimble JEVal 已完成实际 Astra 审查与原因勘误，保留 flags 及限定发布边界。原计划的“四项 JEVal 与两项 OOD 均运行”属于 05:03 历史状态。
 - 对每个完成项执行 receipt manifest、实际 exit、report/audit/terminal hash、公式/温度/分母核对。
-- Typed Decisions bounded release review 已完成；将其限定结论和 E33/OOD 新结果纳入新版本矩阵，保留旧快照与既有缺口。E33 Astra 审查未有完成证据，不得沿用 Typed 的审查结论。
+- Typed Decisions 与 E33 已分别完成实际 Astra bounded release review；将各自限定结论和 OOD 新结果纳入新版本矩阵，保留旧快照与既有缺口，不将一个实验的审查结论移用于另一个实验。
 - 对缺少历史审计终态绑定的 28 个 Kev 面板，保留原证据并安排新一轮逐项复核和带日期的绑定记录；不能通过补写旧终态声称历史链已完整。
 - 处理 suspicious success、完美小样本、缺失/重复 receipt、来源冲突；异常保留，不通过改阈值消除。
 
@@ -190,8 +190,8 @@ Kev-0.8B、4B、9B 的 decision-v7、transfer-v4、hard-v1、documents-v1、devt
 | 优先序 / 工作 | 依赖与可并行关系 | 必须交付的产物 | 出口条件 | 当前状态 |
 | --- | --- | --- | --- | --- |
 | A1：收尾 Kev-4B/9B JEVal | 现有冻结计划和 controller；不等 Open-Jev 修复 | 每模型全 11,257 receipts、native report、finisher/hardened audit、terminal/EXIT、实际 Docker exit 与哈希绑定 | 逐项完整、来源一致；异常有保留的诊断和限定结论，缺失不算通过 | 两任务继续运行，约 9.8k/11.3k |
-| A2：收尾 Open-Jev-9B OOD | 自己的推理终态；独立于 A1 | 15,920 行完整审计、hard/soft 分母、native/T1 面板与终态绑定 | 计算完成和独立验收分开确认；未验收不发布最终分数 | 最新摘要已示计算 complete，待独立闭环核对 |
-| A3：E33 已完成结果的限定审查 | 已有 22,514 receipts 重哈希与 flag-directed diagnosis | Kev/Nimble 指标、6/30 flags 逐项解释、实际 Astra 或相应独立审查产物 | 清楚记录结论适用范围及遗留问题；不抹掉 flags、不挪用 Typed 审查 | 数字与诊断已成文，Astra E33 未证实完成 |
+| A2：收尾 Open-Jev-9B OOD | 自己的推理终态；独立于 A1 | 15,920 行完整审计、hard/soft 分母、native/T1 面板与终态绑定 | 计算完成和独立验收分开确认；未验收不发布最终分数 | 已完成独立闭环核对，3 flags 保留；两尺寸 OOD 的实际 Astra 审查中 |
+| A3：E33 已完成结果的限定审查 | 已有 22,514 receipts 重哈希与 flag-directed diagnosis | Kev/Nimble 指标、6/30 flags 逐项解释、实际 Astra 审查产物 | 清楚记录结论适用范围及遗留问题；不抹掉 flags、不挪用 Typed 审查 | Astra 已完成；unsupported 原因勘误已落实，支持限定发布 |
 | A4：版本化参考汇报与矩阵 | A1/A2/A3 可分批输入；保留未完成格；D1 第一阶段范围待答 | 文献/上游/本地三类来源，公式/温度/分母/有效覆盖，结果与缺口清单 | 每个登记单元有可信结果或具体 pending/blocked 及影响；是否满足完整第一阶段出口还取决于待答的交叉覆盖范围 | 历史 30 组合/58 面板已存在，新增结果待一致更新 |
 | B1：E38 运行闭包 | E37 已完成；CPU 6/6 只作工程输入 | driver、preparer、独立 verifier、固定 4200 输入与每模型 8 次前向身份、source/image/plan 哈希、wiki 与 exact relaunch | 完整事件/候选检查、预测对照、失败封闭及实际资源约束通过；固定快照可复核 | helper 与草案已有，driver 闭包正在准备 |
 | B2：E38 实际 NPU 及验收 | B1 完成；仅等待将使用芯片实际释放/空闲，不设全队列屏障 | 两尺寸共 16 次前向、每题回执、首次观测差异位置、控制比较、terminal/EXIT 与独立复算 | 重复与 instrumentation 对照按既定 exact 条件；缺项/失败原样记录 | 尚未执行，不能以 CPU 测试替代 |
@@ -296,3 +296,11 @@ Kev 6 个 flags、Nimble 30 个 flags 均保留，状态仍为 `VERIFIED_HARDENE
 审计状态仍为 `VERIFIED_SCOPED_REVIEW_REQUIRED`，保留 3 个精确边界 flags：customer-control 的 hard 560/560，以及 agent_trace_observability 的 hard/expected 525/525。完整回执检查未发现缺失、重复 ID、恒定预测或计分错误；这不证明没有数据泄漏，也不构成 Astra 放行或训练收益。两尺寸原始 OOD 现均有独立核验数字，原 Open-Jev JEVal 数值阻塞仍保留。
 
 E33 的新一轮实际 `gpt-6-astra` 只读审查于北京时间 06:08 启动，审查包含 22,667 个清单文件及两模型共 22,514 条回执。当前只有运行证据，待成功终态、实质审查全文及包哈希复核后再登记结论；不能预先将待审查数字标为无条件发布。
+
+### 2026-10-31 06:25 北京时间：E33 Astra 审查完成并落实发布勘误
+
+[实际 Astra 审查](../experiments/ASTRA-JEVAL-RESULTS-REVIEW-2026-10-31.md) 的 runner 和实际 CLI 子进程均退出 0；审查后 22,667 个清单文件的大小与 SHA-256 全部匹配，原始审查全文 SHA-256 为 `a2bbbd95d1627b1196347d0aaa5ce8a89009499e6cd80c9484abb55ee5d946f9`。独立逐题重算确认两模型指标、完整集合与 flags，结论为**修正原因表述后支持限定参考指标发布**。
+
+必须修正的是冻结 closeout README 的解释：Nimble 的 2,253 条 unsupported 中，2,047 条是候选数超过 26，206 条是空 context（ARC challenge 95、ARC easy 111）；另有 998 条 overlength。仓库主表原先只写 unsupported，并无该错误归因，现在补充准确原因分项。原始预测、指标、6/30 flags 与冻结包不变，采用带日期的补充勘误；原 closeout 目录新增 `ERRATUM-20261031.md`，SHA-256 为 `73a81a296f3dc39acd61303023b671e2bea7f8ff342b33c8002db537d5781015`。
+
+审查仍有限制：没有重新解码 Parquet、重分词、读取外部权重或重查实时 Docker；gold 重算基于带提取哈希绑定的 JSON，退出证据基于保存记录。它不批准训练，也不证明精确论文复现、配对一致性或真实业务收益。E38 工程与剩余参考验收继续推进。

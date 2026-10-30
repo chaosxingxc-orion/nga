@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-10-30T22:19:39.125579+00:00",
+  "experiment": "E33",
+  "requested_model": "gpt-6-astra",
+  "status": "ACTUAL_REVIEW_COMPLETED_CONDITIONAL_PUBLICATION_CORRECTION_RECORDED",
+  "runner_directory": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_astra_20261031",
+  "bundle_directory": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_candidate_20261031",
+  "bundle_manifest_sha256": "a4f9ec8476dfca250244d1b6372467c1b1d1787de41874663a376a4e27cfca5d",
+  "manifest_file_count": 22667,
+  "bundle_postreview_verified": true,
+  "receipt_counts": {
+    "kev08": 11257,
+    "nimble": 11257
+  },
+  "terminal": {
+    "rc": 0,
+    "reason": null,
+    "utc": 1793398750.841761,
+    "model": "gpt-6-astra",
+    "review_exists": true,
+    "bundle": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_candidate_20261031",
+    "outputs": {
+      "brief.txt": "c651b56c14fa64ebcf8ca9fe0b6086564b03619e9b920bd2b07cd67e5f59a4e2",
+      "review.md": "a2bbbd95d1627b1196347d0aaa5ce8a89009499e6cd80c9484abb55ee5d946f9",
+      "CHILD_EXIT.json": "a17b052586af0f2343d9086b0aa9aca560555b9b2ffbe6674f44b32440a4e5a3",
+      "PROCESS.json": "a44a59bcec8146a7845a2495a9c192e42811016e5fb4c25af6a8287bb942de4d"
+    }
+  },
+  "child_exit": {
+    "pid": 1572774,
+    "wait_returncode": 0,
+    "utc": 1793398750.8397174,
+    "source": "Popen.wait actual child exit"
+  },
+  "process": {
+    "command": [
+      "codex",
+      "exec",
+      "--model",
+      "gpt-6-astra",
+      "--sandbox",
+      "read-only",
+      "--skip-git-repo-check",
+      "--ephemeral",
+      "--json",
+      "-C",
+      "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_astra_20261031",
+      "-o",
+      "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_astra_20261031/review.md",
+      "-"
+    ],
+    "pid": 1572774,
+    "runner_pid": 1572772,
+    "bundle": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_candidate_20261031",
+    "started_utc": 1793398107.919557,
+    "boot_id": "cce12053-8db5-4a8c-a831-414c574f60df"
+  },
+  "evidence_sha256": {
+    "COMPLETE.json": "175a06b43d67a35a070d4ad6ec8ae3c38f8e90a11217bb5f117df18d273e2030",
+    "CHILD_EXIT.json": "a17b052586af0f2343d9086b0aa9aca560555b9b2ffbe6674f44b32440a4e5a3",
+    "PROCESS.json": "a44a59bcec8146a7845a2495a9c192e42811016e5fb4c25af6a8287bb942de4d",
+    "review.md": "a2bbbd95d1627b1196347d0aaa5ce8a89009499e6cd80c9484abb55ee5d946f9",
+    "brief.txt": "c651b56c14fa64ebcf8ca9fe0b6086564b03619e9b920bd2b07cd67e5f59a4e2",
+    "runner.py": "61bd19e7bf2c75fe368ac424d0a251b13446b853e381bd7f00e41b58b367b8f4"
+  },
+  "review_text": "本次独立复核的结论是：**指标数值与逐题证据通过复算，支持作为有界参考指标发布；现有发布说明须先更正一项 unsupported 原因归类错误，不能原样无条件放行。** 两模型的审计状态均须保留为 `VERIFIED_HARDENED_SCOPED_REVIEW_REQUIRED`，Kev 的 6 个、Nimble 的 30 个 flags 均不得删除。\n\n本次审查对象是**已经完成的 E33 JEVal 结果**，不是正在运行的 OOD 实验，也不是正式训练或训练收益验收。证据未被修改；未运行新推理、训练、重分词或新的 Docker 检查，未访问外部权重、网络、秘密或 NPU。\n\n**优先级最高的实际发布阻断项，是 Nimble unsupported 原因的错误表述。** [closeout/README.md:14](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_candidate_20261031/closeout/README.md:14) 将 2,253 条全部称为 candidate-limit；独立逐条统计实际为：\n\n| Nimble 状态／原因 | 数量 |\n|---|---:|\n| valid | 8,006 |\n| unsupported：`native_v1_candidate_limit_26` | **2,047** |\n| unsupported：`native_nonempty_context_required` | **206** |\n| overlength：`native_prompt_limit_2048` | **998** |\n| 合计 | **11,257** |\n\n206 条空 context 来自 `ai2-arc-challenge` 95 条、`ai2-arc-easy` 111 条。我核对了这些行的原始 state 确为空、候选数不超过 26；例如 [receipt 000201:1](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_candidate_20261031/nimble/inference/records/000201.json:1) 明确记录 4 个候选及 `native_nonempty_context_required`。这也符合[资格检查源码:44](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_candidate_20261031/source/jeval_reference_preflight.py:44)规定的原因优先级。\n\n因此，必须保留“**2,253 条 unsupported、998 条 overlength**”的覆盖限制，但不能把前者全部归因于候选上限。这项错误不改变总体准确率、有效分母或其他主指标。应在发布文本中更正或附勘误，保持原冻结证据不变。\n\n我实际完成了以下检查：\n\n- **全量清单认证。** 逐文件重算全部 **22,667** 个 manifest-bound 文件的 SHA-256 和字节数，核对完整文件集合；没有缺失、额外文件、重复清单路径或符号链接。另行重算 `MANIFEST.json`，得到指定值 `a4f9ec8476dfca250244d1b6372467c1b1d1787de41874663a376a4e27cfca5d`。\n- **逐题身份认证。** 两模型各有且仅有 `000000.json` 至 `011256.json` 的 11,257 条 receipts。逐条核对 envelope 哈希、index、原始 ID、完整 gold 行输入哈希、请求哈希、配置哈希，以及 E31 eligibility 中的来源、类型和 source-item 身份。原始人口为 choice 9,582、noul 1,356、score 319，无掉行或重复身份。\n- **独立计分。** 使用 `python3 -P` 的独立 CPU 计算，从 `data_rows.json` 的 gold 和实际返回答案重算主指标、每模型 66 个聚合单元、全部 flags，以及 flagged population 的实际记录集合与原因分布，未调用原审计器的 PASS 作为替代。\n- **原生输出交叉验证。** 对 Kev 全部 10,230 条、Nimble 全部 8,006 条有效输出检查 logits→概率、候选顺序、概率范围、返回字段、答案、confidence、score 和 consumed-token 哈希。最大 softmax 差分别约为 `1.44×10⁻⁷`、`2.28×10⁻⁷`，均在冻结校验容差内。非有效记录未伪造预测。\n- **认证链。** 重算 ordered receipt manifest 及其根哈希，核对 inference terminal、report、config、launch/wrapper、finisher audit、hardened audit、closeout 与结果汇总的绑定。每模型 closeout 的 12 项文件哈希均匹配；Nimble ACCEPTED 中 13 项绑定均匹配。保存的退出状态与身份记录相符，但这是静态证据核对。\n- **flag 与汇总一致性。** hardened audit、closeout、结果 JSON 中的指标、单元和 flags 相符；结果 JSON 对诊断中的逐题索引列表作首尾／数量压缩，压缩内容也与原列表一致。\n\n两份 Parquet 均匹配协议数据哈希；提取 JSON 及其与 Parquet 的绑定匹配 [EXTRACT_COMPLETE.json:2](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_candidate_20261031/EXTRACT_COMPLETE.json:2)。**本地没有 PyArrow，因此未独立重新解码 Parquet**；本次 gold 复算依据的是经过清单和提取记录认证的 `data_rows.json`。\n\n重算指标如下，报告、finisher、closeout 与结果汇总一致。Brier 的独立浮点累加与报告最大差约 `2.4×10⁻¹⁵`，不影响任何公布位数。\n\n| 指标 | Kev-0.8B | Nimble v1 |\n|---|---:|---:|\n| 完整分类人口 | 10,938 | 10,938 |\n| 分类正确数 | 5,089 | 5,394 |\n| **完整分母准确率** | **46.525873%** | **49.314317%** |\n| 有效分类数 | 9,911 | 7,694 |\n| valid-only 准确率，仅描述性 | 51.346988% | 70.106577% |\n| valid-only raw summed Brier | 0.598302104 | 0.433576240 |\n| valid-only ECE10 | 0.163216356 | 0.135360806 |\n| 有效 score／完整 score 人口 | 319／319 | 312／319 |\n| valid-only 原尺度 MAE | 1.121768025 | 0.842948718 |\n\n直接证据为 [Kev report:1](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_candidate_20261031/kev08/inference/report.json:1)、[Nimble report:1](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_candidate_20261031/nimble/inference/report.json:1)。按类型复算也匹配：Kev choice 为 4,070／9,582、noul 为 1,019／1,356；Nimble 分别为 4,381／9,582、1,013／1,356。\n\n公式符合[冻结协议:56](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_candidate_20261031/source/JEVAL-REFERENCE-INFERENCE-2026-10-30.md:56)及[计分源码:21](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_candidate_20261031/source/jeval_reference_inference.py:21)：\n\n- 分类以实际 choice 或 `noul ≥ 0.5` 判定；unsupported／overlength 在完整分类分母中按错误计入。\n- Brier 使用原始 wire 概率的 one-hot 平方误差之和，不重新归一化；noul 重建 `[1−p,p]`。\n- ECE10 使用 Kev 的 chance-adjusted choice confidence、Nimble 的 selected probability，以及 noul 的已选二元概率；采用 `min(int(confidence*10),9)` 分箱。\n- Kev 保留四位小数原生响应，score 是期望等级；Nimble score 是选中的整数等级。MAE 使用原始等级单位，不除以 `K−1`。\n- Brier／ECE 只覆盖有效分类行，MAE 只覆盖有效 score 行。它们不能替代完整分母准确率，也不能被解释为相同有效人口上的受控模型比较。\n\n**全部 36 个 flags 均已逐项复核，未发现需要清除的标记。** 标记规则见[审计源码:402](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_candidate_20261031/source/audit_jeval_inference_hardened.py:402)，完整列表分别位于 [Kev audit:45879](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_candidate_20261031/kev08/hardened/HARDENED_AUDIT.json:45879) 和 [Nimble audit:45880](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_candidate_20261031/nimble/hardened/nimble_hardened/HARDENED_AUDIT.json:45880)。\n\n| 模型／cell | 核对结果 | 保留 flags |\n|---|---|---|\n| Kev 27，finqa-yes-no | 有效 22／22，正确 15 | 总人口小、有效人口小，共 2 |\n| Kev 39，jevbench score | 有效 16／16，MAE 0.4365375 | 总人口小、有效人口小，共 2 |\n| Kev 49，longbench-retrieval-en | 有效 0／200，全部 overlength | 有效人口小、完整准确率边界，共 2 |\n| Nimble 4、8、29、36、45、49、51、52、53、57 | 每 cell 均 0／200 有效，全部候选数超限 | 每 cell 2，共 20 |\n| Nimble 48，longbench-lsht | 0／200 有效，全部 overlength | 2 |\n| Nimble 50，longbench-retrieval-en-e | 0／200 有效；153 overlength、47 候选超限 | 2 |\n| Nimble 20，CUAD | 有效 31／200，正确 31 | valid-only 准确率边界，1 |\n| Nimble 27，finqa-yes-no | 有效 22／22，正确 18 | 总人口小、有效人口小，共 2 |\n| Nimble 39，jevbench score | 有效 13／16，3 overlength；MAE 0.230769231 | 总人口小、有效人口小，共 2 |\n| Nimble 46，lex-glue-scotus | 有效 8／200，正确 4，192 overlength | 有效人口小，1 |\n\n上表 Nimble 的十个纯候选超限单元依次为 aida-testc、clinc150、go-emotions、helmet、lex-glue-ledgar、longbench-retrieval-en、longbench-retrieval-zh、longbench-trec、longbench-trec-e、nlu-eval-68。合计准确复现 **Kev 6、Nimble 30** 个标记。\n\n这里必须保留两个容易被误读的结果：\n\n1. **Kev 有 1,027 条 overlength。** `longbench-retrieval-en` 为 **200／200 overlength**，记录的 state 长度为 10,052–15,248，超过 8,192。该 cell 完整准确率为 0，**valid-only 准确率为 `null`**。Nimble 的 12 个零有效分类 cell 同样不能得到有效样本准确率或有效概率指标，不能把未定义值写成 0。\n2. **Nimble CUAD 为有效子集 31／31，但完整 cell 为 31／200＝15.5%。** 另有 **169 条 overlength**。我核对了全部 31 条有效记录及其哈希：gold 为 29 false、2 true，预测全部匹配，31 个不同原生概率向量，noul 概率范围为 0.0002647662–0.9996658564，与 [CUAD 诊断:3](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/jeval_results_candidate_20261031/closeout/nimble_cuad_flag.json:3)一致。这支持有效子集上的观测事实，不支持“CUAD 全人口完美准确率”，也不能仅凭该检查证明没有训练重叠。\n\n**其余发布边界属于必须随结果保留的限制，不要求为本次有界发布重新运行模型。** Kev 温度为 2.3510958125672174，预算为 8,192 state／branch、16,384 packed；Nimble 温度为 1、预算为 2,048 tokens、最多 26 候选且要求非空 context。unsupported 判定先于长度检查，不能推断这些行若解除候选限制就一定能放入上下文。\n\n外部权重及外部原生依赖本次没有重新哈希；仅核对了包内副本和配置中保存的依赖绑定。保存的 Docker 成功记录没有被重新现场验证。包内记录了 closeout 脚本哈希但未提供该脚本，因此本次不声称重跑了 closeout；数值结论来自独立逐题重算。**本地 ECE、响应适配和公式约定不具备 paper-exact 等价性。**\n\n允许发布的精确表述是：\n\n> 在冻结 E33 协议、原生发布温度和原生预算下，对原始 JEVal 11,257 行完成了 Kev-0.8B 与初始 Nimble v1 的本地响应公式测量。每模型均保留 11,257 条身份绑定 receipts；完整分类人口为 10,938，准确率分别为 5,089／10,938＝46.525873% 和 5,394／10,938＝49.314317%。Brier、ECE10 与 score MAE 按各自有效人口报告。Kev 有 1,027 条 overlength；Nimble 有 2,253 条 unsupported，其中 2,047 条候选数超限、206 条空 context，另有 998 条 overlength。CUAD 的 31／31 仅适用于 Nimble 有效子集，完整 cell 为 31／200。审计状态保留 `VERIFIED_HARDENED_SCOPED_REVIEW_REQUIRED`，并保留 6／30 个 flags。\n\n该表述必须同时注明：**没有测得 paired consistency，没有独立 raw-T1、NOTA 或 permuted panels；不支持训练增益、业务增益、业务就绪或精确文献复现声明。** 更正 unsupported 原因后，我支持以上范围内的参考指标发布。",
+  "scope": "Actual read-only CLI review of saved Kev08/Nimble E33 JEVal results. Model identity is recorded CLI request, process and terminal, not independent server-internal attestation. Raw verdict is reproduced verbatim; do not infer broader permission.",
+  "recorder_correction": {
+    "date": "2026-10-31",
+    "issue": "Frozen closeout README incorrectly groups all 2253 unsupported rows as candidate-limit",
+    "actual_reason_counts": {
+      "native_v1_candidate_limit_26": 2047,
+      "native_nonempty_context_required": 206
+    },
+    "metric_change": false,
+    "frozen_bundle_changed": false,
+    "dated_erratum": "wiki/E33-jeval-reference-inference-20261030.md",
+    "flags_retained": {
+      "kev08": 6,
+      "nimble": 30
+    },
+    "erratum_path": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/jeval_results_closeout_20261031/ERRATUM-20261031.md",
+    "erratum_sha256": "73a81a296f3dc39acd61303023b671e2bea7f8ff342b33c8002db537d5781015",
+    "empty_context_sources": {
+      "ai2-arc-challenge": 95,
+      "ai2-arc-easy": 111
+    },
+    "publication_status": "bounded publish after explicit erratum; flags retained"
+  }
+}

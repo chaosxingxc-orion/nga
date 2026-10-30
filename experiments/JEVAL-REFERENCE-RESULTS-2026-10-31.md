@@ -71,3 +71,20 @@ Rates are the run-reported forward throughput per chip, not end-to-end elapsed t
 Kev report SHA256 `dcee22c5848cacaa6fc6ffa394b12b79f769dc717589b92596a03e23bc2f710c`; Nimble report SHA256 `1bcf640ed9e8d02a20b03d71bcc39d0aedf27aa9a7b47e28d32d046d037693d8`.
 
 Chip 0 (Kev) and chip 1 (Nimble) resource release is a separate parent decision requiring fresh allocation ownership and live-device checks under lock. This closeout performs no release. Kev-4B/9B JEVal results remain pending; Open-Jev JEVal remains subject to its separate admission work. No formal training, new fitting, real-business benefit or Astra approval follows from these results.
+
+## 2026-10-31 dated clarification after actual Astra review
+
+The original table's “2,253 unsupported” count remains correct. Actual Astra
+review identified an incorrect candidate-limit-only explanation in the frozen
+closeout README. Receipt-level recount splits those 2,253 rows into **2,047
+`native_v1_candidate_limit_26` and 206 `native_nonempty_context_required`**;
+the latter are 95 ARC-Challenge and 111 ARC-Easy rows with empty state and no
+more than 26 candidates. The separate overlength count remains 998. No reported
+metric, valid denominator, prediction or flag changes. All 6/30 flags and
+`VERIFIED_HARDENED_SCOPED_REVIEW_REQUIRED` remain.
+
+The actual Astra review supports bounded reference publication after this cause
+clarification, with every original scope limitation retained. See
+[the full review](ASTRA-JEVAL-RESULTS-REVIEW-2026-10-31.md). The original closeout
+now has an additive `ERRATUM-20261031.md`; no frozen evidence was rewritten.
+Erratum SHA-256: `73a81a296f3dc39acd61303023b671e2bea7f8ff342b33c8002db537d5781015`.
