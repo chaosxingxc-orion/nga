@@ -66,6 +66,8 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 
 | [E36](E36-openjev-candidate-batch-20261030.md) | Open-Jev candidate batch memory | engineering admission | both 20-forward probes complete; memory improved but numerical admission failed; chip 1 released |
 
+| [E37](E37-openjev-batch-diagnostic-20261030.md) | Open-Jev no-op and layer-memory diagnostic | engineering diagnosis | prepared only; 10 CPU tests pass; no resource claim or NPU launch |
+
 ## Where the artifacts live
 
 - Pre-registrations, protocol notes and results documents: `experiments/`
