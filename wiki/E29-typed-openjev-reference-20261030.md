@@ -56,3 +56,24 @@ are prepared but unlaunched: `typed_openjev2_probe_20261030` on intended chip 0,
 `3884e565ab5e218f6a660fb83fdcfc705f30b6dba24a2e49e3ee9c6c22640cd8`.
 Resource transfer requires reviewed completed E26 predecessors and live-device
 checks. Full formal inference remains unlaunched pending real probe evidence.
+
+17:58 UTC actual execution update: both synthetic native probes completed with
+matching terminal/output/config hashes, wrappers and actual retained Docker exit 0.
+Both had two five-question passes with probability delta 0. Second-pass speed was
+3.250166 / 2.730244 questions/s/chip, one chip each, reserved 4.146484 / 17.587891
+GiB (2B / 9B). These are admission timings, not whole-test speed claims.
+
+Parent implementation review then admitted full inference and separate CPU
+finishers. Formal configurations freeze 93 / 96 files and are bound to SHA256:
+2B `6f1f678c728a912e5f249c273389e248100aa26bdbafeaadb28361c58ca2c728`;
+9B `ecbb6411a67f59d18300962d8549eca33c9ac74bf74e651f9a8ea61874b6d4bb`.
+Retained inference IDs:
+
+- 2B, physical chip 0: `17336bc6b669a1b1e4fd75ea27c8f4a6ca13327e55cef75d94ba207251fcd1d5`.
+- 9B, physical chip 5: `521e4874a1cd84f8f5d426c98710e7577f37032ddc6bcf17b67d83d120e73f1d`.
+
+Exact image/command/receipt/device bindings were inspected after launch. 2B had
+entered actual inference at 25/400 states; 9B was starting. Outputs live in
+`reference_inference/typed_openjev{2,9}_inference_20261030/`, CPU audits in sibling
+`_finish/` directories. Complete metrics await actual terminal and independent
+verification. Original public/supplement runs on chips 1/2 were not modified.
