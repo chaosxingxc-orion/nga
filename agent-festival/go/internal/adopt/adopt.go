@@ -41,6 +41,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"unicode/utf8"
 
 	"festival-dev/go/internal/ledger"
 	"festival-dev/go/internal/rfc8785"
@@ -105,9 +106,13 @@ type opState struct {
 	accountability *ledger.Accountability // pinned at adoption; rides every effect event
 }
 
-// Open loads (or starts) the durable form at path. A torn tail line — the
-// residue of a crash between 'write full content' and 'rename' — is skipped:
-// events end at the last complete line, and the machine resumes from there.
+// Open loads (or starts) the durable form at path. A torn tail — an
+// unparseable remnant at EOF without a trailing newline — is skipped: a
+// conservative compatibility boundary for externally-damaged files (under
+// the machine's own temp+rename protocol a crash leaves the old or the new
+// file, never a partial line; the tolerated shape can only come from
+// outside). Events end at the last complete line; anything non-parseable
+// elsewhere fails the open.
 // The loaded lines are checked BEFORE any state is absorbed: a file this
 // machine did not write fails the open (see checkLoaded).
 func Open(path string) (*Machine, error) {
@@ -211,9 +216,10 @@ func parseCompleteLines(raw []byte) ([]parsedLine, error) {
 }
 
 // decodeLineDoc parses one line into a raw map with UseNumber, so integers
-// survive the map domain exactly (the double charter: integer-domain checks
-// — arbitration_seq — compare in the native domain, not through float64
-// rounding at 2^53; R2 M-4).
+// survive the map domain exactly: float64 rounding is monotonic and never
+// hides a decreasing pair — what it breaks is the other direction, the
+// false rejection of legal consecutive seqs crossing 2^53 (pinned by
+// TestOpenAcceptsLegalHighSeqAcross2e53).
 func decodeLineDoc(line []byte) (map[string]any, error) {
 	dec := json.NewDecoder(bytes.NewReader(line))
 	dec.UseNumber()
@@ -505,8 +511,17 @@ func (m *Machine) append(ev *ledger.Event) error {
 }
 
 // checkRequest validates the request's document form against
-// adoption.schema.json.
+// adoption.schema.json — and first that every string field is valid UTF-8:
+// json.Marshal silently replaces invalid bytes with U+FFFD, so a request
+// carrying them would pass the gate while the durable form registers a
+// LAUNDERED key — the caller retries under the original key, the machine
+// sees a new operation, and the file ends up with two adopted events under
+// one laundered id: a ledger the machine's own loader permanently rejects
+// (R5 BLOCKER). The gate rejects what it cannot byte-represent.
 func (m *Machine) checkRequest(req *Request) []string {
+	if errs := requestUTF8Errors(req); len(errs) > 0 {
+		return errs
+	}
 	raw, err := json.Marshal(req)
 	if err != nil {
 		return []string{"request marshal failed: " + err.Error()}
@@ -518,6 +533,41 @@ func (m *Machine) checkRequest(req *Request) []string {
 		return []string{"request decode failed: " + err.Error()}
 	}
 	return CheckRequest(doc)
+}
+
+// requestUTF8Errors names every request string field that is not valid
+// UTF-8.
+func requestUTF8Errors(req *Request) []string {
+	var errs []string
+	add := func(field, v string) {
+		if !utf8.ValidString(v) {
+			errs = append(errs, fmt.Sprintf("request field %s is not valid UTF-8 — the durable form cannot byte-represent it (json.Marshal would launder it to U+FFFD, forking the caller's key from the ledger's)", field))
+		}
+	}
+	add("adoption_version", req.AdoptionVersion)
+	add("identity.business_request_id", req.Identity.BusinessRequestID)
+	add("identity.evaluation_revision", req.Identity.EvaluationRevision)
+	add("identity.operation_id", req.Identity.OperationID)
+	add("payload_digest", req.PayloadDigest)
+	add("versions.evidence", req.Versions.Evidence)
+	add("versions.rule", req.Versions.Rule)
+	add("versions.model", req.Versions.Model)
+	add("versions.readout", req.Versions.Readout)
+	add("versions.policy", req.Versions.Policy)
+	for i, g := range req.GrantsAtDecision {
+		add(fmt.Sprintf("grants_at_decision[%d].kind", i), g.Kind)
+		add(fmt.Sprintf("grants_at_decision[%d].selector", i), g.Selector)
+		add(fmt.Sprintf("grants_at_decision[%d].effect", i), g.Effect)
+		for j, a := range g.Actions {
+			add(fmt.Sprintf("grants_at_decision[%d].actions[%d]", i, j), a)
+		}
+	}
+	if req.Accountability != nil {
+		add("accountability.session", req.Accountability.Session)
+		add("accountability.skill", req.Accountability.Skill)
+		add("accountability.role", req.Accountability.Role)
+	}
+	return errs
 }
 
 // grantsCover reports whether the live set still covers every pinned grant:

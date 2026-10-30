@@ -32,5 +32,5 @@
     }
   ],
   "_expect": "REJECT: adoption events carry adoption-family statuses (adopted/reused/conflict); an effect-path status on an adoption event is a family violation — the machine's answer vocabulary never crosses the event-type boundary",
-  "_expect_match": "dispatched"
+  "_expect_match": "effect-family"
 }

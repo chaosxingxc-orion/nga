@@ -99,6 +99,6 @@
       }
     }
   ],
-  "_expect": "REJECT: events must be non-decreasing in arbitration_seq — ledger monotonicity",
+  "_expect": "REJECT: events must be strictly increasing in arbitration_seq — ledger monotonicity",
   "_expect_match": "arbitration_seq"
 }

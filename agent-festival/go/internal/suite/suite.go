@@ -52,11 +52,12 @@ func Load(path string) (*Fixture, error) {
 	}
 	f := &Fixture{}
 	var doc map[string]any
-	// UseNumber: integers survive the map domain exactly — the double
-	// charter keeps integer-domain checks (arbitration_seq monotonicity) out
-	// of float64, where adjacent values past 2^53 fold equal and the Go
-	// verdict forks from Python's exact-int one (R2 M-4). santhosh accepts
-	// json.Number as a number, and the checkers' typed re-parse is exact.
+	// UseNumber: integers survive the map domain exactly — float64 rounding
+	// is monotonic, so DECREASING pairs are still caught after folding; what
+	// a float64 map breaks is the other direction, silently rejecting LEGAL
+	// consecutive seqs that cross 2^53 (pinned by the high-seq-across-2e53
+	// fixture). santhosh accepts json.Number as a number, and the checkers'
+	// typed re-parse is exact.
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.UseNumber()
 	if err := dec.Decode(&doc); err != nil {

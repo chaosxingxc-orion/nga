@@ -45,7 +45,7 @@ def ledger_errors(doc: dict) -> list[str]:
             for e in v.iter_errors(doc)]
     if errs:
         return errs
-    # cross-event rule: arbitration_seq must be non-decreasing, and within
+    # cross-event rule: arbitration_seq must be strictly increasing, and within
     # the int64 domain (the machine's counter domain — Python's bignum would
     # otherwise accept a document the Go typed view rejects, forking the
     # dual validators' verdicts)
@@ -78,19 +78,14 @@ def ledger_errors(doc: dict) -> list[str]:
         status = e.get("outcome", {}).get("status", "")
         ok = status in (EFFECT_STATUSES if e["event_type"] == "effect" else ADOPT_STATUSES)
         if not ok:
-            if not status:
-                errs.append(f"events/{i}: {e['event_type']} event carries no outcome status — "
-                            f"every event's verdict must name one of the machine's statuses")
-            elif status in EFFECT_STATUSES or status in ADOPT_STATUSES:
-                # the label names the status's OWN family — that is the
-                # vocabulary crossing being reported
-                family = "adoption" if status in ADOPT_STATUSES else "effect"
-                errs.append(f"events/{i}: {e['event_type']} event carries the {family}-family status "
-                            f"{status!r} — the status vocabulary never crosses the "
-                            f"event-type boundary")
-            else:
-                errs.append(f"events/{i}: {e['event_type']} event carries the status {status!r} — "
-                            f"not one of the machine's statuses")
+            # the label names the status's OWN family — that is the
+            # vocabulary crossing being reported. (Empty and unknown-status
+            # branches are unreachable: the schema's required outcome +
+            # status enum constrain the value first.)
+            family = "adoption" if status in ADOPT_STATUSES else "effect"
+            errs.append(f"events/{i}: {e['event_type']} event carries the {family}-family status "
+                        f"{status!r} — the status vocabulary never crosses the "
+                        f"event-type boundary")
         if e["event_type"] == "effect" and e.get("grants_at_decision"):
             errs.append(f"events/{i}: effect event for operation {e['identity']['operation_id']!r} "
                         f"carries grants_at_decision — the grant pin rides the adopted event only "

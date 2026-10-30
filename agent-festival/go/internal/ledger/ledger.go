@@ -16,6 +16,7 @@ package ledger
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 
 	"festival-dev/go/internal/schemalib"
 )
@@ -27,6 +28,45 @@ import (
 // the schema enum the enforced single source, R3 m-2).
 var AdoptStatuses = map[string]bool{"adopted": true, "reused": true, "conflict": true}
 var EffectStatuses = map[string]bool{"dispatched": true, "unresolved": true, "completed": true, "failed": true}
+
+// normalizeIntegralNumbers converts json.Number values with integral values
+// that fit int64 into int64, in place. Without this, a seq written "5.0"
+// would pass the schema (spec: integer-valued) but fail the typed re-parse —
+// forking the dual validators' verdicts on the same document (R5 M-3).
+func normalizeIntegralNumbers(node any) {
+	switch v := node.(type) {
+	case map[string]any:
+		for k, child := range v {
+			if n, ok := child.(json.Number); ok {
+				if i, err := n.Int64(); err == nil {
+					v[k] = i
+					continue
+				}
+				if f, err := n.Float64(); err == nil && f == math.Trunc(f) &&
+					f >= -(1<<53) && f <= 1<<53 {
+					v[k] = int64(f)
+					continue
+				}
+			}
+			normalizeIntegralNumbers(child)
+		}
+	case []any:
+		for i, child := range v {
+			if n, ok := child.(json.Number); ok {
+				if j, err := n.Int64(); err == nil {
+					v[i] = j
+					continue
+				}
+				if f, err := n.Float64(); err == nil && f == math.Trunc(f) &&
+					f >= -(1<<53) && f <= 1<<53 {
+					v[i] = int64(f)
+					continue
+				}
+			}
+			normalizeIntegralNumbers(child)
+		}
+	}
+}
 
 // notATransition formats the illegal-transition error.
 func notATransition(i int, op, status, from string) string {
@@ -114,7 +154,7 @@ type Document struct {
 }
 
 // Errors validates a ledger document against the schema plus the cross-event
-// rules: arbitration_seq non-decreasing; one payload digest per operation —
+// rules: arbitration_seq strictly increasing; one payload digest per operation —
 // a changed payload under the same key is a rejection (15 §B4); and the
 // event-sequence grammar of the single writer — each operation opens with
 // exactly one adopted adoption event, and every later event for it (reused /
@@ -123,14 +163,23 @@ type Document struct {
 // transition. Status families never cross the event-type boundary; effect
 // events carry no grants_at_decision; and each operation's effect events
 // follow the machine's own transition DAG in file order. The monotonicity
-// check assumes the map input was decoded with json.Decoder.UseNumber — a
-// float64-decoded map folds adjacent integers past 2^53 equal and the check
-// goes blind (the suite loader and the adopt machine's line decoder both
-// keep this discipline; future callers — the replay reader — must too).
+// check assumes the map input was decoded with json.Decoder.UseNumber:
+// float64 rounding is monotonic, so DECREASING pairs are caught with or
+// without exact integers — what a float64-decoded map breaks is the other
+// direction, silently rejecting LEGAL consecutive seqs that cross 2^53 (the
+// suite loader and the adopt machine's line decoder both keep this
+// discipline; future callers — the replay reader — must too).
 func Errors(doc map[string]any) []string {
 	if err := schema.Validate(doc); err != nil {
 		return []string{"schema: " + err.Error()}
 	}
+	// normalize integral float-syntax numbers (json.Number like "5.0") into
+	// the int domain: the reference implementation's Number.isInteger
+	// accepts 5.0, so parity accepts it — and the comparisons below stay in
+	// the native integer domain (the double charter). Non-integral or
+	// beyond-int64 values stay as json.Number and fail the typed re-parse,
+	// which is the int64-domain rejection.
+	normalizeIntegralNumbers(doc)
 	// cross-event rules on the typed view
 	var d Document
 	raw, err := json.Marshal(doc)
@@ -166,19 +215,16 @@ func Errors(doc map[string]any) []string {
 			ok = EffectStatuses[e.Outcome.Status]
 		}
 		if !ok {
-			if e.Outcome.Status == "" {
-				errs = append(errs, fmt.Sprintf("events/%d: %s event carries no outcome status — every event's verdict must name one of the machine's statuses", i, e.EventType))
-			} else if EffectStatuses[e.Outcome.Status] || AdoptStatuses[e.Outcome.Status] {
-				// the label names the status's OWN family — that is the
-				// vocabulary crossing being reported
-				family := "effect"
-				if AdoptStatuses[e.Outcome.Status] {
-					family = "adoption"
-				}
-				errs = append(errs, fmt.Sprintf("events/%d: %s event carries the %s-family status %q — the status vocabulary never crosses the event-type boundary", i, e.EventType, family, e.Outcome.Status))
-			} else {
-				errs = append(errs, fmt.Sprintf("events/%d: %s event carries the status %q — not one of the machine's statuses", i, e.EventType, e.Outcome.Status))
+			// the label names the status's OWN family — that is the
+			// vocabulary crossing being reported. (The empty-status and
+			// unknown-status branches are unreachable — the schema's
+			// required outcome + status enum constrain the value before the
+			// typed view sees it.)
+			family := "effect"
+			if AdoptStatuses[e.Outcome.Status] {
+				family = "adoption"
 			}
+			errs = append(errs, fmt.Sprintf("events/%d: %s event carries the %s-family status %q — the status vocabulary never crosses the event-type boundary", i, e.EventType, family, e.Outcome.Status))
 		}
 		if e.EventType == "effect" && len(e.GrantsAtDecision) > 0 {
 			errs = append(errs, fmt.Sprintf("events/%d: effect event for operation %q carries grants_at_decision — the grant pin rides the adopted event only (stamped once, at the decision point)", i, e.Identity.OperationID))

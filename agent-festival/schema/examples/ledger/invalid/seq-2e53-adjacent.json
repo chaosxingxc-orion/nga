@@ -70,6 +70,6 @@
       }
     }
   ],
-  "_expect": "REJECT: adjacent arbitration_seq values past 2^53 (9007199254740993 -> 9007199254740992) break the strictly-increasing order only if integers survive the map domain exactly — double-domain parsing folds them equal and the Go oracle goes blind (the double charter: integer-domain comparisons stay in the native domain)",
+  "_expect": "REJECT: adjacent arbitration_seq values past 2^53 (9007199254740993 -> 9007199254740992) break the strictly-increasing order — float64 rounding is monotonic, so the violation is caught in both the exact-integer and the folded domain; this fixture documents the boundary, its legal twin (high-seq-across-2e53) is what pins the exact decoder",
   "_expect_match": "increasing"
 }

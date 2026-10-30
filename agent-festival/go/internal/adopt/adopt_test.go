@@ -423,7 +423,7 @@ func TestMachineOutputConformsToLedger(t *testing.T) {
 	if len(events) != 9 {
 		t.Fatalf("events = %d, want 9", len(events))
 	}
-	doc := ledger.Document{LedgerVersion: "0.1.0", Events: events}
+	doc := ledger.Document{LedgerVersion: ledger.Version, Events: events}
 	raw, err := json.Marshal(doc)
 	if err != nil {
 		t.Fatal(err)
@@ -898,5 +898,85 @@ func TestUnresolvedReconciliationToFailed(t *testing.T) {
 	}
 	if m.State("op-uf") != StateFailed {
 		t.Fatalf("state = %q, want failed", m.State("op-uf"))
+	}
+}
+
+// TestAdoptRejectsInvalidUTF8 is the R5 BLOCKER regression: json.Marshal
+// launders invalid UTF-8 to U+FFFD, so a request carrying it would pass the
+// schema check on the LAUNDERED document while the durable form registers a
+// laundered key — after a crash-reload the caller's original key looks like
+// a new operation, and the file ends with two adopted events under one
+// laundered id, a ledger the loader permanently rejects. The gate rejects
+// what it cannot byte-represent.
+func TestAdoptRejectsInvalidUTF8(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	badOp := testRequest("op-\xff", digestA, pinGrants())
+	if o := m.Adopt(badOp); o.Status != "rejected" {
+		t.Fatalf("invalid-UTF-8 operation_id = %q, want rejected", o.Status)
+	}
+	badSelector := testRequest("op-ok1", digestA, []ledger.Grant{
+		{Kind: "data", Selector: "ledger://credit/\xff", Actions: []string{"read"}, Effect: "none"},
+	})
+	if o := m.Adopt(badSelector); o.Status != "rejected" {
+		t.Fatalf("invalid-UTF-8 grant selector = %q, want rejected", o.Status)
+	}
+	badSession := testRequest("op-ok2", digestA, pinGrants())
+	badSession.Accountability = &ledger.Accountability{Session: "sess-\xff", Skill: "s", Role: "r"}
+	if o := m.Adopt(badSession); o.Status != "rejected" {
+		t.Fatalf("invalid-UTF-8 accountability session = %q, want rejected", o.Status)
+	}
+	events, _ := m.Events()
+	if len(events) != 0 {
+		t.Fatalf("invalid-UTF-8 requests wrote %d events, want 0", len(events))
+	}
+	// and the crash chain cannot start: a valid request under the same key
+	// still adopts cleanly
+	if o := m.Adopt(testRequest("op-\xff", digestA, pinGrants())); o.Status != "rejected" {
+		t.Fatalf("second invalid-UTF-8 attempt = %q, want rejected", o.Status)
+	}
+	if o := m.Adopt(testRequest("op-clean", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("clean request = %q, want adopted", o.Status)
+	}
+}
+
+// TestOpenAcceptsLegalHighSeqAcross2e53 is the pin UseNumber actually earns
+// (R5 M1): float64 rounding is monotonic, so a DECREASING pair folds to
+// equal-or-decreasing and the strict-increase check catches it with or
+// without exact integers — the invalid-side fixture can never pin the
+// decoder. The pinnable direction is the false positive: legal consecutive
+// seqs across 2^53 fold EQUAL in float64 and a UseNumber-less loader would
+// reject a machine-legal file.
+func TestOpenAcceptsLegalHighSeqAcross2e53(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-hi", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	events, _ := m.Events()
+	adopted := events[0]
+	adopted.ArbitrationSeq = 9007199254740992 // 2^53
+	first, err := json.Marshal(adopted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	effect := events[0]
+	effect.EventType = "effect"
+	effect.ArbitrationSeq = 9007199254740993 // 2^53 + 1 — one past the fold point
+	effect.Outcome = ledger.Outcome{Status: string(StateDispatched)}
+	effect.GrantsAtDecision = nil
+	second, err := json.Marshal(effect)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(string(first)+"\n"+string(second)+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m2, err := Open(path)
+	if err != nil {
+		t.Fatalf("legal high-seq file rejected at load (folded equal in the map domain?): %v", err)
+	}
+	if m2.State("op-hi") != StateDispatched {
+		t.Fatalf("state = %q, want dispatched", m2.State("op-hi"))
 	}
 }
