@@ -22,3 +22,5 @@
 - 上游 `reports/full-data-eval-n1-v1/2b-audit.json` SHA256：`e8b0583b12ee00e8031e7ea5388d935389c3ce9681e3099da0cafe30329ff472`，取 `metrics.test.probability_metrics_all_rows`；原始数据哈希与本地一致。
 
 OOD 15,920 行已恢复但本轮尚未推理，不能用本表补齐 OOD 成绩。原 native 模型/接口/温度和双分区合并协议见 [E24](../wiki/E24-openjev-original-test-supplement-20261030.md)。
+
+18:03 UTC 对照补充：[checkpoint 与原提示核查](OPENJEV2-ORIGINAL-COMPARISON-2026-10-30.md)已验证五个 checkpoint 文件逐字节匹配上游 audit，原始与当前源码在完整 test 上生成的 30,570 个候选提示相同。源码版本仍有差异；已枚举的可读镜像未找到上游逐项预测，搜索有权限错误且未递归符号链接，故不作绝对不存在判断。净少 8 个正确回答不等于已定位恰好八次翻转。
