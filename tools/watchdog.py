@@ -113,6 +113,12 @@ def build_parser():
     a("--npu-sample-gap", type=float, default=3.0, help="seconds between snapshots (default 3)")
     a("--npu-timeout", type=float, default=45.0, help="give up on the whole ssh call after this many seconds (default 45)")
     a("--npu-low-pct", type=float, default=30.0, help="a claimed chip below this mean AICore %% is shown as low, informational only (default 30)")
+    a("--npu-window-seconds", type=float, default=3600.0,
+      help="the utilisation verdict (low / busy) is the mean AICore over the claimed passes of this trailing window (default 3600 = 1 h: "
+           "about six 10-minute passes of four snapshots, long enough to average out the 14-94%% swings a bursty eval shows within "
+           "seconds, short enough that an idle stretch hours ago cannot colour it); the digest states the window and the passes it had")
+    a("--npu-min-passes", type=int, default=3,
+      help="a claimed chip with fewer passes than this in the window is reported 'unknown', never 'low' (default 3)")
     a("--npu-idle-hbm-mb", type=float, default=4096.0,
       help="a chip with no resident process and at most this much HBM is unclaimed (the driver baseline is about 3450 MB; default 4096)")
     a("--npu-near-zero-pct", type=float, default=5.0, help="a claimed chip whose every snapshot is at or below this %% AICore is quiet (default 5)")
@@ -370,6 +376,7 @@ _TOTAL = re.compile(r"\b(?:total|n_total|of)\s*[=:]?\s*(\d+)", re.I)
 _NUM = r"-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?"
 _PERF_RATE = re.compile(r"\b(tok|ex|q)_s_(chip|host_nochip)(?:_w(\d+))?=(%s)(?![\w.])" % _NUM)
 _PERF_AUX = re.compile(r"\b(chips|procs_on_chip|reserved_gib|step_s)=(%s)(?![\w.])" % _NUM)
+_CHIP_ID = re.compile(r"\bchip=(\d+)(?![\w.])")     # a worker names the chip it runs on; "chips=" (a count) does not match
 
 
 def parse_perf_fields(text):
@@ -383,7 +390,10 @@ def parse_perf_fields(text):
     if not rates:
         return None
     out = {"tok_s": None, "ex_s": None, "ex_unit": None, "scope": None, "window": None, "chips": None,
-           "procs_on_chip": None, "reserved_gib": None, "step_s": None}
+           "procs_on_chip": None, "reserved_gib": None, "step_s": None, "chip_id": None}
+    cm = _CHIP_ID.search(text)
+    if cm:
+        out["chip_id"] = int(cm.group(1))
     scopes = set()
     for kind, (v, sc, w) in rates.items():
         scopes.add(sc)
@@ -556,7 +566,8 @@ def _median(xs):
 
 def _perf_rec(source, ts, **kw):
     r = {"source": source, "ts": ts, "utc": iso(ts), "scope": None, "tok_s": None, "ex_s": None, "ex_unit": None, "window": None,
-         "chips": None, "procs_on_chip": None, "reserved_gib": None, "step_s": None, "baseline": None, "ratio": None, "note": None}
+         "chips": None, "procs_on_chip": None, "reserved_gib": None, "step_s": None, "chip_id": None, "baseline": None, "ratio": None,
+         "note": None}
     r.update(kw)
     return r
 
@@ -627,17 +638,31 @@ def read_progress_log_perf(path, window=20):
                      reserved_gib=max(r[5] for r in recs), note="median of the last %d step lines" % len(recs))
 
 
-def _heartbeat_perf(path):
-    """Last heartbeat line of a (child) heartbeat.log that carries throughput fields -> record or None."""
+def _heartbeat_probe(path):
+    """ONE read of a (child) heartbeat.log -> (last timestamp of any timestamped line, perf record of the last line that carries
+    throughput fields). Both the liveness judgement (stalled or not) and the throughput figure are derived from this single read, so
+    they cannot disagree about which lines exist or when they were written. (None, None) when unreadable or empty; a file without a
+    single timestamped line reports its mtime as the timestamp and no perf record."""
     try:
         lines = read_tail(path, 64 << 10)
     except OSError:
-        return None
+        return None, None
+    last_ts, rec = None, None
     for ln in reversed(lines):
         s = parse_heartbeat_line(ln)
-        if s and s["perf"]:
-            return _perf_rec("heartbeat", s["ts"], **s["perf"])
-    return None
+        if not s:
+            continue
+        if last_ts is None:
+            last_ts = s["ts"]
+        if s["perf"]:
+            rec = _perf_rec("heartbeat", s["ts"], **s["perf"])
+            break
+    if last_ts is None:
+        try:
+            last_ts = os.path.getmtime(path)
+        except OSError:
+            pass
+    return last_ts, rec
 
 
 def _child_dirs(d, cap=300):
@@ -671,14 +696,15 @@ def perf_dirs(d, depth):
     return found[:PERF_MAX_DIRS]
 
 
-def collect_perf(d, cfg, samples, now, stall_s):
-    """Throughput of one run, or None when no source carries any. Sources per directory (the run's own and its children, e.g.
-    res/p0..p3 of a concurrent cell): the freshest of heartbeat fields, perf.json and progress.log is the displayed rate; the baseline
-    and ratio come only from a perf.json that declares one. Nothing is invented: no baseline declared means ratio None.
-    Aggregate over the live processes: rate = mean of the per-chip-equivalent rates, chips = sum of chips/procs_on_chip,
-    ratio = the worst process."""
-    recs = []
+def scan_sources(d, cfg, samples):
+    """Every throughput/heartbeat source of one run, read ONCE: the run directory and its descendants down to --throughput-depth
+    levels (e.g. workers/w0..w4). Returns (recs, beats): recs = one throughput record per directory that carries any (the freshest of
+    heartbeat fields, perf.json and progress.log); beats = (relative dir, timestamp, source) for every directory whose heartbeat or
+    progress source was written, including a heartbeat that has no throughput fields (an 'alive' line). The liveness judgement
+    (run_liveness) and the throughput aggregate (collect_perf) both consume this one result."""
+    recs, beats = [], []
     for x in perf_dirs(d, cfg.perf_depth):
+        rel = os.path.relpath(x, d) if x != d else "."
         cands = []
         if x == d:
             own = next((s for s in reversed(samples or []) if s.get("perf")), None)
@@ -686,9 +712,12 @@ def collect_perf(d, cfg, samples, now, stall_s):
                 cands.append(_perf_rec("heartbeat", own["ts"], **own["perf"]))
         else:
             hb = os.path.join(x, cfg.heartbeat_name)
-            r = _heartbeat_perf(hb) if os.path.isfile(hb) else None
-            if r:
-                cands.append(r)
+            if os.path.isfile(hb):
+                hb_ts, r = _heartbeat_probe(hb)
+                if hb_ts is not None:
+                    beats.append((rel, hb_ts, cfg.heartbeat_name))
+                if r:
+                    cands.append(r)
         pj = read_perf_json(os.path.join(x, "perf.json")) if os.path.isfile(os.path.join(x, "perf.json")) else None
         if pj:
             cands.append(pj)
@@ -698,16 +727,49 @@ def collect_perf(d, cfg, samples, now, stall_s):
         if not cands:
             continue
         best = dict(max(cands, key=lambda c: (c["ts"], c["source"] == "heartbeat")))
+        if best["source"] != "heartbeat":
+            beats.append((rel, best["ts"], best["source"]))
         if pj:
             best["baseline"], best["ratio"], best["perf_json_ts"] = pj["baseline"], pj["ratio"], pj["ts"]
-        best["dir"] = os.path.relpath(x, d) if x != d else "."
+        best["dir"] = rel
         if best["scope"] == "chip" and best["chips"] == 0:
             best["note"] = "chips=0 but per-chip fields present: contradictory source"
         recs.append(best)
+    return recs, beats
+
+
+def run_liveness(d, cfg, own_ts, own_src, srcs):
+    """(timestamp, source text) of the newest sign of life of a run across ALL its sources: its own heartbeat and every per-worker
+    source in `srcs` (from scan_sources). A run whose root has no heartbeat file but whose workers beat every few seconds is alive."""
+    best_ts, best_src = own_ts, own_src
+    for rel, ts, src in srcs[1]:
+        if best_ts is None or ts > best_ts:
+            best_ts, best_src = ts, "newest of %d sub-sources (%s/%s)" % (len(srcs[1]), rel, src)
+    return best_ts, best_src
+
+
+def collect_perf(d, cfg, samples, now, stall_s, srcs=None):
+    """Throughput of one run, or None when no source carries any. Sources per directory (the run's own and its children, e.g.
+    res/p0..p3 of a concurrent cell, workers/w0..w4): the freshest of heartbeat fields, perf.json and progress.log is the displayed
+    rate; the baseline and ratio come only from a perf.json that declares one. Nothing is invented: no baseline declared means ratio
+    None. `srcs` is the scan_sources result when the caller already has it (the liveness judgement uses the same one).
+    Chip count: where a source names its chip (a worker heartbeat's `chip=N`), chips = the number of DISTINCT chip ids among the live
+    sources, one record per chip (the newest), and sources that name no chip are not counted (they are shared streams or aggregates
+    of the same workers and would count a chip twice; the note says how many were left out). Where no source names a chip: the sum of
+    chips/procs_on_chip as before. Aggregate over the live processes: rate = mean of the per-chip rates, ratio = the worst process."""
+    recs = (srcs or scan_sources(d, cfg, samples))[0]
     if not recs:
         return None
     newest = max(r["ts"] for r in recs)
     live = [r for r in recs if newest - r["ts"] <= max(stall_s, 600)]
+    unattributed = 0
+    if any(r["chip_id"] is not None for r in live):
+        by_chip = {}
+        for r in live:
+            if r["chip_id"] is not None and (r["chip_id"] not in by_chip or r["ts"] > by_chip[r["chip_id"]]["ts"]):
+                by_chip[r["chip_id"]] = r
+        unattributed = len(live) - sum(1 for r in live if r["chip_id"] is not None)
+        live = [by_chip[k] for k in sorted(by_chip)]
     scopes = {r["scope"] for r in live}
     scope = scopes.pop() if len(scopes) == 1 else "mixed"
 
@@ -717,6 +779,8 @@ def collect_perf(d, cfg, samples, now, stall_s):
     chips = None
     if scope == "host":
         chips = 0
+    elif any(r["chip_id"] is not None for r in live):
+        chips = len({r["chip_id"] for r in live})
     elif all(r["chips"] is not None for r in live):
         chips = int(math.ceil(sum(r["chips"] / float(max(1, r["procs_on_chip"] or 1)) for r in live) - 1e-9))
     units = {r["ex_unit"] for r in live if r["ex_unit"]}
@@ -736,7 +800,9 @@ def collect_perf(d, cfg, samples, now, stall_s):
         "baseline": "declared" if worst else "undeclared", "ratio_key": key, "ratio": worst[0] if worst else None,
         "ratio_dir": worst[1] if worst else None, "ratio_stale": bool(worst and not worst[2]),
         "threshold": cfg.perf_regress_ratio, "regressed": bool(worst and worst[2] and worst[0] < cfg.perf_regress_ratio),
-        "note": ("; ".join(sorted({r["note"] for r in live if r["note"]})) or None),
+        "note": ("; ".join(sorted({r["note"] for r in live if r["note"]} | (
+            {"%d source(s) naming no chip not counted" % unattributed} if unattributed else set()))) or None),
+        "chip_ids": sorted({r["chip_id"] for r in live if r["chip_id"] is not None}) or None,
         "procs": [{k: r[k] for k in ("dir", "source", "utc", "scope", "tok_s", "ex_s", "ex_unit", "window", "chips", "procs_on_chip",
                                       "reserved_gib", "baseline", "ratio")} for r in live][:PERF_MAX_DIRS],
     }
@@ -1310,17 +1376,38 @@ def shard_status(d, last_sample):
 
 
 def refresh_cached(res, d, cfg, now):
-    """Cheap per-tick refresh of a not-due run: only the heartbeat tail is re-read, so its progress, heartbeat time and age
-    track the run. State, errors and report stay as of the last full read."""
+    """Cheap per-tick refresh of a not-due run: only the heartbeat tails are re-read, so its progress, heartbeat time and age
+    track the run. State, errors and report stay as of the last full read. The heartbeat time is computed by live_timestamp, the
+    same function as the full read, over the same sources as the throughput figure."""
     samples, hb_ts, hb_src, _ = read_heartbeat(d, cfg)
+    srcs = scan_sources(d, cfg, samples)
     if samples:
         res["progress"] = summarize_progress(samples, d, cfg, res.get("declared_total"), res.get("uniform_cost", True))
-        res["heartbeat_epoch"], res["heartbeat_utc"], res["heartbeat_source"] = hb_ts, iso(hb_ts), hb_src
-        res["age_s"] = int(now - hb_ts)
+    ts, src = live_timestamp(d, cfg, run_logs(d, cfg), hb_ts if samples else None, hb_src if samples else None, srcs)
+    if ts is not None and (samples or srcs[1]):
+        res["heartbeat_epoch"], res["heartbeat_utc"], res["heartbeat_source"] = ts, iso(ts), src
+        res["age_s"] = int(now - ts)
     elif res.get("heartbeat_epoch") is not None:
         res["age_s"] = int(now - res["heartbeat_epoch"])
-    res["perf"] = collect_perf(d, cfg, samples, now, res["tier"]["stall_s"])     # rates follow every tick; the regression ESCALATION is set at full reads
+    res["perf"] = collect_perf(d, cfg, samples, now, res["tier"]["stall_s"], srcs)     # rates follow every tick; the regression ESCALATION is set at full reads
     return res
+
+
+def live_timestamp(d, cfg, logs, hb_ts, hb_src, srcs):
+    """The single liveness timestamp of a run, used by the full read (evaluate_run) AND the per-tick refresh (refresh_cached) so the
+    two cannot disagree: the newest of the run's own heartbeat (or, when it has none, the mtime of its newest log) and every per-worker
+    source of scan_sources, which is the very set the throughput figure is computed from."""
+    if hb_ts is None and logs:
+        mt = []
+        for lg in logs:
+            try:
+                mt.append((os.path.getmtime(lg), lg))
+            except OSError:
+                pass
+        if mt:
+            t, lg = max(mt)
+            hb_ts, hb_src = t, "mtime of %s (no heartbeat file)" % os.path.basename(lg)
+    return run_liveness(d, cfg, hb_ts, hb_src, srcs)
 
 
 def evaluate_run(run, cfg, states, now, prev=None):
@@ -1332,16 +1419,8 @@ def evaluate_run(run, cfg, states, now, prev=None):
     hbp = os.path.join(d, cfg.heartbeat_name)
     samples, hb_ts, hb_src, hb_notes = read_heartbeat(d, cfg)
     notes.extend(hb_notes)
-    if hb_ts is None and logs:
-        mt = []
-        for lg in logs:
-            try:
-                mt.append((os.path.getmtime(lg), lg))
-            except OSError:
-                pass
-        if mt:
-            t, lg = max(mt)
-            hb_ts, hb_src = t, "mtime of %s (no heartbeat file)" % os.path.basename(lg)
+    srcs = scan_sources(d, cfg, samples)
+    hb_ts, hb_src = live_timestamp(d, cfg, logs, hb_ts, hb_src, srcs)
     tier = resolve_tier(d, samples, cfg)
     state, reason = classify(marker, problem, hb_ts, hb_src, bool(logs), now, cfg, os.path.isfile(hbp), stall=tier["stall_s"])
     if tier["error"]:
@@ -1438,7 +1517,7 @@ def evaluate_run(run, cfg, states, now, prev=None):
             why_text = anomaly + "; " + (why_text or "")
     # Throughput regression: a RUNNING run that declares an early baseline (perf.json) and whose windowed rate fell below
     # --perf-regress-ratio x that baseline. Treated like a stall (escalates). No declared baseline: nothing is flagged, nothing invented.
-    perf = collect_perf(d, cfg, samples, now, tier["stall_s"])
+    perf = collect_perf(d, cfg, samples, now, tier["stall_s"], srcs)
     perf_on = bool(perf and perf["regressed"] and state == "running")
     if perf_on:
         ptxt = "THROUGHPUT REGRESSION %.2fx of the declared baseline (%s, flag below %.2fx)" % (
@@ -1643,6 +1722,22 @@ def streak(entries, cfg, pred):
     return (n, entries[-1][0] - first) if n else (0, 0.0)
 
 
+def window_passes(entries, t, cfg):
+    """The history entries [ts, pass mean, max, claimed] the utilisation verdict is computed from: the trailing stretch of CLAIMED
+    passes that fall inside the last --npu-window-seconds. Unclaimed passes are not utilisation of the claimed chip and end the
+    stretch; the first claimed pass after an unclaimed one is warm-up (a container loading weights reads 0 %) and is excluded, as is
+    anything older than the window. Each entry is the mean of one pass's snapshots, so the passes weigh equally."""
+    stretch = []
+    for e in reversed(entries):
+        if not e[3]:
+            break
+        stretch.append(e)
+    stretch.reverse()
+    if len(stretch) < len(entries) and stretch:
+        stretch = stretch[1:]
+    return [e for e in stretch if t - e[0] <= cfg.npu_window_seconds]
+
+
 def analyse_npu(raw, runs, queued, cfg, hist=None):
     """Raw probe -> the digest's `npu` block. Two independent signals per chip, because one AICore reading cannot tell a free chip
     from a claimed one (a container loading weights sits at 0 % AICore while fully claimed):
@@ -1654,7 +1749,7 @@ def analyse_npu(raw, runs, queued, cfg, hist=None):
     never a flag for one low sample. A chip's own throughput against the run's declared baseline is the real health measure."""
     out = {"available": False, "reason": None, "host": cfg.npu_host, "sampled_utc": None, "samples": 0, "chips": [], "unclaimed": [],
            "wedged": [], "quiet": [], "low": [], "running_runs": 0, "queued_runs": 0, "flags": [], "escalation": "none",
-           "low_pct": cfg.npu_low_pct}
+           "low_pct": cfg.npu_low_pct, "unknown": [], "window_s": cfg.npu_window_seconds, "min_passes": cfg.npu_min_passes}
     if not raw.get("ok"):
         out["reason"] = raw.get("reason") or "unavailable"
         return out
@@ -1683,18 +1778,23 @@ def analyse_npu(raw, runs, queued, cfg, hist=None):
         hl = h.setdefault(c["npu"], [])
         hl.append([raw["t"], round(mean, 1), max(vals), claimed])
         hl[:] = [e for e in hl if raw["t"] - e[0] <= NPU_HIST_KEEP_S][-48:]
+        wpass = window_passes(hl, raw["t"], cfg)
+        wmean = round(sum(e[1] for e in wpass) / float(len(wpass)), 1) if wpass else None
         qn, qs = streak(hl, cfg, lambda e: e[3] and e[2] <= cfg.npu_near_zero_pct)
         un, us = streak(hl, cfg, lambda e: not e[3])
         if not claimed:
             st = "unclaimed"
         elif max(vals) <= cfg.npu_near_zero_pct:
             st = "wedged?" if (qn >= cfg.npu_wedged_passes and qs >= cfg.npu_wedged_seconds) else "quiet"
-        elif mean < cfg.npu_low_pct:
+        elif len(wpass) < cfg.npu_min_passes:
+            st = "unknown"           # too few claimed passes in the window to say anything: never "low" on thin evidence
+        elif wmean < cfg.npu_low_pct:
             st = "low"
         else:
             st = "busy"
         chips.append({"npu": c["npu"], "chip": c["chip"], "health": c["health"], "name": c["name"], "state": st, "claimed": claimed,
                       "aicore_last": vals[-1], "aicore_pct": round(mean, 1), "aicore_samples": vals,
+                      "aicore_window_pct": wmean, "window_passes": len(wpass), "window_s": cfg.npu_window_seconds,
                       "aicore_recent_passes": [[iso(e[0]), e[1]] for e in hl[-6:]], "passes_seen": len(hl),
                       "quiet_passes": qn if st in ("quiet", "wedged?") else 0, "quiet_s": int(qs) if st in ("quiet", "wedged?") else 0,
                       "unclaimed_passes": un if st == "unclaimed" else 0, "unclaimed_s": int(us) if st == "unclaimed" else 0,
@@ -1704,10 +1804,10 @@ def analyse_npu(raw, runs, queued, cfg, hist=None):
     n_run = sum(1 for r in runs if r["state"] == "running")
     n_q = len(queued)
     names = {k: [c["npu"] for c in chips if c["state"] == v] for k, v in
-             (("unclaimed", "unclaimed"), ("wedged", "wedged?"), ("quiet", "quiet"), ("low", "low"))}
+             (("unclaimed", "unclaimed"), ("wedged", "wedged?"), ("quiet", "quiet"), ("low", "low"), ("unknown", "unknown"))}
     out.update(names)
     out.update({"available": True, "sampled_utc": iso(raw["t"]), "samples": len(snaps), "chips": chips,
-                "running_runs": n_run, "queued_runs": n_q})
+                "running_runs": n_run, "queued_runs": n_q, "window_s": cfg.npu_window_seconds, "min_passes": cfg.npu_min_passes})
 
     def ids(lst):
         return ",".join(str(x) for x in lst)
@@ -1728,8 +1828,9 @@ def analyse_npu(raw, runs, queued, cfg, hist=None):
                              "NPU CLAIMED BUT NEAR-ZERO AICore (<=%g%%) possibly wedged or starved: chip %s" % (cfg.npu_near_zero_pct, det)})
     if out["low"]:
         out["flags"].append({"kind": "claimed_low_info", "escalation": "none", "chips": out["low"], "text":
-                             "info: claimed chips %s below %g%% AICore (%s); not a fault by itself, judge by throughput against the run's own baseline" % (
-                                 ids(out["low"]), cfg.npu_low_pct, ", ".join("%d=%g%%" % (c["npu"], c["aicore_last"]) for c in chips if c["state"] == "low"))})
+                             "info: claimed chips %s below %g%% mean AICore over the last %s (%s); not a fault by itself, judge by throughput against the run's own baseline" % (
+                                 ids(out["low"]), cfg.npu_low_pct, human_age(cfg.npu_window_seconds),
+                                 ", ".join("%d=%g%% over %d passes" % (c["npu"], c["aicore_window_pct"], c["window_passes"]) for c in chips if c["state"] == "low"))})
     acts = [f["escalation"] for f in out["flags"] if f["escalation"] != "none"]
     out["escalation"] = "decide" if "decide" in acts else "read" if acts else "none"
     return out
@@ -1748,16 +1849,25 @@ def npu_fragment(npu):
         bits.append("UNCLAIMED %s (%d run, %d queued)" % (ids(npu["unclaimed"]), npu["running_runs"], npu["queued_runs"]))
     if npu["wedged"]:
         bits.append("wedged? %s" % ids(npu["wedged"]))
+    win = human_age(npu.get("window_s") or 0)
     if npu["low"]:
-        bits.append("low %s" % ids(npu["low"]))
+        bits.append("low chips %s (mean AICore over %s window)" % (ids(npu["low"]), win))
+    if npu.get("unknown"):
+        bits.append("util unknown chips %s (<%d passes in %s window)" % (ids(npu["unknown"]), npu.get("min_passes") or 0, win))
+    tail = ", AICore window %s" % win          # every pass states the window its utilisation verdict used
     if not bits:
-        return " | npu %d/%d claimed" % (n - len(npu["unclaimed"]), n)
-    return " | npu " + "; ".join(bits) + " of %d" % n
+        return " | npu %d/%d claimed%s" % (n - len(npu["unclaimed"]), n, tail)
+    return " | npu " + "; ".join(bits) + " of %d%s" % (n, tail)
 
 
 def _aicore_cell(c):
     prev = [e[1] for e in c["aicore_recent_passes"][:-1]][-3:]
-    return "%g%%" % c["aicore_last"] + (" [%s]" % " ".join("%g" % v for v in prev) if prev else "")
+    cell = "%g%%" % c["aicore_last"] + (" [%s]" % " ".join("%g" % v for v in prev) if prev else "")
+    if not c["claimed"]:
+        return cell
+    win = ("%g%%/%s n=%d" % (c["aicore_window_pct"], human_age(c["window_s"]), c["window_passes"]) if c.get("aicore_window_pct") is not None
+           else "unknown n=%d/%s" % (c.get("window_passes", 0), human_age(c.get("window_s") or 0)))
+    return cell + " win " + win
 
 
 def npu_block_lines(npu, level):

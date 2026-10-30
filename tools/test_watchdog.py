@@ -1496,6 +1496,94 @@ def raw_probe(chips, procmem=None, ps=None, procs=(), t=NOW, snaps=1):
     return {"ok": True, "samples": samples, "procmem": procmem or {}, "ps": ps or {}, "t": t}
 
 
+def seeded_hist(npus, mean=80.0, passes=4, t_end=NOW, step=600.0, claimed=True):
+    """npu_history as the daemon would hold it: `passes` earlier claimed passes ending one step before t_end."""
+    return {n: [[t_end - step * (passes - i), mean, mean, claimed] for i in range(passes)] for n in npus}
+
+
+class MultiWorkerRun(unittest.TestCase):
+    """Defect A (2026-10-30): a run whose root has no heartbeat.log but whose workers/w*/heartbeat.log beat every few seconds was
+    judged stalled from the mtime of an old launcher log, and its chip count double-counted two shared eval streams. The liveness
+    judgement and the throughput figure must read the same per-worker sources, and the chip count is distinct chip ids."""
+
+    def worker_run(self, t, name="k0", n_workers=3, worker_age=-60, shared=True, log_age=-4000):
+        d = os.path.join(t.root, name)
+        os.makedirs(d)
+        lg = os.path.join(d, "join.log")
+        open(lg, "w").write("joiner killed (disarmed)\n")
+        os.utime(lg, (NOW + log_age, NOW + log_age))
+        for i in range(n_workers):
+            os.makedirs(os.path.join(d, "workers", "w%d" % i))
+            with open(os.path.join(d, "workers", "w%d" % i, "heartbeat.log"), "w") as f:
+                f.write(hb_line(worker_age - 30, "unit=T_%d chip=%d done=3 total=59 ex_s_chip_w20=14.0 tok_s_chip_w20=10000 chips=1 reserved_gib=7.0" % (i, i)))
+                f.write(hb_line(worker_age, "alive pid=78 log_lines=20"))
+        if shared:
+            for nm in ("base", "instruct"):        # the shared eval output streams: no chip=, one line per unit, chips=1 each
+                os.makedirs(os.path.join(d, nm))
+                with open(os.path.join(d, nm, "heartbeat.log"), "w") as f:
+                    f.write(hb_line(worker_age - 5, "trackT_x@T_%s_01 done=32 total=300 ex_s_chip_w20=14.0 tok_s_chip_w20=10000 chips=1 reserved_gib=7.0" % nm))
+        return d
+
+    def test_fresh_worker_heartbeats_keep_a_run_without_a_root_heartbeat_running(self):
+        t = Tree()
+        self.worker_run(t)
+        r = t.digest()["runs"][0]
+        self.assertEqual(r["state"], "running", r["state_reason"])
+        self.assertLess(r["age_s"], 120)
+        self.assertIn("sub-sources", r["heartbeat_source"])
+
+    def test_chip_count_is_distinct_chip_ids_not_directories(self):
+        t = Tree()
+        self.worker_run(t, n_workers=5)
+        p = t.digest()["runs"][0]["perf"]
+        self.assertEqual((p["chips"], p["chip_ids"]), (5, [0, 1, 2, 3, 4]))
+        self.assertIn("2 source(s) naming no chip not counted", p["note"])
+
+    def test_chip_count_comes_from_ids_even_when_no_line_carries_a_chips_field(self):
+        t = Tree()
+        d = os.path.join(t.root, "r")
+        os.makedirs(d)
+        open(os.path.join(d, "launch.log"), "w").write("launched\n")
+        for i in (3, 5):
+            os.makedirs(os.path.join(d, "workers", "w%d" % i))
+            with open(os.path.join(d, "workers", "w%d" % i, "heartbeat.log"), "w") as f:
+                f.write(hb_line(-30, "unit=U chip=%d done=3 total=9 tok_s_chip_w20=9000" % i))
+        p = t.digest()["runs"][0]["perf"]
+        self.assertEqual((p["chips"], p["chip_ids"]), (2, [3, 5]))
+
+    def test_without_chip_ids_the_old_sum_still_applies(self):
+        t = Tree()
+        d = t.run("r", heartbeat=hb_perf(-30, done=5))
+        os.makedirs(os.path.join(d, "p0"))
+        open(os.path.join(d, "p0", "heartbeat.log"), "w").write(hb_perf(-20, done=5))
+        self.assertEqual(t.digest()["runs"][0]["perf"]["chips"], 2)
+
+    def test_stale_worker_heartbeats_and_stale_log_are_still_stalled(self):
+        t = Tree()
+        self.worker_run(t, worker_age=-5000)
+        r = t.digest()["runs"][0]
+        self.assertEqual(r["state"], "stalled")
+
+    def test_per_tick_refresh_and_full_read_agree_on_the_timestamp(self):
+        t = Tree()
+        self.worker_run(t)
+        cfg = t.cfg()
+        run = wd.discover(cfg)[0]
+        res = wd.evaluate_run(run, cfg, {}, NOW)
+        ref = wd.refresh_cached(dict(res), run["path"], cfg, NOW)
+        self.assertEqual((ref["heartbeat_epoch"], ref["age_s"]), (res["heartbeat_epoch"], res["age_s"]))
+        self.assertEqual(res["heartbeat_epoch"], NOW - 60)
+
+    def test_liveness_and_throughput_come_from_one_scan(self):
+        # the newest timestamp the liveness judgement uses is one of the sources the throughput figure was built from
+        t = Tree()
+        d = self.worker_run(t)
+        cfg = t.cfg()
+        recs, beats = wd.scan_sources(d, cfg, [])
+        self.assertEqual({b[0] for b in beats}, {"workers/w0", "workers/w1", "workers/w2", "base", "instruct"})
+        self.assertEqual({r["dir"] for r in recs}, {"workers/w0", "workers/w1", "workers/w2", "base", "instruct"})
+
+
 class NpuParsing(unittest.TestCase):
     def test_two_lines_per_chip_and_the_process_table(self):
         s = wd.parse_npu_smi(NPU_REAL)
@@ -1529,7 +1617,7 @@ class NpuAnalysis(unittest.TestCase):
     def test_unclaimed_chip_beside_running_work_is_flagged_decide(self):
         raw = raw_probe([(0, 80, 20000), (1, 0, 3450)], procmem={0: [{"pid": 11, "name": "python3", "mem_mb": 9000}], 1: []},
                         ps={11: "python3 t.py --out /x/run0"}, procs=[(0, 11, 9000)])
-        n = wd.analyse_npu(raw, self.runs(), [], self.cfg(), {})
+        n = wd.analyse_npu(raw, self.runs(), [], self.cfg(), seeded_hist([0]))
         st = {c["npu"]: c["state"] for c in n["chips"]}
         self.assertEqual(st, {0: "busy", 1: "unclaimed"})
         self.assertEqual(n["chips"][0]["claimed_by"], ["run0"])
@@ -1587,7 +1675,8 @@ class NpuAnalysis(unittest.TestCase):
     def test_claimed_and_low_is_informational_not_an_escalation(self):
         # a launch-bound job runs healthy at 9-22 % AICore
         raw = raw_probe([(0, 9, 20000), (1, 22, 20000), (2, 80, 20000)], procs=[(0, 1, 9000), (1, 2, 9000), (2, 3, 9000)])
-        n = wd.analyse_npu(raw, self.runs(), [], self.cfg(), {})
+        h = {0: seeded_hist([0], 9)[0], 1: seeded_hist([1], 22)[1], 2: seeded_hist([2], 80)[2]}
+        n = wd.analyse_npu(raw, self.runs(), [], self.cfg(), h)
         self.assertEqual([c["state"] for c in n["chips"]], ["low", "low", "busy"])
         self.assertEqual((n["escalation"], [(f["kind"], f["escalation"]) for f in n["flags"]]), ("none", [("claimed_low_info", "none")]))
 
@@ -1609,6 +1698,86 @@ class NpuAnalysis(unittest.TestCase):
     def test_probe_failure_is_reported_not_raised(self):
         n = wd.analyse_npu({"ok": False, "reason": "ssh failed"}, [], [], self.cfg(), {})
         self.assertEqual((n["available"], n["reason"], n["flags"]), (False, "ssh failed", []))
+
+
+class NpuWindow(unittest.TestCase):
+    """Defect B (2026-10-30): the low/busy verdict had no stated window. It is now the mean of the claimed passes inside a bounded
+    trailing window, the digest states the window and the passes it had, and thin evidence is 'unknown', never 'low'."""
+
+    def cfg(self, **kw):
+        kw.setdefault("interval", 600.0)
+        kw.setdefault("out_dir", tempfile.mkdtemp(prefix="wdnpu_"))
+        return wd.make_cfg(**kw)
+
+    def run_passes(self, aicores, cfg, claimed_hbm=20000, gap=600.0, t0=NOW):
+        hist, n = {}, None
+        for i, a in enumerate(aicores):
+            raw = raw_probe([(0, a, claimed_hbm)], procs=[(0, 1, 9000)], t=t0 + gap * i)
+            n = wd.analyse_npu(raw, [{"id": "r", "path": "/x/r", "state": "running"}], [], cfg, hist)
+        return n["chips"][0], n
+
+    def test_hours_old_idle_stretch_does_not_make_a_busy_chip_low(self):
+        cfg = self.cfg()
+        # 20 passes at 0 % (a claimed but idle stretch, 3 h), then 7 passes at ~90 % (the last 70 minutes)
+        c, n = self.run_passes([0.0] * 20 + [90.0] * 7, cfg)
+        self.assertEqual(c["state"], "busy")
+        self.assertGreater(c["aicore_window_pct"], 70)
+        self.assertEqual((c["window_s"], n["window_s"]), (3600.0, 3600.0))
+        self.assertLessEqual(c["window_passes"], 7)
+
+    def test_a_window_dominated_by_low_passes_is_low_and_states_its_window(self):
+        cfg = self.cfg()
+        c, n = self.run_passes([10.0] * 6, cfg)
+        self.assertEqual(c["state"], "low")
+        self.assertEqual(c["window_passes"], 6)           # history starts claimed: no unclaimed predecessor, so no warm-up pass to drop
+        txt = n["flags"][0]["text"]
+        self.assertIn("over the last 60m", txt)
+        self.assertIn("over 6 passes", txt)
+        self.assertIn("mean AICore over 60m window", wd.npu_fragment(n))
+
+    def test_too_few_passes_is_unknown_never_low(self):
+        cfg = self.cfg()
+        c, n = self.run_passes([5.0 + 20.0], cfg)            # one pass at 25 %: below 30 but a single pass
+        self.assertEqual((c["state"], c["window_passes"], c["aicore_window_pct"]), ("unknown", 1, 25.0))
+        self.assertEqual((n["low"], n["unknown"], n["flags"]), ([], [0], []))
+        self.assertIn("util unknown chips 0", wd.npu_fragment(n))
+
+    def test_warm_up_pass_after_unclaimed_is_excluded(self):
+        cfg = self.cfg()
+        hist = {0: [[NOW - 1200, 0.0, 0, False], [NOW - 600, 0.0, 0, True]]}      # unclaimed, then the weights-loading pass
+        for i, a in enumerate((80.0, 80.0, 80.0)):
+            raw = raw_probe([(0, a, 20000)], procs=[(0, 1, 9000)], t=NOW + 600 * i)
+            n = wd.analyse_npu(raw, [{"id": "r", "path": "/x/r", "state": "running"}], [], cfg, hist)
+        c = n["chips"][0]
+        self.assertEqual((c["state"], c["window_passes"], c["aicore_window_pct"]), ("busy", 3, 80.0))
+
+    def test_window_is_a_flag(self):
+        cfg = self.cfg(npu_window_seconds=900.0, npu_min_passes=2)
+        c, n = self.run_passes([10.0] * 6 + [90.0] * 3, cfg)
+        self.assertEqual((c["state"], c["window_passes"], n["window_s"]), ("busy", 2, 900.0))     # 900 s keeps two 600 s-spaced passes
+        c, n = self.run_passes([10.0] * 6 + [90.0] * 3, self.cfg(npu_window_seconds=900.0, npu_min_passes=3))
+        self.assertEqual(c["state"], "unknown")
+
+    def test_a_dip_inside_one_pass_does_not_make_a_busy_chip_low(self):
+        # the old verdict was the mean of ONE pass (four snapshots about 9 s): [93, 14, 91, 94] style swings, here a pass of 5 5 20 10
+        cfg = self.cfg()
+        hist = seeded_hist([0], 85.0, passes=6, t_end=NOW + 600)
+        raw = raw_probe([(0, [5, 5, 20, 10], 20000)], procs=[(0, 1, 9000)], t=NOW + 600, snaps=4)
+        n = wd.analyse_npu(raw, [{"id": "r", "path": "/x/r", "state": "running"}], [], cfg, hist)
+        c = n["chips"][0]
+        self.assertEqual((c["state"], n["low"]), ("busy", []))
+        self.assertLess(c["aicore_pct"], 30)                 # the single pass really did read low
+        self.assertGreater(c["aicore_window_pct"], 70)       # the stated window says otherwise
+
+    def test_every_fragment_states_the_window_even_when_nothing_is_low(self):
+        c, n = self.run_passes([85.0] * 6, self.cfg())
+        self.assertEqual(wd.npu_fragment(n), " | npu 1/1 claimed, AICore window 60m")
+
+    def test_digest_table_row_states_window_and_passes(self):
+        cfg = self.cfg()
+        c, n = self.run_passes([85.0] * 6, cfg)
+        line = [ln for ln in wd.npu_block_lines(n, 2) if ln.startswith("| 0 |")][0]
+        self.assertIn("win 85%/60m n=6", line)
 
 
 class NpuProbeAndRender(unittest.TestCase):
@@ -1646,7 +1815,7 @@ class NpuProbeAndRender(unittest.TestCase):
         raw = self.run_with_path(d, lambda: wd.probe_npu(cfg))
         self.assertTrue(raw["ok"], raw)
         self.assertEqual((len(raw["samples"]), sorted(raw["procmem"]), raw["procmem"][1], raw["ps"][77].split()[0]), (2, [0, 1], [], "python3"))
-        n = wd.analyse_npu(raw, [{"id": "a", "path": d + "/runs/a", "state": "running"}], [], cfg, {})
+        n = wd.analyse_npu(raw, [{"id": "a", "path": d + "/runs/a", "state": "running"}], [], cfg, seeded_hist([0], t_end=raw["t"]))
         self.assertEqual([(c["npu"], c["state"], c["claimed_by"]) for c in n["chips"]], [(0, "busy", ["a"]), (1, "unclaimed", [])])
 
     def test_ssh_failure_is_non_fatal_and_the_rest_of_the_digest_is_intact(self):
@@ -1724,7 +1893,7 @@ class NpuProbeAndRender(unittest.TestCase):
         dg = wd.build_digest(cfg, {}, NOW)
         raw = raw_probe([(0, 80, 20000), (1, 0, 3450), (2, 0, 3450)] if flags else [(0, 80, 20000)],
                         procmem={0: [{"pid": 1, "name": "python3", "mem_mb": 9000}]}, procs=[(0, 1, 9000)])
-        dg["npu"] = wd.analyse_npu(raw, dg["runs"], dg["queued"], cfg, {})
+        dg["npu"] = wd.analyse_npu(raw, dg["runs"], dg["queued"], cfg, seeded_hist([0]))
         return cfg, dg
 
     def test_digest_md_carries_fragment_flag_line_and_table(self):

@@ -58,7 +58,13 @@ extrapolated only when a total is known and the rate is positive.
   non-zero code, FAILED with 0), heartbeat in the future beyond `--clock-skew-seconds`, or no log and no marker.
 
 Container state is never consulted. Without a `heartbeat.log` the newest log mtime is the heartbeat, and the digest says so
-(`heartbeat_source`). Heartbeats are compared with the clock of the host running the watchdog, so run it where clocks agree
+(`heartbeat_source`). **A run's heartbeat is the newest sign of life across ALL its sources**: its own `heartbeat.log` (or the newest
+log mtime when it has none) and every per-worker source below it, i.e. the heartbeat files, `perf.json` and `progress.log` found
+`--throughput-depth` (default 2) levels down (`workers/w0..w4`, `res/p0..p3`), shown as `newest of N sub-sources (<dir>/<file>)`. The
+liveness judgement and the throughput figure are built from one scan of those sources (`scan_sources`) and the full read and the
+per-tick refresh share one function (`live_timestamp`), so they cannot read different timestamps. A launcher log in an otherwise
+silent root no longer stands in for a run whose workers beat every few seconds (2026-10-30: `k0_fp32` was `stalled` on the mtime of
+`join.log` while five workers were healthy). Limit: one live worker hides a dead one; per-worker staleness is not judged. Heartbeats are compared with the clock of the host running the watchdog, so run it where clocks agree
 with the writer (cephfs mtimes and UTC heartbeat stamps are both fine across hosts that run NTP).
 
 ### Watch tiers (how often each run is looked at, and when it counts as stalled)
@@ -188,7 +194,9 @@ such as `ckpt`, `merged`, `adapter` are never listed):
 Per directory the freshest source is the displayed rate. Aggregate over the live processes of a run (those within the larger of the
 stall threshold and 600 s of the newest): rate = mean of the per-chip-equivalent rates (the writer already multiplies by
 `procs_on_chip`, assuming equal shares), chips = sum of `chips / procs_on_chip` (so k processes sharing a chip count once), reserved =
-the largest per-process figure.
+the largest per-process figure. **Where a heartbeat line names its chip (`chip=N`, as the k0 workers do), chips = the number of distinct
+chip ids among the live sources** (`perf.chip_ids`), one record per chip, and sources that name no chip (shared per-unit streams such
+as `base/` and `instruct/`, which repeat the workers' lines) are left out of the count and the mean; `perf.note` says how many.
 
 **Scope is never relabelled.** `*_chip_*` keys are per chip. `*_host_nochip_*` keys, or `chips=0` in `perf.json`, are a **host** rate of a
 run with no chip (a CPU run); the row says `host ... (chips=0)` and never `/chip`. A per-chip key beside `chips=0` is kept per chip and
@@ -243,8 +251,17 @@ sits at 0% while fully claimed):
 | `unclaimed` | no resident process, baseline HBM | **escalation `decide`** while any run is `running` or queued (a real idle chip beside work); `read` when nothing runs or is queued (unused capacity). Says for how many passes it has been unclaimed |
 | `quiet` | claimed, every snapshot at or below `--npu-near-zero-pct` (5) | none (a single low sample, or a load, is normal) |
 | `wedged?` | claimed and quiet for at least `--npu-wedged-passes` (3) consecutive passes spanning at least `--npu-wedged-seconds` (1200) | **escalation `read`**, with the duration (`for >=30m (4 passes)`); a gap longer than three ticks, or one busy pass, resets the streak |
-| `low` | claimed, mean AICore below `--npu-low-pct` (30) but not quiet | informational line, no escalation (launch-bound kernels run healthy at 9-22%) |
-| `busy` | claimed, mean at or above 30 | none |
+| `low` | claimed, **window** mean AICore below `--npu-low-pct` (30) but not quiet | informational line, no escalation (launch-bound kernels run healthy at 9-22%) |
+| `busy` | claimed, window mean at or above 30 | none |
+| `unknown` | claimed, fewer than `--npu-min-passes` (3) claimed passes in the window | none; never reported as `low` on thin evidence (a one-shot pass without history is always `unknown`) |
+
+**Utilisation window.** The low/busy verdict is the mean of the pass means over the trailing claimed stretch inside
+`--npu-window-seconds` (default 3600 s: about six 10-minute passes of four snapshots, long enough to average out the 14-94% swings a
+bursty eval shows within seconds, short enough that an idle stretch hours ago cannot colour it). Unclaimed passes end the stretch and
+the first claimed pass after one is dropped as warm-up. Before 2026-10-30 the verdict was the mean of the current pass alone (four
+snapshots, about 9 s) and nothing stated it. The digest now states the window and the passes it had: `aicore_window_pct`,
+`window_passes`, `window_s` per chip, `window_s`/`min_passes` on the block, `win 78%/60m n=7` in the table, and
+`low chips 5 (mean AICore over 60m window)` in the summary fragment (the numbers after `low`/`UNCLAIMED` are chip ids, not counts).
 
 A container that has started but has not yet opened the device is invisible to `npu-smi`, so a first sighting of an unclaimed chip can
 be a startup; the flag text says "first seen this pass" or "for >=Xm (N passes)" so a reader can discount it. In a one-shot pass without
@@ -266,8 +283,8 @@ a claimant that is not `running` is shown as `run(done)`). A process whose comma
 `queued_runs`, `flags[]` (`kind`, `escalation`, `chips`, `text`) and `escalation`. `queued` (run ids) sits at the top level. The probe adds
 about 10 s to a pass. The NPU flags do not change the exit code (exit codes follow run states).
 
-**In `digest.md`.** A fragment on the summary line, always present (`| npu UNCLAIMED 4 (2 run, 0 queued); low 0,3 of 8`,
-`| npu 8/8 claimed`, `| npu n/a`), and one `## Host utilisation` block at **priority 3**, after the primary-scorer flags: the escalation
+**In `digest.md`.** A fragment on the summary line, always present (`| npu UNCLAIMED 4 (2 run, 0 queued); low chips 0,3 (mean AICore over 60m window) of 8`,
+`| npu 8/8 claimed, AICore window 60m`, `| npu n/a`), and one `## Host utilisation` block at **priority 3**, after the primary-scorer flags: the escalation
 lines and the per-chip table (AICore latest [earlier passes], HBM GiB, state, claimed by), about 1 KB. It ranks above the ERROR
 signatures of ordinary runs and above every warning, and below the status rows, the failed/stalled runs' pointers and their own errors.
 Whether it fits depends on how much sits above it: on the live tree at the default 16000 bytes it does not (the failures and
