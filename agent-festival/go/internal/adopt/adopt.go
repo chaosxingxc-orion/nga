@@ -119,7 +119,10 @@ func Open(path string) (*Machine, error) {
 	if err != nil {
 		return nil, err
 	}
-	lines := parseCompleteLines(raw)
+	lines, err := parseCompleteLines(raw)
+	if err != nil {
+		return nil, err
+	}
 	if err := m.checkLoaded(lines); err != nil {
 		return nil, err
 	}
@@ -146,7 +149,7 @@ func (m *Machine) checkLoaded(lines []parsedLine) error {
 	for _, l := range lines {
 		events = append(events, l.doc)
 	}
-	doc := map[string]any{"ledger_version": "0.1.0", "events": events}
+	doc := map[string]any{"ledger_version": ledger.Version, "events": events}
 	if errs := ledger.Errors(doc); len(errs) > 0 {
 		return fmt.Errorf("durable form rejected at load: %s", errs[0])
 	}
@@ -164,14 +167,19 @@ type parsedLine struct {
 	ev  ledger.Event
 }
 
-// parseCompleteLines returns the parsed lines of a JSONL byte stream. The
-// final line without a trailing newline is still a complete line (the loader
-// accepts it); a torn or unparseable line is not. This is the ONE boundary
-// definition for the durable form — the loader, the load-time checker, and
-// the append-path rewrite all consume it (R1 m-4, R2 BLOCKER: the rewrite
-// previously kept its own newline-based definition and dropped no-newline
-// complete lines on heal).
-func parseCompleteLines(raw []byte) []parsedLine {
+// parseCompleteLines returns the parsed lines of a JSONL byte stream, or an
+// error naming a line that is not a machine write. The boundary rule: a
+// complete line is one that parses in BOTH views (raw map + typed event);
+// the ONLY tolerated non-event content is a torn tail — an unparseable
+// remnant at EOF WITHOUT a trailing newline, the exact shape a crash
+// between 'write full content' and 'rename' leaves. Any other unparseable
+// line (mid-file, or newline-terminated), or a line whose JSON parses but
+// whose fields do not fit the event type, is a bypass or corruption: an
+// append-only audit ledger must not silently drop (and the next append must
+// not silently erase) audit data — it fails (R4 M2). This is the ONE
+// boundary definition for the durable form — the loader, the load-time
+// checker, and the append-path rewrite all consume it (R1 m-4, R2 BLOCKER).
+func parseCompleteLines(raw []byte) ([]parsedLine, error) {
 	var lines []parsedLine
 	lineStart := 0
 	for i := 0; i <= len(raw); i++ {
@@ -179,21 +187,27 @@ func parseCompleteLines(raw []byte) []parsedLine {
 			continue
 		}
 		line := raw[lineStart:i]
+		atEOF := i == len(raw) // the segment not terminated by a newline
 		lineStart = i + 1
 		if len(line) == 0 {
 			continue
 		}
 		var ev ledger.Event
-		if json.Unmarshal(line, &ev) != nil {
-			continue // torn or unparseable: not an event boundary
-		}
-		doc, err := decodeLineDoc(line)
-		if err != nil || doc == nil {
+		typedOK := json.Unmarshal(line, &ev) == nil
+		doc, docErr := decodeLineDoc(line)
+		if typedOK && docErr == nil && doc != nil {
+			lines = append(lines, parsedLine{raw: line, doc: doc, ev: ev})
 			continue
 		}
-		lines = append(lines, parsedLine{raw: line, doc: doc, ev: ev})
+		if atEOF && docErr != nil {
+			continue // torn tail: crash residue, tolerated at EOF only
+		}
+		if docErr != nil {
+			return nil, fmt.Errorf("durable form has an unparseable line where no torn tail can be (not the last byte range) — a bypass or corrupted write, not machine output")
+		}
+		return nil, fmt.Errorf("durable form line is valid JSON but not an event (field type mismatch) — a bypass or corrupted write, not machine output")
 	}
-	return lines
+	return lines, nil
 }
 
 // decodeLineDoc parses one line into a raw map with UseNumber, so integers
@@ -427,7 +441,10 @@ func (m *Machine) Events() ([]ledger.Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	lines := parseCompleteLines(raw)
+	lines, err := parseCompleteLines(raw)
+	if err != nil {
+		return nil, err
+	}
 	events := make([]ledger.Event, 0, len(lines))
 	for _, l := range lines {
 		events = append(events, l.ev)
@@ -460,8 +477,12 @@ func (m *Machine) append(ev *ledger.Event) error {
 	// what the loader accepted — R2 BLOCKER). Concatenating onto raw bytes
 	// instead would fuse a torn tail and the new line into one unparseable
 	// line.
+	parsed, err := parseCompleteLines(existing)
+	if err != nil {
+		return err
+	}
 	next := make([]byte, 0, len(existing)+len(line)+1)
-	for _, l := range parseCompleteLines(existing) {
+	for _, l := range parsed {
 		next = append(next, l.raw...)
 		next = append(next, '\n')
 	}

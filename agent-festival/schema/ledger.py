@@ -2,7 +2,7 @@
 """Validate event-ledger fixtures (piece 4 oracle).
 
 Ledger documents: JSON Schema + the cross-event rules JSON Schema cannot
-express — five families: arbitration_seq monotonicity (+int64 domain), one
+express — five families: arbitration_seq strictly increasing (+int64 domain), one
 payload digest per operation (15 B4), status families never crossing the
 event-type boundary, effect events carrying no grant pin, and the
 single-writer event-sequence grammar (each operation opens with exactly one
@@ -50,8 +50,9 @@ def ledger_errors(doc: dict) -> list[str]:
     # otherwise accept a document the Go typed view rejects, forking the
     # dual validators' verdicts)
     seqs = [e["arbitration_seq"] for e in doc["events"]]
-    if any(seqs[i] > seqs[i + 1] for i in range(len(seqs) - 1)):
-        errs.append(f"events: arbitration_seq must be non-decreasing, got {seqs}")
+    if any(seqs[i] >= seqs[i + 1] for i in range(len(seqs) - 1)):
+        errs.append(f"events: arbitration_seq must be strictly increasing, got {seqs} — "
+                    f"the machine never repeats or rewinds an arbitration sequence")
     if any(s > INT64_MAX for s in seqs):
         errs.append("events: arbitration_seq exceeds the int64 domain — the machine's "
                     "counter domain; such a document is not machine-writable")
@@ -80,11 +81,16 @@ def ledger_errors(doc: dict) -> list[str]:
             if not status:
                 errs.append(f"events/{i}: {e['event_type']} event carries no outcome status — "
                             f"every event's verdict must name one of the machine's statuses")
-            else:
-                family = "adoption" if status in EFFECT_STATUSES else "effect"
+            elif status in EFFECT_STATUSES or status in ADOPT_STATUSES:
+                # the label names the status's OWN family — that is the
+                # vocabulary crossing being reported
+                family = "adoption" if status in ADOPT_STATUSES else "effect"
                 errs.append(f"events/{i}: {e['event_type']} event carries the {family}-family status "
                             f"{status!r} — the status vocabulary never crosses the "
                             f"event-type boundary")
+            else:
+                errs.append(f"events/{i}: {e['event_type']} event carries the status {status!r} — "
+                            f"not one of the machine's statuses")
         if e["event_type"] == "effect" and e.get("grants_at_decision"):
             errs.append(f"events/{i}: effect event for operation {e['identity']['operation_id']!r} "
                         f"carries grants_at_decision — the grant pin rides the adopted event only "

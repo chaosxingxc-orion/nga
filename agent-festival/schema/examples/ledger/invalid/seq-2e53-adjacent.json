@@ -70,6 +70,6 @@
       }
     }
   ],
-  "_expect": "REJECT: adjacent arbitration_seq values past 2^53 (9007199254740993 -> 9007199254740992) break the non-decreasing order only if integers survive the map domain exactly — double-domain parsing folds them equal and the Go oracle goes blind (the double charter: integer-domain comparisons stay in the native domain)",
-  "_expect_match": "non-decreasing"
+  "_expect": "REJECT: adjacent arbitration_seq values past 2^53 (9007199254740993 -> 9007199254740992) break the strictly-increasing order only if integers survive the map domain exactly — double-domain parsing folds them equal and the Go oracle goes blind (the double charter: integer-domain comparisons stay in the native domain)",
+  "_expect_match": "increasing"
 }

@@ -723,11 +723,13 @@ func TestAdoptRejectsNonconformingRequests(t *testing.T) {
 	}
 }
 
-// TestOpenRejectsFoldedSeq is the machine-side 2^53 pin (R3 M-2): the
-// seq-2e53-adjacent fixture pins the suite.Load path; this pins the Open
-// path — decodeLineDoc's UseNumber is what keeps the folded sequence
-// visible to the load-time checker. Without it, 9007199254740993 and
-// ...992 collapse equal in the map domain and the bypass file loads.
+// TestOpenRejectsFoldedSeq is the machine-side 2^53 pin (R3 M-2, rebuilt in
+// R4 M-1 after the first version's rejection was driven by a leftover
+// grants-on-effect defect — a pin on the wrong rule): two typed-built lines
+// whose ONLY defect is the folded sequence pair 9007199254740993 -> ...992;
+// the effect line carries no grants. decodeLineDoc's UseNumber is what keeps
+// the pair distinct in the map domain — without it both fold equal in
+// float64 and the load-time monotonicity check goes blind.
 func TestOpenRejectsFoldedSeq(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "adopt.jsonl")
 	m := mustOpen(t, path)
@@ -739,16 +741,22 @@ func TestOpenRejectsFoldedSeq(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// hand-write a second line whose seq precedes the first's by exactly 1
-	// past 2^53 — distinct only in the exact-integer domain
-	tail := strings.Replace(string(first),
-		`"arbitration_seq":0`, `"arbitration_seq":9007199254740993`, 1)
-	tail = strings.Replace(tail, `"outcome":{"status":"adopted"`,
-		`"outcome":{"status":"dispatched"`, 1)
-	tail = strings.Replace(tail, `"event_type":"adoption"`, `"event_type":"effect"`, 1)
-	raw := string(first) + "\n" + strings.Replace(tail, `"arbitration_seq":9007199254740993`,
-		`"arbitration_seq":9007199254740992`, 1) + "\n"
-	if err := os.WriteFile(path, []byte(raw), 0o644); err != nil {
+	adopted := events[0]
+	adopted.ArbitrationSeq = 9007199254740993
+	first, err = json.Marshal(adopted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	effect := events[0]
+	effect.EventType = "effect"
+	effect.ArbitrationSeq = 9007199254740992
+	effect.Outcome = ledger.Outcome{Status: string(StateDispatched)}
+	effect.GrantsAtDecision = nil
+	second, err := json.Marshal(effect)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(string(first)+"\n"+string(second)+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := Open(path); err == nil {
@@ -816,5 +824,79 @@ func TestOpenRejectsTransitionOrderBypass(t *testing.T) {
 	}
 	if m2.State("op-tr") != StateCompleted {
 		t.Fatalf("state = %q, want completed", m2.State("op-tr"))
+	}
+}
+
+// TestOpenRejectsMidFileGarbage pins R4 M2: unparseable content is a torn
+// tail ONLY at EOF without a trailing newline (crash residue); a garbage
+// line anywhere else — mid-file, or newline-terminated at the end — is a
+// bypass or corruption and fails the open. An append-only audit ledger must
+// not silently drop audit data (or let the next append erase it).
+func TestOpenRejectsMidFileGarbage(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-g1", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	if o := m.Adopt(testRequest("op-g2", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt 2 = %q", o.Status)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.SplitN(string(raw), "\n", 3) // two event lines + trailing empty
+	if len(lines) < 2 {
+		t.Fatalf("unexpected file shape: %q", raw)
+	}
+	// mid-file garbage
+	mid := lines[0] + "\n" + `{"event_type":"adoption","arbitration` + "\n" + lines[1] + "\n"
+	if err := os.WriteFile(path, []byte(mid), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err == nil {
+		t.Fatal("mid-file garbage line was silently dropped at load")
+	}
+	// newline-terminated garbage at the end — still not a torn tail
+	trailing := lines[0] + "\n" + lines[1] + "\n" + "not json at all\n"
+	if err := os.WriteFile(path, []byte(trailing), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err == nil {
+		t.Fatal("newline-terminated garbage at EOF was silently dropped at load")
+	}
+	// valid JSON but not an event (field type mismatch)
+	typedBad := lines[0] + "\n" + strings.Replace(lines[1], `"arbitration_seq":1`, `"arbitration_seq":"1"`, 1) + "\n"
+	if err := os.WriteFile(path, []byte(typedBad), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err == nil {
+		t.Fatal("type-mismatched event line was silently dropped at load")
+	}
+	// control: the untampered file loads
+	if err := os.WriteFile(path, raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err != nil {
+		t.Fatalf("untampered file rejected: %v", err)
+	}
+}
+
+// TestUnresolvedReconciliationToFailed pins the one DAG edge that had no
+// exercise (R4 m-3): unresolved -> failed, the failure-exit reconciliation.
+func TestUnresolvedReconciliationToFailed(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-uf", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	if o := m.MarkUnresolved("op-uf"); o.Status != "unresolved" {
+		t.Fatalf("unresolved = %q, want unresolved: %s", o.Status, o.Detail)
+	}
+	if o := m.MarkFailed("op-uf"); o.Status != "failed" {
+		t.Fatalf("failed = %q, want failed: %s", o.Status, o.Detail)
+	}
+	if m.State("op-uf") != StateFailed {
+		t.Fatalf("state = %q, want failed", m.State("op-uf"))
 	}
 }

@@ -36,6 +36,11 @@ func notATransition(i int, op, status, from string) string {
 	return fmt.Sprintf("events/%d: operation %q: status %q after %q is not a legal state-machine transition — a bypass write into the ledger, not a machine transition", i, op, status, from)
 }
 
+// Version is the ledger document version — the Go-side twin of the schema's
+// ledger_version const (kept in lockstep by the fixture suites: every
+// fixture and every machine-written document carry it).
+const Version = "0.1.0"
+
 // SchemaPath is where event-ledger.schema.json was found ("" = not found;
 // exported so drivers can resolve the fixture directory from it).
 var SchemaPath = schemalib.FindSchema("event-ledger.schema.json")
@@ -117,7 +122,11 @@ type Document struct {
 // of the grammar is a bypass write into the ledger, not a machine
 // transition. Status families never cross the event-type boundary; effect
 // events carry no grants_at_decision; and each operation's effect events
-// follow the machine's own transition DAG in file order.
+// follow the machine's own transition DAG in file order. The monotonicity
+// check assumes the map input was decoded with json.Decoder.UseNumber — a
+// float64-decoded map folds adjacent integers past 2^53 equal and the check
+// goes blind (the suite loader and the adopt machine's line decoder both
+// keep this discipline; future callers — the replay reader — must too).
 func Errors(doc map[string]any) []string {
 	if err := schema.Validate(doc); err != nil {
 		return []string{"schema: " + err.Error()}
@@ -134,8 +143,8 @@ func Errors(doc map[string]any) []string {
 	var errs []string
 	prevSeq := -1
 	for i, e := range d.Events {
-		if e.ArbitrationSeq < prevSeq {
-			errs = append(errs, fmt.Sprintf("events/%d: arbitration_seq %d breaks the non-decreasing order", i, e.ArbitrationSeq))
+		if e.ArbitrationSeq <= prevSeq {
+			errs = append(errs, fmt.Sprintf("events/%d: arbitration_seq %d breaks the strictly-increasing order — the machine never repeats or rewinds an arbitration sequence", i, e.ArbitrationSeq))
 		}
 		prevSeq = e.ArbitrationSeq
 	}
@@ -159,12 +168,16 @@ func Errors(doc map[string]any) []string {
 		if !ok {
 			if e.Outcome.Status == "" {
 				errs = append(errs, fmt.Sprintf("events/%d: %s event carries no outcome status — every event's verdict must name one of the machine's statuses", i, e.EventType))
-			} else {
+			} else if EffectStatuses[e.Outcome.Status] || AdoptStatuses[e.Outcome.Status] {
+				// the label names the status's OWN family — that is the
+				// vocabulary crossing being reported
 				family := "effect"
-				if EffectStatuses[e.Outcome.Status] {
+				if AdoptStatuses[e.Outcome.Status] {
 					family = "adoption"
 				}
 				errs = append(errs, fmt.Sprintf("events/%d: %s event carries the %s-family status %q — the status vocabulary never crosses the event-type boundary", i, e.EventType, family, e.Outcome.Status))
+			} else {
+				errs = append(errs, fmt.Sprintf("events/%d: %s event carries the status %q — not one of the machine's statuses", i, e.EventType, e.Outcome.Status))
 			}
 		}
 		if e.EventType == "effect" && len(e.GrantsAtDecision) > 0 {
