@@ -103,7 +103,7 @@ binary Brier 仅针对 true 概率；multiclass Brier 对 false／true 两维求
 
 ## 17:41 UTC：Open-Jev-2B 公共 test 推理与独立重算完成
 
-完整覆盖公共投影 10,356 行（9,995 hard／361 soft）；推理、验收器均 exited/0，90 个冻结文件覆盖全部 89 个必需依赖，逐行身份与计分独立复核通过。状态保留 `COMPLETED_SCOPED_REVIEW_REQUIRED`：customer-control-v1 的 hard accuracy 为 1.0，trex_runner-v1 仅 4 行，正在定向核查。下表不是原始完整 10,532 行 test 的成绩；E24 已自动接续 176 行补测，待按原身份合并后另列完整表。
+完整覆盖公共投影 10,356 行（9,995 hard／361 soft）；推理、验收器均 exited/0，90 个冻结文件覆盖全部 89 个必需依赖，逐行身份与计分独立复核通过。状态保留 `COMPLETED_SCOPED_REVIEW_REQUIRED`：customer-control-v1 的 hard accuracy 为 1.0，trex_runner-v1 仅 4 行。下表不是原始完整 10,532 行 test 的成绩。**18:15 UTC 状态更正：**定向核查已形成[可复算诊断](OPENJEV2-PUBLIC-FLAG-REVIEW-2026-10-30.md)，审查标记保留；E24 已自动完成 176 行补测及精确合并，[完整原 test 表](OPENJEV-ORIGINAL-TEST-RESULTS-2026-10-30.md)单列。
 
 | 温度口径 | hard accuracy %（n=9,995） | expected accuracy %（n=10,356） | NLL | soft-target Brier | expected Brier | ECE15 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -416,5 +416,7 @@ pair accuracy＝组内所有成员都对的组比例；pair direction 则比较�
 主文表用于解释；结构化索引用于追溯；完整附录保留所有可提取模型行。此次统计不修改上游文件，不调用托管模型 API，不读取 NGA 尚未准入的 K0 指标，不启动新的训练。
 
 ## 17:03 UTC 来源与方法追加
+
+以下为历史方法记录。**18:15 UTC 状态更正：**末句“尚无模型性能结果”已由 17:44 UTC 的 E26 完成结果更新；三尺寸的完整指标及验收证据见[共同测试表](TYPED-REFERENCE-RESULTS-2026-10-30.md)。
 
 [checkpoint 补充绑定审计](KEV-CHECKPOINT-BINDING-AUDIT-2026-10-30.md) 已核对九次 Kev 运行，保存的发布温度、基座版本及权重来源对应正确，不改变已有分数。[JEVal 原文计分审计](JEVAL-ORIGINAL-SCORER-AUDIT-2026-10-30.md) 明确论文使用 returned choice／score、未归一化 raw Brier、有效分母和 10-bin ECE；论文 Kev-9B／OpenJev 版本与当前队列存在差异，不能直接声称同配置复现。共同测试 E26 三个 Kev 尺寸已完成全 400 条 token 预检，最长 836 tokens，尚无该集合的模型性能结果。
