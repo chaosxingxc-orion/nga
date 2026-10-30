@@ -19,3 +19,44 @@ is complete; see E28 for identities and report hash. No formal inference was
 launched. Before launch, add runtime checks, synthetic repeated forwards, precise
 item recovery and independent Nimble checkpoint/prompt/output acceptance; the
 unlaunched helper is not sufficient evidence of readiness.
+
+## Pre-inference execution amendment, 2026-10-30
+
+The separate `typed_nimble_inference.py` command is prepared for synthetic `probe`
+and whole-population `inference` modes. The completed token-only artifacts stay
+immutable. Before either mode, freeze the exact adapter/base/native source, all
+execution and verification scripts, runtime package versions, original scorer,
+wrapper, relaunch command and this protocol. Both launches require an internal
+implementation-review receipt bound to the new config hash; this records engineer
+review and does not request new user authorization. Use only free chip 3 on 175,
+under the shared allocation lock and actual live Docker device checks.
+
+Runtime is the existing immutable image with torch 2.10.0+cpu,
+torch_npu 2.10.0.post7, transformers 5.14.1 and peft 0.21.2. Preserve original
+BF16 CPU safe merge, BF16 backbone, SDPA, and native FP32 candidate-token
+projection. Model loading must report no missing/unexpected/mismatched/error
+keys. A full five-field synthetic request must pass two forward calls, positive
+finite timings and memory, valid probabilities and probability drift <= 1e-5.
+Probe throughput is admission evidence only, with one chip and reserved memory.
+Formal inference reruns this synthetic admission before the first test record.
+
+Each of the 400 item receipts binds ordered question/candidate names, candidate
+token IDs, prompt token hash/count, typed outputs, logits, native probabilities,
+input/config identities and positive duration. Resume checks retained Docker
+identity/image/command/device, frozen files and exclusive allocation, preserves
+old terminal artifacts, and revalidates every reused receipt against fresh prompt
+construction. Successful/live executions cannot be resumed. A launch crash before
+an allocation receipt is fully established requires reconciliation; automatic
+recovery of every host/Docker failure is not claimed.
+
+The separate CPU verifier reconstructs schema independently of the driver and
+re-tokenizes all five prompts per record with the pinned native v1 builder. It
+checks original adapter digest/base revision, complete dependency closure, exact
+400/2,000 coverage, all logits/probabilities/typed values, and independently
+recomputes original soft-gold accuracy/KL/summed Brier/ECE10 and strict counts.
+Only T=1 is reported: this model has no second serving-temperature panel. Original
+rounded gold remains unnormalized; native probabilities are normalized by the
+original arithmetic. Expected-score MAE remains deferred. This is native-readout
+arithmetic, not original HTTP/vLLM equivalence. Review flags remain visible.
+The CPU finisher requires the successful structured inference terminal, wrapper,
+actual matching retained container exited/0 and a successful independent audit.
