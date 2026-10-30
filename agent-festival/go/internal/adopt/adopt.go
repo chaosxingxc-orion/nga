@@ -341,10 +341,10 @@ func (m *Machine) Adopt(req *Request) Outcome {
 	st := &opState{
 		digest:         req.PayloadDigest,
 		state:          StateAdopted,
-		grants:         req.GrantsAtDecision,
+		grants:         copyGrants(req.GrantsAtDecision),
 		identity:       req.Identity,
 		versions:       req.Versions,
-		accountability: req.Accountability,
+		accountability: copyAccountability(req.Accountability),
 	}
 	ev := &ledger.Event{
 		EventType:        "adoption",
@@ -545,6 +545,34 @@ func (m *Machine) checkRequest(req *Request) []string {
 		return []string{"request decode failed: " + err.Error()}
 	}
 	return CheckRequest(doc)
+}
+
+// copyGrants deep-copies the grant slice: the pin must not alias the
+// caller's memory — a caller that mutates its slice after Adopt would
+// shrink or retarget the 14-A4 baseline the dispatch recheck compares
+// against (R7 M-2).
+func copyGrants(src []ledger.Grant) []ledger.Grant {
+	if src == nil {
+		return nil
+	}
+	out := make([]ledger.Grant, len(src))
+	for i, g := range src {
+		out[i] = g
+		out[i].Actions = append([]string(nil), g.Actions...)
+	}
+	return out
+}
+
+// copyAccountability deep-copies the accountability triple: the durable
+// form stamps it on every effect event, and a caller mutating its pointer
+// after Adopt would fork later events' audit attribution away from the
+// adopted event's (R7 M-2).
+func copyAccountability(src *ledger.Accountability) *ledger.Accountability {
+	if src == nil {
+		return nil
+	}
+	cp := *src
+	return &cp
 }
 
 // requestUTF8Errors names every request string field that is not valid

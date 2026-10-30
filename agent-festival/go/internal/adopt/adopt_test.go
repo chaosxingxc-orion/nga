@@ -430,7 +430,12 @@ func TestMachineOutputConformsToLedger(t *testing.T) {
 		t.Fatal(err)
 	}
 	var asMap map[string]any
-	if err := json.Unmarshal(raw, &asMap); err != nil {
+	// UseNumber, per ledger.Errors' documented input contract (a float64
+	// map is the blind spot the doc warns future callers about — this test
+	// must model the discipline, not break it)
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.UseNumber()
+	if err := dec.Decode(&asMap); err != nil {
 		t.Fatal(err)
 	}
 	if errs := ledger.Errors(asMap); len(errs) > 0 {
@@ -983,10 +988,13 @@ func TestOpenAcceptsLegalHighSeqAcross2e53(t *testing.T) {
 }
 
 // TestOpenRejectsInvalidUTF8Lines is the load-side twin of the request-gate
-// UTF-8 BLOCKER (R6): Go's json decoder silently replaces invalid bytes
-// with U+FFFD, so a tampered line would parse "successfully" with laundered
-// keys and the machine would absorb a file it provably did not write (its
-// own writes are always valid UTF-8 — the gate enforces it).
+// UTF-8 BLOCKER (R6 B1, re-pinned R7 M-1 after the first version's tamper
+// hit the key-coupling rule instead): Go's json decoder silently replaces
+// invalid bytes with U+FFFD, so a tampered line would parse "successfully"
+// with laundered keys and the machine would absorb a file it provably did
+// not write (its own writes are always valid UTF-8 — the gate enforces it).
+// The tamper targets a single-occurrence field and the assertion names the
+// guard's own error, so deleting the UTF-8 check alone reddens THIS test.
 func TestOpenRejectsInvalidUTF8Lines(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "adopt.jsonl")
 	m := mustOpen(t, path)
@@ -997,15 +1005,21 @@ func TestOpenRejectsInvalidUTF8Lines(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tampered := bytes.Replace(raw, []byte("op-u8"), []byte("op-u8\xff"), 1)
+	// tamper a field that occurs exactly once (business_request_id): no
+	// other rule rejects this file, only the UTF-8 boundary can
+	tampered := bytes.Replace(raw, []byte("br-t"), []byte("br-t\xff"), 1)
 	if bytes.Equal(tampered, raw) {
 		t.Fatal("tamper construction failed")
 	}
 	if err := os.WriteFile(path, tampered, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Open(path); err == nil {
+	_, err = Open(path)
+	if err == nil {
 		t.Fatal("invalid-UTF-8 line was absorbed at load (json decoder laundered it)")
+	}
+	if !strings.Contains(err.Error(), "not valid UTF-8") {
+		t.Fatalf("rejection came from another rule (error: %v) — the UTF-8 pin is on the wrong guard", err)
 	}
 	// control: the untampered file still loads
 	if err := os.WriteFile(path, raw, 0o644); err != nil {
@@ -1013,5 +1027,49 @@ func TestOpenRejectsInvalidUTF8Lines(t *testing.T) {
 	}
 	if _, err := Open(path); err != nil {
 		t.Fatalf("untampered file rejected: %v", err)
+	}
+}
+
+// TestPinIsNotCallerAliased is the R7 M-2 regression: the machine pins
+// grants and accountability at adoption, and the caller mutating its own
+// slice/pointer afterwards must not reach the pin — neither shrink the
+// 14-A4 baseline (revoked authority passing the dispatch recheck) nor fork
+// the audit attribution stamped onto later effect events.
+func TestPinIsNotCallerAliased(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	grants := pinGrants()
+	req := testRequest("op-alias", digestA, grants)
+	if o := m.Adopt(req); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	// caller shrinks its grant slice after adoption — the pin must hold
+	grants[1].Effect = "reversible"
+	if o := m.Dispatch("op-alias", grants); o.Status != "rejected" {
+		t.Fatalf("dispatch with caller-shrunk pin = %q, want rejected (the 14-A4 baseline must not alias caller memory)", o.Status)
+	}
+	if o := m.Dispatch("op-alias", pinGrants()); o.Status != "dispatched" {
+		t.Fatalf("dispatch with covering live set = %q, want dispatched: %s", o.Status, o.Detail)
+	}
+	// caller mutates its accountability pointer — later events keep the
+	// pinned triple
+	if req.Accountability != nil {
+		req.Accountability.Role = "attacker"
+	}
+	if o := m.MarkUnresolved("op-alias"); o.Status != "unresolved" {
+		t.Fatalf("unresolved = %q, want unresolved", o.Status)
+	}
+	if o := m.MarkCompleted("op-alias"); o.Status != "completed" {
+		t.Fatalf("completed = %q, want completed", o.Status)
+	}
+	events, _ := m.Events()
+	for i, e := range events {
+		if e.Accountability == nil || e.Accountability.Role != "employee" {
+			got := "<nil>"
+			if e.Accountability != nil {
+				got = e.Accountability.Role
+			}
+			t.Fatalf("event %d (%s) accountability role = %q, want the pinned 'employee' — the durable form forked with caller memory", i, e.Outcome.Status, got)
+		}
 	}
 }

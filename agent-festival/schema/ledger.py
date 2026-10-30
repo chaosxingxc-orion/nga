@@ -97,7 +97,6 @@ def ledger_errors(doc: dict) -> list[str]:
             errs.append(f"events/{i}: {e['event_type']} event carries the {family}-family status "
                         f"{status!r} — the status vocabulary never crosses the "
                         f"event-type boundary")
-        status = e.get("outcome", {}).get("status", "")
         if (e["event_type"] == "effect" or status != "adopted") and e.get("grants_at_decision"):
             errs.append(f"events/{i}: {e['event_type']} event (status {status!r}) for operation "
                         f"{e['identity']['operation_id']!r} carries grants_at_decision — the grant "
