@@ -61,3 +61,36 @@ Two recorded facts were wrong, and both are corrected in `CLAUDE.md` (commit `db
 
 This entry claims nothing about the control's behaviour. Whether the hybrid model is less accurate
 than this one on low-salience bins (R0-4) needs T4 to run.
+
+---
+
+## Appendix: model storage consolidated (2026-10-30)
+
+On the user's instruction that models live only under `/mnt/cephfs/xingchao/models/` and never inside
+a project directory, the two mirror roots were merged:
+
+- 33 models moved from `/mnt/cephfs/xingchao/omni/models/jev/` into `/mnt/cephfs/xingchao/models/jev/`
+  (same filesystem, so a metadata-only `mv`). The unified root now holds **42 models**: the Qwen3.5
+  ladder (0.8B/2B/4B/9B, each with its `-Base` variant), `Qwen3-0.6B`, and the survey's reference
+  checkpoints (`jaredpalmer__kev-*` at four sizes, `ZefanCai__Open-Jev-*`, `bespokelabs__Bespoke-Nimble-*`
+  and the rest).
+- The 9 models that existed in both roots were verified byte-identical before anything was deleted
+  (`tools/verify_model_dedup.sh`, results in `/mnt/cephfs/xingchao/experiments/jev/dedup_models_verify/`):
+  same revision line, 0 differing lines across all 10–16 files per model. The duplicates were then
+  removed, reclaiming about 67 GB on a filesystem at 92% use.
+- `/mnt/cephfs/xingchao/omni/models/jev` is now a symlink to `../../models/jev`, so paths written into
+  the superseded `rl_ascend_verl_20261029` configs still resolve.
+- Models belonging to other projects (embedding, ASR, `qwen3-omni-30b-*`, `serving-views`, about
+  200 GB under `omni/models/`) were **not** touched: they may be serving live traffic, and the
+  instruction's scope for them is unconfirmed.
+
+**The verification got the wrong answer first, and the script was the cause.** Its first version hashed
+every file in each model directory and aggregated, and reported all 9 models DIFFERENT — including the
+one just verified against the Hugging Face API file by file. Each model directory carries a
+`.complete` provenance file holding the revision hash *and the local download timestamp*, so two
+correct copies of one revision necessarily differ in it. The fix was to exclude the provenance file
+from the content hash, compare the revision line separately, and diff per file so the verdict names
+the differing file. A second check was then applied to the corrected result, because it came back
+perfect: the elapsed time implied about 1.07 GB/s of hashing, the per-model times scaled with model
+size, and a known-good hash was present in the list — consistent with real work rather than an
+empty comparison.
