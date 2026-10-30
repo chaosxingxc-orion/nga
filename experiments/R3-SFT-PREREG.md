@@ -440,7 +440,10 @@ examples/s/chip), never an aggregate alone. *Extended by §14.11 item 12: a rate
 **window** it was measured over and excludes warm-up, a figure from the first seconds of a unit is
 **provisional** and may not be carried into a scheduling or sizing decision, and where a heartbeat
 emits a windowed rate (`ex_s_chip_w20`) that is the figure of record. The clause's full text and the
-occasion that prompted it are there.*
+occasion that prompted it are there. Given a **floor** by §14.12 item 1: a throughput figure is of
+record only if its window is at least 10 counted steps after warm-up **and** at least 60 s of wall
+clock, and §14.11 item 12 applies to figures already in this file — annotating and re-scoping,
+withdrawing nothing.*
 
 10.3 The watchdog flags any rate of exactly 0.0 or 1.0, any metric identical across cells, and any
 cell below the minimum sample count. Each flag is explained **before** the number is reported
@@ -478,6 +481,19 @@ applied to the path that produces the number, a self-description being no test o
 (§14.11 item 21, which sharpens (c) after the reviewer applied it to a test it would have certified).
 (d) **A guard is documented with what it does not stop** (§14.11 item 16). Clauses (b) and (d) are
 one defect seen from its two ends, and are read together.*
+
+*Added by §14.12: two further standing clauses of this section, each carried in full in the item
+named, plus one job rule. (e) **A clause that bars or supersedes a figure writes the bar into the
+artefact that holds the figure** — the row or file carrying a barred figure gains a field naming the
+amendment and the replacement, and anything that prints that row prints the field (§14.12 item 2).
+(f) **A run of record executes from a frozen code snapshot, never from the live tree**, with every
+imported module covered including those reached through a `sys.path` insertion, or else hashed at prep
+and **re-checked at verify** (§14.12 item 4). (g) **A marker that closes a checklist row says what
+ran**: a required step that did not execute is a named failure and never an absent entry, and a
+diagnostic number in a gating job's marker is labelled as gating nothing (§14.12 item 5). The window
+floor of §14.12 item 1 extends §10.2 and is recorded there. (e) and §14.11 item 16 are the same
+principle applied to numbers and to guards; (f) achieves by construction what §14.11 item 8's
+standing rule depends on a human to achieve.*
 
 ---
 
@@ -1001,6 +1017,27 @@ arm of wave 1 was trained and before any readout of record exists.
      pre-registered for a different kernel before it runs, and its floor is same-config rather
      than a second draw of composition noise, which is why §14.6 item 1's objection to criterion
      (i) does not apply to it.
+
+     *Dated note, 2026-10-30, on the four-step series' provenance (clearance ruling §5.2).* The four
+     values come from `r3_runs/eff/final_test_train_r3b`: a `max |loss_fast_ref − loss_ref| < 5e-3`
+     assertion the efficiency engineer set and then found too tight, over four steps of a `--arm k1`
+     pair on the **pre-fix** trainer, before the explicit 4D attention mask of item 4 below
+     (`WHY_FAILED.json`, which records both the guessed threshold and that these are pre-fix
+     numbers). **Nothing is withdrawn and §14.10 item 1's gate verdict is untouched.** Three grounds.
+     It does not touch that verdict: (G2) failed on tensor counts — 368 of 372 LoRA within bound
+     against the 369 required, and the non-gating 320 population at 315 against 317 — which is a
+     different measurement on different data, and (G4) **never ran**, because (G2) failed first.
+     Being pre-fix does not weaken the argument the series supports, which is about its **shape**:
+     growth of about 8× across the four steps — 1.5e-3, 1.4e-3, 4.4e-3, 1.2e-2, the second step flat
+     rather than rising, so "monotonically" above is the loose word for it — while the proposed floor
+     series does not grow, in support of the claim that a four-step mean cannot distinguish bf16 noise
+     from divergence. A
+     pre-fix series is still a series whose growth a four-step mean would hide; the direction does not
+     cut either way, and the series is **motivation, not calibration**. And (G4)'s actual bar is the
+     measured same-config replicate floor written into `gate_fast_ref/` before (G4) runs, so nothing
+     is calibrated on these four values. **Forward: if `gdn_fast_ref` is ever revisited, (G4)'s second
+     clause is re-derived on post-fix data before it is applied**, so that a motivating series from a
+     superseded code path does not become a bar's justification after the fix that retired it.
    - **If any of (G1)–(G4) fails, wave 1 and the ladder train on the reference kernel**, at the
      measured cost of about 2.8 h per K1 run at three processes per chip and about 6.8 h per K2-shared
      run, roughly a day for the wave. That consequence is recorded here so the gate is not reopened
@@ -1049,8 +1086,25 @@ arm of wave 1 was trained and before any readout of record exists.
      form is also the higher-variance one. Dropout 0.05 is unchanged; dropout is **not** turned off for
      K2, which would confound objective with regularization in the one comparison this wave exists to
      make.
-   - **The row form is not a fallback.** It is 91 s per step, about 79 h per run, and is not runnable in
-     round 1 on any kernel. If K2 runs in wave 1, the prompt is forwarded once.
+   - **The row form is not a fallback**, and the reason is the paragraph above, not this one: with
+     dropout 0.05 the two forms are different regularizers and the row form would make §8.2's
+     K1-against-K2 comparison a comparison of regularizers rather than objectives. *Re-scoped by a
+     dated note, 2026-10-30, under §14.11 items 10 and 12.* On cost, what is **measured** is that the
+     row form is roughly an order of magnitude slower per step than the shared form: 91.07 s/step
+     over steps 7–16 of `eff/conc_k2rows_ref_ckpt_orig` (10 counted steps, warm-up dropped,
+     `TASK_QUEUE_ENABLE=1`, the **pre-fix** trainer, grad-checkpoint, micro-tokens 12000, stopped by
+     hand), against the shared form's 6.76 h per run from `conc_v4_ref_k2sh_mt3000_r48` (24 counted
+     steps after 6 warm-up, TQ=2, reference kernel). Both windows are short and both are stated. The
+     earlier conclusion that the row form "is not runnable in round 1 on any kernel" is **withdrawn
+     as unsupported**: it divided 79 h by a 2.3–2.5× TQ factor measured on K1 with the reference
+     kernel and never on the K2 row form, and it rested on a round time budget this pre-registration
+     does not state. No K2 run of record uses the row form, so nothing turns on the arithmetic. If K2
+     runs in wave 1, the prompt is forwarded once.
+
+     *Also recorded, 2026-10-30:* the offered re-measurement of the row form on the post-fix trainer
+     is **refused**, and is a **declined action, not an open one** (§14.11 item 20's distinction): no
+     arm of record uses the row form, so §14.11 item 10 (c) answers "none", which makes the
+     measurement documentation, and documentation is not scheduled onto a chip wave 1 wants.
    - **Semantics pinned by test, not by implication.** A test naming this clause asserts that the
      prompt-side dropout mask is identical across a question's options within a step and differs
      between steps (`train_r3.py` seeds dropout per step as seed·1000003 + step), and is recorded in
@@ -2077,6 +2131,15 @@ does the same although as a new obligation it need not.
    - Both this deadline and item 4 below's are listed **in `R0-BASELINE-RESULTS.md`'s erratum-pending
      note**, with their deadlines named, so the owed work is visible in the document that is owed it;
      and `tools/watchdog.py` flags each as outstanding in every digest until its product exists.
+     *Dated note, 2026-10-30 (clearance ruling §0, correction 1): the watchdog half of this clause is
+     **discharged**. `tools/watchdog.py` names neither obligation because it is obligations-driven
+     (`--obligations`, default `<root>/obligations.json`), and `obligations.json` carries
+     `r0-erratum-text` (artefact `experiments/R0-BASELINE-RESULTS.md` matching `^## *Erratum`, trigger
+     the first line of `r3_runs/TEST-READS.log`) and `r0-side-of-record-rescore` (artefact
+     `r3_runs/r0_rescore_fp32/R0RESCORE_COMPLETE.json`, trigger a wave-1 `DONE` or the first test
+     read), each with the failure mode of its own glob written beside it. Verified in the register,
+     not by grepping the watchdog for a clause number, which is the reading that first suggested the
+     clause was unmet.*
    - **While the erratum is outstanding, no number of this round is compared with R0's published
      numbers in any direction**, including in a wiki entry or a commit message (§14.2 is not
      suspended by the erratum being late; it is the reason the erratum exists), no sentence states
@@ -2123,13 +2186,31 @@ does the same although as a new obligation it need not.
    t = 1.9 h of the wave and this pass needs about three. That chip count is **provisional** in
    item 12 below's sense: it is an availability argument extrapolated from the fp32 `rp` rates,
    not a sizing decision. The run plan sets the count and may set it higher or lower; this clause
-   establishes only that the pass need not wait for wave 1. It is a run of record and obeys
-   §14.5 item 4 step 2 (a): it does not share a chip with a training run of record. **It has no
-   run plan.** Nobody has sized or scheduled it, it was invisible until it was traced through
-   §8.2 (c), and it comes due
-   weeks of wall-clock sooner than it feels, which makes it the single obligation of this amendment
-   most likely to be forgotten. That sentence is in the pre-registration because a clause that
+   establishes only that the pass need not wait for wave 1. *The provisional label is discharged by
+   the dated note below: the run plan exists and sets the count at three.* It is a run of record and
+   obeys §14.5 item 4 step 2 (a): it does not share a chip with a training run of record. **It has no
+   run plan.** *Superseded by the dated note below, which carries the plan, the price and the chip
+   count; the sentence stays in place because what it says about this obligation's forgettability is
+   why its price was missing in the first place.* Nobody has sized or scheduled it, it was invisible
+   until it was traced through §8.2 (c), and it comes due weeks of wall-clock sooner than it feels,
+   which makes it the single obligation of this amendment most likely to be forgotten. That sentence is in the pre-registration because a clause that
    records its own forgettability is the only defence against it.
+
+   - *Dated note, 2026-10-30, on item 10's clause (b), applied by the reviewer to the amendment that
+     carries it.* This item commissions a measurement and the text above priced it only by chip
+     count, which is not a cost. It now has a run plan and a price: **about 10.6 chip-hours, range
+     8.2 to 13.6** (`r3_runs/r0_rescore_fp32/PLAN.md`, `PLAN_RATES.json`), from rows/s/chip of the
+     scorer of record measured over windows of 52 s to 1,784 s and 256 to 6,224 rows on the ten
+     completed Track T units of `k0_fp32` at five chips concurrent, with the first label of every
+     unit excluded as warm-up (item 12). One of the twenty-one (role, task-file) rates — primary T1
+     typed-decisions — is **bounded, not measured**, because that unit's first label carries no start
+     stamp; the other twenty are measured and are in `PLAN_RATES.json`. The figure supersedes an
+     earlier 11.7 chip-hours taken from first-seconds smoke rates, which item 12 bars. **Chip count:
+     three**, set by the run plan and no longer provisional, from wave 1's idle tail; the queue is
+     dynamic, so the count may be raised mid-run without a restart and without a new assignment.
+     Item 10 (c) is answered in the bullets above and is unchanged. Recorded here because an
+     obligation whose cost is unwritten is the one that gets deferred by whoever is asked to schedule
+     it.
 
 5. **`erratum()` asserts completeness; a reported difference on a partial item set is barred (ruling
    §1.8, §7.2).** `harness_identity_r3.py` `erratum()` intersected the keys of the two sides and
@@ -2550,6 +2631,17 @@ does the same although as a new obligation it need not.
     later reader does not inherit item 15 as stronger than it is (item 16 above): a clause that
     records how it was found to be insufficient is worth more than one that reads as if it arrived
     complete, which is why the limit is written into the clause rather than into a note about it.
+    - *Dated note, 2026-10-30, on the file this clause names (clearance ruling §4.3).* The required
+      readback test landed in `r3_code/test_entry_point_r3.py`, **not** in `test_full_eval_r3.py` as
+      the clause says. The requirement is met and then some: five tests there patch `R3Scorer` with a
+      recorder and assert the constructor kwargs **and the mode actually passed to `score_raw`** for
+      every `--scorer` value, and `r3_code/mutation_demo_entry_point.py` applies nine mutations to a
+      copy of `eval_r3.py` — among them `M3_describe_right_but_score_runs_exact`, the
+      `describe()`-right / `score()`-wrong case this clause was written about — with all nine caught
+      (`r3_runs/make_score_fn_readback/mutation_demo.json`, `all_mutations_detected: true`, the live
+      file's sha1 identical before and after). **No amendment**: the clause's requirement is the
+      assertion on the behaviour, not the filename, and the new name is the clearer one because the
+      file tests the entry point rather than `full_eval_r3`.
 
 22. **The single-partition path stops answering to the record-grade flag names (ruling §15.5).**
     Without `--full`, `eval_r3.score_model` dispatches `--scorer rightpad` to `score_rightpad`, which
@@ -2571,27 +2663,75 @@ does the same although as a new obligation it need not.
 
 **Launch-checklist status (§14.7's checklist as extended by §14.8, by §14.10 and by this amendment,
 ruling §6.5 and §14.2).** This is a status, not an authorisation: **wave 1 is not cleared to launch**.
-Items 1, 7, 8, 9 and 10 are open, and item 10 is open because of this amendment.
+Items 1, 7, 8, 9 and 10 are open, and item 10 is open because of this amendment. *Updated by the
+dated note below the table (2026-10-30, clearance ruling §4): rows 1, 7 and 9 are **met**; rows 8 and
+10, and §14.5 item 4 step 1, are open; wave 1 is **still not cleared to launch**.*
 
 | # | Checklist item | Status |
 | --- | --- | --- |
-| 1 | §14.7, §14.8 and §14.10 committed | **Open** — this amendment (§14.11) must be committed too |
+| 1 | §14.7, §14.8 and §14.10 committed | **Open** — this amendment (§14.11) must be committed too · *Dated note, 2026-10-30: **met**, committed as `dcab6f9`, verified present as items 1–22 with no reserved slot (clearance ruling §4.1)* |
 | 2 | `gate_fast_ref/` with (G1)–(G4) **or** the recorded reference-kernel decision | **Met** — §14.10's table, unchanged by this amendment |
 | 2b | (G3) on this branch, model-level **and** trajectory (§14.8 item 4) | **Met** — §14.10's table, unchanged by this amendment |
 | 3 | Corrected equal-length determinism probe, green | **Met** — §14.10's table, unchanged by this amendment |
 | 4 | K2 dropout-mask-semantics test, green | **Met** — §14.10's table, unchanged by this amendment |
 | 5 | Production bf16 K2 cell re-measured against the (G3) floor | **Met for the branch that now trains** — §14.10's table, unchanged by this amendment |
 | 6 | `bench_record.json` carrying `gdn_impl`, `k2_impl`, trainer sha256 | **Met** — §14.10's table, unchanged by this amendment |
-| 7 | §14.5 item 4 step 2 chip-assignment file, sha256 recorded | **Open** — `r3_runs/w1/CHIP-ASSIGNMENT.json` is at revision 2 with its sha256 recorded but marked `DRAFT`; it is not authoritative until §14.10 and this amendment are committed, and it discharges items 7 and 9 together |
+| 7 | §14.5 item 4 step 2 chip-assignment file, sha256 recorded | **Open** — `r3_runs/w1/CHIP-ASSIGNMENT.json` is at revision 2 with its sha256 recorded but marked `DRAFT`; it is not authoritative until §14.10 and this amendment are committed, and it discharges items 7 and 9 together · *Dated note, 2026-10-30: **met**, with row 9, by the `CHIP-ASSIGNMENT.STATUS.json` sidecar and the reviewer's recomputed sha256; see the note below the table (clearance ruling §4.1)* |
 | 8 | §14.3 resume test rewritten and the suite re-run on a chip (§14.10 item 6) | **Open** — unchanged by this amendment; minutes on one chip |
-| 9 | The ninth and tenth runs named in the assignment file before launch (§14.10 items 8 and 13) | **Open** — unchanged by this amendment |
-| 10 | *Added by items 7, 17 and 19 above:* the three checks that gate K0's numbers being read, as **one job with one marker**, in order — item 19's `rp_c32` and resume-offset cells, then item 17's re-score with its mandatory cross-model counterpart, then item 7's `report_compared` check; plus K0's post-hoc `manifests/` with its limitation stated in the file | **Open** — new obligation from this amendment; minutes on the one chip K0 itself frees |
+| 9 | The ninth and tenth runs named in the assignment file before launch (§14.10 items 8 and 13) | **Open** — unchanged by this amendment · *Dated note, 2026-10-30: **met** with row 7; the assignment file carries both replicate runs at revision 2 and the hash still matches (clearance ruling §4.1)* |
+| 10 | *Added by items 7, 17 and 19 above:* the three checks that gate K0's numbers being read, as **one job with one marker**, in order — item 19's `rp_c32` and resume-offset cells, then item 17's re-score with its mandatory cross-model counterpart, then item 7's `report_compared` check; plus K0's post-hoc `manifests/` with its limitation stated in the file, written by `r3_code/k0_manifests.py` | **Open** — new obligation from this amendment; minutes on the one chip K0 itself frees · *Dated note, 2026-10-30: still open, but the implementation gap is closed — the manifest writer and the one job now exist and refuse while K0 is incomplete; see the note below the table (clearance ruling §4.1 item 6, §4.2 and §4.3)* |
 
 Outside this checklist, and still the actual gate on launching: §14.5 item 4 **step 1 must be complete
 and read on dev** before step 2 begins. Item 2 above removes the (ii) erratum measurement from that
 step and leaves the (i) identity check in it with its round-stopping power; the (i) verdict is
 unwritten, is expected about 09:00Z, and is now additionally subject to item 7 above
 (`report_compared` must be true) and to item 8 above's recorded hashes.
+
+*Dated note, 2026-10-30, on this table, from the clearance ruling
+`reviews/R3-WAVE1-CLEARANCE-RULING-fable-20261030.md` §4 (Fable 5.1, closed 08:40Z). The statuses
+above are as of amendment 11 and stay in place; this note is the status now, and it is as little an
+authorisation as the table is: **wave 1 is not cleared to launch.*** What has changed:
+
+- **Row 1 — met.** Amendment 11 is committed as `dcab6f9` and is present as §14.11 items 1 to 22 with
+  no reserved slot, verified by the reviewer against the ruling it applies.
+- **Rows 7 and 9 — met, together, as both rows say they must be.** `r3_runs/w1/CHIP-ASSIGNMENT.json`
+  is unchanged at revision 2 — ten runs on eight chips, both §14.10 item 13 replicates named — and
+  its sha256 **recomputed by the reviewer** is
+  `0e680df32d9217f6f465818c0f8ab9ebb86bc17c9812ed442b15706ae188f962`, equal to the value §14.10
+  item 13 cites. Both conditions its `DRAFT` status named (§14.10 and §14.11 committed) are committed.
+  The authority is recorded in the sidecar `r3_runs/w1/CHIP-ASSIGNMENT.STATUS.json`
+  (`authoritative: true` from 08:05Z, naming both commits, with the stale `DRAFT` field left in place
+  deliberately) and **not** by editing the assignment file: editing it would invalidate the hash
+  §14.10 cites, and a sidecar that records authority without touching bytes is the right resolution
+  of that conflict. It is upheld as the right instrument. The status is written **here** because a
+  launcher reads this checklist, not the sidecar.
+- **Row 8 — open.** The two-arm resume test and its four broken-resume counterparts (`stale`,
+  `zero_moments`, `no_update`, `wrong_step`) are built and wait on chip 5, which is taken only when
+  `harness_identity` reaches `DONE` **and** its container exits. That gating condition is reaffirmed:
+  a failed pinned control outranks any throughput work, and a resume test with no broken arm would be
+  §14.10 item 6's defect again.
+- **Row 10 — open, and the implementation gap the ruling found inside it is closed.** K0's post-hoc
+  manifest now has code: `r3_code/k0_manifests.py` writes `<run>/manifests/posthoc.json` in the
+  `provenance_r3` layout (per readout file sha256 and row count, the model sha256 **recomputed from
+  the weights on disk**, the scorer descriptor from the run's own report header) and carries the
+  limitation **in the file**, as the key `attestation_limit`, in the words items 16 and 17 require: it
+  attests the files as they stood when it was written and not their origin, the sampled re-score
+  being what attests origin. It refuses a K0 that is not complete, a missing report header, a
+  recomputed sha that differs from `RUN_IDENTITY.json`, and a silent overwrite; `test_k0_manifests.py`
+  and `mutation_demo_k0_manifests.json` are its tests and its mutation demonstration (item 15). It is
+  step `4_manifests` of the one job that closes this row. What is owed is **running** it: at 08:25Z
+  K0 holds 43 of 58 units done with no `K0_COMPLETE.json`, so neither the job nor the manifest
+  exists. *This corrects the ruling's own §4.1 item 6 finding that "no code writes it", which was true
+  of the tree it read at 08:00–08:11Z; the script was written at 08:24Z, after it had read.*
+- **§14.5 item 4 step 1 — open, and the paragraph above stands unchanged: it is the actual gate.**
+  The (i) verdict is still unwritten at 08:25Z: no `IDENTITY_VERDICT.json` exists anywhere in the
+  experiment tree, K0 is at 43 of 58 units with no failed unit, and `harness_identity` is heartbeating
+  normally. Step 1 is complete only with that verdict **existing and admissible** under item 7 above
+  (`report_compared` true; **a missing file is not a pass**, which `identity_verdict_read.py` enforces
+  with exit code 5 for INCOMPLETE).
+- **None of the R0-side re-score's preconditions gates this wave.** The clearance ruling's P1–P4 are
+  conditions on **that** pass launching (its §3), not on wave 1; item 4 above says the same of the
+  pass itself.
 
 **Not on this checklist by design, and the obligation most likely to be forgotten: the
 R0-configuration fp32 re-score of item 4 above has no run plan.** It gates the round's first §8.2
@@ -2601,3 +2741,213 @@ decided. Nobody has sized or scheduled it: 102,654 records per role, at a chip c
 still has to set (item 4's "about three" is provisional, per item 12). The reviewer said
 twice that it is the likeliest obligation of this ruling to be forgotten, and it is repeated here
 because this table is what gets read before a launch.
+
+*Dated note, 2026-10-30 (clearance ruling §1.2, §2.1): the paragraph above stays as the record of why
+the price was missing, and three of its facts have moved. The re-score **has** a run plan
+(`r3_runs/r0_rescore_fp32/PLAN.md`), a measured price of **about 10.6 chip-hours, range 8.2 to 13.6**,
+and a chip count of **three** that is no longer provisional — item 4's dated note above carries all
+three with their windows. What has **not** changed is the obligation or its deadline: the pass has not
+launched, it still gates the round's first §8.2 adoption decision and not the wave's launch, and
+nothing downstream will notice its absence until an adoption has to be decided. Its own preconditions
+(the clearance ruling's P1–P4: a one-chip docker smoke of the worker and launcher, the `r0_code` hash
+re-check at verify time, the dead-claimant failure mode in the plan, and the chip-free E4 sensitivity
+bound) are conditions on that pass, recorded in `wiki/R0S-r0-side-fp32-rescore.md` §3, and gate
+nothing in this table.*
+
+14.12 **Amendment 12, §14.11 item 12 made retroactive and given a window floor, a correction written
+into the artefact that holds the figure, K4's replicate floor fixed while K4 has no numbers,
+execution from a frozen snapshot, and the precondition job's marker rule, 2026-10-30.** Made before
+any arm of wave 1 was trained, before any readout of record is complete (K0 stands at 43 of 58 units
+with no terminal marker), before any erratum or identity-verdict number exists (no
+`ERRATUM-DIFF.json` and no `IDENTITY_VERDICT.json` anywhere in the experiment tree at 08:25Z), and
+before K4 is unparked. Source: the review ruling
+`reviews/R3-WAVE1-CLEARANCE-RULING-fable-20261030.md` (Fable 5.1, CLAUDE.md §2), opened 08:05Z and
+closed 08:40Z, which checks §14.11 as committed against the ruling it applied: its §5.1 carries
+item 1, §5.3 item 2, §6 item 3, §7 item 4, and §4.2 item 5; each item names the ruling section it
+comes from. **§14.11 as committed is accepted by that ruling as faithful**, with no substantive
+divergence, so nothing here withdraws any item of it.
+
+The same ruling's other findings are **dated notes in place, not items here**, because each records
+what is true rather than creating or altering an obligation: §14.11 item 3's watchdog clause
+discharged (§0), §14.11 item 4's price and chip count (§1.2), §14.11 item 21's test filename (§4.3),
+§14.11's checklist rows 1, 7 and 9 met with rows 8 and 10 open (§4), §14.7 item 3's re-scoped
+row-form sentence (§5.1) and §14.7 item 2 (G4)'s four-step series (§5.2). Two further findings go to
+`obligations.json` and not to this file at all (§1.3, §6): an entry for item 17's forward rule, which
+is owed with no artefact and no trigger of its own, and a widened trigger glob for
+`k4-nondeterminism-replicate`. Both are present in the register at 08:25Z as
+`provenance-readers-verify` and as three `*k4*/RUN_IDENTITY.json` globs; the register, not this file,
+is where they are tracked, and the clause each of them serves is already written — §14.11 item 17's
+forward rule, and item 3 below. This amendment is items 1 to 5 and is committed whole; there are no
+reserved slots.
+
+**Counterfactual declaration (§10, added by §14.10 item 15), for this amendment as a whole.** Item 1
+changes a rule about how a figure may be reported and used, and the figures it reaches already exist,
+so the clause **applies** and is discharged here. The floor is calibrated to **pass** every figure
+this file carries that bears a scheduling or sizing decision — §14.7 item 3's two (10 counted steps /
+911 s, and 24 counted steps after 6 warm-up / 187 s), and §14.10 item 8's two (1.84 h per K1 run from
+`ref_tq2_nockpt` at 34 counted steps after 6 warm-up / 72 s, and 6.76 h for the wave from
+`v4_ref_k2sh_mt3000_r48` at 24 steps / 187 s) — so the counterfactual **agrees** everywhere a verdict
+is at stake, and the one clause whose *conclusion* outran its window is re-scoped by a dated note
+rather than withdrawn. Applied backwards the floor would have caught the 30-second K0 smoke rate that
+§14.11 item 12 records as its own occasion, which the engineer had already corrected before any number
+was used irreversibly, so no verdict of this round changes. Items 2, 3, 4 and 5 are **new obligations
+that no prior rule could have decided**, so the clause does not apply to them; this is stated rather
+than omitted silently, as the clause requires. Item 3 in particular is written before any K4 number
+exists, which is rule 3 and not a counterfactual.
+
+1. **§14.11 item 12 is retroactive, bounded, and gains a window floor (ruling §5.1).** Item 12 as
+   written could be read as biting only on figures produced after it, which is weaker than it reads.
+   It is a rule about **how a figure is reported and used**, not a metric or a threshold, so rule 3's
+   bar on changing pre-registered quantities after a run does not shield an engineering sizing
+   sentence from being annotated.
+   - **Scope: item 12 applies to every figure this file carries, including those already in it, with
+     a bounded consequence.** Applying it backwards **withdraws no number**. It requires each figure
+     that carries a decision to state its window, and it re-scopes any clause whose *conclusion*
+     needs more than its window supports. §14.7 item 3's row-form sentence is the only clause found
+     where the conclusion outran the window, and its dated note is what this scope produces: the
+     measured figure stands, the conclusion drawn from it is withdrawn, and the decision survives on
+     the non-numeric ground the same item already carried.
+   - **The floor, so that "a warmed-up batch" stops being undefined. Carried in full:**
+
+     > A throughput figure is **of record** only if its window is at least **10 counted steps after
+     > warm-up** and at least **60 s of wall clock**. Below either, the figure is **provisional**: it
+     > is reported with that label and may not carry a sizing or scheduling decision.
+
+     Both figures of §14.7 item 3 clear it, as do both of §14.10 item 8's scheduling figures (counts
+     and windows in the declaration above), so the floor's practical effect is to require that windows
+     **be stated**, not to invalidate work already done. A floor that invalidated the file's own
+     numbers would be a bar written after the data; this one is calibrated to pass them and to catch
+     the 30-second smoke rates that actually caused harm.
+   - **A bounded retroactive sweep, owed before the first report of record of wave 1:** every figure
+     in this file that carries a decision states its **window** and its **chip count**, or is
+     labelled **provisional**. Its clearest case is named now so the sweep is not a gesture: §14.3's
+     "7.3 s per step for 8 short questions on 2 chips", the figure that sent round 1 to a
+     single-chip trainer, states no window at all. As in §14.7 item 3, the decision does not rest on
+     it — verl's trainer also lacks LoRA dropout, the one-cycle schedule, per-epoch augmentation and
+     the K2 loss, and its LoRA merge was a silent no-op for this checkpoint class — so the sweep
+     annotates the figure and changes no verdict.
+
+2. **Standing clause, a bar travels with the figure it bars, added to §10 (ruling §5.3).** Carried in
+   full:
+
+   > **A clause that bars or supersedes a figure writes the bar into the artefact that holds the
+   > figure.** Where an amendment bars a figure, re-scopes it, or replaces it, the row or file that
+   > carries the figure gains a field naming the amendment and the replacement — in
+   > `r3_runs/eff/bench_record.json`, a `superseded_by` field on the row — and anything that prints
+   > that row prints the field. Amendments are long, append-only and read once; artefacts are what an
+   > engineer opens at the moment of reaching for a number. A correction that lives only in the
+   > amendment is a correction aimed at the wrong reader.
+   >
+   > This generalises §14.11 item 16 from guards to numbers: that clause says a guard is documented
+   > with what it does not stop, this one says a figure is documented with what it may no longer be
+   > used for. Both put the limitation in the file someone will actually open.
+
+   Occasion, recorded because it is the whole argument: §14.10 item 9 barred a TQ pair as the quoted
+   headline ("the quoted headline is this pair, not the end-of-run windowed “2.00 → 4.96”"), and the
+   barred pair was quoted back **within hours, by the engineer who had supplied the correction**. The
+   arithmetic barely moves, so no number of record changes and nothing is withdrawn here; what the
+   incident shows is that an amendment is the wrong place to keep a bar. Deadline, tied to an event
+   that must occur (§14.11 item 3's rule about undated obligations): the `bench_record.json` rows
+   holding the figures §14.10 item 9 and §14.7 item 3 bar carry the field before the first report of
+   record of wave 1.
+
+3. **K4's same-config replicate floor is measured before any K4 tolerance is ratified (ruling §6).**
+   Carried in full, and fixed now **while K4 has no numbers**, which is rule 3's entire point; this
+   round has already had to reason twice about bars set on runs already in flight (§14.11 items 17
+   and 19):
+
+   > **K4's same-config replicate floor is measured before any K4 tolerance is ratified.** The K4 full
+   > fine-tuning path is **not** bit-exact run to run: two uninterrupted 6-step runs differ in up to
+   > 120 of 320 tensors by up to 6e-8, and one of five trajectories ended 6.7e-3 in loss from the
+   > other four (`r3_runs/eff/k4_test4`, `k4_test8`, `k4_test9`, 2026-10-30). The LoRA arms are
+   > **bitwise identical over the same window**, which is why no wave-1 arm is affected and why this
+   > is a property of the K4 path rather than of the host. The cause is **open**: the first
+   > attribution (non-deterministic embedding backward plus Adam) is withdrawn — SGD refuted the Adam
+   > half and the embedding half was never measured — and it may be the same half-ulp forward event
+   > the gate work found, arriving earlier because K4 moves every weight. Until a **single-batch K4
+   > gradient replicate from identical state** has been run and written to
+   > `r3_runs/eff/k4_gradient_replicate/REPLICATE_RESULT.json`: no K4 number is compared with any
+   > other K4 number under an equivalence threshold, no K4 resume or speedup is accepted on a
+   > tolerance, and no K4 bar is ratified. The check is run **before K4 is unparked**, not on
+   > unparking. A 6.7e-3 same-configuration loss spread is a noise floor that nobody has measured, not
+   > a defect; what is barred is ratifying a tolerance against an unmeasured floor.
+
+   - **It does not gate wave 1**, and it is not ahead of checklist item 8 for a chip. The LoRA arms'
+     bitwise identity over the same window is checked evidence rather than an assumption, so no
+     wave-1 arm is affected; if anything the finding is positive evidence for wave 1's determinism.
+     The replicate is minutes on one chip and is scheduled into the same idle tail as the R0-side
+     re-score, as a non-gating job.
+   - **Why before unparking and not on unparking.** The standing project rule is that an equivalence
+     threshold is not ratified before its same-config replicate floor is measured, and the cheapest,
+     least corruptible moment to measure a floor is when **no number exists that the floor could be
+     shaped to protect**. Measuring it on unparking means the first K4 run of record either waits on
+     it or proceeds without it, and under schedule pressure the second is what happens.
+   - **The withdrawal is recorded as conduct, not only as fact.** The first mechanism offered was
+     retracted by the engineer who offered it, before anyone asked, on the ground that it had never
+     been measured; the docstring now says the cause is open. This item does not move K4: its place in
+     the run order is still §14.5 item 4's **step 3**, from the arm adopted after wave 1 and at 0.8B
+     only, and its result is not an R3 result until proposal R3 is amended (§7.5, §12.6).
+
+4. **A run of record executes from a frozen code snapshot, never from the live tree (ruling §7).**
+   This is the answer to whether §14.11 item 8 needs teeth, and it deliberately replaces
+   edit-sequencing discipline with execution-provenance discipline. Carried in full:
+
+   > **A run of record executes from a frozen code snapshot, never from the live tree.** The snapshot
+   > is taken at prep time with its sha1s recorded, the run invokes the snapshot's copies by absolute
+   > path, and the snapshot covers **every** module the run imports, including modules reached through
+   > a `sys.path` insertion from another directory. Where a dependency cannot be frozen, its sha1 is
+   > recorded at prep and **re-checked at verify time**, and a mismatch refuses the run. Reason:
+   > §14.11 item 8's standing rule governs what may be edited during a control, and depends on a human
+   > producing a diff at the right moment; this clause removes the dependency. On 2026-10-30 a live
+   > instrument was edited while the round's first readout of record was scoring, and the edit was
+   > harmless **only** because that run executed from a snapshot.
+
+   - **§14.11 item 8's pre-edit-diff requirement stands unchanged.** It is still the right rule for an
+     instrument that is not snapshot-isolated, and the `c0bc1af` sequencing lapse stays recorded in
+     §14.11 item 13's dated note rather than waived. A third party producing the pre-edit diff was
+     considered
+     and refused: the diff is mechanically checkable by anyone at any time, and correctness here does
+     not depend on who runs `diff`.
+   - **The clause's second sentence is not theoretical.** The R0-side re-score's prep copied
+     `r3_code/*.py` into `<run>/code` while `core_r3` inserts `r0_code` on `sys.path`, so three
+     `r0_code` modules (`prompt.py`, `common.py`, `scorer.py`) were hashed at prep and executed
+     **live** — an edit between launch and finish would have been invisible. *Closed before this
+     amendment was written, and verified: `r0rescore_prep.py` now hashes every `r0_code/*.py` and
+     `r1_code/convert_kev.py` into `SHA1SUMS` as files that run live, each worker re-checks them
+     before every unit and refuses to score on a mismatch (`rc=97`), and
+     `r0rescore_verify.check_executed_code` recomputes every line of `SHA1SUMS` at verify time and
+     refuses a `SHA1SUMS` that records no `r0_code` file at all.* The clause stands as the norm; that
+     fix discharges it for one run and not for the next one.
+
+5. **A marker that closes a checklist row says what ran; a skipped check is never a pass (ruling
+   §4.2).** Checklist item 10's three checks are one job with one marker (§14.11 items 7, 17 and 19).
+   As first written, `r3_code/precondition_job.py` recorded an absent `IDENTITY_VERDICT.json` as a
+   step with `rc: None` and its `all_steps_rc0` read `None` as success, so `PRECONDITION_DONE.json`
+   could read as a clean pass **with item 7's check never performed**, while checklist row 10 names
+   that check as one of the three the row consists of. That is the same shape as item 7's own defect:
+   a check that is skipped when its input is missing and reports success anyway. Required, and
+   standing for any job whose marker closes a checklist row:
+   - The marker's exit code is **non-zero**, or the marker carries an explicit
+     `checklist_item_10_complete: false`, whenever a required step did not execute. A step that did
+     not run is a **named failure**, never an absent entry.
+   - The job is **ordered after the (i) identity verdict exists**. A missing verdict file is not a
+     pass (§14.11 item 7), and item 7's check is a post-run read of a field of that file — no chip —
+     whose output is recorded in the marker.
+   - Step 1b, the realised-call replay, **stays in the job, does not gate, and the marker says so**:
+     it carries the replay's headline numbers **together with the words that it is diagnostic and
+     gates nothing**. It stays because no pre-existing bar exists for a realised-call replay and any
+     bar invented now would be set after K0's rows exist — exactly what items 17 and 19 avoid by
+     reusing §14.6 item 3's bar unchanged — and because pulling it out would cost a second model load
+     and a second chip claim to run a cheaper measurement less conveniently, which inverts item 10's
+     purpose. A number in a gating job's marker will be read as part of the gate unless the marker
+     says otherwise; this is §14.11 item 11's class stated in advance, and the replay is the only
+     evidence that bears on K0's **realised** composition rather than on the fixed samples'.
+   - *Implemented before this amendment was written, and recorded as fact (verified in the file):*
+     `precondition_job.py` now names all ten required steps, reads a missing record or a non-integer
+     `rc` as `step_not_executed` rather than as an absent entry, decides the marker's status in one
+     pure `judge()` that is the only place a status is set, refuses to start without a
+     `K0_COMPLETE.json` whose `exit_code` is 0, refuses if the frozen copy does not match its
+     `SHA1SUMS`, keeps a rehearsal mode that can never be read as the job of record, and carries a
+     `GATES NOTHING` sentence beside step 1b's numbers. The engineer found and closed the same
+     skip-reads-as-success hole in steps 1, 1b and 2. The clause stands as the norm; the fix
+     discharges it for this job and not for the next one.
