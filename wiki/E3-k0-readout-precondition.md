@@ -109,15 +109,27 @@ run is not complete. Chip-free; skipped, with the skip recorded, if the file doe
 **Declared differences and open questions.**
 
 1. Items 17 and 19 were devised after K0 launched and while it was scoring (both say so). The bar is §14.6 item 3's, reused.
-2. Item 17 says "re-scored by the stamped harness". This job uses `make_score_fn` (no stamping path). Put to the reviewer; the
-   change, if ruled, is small and does not alter the bar.
-3. Step 3 is a post-run read of the verdict file (item 7 says it needs no edit to live code). Whether the reviewer meant a re-run on
-   a chip is put to the reviewer.
-4. Step 1b is an addition of this entry and is diagnostic (§2).
+2. Item 17's "stamped harness" **means `eval_r3.make_score_fn`** (reviewer ruling, 2026-10-30): the phrase refers to the code generation, not a different
+   entry point. The job uses `make_score_fn`, as built.
+3. Item 7's check **is the post-run read** of `IDENTITY_VERDICT.json`; no chip (same ruling). **A missing file is not a pass**: absence is handled
+   explicitly (`MISSING`, exit 6), never as a falsy default.
+4. Step 1b is an addition of this entry. The reviewer upheld that it is diagnostic and **gates nothing**: any bar invented for it now would be set after K0's rows exist, which
+   items 17 and 19 avoid by reusing §14.6 item 3's bar. The marker states "GATES NOTHING" inside the replay's own numbers block.
 5. The 7 of the 140 fp32 score files written by the first-wave `fp32/code/` harness (decision-v7 adapter `exact`, `exact2`;
    openjev-synth adapter `eq_a`, `eq_b`, `eq_c`, `exact`, `exact2`; `fp32/file_provenance.json`) carry a `seconds` field that is
    wall-clock under different concurrency from the sharded `exact` sum. Nothing here rests on those timings; they must not be
    summed with the others.
+
+**Amendment of this entry, 2026-10-30 (before the run; reviewer finding on `precondition_job.py`).** The first version let step 3 be skipped (`rc: None`) and the
+marker still read clean. Now: the marker has a `status`, `CLEAN` only if every one of the ten required steps (`0_freeze_check`, `1_c32_measure`, `1_c32_report`,
+`1b_plan_replay`, `1b_replay`, `2_plan_rescore`, `2_rescore`, `2_verdict`, `3_identity_verdict_read`, `4_manifests`) has a persisted record with an **integer rc 0** and every
+check on the outputs holds (30 of 30 c32 cell-compositions measured and inside the bar; replay complete; re-score `VERIFIED`; identity effective verdict `IDENTICAL` or
+`GAP_RECORDED` with `report_compared` true; post-hoc manifests carrying the sentence). A step that did not execute (no record, `rc` null, input absent) is
+`step_not_executed`, never an absent entry; a not-clean marker is archived on a resume, never overwritten silently; exit code 0 iff `CLEAN`. The job runs from the
+frozen copy `scorer_r3/c32/code3/` (all `r3_code/*.py`, `SHA1SUMS`, verified at start; the `r0_code` hashes are recorded in the marker, not frozen). Step 4 writes K0's
+post-hoc `manifests/posthoc.json` per checkpoint with the sentence "attests the files as they stood when it was written and NOT their origin" **inside the file**
+(`k0_manifests.py`; row 10). Tests `test_precondition_job.py` (8), `test_k0_manifests.py` (3), `test_identity_verdict_read.py` (3), each with a mutation script under
+`r3_runs/make_score_fn_readback/`; the precondition-job mutations hit the marker-writing path (M1 reintroduces the original defect, M2 stamps CLEAN, M5 forces exit 0).
 
 ## 4. Results
 
