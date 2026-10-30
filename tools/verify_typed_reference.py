@@ -3,6 +3,7 @@
 import argparse,hashlib,json,math,os,re
 from pathlib import Path
 DATA_SHA='4f294f218ea1da27f3efef936359389c62ea4d3973a41457732990f1d31b647c'
+SCORER_SHA='6854ef67b8cff64ebc71e5b47d0f44e78f92124fc0d62f539095cab5625844f8'
 def require(v,m):
     if not v:raise ValueError(m)
 def sha(p):
@@ -60,11 +61,33 @@ def validate_receipt(envelope,raw,index,identity,temp):
     require(type(value['seconds'])in(int,float) and math.isfinite(value['seconds']) and value['seconds']>0,'Invalid duration')
     return pred
 
+def verify_probe(probe,identity,temp):
+    require(probe['identity']==identity and probe['questions_per_pass']==5 and probe['chips']==1,'Probe identity/count differs')
+    req=probe['request'];require(len(req['questions'])==5 and set(q['type'] for q in req['questions'].values())=={'choice','noul','score'},'Probe typed coverage differs')
+    require(probe['request_ordered_sha256']==stamp(req,False),'Probe request hash differs')
+    require(type(probe['tokens'])is int and 0<probe['tokens']<=16384 and re.fullmatch('[0-9a-f]{64}',probe['tokens_sha256']),'Probe token metadata differs')
+    require(type(probe['reserved_gib'])in(int,float) and math.isfinite(probe['reserved_gib']) and probe['reserved_gib']>0,'Probe memory invalid')
+    require(len(probe['passes'])==2,'Probe requires two passes')
+    raw={'id':'probe','state':json.dumps(req['state']),'questions':json.dumps(req['questions'])}
+    for item in probe['passes']:
+        require(item['prediction']['input_tokens']==probe['tokens'],'Probe prediction token count differs')
+        value={'index':0,'id':'probe','identity':identity,'input_sha256':stamp(raw),'request_ordered_sha256':stamp(req,False),'prediction':item['prediction'],'seconds':item['seconds']}
+        validate_receipt({'payload':value,'sha256':stamp(value)},raw,0,identity,temp)
+    a,b=[x['prediction']['probabilities'] for x in probe['passes']]
+    delta=max(abs(a[q][k]-b[q][k]) for q in a for k in a[q])
+    require(delta<=1e-5,'Probe repeat drift exceeds protocol');same(probe['max_probability_delta'],delta,'probe delta')
+
 def required_files(c):
     needed={str(Path(c[k]).resolve()) for k in ['data','scorer','preregistration']}
     needed.update(str(Path(c['out'],n).resolve()) for n in ['typed_reference_kev.py','verify_typed_reference.py','run.sh','LAUNCH_EXACT.sh'])
+    essentials={'base':['.complete','config.json','tokenizer.json'],
+                'checkpoint':['head.pt','adapter_config.json','adapter_model.safetensors'],
+                'kev_code':['kev/api.py','kev/model.py','kev/predictors.py','kev/checkpoint.py','kev/data.py']}
     for role in ['base','checkpoint','kev_code']:
-        needed.update(str(p.resolve()) for p in Path(c[role]).rglob('*') if p.is_file() and '__pycache__'not in p.parts and p.suffix!='.pyc')
+        root=Path(c[role]);require(root.is_dir(),'Missing dependency directory '+role)
+        for name in essentials[role]:require((root/name).is_file(),'Missing required loader file '+str(root/name))
+        needed.update(str(p.resolve()) for p in root.rglob('*') if p.is_file() and '__pycache__'not in p.parts and p.suffix!='.pyc')
+    require(any(Path(c['base']).glob('*.safetensors')),'Missing base weights')
     return needed
 
 def verify(config_path):
@@ -72,14 +95,24 @@ def verify(config_path):
     c=load(config_path);out=Path(c['out']);identity=stamp(c);ch=sha(config_path);needed=required_files(c)
     require(needed<=set(c['files']),'Required dependency omitted')
     for p,h in c['files'].items():require(sha(p)==h,'Frozen dependency changed '+p)
-    require(sha(c['data'])==DATA_SHA,'Wrong dataset');require(sha(c['scorer'])=='6854ef67b8cff64ebc71e5b47d0f44e78f92124fc0d62f539095cab5625844f8','Scorer differs')
+    require(c.get('mode')=='inference','Not an inference config')
+    require(not any((out/n).exists() for n in ('FAILED','ERROR.json')),'Conflicting failure marker')
+    require(sha(c['data'])==DATA_SHA,'Wrong dataset');require(sha(c['scorer'])==SCORER_SHA,'Scorer differs')
     os.environ['TORCH_DEVICE_BACKEND_AUTOLOAD']='0'
     import torch
     head=torch.load(Path(c['checkpoint'])/'head.pt',map_location='cpu',weights_only=True)
     require((head['base'],head['base_revision'],head['temperature'])==(c['base_id'],c['base_revision'],c['temperature']),'Checkpoint metadata mismatch')
     require(Path(c['base'],'.complete').read_text().splitlines()[0]==c['base_revision'],'Base revision mismatch')
     env=load(out/'ENVIRONMENT.json');require(env['temperature']==head['temperature'] and env['head_sha256']==sha(Path(c['checkpoint'])/'head.pt'),'Environment/checkpoint mismatch')
+    same(env['runtime'],c['runtime'],'runtime')
+    require(env['model']['dtype']=='float32' and env['model']['attention']=='eager' and env['model']['backend']=='torch','Execution precision/backend differs')
+    launch=load(out/'LAUNCH_RECEIPT.json')
+    require(launch['config_sha256']==ch and launch['image']==c['image'] and launch['wrapper_sha256']==sha(out/'run.sh'),'Launch config/image/wrapper binding differs')
     rows=pq.read_table(c['data']).to_pylist();require(len(rows)==400 and len({r['id'] for r in rows})==400,'Population mismatch')
+    for raw in rows:
+        qs=json.loads(raw['questions']);gold=json.loads(raw['gold'])
+        require(raw['split']=='test' and len(qs)==5 and list(qs)==list(gold),'Dataset question population/order differs')
+        for name,q in qs.items():require(gold[name]['type']==q['type'] and set(gold[name]['probabilities'])==set(candidate_keys(q)),'Dataset gold candidates differ')
     names=[f'{i:06d}.json' for i in range(400)];require(sorted(p.name for p in (out/'records').glob('*.json'))==names,'Receipt coverage mismatch')
     predictions=[validate_receipt(load(out/'records'/name),raw,i,identity,c['temperature']) for i,(name,raw) in enumerate(zip(names,rows))]
     report=load(out/'report.json');require(report['identity']==identity and report['rows']==400 and report['questions']==2000,'Report identity mismatch')
@@ -88,7 +121,11 @@ def verify(config_path):
     for i,(item,row) in enumerate(zip(pre['items'],rows)):
         request={'state':json.loads(row['state']),'questions':json.loads(row['questions'])}
         require(item['index']==i and item['id']==row['id'] and item['input_sha256']==stamp(row) and item['request_ordered_sha256']==stamp(request,False),'Preflight identity differs')
-        require(item['candidate_keys']==[candidate_keys(q) for q in request['questions'].values()] and 0<item['tokens']<=16384 and re.fullmatch('[0-9a-f]{64}',item['tokens_sha256']),'Preflight token metadata differs')
+        receipt_value=load(out/'records'/f'{i:06d}.json')['payload']
+        require(receipt_value['tokens']==item['tokens'] and receipt_value['tokens_sha256']==item['tokens_sha256'] and receipt_value['prediction']['input_tokens']==item['tokens'],'Actual/preflight token binding differs')
+        require(item['candidate_keys']==[candidate_keys(q) for q in request['questions'].values()] and type(item['tokens'])is int and 0<item['tokens']<=16384 and type(item['state_tokens'])is int and 0<item['state_tokens']<=8192 and re.fullmatch('[0-9a-f]{64}',item['tokens_sha256']),'Preflight token metadata differs')
+    require(pre['max_tokens']==max(i['tokens'] for i in pre['items']),'Preflight maximum differs')
+    verify_probe(load(out/'PROBE.json'),identity,c['temperature'])
     panels={};flags=[]
     for name,temp in [('serving',c['temperature']),('raw_T1',1.)]:
         panels[name]=summaries(rows,predictions,temp);same(report[name],panels[name],name)
@@ -99,11 +136,13 @@ def verify(config_path):
                     if metric!='n' and value in (0.,1.):flags.append({'panel':name,'group':group,'cell':cell,'metric':metric,'reason':'extreme_metric'})
             for metric in ['accuracy','kl_from_gold','brier','ece10']:
                 if len({v[metric] for v in panels[name][group].values()})==1:flags.append({'panel':name,'group':group,'metric':metric,'reason':'identical_cells'})
-    terminal=load(out/'inference-COMPLETE.json');require(terminal['rc']==0 and terminal['config_sha256']==ch and terminal['stage']=='completed','Terminal differs')
-    for name in ['PREFLIGHT.json','report.json']:require(terminal['outputs'][name]==sha(out/name),'Terminal output binding differs')
-    require(re.fullmatch(r'rc=0 utc=\S+\n?',(out/'EXIT').read_text()) and (out/'EXIT').stat().st_mtime_ns>=(out/'inference-COMPLETE.json').stat().st_mtime_ns,'Wrapper differs')
+    terminal=load(out/'inference-COMPLETE.json');require(type(terminal['rc'])is int and terminal['rc']==0 and terminal['config_sha256']==ch and terminal['stage']=='completed' and terminal['progress']==terminal['total']==400,'Terminal differs')
+    for name in ['PREFLIGHT.json','PROBE.json','report.json']:require(terminal['outputs'][name]==sha(out/name),'Terminal output binding differs')
+    require(re.fullmatch(r'rc=0 utc=\S+\n?',(out/'EXIT').read_text()) and (out/'EXIT').stat().st_mtime_ns>=(out/'inference-COMPLETE.json').stat().st_mtime_ns>=max((out/n).stat().st_mtime_ns for n in ('PREFLIGHT.json','PROBE.json','report.json')),'Wrapper/terminal chronology differs')
     for p,h in c['files'].items():require(sha(p)==h,'Frozen dependency changed during audit')
     require(sha(config_path)==ch,'Config changed during audit')
     return {'status':'VERIFIED_SCOPED_REVIEW_REQUIRED' if flags else 'VERIFIED_SCOPED','rows':400,'questions':2000,'config_sha256':ch,'report_sha256':sha(out/'report.json'),'frozen_files':len(c['files']),'required_files':len(needed),'panels':panels,'review_flags':flags,'scope':'Independent logits-to-metrics and artifact checks; token hashes provenance-bound, not independently retokenized; wire answers preserved but not independently validated; Docker identity must separately be verified.'}
-if __name__=='__main__':
-    ap=argparse.ArgumentParser();ap.add_argument('--config',required=True);ap.add_argument('--out',required=True);a=ap.parse_args();v=verify(a.config);Path(a.out).write_text(json.dumps(v,indent=2,allow_nan=False)+'\n')
+def main():
+    ap=argparse.ArgumentParser();ap.add_argument('--config',required=True);ap.add_argument('--out',required=True);a=ap.parse_args();require(not Path(a.out).exists(),'Existing audit output preserved');v=verify(a.config);Path(a.out).write_text(json.dumps(v,indent=2,allow_nan=False)+'\n')
+
+if __name__=='__main__':main()

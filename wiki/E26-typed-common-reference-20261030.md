@@ -52,3 +52,46 @@ the original hash. A controlled mid-preflight config alteration is rejected.
 A near-tie regression separately verifies serving scores use saved probabilities
 while T1 is reconstructed from logits. Thirteen CPU tests pass. Frozen completed
 preflights remain unchanged; formal inference readiness remains pending.
+
+17:14 UTC preparation amendment: add a separate probe-only mode, actual native
+encoder token identity checks and exact runtime versions. Two synthetic passes
+must agree within 1e-5; their positive timing and per-chip throughput are recorded.
+The initial inference report does not claim expected-score MAE. No formal test
+inference has launched at this point.
+
+17:19 UTC real NPU probe results: all three retained synthetic-only probes
+completed with structured terminal/wrapper/container exit 0. Two native passes per
+model, one chip each. 0.8B second pass 14.5496 questions/s/chip, reserved 3.2754 GiB;
+4B 10.6426 questions/s/chip, reserved 16.7559 GiB; 9B 11.3549 questions/s/chip,
+reserved 31.1094 GiB. These tiny synthetic timings are admission diagnostics, not
+formal-test throughput or model accuracy. Probe folders are
+`typed_kev{08,4,9}_probe_20261030/`. 0.8B froze 70 files, 4B 75, 9B 73;
+actual source/input/temperature/runtime checks and repeat probability tolerance
+are enforced. Formal test inference still waits for full verifier-chain acceptance.
+
+The new guarded launcher validates prior completed E22 artifacts and real Docker
+identity/maps before locked chip transfer. Failed-run resume checks original
+container/config/wrapper identity and current allocation; success/live runs are
+refused, old terminal evidence is archived before resuming item receipts. Three
+focused wrong-container/successful-run/duplicate-launch checks pass; no E26 real
+crash/resume has yet been tested.
+
+17:22 UTC formal preparation: three inference configurations freeze 70/75/73
+files, independently covering 66/71/69 required dependencies. The guarded launcher
+also requires the preceding probe's model/base/code hashes, temperature, runtime,
+context and image to equal the intended inference protocol. An earlier unlaunched
+preparation snapshot is archived before adding this check. Formal launch requires
+a parent implementation-review receipt bound to the exact config hash; this is
+an engineering admission record, not a new request for user authorization.
+
+17:35 UTC launch-guard hardening: allocation metadata now distinguishes a synthetic
+probe's completion from formal inference plus independent audit. Nine launcher tests
+pass, including failed-run resume with old terminal/status archived and item bytes
+retained, wrong-device/live-conflict rejection, predecessor identity/protocol
+rejection, and inference-specific release metadata. These use temporary artifact
+trees and mocked Docker calls; they are not a real E26 crash-recovery experiment.
+Only unlaunched formal preparations are archived and freshly frozen after this
+change; completed probes and token preflights stay unchanged. The bounded code
+review found no necessary blocker to the first normal launch, but interruption
+between allocation/create/receipt/start and automatic replacement of a failed
+finisher remain recovery gaps. Full automatic recovery is not claimed.

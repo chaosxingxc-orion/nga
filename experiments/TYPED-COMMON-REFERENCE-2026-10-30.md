@@ -13,3 +13,12 @@ Strict panel reports expected/returned/valid/invalid/unsupported/overlength/fail
 Context fixed before length inspection: max_state8192,max_branch8192,max_packed16384, strict. Full 400-state token-only preflight for every tokenizer; any overlength blocks that model's formal inference, never removes the row. Synthetic five-question fixture validates native shape, repeat arithmetic and token order; full-data longest length is only an engineering admission measure. Actual NPU inference starts only after implementation/preflight review. 175 only, existing immutable image, retained detached containers, CephFS heartbeat/log/terminal and item receipts; exact guarded relaunch and locked resource claim required. Automatic acceptance requires full identities, dependencies, checkpoint temperature/base metadata independently read with weights_only=True, terminal/wrapper and actual retained Docker exit.
 
 Status: implementation/preflight preparation. No E26 inference, complete metrics, Astra approval or training benefit yet.
+
+2026-10-30 17:14 UTC pre-inference amendment: the first common-test report is restricted
+to original accuracy/KL/soft Brier/ECE and strict validity counts. Expected-score MAE
+is deferred; no unimplemented diagnostic is claimed. Each model must first pass two
+synthetic five-question native forward passes with finite positive timing, complete
+probabilities and maximum repeat probability difference <= 1e-5. Actual native encoder
+token count/hash must match token-only preflight for every test item. Runtime package
+versions are frozen and checked. Synthetic probe metrics are admission evidence, never
+test scores. A separate probe-only run may be launched before full inference review.

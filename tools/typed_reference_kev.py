@@ -77,6 +77,31 @@ def closure(c):
 def verify_files(c):
     closure(c)
     for p,h in c['files'].items():require(digest(p)==h,'Frozen file changed: '+p)
+def synthetic_raw():
+    qs={'a':{'type':'choice','instructions':'Choose a label','criteria':{'alpha':None,'beta':'second'}},
+        'b':{'type':'noul','instructions':'Is the observation present?'},
+        'c':{'type':'score','instructions':'Choose level','criteria':['low','medium','high']},
+        'd':{'type':'choice','instructions':'Choose another label','criteria':{'x':'','y':'other'}},
+        'e':{'type':'noul','instructions':'Needs review?','criteria':{'false':'No','true':'Yes'}}}
+    return {'id':'synthetic-five','workflow':'synthetic','split':'synthetic','state':json.dumps({'nested':{'message':'中文 synthetic observation'}}),'questions':json.dumps(qs)}
+def actual_tokens(model,raw,expected=None):
+    from kev.data import materialize
+    enc=model.model.encode(model.tok,materialize(inference_record(raw)),max_state=8192,max_branch=8192,strict=True)
+    item={'tokens':len(enc['ids']),'tokens_sha256':orderedsha(enc['ids'])}
+    require(item['tokens']<=16384,'Actual packed overflow')
+    if expected is not None:require(all(item[k]==expected[k] for k in item),'Actual encoded input differs from preflight')
+    return item
+def probe(model,c,status):
+    import torch
+    raw=synthetic_raw();token=actual_tokens(model,raw);passes=[]
+    for i in range(2):
+        started=time.monotonic();prediction=model(inference_record(raw));duration=time.monotonic()-started
+        validate_prediction(raw,prediction,c['temperature']);require(math.isfinite(duration) and duration>0,'Invalid probe timing')
+        require(prediction['input_tokens']==token['tokens'],'Probe token count differs')
+        passes.append({'prediction':prediction,'seconds':duration});status.update(stage='synthetic_probe',progress=i+1,total=2,questions_per_second_per_chip=5/duration,reserved_gib=torch.npu.memory_reserved()/2**30)
+    delta=max(abs(passes[0]['prediction']['probabilities'][q][k]-passes[1]['prediction']['probabilities'][q][k]) for q in passes[0]['prediction']['probabilities'] for k in passes[0]['prediction']['probabilities'][q])
+    require(delta<=1e-5,'Repeated synthetic probability drift exceeds predeclared tolerance')
+    return {'request':request(raw),'request_ordered_sha256':orderedsha(request(raw)),**token,'passes':passes,'max_probability_delta':delta,'questions_per_pass':5,'chips':1,'reserved_gib':torch.npu.memory_reserved()/2**30,'scope':'Synthetic runtime admission, not test accuracy or throughput optimization proof'}
 def preflight(c,rows,status):
     from transformers import AutoTokenizer
     from kev.api import SystemOneRequest,to_record
@@ -99,19 +124,21 @@ def preflight(c,rows,status):
         items.append({'index':i,'id':r['id'],'input_sha256':objsha(r),'request_ordered_sha256':orderedsha(request(r)),'tokens':len(enc['ids']),'tokens_sha256':orderedsha(enc['ids']),'state_tokens':enc['state_tokens'],'candidate_keys':[m['keys'] for m in meta]});status['progress']=i+1
     return {'synthetic_compile':{'question_count':5,'candidate_discrimination':True,'tokens':len(first['ids'])},'rows':len(rows),'questions':sum(len(request(r)['questions']) for r in rows),'items':items,'max_tokens':max(x['tokens'] for x in items),'context':CONTEXT}
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--config',required=True);ap.add_argument('--mode',choices=['preflight','inference'],required=True);a=ap.parse_args();config_bytes=Path(a.config).read_bytes();config_hash=hashlib.sha256(config_bytes).hexdigest();c=json.loads(config_bytes);out=Path(c['out']);out.mkdir(exist_ok=True)
+    ap=argparse.ArgumentParser();ap.add_argument('--config',required=True);ap.add_argument('--mode',choices=['preflight','probe','inference'],required=True);a=ap.parse_args();config_bytes=Path(a.config).read_bytes();config_hash=hashlib.sha256(config_bytes).hexdigest();c=json.loads(config_bytes);out=Path(c['out']);out.mkdir(exist_ok=True)
     lock=(out/'driver.lock').open('w');fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB);terminal=out/(a.mode+'-COMPLETE.json');require(not terminal.exists(),'Existing terminal preserved')
-    status={'stage':'verify','progress':0,'total':400,'chips':int(a.mode=='inference')};stop=threading.Event()
+    status={'stage':'verify','progress':0,'total':400,'chips':int(a.mode!='preflight')};stop=threading.Event()
     def heartbeat():
         while not stop.wait(10):
             v={'utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),**status};atomic(out/'STATUS.json',v)
             with (out/'heartbeat.log').open('a') as f:f.write(json.dumps(v)+'\n')
     t=threading.Thread(target=heartbeat,daemon=True);t.start();rc=1;outputs={}
     try:
-        require(digest(a.config)==config_hash,'Config changed before execution');require(c['context']==CONTEXT,'Context changed');require(a.mode=='preflight' or c.get('mode')=='inference','Config is not preregistered for inference');verify_files(c);require(digest(c['scorer'])==SCORER_SHA,'Wrong scorer');rows=dataset(c);identity=objsha(c)
+        require(digest(a.config)==config_hash,'Config changed before execution');require(c['context']==CONTEXT,'Context changed');require(a.mode=='preflight' or c.get('mode')==a.mode,'Config is not preregistered for inference');verify_files(c);require(digest(c['scorer'])==SCORER_SHA,'Wrong scorer');rows=dataset(c);identity=objsha(c)
         sys.path.insert(0,c['kev_code']);status['stage']='token_preflight';pre=preflight(c,rows,status);pre.update(identity=identity,data_sha256=DATA_SHA);atomic(out/'PREFLIGHT.json',pre);outputs['PREFLIGHT.json']=digest(out/'PREFLIGHT.json')
-        if a.mode=='inference':
-            import torch,torch_npu
+        if a.mode in ('probe','inference'):
+            import torch,torch_npu,transformers,peft
+            runtime={'torch':torch.__version__,'torch_npu':torch_npu.__version__,'transformers':transformers.__version__,'peft':peft.__version__}
+            require(runtime==c['runtime'],'Runtime versions differ')
             torch.npu.set_device('npu:0');torch.npu.config.allow_internal_format=False;torch.npu.conv.allow_hf32=False;torch.npu.matmul.allow_hf32=False;torch.set_num_threads(8)
             from kev.checkpoint import Checkpoint,LoadOptions
             import kev.predictors as predictors
@@ -121,15 +148,17 @@ def main():
             require(Path(c['base'],'.complete').read_text().splitlines()[0]==c['base_revision'],'Base revision differs')
             ck=Checkpoint(c['checkpoint']);ck.meta.base,ck.meta.base_revision=c['base'],None;predictors.Checkpoint=lambda _:ck;predictors.sync=lambda _:torch.npu.synchronize()
             model=predictors.LocalPredictor(c['checkpoint'],'npu:0',LoadOptions(dtype=torch.float32,attn='eager',merge=True),context=CONTEXT)
-            atomic(out/'ENVIRONMENT.json',{'temperature':model.temperature,'model':model.environment,'base_id':meta['base'],'base_revision':meta['base_revision'],'head_sha256':digest(Path(c['checkpoint'])/'head.pt')})
-            folder=out/'records';folder.mkdir(exist_ok=True);require(all(p.name in {f'{i:06d}.json' for i in range(400)} for p in folder.glob('*.json')),'Extra receipts');preds=[];elapsed=0.;count=0;status.update(stage='inference',progress=0)
+            atomic(out/'ENVIRONMENT.json',{'runtime':runtime,'temperature':model.temperature,'model':model.environment,'base_id':meta['base'],'base_revision':meta['base_revision'],'head_sha256':digest(Path(c['checkpoint'])/'head.pt')})
+            admission=probe(model,c,status);admission.update(identity=identity);atomic(out/'PROBE.json',admission);outputs['PROBE.json']=digest(out/'PROBE.json')
+        if a.mode=='inference':
+            folder=out/'records';folder.mkdir(exist_ok=True);require(all(p.name in {f'{i:06d}.json' for i in range(400)} for p in folder.glob('*.json')),'Extra receipts');preds=[];elapsed=0.;count=0;status.update(stage='inference',progress=0,total=400)
             for i,r in enumerate(rows):
-                path=folder/f'{i:06d}.json'
-                if path.exists():v=receipt(path,r,i,identity,c['temperature'])
+                token=actual_tokens(model,r,pre['items'][i]);path=folder/f'{i:06d}.json'
+                if path.exists():v=receipt(path,r,i,identity,c['temperature']);require(v['tokens']==token['tokens'] and v['tokens_sha256']==token['tokens_sha256'],'Resumed token binding differs')
                 else:
-                    started=time.monotonic();pred=model(inference_record(r));validate_prediction(r,pred,c['temperature']);duration=time.monotonic()-started
+                    started=time.monotonic();pred=model(inference_record(r));validate_prediction(r,pred,c['temperature']);require(pred['input_tokens']==token['tokens'],'Prediction token count differs');duration=time.monotonic()-started
                     _,mapping=to_record(SystemOneRequest.model_validate(request(r)));wire=to_answers([list(pred['probabilities'][q].values()) for q in request(r)['questions']],mapping)
-                    v={'index':i,'id':r['id'],'identity':identity,'input_sha256':objsha(r),'request_ordered_sha256':orderedsha(request(r)),'prediction':pred,'wire_answers':wire,'seconds':duration};atomic(path,{'payload':v,'sha256':objsha(v)});elapsed+=duration;count+=5
+                    v={'index':i,'id':r['id'],'identity':identity,'input_sha256':objsha(r),'request_ordered_sha256':orderedsha(request(r)),'prediction':pred,'wire_answers':wire,'seconds':duration,**token};atomic(path,{'payload':v,'sha256':objsha(v)});elapsed+=duration;count+=5
                 preds.append(v['prediction']);status.update(progress=i+1,questions_per_second_per_chip=count/elapsed if elapsed else None,reserved_gib=torch.npu.memory_reserved()/2**30)
             s=importlib.util.spec_from_file_location('original_scorer',c['scorer']);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
             report={'identity':identity,'rows':400,'questions':2000,'serving':native_score(rows,preds,c['temperature'],m.score_one),'raw_T1':native_score(rows,preds,1.,m.score_one),'wire_scope':'Preserved exact native wire answers; noul has no probabilities, so original wire scorer is incompatible. Serving metrics use stored native probabilities; T1 uses reconstructed logits.'}
