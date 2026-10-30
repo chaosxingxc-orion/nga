@@ -98,3 +98,61 @@ The receipt manifest was rechecked after audit completion. Physical chip 4 was
 explicitly released under the allocation lock after live Docker and empty-device
 checks, to permit guarded E37 preparation. No 9B completion or new training
 benefit is claimed by this 2B entry.
+
+## 2026-10-31 — 9B completed; three scientific review flags retained
+
+The original 9B OOD inference completed all 15,920 rows at
+2026-10-30T22:02:01Z. A fresh live Docker query confirmed its retained container
+`370d251b216baa8d6ecb8030d1fd8419c07e4a9158161e55d15170325a470f0b`
+exited 0 at 22:02:05 UTC, and finisher
+`c62f4476bc164de5eab5dbf8201cfda79117fd61c17e418a9347b2736eccbb52`
+exited 0 at 22:03:50 UTC. The successful finisher terminal binds audit SHA256
+`4a03f310b4722db73b8179a411f58ea06d09009e5bb24955c62a89952681cee6`,
+report SHA256 `82c4ff583427c10d6e913a592d9f4397b10d15c72a185baff5d764b4f121593d`
+and the successful inference-container exit record. The original independent
+audit verified 105 frozen files, 92 required files and all 15,920 records.
+
+The status remains **`VERIFIED_SCOPED_REVIEW_REQUIRED`**, with three flags:
+customer-control hard accuracy 1.0, and agent_trace_observability hard and expected
+accuracy 1.0. A short CPU-only closeout rehashed every inference and length
+receipt, checked original OOD row identity and coverage, recomputed both overall
+panels and all source/kind metrics, and checked live Docker ID/image/command/exit
+bindings. It found customer-control hard 560/560 with 40 soft rows and expected
+correctness 578/600; agent_trace_observability is 525/525, with 450 negative and
+75 positive argmax labels/predictions and 524 distinct probability vectors.
+These observations diagnose the exact-boundary flags without deleting them or
+claiming unseen generalization or absence of training contamination.
+
+Full results and limitations: [9B OOD results](../experiments/OPENJEV9-OOD-RESULTS-2026-10-31.md)
+and [machine-readable evidence](../experiments/OPENJEV9-OOD-RESULTS-2026-10-31.json).
+Hard accuracy is 14,207/15,446 = **91.978506%**; expected accuracy is **90.413799%**
+over 15,920. Serving NLL/Brier/expected Brier/ECE15 are
+0.299676558 / 0.126747550 / 0.144078290 / 0.037592607; raw T=1 is separately reported.
+
+`reference_inference/openjev9_ood_closeout_20261031/` stores the fresh complete
+receipt hash manifest, bounded flag diagnosis, live container exits and successful
+short-check terminal/EXIT. Closeout report SHA256:
+`99609f7b4571372ff8ec9586b87af680415f979b1dd0f879e7a684b171018b59`.
+The original audit owns full model dependency hash verification; this closeout
+did not rehash all weights. No NPU inference was repeated, no chip was released,
+and no Astra result approval, training gain or JEVal numerical admission follows.
+
+## 2026-10-31 — planned bounded Astra result review for both OOD sizes
+
+Before starting the review, freeze a new read-only evidence snapshot containing
+both exact 15,920-row OOD inference populations and their length receipts,
+original OOD data, configs, native/independent scoring source, reports, audits,
+terminal/wrapper records, and fresh retained Docker exit metadata. External
+checkpoint weights are deliberately not copied: the review must distinguish
+source/audit hash bindings from independent rehashing of external weights.
+Preserve all three 9B flags, the 2B audit's zero main-panel flags and its
+selective-coverage limitations, and the original split/threshold/prediction rules.
+
+Planned bundle: `reference_inference/astra_reviews/openjev_ood_results_candidate_20261031/`.
+Planned actual review: `reference_inference/astra_reviews/openjev_ood_results_astra_20261031/`.
+The real `codex exec --model gpt-6-astra --sandbox read-only` child will run
+survivably with persistent heartbeat, terminal/actual child exit, exact relaunch
+and output hashes. It may only inspect the frozen evidence and review directory,
+perform short CPU arithmetic, and report a limited result-release verdict. No new
+NPU inference, resource release, training-benefit or absence-of-leakage claim.
+Preparation and runner completion do not themselves constitute a passing review.

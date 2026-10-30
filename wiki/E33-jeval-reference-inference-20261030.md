@@ -368,3 +368,22 @@ exact paper-scorer reproduction, a source-macro aggregate, paired consistency,
 or training/business benefit. No raw-T1/NOTA/permuted variant panel was added.
 Parent result acceptance and current locked resource checks remain separate;
 this closeout did not release chips or launch training.
+
+## 2026-10-31 — preregistered bounded Astra result review
+
+The completed Kev-0.8B/Nimble result snapshot is now frozen for a new actual
+`gpt-6-astra` read-only review, reusing the successful Typed Decisions CLI runner.
+This review checks all 22,514 receipts, report/config/audit/terminal bindings,
+original native-budget formulas and denominators, all 6/30 review flags,
+zero-valid cells, and the CUAD 31/31 valid subset with 169 overlength rows.
+It must not grant exact-paper reproduction, paired consistency, training benefit,
+full-reference completion, or training-start claims. No NPU work is launched.
+
+Bundle: `reference_inference/astra_reviews/jeval_results_candidate_20261031`.
+Runner: `reference_inference/astra_reviews/jeval_results_astra_20261031`.
+The runner is detached, has a ten-second structured heartbeat and actual child
+exit/terminal records, and retains all outputs. The bundle contains copied source
+and receipt evidence, copied original Docker exit records, and a pyarrow-decoded
+gold JSON linked by SHA-256 to its included Parquet. External checkpoint bytes are
+not recopied or rehashed. Actual review verdict and hashes will be appended after
+successful terminal and manifest verification; this paragraph is not approval.

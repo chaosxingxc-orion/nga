@@ -4,6 +4,8 @@
 
 ## 当前快照：先读这一页
 
+**06:13 后续增量：** Open-Jev-9B OOD 已完成独立回执复核，hard accuracy 为 91.978506%，保留 3 个科学审查标记；详见第 9 节。E33 Kev/Nimble 的实际 Astra 审查已启动但尚无结论。下表保留 06:02 的观察，避免把之后获得的证据混入原截点。
+
 **本次核对：2026-10-31 北京时间 06:02 左右。** 全局监控摘要生成于 05:59:16；单任务摘要最新到 06:02:23。它们是带时间的观察，不是实时承诺。第 2、3 节保留 **05:03 的历史固定快照**；第 9 节保留各次带日期增量。新结果不静默改写旧证据。本文是阶段交接，不代表全部参考实验或自动执行链已完成。
 
 当前已经有可复核的参考推理结果，关键工作从“启动实验”转向**完成剩余推理、处理异常并收齐验收证据，同时解决 Open-Jev 的数值路径阻塞**。新的正式训练仍排在参考汇报和训练方案讨论之后。现在没有需要你重新批准才能继续的参考推理或工程修复。
@@ -286,3 +288,11 @@ Kev 6 个 flags、Nimble 30 个 flags 均保留，状态仍为 `VERIFIED_HARDENE
 全局 digest 的 398 个 run 混合历史工程试验、失败重试与当前任务；309 done、43 failed 等不是“科学实验通过/失败数”。当前参考任务以对应单元证据判断。06:02:17/23 的两个 Kev waiter digest 分别为 9,815/11,257 和 9,799/11,257。Open-Jev-9B OOD 的 06:02:06 finisher digest 显示其推理容器 exited、stage complete、15,920/15,920；此处仅增加计算终态观察，尚未由本文核实独立审计闭环，因此没有新增已验收分数。
 
 [E38 草案](../experiments/OPENJEV-PATH-TRACE-E38-2026-10-31.md) 与 [预运行记录](../wiki/E38-openjev-path-trace-20261031.md) 指定固定输入 4200、15 个候选、width 186，每尺寸 8 次前向。CPU 6/6 是固定镜像中随机 tiny 模型的 API、hook 清理和完整性测试；不是 2B/9B 实际 checkpoint，也不是 NPU 跟踪。driver/preparer/独立验收闭包仍需完成和冻结，然后按已授权范围推进真实诊断。第一处观测差异只能定位现象，不能直接证明具体 kernel 因果；E36/E37 的 `candidate_batch_admission=false` 不因 E38 编码进展改变。
+
+### 2026-10-31 06:13 北京时间：Open-Jev-9B OOD 独立复核完成
+
+[9B OOD 结果](../experiments/OPENJEV9-OOD-RESULTS-2026-10-31.md) 已逐项复核全部 15,920 条推理回执及长度回执，重算 native/T1 的总体与来源/题型面板，并核对保留推理和 finisher 容器实际 exited/0。hard 正确 14,207/15,446，accuracy **91.978506%**；全体 15,920 行 expected accuracy **90.413799%**。native NLL/Brier/expected Brier/ECE15 分别为 0.299676558/0.126747550/0.144078290/0.037592607，raw T=1 另列。closeout report SHA256 为 `99609f7b4571372ff8ec9586b87af680415f979b1dd0f879e7a684b171018b59`。
+
+审计状态仍为 `VERIFIED_SCOPED_REVIEW_REQUIRED`，保留 3 个精确边界 flags：customer-control 的 hard 560/560，以及 agent_trace_observability 的 hard/expected 525/525。完整回执检查未发现缺失、重复 ID、恒定预测或计分错误；这不证明没有数据泄漏，也不构成 Astra 放行或训练收益。两尺寸原始 OOD 现均有独立核验数字，原 Open-Jev JEVal 数值阻塞仍保留。
+
+E33 的新一轮实际 `gpt-6-astra` 只读审查于北京时间 06:08 启动，审查包含 22,667 个清单文件及两模型共 22,514 条回执。当前只有运行证据，待成功终态、实质审查全文及包哈希复核后再登记结论；不能预先将待审查数字标为无条件发布。
