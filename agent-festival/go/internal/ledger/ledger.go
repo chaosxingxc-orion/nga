@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strings"
 
 	"festival-dev/go/internal/schemalib"
 )
@@ -28,6 +29,59 @@ import (
 // the schema enum the enforced single source, R3 m-2).
 var AdoptStatuses = map[string]bool{"adopted": true, "reused": true, "conflict": true}
 var EffectStatuses = map[string]bool{"dispatched": true, "unresolved": true, "completed": true, "failed": true}
+
+// floatSyntaxBeyondExactDomain names events whose arbitration_seq is a
+// float-syntax number beyond ±2^53, where float64 no longer represents
+// every integer exactly.
+func floatSyntaxBeyondExactDomain(doc map[string]any) []string {
+	events, _ := doc["events"].([]any)
+	var errs []string
+	for i, e := range events {
+		em, _ := e.(map[string]any)
+		if em == nil {
+			continue
+		}
+		n, ok := em["arbitration_seq"].(json.Number)
+		if !ok {
+			continue
+		}
+		if _, err := n.Int64(); err == nil {
+			continue // integer syntax: exact in any domain
+		}
+		s := n.String()
+		if !strings.ContainsAny(s, ".eE") {
+			continue // integer syntax beyond int64: the typed view names it
+		}
+		f, err := n.Float64()
+		if err != nil {
+			continue
+		}
+		if f == math.Trunc(f) && (f > 1<<53 || f < -(1<<53)) {
+			errs = append(errs, fmt.Sprintf("events/%d: arbitration_seq %s uses float syntax beyond the exact-representation domain (±2^53) — the value a parser recovers depends on its float rounding, not on the document", i, n.String()))
+		}
+	}
+	return errs
+}
+
+// copyDoc deep-copies a decoded JSON document, preserving json.Number.
+func copyDoc(node any) any {
+	switch v := node.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(v))
+		for k, child := range v {
+			out[k] = copyDoc(child)
+		}
+		return out
+	case []any:
+		out := make([]any, len(v))
+		for i, child := range v {
+			out[i] = copyDoc(child)
+		}
+		return out
+	default:
+		return v
+	}
+}
 
 // normalizeIntegralNumbers converts json.Number values with integral values
 // that fit int64 into int64, in place. Without this, a seq written "5.0"
@@ -161,8 +215,10 @@ type Document struct {
 // conflict / effects) only exists downstream of that adoption. A violation
 // of the grammar is a bypass write into the ledger, not a machine
 // transition. Status families never cross the event-type boundary; effect
-// events carry no grants_at_decision; and each operation's effect events
-// follow the machine's own transition DAG in file order. The monotonicity
+// events carry no grants_at_decision (the pin rides the adopted event
+// only); idempotency.operation_id equals identity.operation_id on every
+// event carrying idempotency; and each operation's effect events follow the
+// machine's own transition DAG in file order. The monotonicity
 // check assumes the map input was decoded with json.Decoder.UseNumber:
 // float64 rounding is monotonic, so DECREASING pairs are caught with or
 // without exact integers — what a float64-decoded map breaks is the other
@@ -173,12 +229,26 @@ func Errors(doc map[string]any) []string {
 	if err := schema.Validate(doc); err != nil {
 		return []string{"schema: " + err.Error()}
 	}
+	// work on a copy: the normalization below rewrites number nodes, and a
+	// validator must not mutate its caller's document (the replay reader
+	// will reuse the same map)
+	if copied, ok := copyDoc(doc).(map[string]any); ok {
+		doc = copied
+	}
 	// normalize integral float-syntax numbers (json.Number like "5.0") into
 	// the int domain: the reference implementation's Number.isInteger
 	// accepts 5.0, so parity accepts it — and the comparisons below stay in
 	// the native integer domain (the double charter). Non-integral or
 	// beyond-int64 values stay as json.Number and fail the typed re-parse,
 	// which is the int64-domain rejection.
+	// float syntax beyond the exact-representation domain: the value a
+	// parser recovers for such literals depends on its float rounding
+	// (Python's float() folds odd values past 2^53), so the document has no
+	// parser-independent value — both validators reject it by rule rather
+	// than disagreeing about what it says.
+	if errs := floatSyntaxBeyondExactDomain(doc); len(errs) > 0 {
+		return errs
+	}
 	normalizeIntegralNumbers(doc)
 	// cross-event rules on the typed view
 	var d Document
@@ -226,8 +296,10 @@ func Errors(doc map[string]any) []string {
 			}
 			errs = append(errs, fmt.Sprintf("events/%d: %s event carries the %s-family status %q — the status vocabulary never crosses the event-type boundary", i, e.EventType, family, e.Outcome.Status))
 		}
-		if e.EventType == "effect" && len(e.GrantsAtDecision) > 0 {
-			errs = append(errs, fmt.Sprintf("events/%d: effect event for operation %q carries grants_at_decision — the grant pin rides the adopted event only (stamped once, at the decision point)", i, e.Identity.OperationID))
+		if e.EventType == "effect" || e.Outcome.Status != "adopted" {
+			if len(e.GrantsAtDecision) > 0 {
+				errs = append(errs, fmt.Sprintf("events/%d: %s event (status %q) for operation %q carries grants_at_decision — the grant pin rides the adopted event only (stamped once, at the decision point)", i, e.EventType, e.Outcome.Status, e.Identity.OperationID))
+			}
 		}
 	}
 	// per-operation transition order: mirror the adopt machine's own DAG —
@@ -263,6 +335,16 @@ func Errors(doc map[string]any) []string {
 				errs = append(errs, notATransition(i, op, e.Outcome.Status, from))
 			}
 			state[op] = e.Outcome.Status
+		}
+	}
+	// the key coupling: the machine writes idempotency.operation_id and
+	// identity.operation_id EQUAL on every event that carries idempotency —
+	// a mismatch registers a phantom operation the caller never created and
+	// lets the machine write zero-identity events under it, bricking its own
+	// ledger (R6 BLOCKER).
+	for i, e := range d.Events {
+		if e.Idempotency != nil && e.Idempotency.OperationID != e.Identity.OperationID {
+			errs = append(errs, fmt.Sprintf("events/%d: idempotency.operation_id %q does not match identity.operation_id %q — the machine writes them equal; a mismatch is a bypass write, not a machine transition", i, e.Idempotency.OperationID, e.Identity.OperationID))
 		}
 	}
 	adopted := map[string]bool{}

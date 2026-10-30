@@ -1,6 +1,7 @@
 package adopt
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -978,5 +979,39 @@ func TestOpenAcceptsLegalHighSeqAcross2e53(t *testing.T) {
 	}
 	if m2.State("op-hi") != StateDispatched {
 		t.Fatalf("state = %q, want dispatched", m2.State("op-hi"))
+	}
+}
+
+// TestOpenRejectsInvalidUTF8Lines is the load-side twin of the request-gate
+// UTF-8 BLOCKER (R6): Go's json decoder silently replaces invalid bytes
+// with U+FFFD, so a tampered line would parse "successfully" with laundered
+// keys and the machine would absorb a file it provably did not write (its
+// own writes are always valid UTF-8 — the gate enforces it).
+func TestOpenRejectsInvalidUTF8Lines(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-u8", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tampered := bytes.Replace(raw, []byte("op-u8"), []byte("op-u8\xff"), 1)
+	if bytes.Equal(tampered, raw) {
+		t.Fatal("tamper construction failed")
+	}
+	if err := os.WriteFile(path, tampered, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err == nil {
+		t.Fatal("invalid-UTF-8 line was absorbed at load (json decoder laundered it)")
+	}
+	// control: the untampered file still loads
+	if err := os.WriteFile(path, raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err != nil {
+		t.Fatalf("untampered file rejected: %v", err)
 	}
 }

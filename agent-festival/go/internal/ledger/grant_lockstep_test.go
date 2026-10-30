@@ -7,12 +7,13 @@ import (
 	"testing"
 )
 
-// TestGrantShapeLockstep is the Go twin of ledger.py's check_grant_lockstep
-// (R5 m-4): the grant shape exists as two self-contained schema copies
-// (frozen-engine stake C5-a), and 'stay in lockstep' is only real if BOTH
-// validators' sides compare them. Descriptions are stripped — the comparison
-// is contract semantics, not prose.
-func TestGrantShapeLockstep(t *testing.T) {
+// TestSharedSubtreeLockstep is the Go twin of ledger.py's check_lockstep
+// (R6 M-2): four subtrees exist as two self-contained schema copies each
+// (frozen-engine stake C5-a) — grant, identity, versions, accountability —
+// and 'stay in lockstep' is only real if BOTH validators' sides compare
+// them. Descriptions are stripped recursively — the comparison is contract
+// semantics, not prose.
+func TestSharedSubtreeLockstep(t *testing.T) {
 	if SchemaPath == "" {
 		t.Fatal("event-ledger schema not found")
 	}
@@ -33,37 +34,54 @@ func TestGrantShapeLockstep(t *testing.T) {
 		t.Fatal(err)
 	}
 	defs, _ := ledgerSchema["$defs"].(map[string]any)
-	grant, _ := defs["grant"].(map[string]any)
-	props, _ := adoptionSchema["properties"].(map[string]any)
-	grantsAt, _ := props["grants_at_decision"].(map[string]any)
-	items, _ := grantsAt["items"].(map[string]any)
-	if grant == nil || items == nil {
-		t.Fatalf("grant subtrees not found: ledger=%v adoption=%v", grant != nil, items != nil)
+	eventDef, _ := defs["event"].(map[string]any)
+	eventProps, _ := eventDef["properties"].(map[string]any)
+	ledgerProps, _ := adoptionSchema["properties"].(map[string]any)
+	grantsAt, _ := ledgerProps["grants_at_decision"].(map[string]any)
+	pairs := []struct {
+		name   string
+		ledger map[string]any
+		adopt  map[string]any
+	}{
+		{"grant", defs["grant"].(map[string]any), grantsAt["items"].(map[string]any)},
+		{"identity", defs["identity"].(map[string]any), ledgerProps["identity"].(map[string]any)},
+		{"versions", defs["versions"].(map[string]any), ledgerProps["versions"].(map[string]any)},
+		{"accountability", eventProps["accountability"].(map[string]any), ledgerProps["accountability"].(map[string]any)},
 	}
-	if !equalSansDescription(stripDescription(grant), stripDescription(items)) {
-		t.Fatal("grant shape lockstep broken: event-ledger $defs.grant != adoption grants_at_decision items")
-	}
-}
-
-func stripDescription(node map[string]any) map[string]any {
-	out := map[string]any{}
-	for k, v := range node {
-		if k == "description" {
-			continue
+	for _, pair := range pairs {
+		a, err := json.Marshal(stripDescription(pair.ledger))
+		if err != nil {
+			t.Fatal(err)
 		}
-		out[k] = v
+		b, err := json.Marshal(stripDescription(pair.adopt))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(a) != string(b) {
+			t.Fatalf("%s shape lockstep broken: event-ledger copy != adoption copy\n%s\n%s", pair.name, a, b)
+		}
 	}
-	return out
 }
 
-func equalSansDescription(a, b map[string]any) bool {
-	ab, err := json.Marshal(a)
-	if err != nil {
-		return false
+// stripDescription recursively drops description keys — prose is not contract.
+func stripDescription(node any) any {
+	switch v := node.(type) {
+	case map[string]any:
+		out := map[string]any{}
+		for k, child := range v {
+			if k == "description" {
+				continue
+			}
+			out[k] = stripDescription(child)
+		}
+		return out
+	case []any:
+		out := make([]any, len(v))
+		for i, child := range v {
+			out[i] = stripDescription(child)
+		}
+		return out
+	default:
+		return v
 	}
-	bb, err := json.Marshal(b)
-	if err != nil {
-		return false
-	}
-	return string(ab) == string(bb)
 }

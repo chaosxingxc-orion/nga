@@ -69,6 +69,17 @@ def ledger_errors(doc: dict) -> list[str]:
             errs.append(f"events: operation_id {op!r} carries payload_digest {dig!r} "
                         f"but an earlier event recorded {seen[op]!r} — changed payload under the same key")
         seen[op] = dig
+    # cross-event rule: arbitration_seq in float syntax beyond ±2^53 — the
+    # value a parser recovers depends on its float rounding (Python's
+    # float() folds odd values past 2^53), so the document has no
+    # parser-independent value; both validators reject by rule (mirrors Go)
+    for i, e in enumerate(doc["events"]):
+        seq = e["arbitration_seq"]
+        if isinstance(seq, float) and seq == int(seq) and abs(seq) > 2 ** 53:
+            errs.append(f"events/{i}: arbitration_seq {seq!r} uses float syntax beyond the "
+                        f"exact-representation domain (±2^53) — the value a parser recovers "
+                        f"depends on its float rounding, not on the document")
+
     # cross-event rule: status families never cross the event-type boundary
     # (adoption events carry adopted/reused/conflict, effect events carry
     # dispatched/unresolved/completed/failed) — checked in code on both sides
@@ -86,10 +97,11 @@ def ledger_errors(doc: dict) -> list[str]:
             errs.append(f"events/{i}: {e['event_type']} event carries the {family}-family status "
                         f"{status!r} — the status vocabulary never crosses the "
                         f"event-type boundary")
-        if e["event_type"] == "effect" and e.get("grants_at_decision"):
-            errs.append(f"events/{i}: effect event for operation {e['identity']['operation_id']!r} "
-                        f"carries grants_at_decision — the grant pin rides the adopted event only "
-                        f"(stamped once, at the decision point)")
+        status = e.get("outcome", {}).get("status", "")
+        if (e["event_type"] == "effect" or status != "adopted") and e.get("grants_at_decision"):
+            errs.append(f"events/{i}: {e['event_type']} event (status {status!r}) for operation "
+                        f"{e['identity']['operation_id']!r} carries grants_at_decision — the grant "
+                        f"pin rides the adopted event only (stamped once, at the decision point)")
 
     # cross-event rule: per-operation transition order — mirror the adopt
     # machine's own DAG (adopted -> dispatched | unresolved; dispatched ->
@@ -124,6 +136,18 @@ def ledger_errors(doc: dict) -> list[str]:
             continue
         if e["outcome"].get("status") == "adopted":
             state[op] = "adopted"
+    # cross-event rule: the key coupling — the machine writes
+    # idempotency.operation_id and identity.operation_id EQUAL on every event
+    # carrying idempotency; a mismatch registers a phantom operation the
+    # caller never created (R6 BLOCKER, mirrors the Go checker)
+    for i, e in enumerate(doc["events"]):
+        idem = e.get("idempotency")
+        if idem and idem["operation_id"] != e["identity"]["operation_id"]:
+            errs.append(f"events/{i}: idempotency.operation_id {idem['operation_id']!r} does not "
+                        f"match identity.operation_id {e['identity']['operation_id']!r} — the "
+                        f"machine writes them equal; a mismatch is a bypass write, not a "
+                        f"machine transition")
+
     # cross-event rule: the single-writer event-sequence grammar — each
     # operation opens with exactly one adopted adoption event, and every
     # later event for it (reused / conflict / effects) only exists downstream
@@ -162,12 +186,12 @@ def check_status_lockstep() -> list[str]:
     return []
 
 
-def check_grant_lockstep() -> list[str]:
-    """The grant shape exists as two self-contained schema copies (frozen
-    engine stake C5-a). 'Stay in lockstep' is only real if something
-    compares them: this check diffs the two grant subtrees directly (R2 m-4
-    — the previous 'checked by the shared fixture suites' claim only covered
-    the values fixtures happened to use).
+def check_lockstep() -> list[str]:
+    """Four subtrees exist as two self-contained schema copies each (frozen
+    engine stake C5-a): grant, identity, versions, accountability. 'Stay in
+    lockstep' is only real if something compares them — this check diffs
+    each pair directly, recursively stripped of descriptions (R2 m-4; R6
+    M-2 extended it from grant alone to the whole shared surface).
     """
     def strip_desc(node):
         if isinstance(node, dict):
@@ -176,24 +200,34 @@ def check_grant_lockstep() -> list[str]:
             return [strip_desc(v) for v in node]
         return node
 
+    pairs = [
+        ("grant", LEDGER_SCHEMA["$defs"]["grant"],
+         ADOPTION_SCHEMA["properties"]["grants_at_decision"]["items"]),
+        ("identity", LEDGER_SCHEMA["$defs"]["identity"],
+         ADOPTION_SCHEMA["properties"]["identity"]),
+        ("versions", LEDGER_SCHEMA["$defs"]["versions"],
+         ADOPTION_SCHEMA["properties"]["versions"]),
+        ("accountability", LEDGER_SCHEMA["$defs"]["event"]["properties"]["accountability"],
+         ADOPTION_SCHEMA["properties"]["accountability"]),
+    ]
     errs = []
-    ledger_grant = strip_desc(LEDGER_SCHEMA["$defs"]["grant"])
-    adoption_grant = strip_desc(ADOPTION_SCHEMA["properties"]["grants_at_decision"]["items"])
-    if ledger_grant != adoption_grant:
-        errs.append(f"grant shape lockstep broken: event-ledger $defs.grant != adoption "
-                    f"grants_at_decision items ({json.dumps(ledger_grant, ensure_ascii=False)} vs "
-                    f"{json.dumps(adoption_grant, ensure_ascii=False)})")
+    for name, a, b in pairs:
+        if strip_desc(a) != strip_desc(b):
+            errs.append(f"{name} shape lockstep broken: event-ledger copy != adoption copy "
+                        f"({json.dumps(strip_desc(a), ensure_ascii=False)} vs "
+                        f"{json.dumps(strip_desc(b), ensure_ascii=False)})")
     return errs
 
 
 def main() -> int:
     ex = HERE / "examples" / "ledger"
     bad = _suite.run_suite("ledger", ex / "valid", ex / "invalid", ledger_errors)
-    for e in check_status_lockstep() + check_grant_lockstep():
+    for e in check_status_lockstep() + check_lockstep():
         print(f"[ledger] FAIL {e}")
         bad += 1
     if bad == 0:
-        print("[ledger] lockstep: status enum == checker families; grant subtree == adoption copy")
+        print("[ledger] lockstep: status enum == checker families; "
+              "grant/identity/versions/accountability subtrees == adoption copies")
     return 1 if bad else 0
 
 

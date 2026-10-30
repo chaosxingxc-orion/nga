@@ -197,6 +197,18 @@ func parseCompleteLines(raw []byte) ([]parsedLine, error) {
 		if len(line) == 0 {
 			continue
 		}
+		// valid UTF-8 comes FIRST: Go's json decoder silently replaces
+		// invalid bytes with U+FFFD, so an invalid-UTF-8 line would parse
+		// "successfully" with laundered keys — the load-side twin of the
+		// request-gate BLOCKER (R6). The machine's own writes are always
+		// valid UTF-8 (the gate enforces it), so such a line is provably
+		// not a machine write.
+		if !utf8.Valid(line) {
+			if atEOF {
+				continue // torn tail: tolerated at EOF without a newline
+			}
+			return nil, fmt.Errorf("durable form line is not valid UTF-8 — a bypass or corrupted write, not machine output (Go's json decoder would launder it to U+FFFD)")
+		}
 		var ev ledger.Event
 		typedOK := json.Unmarshal(line, &ev) == nil
 		doc, docErr := decodeLineDoc(line)
