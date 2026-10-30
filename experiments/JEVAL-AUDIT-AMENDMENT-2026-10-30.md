@@ -79,3 +79,18 @@ manifest。消费者必须在接受、恢复和释放前对磁盘重核，不能
 原主指标公式、分母、native／wire 差异、先前 flags 和 30 样本标记阈值均未修改。
 修复不能证明 Open-Jev 全候选批量显存准入，也不构成 Astra 对修复版本的复审放行。
 本修订尚未运行任何新模型推理或在活跃目录中替换冻结文件。
+
+## 5. 后续资源身份补强（Astra 队列复审发现）
+
+后续复审指出 auditor 的 probe／inference 容器校验仍只比较 Binds 与 Devices。
+新版本统一认证 Privileged、DeviceRequests、DeviceCgroupRules、HostConfig.Mounts、
+VolumesFrom、Capabilities、SecurityOpt、命名空间和只读根文件系统配置，并核对
+Docker 实际 Mounts 表中的来源、目标与 RW 标记。省略的 Docker 默认值按显式默认
+规范化；不能把额外设备暴露方式视为“没有 Devices 所以无设备权限”。
+finisher 使用同一校验函数，预期配置来自原生固定 CPU 启动契约。
+
+这只补强新的审计程序，不改写原生产容器、旧规格及历史审计结论。三组 Kev 的
+inference／probe／finisher 共九个实际容器已通过只读资源兼容性检查；运行中的
+inference／finisher 未停止。26 项 auditor 单测通过。该事实不是模型完成、芯片
+空闲或新 waiter 部署批准。waiter 的来源目录只读及输出目录可写属于操作性约束；
+即便 Docker socket 以 ro 挂载，API 仍具有高权限，不声称安全能力隔离。

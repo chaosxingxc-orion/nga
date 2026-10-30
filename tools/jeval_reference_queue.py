@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 
 IMAGE = 'sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7'
 ALLOCATION = '/mnt/cephfs/xingchao/experiments/jev/CHIP-ALLOCATION.json'
@@ -83,6 +84,93 @@ def devices(info):
                   for d in info['HostConfig'].get('Devices') or [])
 
 
+def chip_access(info, chip=1):
+    """Conservative Docker exposure check; not a host-process occupancy claim."""
+    host = info['HostConfig']
+    if host.get('Privileged') or host.get('DeviceRequests') or host.get('DeviceCgroupRules'):
+        return True
+    target = '/dev/davinci' + str(chip)
+    if any(d[0] == target or d[1] == target for d in devices(info)):
+        return True
+    for source, destination, _ in devices(info):
+        require(source.startswith('/dev/') and destination.startswith('/'), 'Unknown Docker device mapping')
+    mounts = []
+    for bind in host.get('Binds') or []:
+        parts = bind.split(':')
+        require(len(parts) in (2, 3), 'Unknown Docker bind syntax')
+        mounts.append((parts[0], parts[1]))
+    for mount in (info.get('Mounts') or []) + (host.get('Mounts') or []):
+        if mount.get('Type') == 'bind':
+            mounts.append((mount.get('Source', ''), mount.get('Destination', mount.get('Target', ''))))
+        elif mount.get('Type') != 'tmpfs':
+            raise ValueError('Unknown Docker mount access')
+    for source, destination in mounts:
+        require(source.startswith('/') and destination.startswith('/'), 'Unknown Docker bind source')
+        source, destination = os.path.normpath(source), os.path.normpath(destination)
+        # A bind of / or /dev exposes the target even with no Devices entry.
+        if source == target or source in ('/', '/dev') or destination == target:
+            return True
+    return False
+
+
+def verify_receipts(run, manifest, count=11257):
+    """Independently rebuild the auditor's ordered receipt commitment."""
+    require(set(manifest) == {'schema', 'algorithm', 'count', 'entries', 'root_sha256'}, 'Receipt manifest schema')
+    require(manifest['schema'] == 1 and manifest['algorithm'] == 'sha256' and manifest['count'] == count, 'Receipt manifest population')
+    folder = Path(run) / 'records'
+    require(folder.is_dir() and not folder.is_symlink(), 'Receipt directory changed')
+    names = [f'{i:06d}.json' for i in range(count)]
+    paths = sorted(folder.iterdir())
+    require([p.name for p in paths] == names and all(p.is_file() and not p.is_symlink() for p in paths), 'Receipt file set changed')
+    entries = [{'path': 'records/' + p.name, 'sha256': sha(p)} for p in paths]
+    require(entries == manifest['entries'], 'Receipt content changed')
+    body = dict(schema=1, algorithm='sha256', count=count, entries=entries)
+    root = hashlib.sha256(json.dumps(body, ensure_ascii=False, allow_nan=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    require(root == manifest['root_sha256'], 'Receipt root differs')
+    return root
+
+
+def parse_processes(output, chip=1):
+    """Strict 175 npu-smi proc-mem grammar; unknown output is never an empty device."""
+    lines = [line.strip() for line in output.splitlines() if line.strip()]
+    require(len(lines) >= 4 and re.fullmatch(r'NPU ID\s*:\s*' + str(chip), lines[0])
+            and re.fullmatch(r'Chip Count\s*:\s*1', lines[1])
+            and re.fullmatch(r'Chip ID\s*:\s*0', lines[-1]), 'Unknown process-query header')
+    body = lines[2:-1]
+    if body == ['No process in device.']:
+        return []
+    processes = []
+    for line in body:
+        match = re.fullmatch(r'Process id:([1-9][0-9]*)\s+Process name:(\S+)\s+Process memory\(MB\):([0-9]+)', line)
+        require(match, 'Unknown process-query record')
+        processes.append(dict(pid=int(match[1]), name=match[2], memory_mb=int(match[3])))
+    require(processes and len({p['pid'] for p in processes}) == len(processes), 'Empty or repeated process query')
+    return processes
+
+
+def process_query(request):
+    """One-shot helper, with no model imports and no arbitrary command input."""
+    out = Path(request).parent
+    r = load(request)
+    require(set(r) == {'nonce', 'chip', 'created_unix'} and r['chip'] == 1
+            and re.fullmatch(r'[a-f0-9]{32}', r['nonce']), 'Process-query request invalid')
+    require(not (out / 'COMPLETE.json').exists() and not (out / 'REPORT.json').exists(), 'Query evidence exists')
+    result = dict(nonce=r['nonce'], chip=1, request_sha256=sha(request), started_unix=time.time(), rc=1)
+    try:
+        require(0 <= result['started_unix'] - r['created_unix'] < 30, 'Process-query request stale')
+        p = subprocess.run(['/usr/local/sbin/npu-smi', 'info', '-t', 'proc-mem', '-i', '1'],
+                           capture_output=True, text=True, timeout=15)
+        (out / 'query.log').write_text(p.stdout + p.stderr)
+        require(p.returncode == 0 and not p.stderr.strip(), 'npu-smi query failed: exit ' + str(p.returncode))
+        result.update(processes=parse_processes(p.stdout), rc=0)
+    except Exception as exc:
+        result['error'] = type(exc).__name__ + ': ' + str(exc)
+    result['finished_unix'] = time.time()
+    atomic(out / 'REPORT.json', result)
+    atomic(out / 'COMPLETE.json', dict(rc=result['rc'], utc=utc(), nonce=r['nonce'], report_sha256=sha(out / 'REPORT.json')))
+    raise SystemExit(result['rc'])
+
+
 def image_environment():
     env = dict(x.split('=', 1) for x in docker('GET', '/images/' + IMAGE + '/json')['Config'].get('Env') or [])
     env['TORCH_DEVICE_BACKEND_AUTOLOAD'] = '0'
@@ -99,6 +187,8 @@ def binding(info, spec, receipt=None):
     require(devices(info) == devices(spec), 'Container devices differ')
     for k in ['NetworkMode', 'ShmSize']:
         require(a.get(k) == b.get(k), 'Container ' + k + ' differs')
+    for k in ['Privileged', 'DeviceRequests', 'DeviceCgroupRules', 'Mounts', 'PidMode']:
+        require((a.get(k) or False) == (b.get(k) or False), 'Container access differs: ' + k)
     for k, v in spec['Labels'].items():
         require((info['Config'].get('Labels') or {}).get(k) == v, 'Queue intent label differs')
     if receipt is not None:
@@ -110,6 +200,47 @@ def binding(info, spec, receipt=None):
 def frozen(files):
     for p, h in files.items():
         require(sha(p) == h, 'Frozen file changed: ' + p)
+
+
+def role_label_hash(plan_path, key, role, seen=None):
+    """Authenticate each handover edge back to the original role's queue label."""
+    plan_hash = sha(plan_path)
+    seen = set() if seen is None else seen
+    require(plan_hash not in seen, 'Cyclic handover provenance')
+    seen.add(plan_hash)
+    plan = load(plan_path)
+    entry = next(e for e in plan['entries'] if e['key'] == key)
+    handover = plan.get('handover')
+    adopted = (handover or {}).get('adopted', {}).get(key, {}).get(role)
+    if adopted is None:
+        return plan_hash
+    ancestor_path = handover['plan']
+    require(plan['files'].get(ancestor_path) == handover['plan_sha256'] == sha(ancestor_path), 'Ancestor plan provenance differs')
+    ancestor = load(ancestor_path)
+    ancestral_entry = next(e for e in ancestor['entries'] if e['key'] == key)
+    require(entry['config'] == ancestral_entry['config'] and entry['config_sha256'] == ancestral_entry['config_sha256'], 'Ancestral config differs')
+    rp = str(Path(ancestor['out']) / 'LAUNCH_RECEIPT.json')
+    sp = ancestor['preparation_files']['container_spec']
+    wp = ancestor['preparation_files']['wrapper']
+    require(plan['files'].get(rp) == handover['receipt_sha256'] == sha(rp)
+            and plan['files'].get(sp) == ancestor['files'][sp] == sha(sp)
+            and plan['files'].get(wp) == ancestor['files'][wp] == sha(wp), 'Ancestor controller evidence differs')
+    receipt, spec = load(rp), load(sp)
+    require(receipt['container_id'] == handover['container_id'] and receipt['plan_sha256'] == handover['plan_sha256']
+            and receipt['wrapper_sha256'] == sha(wp) and receipt['image'] == spec['Image']
+            and receipt['command'] == spec['Cmd'] and receipt['entrypoint'] == spec['Entrypoint'], 'Ancestor controller receipt differs')
+    actual = inspect(ancestor['container'])
+    binding(actual, spec, receipt)
+    require(actual['Id'] == handover['container_id'] and actual['State']['Status'] == 'exited'
+            and actual['State']['FinishedAt'] == handover['finished_at'] and not chip_access(actual),
+            'Ancestor controller resumed or stopped generation changed')
+    c = load(entry['config'])
+    role_receipt = str(Path(c['out'] + ('' if role == 'inference' else '_finish')) / 'LAUNCH_RECEIPT.json')
+    require(plan['files'].get(role_receipt) == adopted['receipt_sha256'] == sha(role_receipt)
+            and load(role_receipt)['container_id'] == adopted['container_id'], 'Ancestor role receipt differs')
+    label_hash = role_label_hash(ancestor_path, key, role, seen)
+    require(adopted['label_hash'] == label_hash, 'Ancestor label provenance differs')
+    return label_hash
 
 
 def wrapper(path, terminal):
@@ -130,7 +261,7 @@ class Queue:
         self.keys = keys
         require(load(self.out / 'PARENT_REVIEW.json')['approved_plan_sha256'] == self.hash, 'Queue not approved')
         needed = [str(Path(__file__).resolve())] + list(self.plan['preparation_files'].values())
-        require(set(self.plan['preparation_files']) == {'wrapper', 'launch', 'resume', 'preregistration', 'container_spec'}, 'Queue preparation closure')
+        require(set(self.plan['preparation_files']) == {'wrapper', 'launch', 'resume', 'preregistration', 'container_spec', 'process_query_spec'}, 'Queue preparation closure')
         require(set(needed) <= self.plan['files'].keys(), 'Queue source not frozen')
         frozen(self.plan['files'])
         self.state_path = self.out / 'STATE.json'
@@ -165,6 +296,42 @@ class Queue:
     def check_plan(self):
         require(sha(self.path) == self.hash, 'Plan changed')
         frozen(self.plan['files'])
+        self.check_handover()
+
+    def check_handover(self):
+        handover = self.plan.get('handover')
+        if not handover:
+            return
+        require(handover['plan'] in self.plan['files'] and sha(handover['plan']) == handover['plan_sha256'], 'Prior queue plan differs')
+        prior = load(handover['plan'])
+        receipt_path = Path(prior['out']) / 'LAUNCH_RECEIPT.json'
+        require(str(receipt_path) in self.plan['files'] and sha(receipt_path) == handover['receipt_sha256'], 'Prior queue receipt differs')
+        receipt = load(receipt_path)
+        d = inspect(prior['container'])
+        spec_path = prior['preparation_files']['container_spec']
+        require(spec_path in self.plan['files'] and sha(spec_path) == prior['files'][spec_path], 'Prior queue spec not frozen')
+        binding(d, load(spec_path), receipt)
+        require(receipt['plan_sha256'] == handover['plan_sha256'] and d['Id'] == handover['container_id']
+                and d['State']['Status'] == 'exited' and d['State']['FinishedAt'] == handover['finished_at'], 'Prior controller not stopped at approved generation')
+        require(receipt['wrapper_sha256'] == sha(prior['preparation_files']['wrapper']), 'Prior controller wrapper differs')
+        require(not chip_access(d), 'Prior controller is not CPU-only')
+        old_entries = {e['key']: e for e in prior['entries']}
+        require(set(handover['adopted']) == {e['key'] for e in self.plan['entries']}, 'Adopted key closure differs')
+        for entry in self.plan['entries']:
+            require(entry['key'] in old_entries and entry['config'] == old_entries[entry['key']]['config']
+                    and entry['config_sha256'] == old_entries[entry['key']]['config_sha256'], 'Handover model configuration differs')
+            roles = handover['adopted'][entry['key']]
+            require('inference' in roles and set(roles) <= {'inference', 'finish'}, 'Adopted role closure differs')
+            for role, adopted in roles.items():
+                require(role in ('inference', 'finish'), 'Unsupported adopted role')
+                out, name = self.context(load(entry['config']), role)
+                rp = out / 'LAUNCH_RECEIPT.json'
+                require(str(rp) in self.plan['files'] and sha(rp) == adopted['receipt_sha256'], 'Adopted receipt changed')
+                rd = inspect(name)
+                require(adopted['label_hash'] == role_label_hash(handover['plan'], entry['key'], role), 'Adopted label provenance differs')
+                require(rd is not None and load(rp)['container_id'] == adopted['container_id'] and rd['Id'] == adopted['container_id'], 'Adopted container changed')
+                binding(rd, self.spec(load(entry['config']), role), load(rp))
+                require(load(rp)['config_sha256'] == entry['config_sha256'] and load(rp)['wrapper_sha256'] == sha(out / 'run.sh'), 'Adopted receipt binding differs')
 
     def controller_binding(self):
         d = inspect(self.plan['container'])
@@ -190,7 +357,10 @@ class Queue:
                     'Entrypoint': ['bash'], 'Env': image_environment(),
                     'HostConfig': {'Binds': ['/mnt/cephfs:/mnt/cephfs', '/var/run/docker.sock:/var/run/docker.sock'],
                                    'Devices': [], 'NetworkMode': 'none', 'ShmSize': 67108864}}
-        spec['Labels'] = {'nga.jeval.queue': self.hash, 'nga.jeval.key': c['key'], 'nga.jeval.role': role}
+        handover = self.plan.get('handover', {})
+        adopted = handover.get('adopted', {}).get(c['key'], {})
+        label_hash = adopted[role]['label_hash'] if role in adopted else self.hash
+        spec['Labels'] = {'nga.jeval.queue': label_hash, 'nga.jeval.key': c['key'], 'nga.jeval.role': role}
         return spec
 
     def context(self, c, role):
@@ -226,14 +396,75 @@ class Queue:
         owner = 'reference_inference/' + Path(c['out']).name
         for obj in docker('GET', '/containers/json'):
             if obj['Id'] != own_id:
-                require(not any(d[0] == '/dev/davinci1' for d in devices(inspect(obj['Id']))), 'Live chip conflict')
+                require(not chip_access(inspect(obj['Id'])), 'Live chip conflict')
         if not owners and len(free) == 1 and claim:
+            self.empty_device_query('claim')
             a['free'] = [x for x in a['free'] if x['chip'] != 1]
             a['allocation'].append({'chip': 1, 'owner': 'E34 JEVal serial queue', 'run': owner,
                                     'claimed_utc': utc(), 'release_when': 'complete independent audit and actual exits'})
             atomic(self.plan['allocation'], a)
         else:
             require(len(owners) == 1 and owners[0]['run'] == owner and not free, 'Allocation owner differs')
+
+    def empty_device_query(self, reason):
+        """Caller holds allocation lock. Failed queries retain allocation and all evidence."""
+        require(reason in ('claim', 'release'), 'Invalid query boundary')
+        sp = self.plan['preparation_files']['process_query_spec']
+        require(sp in self.plan['files'] and sha(sp) == self.plan['files'][sp], 'Query template changed')
+        spec = load(sp)
+        script = str(Path(__file__).resolve())
+        require(script in self.plan['files'] and sha(script) == self.plan['files'][script], 'Query code changed')
+        require(spec['Image'] == IMAGE and spec['Entrypoint'] == ['python3']
+                and spec['Cmd'] == ['-P', script, '--process-query', '{request}'], 'Query command differs')
+        host = spec['HostConfig']
+        require(not host.get('Privileged') and not host.get('DeviceRequests') and not host.get('DeviceCgroupRules')
+                and not host.get('Mounts') and host['NetworkMode'] == 'none' and host['PidMode'] == 'host', 'Query access differs')
+        expected_devices = ['/dev/davinci_manager', '/dev/devmm_svm', '/dev/hisi_hdc', '/dev/davinci1']
+        require(devices(spec) == sorted((p, p, 'rwm') for p in expected_devices), 'Query device mapping differs')
+        require(sorted(host['Binds']) == sorted(['/mnt/cephfs:/mnt/cephfs', '/usr/local/sbin:/usr/local/sbin:ro',
+                '/usr/local/Ascend/driver:/usr/local/Ascend/driver:ro', '/etc/ascend_install.info:/etc/ascend_install.info:ro']), 'Query mounts differ')
+        nonce = uuid.uuid4().hex
+        out = self.out / 'process_queries' / nonce
+        out.mkdir(parents=True)
+        request = out / 'REQUEST.json'
+        atomic(request, dict(nonce=nonce, chip=1, created_unix=time.time()))
+        spec['Cmd'][-1] = str(request)
+        spec['Labels'] = {'nga.jeval.queue': self.hash, 'nga.jeval.query': nonce}
+        atomic(out / 'SPEC.json', spec)
+        name = 'nga-jeval-query-' + nonce
+        (out / 'RELAUNCH.txt').write_text('Retained one-shot query; do not restart or overwrite its evidence. Retry the reviewed controller with a fresh nonce.\n')
+        atomic(out / 'INTENT.json', dict(name=name, nonce=nonce, reason=reason, spec_sha256=sha(out / 'SPEC.json')))
+        try:
+            require(inspect(name) is None, 'Query name collision')
+            docker('POST', '/containers/create?name=' + name, spec)
+            info = inspect(name)
+            binding(info, spec)
+            require(info['State']['Status'] == 'created', 'Query not created')
+            receipt = dict(container_id=info['Id'], image=IMAGE, command=spec['Cmd'], entrypoint=spec['Entrypoint'])
+            atomic(out / 'LAUNCH_RECEIPT.json', receipt)
+            docker('POST', '/containers/' + info['Id'] + '/start')
+            deadline = time.monotonic() + 25
+            while True:
+                info = inspect(name)
+                binding(info, spec, receipt)
+                if info['State']['Status'] == 'exited':
+                    break
+                require(info['State']['Status'] in ('running', 'created') and time.monotonic() < deadline, 'Process query did not exit before deadline')
+                time.sleep(0.2)
+            require(info['State']['ExitCode'] == 0, 'Process query failed; allocation retained; evidence ' + str(out))
+            terminal, report = load(out / 'COMPLETE.json'), load(out / 'REPORT.json')
+            require(terminal['rc'] == report['rc'] == 0 and terminal['nonce'] == report['nonce'] == nonce
+                    and terminal['report_sha256'] == sha(out / 'REPORT.json') and report['request_sha256'] == sha(request)
+                    and report['chip'] == 1, 'Process-query evidence differs')
+            require(load(request)['created_unix'] <= report['started_unix'] <= report['finished_unix'] <= time.time()
+                    and time.time() - report['finished_unix'] < 10, 'Process-query response stale')
+            require(report['processes'] == [], 'Host process prevents ' + reason)
+            for live in docker('GET', '/containers/json'):
+                require(not chip_access(inspect(live['Id'])), 'Live exposure after process query')
+            atomic(out / 'ACCEPTED.json', dict(nonce=nonce, reason=reason, container_id=info['Id'], utc=utc()))
+        except Exception as exc:
+            atomic(out / 'GUARD_FAILURE.json', dict(utc=utc(), reason=reason, error=str(exc), allocation_changed=False))
+            raise
 
     def reconcile(self, c, entry, role):
         out, name = self.context(c, role)
@@ -253,7 +484,7 @@ class Queue:
                     require(not any(x['chip'] == 1 for x in a['allocation'])
                             and sum(x['chip'] == 1 for x in a['free']) == 1, 'Chip not explicitly free')
                     for live in docker('GET', '/containers/json'):
-                        require(not any(d[0] == '/dev/davinci1' for d in devices(inspect(live['Id']))), 'Live chip before create')
+                        require(not chip_access(inspect(live['Id'])), 'Live chip before create')
                 self.state['intents'][token] = {'phase': 'creating', 'spec_sha256': hashlib.sha256(json.dumps(spec, sort_keys=True).encode()).hexdigest()}
                 self.save()
                 docker('POST', '/containers/create?name=' + name, spec)
@@ -323,11 +554,16 @@ class Queue:
                     and (ho / 'HARDENED_AUDIT.json').stat().st_mtime_ns <= (ho / 'COMPLETE.json').stat().st_mtime_ns, 'Hardened terminal differs')
             require(hr['config_sha256'] == entry['config_sha256'] and hr['report_sha256'] == sha(run / 'report.json')
                     and hr['status'] in ['VERIFIED_HARDENED_SCOPED', 'VERIFIED_HARDENED_SCOPED_REVIEW_REQUIRED'], 'Hardened report differs')
+            verify_receipts(run, hr['receipt_manifest'])
             flags = {'native': flags, 'hardened': hr['review_flags'], 'inherited': hr['inherited_review_flags']}
             paths += [ho / n for n in ['COMPLETE.json', 'EXIT', 'HARDENED_AUDIT.json', 'LAUNCH_RECEIPT.json']]
-        return {'config_sha256': entry['config_sha256'], 'plan_sha256': self.hash, 'evidence': {str(p): sha(p) for p in paths}, 'review_flags': flags}
+        result = {'config_sha256': entry['config_sha256'], 'plan_sha256': self.hash, 'evidence': {str(p): sha(p) for p in paths}, 'review_flags': flags}
+        if include_hardened:
+            result['receipt_manifest'] = hr['receipt_manifest']
+        return result
 
     def release(self, c, acceptance):
+        verify_receipts(c['out'], load(acceptance)['receipt_manifest'])
         marker = self.out / (c['key'] + '-RELEASED.json')
         intent = self.out / (c['key'] + '-RELEASE_INTENT.json')
         if marker.exists():
@@ -338,17 +574,19 @@ class Queue:
         evidence = {'plan_sha256': self.hash, 'config_sha256': load(acceptance)['config_sha256'], 'acceptance_sha256': sha(acceptance), 'run': 'reference_inference/' + Path(c['out']).name}
         with Path(self.plan['allocation'] + '.lock').open('w') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
+            verify_receipts(c['out'], load(acceptance)['receipt_manifest'])
             a = load(self.plan['allocation'])
             owners = [x for x in a['allocation'] if x['chip'] == 1]
             free = [x for x in a['free'] if x['chip'] == 1]
             for obj in docker('GET', '/containers/json'):
-                require(not any(d[0] == '/dev/davinci1' for d in devices(inspect(obj['Id']))), 'Live chip prevents release')
+                require(not chip_access(inspect(obj['Id'])), 'Live chip prevents release')
             if owners:
                 require(len(owners) == 1 and owners[0]['run'] == evidence['run'] and not free, 'Release owner differs')
                 if intent.exists():
                     require(load(intent) == evidence, 'Release intent differs')
                 else:
                     atomic(intent, evidence)
+                self.empty_device_query('release')
                 a['allocation'] = [x for x in a['allocation'] if x['chip'] != 1]
                 a['free'].append({'chip': 1, 'previous_run': evidence['run'], 'release_evidence': str(acceptance), 'released_utc': utc()})
                 atomic(self.plan['allocation'], a)
@@ -453,8 +691,11 @@ if __name__ == '__main__':
     p.add_argument('--audit-config', type=Path)
     p.add_argument('--auditor', type=Path)
     p.add_argument('--audit-out', type=Path)
+    p.add_argument('--process-query', type=Path)
     a = p.parse_args()
-    if a.audit_config:
+    if a.process_query:
+        process_query(a.process_query)
+    elif a.audit_config:
         audit(a.audit_config, a.auditor, a.audit_out)
     else:
         try:

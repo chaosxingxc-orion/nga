@@ -312,6 +312,39 @@ def mapping(host):
             sorted((d['PathOnHost'], d['PathInContainer'], d['CgroupPermissions']) for d in host.get('Devices') or []))
 
 
+def resource_permissions(host):
+    """Normalize omitted Docker defaults without omitting permission channels."""
+    value = {key: bool(host.get(key, False)) for key in ['Privileged', 'ReadonlyRootfs']}
+    for key in ['DeviceRequests', 'DeviceCgroupRules', 'Mounts', 'VolumesFrom',
+                'CapAdd', 'CapDrop', 'SecurityOpt']:
+        value[key] = sorted(json.dumps(item, sort_keys=True, separators=(',', ':'))
+                            for item in host.get(key) or [])
+    for key, default in [('PidMode', ''), ('IpcMode', 'private'),
+                         ('UsernsMode', ''), ('CgroupnsMode', 'private')]:
+        value[key] = host.get(key, default)
+    return value
+
+
+def resource_binding(info, expected):
+    host = info['HostConfig']
+    require(mapping(host) == mapping(expected), 'Docker mounts/devices')
+    require(resource_permissions(host) == resource_permissions(expected), 'Docker resource permissions')
+    # These generations use only explicit bind mounts, so the effective mount
+    # table must contain exactly the declared sources, destinations and modes.
+    require(not expected.get('Mounts'), 'Unsupported expected structured mounts')
+    wanted = []
+    for bind in expected.get('Binds') or []:
+        fields = bind.split(':')
+        require(len(fields) in [2, 3] and fields[0].startswith('/') and fields[1].startswith('/'),
+                'Unsupported expected bind')
+        options = fields[2].split(',') if len(fields) == 3 else []
+        wanted.append((fields[0], fields[1], 'ro' not in options))
+    actual = info.get('Mounts') or []
+    require(len(actual) == len(wanted) and all(m.get('Type') == 'bind' for m in actual)
+            and sorted((m['Source'], m['Destination'], m['RW']) for m in actual) == sorted(wanted),
+            'Docker effective mounts')
+
+
 def docker(name):
     conn = http.client.HTTPConnection('localhost', timeout=30)
     conn.sock = socket.socket(socket.AF_UNIX)
@@ -336,7 +369,7 @@ def run_binding(c, cp, inspect=docker):
     require(info['Config']['Cmd'] == receipt['command'] == spec['Cmd'] == ['bash', str(run / 'run.sh')], 'Docker command')
     require(info['Config'].get('Entrypoint') == receipt['entrypoint'] == spec['Entrypoint'], 'Docker entrypoint')
     require(sorted(info['Config'].get('Env') or []) == sorted(spec.get('Env') or []), 'Docker environment differs')
-    require(mapping(info['HostConfig']) == mapping(spec['HostConfig']), 'Docker mounts/devices')
+    resource_binding(info, spec['HostConfig'])
     for key in ['NetworkMode', 'ShmSize']:
         require(info['HostConfig'][key] == spec['HostConfig'][key], 'Docker ' + key)
     chips = {d[0] for d in mapping(info['HostConfig'])[1] if re.fullmatch(r'/dev/davinci[0-9]+', d[0])}
@@ -355,7 +388,7 @@ def finish_binding(c, cp, inspect=docker):
     require(info['Image'] == receipt['image'] == c['image'], 'Finisher image')
     require(info['Config']['Cmd'] == receipt['command'] == [str(finish / 'run.sh')] and
             info['Config']['Entrypoint'] == receipt['entrypoint'] == ['bash'], 'Finisher command')
-    require(mapping(info['HostConfig']) == (sorted(['/mnt/cephfs:/mnt/cephfs', '/var/run/docker.sock:/var/run/docker.sock']), []), 'Finisher resources')
+    resource_binding(info, dict(Binds=['/mnt/cephfs:/mnt/cephfs', '/var/run/docker.sock:/var/run/docker.sock'], Devices=[]))
     require(info['HostConfig']['NetworkMode'] == 'none' and 'TORCH_DEVICE_BACKEND_AUTOLOAD=0' in info['Config']['Env'], 'Finisher environment')
     require(info['State']['Status'] == 'exited' and info['State']['ExitCode'] == 0, 'Actual finisher exit')
     require(term['rc'] == 0 and term['config_sha256'] == receipt['config_sha256'] == audit['config_sha256'] == sha(cp), 'Finisher terminal identity')

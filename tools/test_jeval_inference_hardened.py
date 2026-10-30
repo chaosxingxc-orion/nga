@@ -212,7 +212,8 @@ class Hardened(unittest.TestCase):
                            config_sha256=h.sha(cp), wrapper_sha256=h.sha(wrapper))
             (run / 'LAUNCH_RECEIPT.json').write_text(json.dumps(receipt)); (run / 'EXIT').write_text('rc=0 utc=now\n')
             info = dict(Id='cid', Name='/expected', Image='image', Config=dict(Cmd=spec['Cmd'], Entrypoint=['entry'], Env=['A=B']),
-                        HostConfig=copy.deepcopy(spec['HostConfig']), State=dict(Status='exited', ExitCode=0))
+                        HostConfig=copy.deepcopy(spec['HostConfig']), State=dict(Status='exited', ExitCode=0),
+                        Mounts=[dict(Type='bind', Source='/mnt/cephfs', Destination='/mnt/cephfs', RW=True)])
             h.run_binding(c, cp, lambda _: info)
             for mutate, message in [
                     (lambda d: d.update(Id='different'), 'Docker ID/name'),
@@ -223,6 +224,28 @@ class Hardened(unittest.TestCase):
                 bad = copy.deepcopy(info); mutate(bad)
                 with self.assertRaisesRegex(ValueError, message):
                     h.run_binding(c, cp, lambda _: bad)
+            for field, value in [('Privileged', True), ('DeviceRequests', [{'Driver': 'nvidia'}]),
+                                 ('DeviceCgroupRules', ['c *:* rwm']), ('Mounts', [{'Type': 'bind'}]),
+                                 ('VolumesFrom', ['other']), ('CapAdd', ['SYS_ADMIN']),
+                                 ('PidMode', 'host'), ('IpcMode', 'host')]:
+                bad = copy.deepcopy(info); bad['HostConfig'][field] = value
+                with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'resource permissions'):
+                    h.run_binding(c, cp, lambda _: bad)
+            bad = copy.deepcopy(info); bad['Mounts'][0]['RW'] = False
+            with self.assertRaisesRegex(ValueError, 'effective mounts'):
+                h.run_binding(c, cp, lambda _: bad)
+
+    def test_finisher_resource_permissions_share_exact_binding(self):
+        expected = dict(Binds=['/mnt/cephfs:/mnt/cephfs', '/var/run/docker.sock:/var/run/docker.sock'], Devices=[])
+        info = dict(HostConfig=copy.deepcopy(expected), Mounts=[
+            dict(Type='bind', Source=p, Destination=p, RW=True)
+            for p in ['/mnt/cephfs', '/var/run/docker.sock']])
+        h.resource_binding(info, expected)
+        for field, value in [('Privileged', True), ('DeviceRequests', [{}]),
+                             ('DeviceCgroupRules', ['c *:* rwm']), ('Mounts', [{}])]:
+            bad = copy.deepcopy(info); bad['HostConfig'][field] = value
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'resource permissions'):
+                h.resource_binding(bad, expected)
 
 
 class ReceiptManifest(unittest.TestCase):
