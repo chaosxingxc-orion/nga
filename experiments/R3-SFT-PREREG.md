@@ -460,7 +460,9 @@ chip count of every run is recorded. Scoring and training use `python3 -P` insid
 - launched with `docker run -d`, a fixed container name and no `--rm`;
 - log and heartbeat on cephfs;
 - a terminal marker holding the exit code, which is the source of truth for whether the run finished;
-- resumable at step (training) or item (scoring) granularity;
+- resumable at step (training) or item (scoring) granularity — *corrected for the §14.5 item 1 (i)
+  identity run by §14.8 item 5: that run is resumable at readout-file granularity, and resuming a
+  partial readout file in place is barred*;
 - the relaunch command written into the run directory.
 
 11.3 **Kernel choice.** The fast gated-delta-rule kernel under validation
@@ -574,8 +576,11 @@ directory.
 14.4 **Amendment 4, kernel verdict and a downstream kernel test, 2026-10-30.** Applying §14.1 as
 written: (a′) passed (fp32 logits relative L2 5.85e-5, minimum gradient cosine 0.9999984), (b′)
 failed (96.6% of tensors within the bound against 99% required; no tensor beyond 3×; logits ratio
-1.016), and (c) failed (mean |Δloss| 0.0281, last-50-step mean −6.65%). This amendment's verdict and
-its kernel references are to the fused gated-delta-rule / FLA kernel under `speedup/` only; a third
+1.016) (`speedup/runs/modelcheck2/model_check.json` via `speedup/code/gate_bprime.py`, 309 of 320
+trainable tensors within the bound; the `NGA_GDN_FP32=1` variant `runs/modelcheck3-fp32in` gives
+311 of 320, 97.2% — citation added by §14.8 item 2, which leaves this verdict unchanged), and (c)
+failed (mean |Δloss| 0.0281, last-50-step mean −6.65%). This amendment's verdict and its kernel
+references are to the fused gated-delta-rule / FLA kernel under `speedup/` only; a third
 implementation is governed by §14.7 item 1. Every round-1 arm at 0.8B therefore trains on the
 **reference** kernel. The (c) tolerance was found to sit below run-to-run noise: the reference against
 its own same-seed rerun gives 0.0272 and −3.03%. It is not relaxed retroactively.
@@ -747,7 +752,7 @@ and the resolution.
    No readout of record is produced before the table is filled.
 8. **Header: status.** Reason: the header still said "Draft", but the file was committed at
    `387521b` (2026-10-30 00:44 +0800) before any scored run it covers. Resolution: the file is
-   **frozen as of `387521b`**. Every later change is a numbered amendment in §14 (§14.1–§14.6). This
+   **frozen as of `387521b`**. Every later change is a numbered amendment in §14, §14.1 onward. This
    amendment's only edits outside §14 are in that header line and the sentence after it: the header's
    `2026-10-30 · Draft.` now reads `2026-10-30 · Frozen as of 387521b (2026-10-30 00:44 +0800).`, and
    "It becomes frozen when committed, and it must be committed" is put in the past tense, since it did.
@@ -877,8 +882,12 @@ arm of wave 1 was trained and before any readout of record exists.
      gradient from kernel X in bf16 against the whole-model fp32 gold on the same step:
      e_fast(t) ≤ 1.5 · e_ref(t) + 1e-3 for at least 99% of the 372 tensors, and no tensor has
      e_fast(t) > 3 · e_ref(t) + 1e-3. This is the identical bound the FLA kernel failed at 96.6%
-     (§14.4), and it is the number that decides this kernel. The stacked figures already recorded
-     (e(F,G) 4.02e-02 against e(R,G) 3.79e-02, ratio 1.06) do not discharge it.
+     (§14.4), and it is the number that decides this kernel. *Superseded by §14.8 item 1: the bound
+     is identical, the population is not — the FLA kernel's 96.6% is over 320 full-model trainable
+     tensors, every one of the eleven tensors it failed on is frozen under LoRA and cannot appear in
+     the 372, and the replacement sentence, the gating population and the consequence of a split
+     verdict are fixed there.* The stacked figures already recorded (e(F,G) 4.02e-02 against
+     e(R,G) 3.79e-02, ratio 1.06) do not discharge it.
    - **(G3) A same-config replicate floor, which did not exist when this kernel was proposed.** Two
      invocations of the reference kernel with identical micro-batch, seed, data and chunk plan: report
      d(R,R′) over the stacked LoRA gradient and |loss_R − loss_R′| per step. This replicate floor, and
@@ -888,19 +897,23 @@ arm of wave 1 was trained and before any readout of record exists.
      chunk is the habitat of the defect found there, measured at 1.8e-02 relative L2 against the
      corrected path, so that number mixes re-batching with the defect. d(R3,R) is also not a second
      composition: R3 has R's chunk count and padding and its median per-tensor difference is 0.0e+00.
-   - **(G4) Trajectory, 100 steps, judged on the trend and not only the mean.** Both kernels run 100
-     optimizer steps with the same seed, data and chunk plan. (G3) is measured and written into
-     `gate_fast_ref/` before (G4) is run, so (G4)'s bar is fixed before its own data exists. The per-step |Δloss| series is reported
-     in full. Pass requires **both**: mean |Δloss| ≤ max(the (G3) floor, 0.5 · |loss_R − loss_G| as
-     measured on the same rows, i.e. 1.14e-02 against the recorded |loss_R − loss_G| = 2.28e-02); and
-     the mean of the last 20 steps ≤ 3 × the mean of the first 20 steps. The second clause exists
-     because the four-step evidence offered (1.5e-3, 1.4e-3, 4.4e-3, 1.2e-2, mean 4.7e-3) grows
-     monotonically by 8× while its proposed floor series (7.5e-3, 2.5e-3, 8.8e-3, 9.7e-4) does not, so
-     a four-step mean cannot distinguish bf16 noise from divergence. §14.1 (c) is **not** relaxed
+   - **(G4) Trajectory, 100 steps, judged on the trend and not only the mean.** Both kernels run
+     100 optimizer steps with the same seed, data and chunk plan. The (G3) **trajectory**
+     replicate floor is measured and written into `gate_fast_ref/` before (G4) is run, so (G4)'s
+     bar is fixed before its own data exists. Because this item uses "(G3)" for two measurements,
+     (G4)'s floor is named here as the trajectory replicate — the mean over the same 100 steps of
+     |loss_R − loss_R′| (`r3_code/gate_trajectory.py`) — and not the model-level per-step
+     replicate (§14.8 item 3). The per-step |Δloss| series is reported in full. Pass requires
+     **both**: mean |Δloss| ≤ max(the (G3) floor, 0.5 · |loss_R − loss_G| as measured on the same
+     rows, i.e. 1.14e-02 against the recorded |loss_R − loss_G| = 2.28e-02); and the mean of the
+     last 20 steps ≤ 3 × the mean of the first 20 steps. The second clause exists because the
+     four-step evidence offered (1.5e-3, 1.4e-3, 4.4e-3, 1.2e-2, mean 4.7e-3) grows monotonically
+     by 8× while its proposed floor series (7.5e-3, 2.5e-3, 8.8e-3, 9.7e-4) does not, so a
+     four-step mean cannot distinguish bf16 noise from divergence. §14.1 (c) is **not** relaxed
      retroactively and remains as written for the FLA kernel (§14.4); (G4) is a different test,
-     pre-registered for a different kernel before it runs, and its floor is same-config rather than a
-     second draw of composition noise, which is why §14.6 item 1's objection to criterion (i) does not
-     apply to it.
+     pre-registered for a different kernel before it runs, and its floor is same-config rather
+     than a second draw of composition noise, which is why §14.6 item 1's objection to criterion
+     (i) does not apply to it.
    - **If any of (G1)–(G4) fails, wave 1 and the ladder train on the reference kernel**, at the
      measured cost of about 2.8 h per K1 run at three processes per chip and about 6.8 h per K2-shared
      run, roughly a day for the wave. That consequence is recorded here so the gate is not reopened
@@ -995,12 +1008,182 @@ arm of wave 1 was trained and before any readout of record exists.
 
 **Launch checklist (§14.7).** All of the following are committed before `docker run -d` on any wave-1
 arm:
-1. This amendment (§14.7).
+1. This amendment (§14.7) and §14.8, which corrects (G2) and adds the (G3) obligation to both
+   branches.
 2. `r3_runs/eff/gate_fast_ref/` holding (G1)–(G4) with the four sha256s of item 2, or the recorded
-   decision to train on the reference kernel.
+   decision to train on the reference kernel. That recorded decision carries the failing numbers and
+   the same four sha256s, names which of the four gates ran, and states that it follows from a gate
+   verdict and not from a gate crash (§14.8 item 3). On either branch `gate_fast_ref/` holds (G3),
+   both the model-level and the trajectory replicate (§14.8 item 4).
 3. The corrected equal-length determinism probe (item 4), green.
 4. The K2 dropout-mask-semantics test (item 3), green.
 5. The production bf16 K2 cell — shared K2 on whichever kernel item 2 leaves of record — re-measured
-   against the (G3) floor (item 3), recorded.
+   against the (G3) floor (item 3), recorded. The reference + shared cell is not already discharged:
+   its 0.0585 against 0.0586 figures rest on the re-batching floor of 0.0887 that item 2 (G3)
+   declares void as a floor (§14.8 item 3).
 6. `r3_runs/eff/bench_record.json` carrying `gdn_impl`, `k2_impl` and the trainer sha256.
 7. The §14.5 item 4 step 2 chip-assignment file, written with its sha256 recorded.
+
+14.8 **Amendment 8, (G2)'s gating population, the three §14.7 edits ratified with their
+conditions, (G3) on every branch, and two corrections to the orchestrator's own record,
+2026-10-30.** Made before any arm of wave 1 was trained and before any readout of record exists.
+**Stated precisely, because the ordering is the point of this item:** (G2)'s correction is derived
+from the FLA kernel's own failure evidence (the eleven frozen tensors at `speedup/README.md:51`)
+and from no `fast_ref` number. It is *not* made before every gate number existed:
+`gate_fast_ref/model_level/` already carried `DONE` at 2026-10-30T04:53:50Z, and the engineer that
+produced those numbers has necessarily seen them. What is claimed is narrower and checkable — the
+bar was moved for a reason that does not mention them, and the orchestrator had read none of them
+when the ruling was requested or when this amendment was written. A reader who wants to test that
+should compare the ruling's argument against the gate output and say so if the two coincide
+suspiciously. Source: the review ruling `reviews/R3-CHIP-PRIORITY-RULING-fable-20261030.md` (Fable
+5.1, CLAUDE.md §2); each item names the ruling section it comes from. The §14.7 and §14.4 clauses
+this amendment corrects stay where they are and carry a pointer here (§14.2 and §14.4's own
+convention).
+1. **(G2)'s population: the 372 LoRA tensors gate; the 320 full-trainable tensors are measured and
+   reported but do not gate (ruling §§4.1–4.3).** §14.7 item 2 (G2) applies the §14.1 (b′) bound to
+   "at least 99% of the 372 tensors" and calls it "the identical bound the FLA kernel failed at
+   96.6%". The bound is identical; the population is not. 372 is the LoRA tensor count, asserted by
+   `r3_code/gate_model_level.py` on the LoRA-wrapped model's trainable list, while §14.4's 96.6% is
+   309 of 320 **full-model trainable** parameters, built from `named_parameters()` on a plain,
+   non-LoRA model (`speedup/code/model_check.py`, `speedup/runs/modelcheck2/model_check.json`, whose
+   `per_tensor` entries contain no `lora` key). The decisive finding is stronger than the mismatch:
+   the eleven tensors the FLA kernel actually failed (b′) on are named at `speedup/README.md:51` —
+   L0/L1/L9/L20/L21 `dt_bias`, `A_log`, `linear_attn.norm`, `post_attention_layernorm`, `in_proj_a` —
+   and **every one of them is frozen under LoRA, so none can appear in the 372**. (G2) on the 372
+   alone is therefore not a better-targeted version of the same instrument; it is blind to its
+   predecessor's only failure mode, and the FLA kernel would have passed it. The ruled remedy,
+   pre-registered here before the numbers are read:
+   - The **372 LoRA tensors gate the decision**, because they are the only tensors any arm of this
+     round updates: §14.5 item 4 step 4 fixes the ladder on LoRA, and embeddings and the LM head are
+     frozen (§7.2). A full-model comparison would gate partly on tensors no arm updates.
+   - The **320 full-model trainable tensors are measured and reported beside them, and do not gate.**
+     They need no second run and no non-LoRA model build: `gate_model_level.py` already performs the
+     bf16 and fp32-gold backwards it needs, so setting `requires_grad = True` on the base parameters
+     in its `build()` and collecting their `.grad` alongside the LoRA ones yields both populations
+     from the same backward. No optimizer touches them and no training behaviour changes. If that
+     turns out not to be cheap, the 320 population is reported from a separate invocation before the
+     verdict is written; it is not dropped.
+   - **Only one population may gate.** Two populations under one bound with no pre-named decider is
+     two chances to pass, chosen after the numbers are visible. That is the pattern §14.1, §14.4 and
+     §14.6 were each written to prevent, and rule 3 bars it.
+   - **The split verdict is pre-registered, before the data.** 372 pass with 320 fail **admits** the
+     kernel — the gate is on what trains — and obliges §14.7, `gate_fast_ref/` and every E1 and
+     wave-1 statement that rests on the kernel to name the split, as "admitted on the LoRA
+     population; the full-trainable population fails at X%, as the FLA kernel did at 96.6%, on the
+     same class of small-norm gate and normalization tensors". It is not a silent pass. If both fail,
+     wave 1 and the ladder train on the reference kernel, per §14.7 item 2's existing clause.
+
+   §14.7 item 2 (G2)'s sentence "This is the identical bound the FLA kernel failed at 96.6% (§14.4),
+   and it is the number that decides this kernel" is replaced by:
+
+   > This is the **identical bound** applied to a **different and deliberately narrower population**:
+   > §14.4's (b′) ran over the 320 trainable tensors of the unadapted model
+   > (`speedup/runs/modelcheck2/model_check.json`, `code/gate_bprime.py`), while (G2) runs over the
+   > 372 LoRA tensors, which are the only tensors any arm of this round updates. The two are **not
+   > interchangeable, and the difference is not in this kernel's favour to claim**: all eleven tensors
+   > on which the FLA kernel failed (b′) — L0/L1/L9/L20/L21 `dt_bias`, `A_log`, `linear_attn.norm`,
+   > `post_attention_layernorm`, `in_proj_a`, per `speedup/README.md` — are frozen under LoRA and do
+   > not appear in the 372. A 372-tensor gate could not have failed the FLA kernel as (b′) failed it.
+   > The LoRA population gates because it is what training updates; the 320-tensor full-trainable
+   > population is measured in the same backward, recorded in `gate_fast_ref/`, and reported beside it
+   > as a non-gating cross-check, with the consequence of a split verdict fixed here: 372 pass with
+   > 320 fail admits the kernel and obliges every statement resting on it to name the split; both fail
+   > sends wave 1 to the reference kernel.
+
+   The correction is additive and restrictive: it keeps the bar, names the population, and removes a
+   claim the evidence does not support. The same wording in `wiki/E1-gdn-fast-ref-gate.md` — lines
+   36, 60-64 and 180, which carry the "identical … 96.6%" claim and the prediction that the kernel
+   "fails exactly as the FLA kernel failed" — is corrected there as a dated note, not a silent edit,
+   since that entry's hypothesis section was written before the run (CLAUDE.md §8).
+2. **The 96.6% is verified, not unverifiable; §14.4 stands, with a citation added (ruling §4.4).**
+   This item records an objection of the orchestrator's that was checked and withdrawn; it is not a
+   change to the pre-registration. The figure is **stated** at `speedup/README.md:51` from
+   `runs/modelcheck2` and **computed** by `speedup/code/gate_bprime.py`, which derives
+   `frac_within_1.5x_plus_1e-3` from the per-tensor errors rather than storing it, which is why
+   grepping the JSON for the figure finds nothing; it recomputes as 309/320 = 0.9656 from
+   `modelcheck2/model_check.json`. The orchestrator's search found nothing because it looked in
+   `modelcheck3-fp32in/`, which is the `NGA_GDN_FP32=1` variant and gives 311/320 = 97.2% on a
+   different failing set. **§14.4's verdict is not reopened**: the FLA kernel fails (b′) at both
+   figures, both below the 99% bar, and its (c) failure (mean |Δloss| 0.0281, last-50 −6.65%) is
+   independent of either. What §14.4 lacked was the citation, which is inserted there additively
+   without touching the verdict.
+3. **The three edits made to §14.7 after it was first drafted are ratified, with the conditions the
+   ruling attaches (ruling §5).** None changes the amendment's substance; each repairs an
+   unsatisfiable or under-specified clause, and each restricts rather than relaxes.
+   - **Checklist item 2's "or the recorded decision to train on the reference kernel" — stands.** It
+     names the fallback §14.7 item 2 had already chosen; a checklist satisfiable only by a passing
+     gate would contradict that branch and, on a failure, leave wave 1 permanently unlaunchable or
+     create pressure to reopen the gate, which is the outcome item 2 was written to prevent. Two
+     conditions on how that record is written, normative here. (a) It records the failing numbers and
+     the same four sha256s a passing gate would record, so the cheap path out of the gate is not to
+     fail it quietly. (b) **It distinguishes "the gate ran and returned a verdict" from "the gate did
+     not complete".** A `FAILED` marker under `gate_fast_ref/` is not by itself a gate result, and a
+     reader may not treat one as triggering the reference-kernel fallback: that would launch wave 1
+     with the measurement silently never taken. The live instance:
+     `r3_runs/eff/gate_fast_ref/model_level/FAILED` recorded `rc=1 utc=2026-10-30T04:41:39Z` with an
+     `EL0005 Resource_Busy … rtGetDeviceCount execution failed` log tail — an infrastructure fault at
+     process start on a chip that was not free, **not a (G1) result**, and not admissible as one. The
+     recorded decision states which of the four gates ran, their numbers, and that it follows from a
+     verdict rather than from a crash.
+   - **Checklist item 5's broadening to "whichever kernel item 2 leaves of record" — stands.** §14.7
+     item 3's last bullet states the purpose it now tracks: the weakest measured cell is the
+     production one. The original wording hardcoded `fast_ref`, which is the production kernel only
+     on the branch where the gate passes; on the failure branch the production cell is reference +
+     shared K2, and the original text would have left the cell that actually trains unmeasured while
+     requiring a measurement of a cell nothing uses. The edit is not an exemption: the reference +
+     shared K2 cell is **not** already discharged, because its 0.0585 against 0.0586 figures used the
+     re-batching floor of 0.0887 (`final_test_k2_shared/run.log`) that §14.7 item 2 (G3) declares void
+     as a floor. On either branch item 5 demands a measurement that does not yet exist, against the
+     same-config replicate floor.
+   - **The (G4) sequencing clause — stands, with the replicate named.** The bar `max(the (G3) floor,
+     1.14e-02)` was already fixed in value by §14.7; the edit fixes **when** the (G3) term is
+     measured, closing a reading in which the floor is computed after the fast kernel's trajectory is
+     in hand, and `r3_code/gate_trajectory.py` already implements exactly that. Because §14.7 uses
+     "(G3)" for two measurements — the model-level per-step replicate in `gate_model_level.py` and the
+     100-step trajectory replicate in `gate_trajectory.py` — the naming fix is applied in §14.7 in
+     place: (G4)'s floor is the **trajectory** replicate. A naming fix, not a change of bar.
+4. **(G3) is measured on every branch, including the reference-kernel branch (ruling §5.4).**
+   Checklist items 2 and 5 are each right and their conjunction leaves one unsatisfiable combination:
+   item 5 requires the production K2 cell re-measured against the (G3) floor, and (G3) is a property
+   of the reference kernel alone, so it exists on both branches only provided the gate ran. On the
+   branch item 2 now admits — where the gate did **not** complete — there is no (G3) floor at all and
+   item 5 cannot be satisfied on any kernel. Closed by pre-registering, before launch: **(G3), both
+   the model-level and the trajectory replicate, is measured and recorded in
+   `r3_runs/eff/gate_fast_ref/` on every branch, including the branch where wave 1 trains on the
+   reference kernel.** It costs two reference-kernel invocations plus a 100-step reference pair, it
+   needs no fast kernel, and checklist item 5 and §14.7 item 3's last bullet both depend on it. It is
+   committed before `docker run -d` on any wave-1 arm.
+5. **Resume granularity of the §14.5 item 1 (i) identity run: readout-file, not item (ruling §1 and
+   §6 item 7).** §11.2's "resumable at step (training) or item (scoring) granularity" does not
+   describe `r3_runs/harness_identity/`; §14.5 item 1 states no granularity for it, so §11.2 is the
+   only clause that implies one, and it carries a pointer here. That run is resumable at
+   **readout-file** granularity, deliberately: `PINS.json`'s `resume_hazard` records that
+   `run_baseline.score_file` batches the items not yet written in chunks of `--chunk`, so resuming a
+   half-written file changes the batch composition — and therefore the pad counts — of its remaining
+   items; `r3_code/harness_identity_run.sh` therefore runs `drop-partial` first on every shard
+   attempt, deleting incomplete readout files and redoing them from their first item, while complete
+   files are skipped by key. Item-level resume is precisely the hazard the run was built to avoid, and
+   acting on the orchestrator's "resumable at item granularity" description by resuming a file in
+   place would have damaged the pin in the one way an interruption can. For that run, resuming a
+   partial readout file in place is barred, and a relaunch uses `drop-partial` as written with the
+   same image, code directory, shard count and `run_baseline.py` arguments.
+6. **Chip priority between the pinned identity run and wave 1 (ruling §§2, 3 and 6 items 5–6).**
+   Option (a), let `r3_runs/harness_identity` finish, is adopted, and nothing is stopped: §14.5
+   item 4 puts the item 1 identity check in step 1 and wave 1 in step 2 and resolves contention "by
+   the step order, not by reserving a chip", so the step order already decides it. The run's expected
+   `DONE` is about 09:00Z, ±15%, about 4.3 h, not the 13 h the orchestrator extrapolated: the run
+   declares `uniform_cost: false` so the watchdog computes no ETA for it, the heavy `hf` rows are
+   scored first, and 359,070 of its 601,980 rows are degenerate-scorer rows. Interruption does **not**
+   damage the pin, because the pin is on the computation and not on the occasion: `PINS.json` declares
+   physical chip identity and wall clock not-pinned, `drop-partial` restarts incomplete files from
+   their first item so no file is ever scored across an interruption, and the three completed
+   `T1 typed-decisions` files were byte-compared against R0's with every row identical, 18 hours
+   later, on different chips, with four co-tenant containers on the host. Option (b), stop and resume,
+   is therefore available on its merits under item 5's conditions, but not as a way to launch wave 1
+   early, which would need an amendment to §14.5 item 4 step 1 that the reviewer would not ratify.
+   **Option (c)** — one chip for the identity run, seven for wave 1 — is **rejected**: the shards
+   would run in six waves of one, about 12 h, and seven chips cannot hold the registered eight-run
+   wave without queuing an arm or sharing a chip, which §14.5 item 4 step 2 (a) bars. **Option (d)** —
+   reduce the sample — is **rejected**: the (i) check is defined as reproducing
+   `r0_baseline_rederived/report.json` over R0's exact shards, a subset cannot produce the report, and
+   the item set is a pre-registered element that rule 3 bars changing after the run started.
