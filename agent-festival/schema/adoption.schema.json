@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-festival.local/schema/adoption/0.1.0",
+  "title": "Adoption Contract — draft 0.1.0",
+  "description": "Piece 2 of the growth layer: the control gate that makes a decision effective. An adoption request carries the piece-0 identity (three-layer), the P5 versions, the payload digest, and the grants in effect at the decision point (for the dispatch-time authority recheck, 14-A4). The state machine (go/internal/adopt) is the single winner: first request under a key adopts; a same-key same-digest retry reuses; a same-key different-digest request is rejected (15 B4 / 14-A5 counterexample four). State machine states: acquire → adopted → dispatched → unresolved (timeout, first-class per 14-A5 counterexample three) → completed/failed. Provenance: NGA overall-design P3/§7, 14-A5, 15-B4 — all 'proposed', this schema is an evidence-track probe answer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["adoption_version", "identity", "versions", "payload_digest", "grants_at_decision"],
+  "properties": {
+    "adoption_version": {
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "identity": {
+      "description": "Piece-0 three-layer business identity.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["business_request_id", "operation_id"],
+      "properties": {
+        "business_request_id": { "type": "string", "minLength": 1 },
+        "evaluation_revision": { "type": "string", "minLength": 1 },
+        "operation_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "versions": {
+      "description": "P5 five-dimension version binding (what the decision actually consumed).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence", "rule", "model", "readout", "policy"],
+      "properties": {
+        "evidence": { "type": "string", "minLength": 1 },
+        "rule": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "readout": { "type": "string", "minLength": 1 },
+        "policy": { "type": "string", "minLength": 1 }
+      }
+    },
+    "payload_digest": {
+      "description": "sha256 hex of JCS(request payload). The idempotency key is operation_id + payload_digest; a changed payload under the same key is a rejection.",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "grants_at_decision": {
+      "description": "The caller's grant set pinned at the decision point — the dispatch-time authority recheck (14-A4: initial admission guarantees nothing about later permission) compares the live grant set against this snapshot.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "selector", "actions", "effect"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["data", "tool", "agent", "secret", "network"] },
+          "selector": { "type": "string", "minLength": 1 },
+          "actions": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "enum": ["read", "write", "execute", "delegate"] }
+          },
+          "effect": { "type": "string", "enum": ["none", "reversible", "irreversible"] }
+        }
+      }
+    },
+    "accountability": {
+      "description": "Festival D31 triple riding the same event (join point with the ledger).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["session", "skill", "role"],
+      "properties": {
+        "session": { "type": "string", "minLength": 1 },
+        "skill": { "type": "string", "minLength": 1 },
+        "role": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

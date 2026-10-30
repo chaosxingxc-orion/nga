@@ -36,6 +36,12 @@
         "identity": { "$ref": "#/$defs/identity" },
         "versions": { "$ref": "#/$defs/versions" },
         "idempotency": { "$ref": "#/$defs/idempotency" },
+        "grants_at_decision": {
+          "description": "Grant set pinned at the decision point (adoption events only). It rides the event because the event file is the adopt machine's only durable state — without it, a crash would make the 14-A4 dispatch-time revocation check vacuous.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/grant" }
+        },
         "outcome": {
           "description": "The event's verdict. A 'conflict' outcome records a lost race, not an error. An 'unresolved' state on the effect path records dispatch-with-unknown-outcome (14-A5 counterexample three).",
           "type": "object",
@@ -101,6 +107,23 @@
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
         }
+      }
+    },
+    "grant": {
+      "description": "One entry of a grant set. Shape is shared with the adoption contract schema (each schema stays self-contained; the two copies must stay in lockstep — checked by the shared fixture suites).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "selector", "actions", "effect"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["data", "tool", "agent", "secret", "network"] },
+        "selector": { "type": "string", "minLength": 1 },
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "enum": ["read", "write", "execute", "delegate"] }
+        },
+        "effect": { "type": "string", "enum": ["none", "reversible", "irreversible"] }
       }
     }
   }

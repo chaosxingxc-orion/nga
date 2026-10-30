@@ -70,15 +70,27 @@ type Accountability struct {
 	Role    string `json:"role"`
 }
 
+// Grant is one entry of a grant set pinned at a decision point. It rides the
+// adoption event so the dispatch-time revocation check (14-A4) can compare
+// the live grant set against the pin even after a crash — the event file is
+// the adopt machine's only durable state.
+type Grant struct {
+	Kind     string   `json:"kind"`
+	Selector string   `json:"selector"`
+	Actions  []string `json:"actions"`
+	Effect   string   `json:"effect"`
+}
+
 // Event is one adoption or effect entry.
 type Event struct {
-	EventType     string        `json:"event_type"`
-	ArbitrationSeq int         `json:"arbitration_seq"`
-	Identity      Identity     `json:"identity"`
-	Versions      Versions     `json:"versions"`
-	Idempotency   *Idempotency `json:"idempotency,omitempty"`
-	Outcome       Outcome      `json:"outcome,omitempty"`
-	Accountability *Accountability `json:"accountability,omitempty"`
+	EventType        string          `json:"event_type"`
+	ArbitrationSeq   int             `json:"arbitration_seq"`
+	Identity         Identity        `json:"identity"`
+	Versions         Versions        `json:"versions"`
+	Idempotency      *Idempotency    `json:"idempotency,omitempty"`
+	GrantsAtDecision []Grant         `json:"grants_at_decision,omitempty"`
+	Outcome          Outcome         `json:"outcome,omitempty"`
+	Accountability   *Accountability `json:"accountability,omitempty"`
 }
 
 // Document is a parsed ledger file.
@@ -89,9 +101,9 @@ type Document struct {
 
 // Fixture pins (popped before validation, same discipline as the base).
 type Fixture struct {
-	Doc        map[string]any
+	Doc         map[string]any
 	ExpectMatch string
-	ParseError string
+	ParseError  string
 }
 
 // LoadFixture reads a ledger fixture and pops its _expect* pins.
