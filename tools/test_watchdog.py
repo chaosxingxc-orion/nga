@@ -1930,6 +1930,204 @@ class SubtreeDisposition(unittest.TestCase):
             self.assertIn("inherited: q/WHY_FAILED.json", md)                  # the audit is in the summary block at every cap
 
 
+class Retention(unittest.TestCase):
+    def rdir(self, t):
+        return os.path.join(t.tmp.name, "_out", "_retained")
+
+    def retained(self, t):
+        d = self.rdir(t)
+        return sorted(n for n in os.listdir(d) if n.startswith("digest-") and n.endswith(".json")) if os.path.isdir(d) else []
+
+    def once(self, t, now, **kw):
+        return wd.run_once(t.cfg(**kw), {}, now)[0]
+
+    def load(self, t, name):
+        with open(os.path.join(self.rdir(t), name)) as f:
+            return json.load(f)
+
+    def kinds(self, t, **kw):
+        return set(wd.pass_flags(t.digest(**kw)).values())
+
+    # --- the trigger: any flag of any kind
+    def test_each_flag_kind_is_a_flag(self):
+        t = Tree()
+        t.run("failed", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        t.run("stalled", heartbeat=hb_line(-9999, "x"))
+        t.run("unknown", report={"a": 1})
+        t.run("erring", heartbeat=hb_line(-1, "x"), log="RuntimeError: boom\n")
+        k = self.kinds(t)
+        self.assertTrue({"state:failed", "state:stalled", "state:unknown", "error", "escalation:decide", "escalation:read"} <= k, k)
+
+    def test_a_suspicious_success_alone_is_a_flag_with_no_failure_in_the_tree(self):
+        t = Tree()
+        t.run("ok1", heartbeat=hb_line(-1, "x"), marker="rc=0", report={"T1": {"n": 500, "replicate_rate": 0.0}})
+        t.run("ok2", heartbeat=hb_line(-1, "x"), marker="rc=0", report={"T1": {"n": 500, "rate": 0.4}})
+        dg = t.digest()
+        self.assertEqual({r["state"] for r in dg["runs"]}, {"done"})
+        self.assertEqual(dg["exit_code"], 0)
+        flags = wd.pass_flags(dg)
+        self.assertEqual(set(flags.values()) - {"escalation:decide"}, {"suspicious:exact_zero"}, flags)
+        self.assertTrue(any(k.startswith("suspicious:exact_zero:ok1:") for k in flags))
+        dg = self.once(t, NOW)
+        self.assertEqual(dg["retention_status"]["trigger"], "new_flags")
+        self.assertEqual(len(self.retained(t)), 1)
+        r = self.load(t, self.retained(t)[0])
+        self.assertEqual(r["retention"]["flag_kinds"].get("suspicious:exact_zero"), 1)
+        self.assertEqual(r["exit_code"], 0)
+
+    def test_each_remaining_kind_from_a_real_pass(self):
+        t = ThroughputRegression()._t(600.0)                              # running run, 0.6x its declared baseline
+        self.assertIn("perf_regression", self.kinds(t))
+        t = Tree()
+        t.run("lowN", heartbeat=hb_line(-1, "x"), marker="rc=0", report={"cells": {"a": {"n": 3, "x": 1}, "b": {"n": 400, "x": 2}}})
+        self.assertIn("suspicious:low_sample_count", self.kinds(t))
+        t = Tree()
+        t.run("nan", heartbeat=hb_line(-1, "x"), marker="rc=0", report={"a": {"n": 99, "score": float("nan")}})
+        self.assertIn("suspicious:non_finite", self.kinds(t))
+        t = Tree()
+        t.run("same", heartbeat=hb_line(-1, "x"), marker="rc=0", report={"cells": {c: {"n": 99, "rate": 0.5} for c in "abcd"}})
+        self.assertIn("suspicious:identical_across_cells", self.kinds(t))
+
+    def test_kinds_that_are_hard_to_build_by_hand(self):
+        run = {"id": "r", "state": "running", "escalation": "read", "escalation_before_expected": None, "suspicious_metrics": {"items": [], "total": 0},
+               "errors": {"signatures": []}, "perf_regression": False, "progress_flat": {"done": 5}, "total_anomaly": "TOTAL EXCEEDED"}
+        dg = {"runs": [run], "npu": {"flags": [{"kind": "possibly_wedged", "escalation": "read", "chips": [2, 3]},
+                                               {"kind": "claimed_low_info", "escalation": "none", "chips": [0]}]}}
+        self.assertEqual(sorted(wd.pass_flags(dg).values()), ["escalation:read", "npu:possibly_wedged", "progress_flat", "total_anomaly"])
+
+    def test_a_dispositioned_flag_is_still_a_flag(self):
+        t = Tree()
+        d = t.run("failed", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        with open(os.path.join(d, "WHY_FAILED.json"), "w") as f:
+            json.dump({"expected": True, "note": "explained"}, f)
+        dg = t.digest()
+        self.assertEqual(dg["runs"][0]["escalation"], "none")
+        self.assertEqual(set(wd.pass_flags(dg).values()), {"state:failed", "escalation:decide"})
+        self.once(t, NOW)
+        self.assertEqual(len(self.retained(t)), 1)
+
+    def test_no_flag_no_retention(self):
+        t = Tree()
+        t.run("ok", heartbeat=hb_line(-1, "x"), marker="rc=0", report={"T1": {"n": 500, "rate": 0.4}})
+        t.run("warn", heartbeat=hb_line(-1, "x"), log="UserWarning: harmless\n")
+        t.run("constant", heartbeat=hb_line(-1, "x"), marker="rc=0", report={"scorers": {"constant": {"flip": {"rate": 0.0, "n": 99}}}})  # suppressed by design
+        dg = self.once(t, NOW)
+        self.assertEqual(wd.pass_flags(dg), {})
+        self.assertEqual((dg["retention_status"]["retained"], self.retained(t)), (None, []))
+        self.assertTrue(os.path.exists(os.path.join(self.rdir(t), "index.json")))     # only the small state file
+
+    # --- the file describes itself
+    def test_retained_copy_is_self_describing_and_carries_the_evidence_the_digest_has(self):
+        t = Tree()
+        t.run("crashed", heartbeat=hb_line(-1, "x"), marker="rc=7 utc=2027-01-15T07:00:00Z", log="started\nRuntimeError: driver fault 507015\n")
+        self.once(t, NOW)
+        name = self.retained(t)[0]
+        self.assertRegex(name, r"^digest-\d{8}T\d{6}Z\.json$")
+        j = self.load(t, name)
+        m = j["retention"]
+        self.assertEqual((m["trigger"], m["retained_utc"]), ("new_flags", wd.iso(NOW)))
+        self.assertIn("state:failed:crashed", m["new_flags"])
+        self.assertIn("state:failed", m["flag_kinds"])
+        self.assertIn("NOT preserve the log files", m["NOT_PRESERVED"])
+        self.assertIn("flag(s) not present in the previous pass", m["why"])
+        run = j["runs"][0]
+        self.assertEqual((run["marker"]["name"], run["marker"]["exit_code"], run["marker"]["utc"]), ("FAILED", 7, "2027-01-15T07:00:00Z"))
+        self.assertIn("driver fault", j["signature_clusters"][0]["exemplar"])
+        md = open(os.path.join(self.rdir(t), name.replace(".json", ".md"))).read()
+        self.assertTrue(md.startswith("<!-- RETAINED digest"))
+        self.assertIn("# Watchdog digest", md)
+        self.assertIn("| crashed | failed", md)
+
+    # --- dedup
+    def test_same_flag_set_is_not_retained_again_but_a_new_flag_is(self):
+        t = Tree()
+        t.run("a", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        self.once(t, NOW)
+        self.assertEqual(self.once(t, NOW + 600)["retention_status"]["retained"], None)
+        self.assertEqual(len(self.retained(t)), 1)
+        t.run("b", heartbeat=hb_line(599, "x"), marker="rc=1")
+        r = self.once(t, NOW + 1200)["retention_status"]
+        self.assertEqual(r["trigger"], "new_flags")
+        self.assertEqual(len(self.retained(t)), 2)
+        j = self.load(t, r["retained"])["retention"]
+        self.assertEqual(j["new_flags"], ["escalation:decide:b", "state:failed:b"])
+        self.assertEqual(j["previous_retained"], self.retained(t)[0])
+
+    def test_a_flapping_flag_is_not_retained_every_tick_but_is_after_the_flap_window(self):
+        t = Tree()
+        t.run("a", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        self.once(t, NOW)
+        d = os.path.join(t.root, "flap")
+        t.run("flap", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        self.once(t, NOW + 600)                                              # new -> retained (2)
+        os.rename(d, d + "_gone")
+        os.makedirs(os.path.join(t.root, "_hide"), exist_ok=True)
+        os.rename(d + "_gone", os.path.join(t.root, "_hide", "x"))          # underscore dirs are not scanned: the flag clears
+        self.once(t, NOW + 1200)
+        os.rename(os.path.join(t.root, "_hide", "x"), d)
+        self.assertIsNone(self.once(t, NOW + 1800)["retention_status"]["retained"])      # back within an hour: not new
+        os.rename(d, os.path.join(t.root, "_hide", "x"))
+        self.once(t, NOW + 2400)
+        os.rename(os.path.join(t.root, "_hide", "x"), d)
+        self.assertEqual(self.once(t, NOW + 600 + 3601 + 600)["retention_status"]["trigger"], "new_flags")   # after the window
+        self.assertEqual(len(self.retained(t)), 3)
+
+    def test_refresh_recaptures_a_long_lived_flag_and_restarts_neither_forget_nor_repeat(self):
+        t = Tree()
+        t.run("a", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        self.once(t, NOW)
+        for k in range(1, 6):
+            self.assertIsNone(self.once(t, NOW + 3600 * k - 10, retain_refresh_hours=6.0)["retention_status"]["retained"])
+        r = self.once(t, NOW + 6 * 3600 + 5)["retention_status"]
+        self.assertEqual(r["trigger"], "refresh")
+        self.assertIn("refresh", self.load(t, r["retained"])["retention"]["why"])
+        # a new process (fresh in-memory states) against the same out-dir: nothing repeated
+        self.assertIsNone(wd.run_once(t.cfg(), {}, NOW + 6 * 3600 + 600)[0]["retention_status"]["retained"])
+        self.assertEqual(len(self.retained(t)), 2)
+
+    def test_same_second_passes_do_not_overwrite_each_other(self):
+        t = Tree()
+        t.run("a", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        self.once(t, NOW)
+        t.run("b", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        self.once(t, NOW)
+        self.assertEqual(len(self.retained(t)), 2)
+
+    # --- bounds
+    def test_count_cap_deletes_oldest_pairs_first(self):
+        t = Tree()
+        for i in range(6):
+            t.run("f%d" % i, heartbeat=hb_line(-1, "x"), marker="rc=1")
+            self.once(t, NOW + 600 * i, retain_max=3)
+        names = self.retained(t)
+        self.assertEqual(len(names), 3)
+        self.assertEqual(sorted(os.listdir(self.rdir(t)) ), sorted(names + [n.replace(".json", ".md") for n in names] + ["index.json", ".lock"]))
+        newest = self.load(t, names[-1])
+        self.assertEqual(newest["retention"]["retained_utc"], wd.iso(NOW + 3000))
+        self.assertEqual(self.once(t, NOW + 3600, retain_max=3)["retention_status"]["kept"], 3)
+
+    def test_size_cap_keeps_at_least_the_newest(self):
+        t = Tree()
+        for i in range(4):
+            t.run("f%d" % i, heartbeat=hb_line(-1, "x"), marker="rc=1")
+            dg = self.once(t, NOW + 600 * i, retain_max=50, retain_max_mb=0.0001)
+        self.assertEqual(len(self.retained(t)), 1)
+        self.assertEqual(self.load(t, self.retained(t)[0])["retention"]["retained_utc"], wd.iso(NOW + 1800))
+        self.assertEqual(dg["retention_status"]["kept"], 1)
+
+    def test_no_retain_flag_and_a_broken_directory_never_break_the_digest(self):
+        t = Tree()
+        t.run("a", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        dg = self.once(t, NOW, no_retain=True)
+        self.assertEqual(dg["retention_status"]["enabled"], False)
+        self.assertFalse(os.path.exists(self.rdir(t)))
+        os.makedirs(os.path.dirname(self.rdir(t)), exist_ok=True)
+        open(self.rdir(t), "w").close()                                       # a FILE where the directory should be
+        dg = self.once(t, NOW)
+        self.assertIn("error", dg["retention_status"])
+        self.assertTrue(os.path.exists(os.path.join(t.tmp.name, "_out", "digest.json")))
+
+
 class SignatureClusters(unittest.TestCase):
     LINE = "[W1030 04:01:%02d.084 NPUCachingAllocator.cpp:204] Warning: The current CANN and HDK(driver) versions require processing for 32 padding size\n"
 

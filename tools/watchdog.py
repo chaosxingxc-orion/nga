@@ -13,6 +13,7 @@ import errno
 import fcntl
 import fnmatch
 import glob
+import hashlib
 import json
 import math
 import os
@@ -118,6 +119,13 @@ def build_parser():
     a("--npu-wedged-passes", type=int, default=3, help="a claimed chip quiet for at least this many consecutive passes ... (default 3)")
     a("--npu-wedged-seconds", type=float, default=1200.0,
       help="... spanning at least this long is flagged as possibly wedged (default 1200 = 20 min; loading a checkpoint is legitimately quiet)")
+    a("--no-retain", action="store_true", help="do not keep dated copies of flagged passes under <out-dir>/_retained/")
+    a("--retain-max", type=int, default=60, help="keep at most this many retained copies (digest.json + digest.md pair), oldest deleted first (default 60)")
+    a("--retain-max-mb", type=float, default=200.0, help="and at most this many MB in total (default 200)")
+    a("--retain-flap-seconds", type=float, default=3600.0,
+      help="a flag that reappears within this long of its last retention is not 'new' (default 3600)")
+    a("--retain-refresh-hours", type=float, default=6.0,
+      help="while any flag is present, re-capture when the newest retained copy is older than this (default 6)")
     a("--print", dest="print_md", action="store_true", help="also print digest.md to stdout")
     return p
 
@@ -1775,6 +1783,145 @@ def npu_block_lines(npu, level):
     return lines
 
 
+# ----------------------------------------------------------------------------- retention of flagged passes
+# digest.json is rewritten every pass, so evidence that lives only there has a ten-minute lifetime. A pass that carries ANY flag is
+# copied to <out-dir>/_retained/. This preserves pointers and clustered signatures; it does NOT preserve the logs the pointers name
+# (CLAUDE.md 7.1: the digest carries pointers, never the evidence). See tools/README.md: retention is half of a pair.
+RETAIN_DIR = "_retained"
+RETAIN_NOTE = ("A retained digest preserves what the digest carries: run states, marker names/exit codes/timestamps, suspicious-metric "
+               "paths and values, and clustered error-signature exemplars with their pointers. It does NOT preserve the log files or "
+               "report files those pointers name; a relaunch may have deleted them. Evidence is preserved only if the run directory "
+               "was also kept (a relaunch must move a directory holding a terminal marker to <name>.crash-<utc>/, never delete it).")
+
+
+def pass_flags(dg):
+    """The flags a pass carries, as {key: kind}. Any flag of any kind, explained or not: a dispositioned flag is still a flag. Kinds:
+    state:failed|stalled|unknown, suspicious:<kind> (exact 0/1, identical cells, low n, non-finite: suspicious SUCCESSES count,
+    suppressed expected-degenerate values do not), error (error-severity signature, keyed by signature), perf_regression, progress_flat,
+    total_anomaly, escalation:<level> (any escalation, or the one a WHY disposition removed), npu:<kind> (escalating NPU flags only;
+    the informational 'claimed low' line and warning-only signatures are not flags)."""
+    out = {}
+    for r in dg["runs"]:
+        rid = r["id"]
+        if r["state"] in ("failed", "stalled", "unknown"):
+            out["state:%s:%s" % (r["state"], rid)] = "state:" + r["state"]
+        for it in r["suspicious_metrics"]["items"]:
+            out["suspicious:%s:%s:%s" % (it["kind"], rid, it["path"])] = "suspicious:" + it["kind"]
+        if r["suspicious_metrics"]["total"] and not r["suspicious_metrics"]["items"]:
+            out["suspicious:?:%s" % rid] = "suspicious:?"
+        for sg in r["errors"]["signatures"]:
+            if sg["severity"] == "error":
+                out["error:%s:%s" % (rid, hashlib.md5(sg["signature"].encode()).hexdigest()[:8])] = "error"
+        if r.get("perf_regression"):
+            out["perf_regression:" + rid] = "perf_regression"
+        if r.get("progress_flat"):
+            out["progress_flat:" + rid] = "progress_flat"
+        if r.get("total_anomaly"):
+            out["total_anomaly:" + rid] = "total_anomaly"
+        lvl = r["escalation"] if r["escalation"] != "none" else r.get("escalation_before_expected")
+        if lvl and lvl != "none":
+            out["escalation:%s:%s" % (lvl, rid)] = "escalation:" + lvl
+    npu = dg.get("npu") or {}
+    for f in npu.get("flags", []):
+        if f["escalation"] != "none":
+            out["npu:%s:%s" % (f["kind"], ",".join(str(c) for c in f["chips"]))] = "npu:" + f["kind"]
+    return out
+
+
+def _retain_files(rdir):
+    try:
+        names = sorted(n for n in os.listdir(rdir) if n.startswith("digest-") and n.endswith((".json", ".md")))
+    except OSError:
+        return []
+    stems = sorted({n.rsplit(".", 1)[0] for n in names})
+    out = []
+    for st in stems:
+        fs = [os.path.join(rdir, n) for n in names if n.rsplit(".", 1)[0] == st]
+        try:
+            out.append((st, fs, sum(os.path.getsize(f) for f in fs)))
+        except OSError:
+            pass
+    return out
+
+
+def retain_pass(cfg, dg, md, now):
+    """Decide and write the retention for this pass. Returns a small status dict (also put into digest.json as `retention`).
+    Trigger, with a non-empty flag set: (a) a flag key appears that was not in the previous pass and was not retained within
+    --retain-flap-seconds (a flapping flag does not retain every tick); (b) the newest retained copy is older than
+    --retain-refresh-hours (a long-lived flag is re-captured, so its pointers and exemplars do not go stale). A flag that clears
+    does not trigger by itself. State lives in <out-dir>/_retained/index.json, so a restart neither forgets nor repeats. Bounded:
+    oldest copies are deleted beyond --retain-max copies or --retain-max-mb."""
+    st = {"enabled": True, "flags": 0, "retained": None, "trigger": None, "kept": 0, "dir": os.path.join(cfg.out_dir, RETAIN_DIR)}
+    if cfg.no_retain:
+        st["enabled"] = False
+        return st
+    flags = pass_flags(dg)
+    st["flags"] = len(flags)
+    rdir = st["dir"]
+    os.makedirs(rdir, exist_ok=True)
+    lock = open(os.path.join(rdir, ".lock"), "a")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        ip = os.path.join(rdir, "index.json")
+        try:
+            with open(ip, "r", encoding="utf-8") as f:
+                idx = json.load(f)
+        except (OSError, ValueError):
+            idx = {}
+        prev = set(idx.get("last_flags", []))
+        seen = {k: v for k, v in idx.get("seen", {}).items() if now - v <= 2 * cfg.retain_refresh_hours * 3600}
+        last_ts = idx.get("last_retained_ts")
+        new = sorted(k for k in flags if k not in prev and (k not in seen or now - seen[k] > cfg.retain_flap_seconds))
+        trigger = None
+        if flags and new:
+            trigger = "new_flags"
+        elif flags and (last_ts is None or now - last_ts > cfg.retain_refresh_hours * 3600):
+            trigger = "refresh"
+        if trigger:
+            stem = "digest-" + time.strftime("%Y%m%dT%H%M%SZ", time.gmtime(now))
+            n = 1
+            while os.path.exists(os.path.join(rdir, stem + ".json")):
+                n += 1
+                stem = "digest-%s-%d" % (time.strftime("%Y%m%dT%H%M%SZ", time.gmtime(now)), n)
+            kinds = {}
+            for k in flags.values():
+                kinds[k] = kinds.get(k, 0) + 1
+            gone = sorted(prev - set(flags))
+            meta = {
+                "retained_utc": iso(now), "trigger": trigger,
+                "why": ("%d flag(s) not present in the previous pass: %s" % (len(new), ", ".join(new[:6]) + (", ..." if len(new) > 6 else ""))
+                        if trigger == "new_flags" else
+                        "refresh: %d flag(s) still present and the newest retained copy is older than %g h" % (len(flags), cfg.retain_refresh_hours)),
+                "new_flags": new[:100], "new_flags_total": len(new), "cleared_since_previous_pass": gone[:50],
+                "flags_total": len(flags), "flag_kinds": dict(sorted(kinds.items())), "previous_retained": idx.get("last_retained"),
+                "NOT_PRESERVED": RETAIN_NOTE,
+            }
+            atomic_write(os.path.join(rdir, stem + ".json"), json.dumps(dict([("retention", meta)] + list(dg.items())), indent=1) + "\n")
+            head = ["<!-- RETAINED digest %s. Trigger: %s. %s -->" % (meta["retained_utc"], trigger, meta["why"]),
+                    "<!-- %s -->" % RETAIN_NOTE]
+            atomic_write(os.path.join(rdir, stem + ".md"), "\n".join(head) + "\n" + md)
+            idx["last_retained_ts"], idx["last_retained"] = now, stem + ".json"
+            for k in new:
+                seen[k] = now
+            st["retained"], st["trigger"] = stem + ".json", trigger
+        idx["last_flags"], idx["seen"] = sorted(flags), seen
+        atomic_write(ip, json.dumps(idx) + "\n")
+        files = _retain_files(rdir)
+        total = sum(f[2] for f in files)
+        while files and (len(files) > cfg.retain_max or total > cfg.retain_max_mb * (1 << 20)) and len(files) > 1:
+            stem, fs, sz = files.pop(0)
+            for f in fs:
+                try:
+                    os.unlink(f)
+                except OSError:
+                    pass
+            total -= sz
+        st["kept"], st["bytes"] = len(files), total
+    finally:
+        lock.close()
+    return st
+
+
 # ----------------------------------------------------------------------------- digest
 def marker_set(d, cfg):
     """Names of terminal marker files present now: one stat each, no parsing."""
@@ -2154,6 +2301,10 @@ def run_once(cfg, states, now=None, sched=None, npu=False):
     if npu and not cfg.no_npu and cfg.npu_host:
         dg["npu"] = npu_pass(cfg, dg, states)
     md = render_md(dg, cfg)
+    try:
+        dg["retention_status"] = retain_pass(cfg, dg, md, time.time() if now is None else now)
+    except Exception as e:   # noqa: BLE001 - retention must never break the digest
+        dg["retention_status"] = {"enabled": True, "error": repr(e)[:120], "retained": None}
     write_outputs(dg, md, cfg)
     return dg, md
 

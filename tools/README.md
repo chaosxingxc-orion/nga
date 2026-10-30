@@ -12,7 +12,8 @@ orchestrator (tier 2) reads the digest and the tier-1 diagnosis only.
     python3 -P tools/watchdog.py --watch                # tick every 600 s (the floor); runs are re-read on their own tier cadence
 
 Outputs go to `--out-dir` (default `<first root>/_watchdog/`): `digest.json` (complete but bounded), `digest.md` (hard cap
-`--max-md-bytes`, default 16000) and `npu_history.json` (a few KB: the last 6 h of per-chip AICore passes, see Host utilisation).
+`--max-md-bytes`, default 16000) and `npu_history.json` (a few KB: the last 6 h of per-chip AICore passes, see Host utilisation), and `_retained/` (dated copies of passes
+that carried a flag, see Retention).
 Over the cap, content is dropped by priority, not by position, in whole blocks: (0) summary line (with the NPU fragment and the
 dispositioned-by-WHY audit line) and status rows of failed/stalled/unknown runs that have no `expected` disposition, (1) other status
 rows, (2) pointers and ERROR signatures of failed/stalled runs, (3) flags on the primary scorer (and pointers
@@ -273,6 +274,51 @@ Whether it fits depends on how much sits above it: on the live tree at the defau
 stalls ahead of it need about 22500 bytes before it shows; with every stalled run dispositioned about 20750; with every stalled and
 failed run dispositioned about 12250). `digest.json` always has the full block.
 
+### Retention of flagged passes
+
+`digest.json` is rewritten every pass, so evidence that lives only there has a ten-minute lifetime. A pass that carries **any flag** is
+copied, with its rendered `digest.md`, to `<out-dir>/_retained/digest-<utc>.json` and `.md` (`--no-retain` disables it).
+
+**Retention is half of a pair, and neither half is sufficient alone.** Under CLAUDE.md 7.1 the digest carries pointers and signatures,
+never the evidence. A retained digest preserves what the digest carries: run states, marker names, exit codes and timestamps,
+suspicious-metric paths and values, and the clustered error-signature exemplars with their pointers. It does **not** preserve the
+log or report files those pointers name. The other half is a pre-registration clause: a relaunch must never delete a directory that holds
+a terminal marker; it moves it to `<name>.crash-<utc>/`. Retain digests but let the logs be deleted, and the pointers in your retained
+copy point at nothing, while it still looks like preserved evidence. The retained file says so itself (`retention.NOT_PRESERVED` and a
+comment on its first lines in the `.md`). The watchdog cannot enforce the relaunch clause; it lives in the pre-registration and in the
+launchers.
+
+**What counts as a flag** (`pass_flags`, any of them, explained or not: tier 0 does not judge what is explained, and a dispositioned
+flag is still a flag):
+
+- a run in state `failed`, `stalled` or `unknown`;
+- a suspicious metric that is not suppressed as expected-degenerate: **including suspicious successes** (a rate of exactly 0.0 or 1.0,
+  identical across cells, a cell below the minimum sample count, non-finite), which need no failure anywhere in the tree;
+- an error-severity signature in a run's log (one flag per run and signature); warning-only signatures are not flags;
+- `PROGRESS FLAT`, `TOTAL EXCEEDED/UNREACHABLE`, a throughput regression;
+- any escalation `read` or `decide`, including the level a WHY disposition removed (`expected: true` runs are still flagged);
+- an escalating NPU flag (`unclaimed_while_work`, `unclaimed_no_work`, `possibly_wedged`); the informational "claimed low" line is not.
+
+**When a pass is retained** (non-empty flag set only): (a) **a flag key appears that was not in the previous pass**, unless that same key
+was retained within `--retain-flap-seconds` (default 1 h), so a flag that toggles does not retain every tick; (b) **refresh**: the newest
+retained copy is older than `--retain-refresh-hours` (default 6) and flags are still present, so the pointers and exemplars of a
+long-lived flag are re-captured. A flag that merely clears does not trigger. Keys are per run (and per signature, metric path or chip
+list), so a second failed run, a different error in the same run, or a new suspicious path is new. Case that deduplication loses: a flag
+that persists while its evidence changes under the same key (for example a rewritten log with the same signature) is captured only at
+the refresh, up to 6 h later. State lives in `_retained/index.json`, so a restart neither forgets what it saw nor retains it again.
+
+**Bounds.** At most `--retain-max` copies (default 60, a `.json`/`.md` pair is one copy) and `--retain-max-mb` MB in total (default
+200); the oldest pair is deleted first and the newest is always kept. Both caps, because `digest.json` is large (about 1 MB on the live
+tree and growing with the run count) and a count alone would let a growing tree fill the disk, while a size alone would let small
+digests accumulate for months. Because "any flag" is true on most passes while the tree has long-lived failures, dedup does the real
+work and the caps are a backstop: at the default 60 copies a flap-heavy day keeps about the last 10 hours at six per hour.
+
+**Self-describing.** Each retained `.json` begins with a `retention` object: `retained_utc`, `trigger` (`new_flags` or `refresh`), `why`,
+`new_flags` (up to 100 keys), `new_flags_total`, `cleared_since_previous_pass`, `flags_total`, `flag_kinds` (counts per kind),
+`previous_retained`, `NOT_PRESERVED`; the rest is the digest of that pass unchanged. The live `digest.json` carries `retention_status`
+(`enabled`, `flags`, `retained` file name or null, `trigger`, `kept` copies, `bytes`, `dir`). Retention is non-fatal: an error becomes
+`retention_status.error` and the digest is written as usual.
+
 ### Explanations
 
 If a run directory holds `WHY_STOPPED.json` or `WHY_FAILED.json` (`--why-names`), its `note` (else `why`, `reason`, `summary`, or
@@ -389,7 +435,7 @@ own directory lands on `sys.path`.
 
 ### Tests
 
-    python3 -P tools/test_watchdog.py          # 147 tests; the module sets WATCHDOG_NO_NPU=1 so no test ever opens an ssh session
+    python3 -P tools/test_watchdog.py          # 161 tests; the module sets WATCHDOG_NO_NPU=1 so no test ever opens an ssh session
 
 The NPU tests use a fake `npu-smi`, `ps` and `ssh` on `PATH` (`--npu-host local` for the end-to-end probe).
 
