@@ -122,6 +122,14 @@ func normalizeIntegralNumbers(node any) {
 	}
 }
 
+// accountabilityEqual compares the optional triples by value.
+func accountabilityEqual(a, b *Accountability) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
+}
+
 // notATransition formats the illegal-transition error.
 func notATransition(i int, op, status, from string) string {
 	if from == "" {
@@ -219,7 +227,8 @@ type Document struct {
 // only); idempotency.operation_id equals identity.operation_id on every
 // event carrying idempotency; and each operation's effect events follow the
 // machine's own transition DAG in file order; idempotency rides every
-// event except conflict. Aggregation contract: the
+// event except conflict; and every effect event carries the adopted pin's
+// attribution triple. Aggregation contract: the
 // code-rule families aggregate in the same order on both sides; both
 // checkers short-circuit at the schema, and this checker additionally
 // short-circuits at the float-syntax and typed-view-parse points where the
@@ -368,6 +377,33 @@ func Errors(doc map[string]any) []string {
 	for i, e := range d.Events {
 		if e.Idempotency != nil && e.Idempotency.OperationID != e.Identity.OperationID {
 			errs = append(errs, fmt.Sprintf("events/%d: idempotency.operation_id %q does not match identity.operation_id %q — the machine writes them equal; a mismatch is a bypass write, not a machine transition", i, e.Idempotency.OperationID, e.Identity.OperationID))
+		}
+	}
+	// attribution consistency: the machine stamps the winner's
+	// identity/versions/accountability pin on every effect event — an effect
+	// event whose attribution diverges from the op's adopted event is a
+	// bypass write; absorbing one forges the audit trail and pollutes the
+	// piece-6 replay correlation keys (versions are its matching inputs).
+	// Checked only where an adopted pin exists: an effect BEFORE its
+	// adoption is already rejected by the grammar (the designed bypass
+	// exception stays two-family).
+	type pin struct {
+		identity       Identity
+		versions       Versions
+		accountability *Accountability
+	}
+	pins := map[string]pin{}
+	for i, e := range d.Events {
+		op := e.Identity.OperationID
+		if e.EventType == "adoption" && e.Outcome.Status == "adopted" {
+			pins[op] = pin{identity: e.Identity, versions: e.Versions, accountability: e.Accountability}
+		} else if e.EventType == "effect" {
+			if p, has := pins[op]; has {
+				if e.Identity != p.identity || e.Versions != p.versions ||
+					!accountabilityEqual(e.Accountability, p.accountability) {
+					errs = append(errs, fmt.Sprintf("events/%d: effect event's attribution (identity/versions/accountability) differs from the adopted pin for operation %q — the machine stamps the winner's pin on every effect event; a divergence is a bypass write, not a machine transition", i, op))
+				}
+			}
 		}
 	}
 	adopted := map[string]bool{}

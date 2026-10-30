@@ -1218,3 +1218,52 @@ func TestCounterExhaustionRefusesWrites(t *testing.T) {
 		t.Fatalf("file bricked after refused writes: %v", err)
 	}
 }
+
+// TestOpenRejectsAttributionDivergence is the R11 M-1 regression: the
+// machine stamps the winner's identity/versions/accountability on every
+// effect event — a file whose effect event diverges from the adopted pin
+// forges the audit trail and pollutes the piece-6 replay correlation keys.
+func TestOpenRejectsAttributionDivergence(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-at", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	events, _ := m.Events()
+	effect := events[0]
+	effect.EventType = "effect"
+	effect.ArbitrationSeq = 1
+	effect.Outcome = ledger.Outcome{Status: string(StateDispatched)}
+	effect.GrantsAtDecision = nil
+	effectLine, err := json.Marshal(effect)
+	if err != nil {
+		t.Fatal(err)
+	}
+	divergent := effect
+	divergent.Versions.Model = "kev-evil"
+	divergentLine, err := json.Marshal(divergent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := json.Marshal(events[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(string(first)+"\n"+string(divergentLine)+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err == nil {
+		t.Fatal("attribution-divergent effect event was absorbed at load — the audit trail can be forged")
+	}
+	// control: the pin-faithful chain loads
+	if err := os.WriteFile(path, []byte(string(first)+"\n"+string(effectLine)+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m2, err := Open(path)
+	if err != nil {
+		t.Fatalf("pin-faithful chain rejected: %v", err)
+	}
+	if m2.State("op-at") != StateDispatched {
+		t.Fatalf("state = %q, want dispatched", m2.State("op-at"))
+	}
+}

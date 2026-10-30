@@ -188,15 +188,15 @@ type parsedLine struct {
 
 // parseCompleteLines returns the parsed lines of a JSONL byte stream, or an
 // error naming a line that is not a machine write. The boundary rule: a
-// complete line is one that parses in BOTH views (raw map + typed event);
-// the ONLY tolerated non-event content is a torn tail — an unparseable
-// remnant at EOF WITHOUT a trailing newline, the exact shape a crash
-// between 'write full content' and 'rename' leaves. Any other unparseable
-// line (mid-file, or newline-terminated), or a line whose JSON parses but
-// whose fields do not fit the event type, is a bypass or corruption (empty
-// lines — zero-byte segments anywhere — are the one other tolerated
-// non-event content, carrying no audit data and healing away on rewrite):
-// an
+// complete line is one that parses in BOTH views (raw map + typed event).
+// Two forms of non-event content are tolerated: a torn tail — an
+// unparseable remnant at EOF WITHOUT a trailing newline (a conservative
+// compatibility boundary for externally-damaged files; under the machine's
+// own temp+rename protocol a crash leaves the old or the new file, never a
+// partial line) — and empty lines (zero-byte segments anywhere, carrying no
+// audit data, healing away on rewrite). Any other unparseable line
+// (mid-file, or newline-terminated), or a line whose JSON parses but whose
+// fields do not fit the event type, is a bypass or corruption: an
 // append-only audit ledger must not silently drop (and the next append must
 // not silently erase) audit data — it fails (R4 M2). This is the ONE
 // boundary definition for the durable form — the loader, the load-time

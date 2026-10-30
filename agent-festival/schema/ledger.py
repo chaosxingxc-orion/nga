@@ -2,13 +2,15 @@
 """Validate event-ledger fixtures (piece 4 oracle).
 
 Ledger documents: JSON Schema + the cross-event rules JSON Schema cannot
-express — seven families: arbitration_seq strictly increasing (+int64
+express — eight families: arbitration_seq strictly increasing (+int64
 domain, +float syntax beyond ±2^53 rejected by rule), one payload digest
-per operation (15 B4), the idem-identity key coupling, status families
-never crossing the event-type boundary, the grant pin riding the adopted
-event only, and the single-writer event-sequence grammar (each operation
-opens with exactly one adopted event and its effect events follow the
-machine's transition DAG). Aggregation contract: the code-rule families
+per operation (15 B4), idempotency presence (every non-conflict event
+carries it), the idem-identity key coupling, status families never
+crossing the event-type boundary, the grant pin riding the adopted event
+only, effect events carrying the adopted pin's attribution triple, and the
+single-writer event-sequence grammar (each operation opens with exactly
+one adopted event and its effect events follow the machine's transition
+DAG). Aggregation contract: the code-rule families
 aggregate in the same order on both sides; both checkers short-circuit at
 the schema, and the Go checker additionally short-circuits at the
 float-syntax and typed-view-parse points where this oracle appends and
@@ -170,6 +172,24 @@ def ledger_errors(doc: dict) -> list[str]:
                         f"machine writes them equal; a mismatch is a bypass write, not a "
                         f"machine transition")
 
+    # cross-event rule: attribution consistency — the machine stamps the
+    # winner's identity/versions/accountability pin on every effect event;
+    # a divergence is a bypass write that forges the audit trail and
+    # pollutes the piece-6 replay correlation keys (mirrors the Go checker;
+    # checked only where an adopted pin exists — effect-before-adoption is
+    # already the grammar's designed exception)
+    pins: dict[str, tuple] = {}
+    for i, e in enumerate(doc["events"]):
+        op = e["identity"]["operation_id"]
+        if e["event_type"] == "adoption" and e.get("outcome", {}).get("status") == "adopted":
+            pins[op] = (e["identity"], e["versions"], e.get("accountability"))
+        elif e["event_type"] == "effect" and op in pins:
+            if (e["identity"], e["versions"], e.get("accountability")) != pins[op]:
+                errs.append(f"events/{i}: effect event's attribution (identity/versions/"
+                            f"accountability) differs from the adopted pin for operation "
+                            f"{op!r} — the machine stamps the winner's pin on every effect "
+                            f"event; a divergence is a bypass write, not a machine transition")
+
     # cross-event rule: the single-writer event-sequence grammar — each
     # operation opens with exactly one adopted adoption event, and every
     # later event for it (reused / conflict / effects) only exists downstream
@@ -255,8 +275,8 @@ def main() -> int:
     # corpus that shrank without its pin rebased must fail here too
     n_valid = len(list((ex / "valid").glob("*.json")))
     n_invalid = len(list((ex / "invalid").glob("*.json")))
-    if (n_valid, n_invalid) != (9, 24):
-        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 9+24 (corpus shrank?)")
+    if (n_valid, n_invalid) != (9, 25):
+        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 9+25 (corpus shrank?)")
         bad += 1
     for e in check_status_lockstep() + check_lockstep():
         print(f"[ledger] FAIL {e}")
