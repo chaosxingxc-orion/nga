@@ -21,6 +21,47 @@ q = module('queue_helpers_e37', 'jeval_reference_queue.py')
 diag = module('diagnostic_e37', 'openjev_batch_diagnostic.py')
 
 
+class HostIdentity(unittest.TestCase):
+    def setUp(self):
+        self.real = module('e37_host_identity', 'prepare_openjev_batch_diagnostic.py')
+        self.patches = [patch.object(q, 'docker', return_value={'Name':'k8s-node1'}),
+            patch.object(self.real.socket, 'gethostname', return_value='k8s-node1'),
+            patch.object(self.real.Path, 'exists', return_value=False),
+            patch.object(self.real.Path, 'read_text', return_value='systemd\n'),
+            patch.object(self.real.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, 'none\n', ''))]
+        self.mocks = [x.start() for x in self.patches]
+        for x in self.patches:self.addCleanup(x.stop)
+
+    def test_readable_physical_host_is_accepted(self):
+        self.real.host(q)
+        self.mocks[4].assert_called_once_with(['/usr/bin/systemd-detect-virt','--container'],
+            capture_output=True,text=True,check=False,timeout=10)
+        self.mocks[2].assert_called_once_with()
+
+    def test_daemon_host_local_host_container_and_pid1_mismatch_rejected(self):
+        for index,value in [(0,{'Name':'foreign'}),(1,'foreign'),(2,True),(3,'python\n')]:
+            with self.subTest(signal=index):
+                old=self.mocks[index].return_value;self.mocks[index].return_value=value
+                with self.assertRaises(ValueError):self.real.host(q)
+                self.mocks[index].return_value=old
+
+    def test_container_detection_requires_exact_negative_result(self):
+        for rc,out,err in [(0,'docker\n',''),(0,'none\n',''),(1,'',''),(1,'unknown\n',''),
+                           (2,'none\n',''),(1,'none\n','warning')]:
+            with self.subTest(result=(rc,out,err)):
+                self.mocks[4].return_value=subprocess.CompletedProcess([],rc,out,err)
+                with self.assertRaises(ValueError):self.real.host(q)
+
+    def test_unreadable_pid1_or_missing_failed_command_is_rejected(self):
+        self.mocks[3].side_effect=PermissionError('pid1 unavailable')
+        with self.assertRaises(PermissionError):self.real.host(q)
+        self.mocks[3].side_effect=None
+        for error in [FileNotFoundError('detector missing'),subprocess.TimeoutExpired('detector',10),OSError('execution failed')]:
+            with self.subTest(error=type(error).__name__):
+                self.mocks[4].side_effect=error
+                with self.assertRaises(type(error)):self.real.host(q)
+
+
 def spec(out):
     return dict(Image=q.IMAGE, Cmd=['bash', 'historical.sh'], Entrypoint=['native-entrypoint'],
         Env=['ASCEND_RT_VISIBLE_DEVICES=0'], HostConfig=dict(

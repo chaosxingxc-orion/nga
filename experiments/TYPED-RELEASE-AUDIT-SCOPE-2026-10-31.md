@@ -48,3 +48,9 @@ cmp /tmp/typed-recomputed-review.json RECOMPUTED.json
 ```
 
 Keep output outside the bundle so the final manifest remains unchanged. Further review may inspect the bounded snapshot and source documents; any substantive finding should cite file and line evidence rather than treating the existing audit status as a release verdict.
+
+## 2026-10-31 dated addendum: actual Astra review completed
+
+The earlier statement that this preparation task had not produced an Astra verdict describes the preparation cutoff and is preserved above. A subsequent actual read-only `gpt-6-astra` CLI review completed at 2026-10-30T21:13:39.528282+00:00, with runner rc=0 and actual child wait return code 0. Its original review SHA-256 is `e4330a6892011ba8ff85a2ea2dbd3f80453dda32e31adcef9d10d53c8fad2052`. See the [full review and evidence bindings](ASTRA-TYPED-RESULTS-REVIEW-2026-10-31.md) and [JSON record](ASTRA-TYPED-RESULTS-REVIEW-2026-10-31.json).
+
+The review found no blocker to the limited saved-reference-metric claim. It independently checked all 2,400 receipts and 11 panels; its separate arithmetic yielded 1,485 scalar comparisons with maximum absolute difference 9.992e-16. Limitations remain: Kev wire is not original-scorer-compatible; token/wire audit independence differs by family; copied inference exit evidence does not independently prove the finisher containers' Docker exits; full external dependencies and Parquet semantic decoding were not independently rerun by Astra. The unexplained bundle metadata hash is a canonical file-list hash, not the manifest file hash; the record above supplies that clarification without changing the frozen evidence. No training/business benefit or training-launch permission follows.

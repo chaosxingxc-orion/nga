@@ -101,3 +101,42 @@ its `LAUNCH_EXACT.sh`. Verification produces the full receipt manifest and
 comparison checks without releasing resources. 9B follows the identical process
 with its own source/E36 paths and distinct generation, only after a valid chip is
 again released. No commands in this example were executed by this amendment.
+
+## 2026-10-31 05:05 CST (21:05 UTC) — staging verified; execution still gated
+
+The prior session created `reference_inference/e37_sources_20261031/` at
+21:00 UTC. Its six tool files and protocol were now compared byte-for-byte with
+the repository and all match; `MANIFEST.json` SHA256 is
+`a286d277deae11799defb92faf21fb972231bb5921c95edd0f2f1e1b95f97bc5`.
+This corrects the earlier example's “staging directory has NOT been created”
+statement. Existing staged sources were retained, not overwritten.
+
+No preparation request or runtime plan has yet been generated. All physical
+chips 0–5 still have owners. The E32 Open-Jev-2B OOD finisher digest at
+21:05:38 UTC reports inference running, 15,657/15,920 rows; its chip 4 remains
+allocated. The source-staging check is not a resource release, CPU preparation
+success, NPU launch, or numerical diagnostic result. E32 terminal, independent
+audit, retained container exits, and explicit allocation release must precede
+the guarded E37 preparation request.
+
+## 2026-10-31 05:15 CST (21:15 UTC) — E32 released; host guard revision prepared
+
+E32 Open-Jev-2B OOD is now accepted: the inference and finisher containers both
+exited 0, all 15,920 receipts were retained, the independent audit verified 102
+frozen files and 15,920 records with zero review flags, and the release evidence
+was written to `reference_inference/e37_ood2_acceptance_20261031/`. Physical chip
+4 was released under the allocation lock only after the live Docker-device check
+and empty `npu-smi` query; `E32_RELEASED.json` records the action. This releases
+the resource for a guarded preparation request; it does not launch E37.
+
+The original E37 host guard attempted to inspect `/proc/1/root/proc`, which is
+unreadable to the authorized non-root SSH identity. A passwordless sudo path is
+also unavailable. I therefore prepared a new, separately staged source generation
+`reference_inference/e37_sources_20261031_v2/` with a narrowly scoped host
+identity check: Docker daemon `k8s-node1`, local hostname `k8s-node1`, no
+`/.dockerenv`, PID 1 `systemd`, and an exact successful
+`systemd-detect-virt --container` result of `none` with return code 1. The new
+generation has 42 preparer tests and 10 diagnostic tests passing. No request,
+runtime plan, chip claim, NPU launch, or scientific protocol change has been made.
+The prior Astra review does not cover this host-guard revision; it requires a
+separate bounded review before use.

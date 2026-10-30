@@ -16,6 +16,7 @@ from pathlib import Path
 import re
 import shlex
 import shutil
+import socket
 import subprocess
 import sys
 import threading
@@ -51,8 +52,16 @@ def docker_host(q):
 
 def host(q):
     docker_host(q)
-    require(Path('/proc/1/root/proc').exists() and not Path('/.dockerenv').exists(),
-            'Launcher must run on host for physical occupancy check')
+    # The occupancy query must execute on the physical host. Traversing
+    # /proc/1/root requires root on 175 and rejects the authorized SSH user.
+    # Use readable, independent host/container signals instead; uncertainty fails.
+    require(socket.gethostname() == 'k8s-node1' and not Path('/.dockerenv').exists()
+            and Path('/proc/1/comm').read_text().strip() == 'systemd',
+            'Launcher must run on 175 host for physical occupancy check')
+    result = subprocess.run(['/usr/bin/systemd-detect-virt', '--container'],
+                            capture_output=True, text=True, check=False, timeout=10)
+    require(result.returncode == 1 and result.stdout.strip() == 'none'
+            and not result.stderr.strip(), 'Host container detection is positive or unknown')
 
 
 def process_query(output, chip):

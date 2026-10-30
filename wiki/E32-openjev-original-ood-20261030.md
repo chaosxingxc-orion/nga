@@ -73,3 +73,28 @@ checks. 9B OOD then launched on chip 2, container
 finisher `c62f4476bc164de5eab5dbf8201cfda79117fd61c17e418a9347b2736eccbb52`.
 Both actual containers and CPU finishers were running at final verification.
 No final OOD metrics, training gain or substantive Astra approval yet.
+
+## 2026-10-31 — 2B completed and accepted (175 host times)
+
+The complete 2B OOD inference wrote terminal rc 0 at 2026-10-30 21:08:45 UTC
+for 15,920/15,920 rows. Its wrapper and retained inference container exited 0
+at 21:08:49 UTC. The independent CPU finisher completed at 21:09:41 UTC and
+its retained container also exited 0. Audit status is `VERIFIED_SCOPED`,
+102 frozen / 89 required files, all 15,920 records, 15,446 hard and 474 soft,
+with zero native main-panel review flags. This does not certify every selective
+coverage subcell or supply an Astra result review.
+
+Detailed serving/T=1 metrics and source denominators are in
+[the 2B OOD results](../experiments/OPENJEV-ORIGINAL-OOD-RESULTS-2026-10-31.md).
+Hard accuracy is 13,288/15,446 = 86.028745%; expected accuracy is 84.616890%
+over all 15,920. Serving NLL / Brier / expected Brier / ECE15 are
+0.802074062 / 0.246288900 / 0.263619640 / 0.105578241.
+Report SHA256 is `35f4f3bd824f435aa2813e60de0e41f7af863a3d2ced96783d394bd624906e07`;
+audit SHA256 is `36e65d8c398902fcfe4fd0b3ce1c829ad28212f27d7072625289f3db7038de58`.
+
+`reference_inference/e37_ood2_acceptance_20261031/` stores the complete receipt
+manifest, actual container exit and output bindings, and release evidence.
+The receipt manifest was rechecked after audit completion. Physical chip 4 was
+explicitly released under the allocation lock after live Docker and empty-device
+checks, to permit guarded E37 preparation. No 9B completion or new training
+benefit is claimed by this 2B entry.

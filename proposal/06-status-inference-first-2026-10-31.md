@@ -4,6 +4,8 @@
 
 **运行进度固定截点：2026-10-30 21:03 UTC，即北京时间 2026-10-31 05:03。** 下文的运行计数只代表这一截点，不是实时状态；后续终态须由相应实验记录和独立验收确认。本文件和当前矩阵都是阶段性交接，不代表全部参考实验或自动执行链已经完成。
 
+**截点后的增量见第 9 节：Typed Decisions 已获得实际 Astra 的限定发布结论，Open-Jev-2B 原始 OOD 已完成独立验收。** 保留下文原截点，以便区分当时进度与后续完成证据。
+
 ## 1. 当前阶段的结论
 
 当前阶段的首要交付是**参考模型的实际 test 推理、分口径计分、独立验收和可追溯汇报**。用户要求“先汇报参考模型指标，再讨论训练方案”，不能理解成只整理论文表格：推理本身是实验，自动调度、断点恢复、计分、终态检查和独立验收也必须真实完成。
@@ -141,6 +143,7 @@ Kev-0.8B、4B、9B 的 decision-v7、transfer-v4、hard-v1、documents-v1、devt
 - 继续自动驱动四项 JEVal 与两项 OOD；只读 digest，直至真实 terminal。
 - 对每个完成项执行 receipt manifest、实际 exit、report/audit/terminal hash、公式/温度/分母核对。
 - 完成 Typed Decisions bounded release review，并更新统一参考基线矩阵。
+- 对缺少历史审计终态绑定的 28 个 Kev 面板，保留原证据并安排新一轮逐项复核和带日期的绑定记录；不能通过补写旧终态声称历史链已完整。
 - 处理 suspicious success、完美小样本、缺失/重复 receipt、来源冲突；异常保留，不通过改阈值消除。
 
 阶段 A 的**阶段性汇报条件**是：每个已约定参考单元都有已验收数字，或明确的 pending/blocked 原因；各来源、公式、分母和可比性均可追溯。有 pending/blocked 时，只能称完成这一批汇报，不能称全部参考实验完成；未完成单元继续执行或诊断，受影响结论保持未决。不能用启动数量、代码单测或论文摘录替代。
@@ -196,3 +199,17 @@ Kev-0.8B、4B、9B 的 decision-v7、transfer-v4、hard-v1、documents-v1、devt
 - [Typed Decisions 结果](../experiments/TYPED-REFERENCE-RESULTS-2026-10-30.md)
 - [JEVal 队列记录](../wiki/E34-jeval-serial-queue-20261030.md)
 - [E37 诊断记录](../wiki/E37-openjev-batch-diagnostic-20261030.md)
+
+## 9. 截点后的实际完成增量
+
+### 2026-10-31 05:13 北京时间：Typed Decisions 结果审查完成
+
+实际 `gpt-6-astra` 只读审查进程退出 0，核验 2,547 个清单文件、六模型共 2,400 条回执，并独立重算 11 个面板及题型/workflow 分项。1,485 次标量比较最大绝对差约为 9.992×10⁻¹⁶；未发现阻断限定指标发布的算术、完整集合或包内哈希问题。[完整审查与证据](../experiments/ASTRA-TYPED-RESULTS-REVIEW-2026-10-31.md) 保留了实际结论。
+
+结论仅支持“保存快照中经独立复核的 Typed Decisions 参考指标”。Kev wire 与原 scorer 不兼容、不同家族的重分词/接口验收范围不同、包内缺少 finisher 容器自身的独立 Docker 退出记录、未重查外部权重及重新解码 Parquet等限制继续保留。它不批准正式训练，也不证明新的训练收益。
+
+### 2026-10-31 05:09 北京时间：Open-Jev-2B 原始 OOD 验收完成
+
+原始 OOD 的 15,920 行推理与独立审计完成，hard 15,446、soft 474；推理和 finisher 实际退出均为 0，审计为 `VERIFIED_SCOPED`、review flags 为 0。原生温度 hard accuracy 为 **86.028745%**，expected accuracy 为 **84.616890%**；两者使用不同定义及分母，不能混写。原生温度 Brier 为 0.246288900、ECE15 为 0.105578241；raw T=1 另列，未按 OOD 调温度。
+
+该结果是固定 58 面板快照之后的新完成项，见 [E32 记录](../wiki/E32-openjev-original-ood-20261030.md)，不静默改写旧矩阵中的 pending 状态。其余三个 Kev 与 Nimble 的 JEVal、Open-Jev-9B OOD 仍待最终验收；两项 Open-Jev JEVal 仍受 E36 数值准入限制。E37 接续只在合法资源释放及自身工程门禁通过后执行，实际诊断状态见 E37 记录。

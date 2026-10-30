@@ -77,3 +77,13 @@ Nimble 的 2,000 个分布全部有效，invalid／unsupported／overlength／fa
 - audit SHA256：`acd97b8bced8d8c43f148c08472244abd34d3d37a6d0340c9ec738756a10d4ca`
 
 最终累计吞吐 1.113950 questions/s/chip，1 chip，reserved memory 17.587891 GiB。原生温度下，Kev-9B accuracy 68.05% 对 Open-Jev-9B 67.80%，但后者 noul accuracy 较高；分项差异必须保留，0.25 个百分点的总体差距没有显著性或机制因果结论。该集合六模型完成不代表 JEVal／原始 OOD 完成，也不是我们的训练增益。
+
+## 2026-10-31 05:13 北京时间：实际 Astra 结果审查追加
+
+固定 `gpt-6-astra` 的只读有界审查已于 2026-10-30T21:13:39.528282+00:00 完成，runner `rc=0`，CLI 子进程实际退出 0。此前正文中的“Astra 实质审查仍未获得”“没有 Astra 实质放行结论”对应各自历史截点，保留原文；当前状态以本追加和[完整审查记录](ASTRA-TYPED-RESULTS-REVIEW-2026-10-31.md)为准。
+
+审查核对六模型各 400 states／2,000 questions、共 2,400 receipts，独立重算 11 个 serving／raw-T1 面板及 type/workflow 分项；另行算术实现作 1,485 次标量比较，最大绝对差 9.992e-16。限定结论是：可以将保存结果表述为经独立复核、有明确边界的 Typed Decisions 参考指标，未发现阻断该口径的算术、receipt 人口或包内哈希问题。指标数值不变。
+
+仍须保留五项限制：① Kev noul wire 缺原 scorer 所需 probabilities，不能称严格 wire/HTTP 复现；② Kev 未独立重分词/完整 wire 验证，Nimble/Open-Jev 的既有审计范围不同；③ 本次只独立核对复制的推理容器退出证据，缺验收容器自身独立 Docker exit 记录，因此不重复确认正文更广的历史退出声明，这不是已发现退出失败；④ 未重新核验完整外部权重依赖，也未由 Astra 重新语义解码 Parquet，而是用哈希绑定的完整 JSON 提取；⑤ 清单内部 metadata hash 是规范化文件列表哈希，对外引用使用 MANIFEST 文件完整哈希。
+
+原审查 SHA-256：`e4330a6892011ba8ff85a2ea2dbd3f80453dda32e31adcef9d10d53c8fad2052`；证据包 MANIFEST 文件 SHA-256：`799243b7b91a937ac50840896f3c1f2b1f04c9ca1944c79177d5f8a503765c71`。完整终态、实际退出、逐项限制与原审查全文见[结构化记录](ASTRA-TYPED-RESULTS-REVIEW-2026-10-31.json)。本次不证明训练收益或业务收益，不代表 JEVal/OOD 完成，也不授权正式训练。
