@@ -1,9 +1,10 @@
 # R3 first SFT round (round 1): pre-registration
 
-> 2026-10-30 · Draft. The orchestrator's rulings of 2026-10-30 are written in (§13). It becomes frozen
-> when committed, and it must be committed **before** any scored run it covers, including the untuned
-> K0 scoring. After that only results are filled in; changes go in numbered amendments that cite
-> clauses (`§n.m`) by number (proposal `00-research-proposal.md` §0 rule 3).
+> 2026-10-30 · Frozen as of 387521b (2026-10-30 00:44 +0800). The orchestrator's rulings of
+> 2026-10-30 are written in (§13). It became frozen when committed, and it had to be committed
+> **before** any scored run it covers, including the untuned K0 scoring. After that only results are
+> filled in; changes go in numbered amendments that cite clauses (`§n.m`) by number (proposal
+> `00-research-proposal.md` §0 rule 3).
 >
 > Sources: `KEV-PROTOCOL.md` (Kev's protocol, with file:line citations into
 > `/mnt/cephfs/xingchao/repos/jev/jaredpalmer__kev`, here written `kev/`; where a citation is marked
@@ -582,3 +583,187 @@ admissible for the ladder if, on **both** decision-v7 dev and transfer-v4 dev, K
 within [min − 1.0, max + 1.0] points of the two reference-kernel K1 seeds, **and** the paired
 per-question disagreement between K1-FLA and reference K1 seed 2 is no larger than the disagreement
 between reference K1 seeds 2 and 3. Otherwise the ladder trains on the reference kernel.
+
+14.5 **Amendment 5, R0 comparison target, open choices, run order, model of record, the ladder's
+training mode, sequencing, the widened padding diagnosis and status, 2026-10-30.** Made before any
+arm was trained and before any admissible readout exists (the pre-§14.2 K0 numbers are void). The user
+set the goal of this round on 2026-10-30: train Qwen3.5 models below 10B on host 175 on local data
+and report on Kev's own test sets (§9.4 wording). Each item names the clauses it changes, the reason,
+and the resolution.
+1. **§6.3, §6.5: the R0 side.** Reason: both clauses still name `r0_baseline_rederived/report.json`
+   as the R0 comparison target, which §14.2 forbids as the R0 side of any comparison. Resolution:
+   - The R0 side is `Qwen3.5-0.8B` (§2.1) re-scored by an admissible scorer (item 7) under the R0
+     configuration of §6.3 (prompt `r0-prompt-v2`, τ fitted on the full `group70` train side, the whole
+     held-out side, and the tie rule the published report used, pre-§13.1). K1-PT's B-4 against R0 is
+     computed against this re-score only. R0 §13.5's B-2 pass/void verdicts and §8.2 (c)'s gating cells
+     are recomputed on this re-score. The
+     published R0 report's verdicts are not carried over to it.
+   - §6.5 is split in two. **(i) Harness identity**: K0 on `Qwen3.5-0.8B` is derived under the R0
+     configuration using the *same padded scorer the R0 run used* — `r0_code/scorer.py` at R0's commit,
+     R0's `token_budget`, R0's shard count and shard assignment, and R0's image id, as recorded in
+     R0-RES §2 — and must reproduce `r0_baseline_rederived/report.json` exactly for every metric the
+     tie rule does not affect. Pad counts depend on batch composition, which depends on the sharding,
+     so the shard assignment is load-bearing and is pinned, not inferred. **A difference under the fully
+     pinned configuration is a code defect and stops the round.** A difference traceable to a
+     configuration element that **cannot** be pinned is not a defect verdict and does not stop the
+     round: it is pinned where possible, recorded where not, and carried into (ii) as a stated gap. Two
+     such elements are known now: R0 recorded **no harness commit** (`git_commit: unknown`, R0-RES §2),
+     so the source pin is the committed snapshot `experiments/r0_baseline/scorer.py`, verified
+     byte-identical to the live `r0_code/scorer.py`; and R0 ran under image
+     `sha256:4d683043…` while §11.1 names `nga-verl-qwen35-v030:20261029`, so if the R0 image is
+     unavailable the image difference is recorded and (ii) is read with it stated.
+     **(ii) Erratum measurement**: the admissible unpadded/right-padded scorer is run on the same
+     items, and the two are differenced metric by metric. This has **no** pass bar and no stopping
+     power; it is the content of the R0 erratum. Without the (i) padded rerun the (ii) difference could
+     not separate the padding effect from environment drift, which is why (i) is the control and why it
+     is pinned.
+     The (i) derivation is the only use of the padded scorer admitted in R3: it is a code-identity
+     check against a published report, never a readout of record, so §14.2's unpadded/right-padded
+     requirement is not weakened by it. Every number this round reports comes from the admissible
+     scorer. The (i) derivation writes its readouts to `r3_runs/harness_identity/`. Its only consumer
+     is the (ii) erratum difference, which is an R0 artifact (`R0-BASELINE-RESULTS.md`), not a report of
+     record of this round. No number of this round cites a file in that directory; a test naming this
+     clause asserts that no report of record of this round names a source path containing
+     `harness_identity/`.
+2. **§7.4, ruling 6: K3's base when §8.2 does not separate K1 and K2.** Reason: §8.2 is a one-way
+   replacement test, so applying it "to the two" can leave neither better. Resolution: K1 is the
+   incumbent and K2 the candidate. K3 starts from K2 only if K2 replaces K1 under §8.2; otherwise it
+   starts from K1, the arm K-align is judged on (§9.1). Sub-case: if K1 fails K-floor (§9.2) and K2
+   clears it, the base is K2; if neither clears K-floor, no base is fixed: K3's base is re-registered in
+   the post-G1 amendment, because no admissible arm exists. Likewise K4 (§7.5) does not run in round 1
+   if no arm is adopted after wave 1. This choice is made in round 1 (item 6) even though K3 itself does
+   not run in round 1, and it is **provisional**: it is re-registered in the post-G1 K3 amendment, since
+   arms trained between now and G1 may supersede it.
+3. **§9.1: consequence of missing K-align.** Reason: §9.1 says the gap is reported but not what
+   happens to the round. Resolution: the round continues on the order of item 4. The gap is reported
+   beside the declared differences of §3.3, which are candidate causes and are not measured as causes in
+   this round, and is not explained away; no Kev comparison (§9.3, §9.4) may describe any result of this
+   round as aligned with, matching or replicating Kev.
+   - Clearing §9.1 licenses only the sentence "clears the pre-registered K-align line". The words
+     **aligned with**, **matches** or **replicates** Kev are admissible only if the two-seed mean lies
+     within [min − 1.0, max + 1.0] points of the three reference stage-1 seeds on **both** suites, the
+     same bound §14.4 uses. Otherwise the result is reported as "below the reference stage-1 range by
+     X points on decision-v7 dev and Y on transfer-v4 dev".
+4. **§7.1, §7.5, §7.6, §8.4: run order and scope.** Reason: §7 gives dependencies but no order, and
+   §7.1 and §7.6 leave the ladder conditional. Resolution, each step starting only after the previous
+   one has finished and been read on dev:
+   1. K0 on `Qwen3.5-0.8B-Base` and `Qwen3.5-0.8B` with the admissible scorer, both tracks, all
+      degenerate arms, and the item 1 padding measurement.
+   2. Wave 1, concurrent, one chip per run (§14.3), eight runs: K1 seeds 2 and 3, K2 seeds 2 and 3,
+      K1-PT seeds 2 and 3, K1-QO seed 2, K1-FLA seed 2 (§14.4). K-align, K-floor, K1 against K2
+      (§8.2, item 2) and the ladder kernel test (§14.4) are decided from this wave. Every trained arm
+      is also scored with `input_mode = drop` (§5.2) and `blank` (§5.3) on both dev partitions, since
+      §9.2's question-only comparator is the arm itself. Wave 1 is 8 single-chip trainings on a host
+      with 8 chips (§11.1). Contention is resolved by the step order, not by reserving a chip: step 1's
+      scoring completes before step 2 launches, and an arm's own scoring starts only on a chip freed by
+      a finished training run. Three constraints are fixed here. (a) **No two runs of record share a
+      chip**, and no scoring of record shares a chip with a training run of record, so the per-chip
+      throughput and reserved-memory figures of §10.2 measure one run each. (b) The chip assignment and
+      the concurrency per chip are written into the wave's directory **before it launches** and are not
+      changed after any arm's dev number has been read. Sharing a chip between two runs of record is
+      not admitted in round 1; it requires a new amendment committed before any shared run launches.
+      The file's sha256 is recorded in every run's §7.7 record, and the watchdog compares each run's
+      recorded chip against it. (c) The chip assignment of every run is recorded (§7.7, §10.2).
+   3. K4 (§7.5), from the arm adopted after wave 1, at **0.8B only**.
+   4. Ladder 2B, 4B, 9B (§7.6), **in scope for round 1**, each size preceded by its K0 (§7.1).
+      - **§7.6 is fixed now.** The ladder trains with the adopted **LoRA** arm (K1 or K2), at 2B, 4B and
+        9B, regardless of whether K4 is adopted at 0.8B. Full fine-tuning is not inherited by the
+        ladder: the §14.3 single-chip trainer cannot hold the full-FT state above ~2B (9B needs roughly
+        144 GB of weights, gradients, fp32 master weights and two Adam moments against 64 GB of HBM),
+        and §14.4's kernel admissibility test is a LoRA test. K4,
+        if adopted, is reported at 0.8B only and §9.3 K-ladder reads on the LoRA ladder. A multi-chip or
+        full-FT ladder requires a new amendment written and committed before any K4 number is read.
+      - If a size does not fit the §14.3 trainer at any micro-batch permitted by §7.6, that size is
+        reported as "not run, memory" with the measured requirement, and the ladder stops at the last
+        size that fits. K-ladder (§9.3) is then read over the sizes that ran, with the omission stated.
+      - Unconstrained optimum and its discrimination counterpart (rule 2): a larger model may raise
+        decision-v7 by memorizing more of the trained sources. The counterpart is transfer-v4, whose
+        sources are never trained on (§2.2); §9.3 requires the non-decrease on **both** suites, so a
+        decision-v7-only rise is not a K-ladder pass.
+   5. `FINAL.json` and the single test read per size (§8.4). `FINAL.json` for a size is written and
+      committed when that size's selection ends, and is not re-opened by a later size's result.
+
+   K3 is not in this order (item 6). The round-1 adoption chain is K1 → K2 → K4.
+5. **§7.2 "Model of record", §8.4: LoRA arms.** Reason: folding the adapter into bf16 base weights
+   perturbs scores. On the smoke run, decision-v7 dev, 200 items, the unmerged adapter gives 0.755
+   under both tie rules with no ties, while the folded copy gives 0.760 under Kev's
+   first-maximal-index rule and 0.750 under the R0 convention, with 2 exact top ties on `kev-boolq`.
+   Folding's apparent +0.005 is entirely those two ties resolving to position 0; it is a tie artifact,
+   not a gain (`r3_runs/eval200_rp_unmerged`, `eval200_rp_folded`). Resolution: the
+   model of record of every LoRA run is the end-of-training adapter, **unmerged**, applied at scoring
+   time to the §2.1 base checkpoint at its recorded revision. A folded copy may exist for inspection
+   and never produces a reported number. For LoRA runs the §8.4 test lock and `TEST-READS.log` hash the
+   adapter files (sha256 per file) together with the base checkpoint revision, and `FINAL.json` names
+   both. Full fine-tuned models (K4) hash their weight files as §8.4 states. A test naming this clause
+   asserts that every report of record for a LoRA arm has a non-null `model.adapter` in its header and
+   no `model_path` under a `merged/` directory.
+6. **Sequencing deviation; K3 deferred (§1.3, §2.6, §4.8, §7.4, §12.5).** Reason: this round trains
+   before gate G1 and before the R2 harness exists, against `proposal/01-work-plan-four-directions.md`
+   §6 items 4 and 5 (user ruling 2026-10-30, recorded in proposal R3). Resolution:
+   - K1, K2, K4, the controls K1-PT, K1-QO and K1-FLA, and the ladder are **accuracy SFT** on Kev's
+     data, not training aimed at consistency, and may run before G1. Declared: they inherit §3.4's
+     option shuffling and NOTA pairs, which spend on registry rows 6, 5 and 16; that spend is kept only
+     to replicate Kev's recipe (§4.8), and the trained flip rate stays a sanity metric.
+     §4.8's treatment is extended to §4.6: for every arm trained under §3.4, the NOTA-selection rate,
+     false-NOTA rate and both-sides-right are **sanity metrics**, labelled as such, never a row-5 or
+     row-16 finding; only K0's NOTA numbers may be read as such. No trained-arm number of round 1 may be
+     reported as an invariance, consistency, abstention or unknown-handling result, and no round-1
+     number
+     is evidence for or against G1 (WP-1.9, WP-2.6). The row-6/5/16 spend is a declared cost and is not
+     progress on those rows.
+   - K3 trains on renaming and definition-swap manipulations and **is** consistency-targeted. It is
+     **deferred until G1 is decided**: it stays pre-registered as written in §7.4 and §2.4 and is not
+     withdrawn, but it does not run in round 1 and produces no round-1 number.
+   - Consequences: the §7.4 base choice (item 2) is still made in round 1, for later use; §12.5 is moot
+     for round 1; no round-1 arm draws on Track T data, so §2.6's training exclusion is vacuous in round
+     1 while τ is still fitted on the carve-out only; K3 re-enters after G1.
+7. **§14.2: scorer admissibility numbers.** Reason: §14.2 admits a scorer only within "the measured
+   bf16 batch-size floor", and that floor had not been measured when §14.2 was written. Resolution:
+
+   `[FILLED BY ORCHESTRATOR: floor table]`
+
+   The table gives, per suite, the fixed sample and its n, the admitted layout's replicate floor, the
+   admitted scorer's difference from the unpadded layout, and the verdict under this rule,
+   fixed before the table is filled: a scorer is admissible on a suite only if, on that suite's fixed
+   sample, (i) the maximum absolute per-candidate score difference from the unpadded layout does not
+   exceed the admitted layout's replicate floor — the maximum absolute per-candidate score difference
+   between two runs of the admitted scorer on the same sample under two different batch compositions
+   (the sample in two fixed orders), measured before the table is read — (ii) no question's argmax
+   differs under either tie rule, and (iii) the sample headline accuracy of the admitted scorer equals
+   the unpadded layout's under each tie rule. The sample and its n are fixed before the measurement is
+   read. A scorer that fails is fixed; the bound is not relaxed, retroactively or otherwise (§14.4).
+   No readout of record is produced before the table is filled.
+8. **Header: status.** Reason: the header still said "Draft", but the file was committed at
+   `387521b` (2026-10-30 00:44 +0800) before any scored run it covers. Resolution: the file is
+   **frozen as of `387521b`**. Every later change is a numbered amendment in §14 (§14.1–§14.5). This
+   amendment's only edits outside §14 are in that header line and the sentence after it: the header's
+   `2026-10-30 · Draft.` now reads `2026-10-30 · Frozen as of 387521b (2026-10-30 00:44 +0800).`, and
+   "It becomes frozen when committed, and it must be committed" is put in the past tense, since it did.
+   No other clause of §1–§13 is touched by this amendment.
+9. **§13 ruling F2: "counts copied in later".** Checked against §2.4 and
+   `r1_sft_data/symbol/manifest.json`: §2.4 carries the rebuilt counts (103,238 rows, per-source
+   counts and shares, token counts, `train.jsonl` sha256 `7b1edec5…`), and the manifest's own
+   verification records 0 `openjev-synth` rows with a `digits`-family augmentation and 0 `openjev-synth`
+   T1 `digits` rows. F2 is **discharged**.
+10. **§14.2 widened: the padding defect is not confined to candidates of unequal length.**
+    `r0_code/scorer.py:342-383` flattens every candidate of every item into one list, sorts it globally
+    by descending length, and cuts batches at `token_budget // longest`. A row's pad count is therefore
+    set by the longest row in its batch, usually from another question, and one question's candidates
+    can
+    land in different batches of different widths — so **equal-length candidates are left-padded too, by
+    differing amounts**. The forward pass supplies no `position_ids`, so left padding also shifts every
+    real token's RoPE position by the pad count. §14.2's admissibility requirement is unchanged and
+    already covers this; its diagnosis is widened to: *every* row scored by `HFScorer` at
+    `token_budget > 1` is perturbed by an amount that depends on its batch's composition. The §14.2
+    fixed-sample measurement covers both cases: unequal-length candidates within a question, and
+    equal-length candidates split across batches.
+    **Consequence for R0.** R0 §12.1 ground 1 — "on 73.97% of rows every candidate has the same token
+    count, so the missing normalization adds an identical constant to every candidate" — does not hold
+    under this scorer, and ground 3's measured length effect (+0.154 nats per token) is the same
+    magnitude as the measured padding shift (0.157 nats). R0 §12.1's and R0-RES §7.3's "do not retest
+    it"
+    is **suspended** until the erratum reports; the length confound is retested on the admissible scorer
+    as part of it.
+11. **§11.1's trainer line.** Reason: §11.1 still reads "verl FSDP SFT", which §14.3 superseded.
+    Resolution: §11.1's trainer clause is read as §14.3's single-chip PyTorch + peft trainer. The host,
+    chip count, image and `python3 -P` requirement of §11.1 are unchanged.

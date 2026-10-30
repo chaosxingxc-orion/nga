@@ -200,6 +200,27 @@ Every round has six fixed fields: **question / registry rows / locked conclusion
 
 **Outputs**: first set of weights + G2 decision memo. **Gate G2 is decided after this round.**
 
+**Amendment 2026-10-30 (first SFT round, `experiments/R3-SFT-PREREG.md`).** Made before any arm of that
+round was trained.
+
+1. **Full fine-tuning admitted for arm K4.** The protocol line above limits training means to LoRA,
+   data composition, structural isolation and temperature. Full fine-tuning (all parameters, no LoRA)
+   is added as a fifth admitted means, for the prereg's K4 arm only, so that K4's result can be cited as
+   an R3 result (prereg §7.5, §12.6, ruling 9). K4 is an improvement arm outside the
+   reference-alignment comparison, which is judged on the LoRA arm K1 only. No RL is admitted. Full
+   fine-tuning is admitted at 0.8B only. The ladder (prereg §7.6, §14.5) trains with the adopted LoRA
+   arm at every size; no full-FT run above 0.8B is admitted by this amendment.
+2. **Sequencing deviation, two separate conditions.** (i)
+   [`01-work-plan-four-directions.md`](01-work-plan-four-directions.md) §6 item 4, no training aimed at
+   consistency before G1: satisfied, because every running arm is accuracy SFT on Kev's public data. The
+   consistency-targeted symbol arm K3 is deferred until G1 is decided (prereg §14.5 item 6). (ii) §6
+   item 5 and R2's output clause, training only after the R2 harness exists: **not satisfied**. This
+   round proceeds on the user's direction of 2026-10-30, not on a methodological argument. The forfeit
+   is recorded: Track T in this round runs R0's harness, not the R2 harness, so no result of this round
+   may be cited as an R2 gain-table figure or as a harness-corrected number, and no round-1 number is
+   evidence for or against G1 (WP-1.9, WP-2.6). This round does not measure R3-1 to R3-3 and does not
+   decide G2 (prereg §1.2, §12.1).
+
 ---
 
 ### R4 Ordinal and unknown structure: write the order and the third truth value into the structure
@@ -321,16 +342,16 @@ Every round has six fixed fields: **question / registry rows / locked conclusion
 
 ## 5. Resources and current blocks
 
-**Ready** (verified 2026-10-28, two NPU hosts `npu` = 100.100.135.175 / `npu2` = 100.100.135.181):
+**Ready** (verified 2026-10-28, two NPU hosts `npu` = 100.100.135.175 / `npu2` = 100.100.135.181). **Update 2026-10-30**: host policy since 2026-10-29 is that only `npu` (host 175) is used; `npu2` is off-limits (`experiments/ENV-VERL.md`).
 
 - `agentic-rl-ascend:20261026`: loaded on both hosts, image ID matches the recorded sha256, import smoke test passes. This is the default environment for the initial experiments. Start it with `start_rl_container.sh` (mounts the driver and davinci devices; a bare `docker run` fails at `import torch_npu`).
 - `saea-base:20261027`: built on both hosts and passes the smoke test.
-- Local mirrors: 24 datasets, Qwen3-0.6B (attention-only) and Qwen3.5-0.8B / 2B / 4B / 9B (hybrid), all under `/mnt/cephfs/xingchao/models/jev`.
+- Local mirrors: 24 datasets, Qwen3-0.6B (attention-only) and Qwen3.5-0.8B / 2B / 4B / 9B (hybrid), all under `/mnt/cephfs/xingchao/models/jev`. **Update 2026-10-30**: the 24 datasets are under `/mnt/cephfs/xingchao/omni/datasets/jev/`, not `/mnt/cephfs/xingchao/datasets/jev/`; `/mnt/cephfs/xingchao/models/jev/` holds Qwen3-0.6B and the Qwen3.5 0.8B/2B/4B/9B checkpoints with their `-Base` variants (0.6B re-mirrored 2026-10-30, revision `c1899de2…`).
 - T1–T3 task files generated (`/mnt/cephfs/xingchao/experiments/jev/`, with sha256 manifest).
 
 **Block 1 (stalls R0-4, the defect-11 control)**: the RL image pins `transformers==4.57.1`, while Qwen3.5-0.8B's `model_type` is `qwen3_5`, an architecture that only exists in transformers 5.x (the local 5.21.0 wheel has `models/qwen3_5`; 4.57.1 does not). So the RL image can run 0.6B but not its hybrid control. Two options: layer a transformers 5.x venv on the RL image, or use `saea-base:20261027` (transformers 5.21.0 and torch 2.10.0+cpu inside the image) and add `torch_npu`. **One must be chosen before R0 starts.**
 
-**Block 2 (stalls every round that needs an accelerator)**: all 8 cards on both hosts are fully occupied by a vLLM deployment (about 59 GB HBM per card, plus one `minimax_m31_flash` container running on each). T1–T3 on 0.6B/0.8B can run on CPU (256 cores, about 2 TB RAM), slow but feasible; training from R3 onward needs cards. **The machine owner must provide usable card numbers or a time window.**
+**Block 2 (stalls every round that needs an accelerator)**: all 8 cards on both hosts are fully occupied by a vLLM deployment (about 59 GB HBM per card, plus one `minimax_m31_flash` container running on each). T1–T3 on 0.6B/0.8B can run on CPU (256 cores, about 2 TB RAM), slow but feasible; training from R3 onward needs cards. **The machine owner must provide usable card numbers or a time window.** **Update 2026-10-30**: the deployment was gone from host `npu` on 2026-10-29, and the user authorised NPU use on host 175 for the first SFT round on 2026-10-30; its 8 chips are used for R0 scoring and R3. `npu2` stays off-limits.
 
 **Block 3 (stalls half of R1)**: business-convention labels on natural-language inputs can only come from the business side, and typed-decisions measured 35% annotator argmax disagreement under the same criterion; this is not an annotation-budget problem. **The business side must commit annotation hours and accept the protocol "the floor measures agreement with the convention".**
 

@@ -1,5 +1,20 @@
 # R0 readout baseline: results
 
+> **Erratum pending (note added 2026-10-30).** `R3-SFT-PREREG.md` §14.2 and §14.5 item 10 (R3
+> amendments 2 and 5) found that the R0 scorer `r0_code/scorer.py` (`HFScorer`, default `token_budget`)
+> flattens every candidate of every item into one list, sorts it globally by length and cuts batches at
+> `token_budget // longest`, so a row's pad count is set by the longest row in its batch — usually from
+> another question — and one question's candidates can land in batches of different widths. **Rows of
+> equal token length are therefore left-padded too, by differing amounts**, and because the forward pass
+> supplies no `position_ids`, left padding also shifts every real token's RoPE position by the pad
+> count. The measured score shift is 0.157 nats on one row. Every number below was produced by that
+> scorer. The size of the effect on these numbers is being measured, and the fixed sample and its n are
+> recorded in `R3-SFT-PREREG.md` §14.5 item 7 before the measurement is read; the result will be
+> published as an erratum to this file. Until then the numbers stand as published with this caveat, and,
+> per R3 §14.2, they are not used as the R0 side of any comparison. §7.3's length analysis was measured
+> on the same padded scores and is within the erratum's scope: R0 §12.1's and §7.3's "do not retest it"
+> is **suspended** until this erratum reports.
+
 > 2026-10-29. Results of the first scored pass of the R0 readout baseline, judged against
 > `R0-BASELINE-PREREG.md` as it stood before the run. Numbers are taken from
 > `/mnt/cephfs/xingchao/experiments/jev/r0_baseline_rederived/report.json` and were re-checked
@@ -606,42 +621,49 @@ probability vectors that vary correctly across variants.
 
 ## 9. Defects in amendment 5 found while writing this document
 
-Reported rather than fixed, since this document changes no pre-registration, harness, data or run
-output.
+Written against amendment 5. Amendment 6 (`R0-BASELINE-PREREG.md` §13), committed alongside this
+document in `76bc56a`, resolved five of the six; the status labels below were added 2026-10-30. This
+document still changes no pre-registration, harness, data or run output.
 
-1. **§12.5 is under-specified and cannot be implemented as written.** It makes an exact tie at the top
-   an abstention in the argmax reference column, but does not say how an abstaining item is scored
-   inside the metrics that consume that column: whether a variant pair containing one abstention counts
-   as a flip, as an agreement, or is dropped from the denominator; whether an abstaining item is
-   ineligible for the T2 move metric or counted as unmoved; and whether it is a failure in the
-   accuracy floor. §11.1's "a rate whose denominator of actual decisions is zero is undefined" implies
-   dropping, but that is an inference. A clause for each of the three metrics is needed before the
-   numbers can be re-derived. The re-derivation itself is cheap and needs no NPU — ties are visible in
-   the stored `p` vectors — so this is a specification gap, not a cost problem.
-2. **§12.5 blurs the §11.2 label.** §11.2 calls the argmax column "a statement about the model";
-   making it abstain on ties makes it partly a statement about the harness, which is the distinction
-   §11.8 item 1 exists to keep sharp. Worth a sentence deciding which it now is.
-3. **§12.6's "within-item differences are already exact" is true algebraically and false of the stored
-   values.** `log p_i − log p_j = s_i − s_j` holds in exact arithmetic, but the 5.21% of T1 rows with
-   exact ties are rows where that difference has already been lost to bf16 and to the stored
-   precision. The raw-score field §12.6 mandates will fix this going forward; the sentence as written
-   overstates what the existing readouts support.
-4. **§12.6's equal-tokenization requirement conflicts with §8.1 on T1.** §8.1 freezes the baseline to
-   render the level `name` **as written in the record**, because that is the manipulation under test.
-   §12.6 says candidates "should" be made to tokenize to an equal number of tokens where possible.
-   On T1 both cannot hold: equalizing token counts means changing the names. The clause needs an
-   explicit carve-out for T1, or a statement that it applies to the training interface and to later
-   arms but not to this baseline.
-5. **§12.7's sample-size range disagrees with the report.** It says `akhilaaa3`'s held-out cells are
-   "27 to 34 units". `report.json` gives **19 to 63** on the `group70` held-out side (boolean 63 and
-   31, nominal 27 and 22, ordinal 30 and 19) and 17 to 43 on the question-disjoint held-out side. The
-   "26 primary values flagged below the minimum sample count" in the same clause does match the
-   watchdog exactly.
-6. **The §3.1 / §4 void rule is still ambiguous**, as recorded at the end of §3.2 above. §3.1 voids all
-   T1 numbers in the run when B-2 fails; §4 item 1 voids a cell when the empty-input flip rate is
-   within 5 points. The harness implements the narrower rule. Both readings reach the same conclusion
-   here, so nothing in this document turns on it, but the next run should not have to re-derive the
-   question.
+1. **Specification fixed by amendment 6 (`R0-BASELINE-PREREG.md` §13.1); the numbers in this
+   document are not re-derived under it.** **§12.5 is under-specified and cannot be
+   implemented as written.** It makes an exact tie at the top an abstention in the argmax reference
+   column, but does not say how an abstaining item is scored inside the metrics that consume that
+   column: whether a variant pair containing one abstention counts as a flip, as an agreement, or is
+   dropped from the denominator; whether an abstaining item is ineligible for the T2 move metric or
+   counted as unmoved; and whether it is a failure in the accuracy floor. §11.1's "a rate whose
+   denominator of actual decisions is zero is undefined" implies dropping, but that is an inference. A
+   clause for each of the three metrics is needed before the numbers can be re-derived. The
+   re-derivation itself is cheap and needs no NPU — ties are visible in the stored `p` vectors — so
+   this is a specification gap, not a cost problem.
+2. **Still open (2026-10-30): amendment 6 does not address it.** **§12.5 blurs the §11.2 label.**
+   §11.2 calls the argmax column "a statement about the model"; making it abstain on ties makes it
+   partly a statement about the harness, which is the distinction §11.8 item 1 exists to keep sharp.
+   Worth a sentence deciding which it now is.
+3. **Specification fixed by amendment 6 (§13.3); the numbers in this document are not re-derived
+   under it.** **§12.6's "within-item differences are already exact" is true
+   algebraically and false of the stored values.** `log p_i − log p_j = s_i − s_j` holds in exact
+   arithmetic, but the 5.21% of T1 rows with exact ties are rows where that difference has already
+   been lost to bf16 and to the stored precision. The raw-score field §12.6 mandates will fix this
+   going forward; the sentence as written overstates what the existing readouts support.
+4. **Specification fixed by amendment 6 (§13.2); the numbers in this document are not re-derived
+   under it.** **§12.6's equal-tokenization requirement conflicts with §8.1 on
+   T1.** §8.1 freezes the baseline to render the level `name` **as written in the record**, because
+   that is the manipulation under test. §12.6 says candidates "should" be made to tokenize to an equal
+   number of tokens where possible. On T1 both cannot hold: equalizing token counts means changing the
+   names. The clause needs an explicit carve-out for T1, or a statement that it applies to the
+   training interface and to later arms but not to this baseline.
+5. **Fixed by amendment 6 (§13.4), corrected in place in §12.7.** **§12.7's sample-size range disagrees with the report.** It says
+   `akhilaaa3`'s held-out cells are "27 to 34 units". `report.json` gives **19 to 63** on the
+   `group70` held-out side (boolean 63 and 31, nominal 27 and 22, ordinal 30 and 19) and 17 to 43 on
+   the question-disjoint held-out side. The "26 primary values flagged below the minimum sample count"
+   in the same clause does match the watchdog exactly.
+6. **Specification fixed by amendment 6 (§13.5); the numbers in this document are not re-derived
+   under it.** **The §3.1 / §4 void rule is still ambiguous**, as recorded at
+   the end of §3.2 above. §3.1 voids all T1 numbers in the run when B-2 fails; §4 item 1 voids a cell
+   when the empty-input flip rate is within 5 points. The harness implements the narrower rule. Both
+   readings reach the same conclusion here, so nothing in this document turns on it, but the next run
+   should not have to re-derive the question.
 
 ---
 

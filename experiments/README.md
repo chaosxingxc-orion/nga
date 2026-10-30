@@ -2,7 +2,8 @@
 
 Status: **preparation only**. Nothing here is a training recipe; the survey (chapters 1–9) stays analysis-only.
 This directory holds the task definitions and the builders that derive evaluation / training files
-from the locally mirrored public datasets (`/mnt/cephfs/xingchao/datasets/jev`). Outputs go to
+from the locally mirrored public datasets (`/mnt/cephfs/xingchao/omni/datasets/jev`; the 24 datasets
+are there, while `/mnt/cephfs/xingchao/datasets/jev` holds only `jaredpalmer__kev-suites`). Outputs go to
 `/mnt/cephfs/xingchao/experiments/jev/<task>/` and are not committed; only manifests are.
 
 Decisions this set implements (2026-10-28, survey §2.2.1 "the fixed structure"):
@@ -12,7 +13,7 @@ Decisions this set implements (2026-10-28, survey §2.2.1 "the fixed structure")
 - Levels (states) are expert-defined: name, definition, and type (`boolean | nominal | ordinal`) are all required.
 - Model output: a level distribution per question. Harness: cumulative-mass thresholds, residual → C (unknown / deny); margin + explicit `abstain` for exclusive sets.
 - Smallest pair first: `Qwen3-0.6B` (attention-only) vs `Qwen3.5-0.8B` (hybrid) — this pair *is* the defect-11 control. There is no 0.3B Qwen locally.
-- Server: `175` (k8s-node1) has cephfs mounted; its 8 NPUs are currently fully occupied by a vLLM deployment (see `SERVER-175.md`).
+- Server: `175` (k8s-node1) has cephfs mounted; its 8 NPUs are currently fully occupied by a vLLM deployment (see `SERVER-175.md`). **Update 2026-10-30**: the vLLM deployment was gone on 2026-10-29 and the user authorised NPU use on host 175 for the first SFT round on 2026-10-30, so the 8 chips of `npu` (175) are in use for this project. Host `npu2` is off-limits; only `npu` is used (`ENV-VERL.md`).
 
 ## Tasks
 
