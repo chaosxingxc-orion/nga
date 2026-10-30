@@ -6,6 +6,17 @@
 
 ## 1. Purpose
 
+**Execution note, 2026-10-30 13:33 UTC (before launch).** The single remaining project session
+is proceeding with this already registered precondition on chip 5, which the allocation file
+reserved for this job. K0's terminal marker has exit code 0 (58 units, 09:13:32Z), the identity
+verdict has `report_compared: true`, and the frozen `code3/SHA1SUMS` validates all 113 files.
+The only running containers on host 175 are `hardcore_einstein` and `new-api`; neither lists a
+mapped davinci device. No earlier `nga-r3-precondition` container exists. Claim chip 5 immediately
+before detached launch; use the explicit `nga-verl-qwen35-v030:20261029` image and preserve the
+container after exit. Launch from the existing frozen code, not the changed live selection code.
+The earlier purpose, samples, thresholds and mandatory counterparts below are unchanged.
+This note is launch evidence, not an E3 pass or independent-review acceptance.
+
 K0 is the round's first readout of record. It was launched from a snapshot that stamps no provenance on its rows, and it scores in
 calls of `SCORE_CHUNK = 32` questions whose boundaries shift on a resume. Two questions stand between K0 and any decision that
 reads it:
