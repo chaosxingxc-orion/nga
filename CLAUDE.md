@@ -187,3 +187,8 @@ repository and pushes to the same `origin/main`. Treat the repo as shared:
   explain the cause in the commit message so the other agent can see why it moved.
 - The pre-registrations under `experiments/` govern experimental claims. A design or README document
   does not amend them, and neither does a commit by either agent.
+- The owner's 2026-10-30 architecture task extends the documentation work to `achitecture design/`.
+  Preserve its supplied `05-architecture-brief-and-decisions.md` and `06-architecture-diagrams-md.md`
+  as source snapshots in their original language; this source-preservation exception does not change
+  the English requirement for new NGA artifacts. Keep subsequent analysis, architecture revisions,
+  diagrams, and the reading index in that same directory, with their decision status explicit.

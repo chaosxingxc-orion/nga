@@ -68,7 +68,7 @@ Caching the same request does not prove semantic consistency. Historical reconst
 
 The [overall design document](design/nga-overall-design.md) records established principles, develops a proposed logical design, and maintains an open-question register. Its interfaces cover business specifications, capability contracts, evidence/context snapshots, plans, S1 observations, adopted decisions, and execution records.
 
-The supplied enterprise-agent architecture references provide the workbench's V0 starting design. Their reported artifacts and implementation status belong to their original context, not to NGA. Keeping that baseline does not resolve its pending decisions or select its host platform. Project 2's S1 + S2 design will progressively refine it.
+The [architecture workspace](achitecture%20design/README.md) preserves the two supplied V0 reference documents and contains the NGA analysis, V0.1 discussion draft, and updated diagrams. The draft assumes the required Jev-like capability is available and develops contract-bound and S2-assisted paths through a shared adoption/execution boundary. The reference documents' reported artifacts and implementation status belong to their original context; their pending decisions and host platform are not automatically selected for NGA.
 
 | Design area | Questions to resolve |
 | --- | --- |
@@ -89,6 +89,7 @@ This is an active research and engineering repository. Most existing code and ex
 | Area | Contents and entry point |
 | --- | --- |
 | **Overall design** | Three-project scope, decision and business-result idempotence, semantic-specification ownership, S1/S2/framework boundaries, V0 evolution, and open questions in [`design/nga-overall-design.md`](design/nga-overall-design.md). |
+| **Architecture workspace** | Archived V0 sources, architectural analysis, proposed S1/S2 collaboration and recovery contracts, and diagrams in [`achitecture design/`](achitecture%20design/README.md). |
 | **Survey** | Nine analytical chapters covering Jev-class models, semantics, consistency, business value, fast/slow cooperation, and limitations. Start with [`survey/README.md`](survey/README.md); a [PDF](survey/nga-survey.pdf) is also available. |
 | **Research plan** | R0–R8 hypotheses, work packages, dependencies, and decision gates. See the [proposal](proposal/00-research-proposal.md) and [four-direction work plan](proposal/01-work-plan-four-directions.md). |
 | **Tasks and protocols** | Data builders, manifests, frozen protocols and amendments, and result documents in [`experiments/`](experiments/README.md). |
