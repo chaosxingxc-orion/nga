@@ -61,7 +61,7 @@ flowchart TD
 
 ## 4. 目前完成了什么，还没完成什么
 
-### 4.1 当前已形成的证据（截至 18:08 UTC）
+### 4.1 当前已形成的证据（18:08 UTC 快照，18:27 UTC 更正已完成项）
 
 这里的“完成”要求已取得对应结果和限定范围验收；预检、启动和自动等待分别登记。运行中的格不提前填最终成绩。各进度取 18:08 UTC 的 `digest.md`，其心跳时间为 18:07:54–18:08:00 UTC；JEVal 完成摘要还需完成独立结果核查。
 
@@ -72,12 +72,12 @@ flowchart TD
 | Open-Jev-2B 公共及原始完整 test | 公共 10,356 行、缺失 176 行补测、原始 10,532 行精确合并均完成；完整 hard accuracy 94.634680%，expected accuracy 91.876577% | 状态为 `VERIFIED_ORIGINAL_TEST_REVIEW_REQUIRED`。完美子集／小样本标记及诊断保留；上游净少 8 个 hard 正确回答，不等于定位八次翻转 |
 | Open-Jev-9B 公共 test、E24 后续补测 | 公共推理 8,791／10,356 行；自动队列为 `9B: waiting_public`，2B 为 `complete` | 公共验收后自动接续该尺寸 176 行补测及完整 10,532 行合并；尚无 9B 最终成绩 |
 | Typed Decisions：Kev E26 | 三尺寸各完成 400 states／2,000 questions，独立验收通过、审查标记 0；accuracy 45.95%／66.45%／68.05% | 原生温度与 T=1 的 KL／Brier／ECE 分表；这些是参考差异，不是我们的训练收益 |
-| Typed Decisions：Nimble E28 | 原生长度预检和真实双次前向探测通过；正式推理 273／400 states，独立 CPU 验收器已运行 | 等待全部 2,000 questions、完整终态及独立重算；不能提前填最终成绩 |
-| Typed Decisions：Open-Jev E29 | 两尺寸预检及真实前向探测通过；2B 为 212／400、9B 为 161／400 states；独立 CPU 验收器均已运行 | 各自完成后验收及填表；原生独立候选提示与其他接口差异必须说明 |
-| JEVal 资格预检 E31 | 六个 CPU 容器实际启动。Kev 三尺寸摘要各报告 11,257／11,257 完成；Open-Jev-2B／9B 为 3,758／11,257、1,453／11,257；Nimble 摘要为 failed 201／11,257 | 核查完整资格分母；Nimble 保留失败并诊断修复。unsupported／overlength 不能删出总体。该阶段没有模型 test 成绩 |
+| Typed Decisions：Nimble E28 | 18:27 更正：400 states／2,000 questions 与独立重分词／计分验收完成；accuracy 65.10%，审查标记 0 | 配置、终态、产物哈希与实际容器退出均已复核；见共同测试表 |
+| Typed Decisions：Open-Jev E29 | 18:27 更正：2B 完成全部 2,000 questions 及独立验收，accuracy 58.25%，审查标记 0；9B 仍运行 | 9B 完成后验收及填表；保留原生独立候选提示与其他接口的差异 |
+| JEVal 资格预检 E31 | 18:27 更正：Kev 三尺寸各 10,230 eligible／1,027 overlength；Nimble v2 为 8,006 eligible／998 overlength／2,253 unsupported，四项完整产物审计通过。Open-Jev 两尺寸仍运行 | Nimble v1 空 context 失败保留，v2 预注册修订后另跑；全 11,257 分母保留。资格检查没有模型 test 成绩 |
 | JEVal 文献计分审计 | 已固定数据身份、原生接口边界并取得论文公式；已识别模型版本、温度和计分差异 | 精确 ECE 边界／confidence 取法仍缺原 scorer；后续协议需明确复现范围，不能以近似实现冒称论文逐项复现 |
-| Open-Jev 原始 OOD | 15,920 行已恢复且身份已核对，尚未执行本轮完整推理 | 另行预注册、原生接口检查与自动执行；不能用 test 结果填充 OOD |
-| 自动驱动与执行 | 多批 detached 推理及自动验收已完成；E10 有真实 SIGKILL 续跑证据；E24 已实际自动完成 2B 公共依赖→补测→合并 | E30 controller 正在修复实现审查发现的问题；独立审计中断恢复的真实 CPU 故障实验仍待完成。局部闭环不等于全部自动化通过 |
+| Open-Jev 原始 OOD E32 | 18:27 更正：预注册和接口实现完成，两个 15,920 行 CPU 全量长度预检已实际启动，未占 NPU | 预检验收及芯片所有权核对后执行正式推理；不能用 test 结果填充 OOD |
+| 自动驱动与执行 | 多批 detached 推理及自动验收已完成；E10 有真实 SIGKILL 续跑证据；E24 已实际自动完成 2B 公共依赖→补测→合并 | 18:27 更正：E30 实际 worker／audit 双中断恢复通过，24 项完整、3 项前缀不变；不等于任意旧模型任务或主机故障恢复已认证 |
 | 工程前提 E3／trainer suite | E3 CLEAN、终态及容器退出 0；trainer suite 工程验证完成 | 不替代参考 test、训练采用门禁或最终收益结论 |
 | 对抗审查与新训练 | 指定 Astra 尚无实质审查意见；新的正式研究训练未启动 | 保持待审，持续完成参考推理；参考汇报后讨论训练方案 |
 
