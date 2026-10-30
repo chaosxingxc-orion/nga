@@ -1,6 +1,6 @@
 # NGA — Next Generation Agent
 
-**NGA develops a new enterprise-agent approach through three projects: Jev-like decision models, System 1 + System 2 agent loops, and an enterprise agent workbench. Decision and business-result idempotence, traceability, and business configurability are the shared objectives.**
+**NGA develops a new enterprise-agent approach through three projects: Jev-like decision models, System 1 + System 2 agent loops, and an enterprise agent workbench. Idempotent decisions and business outcomes, replayable and auditable execution, and business configurability are the shared objectives.**
 
 The preceding generation of agent frameworks centers on an **agentic model**: the model plans, executes actions, reflects on observations, and replans through an **agent loop**. NGA starts from a production concern: generative reconsideration can change a consequential decision even when its business basis has not changed. The project treats this instability as a central barrier to using agents in enterprise core processes.
 
@@ -61,12 +61,16 @@ The objective is that decision execution never silently invents a missing conven
 | **Repeated-request idempotence** | Retries and recovery reuse an adopted decision for the same identified request. | Framework identity, adoption, and state management. |
 | **Action idempotence** | Retrying one business operation should not duplicate its effects. | Framework plus external tool/resource support or an explicit reconciliation path. |
 | **Traceability** | Reconstruct the evidence, versions, authority, adoption, and execution that produced an outcome. | Framework records and preserved artifacts. |
+| **Replayability** | Inspect history and replay control behavior from preserved definitions and recorded model/tool/event inputs without live effects. | Framework capture and isolated replay execution. |
+| **Auditability** | Examine the actual business basis, authority, transitions, effects, revisions, and evidence integrity. | Framework records and workbench access, integrity, review, and retention controls. |
 
 Caching the same request does not prove semantic consistency. Historical reconstruction, re-evaluation under new versions, and action compensation are separate operations. A new evaluation must not silently rewrite history or repeat an external business operation.
 
 ## Overall design and open questions
 
 The [overall design document](design/nga-overall-design.md) records established principles, develops a proposed logical design, and maintains an open-question register. Its interfaces cover business specifications, capability contracts, evidence/context snapshots, plans, S1 observations, adopted decisions, and execution records.
+
+The current [orchestration discussion](achitecture%20design/11-jev-agentic-orchestration.md) compares loops, typed execution graphs, and reusable workflows as ways to combine Jev and agentic models. The [replay and audit contract](achitecture%20design/12-replay-and-audit-contract.md) separates executable control replay, model reevaluation, and live recovery. These are proposed mechanisms under established business objectives.
 
 The [architecture workspace](achitecture%20design/README.md) preserves the two supplied V0 reference documents and contains the NGA analysis, V0.1 discussion draft, and updated diagrams. The draft assumes the required Jev-like capability is available and develops contract-bound and S2-assisted paths through a shared adoption/execution boundary. The reference documents' reported artifacts and implementation status belong to their original context; their pending decisions and host platform are not automatically selected for NGA.
 

@@ -11,6 +11,8 @@ Assume an available Jev-like model can apply supplied business definitions, pres
 
 Established direction remains: decision and business-result idempotence, traceability, business-configurable semantics, separate proposal/adoption/execution authority, project 3 ownership of semantic governance, V0 continuity, and open technology choices. The contracts, paths, and state transitions below are proposals for discussion.
 
+The owner additionally requires replayable and auditable decision chains. The [replay and audit contract](12-replay-and-audit-contract.md) distinguishes historical inspection, executable control replay, reevaluation, and live recovery. The [orchestration analysis](11-jev-agentic-orchestration.md) extends the first S1 insertion into a proposed typed graph with local agent loops and workflow invocation; it does not finalize the topology.
+
 A reliable model still requires reliable task framing, evidence, composition, adoption, and execution. The framework must preserve these dependencies across retries and changes.
 
 ## 2. Logical organization and authority
@@ -152,6 +154,8 @@ Resource accounting is typed:
 
 Concrete graph syntax, expression language, budget scheduler, context store, and enforcement topology remain open.
 
+The proposed comparison now includes a graph whose nodes can be tools, S1 judgments, bounded S2 loops, workflow invocations, or adoption/effect operations. Semantic transitions can consume Jev observations; mechanical transitions use authoritative state and deterministic checks. Consequential work inside a node shares the same control and replay contract. See the [node and transition design](11-jev-agentic-orchestration.md).
+
 ## 7. Workbench and traceability
 
 Project 3 should expose five connected views:
@@ -204,6 +208,7 @@ These packages are proposed implementation work, not changes to current experime
 | **E4. Execution and recovery** | Stable-operation contract, intent/receipt records, reconciliation interface, replay isolation. | Crash before/after dispatch, ambiguous timeout, changed parameters, and renewed credentials do not duplicate the intended effect; a genuinely new operation can proceed. |
 | **E5. Context and resource control** | Visibility/provenance contract, typed budget rules, reservation accounting. | Unauthorized context remains unavailable; parallel cost is additive; duplicate grants/releases cannot expand the envelope. |
 | **E6. Workbench integration** | V0 task/decision views, semantic-issue workflow, historical reconstruction and comparison. | Reviewers can identify the effective rule and effect; resolved semantics create versions; reconstruction never triggers live effects. |
+| **E7. Composed orchestration and replay** | Typed node/transition contracts, workflow invocation and child-instance records, captured nondeterministic inputs, and an isolated control replayer. | Replay nested loops/workflows and hold/dispatch races; detect divergent guards or intents; prevent live effects; compare S1 placements on equal business contracts. |
 
 Begin with one bounded workflow through E1, E2, E4, and a minimal E6 view; add the E3 comparison and E5 cases needed by that workflow. Project 3's full knowledge platform need not be complete to exercise reviewed, versioned specifications. Track task success, decision consistency, duplicate effects, recovery correctness, latency, cost per successful outcome, and trace completeness together.
 
@@ -215,7 +220,7 @@ Begin with one bounded workflow through E1, E2, E4, and a minimal E6 view; add t
 | Decision composition | Select the approved decomposition/composition contract and allowed S2 variation. Do not assume question-graph equivalence. |
 | Reopening and freshness | Define which evidence changes invalidate a pending decision/action, when decisions expire, and who may reopen them. |
 | Trust root and enforcement (V0 questions 1–2) | Preserve live authority checks and per-property enforcement obligations; registry design, token lifetime/format, and revocation mechanism remain open. |
-| Execution structure (V0 question 3) | Bounded loops, branches, and dynamic envelopes are candidates; admission and revision contracts apply to each. |
+| Execution structure (V0 question 3) | Compare the proposed typed graph with local S2 loops and workflow subgraphs against loop and fixed-workflow controls. S1 handles declared semantic judgments, not every transition. Graph revisions and workflow execution retain common admission, identity, and replay contracts. |
 | Build/certification and host integration (V0 questions 4 and 7) | Verify artifact identity, execution isolation, and that each declared restriction is actually enforced; select no host in this draft. |
 | Peer collaboration and external actors (V0 questions 5–6) | The delegation lineage covers subordinate work. Peer authority and externally initiated tasks need their own explicit contracts. |
 | Prototype and implementation (V0 questions 8–9) | Choose the scenario and required guarantees before languages, storage, runtimes, or protocols. Documentation and contract examples can advance now. |

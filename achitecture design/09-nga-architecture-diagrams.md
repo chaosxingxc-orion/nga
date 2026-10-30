@@ -152,3 +152,24 @@ A new frame or model version does not automatically create a new business operat
 | Evidence/decision provenance | Which source versions and judgments support each adopted decision. | A material dependency change creates the necessary reevaluation or revision. |
 
 These structures relate through recorded identities. They need not be the same tree or require separate graph engines.
+
+## 6. Jev, local agent loops, and workflow composition
+
+```mermaid
+flowchart TB
+    G["Framework: versioned execution graph and transition control"] --> J["S1 judgment / semantic guard"]
+    G --> T["Deterministic tool or evidence node"]
+    G --> L["Bounded S2 agent-loop node"]
+    G --> W["Published workflow subgraph"]
+    L -->|"Declared semantic questions"| J
+    L -->|"Admitted workflow invocation"| W
+    W -->|"Declared open investigation step"| L
+    J -->|"Bound typed observation"| G
+    T -->|"Observation / receipt"| G
+    L -->|"Proposed result / plan revision"| G
+    W -->|"Typed result / exception"| G
+    G --> H["Captured inputs, committed transitions and operation history"]
+    H --> R["Isolated control replay and audit views"]
+```
+
+This is a responsibility diagram, not an unbounded recursive call graph. Parent/child scope, depth, budgets, identities, and admitted transitions constrain all nesting. Model observations do not directly commit state. The [orchestration analysis](11-jev-agentic-orchestration.md) includes the detailed credit graph; the [replay/audit contract](12-replay-and-audit-contract.md) defines capture, executable replay, and divergence handling. The organization remains a proposal.

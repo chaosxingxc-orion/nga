@@ -200,6 +200,8 @@ It must answer:
 
 **Reevaluation** runs a named rule/model/evidence configuration and creates a separate result. Comparing that result with D1 neither rewrites D1 nor automatically changes OP1. Hidden model reasoning is not required for either process.
 
+The strengthened requirement also includes **executable control replay**: run the preserved controller and graph/workflow definitions with the model, tool, clock, and relevant event inputs recorded at the time, then verify the resulting transitions and operation intents without dispatching real effects. The [replay and audit contract](12-replay-and-audit-contract.md) defines the required package and divergence handling. The [orchestration analysis](11-jev-agentic-orchestration.md) places this credit case in a typed graph with semantic guards, a bounded S2 investigation loop, and executable workflow subgraphs.
+
 ## 11. Walkthrough diagram
 
 ```mermaid

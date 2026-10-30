@@ -12,6 +12,8 @@ This directory holds the owner-supplied enterprise architecture baseline and NGA
 | [08 — NGA architecture V0.1](08-nga-architecture-v0.1.md) | Proposed S1/S2/framework responsibilities, decision lifecycle, contracts, and engineering work packages. | Discussion draft; proposed mechanisms are not approved or implemented. |
 | [09 — NGA architecture diagrams](09-nga-architecture-diagrams.md) | Views of the proposed architecture and its normal, revision, and recovery paths. | Companion to 08, with the same status. |
 | [10 — Credit decision walkthrough](10-credit-decision-walkthrough.md) | Complete credit example: S1 participation, S2 change boundaries, adoption, retries, new evidence, and reconstruction. | Demonstration fixture and proposed contracts; no execution claimed. |
+| [11 — Jev and agentic orchestration](11-jev-agentic-orchestration.md) | Compare loops, graphs, and workflows; typed nodes, semantic transitions, local S1/S2 cooperation, and architecture-driven model tasks. | Proposed reference organization; alternatives remain under evaluation. |
+| [12 — Replay and audit contract](12-replay-and-audit-contract.md) | Historical inspection, executable control replay, reevaluation, live recovery, and audit evidence. | Replay/audit are required; mechanisms and acceptance contracts are proposed. |
 
 The [NGA overall design](../design/nga-overall-design.md) remains the program-level source for the three projects and established principles. This directory develops the architecture for project 2 and its integration into project 3.
 

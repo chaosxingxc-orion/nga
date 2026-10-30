@@ -66,12 +66,13 @@ These are the agreed direction and logical boundaries, not claims that the corre
 | P9 | Concrete technology choices remain open. | Logical interfaces and acceptance requirements precede platform and implementation choices. |
 | P10 | Semantic gray areas must not become implicit model discretion. Project 3 owns semantic-specification management through knowledge engineering. | Undefined conventions, conflicts, and coverage gaps require explicit treatment; S1/S2 cannot silently complete business policy. |
 | P11 | Workbench V0 retains the prior enterprise architecture design, then incorporates S1 + S2 collaboration incrementally. | Preserve the baseline's organizing boundaries while reviewing and versioning subsequent changes. |
+| P12 | Decision chains must be replayable and auditable, including consequential work inside loops and workflows. | Preserve executable definitions and consumed external/model observations as required; distinguish historical inspection, control replay, reevaluation, and live recovery. |
 
 “Business-configurable” is a capability to validate, not a promise that every natural-language rule is immediately supported without engineering or training.
 
 ## 4. Goals: what must be stable and what must remain changeable
 
-### 4.1 Four separate system properties
+### 4.1 System properties
 
 | Property | Intended meaning | Primary responsibility | Limit |
 | --- | --- | --- | --- |
@@ -79,6 +80,8 @@ These are the agreed direction and logical boundaries, not claims that the corre
 | Repeated-request idempotence | Repeating or recovering the same identified request reuses its adopted decision rather than silently reconsidering it. | Framework identity, adoption, and state management. | A changed request payload must not be accepted as the same unchanged request. |
 | Action idempotence | Retrying one identified business operation does not duplicate its effect. | Framework and the external resource or tool. | Cannot be guaranteed universally by the framework without support or reconciliation at the execution boundary. |
 | Traceability | Reconstruct which evidence and versions led to which observation, adoption, action, and outcome, and who was responsible. | Framework records and preserved artifacts. | Missing source snapshots cannot be repaired by a plausible model explanation. |
+| Replayability | Inspect the historical chain and replay its control behavior from preserved definitions and consumed inputs without live effects. | Framework capture, versioned executable artifacts, and isolated replay adapters. | Missing artifacts limit supported replay; fresh model reevaluation is a separate operation. |
+| Auditability | Examine the actual business basis, authority, transitions, effects, revisions, and evidence integrity. | Framework records plus workbench access, review, integrity, and retention controls. | A generated explanation or append-only label alone does not establish an adequate audit trail. |
 
 **Business-result idempotence is the end-to-end objective across these properties:** repeating the same defined business operation must not silently alter its adopted outcome or create additional effects. Semantically equivalent cases should also receive consistent decisions, but they can still be distinct business operations; equivalence must not collapse two legitimate transactions into one. A stable but wrong result is not success.
 
@@ -87,10 +90,13 @@ A decision may legitimately change when a material fact or applicable business r
 ### 4.2 Reconstruction, re-evaluation, and compensation
 
 - **Historical reconstruction** applies the recorded decision policy to preserved observations and evidence references. It explains the original adoption without requiring fresh model inference or repeating external effects.
+- **Executable control replay** runs preserved controller, graph/workflow, and operator versions with recorded nondeterministic model/tool/time/event inputs; it verifies transitions and intended effects in an isolated state namespace.
 - **Re-evaluation** invokes an explicitly identified model/rule/evidence configuration and creates a separate result linked to the original. It never silently replaces history.
 - **Recovery or compensation** handles interrupted or incorrect actions according to their business semantics. An irreversible action may require a corrective action rather than rollback.
 
 Exact fresh-inference replay may depend on unavailable environments or numerical behavior. Preserving the observation actually used is therefore essential. Replay and test modes must not dispatch live side effects.
+
+The [replay and audit contract](../achitecture%20design/12-replay-and-audit-contract.md) develops the information and acceptance requirements. The [Jev/agentic orchestration analysis](../achitecture%20design/11-jev-agentic-orchestration.md) compares loops, typed graphs, and executable workflow composition under those same requirements. These mechanisms remain proposed; replayability and auditability are established objectives.
 
 ## 5. Responsibilities and control authority
 
