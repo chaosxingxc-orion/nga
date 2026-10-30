@@ -63,3 +63,33 @@ PROBE SHA256 `3c283c430a514590bd1d475891c79d64942e6579edd468d871cb3a92eceb011d`.
 A hash-bound PROBE_REVIEW records engineering acceptance; chip0 was explicitly
 released underlock. Formal inference is being prepared from the exact frozen
 probe source rather than changing implementation after probe. No model score yet.
+
+## 18:49 UTC — actual Kev-0.8B formal inference
+
+Formal configuration `e1c0886040fd98dea82f4a8ce443c82742fc1f7b676e0770f4f8d4dfaf39cb46`
+freezes79files and binds the accepted separate probe. Parent verified exact native
+checkpoint/runtime/eligibility and executable identity before launch. Retained
+NPU container `45dec3dc8f1bf886f53f443547c90aefb1fc28a98f0d204d8a04a87044be6af3`
+actually launched onchip0; detachedCPU finisher
+`5862f47739814fd64fb262e92892b53fc204200effe25bf5fafcbd18634181ed`.
+Both actual containers were running; first digest was model loading.
+Directory `reference_inference/jeval_kev08_inference_20261030/` and `_finish/`.
+Full11257coverage and final metric acceptance remain pending.
+
+## 18:52 UTC — 4B probe completed; 9B launch check preserved
+
+Kev4 probe config `786a5b329748deeeeefae54a918973ed4e84485715ac435c29a5f91e4fb38ed7`,
+container `bd34062c614d9f9dcdeff9ff87315bc813bea43d5dfe1aae5ba692a1511f8fa6`,
+actual exited0, terminal18:50:13UTC/wrapper18:50:18UTC. Longest8187tokens
+took3.414650/2.883803s, reserved27.320312GiB,1chip; all four probe pairs zero drift.
+Probe reportSHA `1532d540bad4d0c39582939e68345d1fd58f43406944ff60903c9fcdefd765fd`.
+Formal4B not launched yet.
+
+Kev9 probe config `33b4b6e9fba4cca364f0da1a65bbb082ce019f2a77b93cc0e1b237d8e5f3a91f`
+failed launcher binding after Docker create, before receipt/start/chip claim:
+Docker reordered identical Binds arrays. Container
+`5a35ddcb4e5384941b02856b498d1f1f3478fcf26b28bdd49053ab87f8ed5367` remains
+created and original frozen files remain untouched. `LAUNCH_FAILURE.json`
+records exact lists and cause. Future generation compares sorted exact mount
+strings and full device triples, preserving paths/options/multiplicity.
+This was a launcher false rejection, not a model forward failure.

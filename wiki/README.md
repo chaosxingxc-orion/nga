@@ -58,6 +58,8 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 
 | [E32](E32-openjev-original-ood-20261030.md) | original complete Open-Jev OOD | reference evaluation | both full length preflights accepted; 2B/9B actual NPU inference and CPU finishers running on chips 4/2 |
 
+| [E33](E33-jeval-reference-inference-20261030.md) | native JEVal reference inference | reference evaluation | Kev0.8B real probe accepted; full inference and independent finisher running; other sizes pending probes |
+
 ## Where the artifacts live
 
 - Pre-registrations, protocol notes and results documents: `experiments/`

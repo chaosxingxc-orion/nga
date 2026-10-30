@@ -114,3 +114,35 @@ Terminal, wrapper and retained audit container exited 0. After completion,
 the four original container identities/configurations and exited/0 states were
 checked again against the captured Docker snapshots; audit source hashes and
 launch binding also remained intact. Earlier audit evidence is retained.
+
+### 18:42 UTC Open-Jev completion-audit setup
+
+Both original Open-Jev token-only containers are still running (18:41 UTC:
+about 9,420/11,257 rows). A separate retained CPU waiter will preserve those
+runs and wait for both actual Docker exited/0 states and successful bound
+terminals. It will then capture fresh Docker snapshots and run the hardened
+independent artifact auditor against all 22,514 receipts. It checks the actual
+container identities again after audit; no model forward or NPU device is used.
+Output: `reference_inference/jeval_artifact_audit_openjev_20261030/`.
+Purpose/setup precede launch. Pending results are not eligibility totals or scores.
+
+The Open-Jev artifact waiter actually launched at 18:42 UTC, retained CPU
+container `51f52b4afecf078396a1228c83e30b2ec6a370f5b1be33e64662da7e52171758`.
+At 18:42:46 UTC both original preflight containers remained running at
+9,445/11,257 and 9,448/11,257; the waiter was running. It does not restart either
+preflight. Complete audit and eligibility totals remain pending.
+
+### 18:52 UTC completion verified by parent
+
+Both Open-Jev preflights completed all11,257 rows at18:43:28/18:43:34UTC.
+For each:9,704eligible /1,553overlength /0unsupported. Bytype choice8150/1432,
+noul1235/121, score319/0 (eligible/overlength). Full artifact audit of22,514
+receipts completed18:44:48UTC, exact dependencyclosure87/90files; report SHA256
+`626baa8220d1ddd8b85f57f22cf590b71dc43940ed928b7d4775c90b4324c212`.
+Parent read report and terminal/wrapper and rechecked original+audit actual
+container identities and exited0. Scope remains artifact/identity/length
+classification, not independent retokenization or model performance.
+Both status sequences match
+`ff4efe7936ceeb70aba8870432828d9bb4aea0724c68c52fd429896b43cf15c3`;
+identical eligibility must not be interpreted as identical model quality.
+All six checkpoint eligibility populations are now complete.
