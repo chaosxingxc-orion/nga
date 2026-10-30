@@ -69,3 +69,9 @@ JEVal 超过 26 候选的 2,047 行覆盖 11 个 source：aida-testc、clinc150�
 4. 真实执行后由不导入 native metric 的独立 scorer 从逐项分布复算，检查完整身份覆盖；0/1、小样本、全部格相同触发审查。上游表、原生 scorer、本项目统一方法三者分列。不将 aggregate accuracy 充当 decision-level consistency；一致性需另行预注册成对 protocol，并配辨别反例。
 
 目前尚缺的是 adapter 实现及合成测试、各接口完整长度统计、JEVal 原评分源码、实际运行与独立验收。没有真实业务部署依赖，也没有新的训练或训练收益声明。本文件不擅自批准完整所有本地模型 × 所有数据集的交叉扩展。
+
+## 6. 17:01 UTC 原文计分核查更新
+
+已取得 JEVal 原论文 v1 与固定 revision 的 InnerJev 源码，见[原文计分审计](JEVAL-ORIGINAL-SCORER-AUDIT-2026-10-30.md)。第 4 节中“ECE bin 数和 score 公式尚未证实”已由论文部分补齐：10 个等宽 ECE bins、未归一化 raw one-hot Brier、有效 score 的原等级量纲 MAE。精确边界及 confidence 字段仍缺原 test scorer；当前源码 evaluation.py 是 capability-macro validation，不是论文 test scorer。
+
+JEVal 原文使用 returned choice／returned score，不替换成概率 argmax／期望值；概率和不等于 1 不自动判无效。原文 Kev-9B 温度 2.2974，与当前 r27 不同。后续统一口径与论文口径必须分别报告；上述新增严格分布面和 expected-value MAE 只作为本项目方法，不冒称原文实现。不得据此修改已经冻结的 typed-decisions 方法。

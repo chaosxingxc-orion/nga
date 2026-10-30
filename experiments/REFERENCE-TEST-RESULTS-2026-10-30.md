@@ -379,3 +379,7 @@ pair accuracy＝组内所有成员都对的组比例；pair direction 则比较�
 本次对上述附录的来源 hash 和 release 字段做了校验；这验证提取忠实度，不代替上游原始评测正确性。大型历史 Kev 导出包含大量中间候选与计数，仅作审计存档，不作为选出最佳模型的榜单。
 
 主文表用于解释；结构化索引用于追溯；完整附录保留所有可提取模型行。此次统计不修改上游文件，不调用托管模型 API，不读取 NGA 尚未准入的 K0 指标，不启动新的训练。
+
+## 17:03 UTC 来源与方法追加
+
+[checkpoint 补充绑定审计](KEV-CHECKPOINT-BINDING-AUDIT-2026-10-30.md) 已核对九次 Kev 运行，保存的发布温度、基座版本及权重来源对应正确，不改变已有分数。[JEVal 原文计分审计](JEVAL-ORIGINAL-SCORER-AUDIT-2026-10-30.md) 明确论文使用 returned choice／score、未归一化 raw Brier、有效分母和 10-bin ECE；论文 Kev-9B／OpenJev 版本与当前队列存在差异，不能直接声称同配置复现。共同测试 E26 三个 Kev 尺寸已完成全 400 条 token 预检，最长 836 tokens，尚无该集合的模型性能结果。
