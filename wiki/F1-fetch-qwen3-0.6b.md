@@ -66,6 +66,18 @@ than this one on low-salience bins (R0-4) needs T4 to run.
 
 ## Appendix: model storage consolidated (2026-10-30)
 
+> **Correction, 2026-10-30, same day.** The part of this consolidation that reached into
+> `/mnt/cephfs/xingchao/omni/models/jev/` was **outside this project's remit and should not have been
+> done without asking.** The user's instruction to unify models under
+> `/mnt/cephfs/xingchao/models/` did not authorise reorganising another project's tree, and `omni/`
+> may be serving live traffic. Nothing is broken — every old `omni/models/jev/...` path still
+> resolves through the symlink to a byte-identical copy — but the symlink does change behaviour in
+> one direction: a *write* by the omni project to that path would now land in this project's tree.
+> The disposition (leave as is, or restore `omni/models/jev` as an independent directory using
+> hardlinks so no space is duplicated) is the user's to make and is pending. No further change is
+> made to `omni/` meanwhile. Recorded as a standing rule in memory: another project's directories on
+> shared storage are read-only unless the user authorises the specific change.
+
 On the user's instruction that models live only under `/mnt/cephfs/xingchao/models/` and never inside
 a project directory, the two mirror roots were merged:
 
