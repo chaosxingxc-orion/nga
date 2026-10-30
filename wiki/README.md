@@ -51,7 +51,7 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E26](E26-typed-common-reference-20261030.md) | Typed Decisions common reference interface | engineering / reference evaluation | three Kev full 2,000-question runs and independent audits complete; zero review flags |
 | [E27](E27-kev-checkpoint-binding-audit-20261030.md) | independent checkpoint temperature and publication binding | engineering audit | nine completed Kev runs verified within stated scope |
 | [E28](E28-typed-nimble-reference-20261030.md) | initial Nimble on Typed Decisions | engineering / reference evaluation | full 2,000-question inference and independent retokenization/scoring audit complete; accuracy 65.10%, zero review flags |
-| [E29](E29-typed-openjev-reference-20261030.md) | Open-Jev on Typed Decisions | engineering / reference evaluation | both native probes complete; formal 2B/9B inference and CPU finishers launched on chips 0/5 |
+| [E29](E29-typed-openjev-reference-20261030.md) | Open-Jev on Typed Decisions | engineering / reference evaluation | 2B full common test and audit complete, accuracy 58.25%; 9B inference running |
 
 | [E30](E30-typed-recovery-controller-20261030.md) | deterministic recovery controller | engineering | real CPU worker and audit SIGKILL recovery passed; 24 items, 3 prefix receipts preserved |
 | [E31](E31-jeval-native-preflight-20261030.md) | full JEVal native eligibility | engineering | Kev three sizes and Nimble v2 full eligibility complete; Open-Jev token preflights running; no inference scores |

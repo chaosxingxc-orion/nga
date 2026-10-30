@@ -77,3 +77,16 @@ entered actual inference at 25/400 states; 9B was starting. Outputs live in
 `reference_inference/typed_openjev{2,9}_inference_20261030/`, CPU audits in sibling
 `_finish/` directories. Complete metrics await actual terminal and independent
 verification. Original public/supplement runs on chips 1/2 were not modified.
+
+## 2026-10-30 18:23 UTC — 2B completion
+
+2B completed 400 states / 2,000 valid questions, native accuracy .5825,
+KL .41091064355455525, soft Brier .19381650185339677, ECE10 .08100331926223044.
+Raw T=1: KL .659782228909835, Brier .24502752374840706, ECE10 .15923499307814587.
+Independent prompt retokenization/wire reconstruction/scoring passed with zero
+flags and 93 frozen / 90 required files. Actual inference and finisher Docker
+and wrappers exit 0. Report SHA256
+`0bb139be0026fb72fe9b4c7d512a8443645ccbeefb5ca95d355d77030cdac9f5`; audit
+`8481faf3d2ef4f0e58aaf5c76fa3221a9dc2dc650e6d4b82ca802b36c6626341`.
+Parent checked config/terminal/output hashes and actual container exits.
+9B still running; no six-model final table or Astra approval claim.

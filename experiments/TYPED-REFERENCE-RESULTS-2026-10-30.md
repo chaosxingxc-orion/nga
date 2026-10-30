@@ -1,6 +1,6 @@
 # Typed Decisions 共同测试：本地参考结果
 
-2026-10-30 17:44 UTC 初版，18:19 UTC 更新。Kev 三尺寸及 initial Nimble 均完成原始 400 states／2,000 questions，独立验收 `COMPLETED_SCOPED`、审查标记 0，推理与验收容器、结构化终态及 wrapper 均退出 0。Open-Jev 的共同推理尚未完成，不能称六模型比较已齐全。Kev 协议见 [E26](TYPED-COMMON-REFERENCE-2026-10-30.md)，Nimble 见 [E28](../wiki/E28-typed-nimble-reference-20261030.md)。
+2026-10-30 17:44 UTC 初版，18:23 UTC 更新。Kev 三尺寸、initial Nimble 及 Open-Jev-2B 均完成原始 400 states／2,000 questions，独立验收 `COMPLETED_SCOPED`、审查标记 0，推理与验收容器、结构化终态及 wrapper 均退出 0。Open-Jev-9B 的共同推理尚未完成，不能称六模型比较已齐全。Kev 协议见 [E26](TYPED-COMMON-REFERENCE-2026-10-30.md)，Nimble 见 [E28](../wiki/E28-typed-nimble-reference-20261030.md)，Open-Jev 见 [E29](../wiki/E29-typed-openjev-reference-20261030.md)。
 
 数据 SHA256：`4f294f218ea1da27f3efef936359389c62ea4d3973a41457732990f1d31b647c`。保留原始题目与候选顺序，未截断、未选择子集；每模型返回并验证全部 2,000 个分布，无 invalid／unsupported／overlength／failed。该集不同于 NGA 派生分区。
 
@@ -17,6 +17,8 @@ Accuracy 为问题等权、预测与金标首次 argmax 相等；gold 保留原�
 | Kev-9B | 原生 2.193649959389252 | 68.05 | .213789510 | .116320990 | .064928038 |
 | Kev-9B | raw T=1 | 68.05 | .519308862 | .187224530 | .091135501 |
 | Nimble initial v1 | 原生 T=1 | 65.10 | .706027650 | .254995374 | .172864315 |
+| Open-Jev-2B | 原生 1.518796342858676 | 58.25 | .410910644 | .193816502 | .081003319 |
+| Open-Jev-2B | raw T=1 | 58.25 | .659782229 | .245027524 | .159234993 |
 
 每行 n=2,000。两温度来自相同预测记录，服务温度使用保存的原生概率，T=1 从 logits 复算；没有按 test 拟合温度。Kev 的 noul wire 缺原评分器所需概率字段，因此这里明确是原方法算术作用于原生概率，不冒称 HTTP／vLLM／wire 完全复现。预注册的 expected-score MAE 已暂缓，不从 ordinal accuracy 推断该指标。
 
@@ -51,3 +53,15 @@ Nimble 的 2,000 个分布全部有效，invalid／unsupported／overlength／fa
 - audit SHA256：`0ed217f5cd19d975531f449ed55610d4e8783f1d1a2a96387bec9895db927416`
 
 最终累计吞吐 1.437146 questions/s/chip，1 chip，reserved memory 18.65625 GiB。没有新增训练收益或 Astra 实质放行结论。
+
+## 18:23 UTC：Open-Jev-2B 完成追加
+
+全部 2,000 questions 有效，choice／noul／score accuracy 为 55.5%／72.166667%／49.875%，分母为 600／600／800。原生 BF16 unmerged backbone、FP32 head、SDPA，使用各候选独立提示；原生温度与 T=1 来自相同逐项结果，没有 test 温度拟合。独立验收重新 tokenize 全部提示、重建 wire 并重算原方法指标，93／90 冻结／必需文件，审查标记 0。
+
+运行 `reference_inference/typed_openjev2_inference_20261030/` 及 `_finish/`。推理／验收 wrapper 分别于 18:20:48／18:21:16 UTC 退出 0，父会话核对终态、配置、产物哈希及两个实际容器退出 0。
+
+- config SHA256：`6f1f678c728a912e5f249c273389e248100aa26bdbafeaadb28361c58ca2c728`
+- report SHA256：`0bb139be0026fb72fe9b4c7d512a8443645ccbeefb5ca95d355d77030cdac9f5`
+- audit SHA256：`8481faf3d2ef4f0e58aaf5c76fa3221a9dc2dc650e6d4b82ca802b36c6626341`
+
+最终累计吞吐 1.449861 questions/s/chip，1 chip，reserved memory 4.146484 GiB。结论限于该配置共同测试，不能以原生 test 的高分替代此处成绩，也不据此直接判断训练机制。
