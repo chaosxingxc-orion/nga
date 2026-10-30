@@ -172,3 +172,18 @@ fixed before the training or evaluation it slows is launched.
 - Each training run's heartbeat carries its per-chip throughput, so the watchdog digest shows it.
 - A speedup may change speed only: loss and gradients must stay within the measured bf16 noise floor,
   otherwise it needs a pre-registration amendment first.
+
+## 10. More than one agent works in this repository
+
+A second agent (a ChatGPT session, confirmed by the user on 2026-10-30) analyses and adjusts this
+repository and pushes to the same `origin/main`. Treat the repo as shared:
+
+- **Always `git fetch` and inspect `origin/main` before pushing.** A push was already rejected once
+  because the remote had moved. Check which files the other commits touched before rebasing.
+- **Keep to your own files where possible.** Current split in practice: that agent writes `README.md`
+  and `design/`; this work owns `experiments/`, `wiki/`, `tools/`, `proposal/` and `survey/`.
+  `CLAUDE.md` is the shared contract, so edit it additively and say why in the commit message.
+- **Correct another agent's file only for a fact your own work changed**, make the edit minimal, and
+  explain the cause in the commit message so the other agent can see why it moved.
+- The pre-registrations under `experiments/` govern experimental claims. A design or README document
+  does not amend them, and neither does a commit by either agent.
