@@ -224,7 +224,9 @@ chunk8 probability deltas are 9.391012487e-06 (9027), 0.013869159693189886
 The short input's larger difference remains visible; it is not valid to report
 only the longest input. E36 and full JEVal admissions remain false.
 
-The parent performed a fresh actual-exit and Docker/device occupancy check and
-released chip 4 under the allocation lock at 21:36:04 UTC. Full tables and
+The execution agent checked actual exits and fresh Docker/device occupancy,
+then released chip 4 under the allocation lock at 21:36:04 UTC under the
+parent's authorization. The parent separately checked the two actual exits
+and verification bindings. Full tables and
 bounded memory evidence for both sizes are in
 [E37 results](../experiments/OPENJEV-BATCH-DIAGNOSTIC-RESULTS-2026-10-31.md).
