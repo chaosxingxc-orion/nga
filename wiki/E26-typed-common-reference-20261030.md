@@ -95,3 +95,20 @@ change; completed probes and token preflights stay unchanged. The bounded code
 review found no necessary blocker to the first normal launch, but interruption
 between allocation/create/receipt/start and automatic replacement of a failed
 finisher remain recovery gaps. Full automatic recovery is not claimed.
+
+17:37 UTC execution: parent implementation review was recorded against the three
+fresh configuration hashes, then all three retained formal containers and CPU
+finishers were actually launched. Exact image, command, configuration receipt and
+physical chip bindings were checked against Docker. 0.8B on chip 0 reached 41/400
+states, 4B on chip 4 reached 10/400; 9B on chip 5 was completing token preflight.
+Every population remains 400 states / 2,000 questions. No completed test score is
+claimed at launch. Inference container IDs:
+
+- 0.8B: `57758df86bd0c97f2321139a768186f2b111cbbefdd2e165fbc22130b256bbe6`
+- 4B: `7a02cd865ef69cce0ae90cdc6339ab3e52c82f90c430aa5989fffa4f57caefa7`
+- 9B: `da0d8f073cfb05a30e4a7f46c5c250c05979fbba323c082701a35ecf5ad14576`
+
+Outputs: `reference_inference/typed_kev{08,4,9}_inference_20261030/`, with sibling
+`_finish/` CPU audit directories. This admission is a bounded implementation review,
+not substantive Astra approval. The completed tests comprise 35 driver/verifier
+chain checks and 9 launcher checks; 7 separate Nimble adapter tests also passed.
