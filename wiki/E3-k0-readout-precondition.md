@@ -6,7 +6,7 @@
 
 ## 1. Purpose
 
-**Execution note, 2026-10-30 13:33 UTC (before launch).** The single remaining project session
+**Execution note, 2026-10-30 (before launch).** The single remaining project session
 is proceeding with this already registered precondition on chip 5, which the allocation file
 reserved for this job. K0's terminal marker has exit code 0 (58 units, 09:13:32Z), the identity
 verdict has `report_compared: true`, and the frozen `code3/SHA1SUMS` validates all 113 files.
@@ -16,6 +16,13 @@ before detached launch; use the explicit `nga-verl-qwen35-v030:20261029` image a
 container after exit. Launch from the existing frozen code, not the changed live selection code.
 The earlier purpose, samples, thresholds and mandatory counterparts below are unchanged.
 This note is launch evidence, not an E3 pass or independent-review acceptance.
+
+**Launch confirmation, observed 2026-10-30 13:32:30 UTC.** Container `nga-r3-precondition`
+(`52d7555cb419…`) is running detached on physical chip 5. Its frozen-code check has written
+`steps/0_freeze_check.json`; `PRECONDITION_DONE.json` is absent. The exact host launch command
+and receipt are `r3_runs/precondition/LAUNCH_EXACT.sh` and `LAUNCH_RECEIPT.json`.
+The allocation file records the claim and requires the terminal marker plus container exit
+before release. No result or gate pass is claimed by this running-state observation.
 
 K0 is the round's first readout of record. It was launched from a snapshot that stamps no provenance on its rows, and it scores in
 calls of `SCORE_CHUNK = 32` questions whose boundaries shift on a resume. Two questions stand between K0 and any decision that
