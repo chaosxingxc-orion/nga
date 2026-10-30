@@ -12,13 +12,14 @@ SOURCE = "https://github.com/chaosxingxc-orion/nga.git"
 TARGET = "https://gitcode.com/xingchao_ml/nga.git"
 
 
-def git(*args, cwd=None):
+def git(*args, cwd=None, timeout=180):
     # Never invoke an interactive credential prompt or persist a supplied token.
     env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
     return subprocess.run(
-        ["git", "-c", "credential.helper=", *args],
+        ["git", "-c", "credential.helper=", "-c", "http.lowSpeedLimit=1024",
+         "-c", "http.lowSpeedTime=60", *args],
         cwd=cwd, env=env, check=True, text=True,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout,
     ).stdout.strip()
 
 
@@ -32,7 +33,7 @@ def parse_refs(output):
 
 
 def remote_refs(url):
-    return parse_refs(git("ls-remote", "--refs", url, "refs/heads/*", "refs/tags/*"))
+    return parse_refs(git("ls-remote", "--refs", url, "refs/heads/*", "refs/tags/*", timeout=60))
 
 
 def push_arguments(source, target):
@@ -51,6 +52,7 @@ def sync_once(source_url, target_url):
     with tempfile.TemporaryDirectory(prefix="nga-mirror-") as directory:
         repo = Path(directory) / "repository.git"
         git("init", "--bare", str(repo))
+        print("Fetching the current GitHub branches and tags...", flush=True)
         git("fetch", "--atomic", "--no-tags", source_url,
             "+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*", cwd=repo)
         source = parse_refs(git(
@@ -58,12 +60,15 @@ def sync_once(source_url, target_url):
             "refs/heads/", "refs/tags/", cwd=repo))
         if "refs/heads/main" not in source:
             raise RuntimeError("Source main is missing; refusing to modify the mirror.")
+        print("Reading the GitCode branch and tag tips...", flush=True)
         target = remote_refs(target_url)
         leases, refspecs = push_arguments(source, target)
         if refspecs:
             # Atomic pushes fail closed if the server cannot support them. No PR,
             # backup, remote-tracking or provider-internal refs are mirrored.
+            print(f"Pushing {len(refspecs)} ref updates to GitCode...", flush=True)
             git("push", "--atomic", *leases, target_url, *refspecs, cwd=repo)
+        print("Verifying both repositories...", flush=True)
         if remote_refs(target_url) != source:
             raise RuntimeError("Destination refs differ from the fetched source snapshot.")
         if remote_refs(source_url) != source:
@@ -89,8 +94,11 @@ def main():
                 with open(summary, "a", encoding="utf-8") as stream:
                     stream.write(f"### GitCode mirror verified\n\n{message}\n")
             return
-        except (subprocess.CalledProcessError, RuntimeError) as exc:
-            detail = exc.stderr.strip() if isinstance(exc, subprocess.CalledProcessError) else str(exc)
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, RuntimeError) as exc:
+            if isinstance(exc, subprocess.TimeoutExpired):
+                detail = f"Git operation exceeded its {exc.timeout}-second timeout."
+            else:
+                detail = exc.stderr.strip() if isinstance(exc, subprocess.CalledProcessError) else str(exc)
             print(f"Attempt {attempt}/3 failed: {detail}", flush=True)
             if attempt == 3:
                 raise SystemExit(1) from exc
