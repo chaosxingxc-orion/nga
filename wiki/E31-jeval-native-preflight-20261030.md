@@ -94,3 +94,23 @@ maximum lengths above 10,000 tokens. Native exact enumeration is retained, witho
 changing the frozen protocol or treating a slow row as a failure. Their final
 eligibility totals and audit remain pending. No six-model inference-result table
 can yet be inferred from this eligibility experiment.
+
+### 18:21 UTC independent audit correction
+
+The earlier artifact auditor checked every listed hash but did not independently
+enumerate the required dependency closure or pin the dataset hash and terminal
+total. The hardened auditor adds those checks, unique original IDs, native
+unsupported/length reason consistency, maximum-length aggregation and report →
+terminal → wrapper chronology. Seven focused negative tests pass. It still does
+not independently retokenize.
+
+A fresh detached audit of the three Kev populations and Nimble v2 completed at
+`2026-10-30T18:21:04Z`, all 45,028 receipts accepted. Required files independently
+enumerated: 67/72/70/138. Counts remain unchanged. Evidence directory:
+`reference_inference/jeval_artifact_audit_hardened_20261030/`; container
+`f9b5cbee9af63b9b5c3a714f28e6fd11ff914193d48736a58b32c55f15fabe44`.
+Report SHA256: `64ad893c26b86c66bf50436ab6bf9345ab4f0840dde471dadeaed6e08d984c5d`.
+Terminal, wrapper and retained audit container exited 0. After completion,
+the four original container identities/configurations and exited/0 states were
+checked again against the captured Docker snapshots; audit source hashes and
+launch binding also remained intact. Earlier audit evidence is retained.
