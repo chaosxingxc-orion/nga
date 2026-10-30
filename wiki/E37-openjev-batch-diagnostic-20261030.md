@@ -140,3 +140,59 @@ generation has 42 preparer tests and 10 diagnostic tests passing. No request,
 runtime plan, chip claim, NPU launch, or scientific protocol change has been made.
 The prior Astra review does not cover this host-guard revision; it requires a
 separate bounded review before use.
+
+## 2026-10-31 — actual 2B preparation and diagnostic launch (175 host UTC)
+
+CPU preparation request SHA256
+`a08ff791748a13844c266d09746ecdaafc593e4f7ef4548e0de85826921bfdab`
+ran in retained CPU-only container
+`66e7bb008f31d25caea63d34c5202f60b90d838ab93ef850a3aeeb7ec1ef2549`.
+It completed terminal/wrapper/actual exit 0 at 2026-10-30 21:15:56 UTC;
+the complete 141-file plan was prepared without claiming a chip or launching
+a model. Runtime plan SHA256 is
+`97be9d15c0954903e629a3eb03bf4552ab4bb80ddf76cd2887c4072c9059bf00`.
+
+Chronology correction: the CPU launch preceded receipt of the parent's separate
+host-guard delta review. The original CPU `PARENT_REVIEW.json` was retained;
+its writing by the execution agent is not evidence that the parent had already
+reviewed that delta. The parent subsequently reviewed the exact code change,
+reran 42 preparer + 10 diagnostic tests, and checked CPU completion, controls,
+selection and physical-chip mapping before approving NPU execution.
+
+At 21:17:34 UTC the exact NPU plan review was recorded; its guarded launcher
+rechecked allocation, live Docker access and physical device occupancy before
+claiming chip 4 and starting retained container
+`917fdeaf7e83b562aaa5f02deebded767d1ea4c8b1dd6a9904dbc82011ddf28c`
+(`nga-e37-openjev2-20261031-v2`). Output directory:
+`reference_inference/openjev_batch_diagnostic_openjev2_20261031_v2/`.
+The selected indices remain 9027/4200/8409 and the schedule remains 16 forwards.
+Actual diagnostic results and detached CPU completion verification are still
+pending at this launch record; `candidate_batch_admission` remains false.
+
+## 2026-10-31 — 2B diagnostic verified; 9B CPU preparation started
+
+2B completed 16/16 forwards at 2026-10-30 21:20:01 UTC; its wrapper and retained
+NPU container exited 0 at 21:20:05 UTC. Detached CPU verifier
+`d1ec6b0c041d7203cd85885d9ca13f6dd9ad3c27a39cb2e4fd1e1b45640570cb`
+completed terminal/wrapper/actual exit 0 at 21:21:42 UTC. It checked the complete
+16-receipt manifest, frozen closure, terminal/report bindings and recomputed all
+comparison arithmetic. Verifier report SHA256:
+`becae7b6329706454561d3ce79632539c1484072ad72478806a6c65ea51d1862`.
+It does not independently retokenize requests or establish operator-level cause.
+
+`diagnostic_valid=true`: boundary original repetition, no-op, and passive-hook
+checks are exact. Original/chunk repetitions are exact for all three selected
+items. Original versus chunk8 still differs in all three: maximum probability
+deltas are 0.014141414650314155 (9027), 0.00351450921098978 (4200), and
+0.00262589228308982 (8409). Returned decisions changed in 0/3 selected inputs;
+that small selected denominator is not a generalization or accuracy result.
+Both E36 admissions remain false. Only boundary item 9027 had hook passes.
+
+After the parent checked actual NPU/verifier exits, plan/report bindings and all
+16 receipts, chip 4 was explicitly released with fresh allocation/Docker/device
+checks; evidence is `openjev_batch_diagnostic_openjev2_20261031_v2/RELEASED.json`.
+The separate 9B CPU preparation then started in retained device-free container
+`b01c96aa12e280bfc2ca8d83b415bc6027bc82f632fd0c39735d02df14b36d29`,
+request SHA256 `db7745c72df4b35a074625b8535458650f93e701e95c3ed1ed9abfaf0286697e`.
+This uses the same reviewed v2 source and unchanged selection/protocol; 9B NPU
+execution still awaits successful CPU completion and exact plan review.
