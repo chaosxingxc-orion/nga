@@ -1,0 +1,60 @@
+{
+  "ledger_version": "0.1.0",
+  "events": [
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 0,
+      "identity": {
+        "business_request_id": "br-a003",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-credit-3"
+      },
+      "versions": {
+        "evidence": "ev-3",
+        "rule": "rule-v1",
+        "model": "m-1",
+        "readout": "r-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "adopted",
+        "detail": "fixture"
+      },
+      "accountability": {
+        "session": "sess-1",
+        "skill": "skill-credit",
+        "role": "employee"
+      },
+      "idempotency": {
+        "operation_id": "op-credit-3",
+        "payload_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    },
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 1,
+      "identity": {
+        "business_request_id": "br-a003",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-credit-3"
+      },
+      "versions": {
+        "evidence": "ev-3",
+        "rule": "rule-v1",
+        "model": "m-1",
+        "readout": "r-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "conflict",
+        "detail": "fixture"
+      },
+      "accountability": {
+        "session": "sess-2",
+        "skill": "skill-credit",
+        "role": "employee"
+      }
+    }
+  ],
+  "_expect": "ACCEPT: two concurrent adoptions under the same key \u2014 the recorded arbitration order shows one adopted and one conflict (12 s2); the loser's event is a fact, not an error"
+}
