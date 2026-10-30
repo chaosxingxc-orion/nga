@@ -293,7 +293,7 @@ def evaluate(config, rows, identity, out, status):
     report = summarize(rows, values, evaluate_probabilities, temperature)
     report.update(identity=identity, ordered_ids_sha256=stamp([r['id'] for r in rows]), reused_rows=reused,
                   inference_runtime={'torch': torch.__version__, 'torch_npu': torch_npu.__version__},
-                  scope='10,356-row redistributable public test, not the 10,532-row original test')
+                  scope=config.get('scope', '10,356-row redistributable public test, not the 10,532-row original test'))
     return report
 
 
@@ -344,7 +344,7 @@ def guarded_resume(config, config_path):
         subprocess.run(['docker', 'start', config['container']], check=True)
 
 
-def main():
+def main(protocol_validator=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', required=True)
     parser.add_argument('--mode', choices=['preflight', 'evaluate', 'resume'], required=True)
@@ -387,7 +387,7 @@ def main():
         rows = [json.loads(line) for line in Path(config['data']).read_text().splitlines()]
         validate_rows(rows, config['expected_rows'])
         validate_records(rows)
-        validate_protocol(config, rows)
+        (protocol_validator or validate_protocol)(config, rows)
         require(Counter(max(r['target']) == 1.0 for r in rows)[True] == config['hard_count'], 'Hard denominator changed')
         status['stage'] = args.mode
         report = preflight(config, rows, identity, out, status) if args.mode == 'preflight' else evaluate(config, rows, identity, out, status)

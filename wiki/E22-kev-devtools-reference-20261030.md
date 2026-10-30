@@ -62,3 +62,16 @@ Independent audit verified 68 frozen files, 59 required dependencies, all 900 re
 Release accuracy matches upstream .636788048553; no full-population equivalence is inferred.
 4B and 9B remain running at 437/900 and 223/900 records at 16:36 UTC. Final results for
 those sizes remain pending. No substantive Astra approval or training benefit is claimed.
+
+2026-10-30 16:42 UTC: 4B completed, wrapper rc 0 at 16:41:50 and retained
+container exited/0. Independent audit VERIFIED_SCOPED checks 73 frozen files,
+64 required dependencies and all 900 records / 1,073 questions. Full/release
+accuracy .755824790308 / .756302521008; release matches upstream. Both native/raw
+probability metric tables are in the reference results report. 9B remains running.
+
+2026-10-30 16:45 UTC: 9B also completed with wrapper rc 0 at 16:44:49,
+retained container exited/0 and VERIFIED_SCOPED audit (72 frozen / 63 required
+files, 900 records / 1,073 questions). Full/release accuracy .791239515377 /
+.791783380019. Release is one correct question above upstream .790849673203;
+retain the difference. All three E22 inferences are now completed with scoped
+arithmetic/artifact verification, not substantive Astra approval.

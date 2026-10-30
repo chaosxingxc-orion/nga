@@ -44,8 +44,10 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E19](E19-nimble-public-test-20261030.md) | original Nimble on seven exact public test subsets | reference evaluation | 1,884-row inference complete; E21 audit failed and diagnosis pending |
 | [E20](E20-kev-extended-test-20261030.md) | Kev 0.8B/4B/9B on hard-v1 and documents-v1 | reference evaluation | all three sizes complete with scoped audits at 16:36 UTC |
 | [E21](E21-nimble-independent-finish-20261030.md) | independent Nimble scoring audit and automatic finish | engineering | independent audit failed at 16:33:52 UTC; diagnosis pending |
-| [E22](E22-kev-devtools-reference-20261030.md) | Kev devtools full/release dual-population inference | reference evaluation | all three automatically launched; 0.8B scoped audit complete, 4B/9B running |
+| [E22](E22-kev-devtools-reference-20261030.md) | Kev devtools full/release dual-population inference | reference evaluation | all three sizes completed scoped audits; 9B release differs by one correct question |
 | [E23](E23-openjev-original-data-restoration-20261030.md) | exact original Open-Jev split restoration | data restoration | completed; five original split hashes match; inference not implied |
+| [E24](E24-openjev-original-test-supplement-20261030.md) | original Open-Jev test supplement and exact join | reference evaluation | prepared, not launched; remaining review recorded |
+| [E25](E25-nimble-reference-rerun-20261030.md) | Nimble rerun with complete dependency freeze | reference evaluation | 152 frozen files cover 150 required dependencies; inference and observer running |
 
 ## Where the artifacts live
 

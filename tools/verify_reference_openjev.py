@@ -135,7 +135,7 @@ def required_files(c):
     return paths
 
 
-def verify(config_path):
+def verify(config_path, dataset_validator=None):
     config_path=Path(config_path); c=load(config_path); run=Path(c['out'])
     identity=object_sha(c); config_hash=sha(config_path)
     needed=required_files(c)
@@ -148,7 +148,8 @@ def verify(config_path):
     preterm=terminal(run,'preflight',identity,config_hash,'PREFLIGHT.json','ready')
     end=terminal(run,'evaluate',identity,config_hash,'report.json','complete')
     rows=[json.loads(line) for line in Path(c['data']).read_text().splitlines()]
-    manifest=load(c['export_manifest'])['configs']['release-v2-redistributable']['splits']['test']
+    manifest=(dataset_validator(c, rows) if dataset_validator else
+              load(c['export_manifest'])['configs']['release-v2-redistributable']['splits']['test'])
     require(sha(c['data'])==manifest['raw_uncompressed_sha256'], 'Data manifest hash differs')
     require(len(rows)==c['expected_rows']==manifest['count'], 'Input count differs')
     require(len({r['id'] for r in rows})==len(rows), 'Duplicate input IDs')
