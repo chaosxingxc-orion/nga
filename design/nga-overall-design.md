@@ -317,6 +317,8 @@ Model and data work should test held-out rule families, competing definitions ov
 
 These are unresolved. Examples are alternatives to evaluate, not selected defaults.
 
+For their architectural refinement and a concrete discussion agenda, see the [architecture discussion register](../achitecture%20design/16-architecture-discussion-register.md). It maps O1–O12 to 18 open questions while preserving the broader program and model-research scope here; its recommendations are not decisions.
+
 | ID | Question | Evidence or artifact needed |
 | --- | --- | --- |
 | O1 | What business scenario and operation scope define the first idempotence contract? | Concrete tasks, material facts, irreversible effects, failure/retry cases, and an accountable owner. |

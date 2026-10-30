@@ -6,6 +6,8 @@ This directory holds the owner-supplied enterprise architecture baseline and NGA
 
 **Current discussion:** [Graph, Agent Loop, and Workflow control review](15-graph-loop-workflow-control-review.md) challenges their composition, decision-basis ownership, nested execution, and the S1/S2/framework authority boundaries. Its refinements are proposals, not a replacement of the established organizing axes or an implemented guarantee.
 
+**Discussion agenda:** [Architecture discussion register](16-architecture-discussion-register.md) consolidates 18 open questions with options, proposed starting positions, closure evidence, dependencies and a suggested discussion order. Recommendations remain open until explicitly decided.
+
 ## Reading order and document status
 
 | Document | Role | Status |
@@ -21,6 +23,7 @@ This directory holds the owner-supplied enterprise architecture baseline and NGA
 | [13 — NGA architecture V0.2](13-nga-architecture-v0.2.md) | Three-state/four-plane matrix, integrated agent evolution, release continuity, and the credit lifecycle. | Current organizing proposal; axes are owner-defined, detailed mechanisms are proposed. |
 | [14 — V0 adversarial review](14-v0-adversarial-review.md) | Source-linked findings, counterexamples, corrections, and acceptance obligations for V0 and our own drafts. | Design review; no implementation tests claimed. |
 | [15 — Graph, Agent Loop, and Workflow control review](15-graph-loop-workflow-control-review.md) | Eight adversarial findings; decision-basis ownership, common execution contracts, three-state/four-plane responsibilities, logical interfaces, and governed evolution. | Discussion proposal; technology and topology choices remain open. |
+| [16 — Architecture discussion register](16-architecture-discussion-register.md) | Eighteen open architecture questions, discussion sequence, decision evidence, three-state/four-plane coverage and deferred technical choices. | All items OPEN; recommendations are not approved decisions. |
 
 The [NGA overall design](../design/nga-overall-design.md) remains the program-level source for the three projects and established principles. This directory develops the architecture for project 2 and its integration into project 3.
 
