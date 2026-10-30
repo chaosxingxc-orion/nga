@@ -1,5 +1,9 @@
 # NGA — Next Generation Agent
 
+[GitHub](https://github.com/chaosxingxc-orion/nga) · [GitCode mirror](https://gitcode.com/xingchao_ml/nga) · [Synchronization status](https://github.com/chaosxingxc-orion/nga/actions/workflows/sync-gitcode.yml)
+
+GitHub is the canonical repository. GitCode receives automated branch, tag and commit synchronization; see the [mirror operations guide](.github/GITCODE-MIRROR.md).
+
 **NGA develops a new enterprise-agent approach through three projects: Jev-like decision models, System 1 + System 2 agent loops, and an enterprise agent workbench. Idempotent decisions and business outcomes, replayable and auditable execution, and business configurability are the shared objectives.**
 
 The preceding generation of agent frameworks centers on an **agentic model**: the model plans, executes actions, reflects on observations, and replans through an **agent loop**. NGA starts from a production concern: generative reconsideration can change a consequential decision even when its business basis has not changed. The project treats this instability as a central barrier to using agents in enterprise core processes.

@@ -1,0 +1,64 @@
+name: Sync GitCode mirror
+
+on:
+  push:
+    branches: ['**']
+    tags: ['**']
+  create:
+  delete:
+  workflow_dispatch:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+
+permissions:
+  contents: read
+
+# Serialize all refs. Each run fetches the current source, not its event SHA.
+concurrency:
+  group: gitcode-mirror
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'chaosxingxc-orion/nga'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check mirror credential
+        env:
+          GITCODE_TOKEN: ${{ secrets.GITCODE_TOKEN }}
+        run: |
+          if [ -z "$GITCODE_TOKEN" ]; then
+            echo '::error::Add the GITCODE_TOKEN repository secret before running this workflow.'
+            exit 1
+          fi
+
+      - name: Read synchronization code from main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Check mirror behavior without network credentials
+        run: python3 -I .github/scripts/test_sync_gitcode.py
+
+      - name: Synchronize and verify branches and tags
+        env:
+          GITCODE_TOKEN: ${{ secrets.GITCODE_TOKEN }}
+          GIT_TERMINAL_PROMPT: '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          askpass=$(mktemp "$RUNNER_TEMP/gitcode-askpass.XXXXXX")
+          trap 'rm -f "$askpass"' EXIT
+          cat > "$askpass" <<'ASKPASS'
+          #!/bin/sh
+          case "$1" in
+            *"Username for 'https://gitcode.com'"*|*"Username for 'https://gitcode.com/"*) printf '%s\n' 'xingchao_ml' ;;
+            *"Password for 'https://xingchao_ml@gitcode.com'"*|*"Password for 'https://xingchao_ml@gitcode.com/"*) printf '%s\n' "$GITCODE_TOKEN" ;;
+            *) exit 1 ;;
+          esac
+          ASKPASS
+          chmod 700 "$askpass"
+          export GIT_ASKPASS="$askpass"
+          python3 -I .github/scripts/sync_gitcode.py
