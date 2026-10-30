@@ -259,7 +259,7 @@ owned (the file's own rule, after two incidents where a momentary reading was us
 
 | activity | meaning | flag |
 |---|---|---|
-| `no-process` | no resident process, baseline HBM | combined with ownership: **owned** -> `owned_idle` (`read`): "chip 7 idle, owner X (run), for >=Nm", wasted capacity, never "available". **free** per the file -> `free_unused`: `decide` while any run is `running` or queued, `read` otherwise. Anything else -> the ownership flag |
+| `no-process` | no resident process, baseline HBM | combined with ownership: **owned** -> `owned_idle` (`read`): "chip 7 idle, owner X (run), for >=Nm (N passes)", wasted capacity, never "available"; once idle for at least `--npu-owned-idle-seconds` (default 1800 = 30 min: several times the longest legitimate between-shards or checkpoint-loading gap seen, equal to the medium stall threshold) **and** at least `--npu-owned-idle-passes` (3) consecutive passes it becomes `owned_idle_long` (**`decide`**: a forgotten release or a dead job; the line carries the elapsed idle time and pass count). A busy pass, or a gap in watching longer than three ticks, restarts the count. **free** per the file -> `free_unused`: `decide` while any run is `running` or queued, `read` otherwise. Anything else -> the ownership flag |
 | `quiet` | a process, every snapshot at or below `--npu-near-zero-pct` (5) | none (a single low sample, or a load, is normal) |
 | `wedged?` | a process and quiet for at least `--npu-wedged-passes` (3) consecutive passes spanning at least `--npu-wedged-seconds` (1200) | **escalation `read`**, with the duration (`for >=30m (4 passes)`); a gap longer than three ticks, or one busy pass, resets the streak |
 | `low` | a process, **window** mean AICore below `--npu-low-pct` (30) but not quiet | informational line, no escalation (launch-bound kernels run healthy at 9-22%) |
@@ -334,7 +334,7 @@ flag is still a flag):
 - an error-severity signature in a run's log (one flag per run and signature); warning-only signatures are not flags;
 - `PROGRESS FLAT`, `TOTAL EXCEEDED/UNREACHABLE`, a throughput regression;
 - any escalation `read` or `decide`, including the level a WHY disposition removed (`expected: true` runs are still flagged);
-- an escalating NPU flag (`ownership_unknown`, `owned_idle`, `free_unused`, `free_in_use`, `possibly_wedged`); the informational low line is not.
+- an escalating NPU flag (`ownership_unknown`, `owned_idle`, `owned_idle_long`, `free_unused`, `free_in_use`, `possibly_wedged`); the informational low line is not.
 
 **When a pass is retained** (non-empty flag set only): (a) **a flag key appears that was not in the previous pass**, unless that same key
 was retained within `--retain-flap-seconds` (default 1 h), so a flag that toggles does not retain every tick; (b) **refresh**: the newest

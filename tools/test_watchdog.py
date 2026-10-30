@@ -1970,6 +1970,61 @@ class NpuHistoryFrom(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(scratch, "npu_history.json")))              # the pass went to the scratch dir
 
 
+class OwnedIdleDuration(unittest.TestCase):
+    """An OWNED chip with no process: quiet (read) while short, decide once idle for a long stretch (forgotten release or dead job)."""
+
+    def cfg(self, **kw):
+        kw.setdefault("chip_allocation", write_alloc(owned={0: ("evaluator engineer", "r3_runs/harness_identity")}))
+        kw.setdefault("interval", 600.0)
+        kw.setdefault("out_dir", tempfile.mkdtemp(prefix="wdnpu_"))
+        return wd.make_cfg(**kw)
+
+    def passes(self, n, gap, cfg=None, busy_at=None):
+        cfg, hist, out = cfg or self.cfg(), {}, None
+        for i in range(n):
+            if busy_at == i:
+                raw = raw_probe([(0, 80, 20000)], procs=[(0, 1, 9000)], t=NOW + gap * i)
+            else:
+                raw = raw_probe([(0, 0, 3450)], procmem={0: []}, t=NOW + gap * i)
+            out = wd.analyse_npu(raw, [{"id": "r", "path": "/x/r", "state": "running"}], [], cfg, hist)
+        return out
+
+    def test_a_short_idle_stays_read(self):
+        n = self.passes(3, 600)                                   # 20 min over 3 passes: a chip between shards
+        self.assertEqual((n["owned_idle"], n["owned_idle_long"], n["escalation"], [f["kind"] for f in n["flags"]]), ([0], [], "read", ["owned_idle"]))
+
+    def test_a_long_idle_is_decide_with_elapsed_time_and_pass_count(self):
+        n = self.passes(4, 600)                                   # 30 min over 4 passes
+        f = n["flags"][0]
+        self.assertEqual((n["escalation"], f["kind"], f["escalation"], n["owned_idle_long"]), ("decide", "owned_idle_long", "decide", [0]))
+        self.assertIn("chip 0 idle, owner evaluator engineer (r3_runs/harness_identity), for >=30m (4 passes)", f["text"])
+        self.assertIn("did not release it", f["text"])
+        self.assertIn("owned, not available", f["text"])
+        self.assertIn("(chips 0 idle >= 30m: decide)", wd.npu_fragment(n))
+
+    def test_many_passes_in_a_short_span_stay_read(self):
+        self.assertEqual(self.passes(6, 60)["escalation"], "read")               # 6 passes but only 5 minutes
+
+    def test_the_pass_count_binds_independently_of_the_span(self):
+        n = self.passes(3, 1500)                                  # 50 min over 3 passes meets both defaults
+        self.assertEqual(n["escalation"], "decide")
+        n = self.passes(3, 1500, cfg=self.cfg(npu_owned_idle_passes=4))
+        self.assertEqual(n["escalation"], "read")
+
+    def test_the_threshold_is_a_flag(self):
+        self.assertEqual(self.passes(4, 600, cfg=self.cfg(npu_owned_idle_seconds=3600.0))["escalation"], "read")
+        self.assertEqual(self.passes(3, 600, cfg=self.cfg(npu_owned_idle_seconds=1200.0))["escalation"], "decide")
+
+    def test_one_busy_pass_resets_the_idle_stretch(self):
+        n = self.passes(8, 600, busy_at=5)                        # idle 5, busy, idle 2
+        self.assertEqual((n["escalation"], n["chips"][0]["no_process_passes"]), ("read", 2))
+
+    def test_a_free_chip_is_not_an_owned_idle_chip_and_is_unaffected(self):
+        cfg = self.cfg(chip_allocation=write_alloc(owned={}, free=[0]))
+        n = self.passes(5, 600, cfg=cfg)
+        self.assertEqual((n["owned_idle_long"], [f["kind"] for f in n["flags"]]), ([], ["free_unused"]))
+
+
 class NpuProbeAndRender(unittest.TestCase):
     def bin_dir(self, ssh_rc=None):
         d = tempfile.mkdtemp(prefix="wdbin_")

@@ -126,6 +126,13 @@ def build_parser():
     a("--npu-history-from", default=None,
       help="read npu_history.json from this directory (e.g. the daemon's _watchdog/) instead of --out-dir, read only, so a one-shot pass "
            "into a scratch --out-dir has the same utilisation window as the daemon")
+    a("--npu-owned-idle-seconds", type=float, default=1800.0,
+      help="an OWNED chip with no resident process for at least this long (and --npu-owned-idle-passes consecutive passes) escalates to "
+           "'decide': a forgotten release or a dead job. Default 1800 s = 30 min: a chip between shards or loading a checkpoint is idle for "
+           "seconds to a few minutes (the 04:37Z incident was one such gap), so 30 min is several times the longest legitimate gap seen, "
+           "equals the medium-tier stall threshold, and is still short against a multi-hour round")
+    a("--npu-owned-idle-passes", type=int, default=3,
+      help="... and seen idle in at least this many consecutive passes (default 3; at the 10-minute tick the seconds condition then needs 4)")
     a("--npu-idle-hbm-mb", type=float, default=4096.0,
       help="a chip with no resident process and at most this much HBM has no process (the driver baseline is about 3450 MB; default 4096)")
     a("--npu-near-zero-pct", type=float, default=5.0, help="a claimed chip whose every snapshot is at or below this %% AICore is quiet (default 5)")
@@ -1880,7 +1887,8 @@ def analyse_npu(raw, runs, queued, cfg, hist=None):
     out = {"available": False, "reason": None, "host": cfg.npu_host, "sampled_utc": None, "samples": 0, "chips": [], "no_process": [],
            "wedged": [], "quiet": [], "low": [], "running_runs": 0, "queued_runs": 0, "flags": [], "escalation": "none",
            "low_pct": cfg.npu_low_pct, "unknown": [], "window_s": cfg.npu_window_seconds, "min_passes": cfg.npu_min_passes,
-           "owned_idle": [], "free_unused": [], "ownership_unknown": [], "allocation": None}
+           "owned_idle": [], "owned_idle_long": [], "free_unused": [], "ownership_unknown": [], "allocation": None,
+           "owned_idle_decide_s": cfg.npu_owned_idle_seconds, "owned_idle_decide_passes": cfg.npu_owned_idle_passes}
     alloc = load_allocation(cfg)
     out["allocation"] = {"ok": alloc["ok"], "path": alloc["path"], "reason": alloc["reason"], "updated_utc": alloc["updated_utc"],
                          "updated_by": alloc["updated_by"], "allocated": sorted(alloc["owners"]), "free": sorted(alloc["free"]),
@@ -1969,12 +1977,23 @@ def analyse_npu(raw, runs, queued, cfg, hist=None):
                                  "CHIP OWNERSHIP UNKNOWN for chip %s: %s lists %s; nothing is assumed free" % (
                                      ids([c["npu"] for c in odd]), os.path.basename(alloc["path"]),
                                      "no owner and no free entry" if all(c["ownership"] == "unlisted" for c in odd) else "a chip twice or as both owned and free")})
-    if out["owned_idle"]:
-        det = "; ".join("chip %d idle, owner %s%s, %s" % (
-            k, _clip(by[k]["owner"], 40), " (%s)" % by[k]["owner_run"] if by[k]["owner_run"] else "", since(by[k])) for k in out["owned_idle"])
-        out["flags"].append({"kind": "owned_idle", "escalation": "read", "chips": out["owned_idle"], "text":
+    long_ = [k for k in out["owned_idle"] if by[k]["no_process_s"] >= cfg.npu_owned_idle_seconds
+             and by[k]["no_process_passes"] >= cfg.npu_owned_idle_passes]
+    short = [k for k in out["owned_idle"] if k not in long_]
+    out["owned_idle_long"] = long_
+
+    def idle_detail(ks):
+        return "; ".join("chip %d idle, owner %s%s, %s" % (
+            k, _clip(by[k]["owner"], 40), " (%s)" % by[k]["owner_run"] if by[k]["owner_run"] else "", since(by[k])) for k in ks)
+    if long_:
+        out["flags"].append({"kind": "owned_idle_long", "escalation": "decide", "chips": long_, "text":
+                             "NPU OWNED BUT IDLE FOR A LONG STRETCH (>= %s and >= %d passes; owned, not available): %s. Either the owner finished and "
+                             "did not release it in the allocation file, or its job is dead: a decision, not a reading" % (
+                                 human_age(cfg.npu_owned_idle_seconds), cfg.npu_owned_idle_passes, idle_detail(long_))})
+    if short:
+        out["flags"].append({"kind": "owned_idle", "escalation": "read", "chips": short, "text":
                              "NPU OWNED BUT IDLE (no resident process, baseline HBM; owned, not available): %s. The allocation file, not this "
-                             "sample, says who may use it; a chip between shards also reads like this" % det})
+                             "sample, says who may use it; a chip between shards also reads like this" % idle_detail(short)})
     if out["free_unused"]:
         det = ", ".join("%d %s" % (k, since(by[k])) for k in out["free_unused"])
         out["flags"].append({"kind": "free_unused", "escalation": "decide" if work else "read", "chips": out["free_unused"], "text":
@@ -2012,7 +2031,9 @@ def npu_fragment(npu):
         al = npu.get("allocation") or {}
         bits.append("OWNERSHIP UNKNOWN chips %s%s" % (ids(npu["ownership_unknown"]), "" if al.get("ok") else " (%s unreadable)" % ALLOCATION_NAME))
     if npu.get("owned_idle"):
-        bits.append("owned but idle chips %s" % ids(npu["owned_idle"]))
+        lg = npu.get("owned_idle_long") or []
+        bits.append("owned but idle chips %s%s" % (ids(npu["owned_idle"]), " (chips %s idle >= %s: decide)" % (
+            ids(lg), human_age(npu.get("owned_idle_decide_s") or 0)) if lg else ""))
     if npu.get("free_unused"):
         bits.append("FREE per file and unused chips %s (%d run, %d queued)" % (ids(npu["free_unused"]), npu["running_runs"], npu["queued_runs"]))
     if npu["wedged"]:
@@ -2882,7 +2903,7 @@ def npu_pass(cfg, dg, states):
         return npu
     except Exception as e:   # noqa: BLE001 - the digest must survive a broken probe
         return {"available": False, "reason": "npu analysis failed: %s" % repr(e)[:100], "host": cfg.npu_host, "chips": [],
-                "low": [], "no_process": [], "unknown": [], "owned_idle": [], "free_unused": [], "ownership_unknown": [], "allocation": None,
+                "low": [], "no_process": [], "unknown": [], "owned_idle": [], "owned_idle_long": [], "free_unused": [], "ownership_unknown": [], "allocation": None,
                 "wedged": [], "quiet": [], "flags": [], "escalation": "none", "sampled_utc": None, "samples": 0,
                 "running_runs": 0, "queued_runs": 0}
 
