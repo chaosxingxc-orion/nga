@@ -40,3 +40,9 @@ remains false for both models; E37 cannot turn it true. Exact no-op and hook out
 checks must pass before using the corresponding instrumentation for attribution.
 A distinct chunk numerical-configuration result would need its own registration
 and separate result cell, and would not complete the original E33 batch protocol.
+
+## Detached preparation and verification tooling — prepared, not executed
+
+`tools/prepare_openjev_batch_diagnostic.py` now separates short host allocation/Docker/npu-smi checks from full dependency hashing. A frozen preparation request launches retained CPU-only Docker with persistent log, heartbeat, terminal and exact relaunch; full hashes and plan generation occur there. Host NPU launch requires actual successful CPU exit, hash-bound preparation report and mandatory small controls. The frozen E37 driver still rehashes the entire source/plan closure before Native/model execution. Completed diagnostic verification also runs detached CPU and rechecks full item identity/hash sets and comparison arithmetic.
+
+Parent reran35 preparer tests and10 existing diagnostic tests; generated Python/shell checks passed. Preparation preserves partial evidence and requires reviewed exact interrupted-generation recovery. No remote E37 plan was generated and no NPU diagnostic launched; selected physical chip0/1 must actually be available first. Verification does not independently retokenize requests or authenticate hook internals as causal evidence; scientific result review remains required. E36 numerical admission remainsfalse.

@@ -461,3 +461,17 @@ heartbeat and terminal, and launches each v7r2 through the new guarded launcher.
 The 55-second wrapper preserves logs/EXIT on Ceph. Actual read-only dry check passed;
 no v7r2 approval or launch occurred during preparation. Durable package:
 `reference_inference/e34_kev_waiter_v7r2_handover_20261030/`.
+
+## 20:45 UTC — Kev v7r2 waiters actually deployed
+
+The v6 handover stopped only old Kev08 CPU waiter before the Docker CLI error-text mismatch rejected the new launch. Its rc1 terminal, original stop intent and exact Docker exit137/FinishedAt (without wrapper EXIT or model terminal) remain preserved. No failed generation was overwritten. The corrected launcher uses structured Docker HTTP: only404 means absent; transport/permission/server errors fail closed. Parent reran16 launcher tests and verified all17 frozen files per v7r2 plan, unchanged reviewed waiter/auditor bytes, and output-path-normalized container specification equality to reviewed v6.
+
+Parent then executed the bounded, durable v7r2 handover wrapper. Terminal and wrapper both rc0 at20:45:44UTC, with terminal intent hash independently matched. Old three CPU waiters are retained exited137; original model and finisher IDs and StartedAt values were checked and remain running unchanged. Actual new CPU containers:
+
+| Key | Retained container ID | Plan SHA256 |
+| --- | --- | --- |
+| kev08 | `4246c7fecd91c089a7903228c8859030dfe488b9ec5d5aaf6ef3144199d96d29` | `3383fd728cfbdbded2fba370b7f3a5fb9c42ec201ec79fa67426003105d7187d` |
+| kev4 | `d783a94676adbe9a2cd872a0e62f1700bc2829bb304924dec9a2126c29945eda` | `4f651330eb004684f20f0f6f322392ebf4e2bb5dbc2f2c214a38bdce0b58486d` |
+| kev9 | `d92dcf2af2e3939a56168607bcf6076bdca719b28950e38f5cb0a8ece00b4037` | `663181055341064775e739f98d22adc11f57f375e62b5a2b9b383b2d0e85366c` |
+
+The20:45UTC digests show `waiting_native_finish` at9056/6252/6355 of11257 respectively. Full inference/metric acceptance is still pending. Handover evidence: `reference_inference/e34_kev_waiter_v7r2_handover_20261030`; waiter outputs: `jeval_{kev08,kev4,kev9}_hardened_waiter_20261030_v7r2`. v4/v5/v6 and rejected manualv7 preparations remain unchanged.
