@@ -294,7 +294,7 @@ pair accuracy＝组内所有成员都对的组比例；pair direction 则比较�
 | Hanno、behavior-benchmark 等 eval | 保留 eval 命名和分母，不能直接并入 test 主表 |
 | Open-Jev v1.1 完整内部集合 | 公开投影不完整，内部总分与公开投影区别保留 |
 | 部分 ECE、Macro-F1、成本指标的精确实现 | 有源码则核对；只见表名则标定义未齐，不默认同义 |
-| 本地复测覆盖 | Kev-0.8B／4B／9B 的 decision-v7／transfer-v4 已完成；Open-Jev 已完成接口探测及全量长度预检，全量推理待执行入口审查。按各 run 终态更新，不把导出 JSON 或探测说成全量推理 |
+| 本地复测覆盖 | Kev-0.8B／4B／9B 的 decision-v7／transfer-v4 已完成；Open-Jev-2B 完成接口探测及全量长度预检后，15:44 UTC 启动 10,356 行完整公共 test 推理，尚无最终成绩。按各 run 终态更新，不把导出 JSON 或探测说成全量推理 |
 
 本阶段参考 test 已用于训练方案研究。后续训练若受这些结果启发，必须披露该开发暴露，并设计独立确认或明确限定结论，不能重新声称所有参考 test 完全未见。
 

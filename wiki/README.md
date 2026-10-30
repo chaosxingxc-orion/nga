@@ -36,6 +36,7 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E11](E11-reference-kev9-probe-20261030.md) | native Kev-9B development compatibility and efficiency | reference evaluation | four records completed after preserving a failed premature launch |
 | [E12](E12-reference-kev9-test-20261030.md) | native Kev-9B on decision-v7 and transfer-v4 test | reference evaluation | complete; 2,204 questions and scoped independent audit verified |
 | [E13](E13-openjev2-native-probe-20261030.md) | native Open-Jev-2B typed synthetic compatibility | reference evaluation | three synthetic requests completed; public test not yet run |
+| [E14](E14-openjev2-public-test-20261030.md) | native Open-Jev-2B on 10,356 public test rows | reference evaluation | complete length preflight passed; full inference launched on 175 chip 2 |
 
 ## Where the artifacts live
 
