@@ -46,12 +46,15 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E21](E21-nimble-independent-finish-20261030.md) | independent Nimble scoring audit and automatic finish | engineering | independent audit failed at 16:33:52 UTC; diagnosis pending |
 | [E22](E22-kev-devtools-reference-20261030.md) | Kev devtools full/release dual-population inference | reference evaluation | all three sizes completed scoped audits; 9B release differs by one correct question |
 | [E23](E23-openjev-original-data-restoration-20261030.md) | exact original Open-Jev split restoration | data restoration | completed; five original split hashes match; inference not implied |
-| [E24](E24-openjev-original-test-supplement-20261030.md) | original Open-Jev test supplement and exact join | reference evaluation | CPU dependency queue running; component review flags preserved; supplement awaits public completion |
+| [E24](E24-openjev-original-test-supplement-20261030.md) | original Open-Jev test supplement and exact join | reference evaluation | 2B full original test complete with component flags preserved; 9B queue awaits public completion |
 | [E25](E25-nimble-reference-rerun-20261030.md) | Nimble rerun with complete dependency freeze | reference evaluation | 1,884 rows and independent audit complete; 152 frozen / 150 required dependencies; no review flags |
 | [E26](E26-typed-common-reference-20261030.md) | Typed Decisions common reference interface | engineering / reference evaluation | three Kev full 2,000-question runs and independent audits complete; zero review flags |
 | [E27](E27-kev-checkpoint-binding-audit-20261030.md) | independent checkpoint temperature and publication binding | engineering audit | nine completed Kev runs verified within stated scope |
-| [E28](E28-typed-nimble-reference-20261030.md) | initial Nimble on Typed Decisions | engineering / reference evaluation | native probe complete; full 2,000-question inference and CPU verifier launched at 17:51 UTC |
+| [E28](E28-typed-nimble-reference-20261030.md) | initial Nimble on Typed Decisions | engineering / reference evaluation | full 2,000-question inference and independent retokenization/scoring audit complete; accuracy 65.10%, zero review flags |
 | [E29](E29-typed-openjev-reference-20261030.md) | Open-Jev on Typed Decisions | engineering / reference evaluation | both native probes complete; formal 2B/9B inference and CPU finishers launched on chips 0/5 |
+
+| [E30](E30-typed-recovery-controller-20261030.md) | deterministic recovery controller | engineering | real CPU worker and audit SIGKILL recovery passed; 24 items, 3 prefix receipts preserved |
+| [E31](E31-jeval-native-preflight-20261030.md) | full JEVal native eligibility | engineering | Kev three sizes and Nimble v2 full eligibility complete; Open-Jev token preflights running; no inference scores |
 
 ## Where the artifacts live
 

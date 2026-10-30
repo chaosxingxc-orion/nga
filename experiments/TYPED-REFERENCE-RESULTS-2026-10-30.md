@@ -1,6 +1,6 @@
 # Typed Decisions 共同测试：本地参考结果
 
-2026-10-30 17:44 UTC。Kev 三尺寸均完成原始 400 states／2,000 questions，独立验收 `COMPLETED_SCOPED`、审查标记 0，推理与验收容器、结构化终态及 wrapper 均退出 0。Nimble、Open-Jev 的共同推理尚未完成，不能称六模型比较已齐全。协议见 [E26](TYPED-COMMON-REFERENCE-2026-10-30.md)，运行记录见 [wiki](../wiki/E26-typed-common-reference-20261030.md)。
+2026-10-30 17:44 UTC 初版，18:19 UTC 更新。Kev 三尺寸及 initial Nimble 均完成原始 400 states／2,000 questions，独立验收 `COMPLETED_SCOPED`、审查标记 0，推理与验收容器、结构化终态及 wrapper 均退出 0。Open-Jev 的共同推理尚未完成，不能称六模型比较已齐全。Kev 协议见 [E26](TYPED-COMMON-REFERENCE-2026-10-30.md)，Nimble 见 [E28](../wiki/E28-typed-nimble-reference-20261030.md)。
 
 数据 SHA256：`4f294f218ea1da27f3efef936359389c62ea4d3973a41457732990f1d31b647c`。保留原始题目与候选顺序，未截断、未选择子集；每模型返回并验证全部 2,000 个分布，无 invalid／unsupported／overlength／failed。该集不同于 NGA 派生分区。
 
@@ -16,6 +16,7 @@ Accuracy 为问题等权、预测与金标首次 argmax 相等；gold 保留原�
 | Kev-4B | raw T=1 | 66.45 | .504515027 | .201069093 | .091401498 |
 | Kev-9B | 原生 2.193649959389252 | 68.05 | .213789510 | .116320990 | .064928038 |
 | Kev-9B | raw T=1 | 68.05 | .519308862 | .187224530 | .091135501 |
+| Nimble initial v1 | 原生 T=1 | 65.10 | .706027650 | .254995374 | .172864315 |
 
 每行 n=2,000。两温度来自相同预测记录，服务温度使用保存的原生概率，T=1 从 logits 复算；没有按 test 拟合温度。Kev 的 noul wire 缺原评分器所需概率字段，因此这里明确是原方法算术作用于原生概率，不冒称 HTTP／vLLM／wire 完全复现。预注册的 expected-score MAE 已暂缓，不从 ordinal accuracy 推断该指标。
 
@@ -38,3 +39,15 @@ Accuracy 为问题等权、预测与金标首次 argmax 相等；gold 保留原�
 | 9B | 73／69 | `e9da5cd6fab9f7b3508c7751508b266e6ddc8851bfa294296ce20da4219a18d9` | `b4e68d08a55e84660ba7ade731861053ef742bc78246fc989f38f07ed2ecc28f` |
 
 各使用 1 chip，最后累计吞吐分别为 10.5837／8.7235／7.2509 questions/s/chip，reserved memory 为 4.2344／18.0625／32.1836 GiB。这是本次原生 FP32/eager 推理的观测，不是跨接口公平速度排名或加速等价性实验。
+
+## 18:19 UTC：Nimble 完成追加
+
+Nimble 的 2,000 个分布全部有效，invalid／unsupported／overlength／failed 均为 0。choice／noul／score 的 accuracy 分别为 65.5%／74.166667%／58.0%，分母为 600／600／800。它保留同一 state 的完整五字段 schema，使用原生 T=1、BF16 safe merge 和 FP32 candidate projection；不同接口的总分差不能直接归因于 readout 结构或我们的训练。
+
+运行目录 `reference_inference/typed_nimble_inference_20261030/`，独立验收在同名 `_finish/`。验收重新 tokenize 全部 prompts、检查 141／141 冻结／必需文件并独立重算指标。推理 wrapper 于 18:16:39 UTC、验收 wrapper 于 18:17:52 UTC 退出 0；父会话另核对实际保留容器退出状态、配置及全部终态产物哈希。
+
+- config SHA256：`90aea1118abcead77a37c67d59526d2044d5b5be5a726dbc9d2a605ea477eaeb`
+- report SHA256：`a99261c46b37e4b5e0533fd07f5a2fec4701d22beaf6835721d0374e0a5438f5`
+- audit SHA256：`0ed217f5cd19d975531f449ed55610d4e8783f1d1a2a96387bec9895db927416`
+
+最终累计吞吐 1.437146 questions/s/chip，1 chip，reserved memory 18.65625 GiB。没有新增训练收益或 Astra 实质放行结论。

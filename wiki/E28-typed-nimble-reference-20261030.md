@@ -89,3 +89,16 @@ CPU finisher ID `03d69c9e01a53e5f640c641d8eb89cebc527b318daa823e42d9a13abc046227
 actual image, command, config receipt and device maps were checked. Initial stage
 is dependency verification. Full inference and scores remain pending. Outputs are
 `reference_inference/typed_nimble_inference_20261030/` and sibling `_finish/`.
+
+## Completion update — 2026-10-30 18:19 UTC
+
+All 400 states / 2,000 questions completed. The independent full prompt
+retokenization and metric audit passed, 141 frozen / 141 required files,
+zero review flags. Inference and finisher retained containers and wrappers
+all exited 0; parent separately checked terminal/config/output hashes.
+Accuracy .651, KL .7060276495748995, soft Brier .2549953739187372,
+ECE10 .17286431497754792 under native T=1. No invalid or skipped questions.
+Final throughput 1.437146 questions/s/chip, one chip, reserved 18.65625 GiB.
+Report SHA256 `a99261c46b37e4b5e0533fd07f5a2fec4701d22beaf6835721d0374e0a5438f5`;
+audit SHA256 `0ed217f5cd19d975531f449ed55610d4e8783f1d1a2a96387bec9895db927416`.
+This is scoped reference inference acceptance, not Astra approval or training gain.
