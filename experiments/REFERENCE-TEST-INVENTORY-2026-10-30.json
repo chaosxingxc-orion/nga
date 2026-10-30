@@ -1,0 +1,1863 @@
+{
+  "date": "2026-10-30",
+  "scope": "Existing references; no new inference",
+  "datasets": [
+    {
+      "dataset": "DaehanKim__korean-jev-benchmark",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/DaehanKim__korean-jev-benchmark",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": [
+        "benchmark/v1/manifest.json"
+      ]
+    },
+    {
+      "dataset": "Hanno-Labs__decision-bench",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/Hanno-Labs__decision-bench",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": [
+        "manifest.json",
+        "artifact/manifest.json",
+        "provenance/reasoning-suite/manifest.json",
+        "provenance/applied-task-suite/manifest.json",
+        "provenance/compact/manifest.json"
+      ]
+    },
+    {
+      "dataset": "Lexmount__WebJev",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/Lexmount__WebJev",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": []
+    },
+    {
+      "dataset": "LocalLLaMA__typed-decisions",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/LocalLLaMA__typed-decisions",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": [
+        "invoice_processing/test-00000-of-00001.parquet",
+        "security_incidents/test-00000-of-00001.parquet",
+        "customer_service/test-00000-of-00001.parquet",
+        "agent_trace_observability/test-00000-of-00001.parquet",
+        "all/test-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "dataset": "Luni__laya-jev-benchmark",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/Luni__laya-jev-benchmark",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": []
+    },
+    {
+      "dataset": "OmniJev__OneJev-Data",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/OmniJev__OneJev-Data",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": []
+    },
+    {
+      "dataset": "Praveenrajus__jev-bench",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": [
+        "manifest.json",
+        "data/sms_spam/test.jsonl",
+        "data/strategyqa_grounded/test.jsonl",
+        "data/chaosnli/test.jsonl",
+        "data/sst5/test.jsonl",
+        "data/stsb/test.jsonl",
+        "data/banking77/test.jsonl",
+        "data/strategyqa_closed/test.jsonl",
+        "data/measuring_hate_speech/test.jsonl",
+        "data/fever_evidence/test.jsonl",
+        "data/paws/test.jsonl",
+        "data/ledgar/test.jsonl",
+        "data/helpsteer2_verbosity/test.jsonl",
+        "data/mmlu/test.jsonl",
+        "data/mnli/test.jsonl",
+        "data/clinc150/test.jsonl",
+        "data/civil_comments/test.jsonl",
+        "data/boolq/test.jsonl",
+        "data/go_emotions/test.jsonl",
+        "data/massive/test.jsonl",
+        "data/yelp5/test.jsonl",
+        "data/helpsteer2_helpfulness/test.jsonl",
+        "data/arc_challenge/test.jsonl"
+      ]
+    },
+    {
+      "dataset": "SabaPivot__jev-safety-bench",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/SabaPivot__jev-safety-bench",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": [
+        "figures/xstest-order-accuracy.png",
+        "figures/xstest-order-accuracy.svg",
+        "figures/xstest-correctness.svg",
+        "figures/xstest-accuracy-tradeoff.png",
+        "figures/xstest-accuracy-tradeoff.svg",
+        "figures/xstest-paired-outcomes.png",
+        "figures/xstest-option-reversal.png",
+        "figures/xstest-correctness.png",
+        "figures/xstest-option-reversal.svg",
+        "figures/xstest-paired-outcomes.svg",
+        "licenses/XSTest-CC-BY-4.0.txt",
+        "tools/test_score_predictions.py"
+      ]
+    },
+    {
+      "dataset": "ZefanCai__Open-Jev",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/ZefanCai__Open-Jev",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": [
+        "provenance/component-artifacts/workflow-controls-v1/manifest.json",
+        "provenance/component-artifacts/browser-v1/manifest.json",
+        "provenance/component-artifacts/drone-control-v1/manifest.json",
+        "provenance/component-artifacts/games-v1/manifest.json",
+        "provenance/component-artifacts/painting-geometry-v1/manifest.json",
+        "provenance/component-artifacts/doom-basic-v1/manifest.json",
+        "provenance/component-artifacts/control-games-v1/manifest.json",
+        "provenance/component-artifacts/reasoning-control-v1/manifest.json",
+        "provenance/component-artifacts/case-customer/manifest.json",
+        "raw/ir-control-v1/test.jsonl.gz",
+        "raw/sponsor-segment-control-v1/test.jsonl.gz",
+        "raw/phone-extraction-control-v1/test.jsonl.gz",
+        "raw/email-selection-control-v1/test.jsonl.gz",
+        "raw/amount-extraction-control-v1/test.jsonl.gz",
+        "raw/mailroom-control-v1/test.jsonl.gz",
+        "raw/release-v2-redistributable/test.jsonl.gz",
+        "raw/entity-alignment-control-v1/test.jsonl.gz",
+        "raw/context-retention-control-v1/test.jsonl.gz",
+        "raw/citation-control-v1/test.jsonl.gz",
+        "raw/browser-drone-expansion-v1-redistributable/test.jsonl.gz",
+        "raw/silent-failure-control-v1/test.jsonl.gz",
+        "data/ir-control-v1/test-00000-of-00001.parquet",
+        "data/sponsor-segment-control-v1/test-00000-of-00001.parquet",
+        "data/phone-extraction-control-v1/test-00000-of-00001.parquet",
+        "data/email-selection-control-v1/test-00000-of-00001.parquet",
+        "data/amount-extraction-control-v1/test-00000-of-00001.parquet",
+        "data/mailroom-control-v1/test-00000-of-00001.parquet",
+        "data/release-v2-redistributable/test-00000-of-00001.parquet",
+        "data/entity-alignment-control-v1/test-00000-of-00001.parquet",
+        "data/context-retention-control-v1/test-00000-of-00001.parquet",
+        "data/citation-control-v1/test-00000-of-00001.parquet",
+        "data/browser-drone-expansion-v1-redistributable/test-00000-of-00001.parquet",
+        "data/silent-failure-control-v1/test-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "dataset": "ZefanCai__Open-Jev-v1.1",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/ZefanCai__Open-Jev-v1.1",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": [
+        "raw/community-hard-mix-v2-redistributable/test.jsonl.gz",
+        "data/community-hard-mix-v2-redistributable/test-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "dataset": "akhilaaa3__decision-bench",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/akhilaaa3__decision-bench",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": []
+    },
+    {
+      "dataset": "avbiswas__bev-decision",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/avbiswas__bev-decision",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": [
+        "counterfactual_15k/test.parquet",
+        "numeric_temporal/test.parquet",
+        "hard_50k/test.parquet",
+        "skills/test.parquet",
+        "data/test.parquet"
+      ]
+    },
+    {
+      "dataset": "bespokelabs__bespoke-nimble-9b-v3-decision-index",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/bespokelabs__bespoke-nimble-9b-v3-decision-index",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": []
+    },
+    {
+      "dataset": "btzsc__btzsc",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/btzsc__btzsc",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": [
+        "biasframes_intent/test-00000-of-00001.parquet",
+        "topic/test-00001-of-00002.parquet",
+        "topic/test-00000-of-00002.parquet",
+        "agnews/test-00000-of-00001.parquet",
+        "financialphrasebank/test-00000-of-00001.parquet",
+        "emotiondair/test-00000-of-00001.parquet",
+        "banking77/test-00000-of-00001.parquet",
+        "manifesto/test-00000-of-00001.parquet",
+        "wikitoxic_obscene/test-00000-of-00001.parquet",
+        "biasframes_offensive/test-00000-of-00001.parquet",
+        "yahootopics/test-00000-of-00001.parquet",
+        "empathetic/test-00000-of-00001.parquet",
+        "intent/test-00000-of-00001.parquet",
+        "appreviews/test-00000-of-00001.parquet",
+        "amazonpolarity/test-00000-of-00001.parquet",
+        "wikitoxic_toxicaggregated/test-00000-of-00001.parquet",
+        "wikitoxic_threat/test-00000-of-00001.parquet",
+        "wikitoxic_insult/test-00000-of-00001.parquet",
+        "emotion/test-00000-of-00001.parquet",
+        "massive/test-00000-of-00001.parquet",
+        "capsotu/test-00000-of-00001.parquet",
+        "rottentomatoes/test-00000-of-00001.parquet",
+        "imdb/test-00000-of-00001.parquet",
+        "sentiment/test-00000-of-00001.parquet",
+        "all/test-00001-of-00003.parquet",
+        "all/test-00000-of-00003.parquet",
+        "all/test-00002-of-00003.parquet",
+        "trueteacher/test-00000-of-00001.parquet",
+        "biasframes_sex/test-00000-of-00001.parquet",
+        "yelpreviews/test-00000-of-00001.parquet"
+      ]
+    },
+    {
+      "dataset": "caiovicentino1__eikos-decisions",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/caiovicentino1__eikos-decisions",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": []
+    },
+    {
+      "dataset": "carlosxiang__JEVal",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/carlosxiang__JEVal",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": [
+        "data/test.parquet"
+      ]
+    },
+    {
+      "dataset": "jaredpalmer__kev-suites",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/jaredpalmer__kev-suites",
+      "readme_present": false,
+      "candidate_split_files_not_verified_as_scores": [
+        "public-pool-v5/manifest.json",
+        "public-pool-v5/test.jsonl",
+        "v4/transfer-v4/manifest.json",
+        "v4/transfer-v4/test.jsonl",
+        "v4/decision-v4/manifest.json",
+        "v4/decision-v4/test.jsonl",
+        "v8/decision-v8/manifest.json",
+        "v8/decision-v8/test.jsonl",
+        "public-pool-v4/manifest.json",
+        "public-pool-v4/test.jsonl",
+        "public-pool-v6/manifest.json",
+        "public-pool-v6/test.jsonl",
+        "decision-v1/manifest.json",
+        "decision-v1/test.jsonl",
+        "smoke-v1/manifest.json",
+        "smoke-v1/test.jsonl",
+        ".cache/huggingface/download/public-pool-v5/test.jsonl.metadata",
+        ".cache/huggingface/download/public-pool-v5/test.jsonl.lock",
+        ".cache/huggingface/download/v4/transfer-v4/test.jsonl.metadata",
+        ".cache/huggingface/download/v4/transfer-v4/test.jsonl.lock",
+        ".cache/huggingface/download/v4/decision-v4/test.jsonl.metadata",
+        ".cache/huggingface/download/v4/decision-v4/test.jsonl.lock",
+        ".cache/huggingface/download/public-pool-v4/test.jsonl.metadata",
+        ".cache/huggingface/download/public-pool-v4/test.jsonl.lock",
+        ".cache/huggingface/download/public-pool-v6/test.jsonl.metadata",
+        ".cache/huggingface/download/public-pool-v6/test.jsonl.lock",
+        ".cache/huggingface/download/decision-v1/test.jsonl.metadata",
+        ".cache/huggingface/download/decision-v1/test.jsonl.lock",
+        ".cache/huggingface/download/smoke-v1/test.jsonl.metadata",
+        ".cache/huggingface/download/smoke-v1/test.jsonl.lock",
+        ".cache/huggingface/download/decision-v2/test.jsonl.metadata",
+        ".cache/huggingface/download/decision-v2/test.jsonl.lock",
+        ".cache/huggingface/download/v3/decision-v3/test.jsonl.metadata",
+        ".cache/huggingface/download/v3/decision-v3/test.jsonl.lock",
+        ".cache/huggingface/download/v3/smoke-v3/test.jsonl.metadata",
+        ".cache/huggingface/download/v3/smoke-v3/test.jsonl.lock",
+        ".cache/huggingface/download/v3/transfer-v3/test.jsonl.metadata",
+        ".cache/huggingface/download/v3/transfer-v3/test.jsonl.lock",
+        ".cache/huggingface/download/v6/decision-v6/test.jsonl.metadata",
+        ".cache/huggingface/download/v6/decision-v6/test.jsonl.lock"
+      ]
+    },
+    {
+      "dataset": "limberc__this-that-complex-decisions",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/limberc__this-that-complex-decisions",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": [
+        "test.jsonl"
+      ]
+    },
+    {
+      "dataset": "limberc__this-that-spatial-bench",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/limberc__this-that-spatial-bench",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": [
+        "test.jsonl"
+      ]
+    },
+    {
+      "dataset": "mohit67890__imajev-bench",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/mohit67890__imajev-bench",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": []
+    },
+    {
+      "dataset": "raxITLabs__decision-models-as-guardrails",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/raxITLabs__decision-models-as-guardrails",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": [
+        "data/grounding/test.jsonl",
+        "data/word_filters/test.jsonl",
+        "data/prompt_attacks/test.jsonl",
+        "data/sensitive_information/test.jsonl",
+        "data/content/test.jsonl",
+        "data/denied_topics/test.jsonl"
+      ]
+    },
+    {
+      "dataset": "respanai__behavior-benchmark",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/respanai__behavior-benchmark",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": []
+    },
+    {
+      "dataset": "startlux-models__DecisionPivot",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/startlux-models__DecisionPivot",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": [
+        "test_score.py"
+      ]
+    },
+    {
+      "dataset": "yflantmy__DecisionRobust",
+      "root": "/mnt/cephfs/xingchao/omni/datasets/jev/yflantmy__DecisionRobust",
+      "readme_present": true,
+      "candidate_split_files_not_verified_as_scores": [
+        "data/image_instruction_curated/test-00001-of-00004.parquet",
+        "data/image_instruction_curated/test-00000-of-00004.parquet",
+        "data/image_instruction_curated/test-00003-of-00004.parquet",
+        "data/image_instruction_curated/test-00002-of-00004.parquet",
+        "data/image_perturbation_curated/test-00004-of-00007.parquet",
+        "data/image_perturbation_curated/test-00005-of-00007.parquet",
+        "data/image_perturbation_curated/test-00006-of-00007.parquet",
+        "data/image_perturbation_curated/test-00003-of-00007.parquet",
+        "data/image_perturbation_curated/test-00002-of-00007.parquet",
+        "data/image_perturbation_curated/test-00000-of-00007.parquet",
+        "data/image_perturbation_curated/test-00001-of-00007.parquet",
+        "data/text_injection_curated/test-00009-of-00012.parquet",
+        "data/text_injection_curated/test-00004-of-00012.parquet",
+        "data/text_injection_curated/test-00007-of-00012.parquet",
+        "data/text_injection_curated/test-00002-of-00012.parquet",
+        "data/text_injection_curated/test-00008-of-00012.parquet",
+        "data/text_injection_curated/test-00006-of-00012.parquet",
+        "data/text_injection_curated/test-00010-of-00012.parquet",
+        "data/text_injection_curated/test-00003-of-00012.parquet",
+        "data/text_injection_curated/test-00001-of-00012.parquet",
+        "data/text_injection_curated/test-00005-of-00012.parquet",
+        "data/text_injection_curated/test-00011-of-00012.parquet",
+        "data/text_injection_curated/test-00000-of-00012.parquet",
+        "data/image_instruction_full/test-00014-of-00020.parquet",
+        "data/image_instruction_full/test-00002-of-00020.parquet",
+        "data/image_instruction_full/test-00017-of-00020.parquet",
+        "data/image_instruction_full/test-00007-of-00020.parquet",
+        "data/image_instruction_full/test-00003-of-00020.parquet",
+        "data/image_instruction_full/test-00019-of-00020.parquet",
+        "data/image_instruction_full/test-00012-of-00020.parquet",
+        "data/image_instruction_full/test-00015-of-00020.parquet",
+        "data/image_instruction_full/test-00018-of-00020.parquet",
+        "data/image_instruction_full/test-00001-of-00020.parquet",
+        "data/image_instruction_full/test-00008-of-00020.parquet",
+        "data/image_instruction_full/test-00009-of-00020.parquet",
+        "data/image_instruction_full/test-00004-of-00020.parquet",
+        "data/image_instruction_full/test-00000-of-00020.parquet",
+        "data/image_instruction_full/test-00013-of-00020.parquet",
+        "data/image_instruction_full/test-00006-of-00020.parquet",
+        "data/image_instruction_full/test-00005-of-00020.parquet"
+      ]
+    }
+  ],
+  "model_locations": [
+    {
+      "model": "Contrastive-LM__CLM-v0.1-8B",
+      "root": "/mnt/cephfs/xingchao/models/jev/Contrastive-LM__CLM-v0.1-8B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "DavidHatley__system-one-mini",
+      "root": "/mnt/cephfs/xingchao/models/jev/DavidHatley__system-one-mini",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "GeneLab__sokudan-ja-310m",
+      "root": "/mnt/cephfs/xingchao/models/jev/GeneLab__sokudan-ja-310m",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Hanno-Labs__bosun-v3.1-1.7b",
+      "root": "/mnt/cephfs/xingchao/models/jev/Hanno-Labs__bosun-v3.1-1.7b",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "JevAgentHarness__AgentDecision-4B",
+      "root": "/mnt/cephfs/xingchao/models/jev/JevAgentHarness__AgentDecision-4B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Mapika__decider-0.8b",
+      "root": "/mnt/cephfs/xingchao/models/jev/Mapika__decider-0.8b",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "PsiACE__Dohnuts-0.1.0-0.8B",
+      "root": "/mnt/cephfs/xingchao/models/jev/PsiACE__Dohnuts-0.1.0-0.8B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3-0.6B",
+      "root": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3-0.6B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-0.8B",
+      "root": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-0.8B-Base",
+      "root": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-2B",
+      "root": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-2B-Base",
+      "root": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-4B",
+      "root": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-4B-Base",
+      "root": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-9B",
+      "root": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-9B-Base",
+      "root": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "SearchJev__SearchJev-0.8B",
+      "root": "/mnt/cephfs/xingchao/models/jev/SearchJev__SearchJev-0.8B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "SimpleJev__JevAny-Qwen3.8-27B-LoRA",
+      "root": "/mnt/cephfs/xingchao/models/jev/SimpleJev__JevAny-Qwen3.8-27B-LoRA",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "StrandsAgents__strands-decider-2B-hobson-v19",
+      "root": "/mnt/cephfs/xingchao/models/jev/StrandsAgents__strands-decider-2B-hobson-v19",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "ZefanCai__Open-Jev-27B-v1.1",
+      "root": "/mnt/cephfs/xingchao/models/jev/ZefanCai__Open-Jev-27B-v1.1",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "ZefanCai__Open-Jev-2B",
+      "root": "/mnt/cephfs/xingchao/models/jev/ZefanCai__Open-Jev-2B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "ZefanCai__Open-Jev-9B",
+      "root": "/mnt/cephfs/xingchao/models/jev/ZefanCai__Open-Jev-9B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "andyzhang232__ajev-gemma4-12b-lora7",
+      "root": "/mnt/cephfs/xingchao/models/jev/andyzhang232__ajev-gemma4-12b-lora7",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "bespokelabs__Bespoke-Nimble-9B",
+      "root": "/mnt/cephfs/xingchao/models/jev/bespokelabs__Bespoke-Nimble-9B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "bespokelabs__Bespoke-Nimble-9B-v2",
+      "root": "/mnt/cephfs/xingchao/models/jev/bespokelabs__Bespoke-Nimble-9B-v2",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "bespokelabs__Bespoke-Nimble-9B-v3",
+      "root": "/mnt/cephfs/xingchao/models/jev/bespokelabs__Bespoke-Nimble-9B-v3",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "convaiinnovations__laya-multilingual",
+      "root": "/mnt/cephfs/xingchao/models/jev/convaiinnovations__laya-multilingual",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "convaiinnovations__laya-typed-decisions",
+      "root": "/mnt/cephfs/xingchao/models/jev/convaiinnovations__laya-typed-decisions",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "heman10x__rlcd-modernbert-151m",
+      "root": "/mnt/cephfs/xingchao/models/jev/heman10x__rlcd-modernbert-151m",
+      "complete_marker_exists": false,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "interfaze-ai__lev",
+      "root": "/mnt/cephfs/xingchao/models/jev/interfaze-ai__lev",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "jaredpalmer__kev-0.5b",
+      "root": "/mnt/cephfs/xingchao/models/jev/jaredpalmer__kev-0.5b",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "jaredpalmer__kev-0.8b",
+      "root": "/mnt/cephfs/xingchao/models/jev/jaredpalmer__kev-0.8b",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "jaredpalmer__kev-4b",
+      "root": "/mnt/cephfs/xingchao/models/jev/jaredpalmer__kev-4b",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "jaredpalmer__kev-9b",
+      "root": "/mnt/cephfs/xingchao/models/jev/jaredpalmer__kev-9b",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "minnesotanlp__SanSi-2.6B",
+      "root": "/mnt/cephfs/xingchao/models/jev/minnesotanlp__SanSi-2.6B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "pngwn__system-one-qwen3.5-4b-scorer",
+      "root": "/mnt/cephfs/xingchao/models/jev/pngwn__system-one-qwen3.5-4b-scorer",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "samratduttaofficial__WaterSheep",
+      "root": "/mnt/cephfs/xingchao/models/jev/samratduttaofficial__WaterSheep",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "songdj__Lev-2.6B",
+      "root": "/mnt/cephfs/xingchao/models/jev/songdj__Lev-2.6B",
+      "complete_marker_exists": false,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "ufakai__ufakzeka-karar",
+      "root": "/mnt/cephfs/xingchao/models/jev/ufakai__ufakzeka-karar",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "vllm-sr__Decision-2.0-Kai-0.6B",
+      "root": "/mnt/cephfs/xingchao/models/jev/vllm-sr__Decision-2.0-Kai-0.6B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "wenhuahuo__chip-0.8b",
+      "root": "/mnt/cephfs/xingchao/models/jev/wenhuahuo__chip-0.8b",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "xmutly__OmniMed-Jev-4B",
+      "root": "/mnt/cephfs/xingchao/models/jev/xmutly__OmniMed-Jev-4B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Contrastive-LM__CLM-v0.1-8B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/Contrastive-LM__CLM-v0.1-8B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "DavidHatley__system-one-mini",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/DavidHatley__system-one-mini",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "GeneLab__sokudan-ja-310m",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/GeneLab__sokudan-ja-310m",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Hanno-Labs__bosun-v3.1-1.7b",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/Hanno-Labs__bosun-v3.1-1.7b",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "JevAgentHarness__AgentDecision-4B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/JevAgentHarness__AgentDecision-4B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Mapika__decider-0.8b",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/Mapika__decider-0.8b",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "PsiACE__Dohnuts-0.1.0-0.8B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/PsiACE__Dohnuts-0.1.0-0.8B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3-0.6B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3-0.6B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-0.8B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-0.8B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-0.8B-Base",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-0.8B-Base",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-2B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-2B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-2B-Base",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-2B-Base",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-4B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-4B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-4B-Base",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-4B-Base",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-9B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-9B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "Qwen__Qwen3.5-9B-Base",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-9B-Base",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "SearchJev__SearchJev-0.8B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/SearchJev__SearchJev-0.8B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "SimpleJev__JevAny-Qwen3.8-27B-LoRA",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/SimpleJev__JevAny-Qwen3.8-27B-LoRA",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "StrandsAgents__strands-decider-2B-hobson-v19",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/StrandsAgents__strands-decider-2B-hobson-v19",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "ZefanCai__Open-Jev-27B-v1.1",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/ZefanCai__Open-Jev-27B-v1.1",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "ZefanCai__Open-Jev-2B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/ZefanCai__Open-Jev-2B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "ZefanCai__Open-Jev-9B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/ZefanCai__Open-Jev-9B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "andyzhang232__ajev-gemma4-12b-lora7",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/andyzhang232__ajev-gemma4-12b-lora7",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "bespokelabs__Bespoke-Nimble-9B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/bespokelabs__Bespoke-Nimble-9B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "bespokelabs__Bespoke-Nimble-9B-v2",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/bespokelabs__Bespoke-Nimble-9B-v2",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "bespokelabs__Bespoke-Nimble-9B-v3",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/bespokelabs__Bespoke-Nimble-9B-v3",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "convaiinnovations__laya-multilingual",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/convaiinnovations__laya-multilingual",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "convaiinnovations__laya-typed-decisions",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/convaiinnovations__laya-typed-decisions",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "heman10x__rlcd-modernbert-151m",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/heman10x__rlcd-modernbert-151m",
+      "complete_marker_exists": false,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "interfaze-ai__lev",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/interfaze-ai__lev",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "jaredpalmer__kev-0.5b",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/jaredpalmer__kev-0.5b",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "jaredpalmer__kev-0.8b",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/jaredpalmer__kev-0.8b",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "jaredpalmer__kev-4b",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/jaredpalmer__kev-4b",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "jaredpalmer__kev-9b",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/jaredpalmer__kev-9b",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "minnesotanlp__SanSi-2.6B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/minnesotanlp__SanSi-2.6B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "pngwn__system-one-qwen3.5-4b-scorer",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/pngwn__system-one-qwen3.5-4b-scorer",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "samratduttaofficial__WaterSheep",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/samratduttaofficial__WaterSheep",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "songdj__Lev-2.6B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/songdj__Lev-2.6B",
+      "complete_marker_exists": false,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "ufakai__ufakzeka-karar",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/ufakai__ufakzeka-karar",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "vllm-sr__Decision-2.0-Kai-0.6B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/vllm-sr__Decision-2.0-Kai-0.6B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "wenhuahuo__chip-0.8b",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/wenhuahuo__chip-0.8b",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    },
+    {
+      "model": "xmutly__OmniMed-Jev-4B",
+      "root": "/mnt/cephfs/xingchao/omni/models/jev/xmutly__OmniMed-Jev-4B",
+      "complete_marker_exists": true,
+      "note": "Directory/marker presence is not weight-content or inference verification"
+    }
+  ],
+  "source_manifest": {
+    "generated_utc": "2026-10-30T13:55:36.386501+00:00",
+    "no_model_inference": true,
+    "no_test_items_or_predictions_read": true,
+    "dataset_cards": [
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/DaehanKim__korean-jev-benchmark/README.md",
+        "sha256": "198ab85f3c0c76547e6f7165a0ff47b590163130ef785c58023e4b13ef647d7b",
+        "dataset": "DaehanKim__korean-jev-benchmark",
+        "tables": 1
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Hanno-Labs__decision-bench/README.md",
+        "sha256": "2d354df2e6dbd677055aeaef7772e20c516c22de836f7e9145a8ba94c5cb32df",
+        "dataset": "Hanno-Labs__decision-bench",
+        "tables": 0
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Lexmount__WebJev/README.md",
+        "sha256": "a798b255562ea79e10c4f80181e08489055956b379d8f1f1d159e001ded0b203",
+        "dataset": "Lexmount__WebJev",
+        "tables": 9
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/LocalLLaMA__typed-decisions/README.md",
+        "sha256": "173aad73711a505bbddc37f90d49083c79cb36b48ef15cada77887d2d09d63da",
+        "dataset": "LocalLLaMA__typed-decisions",
+        "tables": 5
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Luni__laya-jev-benchmark/README.md",
+        "sha256": "1b0fc84037c927ac361941e4907e95f57c95bd1aacc0a468ed89da2aaf511ea0",
+        "dataset": "Luni__laya-jev-benchmark",
+        "tables": 7
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/OmniJev__OneJev-Data/README.md",
+        "sha256": "72c47c3eb7dc91f9e3e28f094a8528b17b9ec2d81d083625b255c2c1f748c3fd",
+        "dataset": "OmniJev__OneJev-Data",
+        "tables": 2
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/README.md",
+        "sha256": "796796e9498b3c086e57b568d7483d45caee21637cc42025c138edd9a816d03d",
+        "dataset": "Praveenrajus__jev-bench",
+        "tables": 11
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/SabaPivot__jev-safety-bench/README.md",
+        "sha256": "92aa54b2737e1ed0f61a68b6596229308309a5b22b7388a3cf72d69749fcbf42",
+        "dataset": "SabaPivot__jev-safety-bench",
+        "tables": 13
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/ZefanCai__Open-Jev/README.md",
+        "sha256": "8f7d66430c63881d042a88165f4ad669e6b7c6783b69f6735b8dfedf6d58f683",
+        "dataset": "ZefanCai__Open-Jev",
+        "tables": 2
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/ZefanCai__Open-Jev-v1.1/README.md",
+        "sha256": "a03da2ebe94cf27f135b08e77399a2899a554c4fcddd8ee7ffb30940047c423b",
+        "dataset": "ZefanCai__Open-Jev-v1.1",
+        "tables": 1
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/akhilaaa3__decision-bench/README.md",
+        "sha256": "9031e3ff87720588dc7dc405d0cd63d49806714079a3d9c771495b3510f48d5c",
+        "dataset": "akhilaaa3__decision-bench",
+        "tables": 3
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/avbiswas__bev-decision/README.md",
+        "sha256": "4a6da4930922cd74ce3ddcd858dccd12ab108c07111507598f0c1011fd399348",
+        "dataset": "avbiswas__bev-decision",
+        "tables": 6
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/bespokelabs__bespoke-nimble-9b-v3-decision-index/README.md",
+        "sha256": "4db1be9bdebc701bb4d16f86334ea46b1762c98ba030406ac0daa9ff2e8347b9",
+        "dataset": "bespokelabs__bespoke-nimble-9b-v3-decision-index",
+        "tables": 0
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/btzsc__btzsc/README.md",
+        "sha256": "d7ab70c9105ad5bcdaa53f166d883ddc4de1ed9ce756b6d904f635fdd04e626a",
+        "dataset": "btzsc__btzsc",
+        "tables": 3
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/caiovicentino1__eikos-decisions/README.md",
+        "sha256": "f500587c483e28b930a8995d482ca595352b744e8e42fd28e2404fe38ec577ae",
+        "dataset": "caiovicentino1__eikos-decisions",
+        "tables": 6
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/carlosxiang__JEVal/README.md",
+        "sha256": "818ff20edee14db5836ab39c856ebe828daf1ae89ed55c83019df6729715c09c",
+        "dataset": "carlosxiang__JEVal",
+        "tables": 5
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/limberc__this-that-complex-decisions/README.md",
+        "sha256": "6457926ea1e9cfb10a9b05f22b33e1bfe23f06fc5db604f89463c56f8933aa70",
+        "dataset": "limberc__this-that-complex-decisions",
+        "tables": 2
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/limberc__this-that-spatial-bench/README.md",
+        "sha256": "d65e217d4e64ab98975d66e8a240b3ed17fc307d81abdbecbd953d1f9bcac4b6",
+        "dataset": "limberc__this-that-spatial-bench",
+        "tables": 2
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/mohit67890__imajev-bench/README.md",
+        "sha256": "b2f7e7b347d5f7f728f5a22eac622a8ca583747aa828a515b1a97cb390997fe9",
+        "dataset": "mohit67890__imajev-bench",
+        "tables": 0
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/raxITLabs__decision-models-as-guardrails/README.md",
+        "sha256": "53d54a9d73c712ea513f7f1be59d5e0aa27474fcf7292306b16dd30486585a7d",
+        "dataset": "raxITLabs__decision-models-as-guardrails",
+        "tables": 4
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/respanai__behavior-benchmark/README.md",
+        "sha256": "138ee60448ba547270c9ae9e96e356eaa5e85c4c6e47f9381f10597d50543cbc",
+        "dataset": "respanai__behavior-benchmark",
+        "tables": 3
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/startlux-models__DecisionPivot/README.md",
+        "sha256": "e1a1b8541612800a7dc390ab65011e4dcf1de38f62c5247fbe732c73e8b4d2d1",
+        "dataset": "startlux-models__DecisionPivot",
+        "tables": 0
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/yflantmy__DecisionRobust/README.md",
+        "sha256": "a110c8e622a38b6bc00c89fd16d49aea58f4aac568789e6e284f02e2b7c25914",
+        "dataset": "yflantmy__DecisionRobust",
+        "tables": 6
+      }
+    ],
+    "panels": [
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/leaderboard/leaderboard.json",
+        "sha256": "7da3bfdf8492aab51b90ebe00db68503f83a1d82e6cc3f72d09c5bbffa3c4cc0",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/community/report.json",
+        "sha256": "29a5cf71d6ed14b235d0e5f318b12287d86e4d10c8e8ef30c78d89d004390704",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/tev1-comparison/comparison.json",
+        "sha256": "2bbc553b2e48bb9d7a8d4aa00e70cc95256f4ccee0f6cbe4fe0a127c232e589c",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/startlux-models__DecisionPivot/tables/T1_core_headline_intervals.csv",
+        "sha256": "4b64a7caa54c43eead365a5af88d0bf1cc43308420448584fc2278512de048c9",
+        "dataset": "startlux-models__DecisionPivot",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/startlux-models__DecisionPivot/tables/T2_core_per_family.csv",
+        "sha256": "aea4ca291e287a6da92cfc7bed11e3daeef37d4cabe915dca2ec645d6dee09ee",
+        "dataset": "startlux-models__DecisionPivot",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/startlux-models__DecisionPivot/tables/T3_reference_layers.csv",
+        "sha256": "4ad49da9d04b225a0944e6a268c1f10d4ad090b74841a304e12b91b48d54e93f",
+        "dataset": "startlux-models__DecisionPivot",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/startlux-models__DecisionPivot/tables/T4_one_pass_vs_reasoning.csv",
+        "sha256": "69b88ca7816be3b86e6ee3ebcf5a757dfb3e4a1694b160f8d029c6436d8fcad9",
+        "dataset": "startlux-models__DecisionPivot",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/startlux-models__DecisionPivot/tables/jev113_core_headline.csv",
+        "sha256": "4ba0a48cb290b9ce4b881da4f95f02f471e49bea6838b64191e82a509450b8eb",
+        "dataset": "startlux-models__DecisionPivot",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/yflantmy__DecisionRobust/results/asr.csv",
+        "sha256": "9c009779502d5fc3422fc471516ccc329baa68ffec19f7e02e771910501f201d",
+        "dataset": "yflantmy__DecisionRobust",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/yflantmy__DecisionRobust/results/flip_asr.csv",
+        "sha256": "c06b2d887e041c9dd30bba870b031d37891ce6632f17c70fa7275ebc32c77abc",
+        "dataset": "yflantmy__DecisionRobust",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/yflantmy__DecisionRobust/results/additional_models_by_config.csv",
+        "sha256": "a2508d5f7bbea66b30f2ba683851244a0aaec77875789a2e007625effd9b66dc",
+        "dataset": "yflantmy__DecisionRobust",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/yflantmy__DecisionRobust/results/additional_models_by_dataset.csv",
+        "sha256": "73818b301475a2fbffaa98712bd676aff3fe81a8b5f430c9423b7c835420a2c9",
+        "dataset": "yflantmy__DecisionRobust",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/yflantmy__DecisionRobust/results/additional_models_matched_coverage.csv",
+        "sha256": "025c1e6f5d1edf85bc91b37cf4a623911fc17e892e174df815d941aecf42272c",
+        "dataset": "yflantmy__DecisionRobust",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/bespokelabs__bespoke-nimble-9b-v3-decision-index/runs/bespoke-nimble-9b-v3/scores.json",
+        "sha256": "c2d8f6051f0bec9834b69a083d8d505c65ad6441fbdb1f27ee932147002065b2",
+        "dataset": "bespokelabs__bespoke-nimble-9b-v3-decision-index",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/DaehanKim__korean-jev-benchmark/results/20261008_v7/korean_plotted_metrics.csv",
+        "sha256": "272d1465070f85674345ccea56a4087286ded7ad99ea84e5a9bc980ebc8e8122",
+        "dataset": "DaehanKim__korean-jev-benchmark",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/DaehanKim__korean-jev-benchmark/results/20261008_v7/english_plotted_metrics.csv",
+        "sha256": "48fb06e66f2e025c725bf821f7f4325735498407b6a8f7026010ea7e507af571",
+        "dataset": "DaehanKim__korean-jev-benchmark",
+        "scope": "Published aggregate; retain source split, version and coverage. Not all panels are test."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/c/runs/qwen35-4b-t2-lowlr-rerun/test_metrics.json",
+        "sha256": "f034d46d2c4c98412db69fc2a9804077a143e1902d1778b132e37f777f2513d5",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/c/runs/qwen35-4b-t2-lowlr-shuf/test_metrics.json",
+        "sha256": "fc3343cb0e69aec8564f0509fc62c9cb9e4b654fcface5ee0e883ad940e8b708",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/c/runs/qwen35-4b-t2-lowlr-tev1syn/test_metrics.json",
+        "sha256": "f55c96ecd66cb9d0d936fb789ab35e32b24c70af3aae84df32cabbbd8e9f3ac6",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/c/runs/qwen35-4b-t2-lowlr-tev1syn-shuf/test_metrics.json",
+        "sha256": "7503dd0a2f0c03c1dc7b703eeea8b9b7421f774aa0f31eb131fb7fa9f07b01c1",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/clm-8b/test_metrics.json",
+        "sha256": "e3e56e2bf96077908c13e9990dccb3f865dc242868ab534e49cfde30a2555c6e",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/gemma4-12b/test_metrics.json",
+        "sha256": "944cbdee432b35c98f35f7ea74ab0f6ce3857e8abc557a3aaee7068b5013ea6a",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/gemma4-12b-vision/test_metrics.json",
+        "sha256": "18cb2e1ddf2e58c249375a3ae4f749d2097c87441c89fd07dabed0e4e62e6200",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/gemma4-e2b/test_metrics.json",
+        "sha256": "4093b522c04d93562d03869a258695772e8ae43329a06f2d51fb71e0d9dfdc4d",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/gemma4-e2b-it/test_metrics.json",
+        "sha256": "b1aafcb5954dec637b3123119b15194a9f0f7887e3e8ba3a15c29b9cc22fa21a",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/gemma4-e4b-it/test_metrics.json",
+        "sha256": "d3f346f95f48a6a7f88e9ecca80575de4e254da1014a2122ce5a731ee40c197d",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/jev-1.13.0/test_metrics.json",
+        "sha256": "ad0eddc9f396e5485da03c2cc6d70e3d3d31dc13c7788776b2b352f2cb9f19f9",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/k2-horizon-0.9b/test_metrics.json",
+        "sha256": "7a6241f35f6eefe79f1c1df7cafe70590d1c600b16d881b92afc185a49f10e5a",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/k2-horizon-7b/test_metrics.json",
+        "sha256": "a13c14c457582fca97150adccff38c144cbadc954a95f8221c1f484e4d34a13a",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/2b-full-ft-coherence-lr-1e-6/test_metrics.json",
+        "sha256": "a403b6fe718dc764014d9f521be2970baa2d251b9ca03f8bc01f3571acaea9f5",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/2b-full-ft-coherence-lr-3e-6/test_metrics.json",
+        "sha256": "906af54d80ae0b0ad408d23be052b216a320a464a46e1b6a054743d369c49b70",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/2b-full-ft-supervised-lr-1e-5/test_metrics.json",
+        "sha256": "7fea0e717dfcb0bfbef0a04f5c5e91e9abe2f9f6c0ddacac8fc4c2f7621ec789",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/2b-full-ft-supervised-lr-1e-6/test_metrics.json",
+        "sha256": "49fd3e4a00aec5c2b2d49cb1b39647c825a7d5d6330c9db8d9b240215077818b",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/2b-full-ft-supervised-lr-3e-6/test_metrics.json",
+        "sha256": "a3915dbd04aa9c0c242316cd0af4bf6fcd71a7cffab06503958a1f84b42d40be",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/2b-full-ft-supervised-lr-3e-7/test_metrics.json",
+        "sha256": "0fa95f2ee3b0781a772b5f605622396988d8fb506389d98ea2178c25b8c4fed3",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/2b-lora-coherence/test_metrics.json",
+        "sha256": "cb5abe94f8aa2ff1bd8eab1006e470cda9c61568b278166a1b058f38b3e92f24",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/2b-lora-supervised/test_metrics.json",
+        "sha256": "10b129d7994d5667ae65fba01c9e0ac17db01672f4cec1fc71b64f002bc14009",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/4b-lora-coherence-seed-0/test_metrics.json",
+        "sha256": "f399d30ae0f688fbf614e6b0bfd7387bfa390d4443ddbcb8fd55749e60717595",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/4b-lora-coherence-seed-1/test_metrics.json",
+        "sha256": "f28310842fc09c343bfd2c6c15c2eb6a1fc67e1e32568d1da0a2d8a1f943fe76",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/4b-lora-supervised-seed-0/test_metrics.json",
+        "sha256": "9e2acc09cc4b2a68b34135057dcd0fecbfb46bbad77e8f371acacc5919d67826",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/4b-lora-supervised-seed-1/test_metrics.json",
+        "sha256": "83a4f431566dc55474368b8aed475deac47c4021d645adab3b33ca5d1eccac73",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/9b-lora-coherence/test_metrics.json",
+        "sha256": "b6bd85e2ab20312b40cecb1acdd7949b102edd4f44953ed71dc4147a40269cbb",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/9b-lora-supervised/test_metrics.json",
+        "sha256": "97d390a78734b1d0375a4ca4fc0f46a059bc222077b9f46b334af6b26f4df8d7",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/agentworld-35b-a3b-lora-coherence/test_metrics.json",
+        "sha256": "6b57035ed677a60a01dce61c00323e9a6afd7448dd1a1824ef6db814bee5eedf",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/gemma-4-e2b/test_metrics.json",
+        "sha256": "4093b522c04d93562d03869a258695772e8ae43329a06f2d51fb71e0d9dfdc4d",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/gemma-4-e2b-it/test_metrics.json",
+        "sha256": "b1aafcb5954dec637b3123119b15194a9f0f7887e3e8ba3a15c29b9cc22fa21a",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/gemma-4-e2b-it-no-template/test_metrics.json",
+        "sha256": "8ae7f4d2571d1bc4a07f982c9cebb1b4790ab641bfe83c40eaf972b47e7839ed",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/gemma-4-e4b/test_metrics.json",
+        "sha256": "89e6c7c5952d980608d82c2123f88fef420ece5981754eb509dfd8e1e1eba6d8",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/gemma-4-e4b-base-lora-supervised/test_metrics.json",
+        "sha256": "19da68284dc605f6f1bb68f07e3252410f78ed036479958010eb2887b8f41235",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/gemma-4-e4b-it/test_metrics.json",
+        "sha256": "d3f346f95f48a6a7f88e9ecca80575de4e254da1014a2122ce5a731ee40c197d",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/gemma-4-e4b-it-lora-coherence/test_metrics.json",
+        "sha256": "1b150ab389a9cdc0942a4975421d2d687519ff6ca267cae73bfb3f2128194e61",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/gemma-4-e4b-it-lora-supervised/test_metrics.json",
+        "sha256": "c5abac5121bea46909e2cf79b397470dc04aeae65720e3134929bceb9a57680c",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/gemma-4-e4b-it-no-template/test_metrics.json",
+        "sha256": "8a7d2bf4b4d04636a7440533a8319a16a0c9031d1aead3b6effcd9a114a7b334",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/jev-1-13-0-api/test_metrics.json",
+        "sha256": "c7f56823e9073541e12c264fab8a0d5a7b7063f1e72c00e161219109eb24a39e",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/llama-3-1-8b-no-template/test_metrics.json",
+        "sha256": "52a0971df9bf910955258b2c1ccc3a2ee58481dafd679c2442b65d80cfe789af",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/qwen3-4b-base/test_metrics.json",
+        "sha256": "123c14a5c247959b727dca57d38d794ed1978f7a7f315e6616da9ed526f08034",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/qwen3-4b-instruct-2507/test_metrics.json",
+        "sha256": "89d5bbce998c16f1bcc85205a77327d3ce9768d544b276c42e0bd5468f1c3ffe",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/qwen3-4b-thinking-2507/test_metrics.json",
+        "sha256": "affda5844b48f113965260871d17b56b1a2caa9ed7b60d4c02bc6b47298459a5",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/qwen3-5-2b/test_metrics.json",
+        "sha256": "65f584a2e4989adbd5af07e3075a8a0f94698e1e739768ec2521705f43673c18",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/qwen3-5-2b-base/test_metrics.json",
+        "sha256": "53df6f66893c9d4c8ccad520ac1719d0ca8dea8177f07a4fc916e177503aa59f",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/qwen3-5-2b-base-lora-coherence/test_metrics.json",
+        "sha256": "84e50ad0753457d689e35637136caed0ec023231127ad3720ef1fd548edfdb83",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/qwen3-5-2b-base-lora-supervised/test_metrics.json",
+        "sha256": "1c8cd1734e262b73fed6867d888a9e96896f965813ff81f330dafce50e774eb8",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/qwen3-5-4b/test_metrics.json",
+        "sha256": "db5f206012342df9fc6931e48590b242ebe2af07fdf69be2f81b6931ff836c6e",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/qwen3-5-4b-base/test_metrics.json",
+        "sha256": "b9cce72497a3703bebfb05b003f8cf8fce451a31ddeb8495734623c2a45c2b9d",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/qwen3-5-4b-base-lora-coherence/test_metrics.json",
+        "sha256": "93a414bffb9259afebb3d7da263f9186c7efd7a8bc65115426ca43587f74e10d",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/qwen3-5-4b-base-lora-supervised/test_metrics.json",
+        "sha256": "d193b279d0e20243fdc7bc15f07f64e34027fca27453d68a7e21265ad8cbe13f",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/qwen3-5-4b-tier-2-heads-lora/test_metrics.json",
+        "sha256": "8643833bd711fbf457e0728d7e1aa67ac99f7647822268a7c400493d18074d63",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/qwen3-5-9b/test_metrics.json",
+        "sha256": "35db6bf9c2fcd788cf92ccc101a1c20535a44df35851e8e9551442b0ee6463ef",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/qwen3-5-9b-base/test_metrics.json",
+        "sha256": "7a7ac35f9f08e929e9ea20ae78aecd90e1fa677b86595ed229fd55bfeaf53c2f",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/smollm3-3b-apo/test_metrics.json",
+        "sha256": "826aba26811ba82806c8b262a73ee76b9bbbcec49e0e9e320813be8f591eb14e",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/smollm3-3b-apo-no-template/test_metrics.json",
+        "sha256": "988067aa28308c80f851ddb55180f59a471a843e0aa08184271e047d8d13f968",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/smollm3-3b-base-no-template/test_metrics.json",
+        "sha256": "c5583e10d4618134497e5cd17445bb48dbf0efaca7e95bd8cec72a9ab18fc48d",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/smollm3-3b-final-merge/test_metrics.json",
+        "sha256": "c971a9cc7f19e1f96011fbe70156bb76eb8f417390a0c0e175c9da97f8ebaacd",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/smollm3-3b-final-merge-no-template/test_metrics.json",
+        "sha256": "15bb7d47ad3681ba2fe16b61e76359a1334a2a094f0672e7c84a83560d6539df",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/smollm3-3b-mid-training/test_metrics.json",
+        "sha256": "1f8ef96f245e4fb77f64280c7459e91fbdadeeda50d1c6fee155bff06d82cce3",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/smollm3-3b-mid-training-no-template/test_metrics.json",
+        "sha256": "0bfc5e58f31c0ff828df14e8d2d497267dd0e9a984000bf0626d94b524c2762a",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/smollm3-3b-sft/test_metrics.json",
+        "sha256": "3eeae143318605b0bbb73c9dbb5e567d11ed2ff900208c768a72ed5fe7e85412",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/smollm3-3b-sft-no-template/test_metrics.json",
+        "sha256": "6a2f391924bf7217895550c3b4d2765da1d0049e5c230c86a6af3c6d5e1b37dd",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/t-lu-3-8b-dpo/test_metrics.json",
+        "sha256": "f8ba1f0f6b6a11df760892ef2079e8e58714af294bbf14d4d01bdbcc83707bc5",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/t-lu-3-8b-rlvr/test_metrics.json",
+        "sha256": "d618850ec5b89d8defd84d7d94601f8e736ceaa7940af6f9adc1115ac8efdfc5",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/t-lu-3-8b-sft/test_metrics.json",
+        "sha256": "374b785efaf7b7dd7faf3b016e0c7ebc0b0fd7d8edddaba2bbf97464b64bf32c",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/t-lu-3-8b-sft-no-template/test_metrics.json",
+        "sha256": "87aed01dfdd64158bb46bdd2d9ce80f8a189db3c365e36bd306a82fd0631ff11",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/post-training/models/tev1-4b-own-prompt/test_metrics.json",
+        "sha256": "644ecdb520585d969d0bb2f3c8084904dbb1caeeeb7823b57c4e80a214c5f41c",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/pplx-decider-v1-27b/our-recipe/test_metrics.json",
+        "sha256": "70b40400631a196701be461f5114fe1083c388bc3c7121b6c865749648b3ee0b",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/pplx-decider-v1-27b/test_metrics.json",
+        "sha256": "a427f1b05577fb309b7a4392d330547f69d344fdd7c805177295727e71b668cc",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen-agentworld-35b-a3b/test_metrics.json",
+        "sha256": "3cf79486e79c860e62dd1d3df7792d739cda01f6cc0118be826ca8a588f9dfe7",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-0.8b/test_metrics.json",
+        "sha256": "e4f4a8d6ae8f60055a244112a101d9eb7866581d9bc84a88dc738555122f24d7",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-0.8b-base/test_metrics.json",
+        "sha256": "4afa308115d52da0b1fa2d8faa00a4493a1810d9dbb9045c11c7a8ec7c341157",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b/test_metrics.json",
+        "sha256": "65f584a2e4989adbd5af07e3075a8a0f94698e1e739768ec2521705f43673c18",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t1/test_metrics.json",
+        "sha256": "c939e50c61719bbd8ec625926b2dc9c6cf52b4d9adc89ea62e1a64af212cc985",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t1r/test_metrics.json",
+        "sha256": "9f56ade4dc733dcc46718b930b584b6bff84b548b76b6253bfffaffb9b9a6265",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t1r-e6-s0/test_metrics.json",
+        "sha256": "bedd8b8fb72bd15a4f500f9e95b556b578fb05b4cbbb3db2a54075532fd92369",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t1r-e6-s1/test_metrics.json",
+        "sha256": "b27caa5460264c4eca54364e2a75297e1f60901dc5b0be9a2635187660895f76",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t1r-e6-s2/test_metrics.json",
+        "sha256": "564dd37fde6fd439ff3d514011bea0b37bdc1ddca4ade7fc9b13583df1fb65ba",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t1r-e6-s3/test_metrics.json",
+        "sha256": "f3cd6baae61a035351b38c4bd4c4e03ead401fb95379e6f8d5444414376077c2",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t1r-e6-s4/test_metrics.json",
+        "sha256": "88ac20d56fbe5dc90e1b6b1a8391dd681b0864a237c5d65f6384c3204501e25c",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t1r-s0/test_metrics.json",
+        "sha256": "4f976d8e8894448c6af56f3e11d90936adce56a6549a65a592b35b835b29207f",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t1r-s1/test_metrics.json",
+        "sha256": "1022402a44ab1cf4095e2caf9f7d9cc8c5dc6b6674c64add4647e408b92d63d7",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t1r-s2/test_metrics.json",
+        "sha256": "8a79ce78e22ef00fa09885a38db39ea061ec825d1d1fd9d42c6a59d5c28fb438",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t1r-s3/test_metrics.json",
+        "sha256": "ccd964d0e8d87b725629587f2548b61eefa4a8755ae6d9638b380f0f6aec6b35",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t1r-s4/test_metrics.json",
+        "sha256": "6931e91dbddcc36af9039fd275d3aa63ecb14ca53125ccb4aa77f1945071a246",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t2/test_metrics.json",
+        "sha256": "64b4a97b66c3985dfdf4ebc3b819a91584e4d37b5f47b340b631c58951744929",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t2-lowlr/test_metrics.json",
+        "sha256": "9ffbd969d7bd7db384af82c8a70f44e7079d35619170152894eb981a06486add",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t2-lowlr-s1/test_metrics.json",
+        "sha256": "4ff34c205f1f7c142148c56bcd45f5914ad149fb25778497364218d85e0d99ab",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t2-lowlr-s2/test_metrics.json",
+        "sha256": "c28774fa0a59bb70350f72cd00bfa44f35095c3e7b9d1fab78b4a0e157e5efcb",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t2-lowlr-soft/test_metrics.json",
+        "sha256": "f16a3f8d07c175bf7e7b15697abdebd3c671fcf1234c909cd5e12cd77348f9f3",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t2-s1/test_metrics.json",
+        "sha256": "be34444adab2d79ce6602c3ab85c79f7ab4c4349348166dc4d544b7894209a6f",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t2-s2/test_metrics.json",
+        "sha256": "1ce46d089f35d3e644d8b5bacbd672bfb6bb05486d99665d10883671be00b8bb",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-2b-t2-soft/test_metrics.json",
+        "sha256": "3bfbce7eeb9af3733c216b31d4e3d1d75d74f5452706dbb011f4bd43b5e29d44",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-4b/test_metrics.json",
+        "sha256": "db5f206012342df9fc6931e48590b242ebe2af07fdf69be2f81b6931ff836c6e",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-4b-t1r/test_metrics.json",
+        "sha256": "fec3cd7d3fa44bed70a0cb37502a457243cce850a08726bb3b0baad14c9d4368",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-4b-t1r-s1/test_metrics.json",
+        "sha256": "64a7a0de9c76eb4871887bc0e266173ec17b66c44c68b2d4f5e34aadf82e39b2",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-4b-t1r-s2/test_metrics.json",
+        "sha256": "630107144270473e23018cf363f05419f8cf1732e113dbdd21648be5409a77c9",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-4b-t1r-s3/test_metrics.json",
+        "sha256": "30d3058c3140197d3a856adc2243746354495c7d7d29cfc6e1d12e19eb96a955",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-4b-t1r-s4/test_metrics.json",
+        "sha256": "7010a8daa1717f4db8ee445b7721cedff77aa395ce0387a6ea80c86b575958be",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-4b-t2/test_metrics.json",
+        "sha256": "6c53e135635bd65307a9760f4433a4f7c58a37cb9b4107d8785784d3881ec596",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-4b-t2-lowlr/test_metrics.json",
+        "sha256": "8643833bd711fbf457e0728d7e1aa67ac99f7647822268a7c400493d18074d63",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-4b-tev1fmt/test_metrics.json",
+        "sha256": "0defca2e9ae421f58621a91f47109f348e8543e26a65a9af951a27e32bacea16",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-9b/test_metrics.json",
+        "sha256": "35db6bf9c2fcd788cf92ccc101a1c20535a44df35851e8e9551442b0ee6463ef",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-9b-t1r-s0/test_metrics.json",
+        "sha256": "192b560209a3b3d72fa365212631de95fa5ca3d1d602f289d28766686f2b89f3",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-9b-t1r-s1/test_metrics.json",
+        "sha256": "ea02f2056eb3588b42d3994d025513e54c2dbde07dcb7a2e955426799507d5e0",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-9b-t1r-s2/test_metrics.json",
+        "sha256": "6c64fe5fd1898c80d3001dda7079776849bc5b06495832b82b148fbb9c70a3f6",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen35-9b-vision/test_metrics.json",
+        "sha256": "ca092479579b2c4a4aa7db01a9284783ec6f9c841f6841055a31db1b3934790a",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen3vl-2b/test_metrics.json",
+        "sha256": "879fb781fea58b0edee3c62798cc57e7beaeb864859f1ca8ecb6541b7308cd83",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen3vl-2b-t2-both/test_metrics.json",
+        "sha256": "73f78225383ae218613bc5000ebf75b40b2fa395192ef2ad0ee2003a4e0bb454",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen3vl-2b-t2-decoder/test_metrics.json",
+        "sha256": "bfba66025d7d5fe10adfcbc689a9cc7dea2be82745410e457bc2e10119948612",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen3vl-2b-t2-vision/test_metrics.json",
+        "sha256": "aaf576435c2628c00f4d2270d14cfe9193e42ad2f5777d4cb27490240765b36d",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/qwen3vl-8b/test_metrics.json",
+        "sha256": "9384a1e0effbf35c72045f7f614b635ed287a594f34520c736cf064c6e5e05f6",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/smollm3-3b/test_metrics.json",
+        "sha256": "c971a9cc7f19e1f96011fbe70156bb76eb8f417390a0c0e175c9da97f8ebaacd",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/tev1-4b/test_metrics.json",
+        "sha256": "644ecdb520585d969d0bb2f3c8084904dbb1caeeeb7823b57c4e80a214c5f41c",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      },
+      {
+        "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/results/tev1-4b-jevfmt/test_metrics.json",
+        "sha256": "25d73a9a6edc1f312a69ba245c69782bf322208b8f5e37d38c4365244cc27f4a",
+        "dataset": "Praveenrajus__jev-bench",
+        "scope": "Published per-config test metrics; historical runs remain separate."
+      }
+    ],
+    "kev_release_panels": 18,
+    "missing_sources": [],
+    "output_directory": "/mnt/cephfs/xingchao/experiments/jev/_reference_inventory_20261030"
+  },
+  "artifact_directory": "/mnt/cephfs/xingchao/experiments/jev/_reference_inventory_20261030",
+  "appendix_files": [
+    {
+      "name": "dataset_readme_tables.json",
+      "sha256": "2587590b336a5f0735062f87d5d0de46c18115d33a801049180b39f15cca8670",
+      "bytes": 339633
+    },
+    {
+      "name": "dataset_readme_tables.md",
+      "sha256": "e74386e0e84258984cd0497ffd3b7bc1348b6a2bf6a6d4f3ef3a84e67784d5c4",
+      "bytes": 119718
+    },
+    {
+      "name": "jevify_macro_check.json",
+      "sha256": "db78ba60cd46a2190bfd369f3b4dcedf8c416bbcb7f278c140dbcfdba541ea41",
+      "bytes": 524
+    },
+    {
+      "name": "kev_release_test_metrics.csv",
+      "sha256": "cf6084ddd9eacb09d7e2fe7a5a842cc9ea2b0e3476ce888f9cfe04661ed5120d",
+      "bytes": 5646
+    },
+    {
+      "name": "kev_release_test_metrics.json",
+      "sha256": "ce28c6d676d1a10a1ed4c2494d0a2de18d8af3d4708463432dda2471c8faa578",
+      "bytes": 10981
+    },
+    {
+      "name": "kev_test_artifact_index.json",
+      "sha256": "a47327275e572f48f8a40ddb4e85efb821036a81b4df9a52cbb6d8dc1f474aa3",
+      "bytes": 64366
+    },
+    {
+      "name": "reference_panels.json",
+      "sha256": "0948b6723c04d07ceadd546cc9ce6d2124bfbf5ed15c0173578e9a66837c5c3a",
+      "bytes": 6958879
+    },
+    {
+      "name": "reference_panels.md",
+      "sha256": "2f5fd31a82de92df0bdd9445c1f58b42d584f86d0804c07d4e87fdfface63851",
+      "bytes": 179496
+    },
+    {
+      "name": "reference_table_manifest.json",
+      "sha256": "11fcaf22b1d1e8084bbe031b0d12d9476677c6ff9eb622abc0cb95464767932e",
+      "bytes": 53792
+    }
+  ],
+  "unique_model_directories": 42
+}
