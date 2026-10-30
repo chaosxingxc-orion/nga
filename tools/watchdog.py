@@ -119,6 +119,8 @@ def build_parser():
     a("--npu-wedged-passes", type=int, default=3, help="a claimed chip quiet for at least this many consecutive passes ... (default 3)")
     a("--npu-wedged-seconds", type=float, default=1200.0,
       help="... spanning at least this long is flagged as possibly wedged (default 1200 = 20 min; loading a checkpoint is legitimately quiet)")
+    a("--obligations", action="append",
+      help="obligations file (repeatable); default <root>/obligations.json for every root. Declares outstanding products, see tools/README.md")
     a("--no-retain", action="store_true", help="do not keep dated copies of flagged passes under <out-dir>/_retained/")
     a("--retain-max", type=int, default=60, help="keep at most this many retained copies (digest.json + digest.md pair), oldest deleted first (default 60)")
     a("--retain-max-mb", type=float, default=200.0, help="and at most this many MB in total (default 200)")
@@ -1821,6 +1823,12 @@ def pass_flags(dg):
         lvl = r["escalation"] if r["escalation"] != "none" else r.get("escalation_before_expected")
         if lvl and lvl != "none":
             out["escalation:%s:%s" % (lvl, rid)] = "escalation:" + lvl
+    for it in (dg.get("obligations") or {}).get("items", []):
+        if it["status"] in ("due", "invalid"):
+            out["obligation_%s:%s" % (it["status"], it["id"])] = "obligation_" + it["status"]
+    for f in (dg.get("obligations") or {}).get("files", []):
+        if not f["ok"]:
+            out["obligation_file:" + f["path"]] = "obligation_file"
     npu = dg.get("npu") or {}
     for f in npu.get("flags", []):
         if f["escalation"] != "none":
@@ -1920,6 +1928,281 @@ def retain_pass(cfg, dg, md, now):
     finally:
         lock.close()
     return st
+
+
+# ----------------------------------------------------------------------------- obligations (absent artefacts)
+# Neither a failure nor a stall can describe a product that was never produced. obligations.json declares what is owed, the artefact that
+# discharges it and the event that makes it due; the watchdog reads the file and knows nothing about any particular round.
+OBL_FILE = "obligations.json"
+OBL_SCHEMA = 1
+OBL_STATE = "obligations_state.json"
+OBL_ID_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,64}$")
+OBL_PREDICATES = ("exists", "nonempty", "min_lines", "matches")
+OBL_MAX = 200
+OBL_SHOW = 12                 # due/invalid lines and pending lines listed in digest.md, each; the rest are counted
+
+
+def _obl_glob(base, pat):
+    p = pat if os.path.isabs(pat) else os.path.join(base, pat)
+    return sorted(glob.glob(p, recursive=True))[:200]
+
+
+def _nonempty(path):
+    try:
+        if os.path.isdir(path):
+            with os.scandir(path) as it:
+                return next(it, None) is not None
+        return os.path.getsize(path) > 0
+    except OSError:
+        return False
+
+
+def _enough_lines(path, n):
+    try:
+        got = 0
+        with open(path, "rb") as f:
+            for _ in f:
+                got += 1
+                if got >= n:
+                    return True
+    except OSError:
+        pass
+    return False
+
+
+def _has_match(path, rx):
+    try:
+        read = 0
+        with open(path, "rb") as f:
+            for ln in f:
+                read += len(ln)
+                if rx.search(ln.decode("utf-8", "replace")):
+                    return True
+                if read > (8 << 20):
+                    break
+    except OSError:
+        pass
+    return False
+
+
+def eval_pred(spec, base, now, depth=0):
+    """(satisfied, evidence text) for one predicate spec; raises ValueError for a spec that cannot be evaluated (the caller reports the
+    obligation as invalid: an obligation that silently never fires is the failure this block exists to prevent).
+    spec: {"path": glob, "predicate": exists|nonempty(default)|min_lines|matches, "n": int, "pattern": regex}  |  {"after_utc": ISO}
+          |  {"any": [spec, ...]}  |  {"all": [spec, ...]}.  Relative globs resolve against the directory of obligations.json."""
+    if not isinstance(spec, dict) or depth > 3:
+        raise ValueError("predicate must be a JSON object, nested at most 3 deep")
+    keys = [k for k in ("any", "all", "after_utc", "path") if k in spec]
+    if len(keys) != 1:
+        raise ValueError("predicate needs exactly one of path, after_utc, any, all (has %s)" % (keys or "none"))
+    k = keys[0]
+    if k in ("any", "all"):
+        subs = spec[k]
+        if not isinstance(subs, list) or not subs:
+            raise ValueError("%s needs a non-empty list" % k)
+        res = [eval_pred(x, base, now, depth + 1) for x in subs]        # evaluate all: a broken member must always surface
+        ok = any(r[0] for r in res) if k == "any" else all(r[0] for r in res)
+        return ok, "; ".join(r[1] for r in res if r[0]) if k == "any" else "; ".join(r[1] for r in res)
+    if k == "after_utc":
+        m = TS_RE.fullmatch(spec["after_utc"]) if isinstance(spec["after_utc"], str) else None
+        t = parse_ts(m) if m else None
+        if t is None:
+            raise ValueError("after_utc must be an ISO-8601 timestamp such as 2026-11-01T00:00:00Z")
+        return now >= t, "after %s" % spec["after_utc"]
+    pat = spec["path"]
+    if not isinstance(pat, str) or not pat.strip():
+        raise ValueError("path must be a non-empty string (glob; relative to the obligations file)")
+    pred = spec.get("predicate", "nonempty")
+    if pred not in OBL_PREDICATES:
+        raise ValueError("unknown predicate %s (expected one of %s)" % (json.dumps(pred)[:30], "|".join(OBL_PREDICATES)))
+    files = _obl_glob(base, pat)
+    if pred == "exists":
+        ok = [f for f in files if os.path.exists(f)]
+    elif pred == "nonempty":
+        ok = [f for f in files if _nonempty(f)]
+    elif pred == "min_lines":
+        n = spec.get("n")
+        if isinstance(n, bool) or not isinstance(n, int) or n < 1:
+            raise ValueError("min_lines needs a positive integer n")
+        ok = [f for f in files if os.path.isfile(f) and _enough_lines(f, n)]
+    else:
+        try:
+            rx = re.compile(spec.get("pattern"))
+        except (re.error, TypeError):
+            raise ValueError("matches needs a valid regex in pattern")
+        ok = [f for f in files if os.path.isfile(f) and _has_match(f, rx)]
+    return bool(ok), ("%s (%s)" % (ok[0], pred)) if ok else "no file matches %s (%s)" % (pat, pred)
+
+
+def describe_pred(spec):
+    if not isinstance(spec, dict):
+        return "?"
+    if "any" in spec or "all" in spec:
+        k = "any" if "any" in spec else "all"
+        lst = spec[k] if isinstance(spec[k], list) else []
+        return "%s of [%s]" % (k, "; ".join(describe_pred(x) for x in lst[:4]) + ("; ..." if len(lst) > 4 else ""))
+    if "after_utc" in spec:
+        return "time after %s" % spec["after_utc"]
+    extra = (" n=%s" % spec.get("n")) if spec.get("predicate") == "min_lines" else (" /%s/" % spec.get("pattern")) if spec.get("predicate") == "matches" else ""
+    return "%s %s%s" % (spec.get("predicate", "nonempty"), spec.get("path"), extra)
+
+
+def load_obl_state(cfg):
+    try:
+        with open(os.path.join(cfg.out_dir, OBL_STATE), "r", encoding="utf-8") as f:
+            o = json.load(f)
+        return o if isinstance(o, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def evaluate_obligations(cfg, now):
+    """The `obligations` block of the digest. Pure with respect to the out-dir (reads the state file, writes nothing; run_once commits
+    the state after the digest is written). Status per obligation: discharged (artefact predicate holds), else due (trigger holds),
+    else pending (no trigger declared: pending forever, never escalates), or invalid (reason). A file that cannot be read is a file
+    error, shown prominently; it never raises."""
+    files = list(cfg.obligations) if cfg.obligations else [os.path.join(os.path.abspath(r), OBL_FILE) for r in cfg.root]
+    found = [f for f in files if os.path.isfile(f)]
+    out = {"files": [], "declared": 0, "counts": {"due": 0, "pending": 0, "discharged": 0, "invalid": 0}, "newly_discharged": 0,
+           "items": [], "file_errors": 0, "searched": files, "escalation": "none"}
+    state = load_obl_state(cfg)
+    seen_ids = set()
+    for fp in found:
+        base = os.path.dirname(os.path.abspath(fp))
+        ent = {"path": fp, "ok": True, "error": None, "n": 0}
+        out["files"].append(ent)
+        try:
+            with open(fp, "r", encoding="utf-8") as f:
+                doc = json.load(f)
+            if not isinstance(doc, dict) or doc.get("schema") != OBL_SCHEMA or not isinstance(doc.get("obligations"), list):
+                raise ValueError('expected {"schema": %d, "obligations": [...]}' % OBL_SCHEMA)
+        except (OSError, ValueError) as e:
+            ent.update(ok=False, error=redact(" ".join(str(e).split()))[:140])
+            out["file_errors"] += 1
+            continue
+        for i, o in enumerate(doc["obligations"][:OBL_MAX]):
+            it = {"id": None, "title": None, "clause": None, "owner": None, "status": None, "reason": None, "file": fp, "escalation": "none",
+                  "artifact": None, "trigger": None, "artifact_evidence": None, "trigger_evidence": None, "since_utc": None,
+                  "newly_discharged": False}
+            try:
+                if not isinstance(o, dict):
+                    raise ValueError("entry %d is not an object" % i)
+                oid = o.get("id")
+                it["id"] = oid if isinstance(oid, str) else "%s#%d" % (os.path.basename(fp), i)
+                if not isinstance(oid, str) or not OBL_ID_RE.match(oid):
+                    raise ValueError("id must match [A-Za-z0-9_.-]{1,64}")
+                if oid in seen_ids:
+                    raise ValueError("duplicate id")
+                seen_ids.add(oid)
+                for k in ("title", "clause", "owner"):
+                    it[k] = o[k][:300] if isinstance(o.get(k), str) else None
+                it["artifact"], it["trigger"] = o.get("artifact"), o.get("trigger")
+                if "artifact" not in o:
+                    raise ValueError("artifact is required: without it nothing can discharge the obligation")
+                esc = o.get("escalation_when_due", "decide")
+                if esc not in ("read", "decide"):
+                    raise ValueError('escalation_when_due must be "read" or "decide"')
+                done, it["artifact_evidence"] = eval_pred(o["artifact"], base, now)
+                due, it["trigger_evidence"] = (eval_pred(o["trigger"], base, now) if o.get("trigger") is not None else (False, "no trigger declared"))
+                it["status"] = "discharged" if done else "due" if due else "pending"
+                if it["status"] == "due":
+                    it["escalation"] = esc
+            except ValueError as e:
+                it["status"], it["escalation"] = "invalid", "read"
+                it["reason"] = redact(" ".join(str(e).split()))[:160]
+            st = state.get(it["id"], {}) if isinstance(state.get(it["id"]), dict) else {}
+            if it["status"] == "due":
+                it["since_utc"] = st.get("due_since_utc") or iso(now)
+            elif it["status"] == "discharged":
+                it["since_utc"] = st.get("discharged_utc") or iso(now)
+                it["newly_discharged"] = not st.get("discharged_shown")
+                out["newly_discharged"] += it["newly_discharged"]
+            out["counts"][it["status"]] += 1
+            ent["n"] += 1
+            out["declared"] += 1
+            out["items"].append(it)
+    acts = {it["escalation"] for it in out["items"]}
+    out["escalation"] = "decide" if "decide" in acts else "read" if ("read" in acts or out["file_errors"]) else "none"
+    return out
+
+
+def commit_obligation_state(cfg, obl, now):
+    """After the digest is written: remember when each obligation first became due or discharged, and that a discharge has been shown
+    once (so it then drops to a count). An obligation whose status moves back (artefact removed) forgets the discharge. Non-fatal."""
+    if not obl or obl["file_errors"] and not obl["items"]:
+        return
+    old, new = load_obl_state(cfg), {}
+    for it in obl["items"]:
+        if it["id"] is None or it["status"] == "invalid":
+            continue
+        prev = old.get(it["id"], {}) if isinstance(old.get(it["id"]), dict) else {}
+        if it["status"] == "due":
+            new[it["id"]] = {"due_since_utc": it["since_utc"]}
+        elif it["status"] == "discharged":
+            new[it["id"]] = {"discharged_utc": it["since_utc"], "discharged_shown": True, "due_since_utc": prev.get("due_since_utc")}
+    try:
+        os.makedirs(cfg.out_dir, exist_ok=True)
+        atomic_write(os.path.join(cfg.out_dir, OBL_STATE), json.dumps(new, indent=1) + "\n")
+    except OSError:
+        pass
+
+
+def _obl_item_line(it):
+    t = _clip(it["title"] or it["id"], 80)
+    cl = " | clause: %s" % _clip(it["clause"], 90) if it["clause"] else ""
+    if it["status"] == "invalid":
+        return "- [read] INVALID obligation %s: %s (cannot be judged, so it may be invisible; fix %s)" % (
+            it["id"], _clip(it["reason"], 120), os.path.basename(it["file"]))
+    a = it["artifact"].get("path") if isinstance(it["artifact"], dict) else describe_pred(it["artifact"])
+    if it["status"] == "due":
+        return "- [%s] DUE %s: %s | artefact ABSENT: %s | triggered since %s by %s%s" % (
+            it["escalation"], it["id"], t, _clip(a, 90), (it["since_utc"] or "?")[:16] + "Z", _clip(it["trigger_evidence"], 100), cl)
+    if it["status"] == "pending":
+        trig = "waiting for: " + _clip(describe_pred(it["trigger"]), 100) if it["trigger"] else "no trigger declared, never becomes due"
+        return "- pending %s: %s | artefact absent: %s | %s%s" % (it["id"], t, _clip(a, 90), trig, cl)
+    return "- discharged %s: %s | artefact present: %s | presence only, correctness not checked%s" % (
+        it["id"], t, _clip(it["artifact_evidence"], 110), cl)
+
+
+def obl_summary_lines(obl):
+    """One line in the summary block, always: an empty or missing declaration must not read as 'nothing owed'."""
+    if obl is None:
+        return []
+    c = obl["counts"]
+    if not obl["files"] and not obl["file_errors"]:
+        return ["Obligations: NONE DECLARED (no %s at %s): that is not the same as nothing owed" % (
+            OBL_FILE, ", ".join(_clip(x, 60) for x in obl["searched"][:2]))]
+    bits = []
+    if c["due"]:
+        bits.append("%d DUE" % c["due"])
+    if c["invalid"]:
+        bits.append("%d INVALID" % c["invalid"])
+    bits.append("%d pending" % c["pending"])
+    bits.append("%d discharged%s" % (c["discharged"], " (%d new, listed below)" % obl["newly_discharged"] if obl["newly_discharged"] else ""))
+    line = "Obligations: %s of %d declared" % (", ".join(bits), obl["declared"])
+    for f in obl["files"]:
+        if not f["ok"]:
+            line += " | FILE UNREADABLE %s: %s" % (_clip(f["path"], 70), _clip(f["error"], 90))
+    return [line]
+
+
+def obl_blocks(obl):
+    """(priority, lines) pairs. Due and invalid obligations and unreadable files are priority 0, kept with the summary: a dropped
+    obligation block reads as 'nothing owed'. Pending and newly discharged are priority 3, with the host-utilisation block."""
+    if not obl:
+        return []
+    hot, cool = [], []
+    for it in obl["items"]:
+        (hot if it["status"] in ("due", "invalid") else cool if it["status"] == "pending" or it["newly_discharged"] else []).append(_obl_item_line(it))
+    for f in obl["files"]:
+        if not f["ok"]:
+            hot.append("- [read] obligations file unreadable, nothing in it is being tracked: %s (%s)" % (_clip(f["path"], 80), _clip(f["error"], 100)))
+    out = []
+    if hot:
+        out.append((0, "obligations due", hot[:OBL_SHOW] + (["- ... %d more due/invalid: see digest.json obligations.items" % (len(hot) - OBL_SHOW)] if len(hot) > OBL_SHOW else [])))
+    if cool:
+        out.append((3, "obligations pending", cool[:OBL_SHOW] + (["- ... %d more: see digest.json obligations.items" % (len(cool) - OBL_SHOW)] if len(cool) > OBL_SHOW else [])))
+    return out
 
 
 # ----------------------------------------------------------------------------- digest
@@ -2023,7 +2306,8 @@ def build_digest(cfg, states, now=None, sched=None):
                                 "inherited_sources": _inherited_sources(runs)},
         "expected_by_state": _expected_by_state(runs),
         "signature_clusters": cluster_signatures(runs),
-        "worst_state": worst if runs else "no_runs", "exit_code": code, "counts": counts, "queued": sorted(set(queued)), "runs": runs,
+        "worst_state": worst if runs else "no_runs", "exit_code": code, "counts": counts, "queued": sorted(set(queued)),
+        "obligations": evaluate_obligations(cfg, now), "runs": runs,
     }
 
 
@@ -2110,7 +2394,9 @@ def build_blocks(dg, cfg):
             dg["worst_state"], dg["exit_code"], len(runs), c["failed"], c["stalled"], c["unknown"], c["running"],
             c["done"], c["archived"], human_age(dg["watch_interval_s"]) if dg["watch_interval_s"] else "one-shot", dg["host"])
         + npu_fragment(dg.get("npu"))]
-        + _audit_lines(dg))
+        + _audit_lines(dg) + obl_summary_lines(dg.get("obligations")))
+    for prio, label, lines in obl_blocks(dg.get("obligations")):
+        add(prio, "obl", label, lines)
     clean = [r for r in runs if r["state"] == "done" and r["escalation"] == "none"]
     arch = [r for r in runs if r["state"] == "archived"]
     shown = [r for r in runs if r not in clean and r not in arch]
@@ -2180,7 +2466,9 @@ def build_blocks(dg, cfg):
     return B
 
 
-SECTIONS = [("head", []), ("host", ["", "## Host utilisation (NPU: claimed = a resident process; AICore = latest snapshot [earlier passes]; claimed by = run named in the process command line)"]),
+SECTIONS = [("head", []),
+            ("obl", ["", "## Obligations (declared in obligations.json; status = does the artefact exist, NOT whether it is correct)"]),
+            ("host", ["", "## Host utilisation (NPU: claimed = a resident process; AICore = latest snapshot [earlier passes]; claimed by = run named in the process command line)"]),
             ("runs", ["", "## Runs (worst first)", "| run | state | esc | age | watch | progress | perf | why |", "|---|---|---|---|---|---|---|---|",
                                       "(watch = tier/source last>next full read, UTC; file = WATCH.json, hbNm = inferred period, dflt = default. progress = SUM of the heartbeat row counters of all scorers, rate = change over the last 15 min of heartbeats; 'left' only with a declared total: a widened range assuming UNIFORM cost per row, wrong when work per row varies; 'no ETA' = run declared uniform_cost false; 'rough' = under 15 min seen. perf (running/stalled): per chip, xN chips, r= vs declared baseline, base? = none; host = CPU run)"]),
             ("flags", ["", "## Flags"]),
@@ -2306,6 +2594,10 @@ def run_once(cfg, states, now=None, sched=None, npu=False):
     except Exception as e:   # noqa: BLE001 - retention must never break the digest
         dg["retention_status"] = {"enabled": True, "error": repr(e)[:120], "retained": None}
     write_outputs(dg, md, cfg)
+    try:
+        commit_obligation_state(cfg, dg.get("obligations"), time.time() if now is None else now)
+    except Exception:   # noqa: BLE001
+        pass
     return dg, md
 
 

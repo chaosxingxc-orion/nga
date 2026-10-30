@@ -18,7 +18,7 @@ Over the cap, content is dropped by priority, not by position, in whole blocks: 
 dispositioned-by-WHY audit line) and status rows of failed/stalled/unknown runs that have no `expected` disposition, (1) other status
 rows, (2) pointers and ERROR signatures of failed/stalled runs, (3) flags on the primary scorer (and pointers
 of runs that have them), then the host-utilisation (NPU) block, (4) ERROR signatures of other runs, (5) WARNING signatures and flags on
-other scorers, (5 also holds the status rows of runs with an `expected` disposition, own or inherited, so they never take space from an unexplained
+other scorers, (priority 0 also holds due and invalid obligations and priority 3 pending ones, see Obligations; priority 5 also holds the status rows of runs with an `expected` disposition, own or inherited, so they never take space from an unexplained
 run), (6) everything else (clean-done and archived lines, suppression audit, notes). Once a block of some priority does not fit, every lower-priority block is dropped
 too. A final `[TRUNCATED ...]` line says how many blocks and bytes were dropped and which kinds. `digest.json` is never cut.
 Both are written to a temp file and renamed, under a lock, so a reader never sees a half-written file and
@@ -319,6 +319,72 @@ work and the caps are a backstop: at the default 60 copies a flap-heavy day keep
 (`enabled`, `flags`, `retained` file name or null, `trigger`, `kept` copies, `bytes`, `dir`). Retention is non-fatal: an error becomes
 `retention_status.error` and the digest is written as usual.
 
+### Obligations (absent artefacts)
+
+A failure and a stall are things that happened. Some of what a round owes is a thing that **has not** happened: a product nobody has
+written, which no rule over logs and heartbeats can flag. `obligations.json` declares such products; the digest keeps listing them until
+they exist. The watchdog reads the file and knows nothing about any round: the human who writes an entry owns its trigger predicate, and a
+wrong predicate makes a real obligation invisible, which is why an entry it cannot evaluate is shown as `INVALID` and not skipped.
+
+**Where.** `<root>/obligations.json` for every `--root` that has one, or the files named by `--obligations FILE` (repeatable; this
+replaces the default). Relative paths inside a file resolve against **that file's directory**; absolute paths are allowed. Paths are globs
+(`**` allowed); at most 200 matches are looked at.
+
+**Schema (version 1).**
+
+    {"schema": 1,
+     "obligations": [
+       {"id": "r0-erratum",                       # required, [A-Za-z0-9_.-]{1,64}, unique across all files
+        "title": "R0 erratum",                    # optional, one line
+        "clause": "experiments/R3-SFT-PREREG.md amendment 11 item 3",   # optional pointer to the clause
+        "owner": "orchestrator",                  # optional
+        "artifact": {"path": "r0_baseline/ERRATUM.md"},                 # required: what discharges it
+        "trigger": {"path": "r3_runs/TEST-READS.log", "predicate": "min_lines", "n": 1},   # optional: what makes it due
+        "escalation_when_due": "decide"           # optional, "decide" (default) or "read"
+       }]}
+
+A **predicate** is one of: `{"path": GLOB, "predicate": P, ...}` with P = `nonempty` (default: a file with at least one byte, or a
+directory with at least one entry), `exists` (also an empty file), `min_lines` (with `"n": N >= 1`; some matching file has at least N
+lines, so `n: 1` means "a first line was written"), `matches` (with `"pattern": REGEX`; some line of some matching file matches); or
+`{"after_utc": "2026-11-01T00:00:00Z"}`; or `{"any": [predicate, ...]}` / `{"all": [predicate, ...]}` (nested at most 3 deep). A glob
+predicate holds if **any** matching file satisfies it. The artefact default is `nonempty`, not `exists`: a zero-byte file does not
+discharge an obligation unless the entry says `exists`.
+
+**Status** (per obligation, recomputed every pass):
+
+| status | when | escalation |
+|---|---|---|
+| `discharged` | the artifact predicate holds (whatever the trigger says) | none; listed in full for **one pass**, then only counted |
+| `due` | artifact absent and the trigger predicate holds | `escalation_when_due` (default `decide`) |
+| `pending` | artifact absent and the trigger does not hold yet, or **no trigger is declared** (such an entry never becomes due, and says so) | none, informational |
+| `invalid` | the entry cannot be evaluated: no `id`, duplicate id, no `artifact`, unknown predicate, `min_lines` without a positive `n`, a regex that does not compile, a malformed `after_utc`, an empty `any`/`all`, a bad `escalation_when_due` | `read` |
+
+An unreadable `obligations.json` (not JSON, wrong `schema`, `obligations` not a list) is a **file error**: it is shown in the summary block
+as `FILE UNREADABLE` with `[read]`, nothing in that file is tracked, and the rest of the digest is unaffected. Other files and other
+entries still work. If no obligations file exists at all, the summary says `Obligations: NONE DECLARED ... not the same as nothing owed`.
+
+**In the digest.** Always one line in the summary block (`Obligations: 1 DUE, 1 pending, 0 discharged of 2 declared`). Due and invalid
+obligations and unreadable files are one block at **priority 0**, kept with the summary and the failed/stalled rows, and listed before
+the status rows: a dropped obligation block reads as "nothing owed", so it is the last thing to go. Pending and newly discharged ones are
+priority 3, level with the host-utilisation block and above ERROR/WARNING signatures. A due line reads
+`- [decide] DUE r0-erratum: R0 erratum | artefact ABSENT: r0_baseline/ERRATUM.md | triggered since 2026-10-30T10:00Z by <path> (min_lines) | clause: ...`.
+`digest.json` has `obligations` (`files`, `counts`, `escalation`, `items[]` with `status`, `escalation`, `artifact`, `trigger`,
+`artifact_evidence`, `trigger_evidence`, `since_utc`, `reason`, `newly_discharged`). At most 12 lines per block in `digest.md`, the rest
+counted. Due and invalid obligations and unreadable files are flags for retention. They do not change the exit code, which follows run
+states only.
+
+**State.** `<out-dir>/obligations_state.json` records when each obligation first became due or discharged and that a discharge has been
+listed, written after each full pass by `run_once`. It is what makes "listed for one pass" work, so a one-shot run against the live
+out-dir counts as a pass and consumes the listing; develop with a separate `--out-dir`. An artefact that disappears reopens the
+obligation (due or pending) and a later discharge is listed again. `since` is the first pass that saw the trigger, not the moment it
+happened.
+
+**What this block is not.** It does not know whether an artefact is correct, complete, current or the right one: only whether a file or
+directory satisfying the declared predicate exists. A `discharged` obligation means a file is present and nothing more; the digest says
+"presence only, correctness not checked" on every such line. It also does not know about the trigger's meaning: it evaluates the
+predicate the author wrote, so a predicate that is true too early shows a spurious `due`, and one that never becomes true hides the
+obligation as `pending`. And it cannot see an obligation nobody declared.
+
 ### Explanations
 
 If a run directory holds `WHY_STOPPED.json` or `WHY_FAILED.json` (`--why-names`), its `note` (else `why`, `reason`, `summary`, or
@@ -435,7 +501,7 @@ own directory lands on `sys.path`.
 
 ### Tests
 
-    python3 -P tools/test_watchdog.py          # 161 tests; the module sets WATCHDOG_NO_NPU=1 so no test ever opens an ssh session
+    python3 -P tools/test_watchdog.py          # 174 tests; the module sets WATCHDOG_NO_NPU=1 so no test ever opens an ssh session
 
 The NPU tests use a fake `npu-smi`, `ps` and `ssh` on `PATH` (`--npu-host local` for the end-to-end probe).
 

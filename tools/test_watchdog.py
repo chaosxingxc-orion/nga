@@ -2128,6 +2128,220 @@ class Retention(unittest.TestCase):
         self.assertTrue(os.path.exists(os.path.join(t.tmp.name, "_out", "digest.json")))
 
 
+class Obligations(unittest.TestCase):
+    """Absent artefacts: declared in obligations.json, evaluated by path-plus-predicate, never by code that knows a round."""
+    def setUp(self):
+        self.t = Tree()
+        os.makedirs(os.path.join(self.t.root, "_data"))
+        self.reads = os.path.join(self.t.root, "_data", "TEST-READS.log")
+        self.erratum = os.path.join(self.t.root, "_data", "ERRATUM.md")
+
+    def declare(self, entries, schema=1, raw=None):
+        with open(os.path.join(self.t.root, "obligations.json"), "w") as f:
+            f.write(raw if raw is not None else json.dumps({"schema": schema, "obligations": entries}))
+
+    def erratum_entry(self, **kw):
+        e = {"id": "r0-erratum", "title": "R0 erratum", "clause": "PREREG amendment 11 item 3",
+             "artifact": {"path": "_data/ERRATUM.md"},
+             "trigger": {"path": "_data/TEST-READS.log", "predicate": "min_lines", "n": 1}}
+        e.update(kw)
+        return e
+
+    def obl(self, **kw):
+        return self.t.digest(**kw)["obligations"]
+
+    def item(self, **kw):
+        return self.obl(**kw)["items"][0]
+
+    def test_pending_then_due_then_discharged(self):
+        self.declare([self.erratum_entry()])
+        it = self.item()
+        self.assertEqual((it["status"], it["escalation"]), ("pending", "none"))
+        open(self.reads, "w").close()                                           # created but empty: no first line yet
+        self.assertEqual(self.item()["status"], "pending")
+        with open(self.reads, "w") as f:
+            f.write("2026-10-30T10:00:00Z first test read\n")
+        it = self.item()
+        self.assertEqual((it["status"], it["escalation"]), ("due", "decide"))
+        self.assertIn("TEST-READS.log", it["trigger_evidence"])
+        dg = self.t.digest()
+        md = wd.render_md(dg, self.t.cfg())
+        self.assertIn("- [decide] DUE r0-erratum: R0 erratum | artefact ABSENT: _data/ERRATUM.md", md)
+        self.assertIn("clause: PREREG amendment 11 item 3", md)
+        self.assertIn("Obligations: 1 DUE, 0 pending, 0 discharged of 1 declared", md)
+        self.assertEqual(dg["obligations"]["escalation"], "decide")
+        self.assertEqual(dg["exit_code"], 20)                                    # no runs: exit codes still follow run states only
+        with open(self.erratum, "w") as f:
+            f.write("erratum text")
+        it = self.item()
+        self.assertEqual((it["status"], it["escalation"], it["newly_discharged"]), ("discharged", "none", True))
+        md = wd.render_md(self.t.digest(), self.t.cfg())
+        self.assertIn("- discharged r0-erratum", md)
+        self.assertIn("presence only, correctness not checked", md)
+
+    def test_a_discharge_is_listed_once_then_only_counted_and_removal_reopens_it(self):
+        self.declare([self.erratum_entry()])
+        with open(self.reads, "w") as f:
+            f.write("x\n")
+        wd.run_once(self.t.cfg(), {}, NOW)                                       # due; state remembers since when
+        due_since = self.item()["since_utc"]
+        with open(self.erratum, "w") as f:
+            f.write("e")
+        dg, md1 = wd.run_once(self.t.cfg(), {}, NOW + 600)
+        self.assertIn("- discharged r0-erratum", md1)
+        self.assertIn("1 new, listed below", md1)
+        dg, md2 = wd.run_once(self.t.cfg(), {}, NOW + 1200)
+        self.assertNotIn("- discharged r0-erratum", md2)
+        self.assertIn("Obligations: 0 pending, 1 discharged of 1 declared", md2)
+        self.assertEqual((dg["obligations"]["counts"]["discharged"], dg["obligations"]["items"][0]["newly_discharged"]), (1, False))
+        os.unlink(self.erratum)                                                 # the product vanished: due again, and it says since when
+        dg, md3 = wd.run_once(self.t.cfg(), {}, NOW + 1800)
+        self.assertEqual(dg["obligations"]["items"][0]["status"], "due")
+        with open(self.erratum, "w") as f:
+            f.write("e")
+        self.assertTrue(self.item()["newly_discharged"])                        # shown again after reopening
+        self.assertTrue(due_since)
+
+    def test_since_is_remembered_across_passes(self):
+        self.declare([self.erratum_entry()])
+        with open(self.reads, "w") as f:
+            f.write("x\n")
+        wd.run_once(self.t.cfg(), {}, NOW)
+        dg, md = wd.run_once(self.t.cfg(), {}, NOW + 7200)
+        self.assertEqual(dg["obligations"]["items"][0]["since_utc"], wd.iso(NOW))
+
+    def test_zero_byte_artefact_does_not_discharge_unless_exists_is_declared(self):
+        self.declare([self.erratum_entry(), self.erratum_entry(id="e2", artifact={"path": "_data/ERRATUM.md", "predicate": "exists"})])
+        open(self.erratum, "w").close()
+        st = {i["id"]: i["status"] for i in self.obl()["items"]}
+        self.assertEqual(st, {"r0-erratum": "pending", "e2": "discharged"})
+
+    def test_no_trigger_stays_pending_forever(self):
+        e = self.erratum_entry()
+        del e["trigger"]
+        self.declare([e])
+        it = self.item()
+        self.assertEqual((it["status"], it["escalation"]), ("pending", "none"))
+        self.assertIn("no trigger declared, never becomes due", wd.render_md(self.t.digest(), self.t.cfg()))
+
+    def test_predicates_globs_any_all_matches_and_time(self):
+        os.makedirs(os.path.join(self.t.root, "_data", "arm_a"))
+        os.makedirs(os.path.join(self.t.root, "_data", "arm_b"))
+        with open(os.path.join(self.t.root, "_data", "arm_b", "dev_readout.json"), "w") as f:
+            f.write("{}")
+        with open(self.reads, "w") as f:
+            f.write("a\nSTATUS: sealed\n")
+        trig = [
+            {"any": [{"path": "_data/arm_*/dev_readout.json"}, {"path": "_data/nothing"}]},                # glob, any
+            {"all": [{"path": "_data/arm_*/dev_readout.json"}, {"path": "_data/nothing"}]},                # all fails
+            {"path": "_data/TEST-READS.log", "predicate": "matches", "pattern": "^STATUS: sealed$"},
+            {"path": "_data/TEST-READS.log", "predicate": "min_lines", "n": 3},
+            {"after_utc": wd.iso(NOW - 1)}, {"after_utc": wd.iso(NOW + 1000)},
+            {"path": "_data/arm_a", "predicate": "nonempty"}, {"path": "_data/arm_a", "predicate": "exists"},
+        ]
+        self.declare([self.erratum_entry(id="t%d" % i, trigger=tg) for i, tg in enumerate(trig)])
+        got = [i["status"] for i in self.obl()["items"]]
+        self.assertEqual(got, ["due", "pending", "due", "pending", "due", "pending", "pending", "due"])
+
+    def test_absolute_paths_are_allowed(self):
+        self.declare([self.erratum_entry(artifact={"path": self.erratum, "predicate": "exists"})])
+        open(self.erratum, "w").close()
+        self.assertEqual(self.item()["status"], "discharged")
+
+    # --- malformed input degrades; nothing breaks the digest
+    def test_malformed_files_and_entries_degrade_without_breaking_the_digest(self):
+        t = self.t
+        t.run("a_failed", heartbeat=hb_line(-1, "x"), marker="rc=1")
+        for raw in ("{not json", json.dumps({"obligations": []}), json.dumps({"schema": 2, "obligations": []}),
+                    json.dumps({"schema": 1, "obligations": "x"}), json.dumps([1, 2])):
+            self.declare(None, raw=raw)
+            dg = t.digest()
+            self.assertEqual(dg["obligations"]["file_errors"], 1, raw)
+            self.assertEqual(dg["obligations"]["escalation"], "read")
+            md = wd.render_md(dg, t.cfg())
+            self.assertIn("FILE UNREADABLE", md)
+            self.assertIn("nothing in it is being tracked", md)
+            self.assertIn("| a_failed | failed", md)                              # the rest of the digest is intact
+            self.assertEqual(dg["exit_code"], 40)
+        bad = [{"id": "ok1", "artifact": {"path": "x"}}, "not an object", {"id": "no-artifact"},
+               {"id": "bad pred", "artifact": {"path": "x"}}, {"id": "p2", "artifact": {"path": "x", "predicate": "wat"}},
+               {"id": "p3", "artifact": {"path": "x"}, "trigger": {"path": "y", "predicate": "min_lines"}},
+               {"id": "p4", "artifact": {"path": "x"}, "trigger": {"path": "y", "predicate": "matches", "pattern": "("}},
+               {"id": "p5", "artifact": {"path": "x"}, "trigger": {"after_utc": "tomorrow"}}, {"id": "p6", "artifact": {"path": "x"}, "trigger": {"any": []}},
+               {"id": "p7", "artifact": {"path": "x"}, "escalation_when_due": "page"}, {"id": "ok1", "artifact": {"path": "x"}},
+               {"id": "p8", "artifact": {"path": "x"}, "trigger": {"path": "a", "after_utc": "2026-01-01T00:00:00Z"}}]
+        self.declare(bad)
+        dg = t.digest()
+        o = dg["obligations"]
+        self.assertEqual((o["counts"]["pending"], o["counts"]["invalid"], o["file_errors"]), (1, 11, 0))
+        self.assertTrue(all(i["reason"] for i in o["items"] if i["status"] == "invalid"))
+        md = wd.render_md(dg, t.cfg())
+        self.assertIn("INVALID obligation", md)
+        self.assertIn("11 INVALID", md)
+        self.assertEqual(o["escalation"], "read")
+
+    def test_missing_file_is_stated_not_silent(self):
+        md = wd.render_md(self.t.digest(), self.t.cfg())
+        self.assertIn("Obligations: NONE DECLARED", md)
+        self.assertIn("not the same as nothing owed", md)
+
+    def test_obligations_option_names_files_and_ids_must_be_unique_across_them(self):
+        other = os.path.join(self.t.tmp.name, "elsewhere")
+        os.makedirs(other)
+        with open(os.path.join(other, "o.json"), "w") as f:
+            json.dump({"schema": 1, "obligations": [{"id": "x", "artifact": {"path": "out.md"}}]}, f)
+        open(os.path.join(other, "out.md"), "w").write("hi")
+        o = self.t.digest(obligations=[os.path.join(other, "o.json")])["obligations"]
+        self.assertEqual([i["status"] for i in o["items"]], ["discharged"])        # relative to the file's own directory
+
+    # --- ranking and survival
+    def big_tree(self, n=120):
+        for i in range(n):
+            self.t.run("f%03d" % i, heartbeat=hb_line(-1, "x"), marker="rc=1", log="RuntimeError: distinct%d problem %s\n" % (i, "q" * 40))
+        for i in range(30):
+            self.t.run("w%02d" % i, heartbeat=hb_line(-1, "x"), log="UserWarning: warn %s %d\n" % ("abcdefghijklmnopqrstuvwxyz"[i % 26] * 20, i))
+
+    def test_due_survives_truncation_at_the_default_cap_and_far_below_it(self):
+        self.big_tree()
+        self.declare([self.erratum_entry(), self.erratum_entry(id="later", title="Later thing", trigger={"path": "_data/never"})])
+        with open(self.reads, "w") as f:
+            f.write("x\n")
+        dg = self.t.digest(max_md_bytes=10 ** 7)
+        full = wd.render_md(dg, self.t.cfg(max_md_bytes=10 ** 7))
+        self.assertGreater(len(full.encode()), 16000)                            # the default cap really does truncate this tree
+        cfg = self.t.cfg()
+        self.assertEqual(cfg.max_md_bytes, 16000)
+        for cap in (cfg.max_md_bytes, 8000, 3000, 1500):
+            md = wd.render_md(dg, self.t.cfg(max_md_bytes=cap))
+            self.assertLessEqual(len(md.encode()), cap)
+            self.assertIn("DUE r0-erratum", md, cap)
+            self.assertIn("Obligations: 1 DUE, 1 pending", md, cap)
+        md = wd.render_md(dg, cfg)
+        self.assertIn("TRUNCATED", md)
+        self.assertLess(md.index("DUE r0-erratum"), md.index("| f000 "))            # listed before the status rows it competes with
+
+    def test_pending_ranks_with_the_host_block_above_warnings_and_due_above_both(self):
+        self.big_tree(10)
+        self.declare([self.erratum_entry(), self.erratum_entry(id="later", title="Later", trigger={"path": "_data/never"})])
+        with open(self.reads, "w") as f:
+            f.write("x\n")
+        cfg = self.t.cfg()
+        blocks = wd.build_blocks(self.t.digest(), cfg)
+        prio = {b[2]: b[0] for b in blocks}
+        self.assertEqual((prio["obligations due"], prio["obligations pending"]), (0, 3))
+        self.assertEqual(prio["warning signatures"], 5)
+        self.assertLessEqual(prio["obligations pending"], prio.get("host utilisation", 3))
+
+    def test_due_and_invalid_are_flags_for_retention(self):
+        self.declare([self.erratum_entry(), {"id": "bad", "artifact": 5}])
+        with open(self.reads, "w") as f:
+            f.write("x\n")
+        kinds = set(wd.pass_flags(self.t.digest()).values())
+        self.assertTrue({"obligation_due", "obligation_invalid"} <= kinds, kinds)
+        self.declare(None, raw="{")
+        self.assertIn("obligation_file", set(wd.pass_flags(self.t.digest()).values()))
+
+
 class SignatureClusters(unittest.TestCase):
     LINE = "[W1030 04:01:%02d.084 NPUCachingAllocator.cpp:204] Warning: The current CANN and HDK(driver) versions require processing for 32 padding size\n"
 
