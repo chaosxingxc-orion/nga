@@ -10,5 +10,6 @@
     "tools/audit_jeval_inference_hardened.py": "6d61edd54b1c8023c617214ea33593ad5ac160365a11560f9751dbca8a6e21ee",
     "tools/test_jeval_inference_hardened.py": "6caf1fe1a18737ac6ac28db4d97413c7660f5ba0c04715f30630ca10c6968f17"
   },
-  "scope": "auditor F2/F5 only, no queue/waiter/model certification"
+  "scope": "auditor F2/F5 only, no queue/waiter/model certification",
+  "durable_snapshot": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/auditor_f2_f5_20261030"
 }

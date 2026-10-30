@@ -1,0 +1,23 @@
+{
+  "model_requested": "gpt-6-astra",
+  "runner_terminal": {
+    "rc": 0,
+    "utc": 1793392568.7272162,
+    "review_exists": true
+  },
+  "review_sha256": "56d88055b0ec147a095c089c7ad8fb6733f31630fb3e8205deec7e6a86189d78",
+  "manifest": {
+    "tools/jeval_hardened_waiter.py": "403c9b43663c148d9bfdb0693f63937215f0a34953345f6e43814d71b4b2f04e",
+    "tools/launch_jeval_hardened_waiter.py": "59a4ad34c68a00824fec64759373ddc3ad21b75c8c7310fea943a28a61c86754",
+    "tools/audit_jeval_inference_hardened.py": "d7cb13db51c692d39a01c81f83fd0db07c833873a1845170d85b25b89490933f",
+    "experiments/ASTRA-JEVAL-WAITER-REREVIEW-2026-10-30.md": "7c0a7697673a60c44e10a66e554f6f3d68379100db5a1f6f361f39a9fe35934a",
+    "experiments/ASTRA-JEVAL-QUEUE-REREVIEW-2026-10-30.md": "14bdb75111725b7d8027dfecd73c04032aaa8d6327b6f4ad9f8d2db1f5900da2",
+    "production/plan.json": "0cb3da20591a8a6c860339b5b4c156f2be360bff34237280aafc0bd9d54adb51",
+    "production/CONTAINER_SPEC.json": "945853766bdf2fbdbea4f719a766eaa94a05a8fcdf72d55b01587c8a9a3a01be",
+    "production/run.sh": "1f3d20022418e7064529e7779cf1babc56306c50adef60e862dc48f1546052ff",
+    "production/launch.py": "59a4ad34c68a00824fec64759373ddc3ad21b75c8c7310fea943a28a61c86754",
+    "production/FIXTURE_COMPLETE.json": "e9f7008f287a664bda06f64849dfeb642247d44a6562599258b2b34f8ccde91f"
+  },
+  "durable_snapshot": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/waiter_v6_20261030",
+  "scope": "v6 waiter 与 auditor 权限绑定限定放行"
+}

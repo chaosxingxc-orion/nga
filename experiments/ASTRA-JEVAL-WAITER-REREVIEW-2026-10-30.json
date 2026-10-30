@@ -19,5 +19,6 @@
   },
   "verdict": "DO_NOT_DEPLOY_V4",
   "findings": 6,
-  "scope": "Waiter/auditor/v4 launcher code; no score certification, queue F1/F3 out of scope"
+  "scope": "Waiter/auditor/v4 launcher code; no score certification, queue F1/F3 out of scope",
+  "durable_snapshot": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/waiter_v4_20261030"
 }
