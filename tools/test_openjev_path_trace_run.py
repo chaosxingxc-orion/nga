@@ -2,6 +2,7 @@
 import copy
 import importlib.util
 import json
+import math
 from pathlib import Path
 import shutil
 import tempfile
@@ -30,22 +31,25 @@ def frozen_input():
 
 
 def contract():
-    return dict(layer_count=24, expected_events=['layer:input', 'layer:output'], observed_modules=['layer'])
+    return dict(layer_count=24, expected_events=['layer:input', 'layer:output'], observed_modules=['layer'],
+                order=['layer:input', 'layer:output'], events={x:dict(dtype='torch.bfloat16',row_shape=[186,2],
+                layout={'kind':'batch_first','source_batch_axis':0}) for x in ['layer:input','layer:output']})
 
 
 def fake_trace(mode, changed=False):
     c = contract(); order = c['expected_events']
     ranges = [[0, 15, 186]] if mode == 'original' else [[0, 8, 186], [8, 15, 186]]
     return dict(candidates=15, width=186, expected_events=order[:], observed_modules=['layer'], order=order[:],
-        chunks=[dict(range=r, order=order[:]) for r in ranges], events={e: dict(dtype='torch.bfloat16', row_shape=[186, 2],
+        chunks=[dict(range=r, order=order[:]) for r in ranges], events={e: dict(**c['events'][e],
         rows={str(i): v.stamp([e, i, bool(changed and i == 8 and e == 'layer:output')]) for i in range(15)}) for e in order})
 
 
 def prediction(inp, changed=False):
     probs = {k: 1 / 15 for k in inp['candidate_order']}
     if changed: probs['0'] += .001; probs['1'] -= .001
-    return dict(answer=dict(type='choice', choice='0', probabilities=probs.copy(), confidence=probs['0']),
-                native_probabilities=probs, logits=[.001 if changed and i == 0 else 0. for i in range(15)],
+    total=sum(probs.values());wire={k:x/total for k,x in probs.items()}
+    return dict(answer=dict(type='choice', choice='0', probabilities=wire, confidence=(max(wire.values())/sum(wire.values())-1/15)/(1-1/15)),
+                native_probabilities=probs, logits=[math.log(x) for x in probs.values()],
                 logits_temperature='unscaled', consumed_token_sha256=inp['token_sha256'])
 
 
@@ -62,6 +66,7 @@ class Fixture(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
         self.out = Path(self.tmp.name); self.folder = self.out / 'items'; self.folder.mkdir()
         self.plan = dict(out=str(self.out), schema='e38-path-trace-v1', input=frozen_input(), trace_contract=contract(),
+            execution_revision='astra-v3-strict-attempts',numeric_contract=run.numeric_contract(1.),
             source_config_sha256='source', schedule=v.schedule(), selection={'index':4200}, chunk_rows=8,
             candidate_batch_admission=False)
         self.ph = 'plan'
@@ -69,6 +74,9 @@ class Fixture(unittest.TestCase):
         val = payload(self.plan, self.ph, t)
         if mutate: mutate(val)
         p = self.folder / (v.name(t) + '.json')
+        attempts=self.out/'attempts';attempts.mkdir(exist_ok=True)
+        intent=attempts/p.name;q.atomic(intent,dict(**v.identity(self.plan,self.ph,t),phase='forward_intent',utc='fixture'))
+        val['attempt_sha256']=q.sha(intent)
         q.atomic(p, dict(payload=val, sha256=v.stamp(val))); return p
     def full(self):
         for task in v.schedule(): self.save(task)
@@ -98,16 +106,18 @@ class ReceiptControls(Fixture):
         self.assertFalse(result['controls']['cross_trace_localization_repeats'])
 
     def test_signed_zero_prediction_is_not_exact(self):
-        got=self.full(); got['4200_original_untraced_1.json']['prediction']['logits'][1] = -0.
+        got=self.full(); got['4200_original_untraced_0.json']['prediction']['logits'][1] = 0.; got['4200_original_untraced_1.json']['prediction']['logits'][1] = -0.
         self.assertFalse(v.reconstruct(got)['trace_valid'])
 
     def test_schedule_missing_extra_relabelled_and_nonprefix_rejected(self):
         self.full(); (self.folder/'4200_original_untraced_0.json').unlink()
         with self.assertRaisesRegex(ValueError,'prefix'): v.validate_items(self.plan,self.ph,True)
         for p in self.folder.iterdir():p.unlink()
+        for p in (self.out/'attempts').iterdir():p.unlink()
         self.save(v.schedule()[1])
         with self.assertRaisesRegex(ValueError,'prefix'):v.validate_items(self.plan,self.ph,False)
         for p in self.folder.iterdir():p.unlink()
+        for p in (self.out/'attempts').iterdir():p.unlink()
         path=self.save(v.schedule()[0]); path.rename(self.folder/'unknown.json')
         with self.assertRaisesRegex(ValueError,'Unknown'):v.validate_items(self.plan,self.ph,False)
 
@@ -139,6 +149,7 @@ class ReceiptControls(Fixture):
         tmp.rename(self.folder/'4200_chunk8_untraced_1.json.tmp')
         with self.assertRaisesRegex(ValueError,'next scheduled'):v.validate_items(self.plan,self.ph)
         for p in self.folder.iterdir():p.unlink()
+        for p in (self.out/'attempts').iterdir():p.unlink()
         target=self.out/'foreign';target.write_text('{}');(self.folder/'4200_original_untraced_0.json').symlink_to(target)
         with self.assertRaisesRegex(ValueError,'symlink'):v.validate_items(self.plan,self.ph)
 
@@ -199,6 +210,12 @@ except ImportError:
 @unittest.skipIf(torch is None, 'CPU torch required for integrated native execution')
 class NativeIntegration(unittest.TestCase):
     def test_native_guard_trace_chunks_nesting_and_cleanup(self):
+        self.check_native_contract(torch.float32)
+
+    def test_native_bf16_guard_trace_chunks_contract(self):
+        self.check_native_contract(torch.bfloat16)
+
+    def check_native_contract(self, dtype):
         try:
             from transformers.models.qwen3_5.configuration_qwen3_5 import Qwen3_5TextConfig
             from transformers.models.qwen3_5.modeling_qwen3_5 import Qwen3_5TextModel
@@ -211,25 +228,31 @@ class NativeIntegration(unittest.TestCase):
             layer_types=['linear_attention','linear_attention','linear_attention','full_attention']*6,
             rope_parameters={'rope_type':'default','rope_theta':10000.,'partial_rotary_factor':1.,'mrope_section':[1,1,2]},
             use_cache=False)
-        config._attn_implementation='sdpa'; model=Qwen3_5TextModel(config).eval()
+        config._attn_implementation='sdpa'; model=Qwen3_5TextModel(config).to(dtype=dtype).eval()
         ids=torch.arange(15*186).reshape(15,186)%32; mask=torch.ones_like(ids);mask[:,170:]=0
         expected=dict(shape=[15,186],ordered_id_row_hashes=[v.stamp(r) for r in ids.tolist()],
                       ordered_mask_row_hashes=[v.stamp(r) for r in mask.tolist()])
+        layers=[dict(name='base_model.model.layers.'+str(i),module_type='Qwen3_5DecoderLayer',
+            attention_type='Qwen3_5Attention' if i%4==3 else 'Qwen3_5GatedDeltaNet') for i in range(24)]
+        frozen=run.trace_contract(layers,config.to_dict(),dtype=str(dtype))
+        frozen=json.loads(json.dumps(frozen).replace('base_model.model.',''))
         tracing=module('openjev_path_trace.py');chunks=module('openjev_candidate_chunks.py')
         baseline={};observed={};split={};full={}
         args=dict(input_ids=ids,attention_mask=mask,use_cache=False,return_dict=True)
         with torch.inference_mode():
             with run.input_guard(model,expected,baseline): ref=model(**args).last_hidden_state
             with run.input_guard(model,expected,observed):
-                with tracing.trace_path(model,torch,full): traced=model(**args).last_hidden_state
+                with tracing.trace_path(model,torch,full,contract=frozen): traced=model(**args).last_hidden_state
             self.assertTrue(torch.equal(ref,traced));self.assertEqual(baseline,observed)
             observed={}
             with run.input_guard(model,expected,observed):
-                with tracing.trace_path(model,torch,split) as observer:
+                with tracing.trace_path(model,torch,split,contract=frozen) as observer:
                     with chunks.candidate_chunks(model,8,observer): model(**args)
             self.assertEqual(observed,expected)
             self.assertEqual([x['range'] for x in split['chunks']],[[0,8,186],[8,15,186]])
             self.assertEqual(full['order'],split['order'])
+            v.check_trace(full,{'trace_contract':frozen},'original')
+            v.check_trace(split,{'trace_contract':frozen},'chunk8')
             wrong=copy.deepcopy(expected);wrong['ordered_mask_row_hashes'][0]='wrong'
             with self.assertRaisesRegex(ValueError,'token/mask'):
                 with run.input_guard(model,wrong,{}):model(**args)

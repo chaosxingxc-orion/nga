@@ -29,7 +29,8 @@ NAMES = ['openjev_path_trace_run.py', 'openjev_path_trace.py',
          'verify_openjev_path_trace.py', 'prepare_openjev_path_trace.py',
          'test_openjev_path_trace_run.py', 'test_prepare_openjev_path_trace.py',
          'openjev_candidate_chunks.py', 'openjev_batch_diagnostic.py',
-         'prepare_openjev_batch_diagnostic.py', 'jeval_reference_queue.py']
+         'prepare_openjev_batch_diagnostic.py', 'jeval_reference_queue.py', 'e38_evidence.py',
+         'test_e38_evidence.py', 'test_e38_astra_regressions.py', 'fixtures/e38_e37_native_predictions.json']
 
 
 def module(path, name):
@@ -40,7 +41,8 @@ def module(path, name):
 
 
 def helper(folder):
-    return module(folder / 'jeval_reference_queue.py', 'e38_resource_helpers')
+    q = module(folder / 'jeval_reference_queue.py', 'e38_resource_helpers')
+    return module(folder / 'e38_evidence.py', 'e38_control_evidence').Evidence(q)
 
 
 def require(value, message):
@@ -122,7 +124,7 @@ def spec_for(source_spec, chip, out, name):
 def wrapper(out):
     command = ['python3', '-P', str(out / 'openjev_path_trace_run.py'), '--plan', str(out / 'plan.json')]
     return ('#!/usr/bin/env bash\nset -uo pipefail\ncd /tmp\n' + shlex.join(command) +
-            ' >> ' + shlex.quote(str(out / 'run.log')) + ' 2>&1\nrc=$?\n' +
+            ' >> ' + shlex.quote(str(out / 'run.log')) + ' 2>&1\nrc=$?\nset -o noclobber\n' +
             'printf \'rc=%s utc=%s\\n\' "$rc" "$(date -u +%FT%TZ)" > ' +
             shlex.quote(str(out / 'EXIT')) + '\nexit "$rc"\n')
 
@@ -167,13 +169,16 @@ def _prepare(source, prereg, config, e37_path, out, name, chip, request_path, he
     prior_out = Path(q.load(e37_path)['out'])
     prior_item = q.load(prior_out / 'items' / '4200_original_0.json')['payload']
     prior_layers = q.load(prior_out / 'items' / '9027_original_0_profiled.json')['payload']['trace']['layers']
-    trace_contract = diagnostic.trace_contract(prior_layers)
+    native_config = q.load(Path(c['base']) / 'config.json')
+    trace_config = native_config.get('text_config', native_config)
+    trace_contract = diagnostic.trace_contract(prior_layers, trace_config)
     require(prior_item['request_sha256'] == frozen_input['request_sha256']
             and prior_item['prediction']['consumed_token_sha256'] == frozen_input['token_sha256'],
             'E37 request or token identity changed')
     out.mkdir()
     q.atomic(out / 'PREPARATION_IDENTITY.json', dict(request=str(request_path), request_sha256=q.sha(request_path)))
     for name_ in NAMES:
+        (out / name_).parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source / name_, out / name_)
     shutil.copy2(prereg, out / 'PREREGISTRATION.md')
     (out / 'run.sh').write_text(wrapper(out))
@@ -182,7 +187,8 @@ def _prepare(source, prereg, config, e37_path, out, name, chip, request_path, he
             'python3', '-I', str(out / 'prepare_openjev_path_trace.py'), flag, str(out / 'plan.json')]) + '\n')
     spec = spec_for(q.load(config.parent / 'NPU_SPEC.json'), chip, out, name)
     q.atomic(out / 'NPU_SPEC.json', spec)
-    plan = dict(schema='e38-path-trace-v1', image=q.IMAGE, chunk_rows=8, out=str(out), source_config=str(config),
+    plan = dict(schema='e38-path-trace-v1', execution_revision='astra-v3-strict-attempts',
+                numeric_contract=diagnostic.numeric_contract(c['temperature']), image=q.IMAGE, chunk_rows=8, out=str(out), source_config=str(config),
                 source_config_sha256=q.sha(config), source_physical_chip=c['physical_chip'],
                 physical_chip=chip, logical_device='npu:0', container=name, selection=selection, input=frozen_input, schedule=diagnostic.schedule(), trace_contract=trace_contract,
                 preregistration=str(out / 'PREREGISTRATION.md'), wrapper=str(out / 'run.sh'),
@@ -191,7 +197,7 @@ def _prepare(source, prereg, config, e37_path, out, name, chip, request_path, he
                 e37_plan=str(e37_path), candidate_batch_admission=False,
                 eligibility_sha256=q.sha(c['eligibility_report']), preparation_request=str(request_path),
                 preparation_request_sha256=q.sha(request_path), files={**old_files, **c['files']})
-    for p in historical + [p for p in out.iterdir() if p.is_file()]:
+    for p in historical + [p for p in out.rglob('*') if p.is_file()]:
         plan['files'][str(p)] = q.sha(p)
     plan['files'].update(q.load(request_path)['files'])
     plan['files'][str(request_path)] = q.sha(request_path)
@@ -236,7 +242,7 @@ def control_files(q, plan):
 
 def cpu_wrapper(out, command):
     return ('#!/usr/bin/env bash\nset -uo pipefail\ncd /tmp\n' + shlex.join(command) +
-            ' >> ' + shlex.quote(str(out / 'run.log')) + ' 2>&1\nrc=$?\n' +
+            ' >> ' + shlex.quote(str(out / 'run.log')) + ' 2>&1\nrc=$?\nset -o noclobber\n' +
             'printf \'rc=%s utc=%s\\n\' "$rc" "$(date -u +%FT%TZ)" > ' +
             shlex.quote(str(out / 'EXIT')) + '\nexit "$rc"\n')
 
@@ -264,7 +270,9 @@ def make_request(source, prereg, config, e37_path, out, name, chip, request_out,
     paths = [source / name_ for name_ in NAMES] + [prereg] + external
     require(all(p.stat().st_size <= 8 * 2**20 for p in paths), 'Request control file too large')
     request_out.mkdir()
-    for name_ in NAMES: shutil.copy2(source / name_, request_out / name_)
+    for name_ in NAMES:
+        (request_out / name_).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source / name_, request_out / name_)
     shutil.copy2(prereg, request_out / 'PREREGISTRATION.md')
     request_path = request_out / 'request.json'
     command = ['python3', '-P', str(request_out / 'prepare_openjev_path_trace.py'), '--cpu-task', str(request_path)]
@@ -285,7 +293,7 @@ def make_request(source, prereg, config, e37_path, out, name, chip, request_out,
         resource_check_utc=q.utc() if task == 'prepare' else None,
         source_config_sha256=q.sha(config) if task == 'prepare' else None,
         e37_plan_sha256=q.sha(e37_path) if task == 'prepare' else None,
-        files={str(p): q.sha(p) for p in external + [x for x in request_out.iterdir() if x.is_file()]})
+        files={str(p): q.sha(p) for p in external + [x for x in request_out.rglob('*') if x.is_file()]})
     q.atomic(request_path, req)
     for p in request_out.glob('*.py'): compile(p.read_bytes(), str(p), 'exec')
     for p in request_out.glob('*.sh'): subprocess.run(['bash', '-n', str(p)], check=True)
@@ -373,7 +381,7 @@ def cpu_task(path):
         stop = threading.Event(); error = None; rc = 1; result = None
         def heartbeat():
             while not stop.wait(10):
-                value = dict(utc=q.utc(), **state); q.atomic(out / 'STATUS.json', value)
+                value = dict(utc=q.utc(), **state); q.delegate.atomic(out / 'STATUS.json', value)
                 (out / 'digest.md').write_text(json.dumps(value) + '\n')
                 with (out / 'heartbeat.log').open('a') as stream: stream.write(json.dumps(value) + '\n')
         thread = threading.Thread(target=heartbeat, daemon=True); thread.start()
@@ -399,7 +407,10 @@ def cpu_task(path):
                         q.frozen(prior['files'])
                     else:
                         history = out / 'partial_preparations'; history.mkdir(exist_ok=True)
+                        q.verify(metadata_only=True)
                         target.rename(history / str(time.time_ns()))
+                        for key in list(q.snapshots):
+                            if Path(key).is_relative_to(target): q.snapshots.pop(key)
                 if not target.exists():
                     target_plan = _prepare(Path(r['source']), Path(r['preregistration']), Path(r['config']),
                         Path(r['e37_plan']), target, r['target_container'], r['physical_chip'], path, helper_override=q)
@@ -427,13 +438,15 @@ def cpu_task(path):
 
 def preparation_binding(q, plan_path, plan):
     """Short host check of successful full-hash CPU evidence and small controls."""
+    if not hasattr(q, "snapshot"):
+        q = module(Path(__file__).with_name("e38_evidence.py"), "e38_binding_evidence").Evidence(q)
     request = Path(plan['preparation_request'])
     require(q.sha(request) == plan['preparation_request_sha256'], 'Preparation request changed')
     r, d = cpu_binding(q, request, 'exited'); out = request.parent
     require(r['task'] == 'prepare' and r['target_plan'] == str(plan_path)
             and r['config'] == plan['source_config'] and r['e37_plan'] == plan['e37_plan']
             and r['physical_chip'] == plan['physical_chip'] and r['target_container'] == plan['container'], 'Preparation target differs')
-    require(d['State']['ExitCode'] == 0 and re.fullmatch(r'rc=0 utc=\S+\n?', (out / 'EXIT').read_text()), 'CPU preparation not successful')
+    require(d['State']['ExitCode'] == 0 and re.fullmatch(r'rc=0 utc=\S+\n?', q.snapshot(out / 'EXIT').data.decode()), 'CPU preparation not successful')
     terminal = q.load(out / 'COMPLETE.json'); report = q.load(out / 'report.json')
     require(terminal['rc'] == 0 and terminal['stage'] == 'completed' and terminal['progress'] == terminal['total'] == 1
             and terminal['request_sha256'] == q.sha(request)
@@ -449,13 +462,19 @@ def preparation_binding(q, plan_path, plan):
     require(q.sha(plan['source_config']) == r['source_config_sha256']
             and q.sha(plan['e37_plan']) == r['e37_plan_sha256'], 'Source manifests changed')
     small_frozen(q, control_files(q, plan))
+    q.verify(metadata_only=True)
 
 
 def validate_items(q, plan, ph):
     """Check every retained receipt and strict prefix before any restart."""
     out = Path(plan['out'])
     verifier = module(out / 'verify_openjev_path_trace.py', 'e38_resume_verifier')
-    return verifier.validate_items(plan, ph, complete=False)
+    try:
+        return verifier.validate_items(plan, ph, complete=False, evidence=q)
+    except ValueError as exc:
+        evidence = module(out / 'e38_evidence.py', 'e38_failed_attempt')
+        evidence.fail_generation(out, str(exc))
+        raise
 
 
 def review_interruption(q, out, ph, d):
@@ -467,12 +486,14 @@ def review_interruption(q, out, ph, d):
     archive = out / 'resume_history' / token; evidence = out / 'EXIT'
     if not evidence.exists(): evidence = archive / 'EXIT'
     if evidence.exists():
-        match = re.fullmatch(r'rc=([0-9]+) utc=\S+\n?', evidence.read_text())
+        match = re.fullmatch(r'rc=([0-9]+) utc=\S+\n?', q.snapshot(evidence).data.decode())
         require(match and int(match[1]) == d['State']['ExitCode'] and review.get('exit_sha256') == q.sha(evidence), 'Reviewed EXIT differs')
         archive.mkdir(parents=True, exist_ok=True)
         if evidence == out / 'EXIT':
             require(not (archive / 'EXIT').exists(), 'Ambiguous interruption archive')
+            q.verify(metadata_only=True)
             evidence.replace(archive / 'EXIT')
+            q.snapshots.pop(os.path.abspath(evidence), None)
     else:
         require(review.get('exit_sha256') is None, 'Reviewed EXIT missing')
     # The driver uses a fixed .json.tmp path. Preserve interrupted publications
@@ -492,14 +513,14 @@ def launch(path, resume=False):
         fcntl.flock(lock, fcntl.LOCK_EX)
         p = q.load(path); ph = q.sha(path)
         require(p['out'] == str(out) and out.parent == ROOT and p['allocation'] == str(ALLOCATION), 'Run location differs')
-        require(p['schema'] == 'e38-path-trace-v1' and p['image'] == q.IMAGE and type(p['physical_chip']) is int and p['physical_chip'] in ALLOWED_CHIPS and p['candidate_batch_admission'] is False, 'Diagnostic protocol differs')
+        require(p['schema'] == 'e38-path-trace-v1' and p.get('execution_revision') == 'astra-v3-strict-attempts' and p['image'] == q.IMAGE and type(p['physical_chip']) is int and p['physical_chip'] in ALLOWED_CHIPS and p['candidate_batch_admission'] is False, 'Diagnostic protocol differs')
         require(q.load(out / 'PARENT_REVIEW.json')['approved_plan_sha256'] == ph, 'Exact plan review required')
         independent = q.load(out / 'INDEPENDENT_REVIEW.json')
         require(independent['approved_plan_sha256'] == ph and independent['approved'] is True
                 and q.sha(independent['review_path']) == independent['review_sha256'],
                 'Independent exact-plan review required')
         preparation_binding(q, path, p)
-        require(not any((out / n).exists() for n in ['COMPLETE.json', 'FAILURE.json', 'report.json']), 'Terminal/failure/report preserved; new review/generation required')
+        module(out / 'e38_evidence.py', 'e38_generation_gate').publication_gate(out)
         validate_items(q, p, ph)
         spec = q.load(p['container_spec'])
         source_spec = q.load(Path(p['source_config']).parent / 'NPU_SPEC.json')

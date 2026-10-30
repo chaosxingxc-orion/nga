@@ -57,6 +57,7 @@ class ActualTensors(unittest.TestCase):
                 super().__init__()
                 for name in ['in_proj_qkv','in_proj_z','in_proj_b','in_proj_a','conv1d','out_proj']:
                     setattr(self, name, Projection())
+                self.num_v_heads=2;self.head_v_dim=4
                 self.norm = Norm(); self.chunk_gated_delta_rule = torch_chunk_gated_delta_rule
             def forward(self, x):
                 b,l,d = x.shape

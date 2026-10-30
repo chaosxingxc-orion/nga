@@ -61,8 +61,8 @@ def validate_trace(trace):
 
 
 class Recorder:
-    def __init__(self, torch, trace):
-        self.torch, self.trace = torch, trace
+    def __init__(self, torch, trace, contract=None):
+        self.torch, self.trace, self.contract = torch, trace, contract
         trace.update(candidates=15, width=186, events={}, order=[], expected_events=[], chunks=[])
         self.start, self.end, self.width = 0, 15, 186
         self.active = None
@@ -79,7 +79,12 @@ class Recorder:
         require(tensor.numel() * tensor.element_size() <= MAX_TENSOR_BYTES,
                 'Observation exceeds bounded tensor size: ' + name)
         batch = self.end - self.start
+        layout = dict(kind='batch_first', source_batch_axis=0)
         if folded:
+            layout = dict(kind='folded_batch_sequence_heads', sequence_length=self.width,
+                          heads=folded[0], head_dim=folded[1])
+            require(list(tensor.shape) == [batch * self.width * folded[0], folded[1]],
+                    'Folded source shape differs from native module: ' + name)
             require(tensor.ndim == 2 and tensor.shape[0] % (batch * self.width) == 0,
                     'Unexpected folded layout: ' + name)
             view = tensor.reshape(batch, self.width, -1, tensor.shape[-1])
@@ -90,13 +95,21 @@ class Recorder:
         # Row-at-a-time copies bound retained host memory and preserve BF16 and
         # signed-zero bits. Reading synchronizes but never mutates model storage.
         row_shape = list(view.shape[1:])
+        metadata = dict(dtype=str(view.dtype), row_shape=row_shape, layout=layout)
+        if self.contract is not None:
+            require(name in self.contract['events'] and metadata == self.contract['events'][name],
+                    'Observed tensor differs from frozen contract: ' + name)
         if self.active is None:
             self.active = {'range': [self.start, self.end, self.width], 'order': []}
             self.trace['chunks'].append(self.active)
+        if self.contract is not None:
+            pos = len(self.active['order'])
+            require(pos < len(self.contract['order']) and self.contract['order'][pos] == name,
+                    'Observed call order differs from frozen source: ' + name)
         self.active['order'].append(name)
         cell = self.trace['events'].get(name)
         if cell is None:
-            cell = self.trace['events'][name] = dict(dtype=str(view.dtype), row_shape=row_shape, rows={})
+            cell = self.trace['events'][name] = dict(**metadata, rows={})
             self.trace['order'].append(name)
         require(cell['dtype'] == str(view.dtype) and cell['row_shape'] == row_shape,
                 'Event layout changed across chunks: ' + name)
@@ -109,14 +122,14 @@ class Recorder:
 
 
 @contextmanager
-def trace_path(backbone, torch, trace):
+def trace_path(backbone, torch, trace, contract=None):
     """Trace fixed native module boundaries; yield candidate_chunks observer.
 
     Call inside evaluation/inference mode. Caller must validate the returned
     prediction against untraced execution, and freeze this helper with runtime.
     """
     require(not backbone.training, 'Training observation is not authorized')
-    recorder = Recorder(torch, trace)
+    recorder = Recorder(torch, trace, contract)
     handles, replaced = [], []
     layers = [(name, mod) for name, mod in backbone.named_modules()
               if type(mod).__name__ == 'Qwen3_5DecoderLayer']
@@ -164,7 +177,7 @@ def trace_path(backbone, torch, trace):
                 attn = layer.linear_attn
                 for suffix in ['in_proj_qkv', 'in_proj_z', 'in_proj_b', 'in_proj_a', 'conv1d', 'out_proj']:
                     hooks(lname + '.linear_attn.' + suffix, getattr(attn, suffix))
-                hooks(lname + '.linear_attn.norm', attn.norm, folded=True)
+                hooks(lname + '.linear_attn.norm', attn.norm, folded=(attn.num_v_heads, attn.head_v_dim))
                 wrap_core(lname + '.linear_attn.core', attn)
             elif layer.block_type == 'full_attention':
                 for suffix in ['q_proj', 'k_proj', 'v_proj', 'o_proj']:
@@ -172,8 +185,13 @@ def trace_path(backbone, torch, trace):
             else:
                 raise ValueError('Unsupported attention block: ' + str(layer.block_type))
         trace['observed_modules'] = observed
+        if contract is not None:
+            require(trace['expected_events'] == contract['expected_events']
+                    and observed == contract['observed_modules'], 'Hook registration differs from frozen source')
         yield recorder.chunk
         validate_trace(trace)
+        if contract is not None:
+            require(trace['order'] == contract['order'], 'Incomplete frozen trace execution')
     finally:
         for handle in handles:
             handle.remove()

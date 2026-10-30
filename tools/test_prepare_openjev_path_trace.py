@@ -82,13 +82,13 @@ class Guards(unittest.TestCase):
         self.s = p.spec_for(spec(self.out), 0, self.out, 'nga-e38-test')
         q.atomic(self.out / 'NPU_SPEC.json', self.s)
         (self.out / 'run.sh').write_text('wrapper')
-        for fn in ['openjev_path_trace_run.py','openjev_batch_diagnostic.py','verify_openjev_path_trace.py','openjev_path_trace.py']:
+        for fn in ['openjev_path_trace_run.py','openjev_batch_diagnostic.py','verify_openjev_path_trace.py','openjev_path_trace.py','e38_evidence.py']:
             shutil.copy2(Path(__file__).with_name(fn), self.out)
         self.plan = dict(out=str(self.out), image=q.IMAGE, physical_chip=0, logical_device='npu:0',
             allocation=str(self.allocation), candidate_batch_admission=False, files={},
             container='nga-e38-test', container_spec=str(self.out / 'NPU_SPEC.json'),
             source_config=str(self.config), wrapper=str(self.out / 'run.sh'),
-            schema='e38-path-trace-v1',source_config_sha256=q.sha(self.config),chunk_rows=8,
+            schema='e38-path-trace-v1',execution_revision='astra-v3-strict-attempts',numeric_contract=diag.numeric_contract(1.),source_config_sha256=q.sha(self.config),chunk_rows=8,
             selection={'index':4200},input=fixture.frozen_input(),trace_contract=fixture.contract(),schedule=v.schedule())
         self.path = self.out / 'plan.json'; q.atomic(self.path,self.plan)
         self.approve()
@@ -97,7 +97,7 @@ class Guards(unittest.TestCase):
         self.stack=[]
         for name,value in [('ROOT',self.root),('ALLOCATION',self.allocation)]:
             patcher=patch.object(p,name,value);patcher.start();self.addCleanup(patcher.stop)
-        for name,value in [('helper',lambda _:q),('host',lambda _:None),('docker_host',lambda _:None),('preparation_binding',lambda *a:None),('free_now',lambda *a,**k:None)]:
+        for name,value in [('helper',lambda _:v.Evidence(q)),('host',lambda _:None),('docker_host',lambda _:None),('preparation_binding',lambda *a:None),('free_now',lambda *a,**k:None)]:
             patcher=patch.object(p,name,value);patcher.start();self.addCleanup(patcher.stop)
         patcher=patch.object(q,'inspect',lambda _:self.d);patcher.start();self.addCleanup(patcher.stop)
         patcher=patch.object(q,'docker',self.docker);patcher.start();self.addCleanup(patcher.stop)
@@ -128,6 +128,9 @@ class Guards(unittest.TestCase):
     def item(self, name='4200_original_untraced_0.json'):
         folder=self.out/'items';folder.mkdir(exist_ok=True)
         value=fixture.payload(self.plan,q.sha(self.path),v.schedule()[0])
+        attempts=self.out/'attempts';attempts.mkdir(exist_ok=True)
+        intent=attempts/name;q.atomic(intent,dict(**v.identity(self.plan,q.sha(self.path),v.schedule()[0]),phase='forward_intent',utc='fixture'))
+        value['attempt_sha256']=q.sha(intent)
         q.atomic(folder/name,dict(payload=value,sha256=v.stamp(value)))
         return folder/name
 
@@ -245,6 +248,7 @@ class Guards(unittest.TestCase):
     def test_unknown_item_and_symlink_rejected(self):
         item=self.item('foreign.json')
         with self.assertRaisesRegex(ValueError,'Unknown E38 receipt|symlink'):self.start()
+        (self.out/'FAILED_GENERATION.json').unlink()  # independent symlink corruption scenario
         item.unlink();target=self.root/'other';target.write_text('{}');item.symlink_to(target)
         with self.assertRaisesRegex(ValueError,'Unknown E38 receipt|symlink'):self.start()
 
@@ -258,12 +262,16 @@ class Guards(unittest.TestCase):
         (self.out/'EXIT').write_text('rc=0 utc=2026-10-31T00:00:00Z\n')
         folder=self.out/'items';folder.mkdir()
         ph=q.sha(self.path)
+        attempts=self.out/'attempts';attempts.mkdir()
         for task in v.schedule():
             value=fixture.payload(self.plan,ph,task)
+            intent=attempts/(v.name(task)+'.json');q.atomic(intent,dict(**v.identity(self.plan,ph,task),phase='forward_intent',utc='fixture'))
+            value['attempt_sha256']=q.sha(intent)
             q.atomic(folder/(v.name(task)+'.json'),dict(payload=value,sha256=v.stamp(value)))
         items=v.validate_items(self.plan,ph,True)
         report=dict(plan_sha256=ph,selection=self.plan['selection'],input_sha256=v.stamp(self.plan['input']),
-            receipt_manifest={x.name:q.sha(x) for x in folder.iterdir()},**v.reconstruct(items))
+            receipt_manifest={x.name:q.sha(x) for x in folder.iterdir()},
+            attempt_manifest={x.name:q.sha(x) for x in attempts.iterdir()},**v.reconstruct(items))
         q.atomic(self.out/'SELECTION.json',self.plan['selection']);q.atomic(self.out/'report.json',report)
         q.atomic(self.out/'COMPLETE.json',dict(rc=0,stage='completed',progress=8,total=8,plan_sha256=ph,
             outputs={name:q.sha(self.out/name) for name in ['SELECTION.json','report.json']}, **diag.scientific_terminal(report)))
@@ -307,13 +315,17 @@ class CPUWorkflow(unittest.TestCase):
     def setUp(self):
         Guards.setUp(self)
         self.real=module('e38_cpu_workflow','prepare_openjev_path_trace.py')
-        for name,value in [('ROOT',self.root),('ALLOCATION',self.allocation),('helper',lambda _:q),
+        for name,value in [('ROOT',self.root),('ALLOCATION',self.allocation),('helper',lambda _:v.Evidence(q)),
                            ('host',lambda _:None),('docker_host',lambda _:None),('free_now',lambda *a,**k:None)]:
             patcher=patch.object(self.real,name,value);patcher.start();self.addCleanup(patcher.stop)
         self.source=Path(__file__).parent
         self.prereg=self.source.parent/'experiments/OPENJEV-PATH-TRACE-E38-2026-10-31.md'
         self.weight=self.root/'weights.bin';self.weight.write_bytes(b'weight')
-        self.c=dict(physical_chip=1,files={str(self.weight):q.sha(self.weight)},eligibility_report=str(self.config))
+        self.c=dict(physical_chip=1,temperature=1.,base=str(self.root/'base'),files={str(self.weight):q.sha(self.weight)},eligibility_report=str(self.config))
+        Path(self.c['base']).mkdir()
+        q.atomic(Path(self.c['base'])/'config.json',dict(hidden_size=2048,intermediate_size=6144,
+          linear_num_key_heads=16,linear_num_value_heads=16,linear_key_head_dim=128,linear_value_head_dim=128,
+          num_attention_heads=8,num_key_value_heads=2,head_dim=256))
         q.atomic(self.config,self.c)
         self.e37=self.root/'e37.json';q.atomic(self.e37,dict(files=self.c['files']))
         self.target=self.root/'target';self.cpu=self.root/'cpu'

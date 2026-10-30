@@ -177,3 +177,9 @@ CPU Transformers. Each CPU request and the later NPU plan are separate immutable
 generations. Parent approval of a CPU request does not approve NPU execution;
 that requires the final plan/source closure and an independent review bound to
 that exact plan. Historic failure/skipped fixture generations remain retained.
+
+## 2026-10-31 amendment — actual Astra v2 execution BLOCK
+
+Applies only to new v3+ plans. Frozen v2 remains blocked. Numerical validation uses native temperature, unit mass with native `isclose(rtol=atol=1e-6)`, softmax/logit absolute tolerance `1e-5`, native wire renormalization tolerance `1e-8`, first argmax tie breaking, and chance-adjusted confidence tolerance `1e-7`. These cross-runtime recomputation tolerances do not relax exact serialized repeat/hook controls. Freeze registration population separately from execution order and exact per-event dtype, candidate row shape, and source layout. Folded normalization requires the exact batch × 186 × value-heads flattened source shape.
+
+All control evidence must bind parsed JSON and SHA to the same no-symlink file bytes and verify unchanged file identity/content before accepting or mutating launch state. Every scheduled forward requires a durable no-overwrite intent committed before the call, and its receipt binds that intent. An unmatched intent permanently fails that generation; retrying an uncertain forward is forbidden. Eight receipts alone never establish exactly eight attempted forwards. A report/terminal publication gap also explicitly fails the generation; retain its report, EXIT, terminals and receipts, and allow only reviewed CPU forensic reconstruction. Do not overwrite failed evidence or silently promote/reuse it into a successful new generation. Ordinary resume is limited to a validated committed prefix with no unmatched attempt and no terminal/report. A new full execution requires a new plan/review generation.
