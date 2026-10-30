@@ -11,13 +11,14 @@ orchestrator (tier 2) reads the digest and the tier-1 diagnosis only.
     python3 -P tools/watchdog.py --root DIR --print    # other root, also print digest.md
     python3 -P tools/watchdog.py --watch                # tick every 600 s (the floor); runs are re-read on their own tier cadence
 
-Outputs go to `--out-dir` (default `<first root>/_watchdog/`): `digest.json` (complete but bounded) and
-`digest.md` (hard cap `--max-md-bytes`, default 12000).
+Outputs go to `--out-dir` (default `<first root>/_watchdog/`): `digest.json` (complete but bounded), `digest.md` (hard cap
+`--max-md-bytes`, default 12000) and `npu_history.json` (a few KB: the last 6 h of per-chip AICore passes, see Host utilisation).
 Over the cap, content is dropped by priority, not by position, in whole blocks: (0) summary line and status rows of
 failed/stalled/unknown runs, (1) other status rows, (2) pointers and errors of failed/stalled runs, (3) flags on the primary
 scorer (and pointers of runs that have them), (4) error signatures, (5) flags on other scorers, (6) everything else (clean-done
 and archived lines, suppression audit, notes). Once a block of some priority does not fit, every lower-priority block is dropped
 too. A final `[TRUNCATED ...]` line says how many blocks and bytes were dropped and which kinds. `digest.json` is never cut.
+NPU content (see Host utilisation) is added to `digest.md` only where it displaces nothing: see "Digest size" below.
 Both are written to a temp file and renamed, under a lock, so a reader never sees a half-written file and
 concurrent invocations cannot interleave. Directories whose name starts with `.` or `_` are never scanned
 as runs, so the output directory is not mistaken for a run.
@@ -156,7 +157,7 @@ threshold), as before.
 **Floor.** `--watch` refuses `--interval` below 600 and exits 2 with the reason, unless `--allow-fast-poll` is given (tests, debugging).
 A one-shot run (no `--watch`) reads everything and is unaffected.
 
-**In the digest**, each status row has a `watch` cell: `tier/source last>next` with UTC HH:MM times, for example `slow/file 08:00>09:00`
+**In the digest**, each status row (columns run, state, esc, age, watch, progress, perf, why) has a `watch` cell: `tier/source last>next` with UTC HH:MM times, for example `slow/file 08:00>09:00`
 (source `file` = WATCH.json, `hbNm` = inferred period, `dflt` = default). `digest.json` has per run `tier` (name, source, recheck_s,
 stall_s) and `watch` (last_eval_utc, next_eval_utc, recheck_s).
 
@@ -167,6 +168,111 @@ writes the relaunch command is the natural place (that file is outside `tools/` 
     echo '{"tier": "slow"}' > "$OUT_DIR/WATCH.json"      # R0 baseline rerun, verl training; use "fast" for smoke tests
 
 Default to `slow` in the launchers for the R0 rerun and verl, and let smoke-test launchers write `fast`.
+
+### Throughput (CLAUDE.md section 9)
+
+Every training or evaluation run is expected to report its own per-chip throughput; the digest surfaces it and flags a drop against the
+run's own early baseline. Sources, read at every full read of a run, looking in the run directory and its descendants down to
+`--perf-depth` levels (default 2, so `run/res/p0/` of a concurrent cell is found; at most 16 directories, checkpoint-like directories
+such as `ckpt`, `merged`, `adapter` are never listed):
+
+| source | fields | notes |
+|---|---|---|
+| `heartbeat.log` (last line carrying them) | `tok_s_chip_w20`, `q_s_chip_w20` or `ex_s_chip_w20`, `chips`, `procs_on_chip`, `reserved_gib`, `step_s` | `key=number` pairs; the `_w20` suffix is the window |
+| `perf.json` | trainer shape: `window.{tok_s,q_s}_chip_equiv`, `chips`, `procs_on_chip`, `reserved_gib_peak`, optional frozen `baseline` | the only source of a baseline |
+| | eval-harness shape: `tokens_per_s_per_chip`, `examples_per_s_per_chip`; with `chips=0` the `*_total_for_reference` host rates | |
+| `progress.log` | trainer step lines `step_s .. tok/s/chip .. q/s/chip .. chips .. reserved_gib ..` | fallback, only when the directory has neither of the above; median of the last 20 step lines |
+
+Per directory the freshest source is the displayed rate. Aggregate over the live processes of a run (those within the larger of the
+stall threshold and 600 s of the newest): rate = mean of the per-chip-equivalent rates (the writer already multiplies by
+`procs_on_chip`, assuming equal shares), chips = sum of `chips / procs_on_chip` (so k processes sharing a chip count once), reserved =
+the largest per-process figure.
+
+**Scope is never relabelled.** `*_chip_*` keys are per chip. `*_host_nochip_*` keys, or `chips=0` in `perf.json`, are a **host** rate of a
+run with no chip (a CPU run); the row says `host ... (chips=0)` and never `/chip`. A per-chip key beside `chips=0` is kept per chip and
+noted as contradictory.
+
+**Row.** `perf` column, `running` and `stalled` rows only (`digest.json` has `perf` for every run, finished or not, to keep the md
+small): `27464 tok/s/chip 4.21 q/s/chip x1/2p 20.5GiB r=0.53`: `xN` chips, `/Kp` = K processes share a chip, GiB reserved per process,
+`r=` ratio to the declared baseline, `base?` = **no baseline declared** (nothing is invented). `digest.json` `perf`: `scope`
+(`chip`|`host`|`mixed`), `tok_s`, `ex_s`, `ex_unit` (`q`|`ex`), `window`, `chips`, `n_procs`, `procs_on_chip`, `reserved_gib`, `utc`, `age_s`,
+`sources`, `baseline` (`declared`|`undeclared`), `ratio`, `ratio_dir`, `ratio_stale`, `threshold`, `regressed`, `procs[]`.
+
+**Regression flag.** Only `perf.json` can declare a baseline: the trainer freezes `baseline` (its aggregate over steps 20-120, in
+per-process units; note it is a token-weighted aggregate, not a median of steps) after step 120 and keeps it across resumes. The ratio is
+computed here as `window.{tok_s,q_s}_proc / baseline.{tok_s,q_s}_proc` (the writer's own `ratio_to_baseline` is not trusted or copied). A
+**running** run whose ratio, for the worst process, is below `--perf-regress-ratio` (default 0.7, the trainer's own noise note: a 20-step
+window has about +-15% sampling noise) is flagged: escalation `decide` (like a stall), `why` = `THROUGHPUT REGRESSION 0.53x of the declared
+baseline (tokens/s, flag below 0.70x)`, first pointer = that process's `perf.json` (`$.window`, `$.baseline`, `$.ratio_to_baseline`).
+`--perf-ratio-key tok_s|q_s` chooses which ratio decides (default tokens/s, which does not move with the question-length mix; both are
+shown in `perf.json`, only the chosen one is computed in the digest). Not flagged: a run without a baseline (the row says `base?`), a
+finished run, a `perf.json` older than the stall threshold (`r=0.53(stale)`). The row's rate and ratio follow every tick; the
+escalation is set at the run's full reads, like the flat-progress flag. A low AICore is **not** a regression: the reference
+gated-delta-rule kernel is launch-bound, so a healthy job can sit at 9-22% AICore; judge by the ratio to the run's own baseline.
+Until a run lasts past step 120 no baseline exists, so nothing in the live tree has been flagged yet (all current `perf.json` have
+`baseline: null`); the flag is covered by the tests and by a replay of a real `perf.json` with a doctored baseline.
+
+### Host utilisation (NPU)
+
+`digest.json` has an `npu` block and `digest.md` a compact form of it, from **one ssh call per pass** to `--npu-host` (default `npu`;
+`local` runs the same shell command here). `--no-npu` (or the environment variable `WATCHDOG_NO_NPU=1`, which the tests set) disables
+it. It is optional and non-fatal: ssh missing, host down, a timeout (`--npu-timeout`, default 45 s), `npu-smi` absent or output that
+does not parse all become `npu.available: false` with a `reason`, the summary line says `npu n/a`, and the rest of the digest, the exit
+code and the other blocks are unaffected. Read-only: it runs `npu-smi info` (`--npu-samples` snapshots, default 4, `--npu-sample-gap` 3 s
+apart), `npu-smi info -l`, `npu-smi info -t proc-mem -i N` per NPU, and `ps -eo pid=,args=`. The `ps` output stays in memory and is used
+only to match process ids to run directories; command lines are never stored or printed (credentials in arguments cannot leak).
+Nothing is launched on an NPU.
+
+**Parsing.** `npu-smi info` prints each chip on **two lines**: line 1 `| <npu> <name> | <health> | <power W> <temp C> <hugepages> |`,
+line 2 `| <chip> | <bus id> | <AICore %> <mem used>/<mem total> <HBM used>/<HBM total> |` (HBM-Usage(MB) is the last pair), then a process
+table. `proc-mem` prints `Process id:1479047 Process name:python3 Process memory(MB):3936` with **no space after the colons**, or
+`No process in device.`.
+
+**Two signals per chip, because one AICore reading cannot tell a free chip from a claimed one** (a container loading a checkpoint
+sits at 0% while fully claimed):
+
+- *claimed*: a resident process (in `proc-mem` or in the `npu-smi info` process table; 31 MB is enough), or HBM above
+  `--npu-idle-hbm-mb` (default 4096; the driver baseline is about 3450 MB). A claimed chip is claimed whatever its AICore reads.
+- *working*: AICore, the latest snapshot and the mean of the pass, plus a rolling history of earlier passes (`npu_history.json`, last
+  6 h, survives a restart and serves one-shot passes against the same `--out-dir`).
+
+| state | meaning | flag |
+|---|---|---|
+| `unclaimed` | no resident process, baseline HBM | **escalation `decide`** while any run is `running` or queued (a real idle chip beside work); `read` when nothing runs or is queued (unused capacity). Says for how many passes it has been unclaimed |
+| `quiet` | claimed, every snapshot at or below `--npu-near-zero-pct` (5) | none (a single low sample, or a load, is normal) |
+| `wedged?` | claimed and quiet for at least `--npu-wedged-passes` (3) consecutive passes spanning at least `--npu-wedged-seconds` (1200) | **escalation `read`**, with the duration (`for >=30m (4 passes)`); a gap longer than three ticks, or one busy pass, resets the streak |
+| `low` | claimed, mean AICore below `--npu-low-pct` (30) but not quiet | informational line, no escalation (launch-bound kernels run healthy at 9-22%) |
+| `busy` | claimed, mean at or above 30 | none |
+
+A container that has started but has not yet opened the device is invisible to `npu-smi`, so a first sighting of an unclaimed chip can
+be a startup; the flag text says "first seen this pass" or "for >=Xm (N passes)" so a reader can discount it. In a one-shot pass without
+history, `wedged?` cannot be reached.
+
+**Queued.** The watchdog has no queue of its own. A directory below a root that holds a file named in `--queued-names` (default
+`QUEUED`) and has neither a terminal marker nor a heartbeat file counts as queued (`queued` in `digest.json`, counted in the flag text).
+No launcher writes `QUEUED` today, so until one does only `running` runs count as work. The flag compares against runs in state
+`running`, whether or not they use the NPUs (a CPU run beside idle chips is exactly the situation to see).
+
+**Claims.** Each resident process id is looked up in the `ps` listing; every absolute path in its command line is walked up through its
+parents and the first directory that is a discovered run claims the process (`claimed_by`, with the claimant's state in `claimed_state`;
+a claimant that is not `running` is shown as `run(done)`). A process whose command line names no run directory is counted in
+`processes_without_run`. The mapping is by command line, so it names a run only if the run's directory is in its arguments.
+
+`npu` in `digest.json`: `available`, `reason`, `host`, `sampled_utc`, `samples`, `chips[]` (`npu`, `state`, `claimed`, `aicore_last`,
+`aicore_pct` mean, `aicore_samples`, `aicore_recent_passes`, `hbm_used_mb`, `hbm_total_mb`, `power_w`, `temp_c`, `claimed_by`,
+`claimed_state`, `processes[]`, `quiet_s`, `unclaimed_s`), the chip-id lists `unclaimed`, `wedged`, `quiet`, `low`, `running_runs`,
+`queued_runs`, `flags[]` (`kind`, `escalation`, `chips`, `text`) and `escalation`. `queued` (run ids) sits at the top level. The probe adds
+about 10 s to a pass. The NPU flags do not change the exit code (exit codes follow run states).
+
+**Digest size.** NPU content has three levels in `digest.md`: (0) a fragment on the summary line, such as
+`| npu UNCLAIMED 4 (2 run, 0 queued); low 0,3 of 8`, `| npu 8/8 claimed` or `| npu n/a`; (1) the escalation line(s) in a
+`## Host utilisation` section; (2) the per-chip table (AICore latest [earlier passes], HBM GiB, state, claimed by). The renderer uses
+the richest level at which it displaces nothing: the fragment only if every block of priority 0-3 (summary rows of failed/stalled/unknown
+runs, other status rows, failed-run pointers, primary-scorer flags) that survives truncation without NPU content still survives with it;
+levels 1 and 2 only if nothing else that survives changes. So the NPU content can never push the summary, a failed row or a primary
+flag out. The cost is that on a saturated digest (the live one is: 47 status rows and 118 error signatures against 12000 bytes)
+only the fragment shows, or nothing; the complete block is always in `digest.json`. Raise `--max-md-bytes` (for example 30000) to show
+the table.
 
 ### Explanations
 
@@ -220,6 +326,7 @@ digest counts per kind and lists up to `--max-flags-per-kind` items per run; a h
 ### Escalation level (one rule)
 
 - `decide`: the run is `failed` or `stalled`, or it is `done` with any suspicious metric (the result must be accepted or rejected).
+- `decide` also: a `running` run with a throughput regression (see Throughput; `PERF_ESCALATION` in `watchdog.py`, one line to change to `read`).
 - `read`: otherwise, if the state is `unknown`, or there are suspicious metrics in a run still going, or error-severity lines.
 - `none`: everything else (including warnings only, and every `archived` run).
 
@@ -238,14 +345,20 @@ pass's code on SIGTERM; usage errors exit 2; a second `--watch` on the same out-
         >> /mnt/cephfs/xingchao/experiments/jev/_watchdog/watchdog.log 2>&1 < /dev/null &
 
 One watcher per out-dir (enforced with a lock; a restarted watcher takes over). A stale digest shows in `generated_utc`.
-It only reads logs and writes two files; it never touches containers, processes or NPUs.
+It reads logs, heartbeats and `perf.json`, writes `digest.json`, `digest.md` and `npu_history.json`, and (unless `--no-npu`) runs read-only
+`npu-smi` and `ps` once per pass over ssh. It never touches containers or starts anything on an NPU.
+
+To switch a running daemon over to a new version: stop it (`pkill -f 'tools/watchdog.py --watch'`; it exits on SIGTERM), then start it
+with the same arguments as below. Its current arguments are visible with `pgrep -af watchdog.py`.
 
 `-P` needs Python 3.11+ (this host); `npu` has 3.10, where plain `python3 tools/watchdog.py` is equivalent because only the script's
 own directory lands on `sys.path`.
 
 ### Tests
 
-    python3 -P tools/test_watchdog.py
+    python3 -P tools/test_watchdog.py          # 132 tests; the module sets WATCHDOG_NO_NPU=1 so no test ever opens an ssh session
+
+The NPU tests use a fake `npu-smi`, `ps` and `ssh` on `PATH` (`--npu-host local` for the end-to-end probe).
 
 ## Final interface summary
 
@@ -268,7 +381,11 @@ primary (`primary` whose report name matches a suppress pattern) is suppressed a
 `--no-suppress` shows everything.
 
 **Digest size**: `digest.md` is capped at `--max-md-bytes` (default 12000) with priority-ordered dropping and an explicit note of what
-was dropped; `digest.json` is complete.
+was dropped; `digest.json` is complete. NPU content is shown in `digest.md` only where it displaces nothing else.
+
+**Throughput and NPUs**: `perf` per run (per chip, chip count, reserved GiB; `host` for chip-less runs; `r=` against the run's declared
+`perf.json` baseline, `decide` below 0.7 for a running run, `base?` when undeclared); `npu` block (claimed by a resident process vs
+working by AICore; `unclaimed` beside work is `decide`, `wedged?` is `read`, `low` is informational; optional, `--no-npu`).
 
 **Launch detached (CLAUDE.md rule 7)**
 

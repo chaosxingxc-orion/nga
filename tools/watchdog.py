@@ -96,6 +96,28 @@ def build_parser():
       help="seconds between watch ticks (default 600, also the minimum unless --allow-fast-poll). Each run is re-read only "
            "when its own tier cadence is due")
     a("--allow-fast-poll", action="store_true", help="permit --watch --interval below %d s (tests, debugging)" % MIN_INTERVAL)
+    a("--perf-depth", type=int, default=2,
+      help="directory levels below a run to look in for throughput sources (heartbeat.log, perf.json, progress.log); default 2, "
+           "so run/res/p0/heartbeat.log is found")
+    a("--perf-regress-ratio", type=float, default=0.7,
+      help="a running run whose windowed rate is below this x its DECLARED baseline (perf.json) is flagged (default 0.7)")
+    a("--perf-ratio-key", choices=("tok_s", "q_s"), default="tok_s",
+      help="which perf.json ratio decides the regression flag: tokens/s (default) or questions/s; both are shown")
+    a("--queued-names", default="QUEUED",
+      help="a run directory holding one of these files, with no terminal marker and no heartbeat file, counts as queued (default QUEUED)")
+    a("--no-npu", action="store_true", default=os.environ.get("WATCHDOG_NO_NPU", "") not in ("", "0"),
+      help="do not look at NPU utilisation (no ssh); also set by the environment variable WATCHDOG_NO_NPU")
+    a("--npu-host", default="npu", help="ssh host that runs npu-smi (default npu); 'local' runs the command on this host")
+    a("--npu-samples", type=int, default=4, help="npu-smi snapshots per pass (default 4)")
+    a("--npu-sample-gap", type=float, default=3.0, help="seconds between snapshots (default 3)")
+    a("--npu-timeout", type=float, default=45.0, help="give up on the whole ssh call after this many seconds (default 45)")
+    a("--npu-low-pct", type=float, default=30.0, help="a claimed chip below this mean AICore %% is shown as low, informational only (default 30)")
+    a("--npu-idle-hbm-mb", type=float, default=4096.0,
+      help="a chip with no resident process and at most this much HBM is unclaimed (the driver baseline is about 3450 MB; default 4096)")
+    a("--npu-near-zero-pct", type=float, default=5.0, help="a claimed chip whose every snapshot is at or below this %% AICore is quiet (default 5)")
+    a("--npu-wedged-passes", type=int, default=3, help="a claimed chip quiet for at least this many consecutive passes ... (default 3)")
+    a("--npu-wedged-seconds", type=float, default=1200.0,
+      help="... spanning at least this long is flagged as possibly wedged (default 1200 = 20 min; loading a checkpoint is legitimately quiet)")
     a("--print", dest="print_md", action="store_true", help="also print digest.md to stdout")
     return p
 
@@ -119,6 +141,7 @@ def make_cfg(**kw):
     cfg.suppress_pats = [] if cfg.no_suppress else [x for x in cfg.suppress_roles.split(",") if x]
     cfg.protect_set = set(x for x in cfg.protect_roles.split(",") if x)
     cfg.tiers = {n: {"recheck_s": getattr(cfg, n + "_recheck"), "stall_s": getattr(cfg, n + "_stall")} for n in TIER_NAMES}
+    cfg.queued_files = [x for x in cfg.queued_names.split(",") if x]
     cfg.rate_re = re.compile(cfg.rate_keys)
     cfg.count_re = re.compile(cfg.count_keys)
     return cfg
@@ -334,6 +357,38 @@ _DONE = re.compile(r"\b(?:done|completed|processed|items|n_done|step)\s*[=:]\s*(
 _TOTAL = re.compile(r"\b(?:total|n_total|of)\s*[=:]?\s*(\d+)", re.I)
 
 
+_NUM = r"-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?"
+_PERF_RATE = re.compile(r"\b(tok|ex|q)_s_(chip|host_nochip)(?:_w(\d+))?=(%s)(?![\w.])" % _NUM)
+_PERF_AUX = re.compile(r"\b(chips|procs_on_chip|reserved_gib|step_s)=(%s)(?![\w.])" % _NUM)
+
+
+def parse_perf_fields(text):
+    """Throughput fields of one heartbeat line, or None. Key names carry the scope, which is never relabelled:
+    tok_s_chip_w20 / q_s_chip_w20 / ex_s_chip_w20 are per chip; tok_s_host_nochip_w20 / ex_s_host_nochip_w20 are HOST rates of a run
+    with no chip (chips=0, a CPU run). Aux keys: chips, procs_on_chip, reserved_gib, step_s."""
+    rates = {}
+    for m in _PERF_RATE.finditer(text):
+        kind, scope, w, v = m.groups()
+        rates[kind] = (float(v), "host" if scope == "host_nochip" else "chip", int(w) if w else None)
+    if not rates:
+        return None
+    out = {"tok_s": None, "ex_s": None, "ex_unit": None, "scope": None, "window": None, "chips": None,
+           "procs_on_chip": None, "reserved_gib": None, "step_s": None}
+    scopes = set()
+    for kind, (v, sc, w) in rates.items():
+        scopes.add(sc)
+        out["window"] = w if w else out["window"]
+        if kind == "tok":
+            out["tok_s"] = v
+        else:
+            out["ex_s"], out["ex_unit"] = v, kind
+    out["scope"] = scopes.pop() if len(scopes) == 1 else "mixed"
+    for k, v in _PERF_AUX.findall(text):
+        out[{"chips": "chips", "procs_on_chip": "procs_on_chip", "reserved_gib": "reserved_gib", "step_s": "step_s"}[k]] = \
+            int(float(v)) if k in ("chips", "procs_on_chip") else float(v)
+    return out
+
+
 def parse_heartbeat_line(line):
     m = TS_RE.search(line)
     if not m:
@@ -366,7 +421,7 @@ def parse_heartbeat_line(line):
             tm = _TOTAL.search(rest)
             if tm:
                 total = int(tm.group(1))
-    return {"ts": ts, "done": done, "total": total, "counters": counters, "fields": fields}
+    return {"ts": ts, "done": done, "total": total, "counters": counters, "fields": fields, "perf": parse_perf_fields(rest)}
 
 
 def read_tail(path, nbytes):
@@ -470,6 +525,235 @@ def summarize_progress(samples, rundir, cfg, declared=None, uniform=True):
         prog["eta_utc"] = iso(last["ts"] + rem / (sum(rates) / len(rates)))
         prog["eta_quality"] = "rough" if (len(since_restart) < 5 or span < 900) else "range"
     return prog
+
+
+# ----------------------------------------------------------------------------- throughput (CLAUDE.md section 9)
+PERF_SKIP = {"ckpt", "merged", "adapter", "checkpoints", "readouts", "kernel_meta", "__pycache__", "trace"}
+PERF_MAX_DIRS = 16
+PERF_ESCALATION = "decide"       # a throughput regression is treated like a stall
+_PROGLOG = re.compile(r"\bstep_s\s+(%s)\s+tok/s/chip\s+(%s)\s+q/s/chip\s+(%s)\s+chips\s+(\d+)\s+reserved_gib\s+(%s)" % ((_NUM,) * 4))
+
+
+def _fin(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+
+
+def _median(xs):
+    xs = sorted(xs)
+    n = len(xs)
+    return xs[n // 2] if n % 2 else (xs[n // 2 - 1] + xs[n // 2]) / 2.0
+
+
+def _perf_rec(source, ts, **kw):
+    r = {"source": source, "ts": ts, "utc": iso(ts), "scope": None, "tok_s": None, "ex_s": None, "ex_unit": None, "window": None,
+         "chips": None, "procs_on_chip": None, "reserved_gib": None, "step_s": None, "baseline": None, "ratio": None, "note": None}
+    r.update(kw)
+    return r
+
+
+def read_perf_json(path):
+    """perf.json -> record or None. Two writers: the trainer (window.*_chip_equiv per-process rates x procs_on_chip, an optional frozen
+    'baseline' = the run's own aggregate over steps 20-120, in per-process units) and the eval harness (examples/tokens per second per chip,
+    or '_total_for_reference' host rates when chips=0). The ratio is computed here from the raw window and baseline, not copied."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            o = json.load(f)
+        mt = os.path.getmtime(path)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(o, dict):
+        return None
+    um = TS_RE.search(o["utc"]) if isinstance(o.get("utc"), str) else None
+    ts = (parse_ts(um) if um else None) or mt
+    chips = o.get("chips") if isinstance(o.get("chips"), int) and not isinstance(o.get("chips"), bool) else None
+    if isinstance(o.get("window"), dict):
+        w = o["window"]
+        k = o.get("procs_on_chip") if isinstance(o.get("procs_on_chip"), int) and o["procs_on_chip"] > 0 else 1
+        rec = _perf_rec("perf.json", ts, scope="host" if chips == 0 else "chip", ex_unit="q", chips=chips, procs_on_chip=k,
+                        window=o.get("window_steps"), step_s=w.get("step_s_mean") if _fin(w.get("step_s_mean")) else None,
+                        tok_s=w.get("tok_s_chip_equiv") if _fin(w.get("tok_s_chip_equiv")) else None,
+                        ex_s=w.get("q_s_chip_equiv") if _fin(w.get("q_s_chip_equiv")) else None,
+                        reserved_gib=o.get("reserved_gib_peak") if _fin(o.get("reserved_gib_peak")) else None)
+        b = o.get("baseline")
+        if isinstance(b, dict):
+            rec["baseline"] = {"steps": b.get("steps"), "n_steps": b.get("n_steps"),
+                               "tok_s_proc": b.get("tok_s_proc") if _fin(b.get("tok_s_proc")) else None,
+                               "q_s_proc": b.get("q_s_proc") if _fin(b.get("q_s_proc")) else None}
+            ratio = {}
+            for key, wk in (("tok_s", "tok_s_proc"), ("q_s", "q_s_proc")):
+                bv, wv = rec["baseline"].get(wk), w.get(wk)
+                if bv and bv > 0 and _fin(wv):
+                    ratio[key] = wv / bv
+            rec["ratio"] = ratio or None
+        return rec
+    if "tokens_per_s_per_chip" in o or "examples_per_s_per_chip" in o:
+        if chips and chips > 0:
+            return _perf_rec("perf.json", ts, scope="chip", ex_unit="ex", chips=chips, tok_s=o.get("tokens_per_s_per_chip"),
+                             ex_s=o.get("examples_per_s_per_chip"), window=o.get("window_calls"))
+        return _perf_rec("perf.json", ts, scope="host", ex_unit="ex", chips=0 if chips == 0 else None,
+                         tok_s=o.get("tokens_per_s_total_for_reference"), ex_s=o.get("examples_per_s_total_for_reference"),
+                         window=o.get("window_calls"))
+    return None
+
+
+def read_progress_log_perf(path, window=20):
+    """The trainer's progress.log ('step_s 5.12 tok/s/chip 594 q/s/chip 1.95 chips 1 reserved_gib 6.6' per step): median of the last
+    `window` step lines, the same statistic as the early baseline. Per-step lines are noisy; the median keeps one slow step out."""
+    try:
+        lines = read_tail(path, 64 << 10)
+    except OSError:
+        return None
+    recs = []
+    for ln in lines:
+        m = _PROGLOG.search(ln)
+        t = TS_RE.search(ln)
+        if m and t and parse_ts(t):
+            recs.append((parse_ts(t),) + tuple(float(x) for x in m.groups()))
+    recs = recs[-window:]
+    if not recs:
+        return None
+    return _perf_rec("progress.log", recs[-1][0], scope="chip", ex_unit="q", window=len(recs), chips=int(recs[-1][4]),
+                     step_s=_median([r[1] for r in recs]), tok_s=_median([r[2] for r in recs]), ex_s=_median([r[3] for r in recs]),
+                     reserved_gib=max(r[5] for r in recs), note="median of the last %d step lines" % len(recs))
+
+
+def _heartbeat_perf(path):
+    """Last heartbeat line of a (child) heartbeat.log that carries throughput fields -> record or None."""
+    try:
+        lines = read_tail(path, 64 << 10)
+    except OSError:
+        return None
+    for ln in reversed(lines):
+        s = parse_heartbeat_line(ln)
+        if s and s["perf"]:
+            return _perf_rec("heartbeat", s["ts"], **s["perf"])
+    return None
+
+
+def _child_dirs(d, cap=300):
+    out = []
+    try:
+        with os.scandir(d) as it:
+            for i, e in enumerate(it):
+                if i >= cap:
+                    break
+                if e.is_dir(follow_symlinks=False) and not e.name.startswith(".") and e.name not in PERF_SKIP:
+                    out.append(e.path)
+    except OSError:
+        pass
+    return sorted(out)
+
+
+def perf_dirs(d, depth):
+    """The run directory and its descendants down to `depth` levels that hold any throughput source, at most PERF_MAX_DIRS.
+    Directory listing is bounded and checkpoint-like directories are skipped, so a huge output tree is never walked."""
+    found, level = [], [d]
+    for lv in range(depth + 1):
+        nxt = []
+        for x in level:
+            if any(os.path.isfile(os.path.join(x, n)) for n in ("heartbeat.log", "perf.json", "progress.log")):
+                found.append(x)
+            if lv < depth:
+                nxt.extend(_child_dirs(x))
+        level = nxt
+        if len(found) >= PERF_MAX_DIRS:
+            break
+    return found[:PERF_MAX_DIRS]
+
+
+def collect_perf(d, cfg, samples, now, stall_s):
+    """Throughput of one run, or None when no source carries any. Sources per directory (the run's own and its children, e.g.
+    res/p0..p3 of a concurrent cell): the freshest of heartbeat fields, perf.json and progress.log is the displayed rate; the baseline
+    and ratio come only from a perf.json that declares one. Nothing is invented: no baseline declared means ratio None.
+    Aggregate over the live processes: rate = mean of the per-chip-equivalent rates, chips = sum of chips/procs_on_chip,
+    ratio = the worst process."""
+    recs = []
+    for x in perf_dirs(d, cfg.perf_depth):
+        cands = []
+        if x == d:
+            own = next((s for s in reversed(samples or []) if s.get("perf")), None)
+            if own:
+                cands.append(_perf_rec("heartbeat", own["ts"], **own["perf"]))
+        else:
+            hb = os.path.join(x, cfg.heartbeat_name)
+            r = _heartbeat_perf(hb) if os.path.isfile(hb) else None
+            if r:
+                cands.append(r)
+        pj = read_perf_json(os.path.join(x, "perf.json")) if os.path.isfile(os.path.join(x, "perf.json")) else None
+        if pj:
+            cands.append(pj)
+        pl = read_progress_log_perf(os.path.join(x, "progress.log")) if not cands and os.path.isfile(os.path.join(x, "progress.log")) else None
+        if pl:
+            cands.append(pl)
+        if not cands:
+            continue
+        best = dict(max(cands, key=lambda c: (c["ts"], c["source"] == "heartbeat")))
+        if pj:
+            best["baseline"], best["ratio"], best["perf_json_ts"] = pj["baseline"], pj["ratio"], pj["ts"]
+        best["dir"] = os.path.relpath(x, d) if x != d else "."
+        if best["scope"] == "chip" and best["chips"] == 0:
+            best["note"] = "chips=0 but per-chip fields present: contradictory source"
+        recs.append(best)
+    if not recs:
+        return None
+    newest = max(r["ts"] for r in recs)
+    live = [r for r in recs if newest - r["ts"] <= max(stall_s, 600)]
+    scopes = {r["scope"] for r in live}
+    scope = scopes.pop() if len(scopes) == 1 else "mixed"
+
+    def mean(key):
+        xs = [r[key] for r in live if _fin(r[key])]
+        return sum(xs) / len(xs) if xs else None
+    chips = None
+    if scope == "host":
+        chips = 0
+    elif all(r["chips"] is not None for r in live):
+        chips = int(math.ceil(sum(r["chips"] / float(max(1, r["procs_on_chip"] or 1)) for r in live) - 1e-9))
+    units = {r["ex_unit"] for r in live if r["ex_unit"]}
+    rv = [r["reserved_gib"] for r in live if _fin(r["reserved_gib"])]
+    pk = [r["procs_on_chip"] for r in live if r["procs_on_chip"]]
+    key = cfg.perf_ratio_key
+    ratios = []
+    for r in live:
+        if r["ratio"] and key in r["ratio"] and r.get("perf_json_ts") is not None:
+            ratios.append((r["ratio"][key], r["dir"], now - r["perf_json_ts"] <= max(stall_s, 600)))
+    worst = min(ratios) if ratios else None
+    return {
+        "scope": scope, "tok_s": mean("tok_s"), "ex_s": mean("ex_s"), "ex_unit": units.pop() if len(units) == 1 else "ex",
+        "window": next((r["window"] for r in live if r["window"]), None), "chips": chips, "n_procs": len(live),
+        "procs_on_chip": max(pk) if pk else None, "reserved_gib": max(rv) if rv else None, "utc": iso(newest), "age_s": int(now - newest),
+        "sources": sorted({r["source"] for r in live}),
+        "baseline": "declared" if worst else "undeclared", "ratio_key": key, "ratio": worst[0] if worst else None,
+        "ratio_dir": worst[1] if worst else None, "ratio_stale": bool(worst and not worst[2]),
+        "threshold": cfg.perf_regress_ratio, "regressed": bool(worst and worst[2] and worst[0] < cfg.perf_regress_ratio),
+        "note": ("; ".join(sorted({r["note"] for r in live if r["note"]})) or None),
+        "procs": [{k: r[k] for k in ("dir", "source", "utc", "scope", "tok_s", "ex_s", "ex_unit", "window", "chips", "procs_on_chip",
+                                      "reserved_gib", "baseline", "ratio")} for r in live][:PERF_MAX_DIRS],
+    }
+
+
+def _perf_cell(p):
+    """Row text. Per-chip rates say per chip, the chip count (xN; /Kp = K processes share a chip) and the reserved GiB per process;
+    host rates of a chip-less run say host and are never labelled per chip. r= ratio to the declared baseline, base? = none declared."""
+    if not p:
+        return "-"
+    parts = []
+    if p["scope"] == "host":
+        if p["tok_s"] is not None:
+            parts.append("%.0f tok/s" % p["tok_s"])
+        if p["ex_s"] is not None:
+            parts.append("%.2f %s/s" % (p["ex_s"], p["ex_unit"] or "ex"))
+        return "host " + ", ".join(parts) + " (chips=0)" + (" base?" if p["baseline"] == "undeclared" else "")
+    if p["tok_s"] is not None:
+        parts.append("%.0f tok/s/chip" % p["tok_s"])
+    if p["ex_s"] is not None:
+        parts.append("%.2f %s/s/chip" % (p["ex_s"], p["ex_unit"] or "ex"))
+    if p["chips"] is not None:
+        parts.append("x%d%s" % (p["chips"], "/%dp" % p["procs_on_chip"] if (p["procs_on_chip"] or 1) > 1 else ""))
+    if p["reserved_gib"] is not None:
+        parts.append("%.1fGiB" % p["reserved_gib"])
+    parts.append(("r=%.2f%s" % (p["ratio"], "(stale)" if p["ratio_stale"] else "")) if p["ratio"] is not None else "base?")
+    return " ".join(parts)
 
 
 # ----------------------------------------------------------------------------- suspicious metrics
@@ -702,7 +986,9 @@ def is_run_dir(d, entries, depth, cfg):
     return bool(run_logs(d, cfg))
 
 
-def discover(cfg):
+def discover(cfg, queued=None):
+    """Runs below the roots. `queued`, when a list, receives the ids of directories that hold a queued-file (--queued-names) but no
+    terminal marker and no heartbeat file: work that has been queued and has not started."""
     runs, seen = [], set()
     roots = [os.path.abspath(r) for r in cfg.root]
     for root in roots:
@@ -711,11 +997,15 @@ def discover(cfg):
             if real in seen or real == cfg.out_dir:
                 return
             ents = _entries(d)
+            rid = os.path.relpath(d, root) if d != root else os.path.basename(root)
+            if len(roots) > 1:
+                rid = os.path.basename(root) + ":" + rid
+            if queued is not None and cfg.queued_files:
+                fn = {n for n, isdir in ents if not isdir}
+                if fn & set(cfg.queued_files) and not fn & set(cfg.markers) and cfg.heartbeat_name not in fn:
+                    queued.append(rid)
             if is_run_dir(d, ents, depth, cfg):
                 seen.add(real)
-                rid = os.path.relpath(d, root) if d != root else os.path.basename(root)
-                if len(roots) > 1:
-                    rid = os.path.basename(root) + ":" + rid
                 runs.append({"id": rid, "path": d})
                 return
             if depth >= cfg.max_depth:
@@ -996,6 +1286,7 @@ def refresh_cached(res, d, cfg, now):
         res["age_s"] = int(now - hb_ts)
     elif res.get("heartbeat_epoch") is not None:
         res["age_s"] = int(now - res["heartbeat_epoch"])
+    res["perf"] = collect_perf(d, cfg, samples, now, res["tier"]["stall_s"])     # rates follow every tick; the regression ESCALATION is set at full reads
     return res
 
 
@@ -1112,6 +1403,17 @@ def evaluate_run(run, cfg, states, now, prev=None):
             esc, why_text = "read", anomaly
         else:
             why_text = anomaly + "; " + (why_text or "")
+    # Throughput regression: a RUNNING run that declares an early baseline (perf.json) and whose windowed rate fell below
+    # --perf-regress-ratio x that baseline. Treated like a stall (escalates). No declared baseline: nothing is flagged, nothing invented.
+    perf = collect_perf(d, cfg, samples, now, tier["stall_s"])
+    perf_on = bool(perf and perf["regressed"] and state == "running")
+    if perf_on:
+        ptxt = "THROUGHPUT REGRESSION %.2fx of the declared baseline (%s, flag below %.2fx)" % (
+            perf["ratio"], "tokens/s" if perf["ratio_key"] == "tok_s" else "questions/s", perf["threshold"])
+        rank = {"none": 0, "read": 1, "decide": 2}
+        if rank[esc] < rank[PERF_ESCALATION]:
+            esc = PERF_ESCALATION
+        why_text = ptxt + ("; " + why_text if why_text else "")
     shards = shard_status(d, samples[-1]) if samples and state == "running" else None
     if shards and shards["note"] and shards["lost"]:
         notes.append("shards: " + shards["note"])
@@ -1131,6 +1433,10 @@ def evaluate_run(run, cfg, states, now, prev=None):
         if sus["total"]:
             kinds = ",".join(sorted(sus["by_kind"]))
             pointers.append({"path": rp, "json_paths": [i["path"] for i in sus["items"][:3]], "why": "suspicious: " + kinds})
+    if perf_on:
+        pj = os.path.join(d, perf["ratio_dir"], "perf.json") if perf["ratio_dir"] not in (None, ".") else os.path.join(d, "perf.json")
+        pointers.insert(0, {"path": pj, "json_paths": ["$.window", "$.baseline", "$.ratio_to_baseline"],
+                            "why": "throughput %.2fx of baseline" % perf["ratio"]})
     why = read_why(d, cfg)
     esc_before, expected_applied = esc, False
     # "expected": true downgrades only a run with a terminal marker (done/failed) or an archived run. Running, stalled
@@ -1149,9 +1455,294 @@ def evaluate_run(run, cfg, states, now, prev=None):
         "marker": ({k: marker[k] for k in ("name", "path", "exit_code", "utc")} if marker else None),
         "progress": progress, "errors": errors, "suspicious_metrics": sus, "pointers": pointers[:6], "notes": notes, "why": why,
         "declared_total": tier.get("declared_total"), "uniform_cost": tier.get("uniform_cost", True), "total_anomaly": anomaly, "progress_flat": flat_info, "flat_reads": flat_reads, "flat_done": flat_done, "shards": shards,
+        "perf": perf, "perf_regression": perf_on,
         "expected_applied": expected_applied, "escalation_before_expected": esc_before if esc_before != esc else None,
         "logs": logs,
     }
+
+
+# ----------------------------------------------------------------------------- host utilisation (NPU)
+# npu-smi prints each chip on TWO lines. Line 1: "| 0  910B3 | OK | <power W>  <temp C>  <hugepages> |". Line 2:
+# "| 0 | <bus id> | <AICore %> <mem used>/<mem total> <HBM used>/<HBM total> |" (HBM-Usage(MB) is the LAST pair). Below, one row per
+# process: "| <npu> <chip> | <pid> | <name> | <MB> | ... |".
+_NPU_L1 = re.compile(r"^\|\s*(\d+)\s+([^|]*?)\s*\|\s*([^|]*?)\s*\|\s*(-?[\d.]+)\s+(-?\d+)\s")
+_NPU_L2 = re.compile(r"^\|\s*(\d+)\s*\|\s*([0-9A-Fa-f:.]+)\s*\|\s*(\d+)\s+(\d+)\s*/\s*(\d+)\s+(\d+)\s*/\s*(\d+)\s*\|")
+_NPU_PROC = re.compile(r"^\|\s*(\d+)\s+(\d+)\s*\|\s*(\d+)\s*\|\s*([^|]*?)\s*\|\s*(\d+)\s*\|")
+NPU_MAX_PS = 16 << 20
+
+
+def parse_npu_smi(text):
+    """One `npu-smi info` snapshot -> {"chips": [...], "procs": [...]}. Unrecognised lines are ignored."""
+    chips, procs, pend = [], [], None
+    for ln in text.splitlines():
+        m = _NPU_L2.match(ln)
+        if m and pend:
+            chips.append({"npu": pend[0], "chip": int(m.group(1)), "name": pend[1], "health": pend[2], "power_w": pend[3],
+                          "temp_c": pend[4], "bus_id": m.group(2), "aicore_pct": int(m.group(3)),
+                          "hbm_used_mb": int(m.group(6)), "hbm_total_mb": int(m.group(7))})
+            pend = None
+            continue
+        m = _NPU_PROC.match(ln)
+        if m:
+            procs.append({"npu": int(m.group(1)), "chip": int(m.group(2)), "pid": int(m.group(3)), "name": m.group(4),
+                          "mem_mb": int(m.group(5))})
+            continue
+        m = _NPU_L1.match(ln)
+        if m:
+            pend = (int(m.group(1)), m.group(2), m.group(3), float(m.group(4)), int(m.group(5)))
+    return {"chips": chips, "procs": procs}
+
+
+_PROCMEM = re.compile(r"Process id:\s*(\d+)\s+Process name:\s*(.*?)\s+Process memory\(MB\):\s*(\d+)")
+
+
+def parse_proc_mem(text):
+    """`npu-smi info -t proc-mem -i N` -> list of {pid, name, mem_mb}. The fields have NO space after the colons. 'No process in device.'
+    gives []. The caller must know the section was present: [] from a present section means 'nothing resident'."""
+    return [{"pid": int(a), "name": b, "mem_mb": int(c)} for a, b, c in _PROCMEM.findall(text)]
+
+
+def npu_script(cfg):
+    n, gap = max(1, cfg.npu_samples), max(0.0, cfg.npu_sample_gap)
+    return ('i=1; while [ $i -le %d ]; do echo "@@SAMPLE $i"; npu-smi info 2>&1; '
+            'if [ $i -lt %d ]; then sleep %g; fi; i=$((i+1)); done; '
+            'for n in $(npu-smi info -l 2>/dev/null | awk \'/NPU ID/ {print $NF}\'); do echo "@@PROC $n"; npu-smi info -t proc-mem -i $n 2>&1; done; '
+            'echo "@@PS"; ps -eo pid=,args= 2>/dev/null | cut -c1-1500' % (n, n, gap))
+
+
+def probe_npu(cfg):
+    """Run npu-smi (over ssh to cfg.npu_host, or locally for 'local') and parse it. Never raises: returns {"ok": False, "reason"} on any
+    failure (ssh missing, host down, timeout, no npu-smi, unparseable output). Gathers, in one ssh call: several `npu-smi info`
+    snapshots (AICore, HBM), the resident processes per NPU from `npu-smi info -t proc-mem` (the claim signal), and a ps listing that is
+    kept only in memory, only to map the process ids to run directories; command lines are never stored or printed."""
+    import subprocess
+    script = npu_script(cfg)
+    if cfg.npu_host == "local":
+        cmd = ["bash", "-c", script]
+    else:
+        cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", "-o", "ServerAliveInterval=5", cfg.npu_host, script]
+    try:
+        r = subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=cfg.npu_timeout)
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "reason": "npu probe timed out after %gs" % cfg.npu_timeout}
+    except OSError as e:
+        return {"ok": False, "reason": "npu probe could not start: %s" % redact(str(e))[:80]}
+    out = r.stdout[:NPU_MAX_PS].decode("utf-8", "replace")
+    if r.returncode != 0 and "@@SAMPLE" not in out:
+        return {"ok": False, "reason": "ssh/npu-smi failed (rc %d): %s" % (
+            r.returncode, redact(" ".join(r.stderr.decode("utf-8", "replace").split()))[:100] or "no message")}
+    rest, _, ps_txt = out.partition("@@PS")
+    head, _, proc_txt = rest.partition("@@PROC")
+    samples = []
+    for sec in head.split("@@SAMPLE")[1:]:
+        snap = parse_npu_smi(sec)
+        if snap["chips"]:
+            samples.append(snap)
+    if not samples:
+        first = next((x.strip() for x in head.splitlines() if x.strip() and not x.startswith("@@")), "")
+        return {"ok": False, "reason": "no chips parsed from npu-smi output (first line: %s)" % (redact(first)[:70] or "empty")}
+    procmem = {}
+    for sec in ("@@PROC" + proc_txt).split("@@PROC")[1:] if proc_txt else []:
+        m = re.match(r"\s*(\d+)\s*\n", sec)
+        if m:
+            procmem[int(m.group(1))] = parse_proc_mem(sec)
+    ps = {}
+    for ln in ps_txt.splitlines():
+        m = re.match(r"\s*(\d+)\s+(.*)$", ln)
+        if m:
+            ps[int(m.group(1))] = m.group(2)
+    return {"ok": True, "samples": samples, "procmem": procmem, "ps": ps, "t": time.time()}
+
+
+_PATHTOK = re.compile(r"/[^\s'\"=:,;|()<>]+")
+
+
+def claim_runs(args, by_path):
+    """Run ids whose directory is named in a process command line: each absolute path token is walked up through its parents and the
+    first (most specific) directory that is a known run claims the process."""
+    found = set()
+    for tok in _PATHTOK.findall(args or ""):
+        p = os.path.normpath(tok)
+        while p and p != "/":
+            if p in by_path:
+                found.add(by_path[p])
+                break
+            p = os.path.dirname(p)
+    return found
+
+
+NPU_HIST_KEEP_S = 6 * 3600
+
+
+def load_npu_history(cfg):
+    try:
+        with open(os.path.join(cfg.out_dir, "npu_history.json"), "r", encoding="utf-8") as f:
+            o = json.load(f)
+        return {int(k): [e for e in v if isinstance(e, list) and len(e) == 4] for k, v in o.items()}
+    except (OSError, ValueError, AttributeError, TypeError):
+        return {}
+
+
+def save_npu_history(cfg, hist):
+    try:
+        os.makedirs(cfg.out_dir, exist_ok=True)
+        atomic_write(os.path.join(cfg.out_dir, "npu_history.json"), json.dumps({str(k): v for k, v in hist.items()}) + "\n")
+    except OSError:
+        pass
+
+
+def streak(entries, cfg, pred):
+    """Trailing run of history entries [ts, mean, max, claimed] for which pred(entry) holds, broken by a gap longer than three ticks
+    (the watchdog was not looking). -> (passes, seconds from its first entry to the newest)."""
+    gap_max = max(3 * cfg.interval, 1800.0)
+    n, first, prev = 0, None, None
+    for e in reversed(entries):
+        if not pred(e) or (prev is not None and prev - e[0] > gap_max):
+            break
+        n, first, prev = n + 1, e[0], e[0]
+    return (n, entries[-1][0] - first) if n else (0, 0.0)
+
+
+def analyse_npu(raw, runs, queued, cfg, hist=None):
+    """Raw probe -> the digest's `npu` block. Two independent signals per chip, because one AICore reading cannot tell a free chip
+    from a claimed one (a container loading weights sits at 0 % AICore while fully claimed):
+      claimed  = a resident process (proc-mem, and the process table of `npu-smi info`), or HBM above the ~3450 MB driver baseline;
+      working  = AICore, the latest snapshots and a rolling history of earlier passes.
+    States: unclaimed | quiet (claimed, near-zero AICore, not yet long enough to mean anything) | wedged? (claimed, near-zero for
+    --npu-wedged-passes consecutive passes spanning --npu-wedged-seconds) | low (claimed, below --npu-low-pct: informational, a
+    launch-bound kernel runs healthy at 9-22 %) | busy. Flags: unclaimed while any run is running or queued (decide), wedged? (read);
+    never a flag for one low sample. A chip's own throughput against the run's declared baseline is the real health measure."""
+    out = {"available": False, "reason": None, "host": cfg.npu_host, "sampled_utc": None, "samples": 0, "chips": [], "unclaimed": [],
+           "wedged": [], "quiet": [], "low": [], "running_runs": 0, "queued_runs": 0, "flags": [], "escalation": "none",
+           "low_pct": cfg.npu_low_pct}
+    if not raw.get("ok"):
+        out["reason"] = raw.get("reason") or "unavailable"
+        return out
+    snaps = raw["samples"]
+    last = snaps[-1]
+    by_path = {r["path"]: r["id"] for r in runs}
+    state_of = {r["id"]: r["state"] for r in runs}
+    table = {}
+    for pr in last["procs"]:
+        table.setdefault(pr["npu"], {})[pr["pid"]] = pr
+    h = hist if hist is not None else {}
+    chips = []
+    for c in last["chips"]:
+        key = (c["npu"], c["chip"])
+        vals = [x["aicore_pct"] for s_ in snaps for x in s_["chips"] if (x["npu"], x["chip"]) == key]
+        mean = sum(vals) / float(len(vals))
+        procs = dict(table.get(c["npu"], {}))
+        for pr in raw.get("procmem", {}).get(c["npu"], []):
+            procs.setdefault(pr["pid"], pr)
+        pl, claimed_runs = [], set()
+        for pid, pr in sorted(procs.items()):
+            ids = claim_runs(raw["ps"].get(pid), by_path)
+            claimed_runs |= ids
+            pl.append({"pid": pid, "name": pr["name"], "mem_mb": pr["mem_mb"], "runs": sorted(ids)})
+        claimed = bool(pl) or c["hbm_used_mb"] > cfg.npu_idle_hbm_mb
+        hl = h.setdefault(c["npu"], [])
+        hl.append([raw["t"], round(mean, 1), max(vals), claimed])
+        hl[:] = [e for e in hl if raw["t"] - e[0] <= NPU_HIST_KEEP_S][-48:]
+        qn, qs = streak(hl, cfg, lambda e: e[3] and e[2] <= cfg.npu_near_zero_pct)
+        un, us = streak(hl, cfg, lambda e: not e[3])
+        if not claimed:
+            st = "unclaimed"
+        elif max(vals) <= cfg.npu_near_zero_pct:
+            st = "wedged?" if (qn >= cfg.npu_wedged_passes and qs >= cfg.npu_wedged_seconds) else "quiet"
+        elif mean < cfg.npu_low_pct:
+            st = "low"
+        else:
+            st = "busy"
+        chips.append({"npu": c["npu"], "chip": c["chip"], "health": c["health"], "name": c["name"], "state": st, "claimed": claimed,
+                      "aicore_last": vals[-1], "aicore_pct": round(mean, 1), "aicore_samples": vals,
+                      "aicore_recent_passes": [[iso(e[0]), e[1]] for e in hl[-6:]], "passes_seen": len(hl),
+                      "quiet_passes": qn if st in ("quiet", "wedged?") else 0, "quiet_s": int(qs) if st in ("quiet", "wedged?") else 0,
+                      "unclaimed_passes": un if st == "unclaimed" else 0, "unclaimed_s": int(us) if st == "unclaimed" else 0,
+                      "hbm_used_mb": c["hbm_used_mb"], "hbm_total_mb": c["hbm_total_mb"], "power_w": c["power_w"], "temp_c": c["temp_c"],
+                      "claimed_by": sorted(claimed_runs), "claimed_state": {i: state_of.get(i) for i in sorted(claimed_runs)},
+                      "processes": pl[:8], "n_processes": len(pl), "processes_without_run": sum(1 for p_ in pl if not p_["runs"])})
+    n_run = sum(1 for r in runs if r["state"] == "running")
+    n_q = len(queued)
+    names = {k: [c["npu"] for c in chips if c["state"] == v] for k, v in
+             (("unclaimed", "unclaimed"), ("wedged", "wedged?"), ("quiet", "quiet"), ("low", "low"))}
+    out.update(names)
+    out.update({"available": True, "sampled_utc": iso(raw["t"]), "samples": len(snaps), "chips": chips,
+                "running_runs": n_run, "queued_runs": n_q})
+
+    def ids(lst):
+        return ",".join(str(x) for x in lst)
+    work = n_run + n_q
+    if out["unclaimed"]:
+        if work:
+            since = ", ".join("%d %s" % (c["npu"], ("for >=%s (%d passes)" % (human_age(c["unclaimed_s"]), c["unclaimed_passes"]))
+                                         if c["unclaimed_passes"] > 1 else "first seen this pass") for c in chips if c["state"] == "unclaimed")
+            out["flags"].append({"kind": "unclaimed_while_work", "escalation": "decide", "chips": out["unclaimed"], "text":
+                                 "NPU UNCLAIMED (no resident process, baseline HBM only) while %d run(s) running and %d queued: chip %s. "
+                                 "A container still starting is not yet visible, so a first sighting may be one" % (n_run, n_q, since)})
+        else:
+            out["flags"].append({"kind": "unclaimed_no_work", "escalation": "read", "chips": out["unclaimed"], "text":
+                                 "NPU UNCLAIMED chips %s and nothing running or queued: unused capacity" % ids(out["unclaimed"])})
+    if out["wedged"]:
+        det = ", ".join("%d for >=%s (%d passes)" % (c["npu"], human_age(c["quiet_s"]), c["quiet_passes"]) for c in chips if c["state"] == "wedged?")
+        out["flags"].append({"kind": "possibly_wedged", "escalation": "read", "chips": out["wedged"], "text":
+                             "NPU CLAIMED BUT NEAR-ZERO AICore (<=%g%%) possibly wedged or starved: chip %s" % (cfg.npu_near_zero_pct, det)})
+    if out["low"]:
+        out["flags"].append({"kind": "claimed_low_info", "escalation": "none", "chips": out["low"], "text":
+                             "info: claimed chips %s below %g%% AICore (%s); not a fault by itself, judge by throughput against the run's own baseline" % (
+                                 ids(out["low"]), cfg.npu_low_pct, ", ".join("%d=%g%%" % (c["npu"], c["aicore_last"]) for c in chips if c["state"] == "low"))})
+    acts = [f["escalation"] for f in out["flags"] if f["escalation"] != "none"]
+    out["escalation"] = "decide" if "decide" in acts else "read" if acts else "none"
+    return out
+
+
+def npu_fragment(npu):
+    """Compact status for the summary line: always present, a few dozen bytes."""
+    if not npu:
+        return ""
+    if not npu["available"]:
+        return " | npu n/a"
+    n = len(npu["chips"])
+    ids = lambda l: ",".join(str(x) for x in l)   # noqa: E731
+    bits = []
+    if npu["unclaimed"]:
+        bits.append("UNCLAIMED %s (%d run, %d queued)" % (ids(npu["unclaimed"]), npu["running_runs"], npu["queued_runs"]))
+    if npu["wedged"]:
+        bits.append("wedged? %s" % ids(npu["wedged"]))
+    if npu["low"]:
+        bits.append("low %s" % ids(npu["low"]))
+    if not bits:
+        return " | npu %d/%d claimed" % (n - len(npu["unclaimed"]), n)
+    return " | npu " + "; ".join(bits) + " of %d" % n
+
+
+def _aicore_cell(c):
+    prev = [e[1] for e in c["aicore_recent_passes"][:-1]][-3:]
+    return "%g%%" % c["aicore_last"] + (" [%s]" % " ".join("%g" % v for v in prev) if prev else "")
+
+
+def npu_block_lines(npu, level):
+    """Level 1: the escalation line(s) (or the reason the probe failed). Level 2: also the per-chip table."""
+    if not npu:
+        return []
+    ts = (npu.get("sampled_utc") or "")[11:16]
+    if not npu["available"]:
+        return ["NPU utilisation unavailable (%s): %s" % (npu["host"], _clip(npu["reason"], 140))]
+    lines = ["- [%s] %s" % (f["escalation"], _clip(f["text"], 200)) if f["escalation"] != "none" else "- %s" % _clip(f["text"], 200)
+             for f in npu["flags"]]
+    if not lines:
+        lines = ["NPU: every chip is claimed by a process and none is near-zero for long (%s)" % ts]
+    if level >= 2:
+        lines += ["| chip | AICore [earlier passes] | HBM GiB | state | claimed by |", "|---|---|---|---|---|"]
+        for c in npu["chips"]:
+            cl = list(c["claimed_by"])
+            who = ", ".join(_clip(x, 36) + ("" if c["claimed_state"].get(x) == "running" else "(%s)" % c["claimed_state"].get(x)) for x in cl[:2]) \
+                + (" +%d" % (len(cl) - 2) if len(cl) > 2 else "")
+            if not cl:
+                who = ("%d proc, no run dir" % c["n_processes"]) if c["n_processes"] else ("HBM only" if c["claimed"] else "-")
+            st = c["state"] + (" %s" % human_age(c["quiet_s"]) if c["state"] in ("quiet", "wedged?") and c["quiet_s"] else "")
+            lines.append("| %d | %s | %.1f/%.0f | %s | %s |" % (c["npu"], _aicore_cell(c), c["hbm_used_mb"] / 1024.0,
+                                                             c["hbm_total_mb"] / 1024.0, st, who))
+    return lines
 
 
 # ----------------------------------------------------------------------------- digest
@@ -1166,8 +1757,8 @@ def build_digest(cfg, states, now=None, sched=None):
     its run due at once (one stat per marker name per tick)."""
     now = time.time() if now is None else now
     slack = 0.1 * cfg.interval if sched is not None else 0.0   # tick jitter must not push a due run one whole tick late
-    runs, seen = [], set()
-    for r in discover(cfg):
+    runs, seen, queued = [], set(), []
+    for r in discover(cfg, queued):
         seen.add(r["path"])
         ent = sched.get(r["path"]) if sched is not None else None
         if ent is not None and now + slack < ent["next"] and marker_set(r["path"], cfg) <= ent["markers"]:
@@ -1194,7 +1785,7 @@ def build_digest(cfg, states, now=None, sched=None):
         "tiers": cfg.tiers, "stall_override_s": cfg.stall_seconds, "watch_interval_s": cfg.interval if cfg.watch else None,
         "expected_downgrades": {"count": sum(1 for r in runs if r["escalation_before_expected"]),
                                 "runs": [r["id"] for r in runs if r["escalation_before_expected"]]},
-        "worst_state": worst if runs else "no_runs", "exit_code": code, "counts": counts, "runs": runs,
+        "worst_state": worst if runs else "no_runs", "exit_code": code, "counts": counts, "queued": sorted(set(queued)), "runs": runs,
     }
 
 
@@ -1242,7 +1833,7 @@ def _scope_lines(r, scope):
     return out
 
 
-def build_blocks(dg, cfg):
+def build_blocks(dg, cfg, level=0):
     """Digest content as prioritised blocks: (priority, section, label, lines). Lower priority number survives longer.
     0 summary + status rows of failed/stalled/unknown; 1 other status rows; 2 failed/stalled runs (pointers, errors);
     3 flags on the primary scorer; 4 error signatures; 5 flags on other scorers; 6 everything else."""
@@ -1258,15 +1849,19 @@ def build_blocks(dg, cfg):
         "# Watchdog digest %s" % dg["generated_utc"],
         "worst=%s exit=%d | runs=%d: failed %d, stalled %d, unknown %d, running %d, done %d, archived %d | tick %s | host %s" % (
             dg["worst_state"], dg["exit_code"], len(runs), c["failed"], c["stalled"], c["unknown"], c["running"],
-            c["done"], c["archived"], human_age(dg["watch_interval_s"]) if dg["watch_interval_s"] else "one-shot", dg["host"])])
+            c["done"], c["archived"], human_age(dg["watch_interval_s"]) if dg["watch_interval_s"] else "one-shot", dg["host"])
+        + npu_fragment(dg.get("npu"))])
+    if level >= 1 and dg.get("npu"):
+        add(0, "host", "host utilisation", npu_block_lines(dg["npu"], level))
     clean = [r for r in runs if r["state"] == "done" and r["escalation"] == "none"]
     arch = [r for r in runs if r["state"] == "archived"]
     shown = [r for r in runs if r not in clean and r not in arch]
     bad = ("failed", "stalled", "unknown")
     for r in shown:
-        row = "| %s | %s | %s | %s | %s | %s | %s |" % (
+        row = "| %s | %s | %s | %s | %s | %s | %s | %s |" % (
             _clip(r["id"], 40), r["state"], r["escalation"] + (" expected=yes" if r["expected_applied"] else ""), human_age(r["age_s"]),
             _watch_cell(r), _clip(_prog_cell(r["progress"]), 48),
+            _clip(_perf_cell(r.get("perf")) if r["state"] in ("running", "stalled") else "-", 64),
             _clip(r["escalation_reason"] or r["state_reason"], 70))
         add(0 if r["state"] in bad else 1, "runs", "status rows", [row])
         if r["why"]:
@@ -1320,8 +1915,9 @@ def build_blocks(dg, cfg):
     return B
 
 
-SECTIONS = [("head", []), ("runs", ["", "## Runs (worst first)", "| run | state | esc | age | watch | progress | why |", "|---|---|---|---|---|---|---|",
-                                      "(watch = tier/source last>next full read, UTC; file = WATCH.json, hbNm = inferred period, dflt = default. progress = SUM of the heartbeat row counters of all scorers, rate = change over the last 15 min of heartbeats; 'left' only with a declared total: a widened range assuming UNIFORM cost per row, wrong when work per row varies; 'no ETA' = run declared uniform_cost false; 'rough' = under 15 min seen)"]),
+SECTIONS = [("head", []), ("host", ["", "## Host utilisation (NPU: claimed = a resident process; AICore = latest snapshot [earlier passes]; claimed by = run named in the process command line)"]),
+            ("runs", ["", "## Runs (worst first)", "| run | state | esc | age | watch | progress | perf | why |", "|---|---|---|---|---|---|---|---|",
+                                      "(watch = tier/source last>next full read, UTC; file = WATCH.json, hbNm = inferred period, dflt = default. progress = SUM of the heartbeat row counters of all scorers, rate = change over the last 15 min of heartbeats; 'left' only with a declared total: a widened range assuming UNIFORM cost per row, wrong when work per row varies; 'no ETA' = run declared uniform_cost false; 'rough' = under 15 min seen. perf (running/stalled): per chip, xN chips, r= vs declared baseline, base? = none; host = CPU run)"]),
             ("flags", ["", "## Flags"]),
             ("esc", ["", "## Escalation (read: tier-1 reads these slices, paths relative to dir; decide: orchestrator chooses)"]),
             ("errors", ["", "## Error signatures (count, first..last, exemplar pointer)"])]
@@ -1345,14 +1941,16 @@ def _assemble(blocks, keep):
     return out
 
 
-def render_md(dg, cfg):
-    blocks = build_blocks(dg, cfg)
-    cap = cfg.max_md_bytes
+def _block_key(b):
+    return (b[0], b[1], b[2], tuple(b[3]))
+
+
+def _render_blocks(blocks, cap):
+    """(text, kept non-host block keys, whether the host block survived). Priority-ordered truncation: keep the lowest priority numbers;
+    once a block of some priority does not fit, every block of a higher number is dropped too, so what survives is what matters."""
     full = _assemble(blocks, set(range(len(blocks)))) + TAIL
     if _size(full) <= cap:
-        return "\n".join(full) + "\n"
-    # Priority-ordered truncation: keep the lowest priority numbers; once a block of some priority does not fit,
-    # every block of a higher number is dropped too, so what survives is what matters.
+        return "\n".join(full) + "\n", frozenset(_block_key(b) for b in blocks if b[1] not in ("host", "head")), True
     order = sorted(range(len(blocks)), key=lambda i: (blocks[i][0], i))
     keep, dropped, cut = set(), [], None
     budget = cap - NOTE_RESERVE
@@ -1378,7 +1976,30 @@ def render_md(dg, cfg):
     if len(note.encode()) > NOTE_RESERVE - 10:
         note = note.encode()[:NOTE_RESERVE - 20].decode("utf-8", "ignore") + "...]"
     text = "\n".join(_assemble(blocks, keep) + TAIL + [note]) + "\n"
-    return enforce_cap(text, cap)
+    return enforce_cap(text, cap), frozenset(_block_key(blocks[i]) for i in keep if blocks[i][1] not in ("host", "head")), \
+        any(blocks[i][1] == "host" for i in keep)
+
+
+def render_md(dg, cfg):
+    """NPU content is added only where it displaces nothing that matters. Level 0 is a compact fragment on the summary line; level 1
+    adds the escalation line(s), level 2 the per-chip table. The fragment is used only if every block of priority 0..3 (summary rows of
+    failed/stalled/unknown runs, other status rows, failed-run pointers, primary-scorer flags) that survives truncation without any NPU
+    content still survives with it; levels 1 and 2 only if NOTHING else changes. So on a saturated digest the host block is simply not
+    shown (digest.json always has it), and it can never push a failed row or a primary flag out."""
+    cap = cfg.max_md_bytes
+    base_dg = {k: v for k, v in dg.items() if k != "npu"}
+    text_base, keys_base, _ = _render_blocks(build_blocks(base_dg, cfg, 0), cap)
+    if not dg.get("npu"):
+        return text_base
+    text0, keys0, _ = _render_blocks(build_blocks(dg, cfg, 0), cap)
+    crit = lambda keys: {k for k in keys if k[0] <= 3}   # noqa: E731
+    if not crit(keys_base) <= crit(keys0):
+        return text_base
+    for level in (2, 1):
+        text, keys, host_in = _render_blocks(build_blocks(dg, cfg, level), cap)
+        if host_in and keys == keys0:
+            return text
+    return text0
 
 
 def enforce_cap(text, cap):
@@ -1413,8 +2034,29 @@ def write_outputs(dg, md, cfg):
             lockf.close()
 
 
-def run_once(cfg, states, now=None, sched=None):
+NPU_HIST_KEY = "\0npu_hist"
+
+
+def npu_pass(cfg, dg, states):
+    """The `npu` block for this pass. Optional and non-fatal: any failure becomes an `available: false` block with the reason."""
+    try:
+        if NPU_HIST_KEY not in states:
+            states[NPU_HIST_KEY] = load_npu_history(cfg)      # survives restarts and serves one-shot passes against the same out-dir
+        hist = states[NPU_HIST_KEY]
+        npu = analyse_npu(probe_npu(cfg), dg["runs"], dg["queued"], cfg, hist)
+        if npu["available"]:
+            save_npu_history(cfg, hist)
+        return npu
+    except Exception as e:   # noqa: BLE001 - the digest must survive a broken probe
+        return {"available": False, "reason": "npu analysis failed: %s" % repr(e)[:100], "host": cfg.npu_host, "chips": [],
+                "low": [], "unclaimed": [], "wedged": [], "quiet": [], "flags": [], "escalation": "none", "sampled_utc": None, "samples": 0,
+                "running_runs": 0, "queued_runs": 0}
+
+
+def run_once(cfg, states, now=None, sched=None, npu=False):
     dg = build_digest(cfg, states, now, sched)
+    if npu and not cfg.no_npu and cfg.npu_host:
+        dg["npu"] = npu_pass(cfg, dg, states)
     md = render_md(dg, cfg)
     write_outputs(dg, md, cfg)
     return dg, md
@@ -1436,7 +2078,7 @@ def main(argv=None):
               "Pass --allow-fast-poll to override (tests, debugging)." % (cfg.interval, MIN_INTERVAL), file=sys.stderr)
         return 2
     if not cfg.watch:
-        dg, md = run_once(cfg, states)
+        dg, md = run_once(cfg, states, npu=True)
         print(summary_line(dg))
         if cfg.print_md:
             sys.stdout.write(md)
@@ -1458,7 +2100,7 @@ def main(argv=None):
     while not stop:
         t0 = time.time()
         try:
-            dg, _ = run_once(cfg, states, sched=sched)
+            dg, _ = run_once(cfg, states, sched=sched, npu=True)
             code = dg["exit_code"]
             print(summary_line(dg), flush=True)
         except Exception as e:   # a bad pass must not kill the watcher

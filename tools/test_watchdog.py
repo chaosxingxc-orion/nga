@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # -P removes th
 import watchdog as wd  # noqa: E402
 
 warnings.simplefilter("ignore", ResourceWarning)
+os.environ["WATCHDOG_NO_NPU"] = "1"   # the CLI tests below must never ssh to a real host; the NPU tests pass their own probe
 NOW = 1_800_000_000.0
 PFLAG = ["-P"] if sys.version_info >= (3, 11) else []
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -1232,6 +1233,506 @@ class UniformCost(unittest.TestCase):
         md = wd.render_md(dg, cfg)
         self.assertIn("UNIFORM cost per row", md)
         self.assertIn("wrong when work per row varies", md)
+
+# ----------------------------------------------------------------------------- throughput and NPU utilisation
+def smi_text(chips, procs=()):
+    """npu-smi info in its real shape: TWO lines per chip, then the process table. chips: [(npu, aicore, hbm_used_mb)]."""
+    out = ["+---------------------------+---------------+----------------------------------------------------------------------+",
+           "| NPU   Name                | Health        | Power(W)             Temp(C)                 Hugepages-Usage(page)   |",
+           "| Chip                      | Bus-Id        | AICore(%)            Memory-Usage(MB)        HBM-Usage(MB)           |",
+           "+===========================+===============+======================================================================+"]
+    for n, ai, hbm in chips:
+        out.append("| %-5d 910B3               | OK            | 184.4                58                      0    / 0                |" % n)
+        out.append("| 0                         | 0000:C%d:00.0  | %-20d 0    / 0                %-5d/ 65536            |" % (n, ai, hbm))
+        out.append("+===========================+===============+======================================================================+")
+    out.append("| NPU     Chip              | Process id    | Process name       | Process memory(MB)    | Process id in container |")
+    for n, pid, mem in procs:
+        out.append("| %-7d 0                 | %-13d | python3            | %-21d | NA                      |" % (n, pid, mem))
+    return "\n".join(out) + "\n"
+
+
+def procmem_text(npu, procs):
+    body = "".join("\tProcess id:%d Process name:python3           Process memory(MB):%d\n" % p for p in procs) or "\tNo process in device.\n"
+    return "\tNPU ID                         : %d\n\tChip Count                     : 1\n\n%s\tChip ID                        : 0\n" % (npu, body)
+
+
+def hb_perf(offset, tok=32062, q=3.41, chips=1, k=1, gib=20.0, done=20, total=3116):
+    return hb_line(offset, "step done=%d total=%d loss=1.2 step_s=1.58 tok_s_chip_w20=%d q_s_chip_w20=%.2f chips=%d procs_on_chip=%d reserved_gib=%.1f" % (
+        done, total, tok, q, chips, k, gib))
+
+
+def perf_json(path, win_tok=1000.0, win_q=10.0, base=(1000.0, 10.0), utc_off=-20, chips=1, k=1):
+    o = {"utc": wd.iso(NOW + utc_off), "step": 200, "total_steps": 3116, "chips": chips, "procs_on_chip": k, "window_steps": 20,
+         "reserved_gib_peak": 20.5,
+         "window": {"tok_s_proc": win_tok, "q_s_proc": win_q, "step_s_mean": 2.0, "tok_s_chip_equiv": win_tok * k, "q_s_chip_equiv": win_q * k},
+         "baseline": ({"steps": [20, 120], "n_steps": 101, "tok_s_proc": base[0], "q_s_proc": base[1], "step_s_mean": 2.0} if base else None),
+         "ratio_to_baseline": None}
+    with open(path, "w") as f:
+        json.dump(o, f)
+
+
+class ThroughputParsing(unittest.TestCase):
+    def test_per_chip_and_host_fields_keep_their_scope(self):
+        a = wd.parse_perf_fields("step done=20 tok_s_chip_w20=32062 q_s_chip_w20=3.41 chips=1 procs_on_chip=2 reserved_gib=20.0 step_s=1.58")
+        self.assertEqual((a["scope"], a["tok_s"], a["ex_s"], a["ex_unit"], a["window"], a["chips"], a["procs_on_chip"], a["reserved_gib"]),
+                         ("chip", 32062.0, 3.41, "q", 20, 1, 2, 20.0))
+        h = wd.parse_perf_fields("x:y done=64 total=80 ex_s_host_nochip_w20=0.55 tok_s_host_nochip_w20=128 chips=0")
+        self.assertEqual((h["scope"], h["tok_s"], h["ex_s"], h["ex_unit"], h["chips"]), ("host", 128.0, 0.55, "ex", 0))
+        self.assertIsNone(wd.parse_perf_fields("alive pid=78 log_lines=0"))
+        self.assertIsNone(wd.parse_perf_fields("alive_shards=6/6 rows: a=5"))
+
+    def test_heartbeat_progress_is_unchanged_by_the_new_fields(self):
+        s = wd.parse_heartbeat_line(hb_perf(0).strip())
+        self.assertEqual((s["done"], s["total"]), (20, 3116))
+        s = wd.parse_heartbeat_line("2026-10-30T03:03:53Z HEARTBEAT decision-v7/dev clean 6/6 ex_s_host_nochip_w20=3454.71 tok_s_host_nochip_w20=1085642 chips=0")
+        self.assertEqual((s["done"], s["total"], s["perf"]["scope"], s["perf"]["tok_s"]), (6, 6, "host", 1085642.0))
+
+    def test_progress_log_median_of_step_lines(self):
+        t = Tree()
+        d = t.run("r", heartbeat=hb_line(-30, "alive pid=1"))
+        with open(os.path.join(d, "progress.log"), "w") as f:
+            for i, tok in enumerate((400, 594, 332, 538, 456)):
+                f.write(hb_line(-100 + i, "step %d/100 epoch 0 loss 0.8 lr 1e-4 gnorm 1 step_s 5.0 tok/s/chip %d q/s/chip 1.95 chips 1 reserved_gib 6.6" % (i + 1, tok)).replace("\n", "\n"))
+        p = t.digest()["runs"][0]["perf"]
+        self.assertEqual((p["scope"], p["tok_s"], p["chips"], p["sources"], p["baseline"]), ("chip", 456.0, 1, ["progress.log"], "undeclared"))
+
+
+class ThroughputInDigest(unittest.TestCase):
+    def _row(self, t, **kw):
+        cfg = t.cfg(**kw)
+        md = wd.render_md(wd.build_digest(cfg, {}, NOW), cfg)
+        return [ln for ln in md.splitlines() if ln.startswith("| r |")][0]
+
+    def test_running_row_shows_per_chip_rates_chip_count_and_reserved(self):
+        t = Tree()
+        t.run("r", heartbeat=hb_perf(-60, done=10) + hb_perf(-30, done=20))
+        row = self._row(t)
+        for frag in ("32062 tok/s/chip", "3.41 q/s/chip", "x1", "20.0GiB", "base?"):
+            self.assertIn(frag, row)
+        p = t.digest()["runs"][0]["perf"]
+        self.assertEqual((p["scope"], p["chips"], p["baseline"], p["ratio"], p["regressed"]), ("chip", 1, "undeclared", None, False))
+
+    def test_host_rates_of_a_cpu_run_are_never_shown_per_chip(self):
+        t = Tree()
+        t.run("r", heartbeat=hb_line(-60, "trackT:x done=32 total=80 ex_s_host_nochip_w20=0.55 tok_s_host_nochip_w20=128 chips=0") +
+              hb_line(-30, "trackT:x done=64 total=80 ex_s_host_nochip_w20=0.59 tok_s_host_nochip_w20=130 chips=0"))
+        row = self._row(t)
+        self.assertIn("host 130 tok/s, 0.59 ex/s (chips=0)", row)
+        self.assertNotIn("/chip", row)
+        p = t.digest()["runs"][0]["perf"]
+        self.assertEqual((p["scope"], p["chips"]), ("host", 0))
+
+    def test_children_are_found_and_processes_sharing_a_chip_count_once(self):
+        t = Tree()
+        d = t.run("r", heartbeat=hb_line(-30, "alive pid=78 log_lines=0"))
+        for i in range(2):
+            c = os.path.join(d, "res", "p%d" % i)
+            os.makedirs(c)
+            with open(os.path.join(c, "heartbeat.log"), "w") as f:
+                f.write(hb_perf(-30, tok=4000 + 1000 * i, chips=1, k=2, gib=23.0))
+        p = t.digest()["runs"][0]["perf"]
+        self.assertEqual((p["n_procs"], p["chips"], p["procs_on_chip"], p["tok_s"]), (2, 1, 2, 4500.0))
+        self.assertIn("x1/2p", self._row(t))
+        d2 = t.run("q", heartbeat=hb_line(-30, "alive pid=78"))
+        for i in range(4):
+            c = os.path.join(d2, "res", "p%d" % i)
+            os.makedirs(c)
+            with open(os.path.join(c, "heartbeat.log"), "w") as f:
+                f.write(hb_perf(-30))
+        self.assertEqual(next(r for r in t.digest()["runs"] if r["id"] == "q")["perf"]["chips"], 4)
+
+    def test_finished_rows_carry_perf_only_in_json(self):
+        t = Tree()
+        t.run("r", heartbeat=hb_perf(-60) + hb_perf(-30), marker="rc=0 utc=2027-01-15T08:00:00Z")
+        dg = t.digest()
+        self.assertEqual(dg["runs"][0]["perf"]["tok_s"], 32062.0)
+
+
+class ThroughputRegression(unittest.TestCase):
+    def _t(self, win_tok, base=(1000.0, 10.0), marker=None, utc_off=-20, win_q=None):
+        t = Tree()
+        d = t.run("r", heartbeat=hb_perf(-60, done=10) + hb_perf(-30, done=20), marker=marker)
+        perf_json(os.path.join(d, "perf.json"), win_tok=win_tok, win_q=win_q if win_q is not None else win_tok / 100.0, base=base, utc_off=utc_off)
+        return t
+
+    def test_below_seven_tenths_of_the_declared_baseline_escalates_like_a_stall(self):
+        t = self._t(600.0)
+        r = t.digest()["runs"][0]
+        self.assertEqual((r["state"], r["escalation"], r["perf_regression"]), ("running", "decide", True))
+        self.assertIn("THROUGHPUT REGRESSION 0.60x", r["escalation_reason"])
+        self.assertAlmostEqual(r["perf"]["ratio"], 0.6)
+        self.assertEqual(r["pointers"][0]["path"], os.path.join(r["path"], "perf.json"))
+        cfg = t.cfg()
+        md = wd.render_md(wd.build_digest(cfg, {}, NOW), cfg)
+        row = [ln for ln in md.splitlines() if ln.startswith("| r |")][0]
+        self.assertIn("r=0.60", row)
+        self.assertIn("THROUGHPUT REGRESSION", row)
+
+    def test_at_or_above_the_threshold_is_not_flagged(self):
+        for w in (700.0, 950.0, 1400.0):
+            r = self._t(w).digest()["runs"][0]
+            self.assertEqual((r["escalation"], r["perf_regression"]), ("none", False), w)
+
+    def test_no_declared_baseline_is_stated_not_invented(self):
+        t = self._t(10.0, base=None)
+        r = t.digest()["runs"][0]
+        self.assertEqual((r["escalation"], r["perf"]["baseline"], r["perf"]["ratio"]), ("none", "undeclared", None))
+        cfg = t.cfg()
+        self.assertIn("base?", wd.render_md(wd.build_digest(cfg, {}, NOW), cfg))
+
+    def test_only_a_running_run_is_flagged(self):
+        r = self._t(300.0, marker="rc=0 utc=2027-01-15T08:00:00Z").digest()["runs"][0]
+        self.assertEqual((r["state"], r["escalation"], r["perf_regression"]), ("done", "none", False))
+        self.assertAlmostEqual(r["perf"]["ratio"], 0.3)
+
+    def test_a_stale_perf_json_is_not_flagged(self):
+        r = self._t(300.0, utc_off=-5000).digest()["runs"][0]
+        self.assertEqual((r["escalation"], r["perf"]["ratio_stale"], r["perf_regression"]), ("none", True, False))
+
+    def test_ratio_key_and_threshold_are_options(self):
+        t = self._t(900.0, win_q=5.0)                  # tokens 0.9x, questions 0.5x
+        self.assertEqual(t.digest()["runs"][0]["escalation"], "none")
+        self.assertEqual(t.digest(perf_ratio_key="q_s")["runs"][0]["escalation"], "decide")
+        self.assertEqual(t.digest(perf_regress_ratio=0.95)["runs"][0]["escalation"], "decide")
+
+    def test_worst_process_decides(self):
+        t = Tree()
+        d = t.run("r", heartbeat=hb_line(-30, "alive pid=78"))
+        for i, w in enumerate((1000.0, 500.0)):
+            c = os.path.join(d, "res", "p%d" % i)
+            os.makedirs(c)
+            with open(os.path.join(c, "heartbeat.log"), "w") as f:
+                f.write(hb_perf(-30))
+            perf_json(os.path.join(c, "perf.json"), win_tok=w)
+        r = t.digest()["runs"][0]
+        self.assertEqual((r["escalation"], r["perf"]["ratio_dir"]), ("decide", os.path.join("res", "p1")))
+        self.assertEqual(r["pointers"][0]["path"], os.path.join(d, "res", "p1", "perf.json"))
+
+    def test_eval_shaped_perf_json_on_cpu_is_host(self):
+        t = Tree()
+        d = t.run("r", heartbeat=hb_line(-30, "alive"))
+        with open(os.path.join(d, "perf.json"), "w") as f:
+            json.dump({"utc": wd.iso(NOW - 10), "chips": 0, "device": "cpu", "examples_per_s_per_chip": None, "tokens_per_s_per_chip": None,
+                       "examples_per_s_total_for_reference": 0.55, "tokens_per_s_total_for_reference": 127.5, "window_calls": 20}, f)
+        p = t.digest()["runs"][0]["perf"]
+        self.assertEqual((p["scope"], p["tok_s"], p["ex_s"], p["chips"]), ("host", 127.5, 0.55, 0))
+        with open(os.path.join(d, "perf.json"), "w") as f:
+            json.dump({"utc": wd.iso(NOW - 10), "chips": 2, "examples_per_s_per_chip": 4.0, "tokens_per_s_per_chip": 900.0}, f)
+        p = t.digest()["runs"][0]["perf"]
+        self.assertEqual((p["scope"], p["tok_s"], p["ex_s"], p["chips"]), ("chip", 900.0, 4.0, 2))
+
+    def test_cached_tick_follows_the_rate_but_keeps_the_escalation_of_the_last_full_read(self):
+        t = self._t(600.0)
+        cfg = t.cfg(interval=600.0, watch=True)
+        sched = {}
+        self.assertEqual(wd.build_digest(cfg, {}, NOW, sched)["runs"][0]["escalation"], "decide")
+        d = os.path.join(t.root, "r")
+        perf_json(os.path.join(d, "perf.json"), win_tok=990.0, utc_off=300)
+        r = wd.build_digest(cfg, {}, NOW + 300, sched)["runs"][0]
+        self.assertEqual(r["watch"]["last_eval_utc"], wd.iso(NOW))      # cached
+        self.assertAlmostEqual(r["perf"]["ratio"], 0.99)                # the rate follows
+        self.assertEqual(r["escalation"], "decide")                     # the escalation waits for the next full read
+
+
+NPU_REAL = """\
++---------------------------+---------------+----------------------------------------------------------------------+
+| NPU   Name                | Health        | Power(W)             Temp(C)                 Hugepages-Usage(page)   |
+| Chip                      | Bus-Id        | AICore(%)            Memory-Usage(MB)        HBM-Usage(MB)           |
++===========================+===============+======================================================================+
+| 0     910B3               | OK            | 184.4                58                      0    / 0                |
+| 0                         | 0000:C1:00.0  | 55                   0    / 0                16209/ 65536            |
++===========================+===============+======================================================================+
+| 4     910B3               | OK            | 101.3                43                      0    / 0                |
+| 0                         | 0000:01:00.0  | 0                    0    / 0                3455 / 65536            |
++===========================+===============+======================================================================+
+| NPU     Chip              | Process id    | Process name       | Process memory(MB)    | Process id in container |
++===========================+===============+======================================================================+
+| 0       0                 | 1176824       | python3            | 12810                 | NA                      |
++===========================+===============+======================================================================+
+| No running processes found in NPU 4                                                                              |
++===========================+===============+======================================================================+
+"""
+
+
+def raw_probe(chips, procmem=None, ps=None, procs=(), t=NOW, snaps=1):
+    """What probe_npu returns, built from (npu, aicore_list, hbm) tuples; `snaps` identical snapshots unless aicore is a list."""
+    samples = []
+    for k in range(snaps):
+        samples.append(wd.parse_npu_smi(smi_text([(n, a[k] if isinstance(a, list) else a, h) for n, a, h in chips], procs)))
+    return {"ok": True, "samples": samples, "procmem": procmem or {}, "ps": ps or {}, "t": t}
+
+
+class NpuParsing(unittest.TestCase):
+    def test_two_lines_per_chip_and_the_process_table(self):
+        s = wd.parse_npu_smi(NPU_REAL)
+        self.assertEqual([(c["npu"], c["aicore_pct"], c["hbm_used_mb"], c["hbm_total_mb"], c["health"], c["power_w"], c["temp_c"]) for c in s["chips"]],
+                         [(0, 55, 16209, 65536, "OK", 184.4, 58), (4, 0, 3455, 65536, "OK", 101.3, 43)])
+        self.assertEqual(s["chips"][0]["bus_id"], "0000:C1:00.0")
+        self.assertEqual([(p["npu"], p["pid"], p["name"], p["mem_mb"]) for p in s["procs"]], [(0, 1176824, "python3", 12810)])
+
+    def test_proc_mem_has_no_space_after_the_colons(self):
+        txt = procmem_text(1, [(1479047, 3936), (1479561, 31)])
+        self.assertEqual([(p["pid"], p["mem_mb"]) for p in wd.parse_proc_mem(txt)], [(1479047, 3936), (1479561, 31)])
+        self.assertEqual(wd.parse_proc_mem(procmem_text(4, [])), [])
+
+    def test_claim_walks_up_to_the_most_specific_run_directory(self):
+        by = {"/x/runs/a": "a", "/x/runs/a/res/p0": "p0run", "/x/runs": "parent"}
+        self.assertEqual(wd.claim_runs("python3 -P t.py --out /x/runs/a/res/p0 --seed 2", by), {"p0run"})
+        self.assertEqual(wd.claim_runs("python3 /x/runs/a/ckpt/step_10/m.pt", by), {"a"})
+        self.assertEqual(wd.claim_runs("python3 /x/runs/ab/foo", by), {"parent"})
+        self.assertEqual(wd.claim_runs("python3 /elsewhere/foo", by), set())
+
+
+class NpuAnalysis(unittest.TestCase):
+    def cfg(self, **kw):
+        kw.setdefault("interval", 600.0)
+        kw.setdefault("out_dir", tempfile.mkdtemp(prefix="wdnpu_"))
+        return wd.make_cfg(**kw)
+
+    def runs(self, n_running=1):
+        return [{"id": "run%d" % i, "path": "/x/run%d" % i, "state": "running"} for i in range(n_running)]
+
+    def test_unclaimed_chip_beside_running_work_is_flagged_decide(self):
+        raw = raw_probe([(0, 80, 20000), (1, 0, 3450)], procmem={0: [{"pid": 11, "name": "python3", "mem_mb": 9000}], 1: []},
+                        ps={11: "python3 t.py --out /x/run0"}, procs=[(0, 11, 9000)])
+        n = wd.analyse_npu(raw, self.runs(), [], self.cfg(), {})
+        st = {c["npu"]: c["state"] for c in n["chips"]}
+        self.assertEqual(st, {0: "busy", 1: "unclaimed"})
+        self.assertEqual(n["chips"][0]["claimed_by"], ["run0"])
+        self.assertEqual((n["escalation"], [f["kind"] for f in n["flags"]], n["unclaimed"]), ("decide", ["unclaimed_while_work"], [1]))
+
+    def test_queued_work_alone_counts(self):
+        raw = raw_probe([(1, 0, 3450)], procmem={1: []})
+        n = wd.analyse_npu(raw, [], ["q1"], self.cfg(), {})
+        self.assertEqual((n["escalation"], n["flags"][0]["kind"], n["queued_runs"]), ("decide", "unclaimed_while_work", 1))
+
+    def test_nothing_running_or_queued_is_a_read_level_unused_flag(self):
+        n = wd.analyse_npu(raw_probe([(1, 0, 3450)], procmem={1: []}), [], [], self.cfg(), {})
+        self.assertEqual((n["escalation"], n["flags"][0]["kind"]), ("read", "unclaimed_no_work"))
+
+    def test_a_claimed_chip_at_zero_aicore_is_never_unclaimed_and_one_sample_never_flags(self):
+        # a container loading weights: a resident process (31 MB is enough) or HBM above the baseline, 0 % AICore
+        for kw in (dict(procmem={2: [{"pid": 5, "name": "python3", "mem_mb": 31}]}), dict(procs=[(2, 5, 31)]), {}):
+            hbm = 12000 if not kw else 3500
+            n = wd.analyse_npu(raw_probe([(2, 0, hbm)], **kw), self.runs(), [], self.cfg(), {})
+            c = n["chips"][0]
+            self.assertTrue(c["claimed"], kw)
+            self.assertEqual((c["state"], n["flags"], n["escalation"]), ("quiet", [], "none"), kw)
+
+    def test_hbm_above_baseline_alone_claims_a_chip(self):
+        n = wd.analyse_npu(raw_probe([(2, 0, 9000)]), self.runs(), [], self.cfg(), {})
+        self.assertEqual(n["chips"][0]["state"], "quiet")
+        self.assertEqual(n["chips"][0]["processes"], [])
+
+    def test_sustained_near_zero_on_a_claimed_chip_is_flagged_with_its_duration(self):
+        cfg = self.cfg()
+        hist = {}
+        pm = {2: [{"pid": 5, "name": "python3", "mem_mb": 9000}]}
+        states = []
+        for i in range(4):                                       # four passes, 10 min apart, always 0 %
+            n = wd.analyse_npu(raw_probe([(2, [0, 0, 0], 9000)], procmem=pm, t=NOW + 600 * i, snaps=3), self.runs(), [], cfg, hist)
+            states.append(n["chips"][0]["state"])
+        self.assertEqual(states, ["quiet", "quiet", "wedged?", "wedged?"])   # 3 passes spanning 1200 s are needed; one sample never flags
+        c = n["chips"][0]
+        self.assertEqual((c["quiet_passes"], c["quiet_s"]), (4, 1800))
+        self.assertEqual((n["escalation"], n["flags"][0]["kind"]), ("read", "possibly_wedged"))
+        self.assertIn("30m", n["flags"][0]["text"])
+
+    def test_one_busy_pass_or_a_gap_resets_the_streak(self):
+        cfg = self.cfg()
+        hist = {}
+        pm = {2: [{"pid": 5, "name": "python3", "mem_mb": 9000}]}
+        for i, a in enumerate((0, 0, 60, 0, 0)):
+            n = wd.analyse_npu(raw_probe([(2, a, 9000)], procmem=pm, t=NOW + 600 * i), self.runs(), [], cfg, hist)
+        self.assertEqual((n["chips"][0]["state"], n["chips"][0]["quiet_passes"]), ("quiet", 2))
+        hist = {}
+        for i, off in enumerate((0, 600, 1200, 1200 + 7200)):          # two-hour hole: the watchdog was not looking
+            n = wd.analyse_npu(raw_probe([(2, 0, 9000)], procmem=pm, t=NOW + off), self.runs(), [], cfg, hist)
+        self.assertEqual((n["chips"][0]["state"], n["chips"][0]["quiet_passes"]), ("quiet", 1))
+
+    def test_claimed_and_low_is_informational_not_an_escalation(self):
+        # a launch-bound job runs healthy at 9-22 % AICore
+        raw = raw_probe([(0, 9, 20000), (1, 22, 20000), (2, 80, 20000)], procs=[(0, 1, 9000), (1, 2, 9000), (2, 3, 9000)])
+        n = wd.analyse_npu(raw, self.runs(), [], self.cfg(), {})
+        self.assertEqual([c["state"] for c in n["chips"]], ["low", "low", "busy"])
+        self.assertEqual((n["escalation"], [(f["kind"], f["escalation"]) for f in n["flags"]]), ("none", [("claimed_low_info", "none")]))
+
+    def test_history_is_persisted_between_one_shot_passes(self):
+        cfg = self.cfg(root=[tempfile.mkdtemp(prefix="wdroot_")])
+        states = {}
+        raw = {"ok": True}
+        orig = wd.probe_npu
+        try:
+            for i in range(2):
+                wd.probe_npu = lambda c, i=i: raw_probe([(2, 0, 9000)], t=NOW + 600 * i)
+                dg = {"runs": [], "queued": []}
+                n = wd.npu_pass(cfg, dg, states)
+                states.clear()                                  # a new process each time: only the file carries the history
+            self.assertEqual(n["chips"][0]["passes_seen"], 2)
+        finally:
+            wd.probe_npu = orig
+
+    def test_probe_failure_is_reported_not_raised(self):
+        n = wd.analyse_npu({"ok": False, "reason": "ssh failed"}, [], [], self.cfg(), {})
+        self.assertEqual((n["available"], n["reason"], n["flags"]), (False, "ssh failed", []))
+
+
+class NpuProbeAndRender(unittest.TestCase):
+    def bin_dir(self, ssh_rc=None):
+        d = tempfile.mkdtemp(prefix="wdbin_")
+        smi = ("#!/bin/sh\ncase \"$*\" in\n"
+               "  'info -l') printf '\\tNPU ID : 0\\n\\tNPU ID : 1\\n';;\n"
+               "  'info -t proc-mem -i 0') printf '\\tNPU ID : 0\\n\\n\\tProcess id:77 Process name:python3 Process memory(MB):9000\\n\\tChip ID : 0\\n';;\n"
+               "  'info -t proc-mem -i 1') printf '\\tNPU ID : 1\\n\\n\\tNo process in device.\\n\\tChip ID : 0\\n';;\n"
+               "  'info') cat %s;;\nesac\n")
+        fx = os.path.join(d, "smi.txt")
+        with open(fx, "w") as f:
+            f.write(smi_text([(0, 70, 20000), (1, 0, 3450)], [(0, 77, 9000)]))
+        for name, body in (("npu-smi", smi % fx), ("ps", "#!/bin/sh\necho '77 python3 train.py --out %s/runs/a'\n" % d)):
+            with open(os.path.join(d, name), "w") as f:
+                f.write(body)
+            os.chmod(os.path.join(d, name), 0o755)
+        if ssh_rc is not None:
+            with open(os.path.join(d, "ssh"), "w") as f:
+                f.write("#!/bin/sh\necho 'ssh: connect to host npu port 22: No route to host' >&2\nexit %d\n" % ssh_rc)
+            os.chmod(os.path.join(d, "ssh"), 0o755)
+        return d
+
+    def run_with_path(self, d, fn):
+        old = os.environ["PATH"]
+        os.environ["PATH"] = d + os.pathsep + old
+        try:
+            return fn()
+        finally:
+            os.environ["PATH"] = old
+
+    def test_local_probe_end_to_end_with_a_fake_npu_smi(self):
+        d = self.bin_dir()
+        cfg = wd.make_cfg(npu_host="local", npu_samples=2, npu_sample_gap=0.0)
+        raw = self.run_with_path(d, lambda: wd.probe_npu(cfg))
+        self.assertTrue(raw["ok"], raw)
+        self.assertEqual((len(raw["samples"]), sorted(raw["procmem"]), raw["procmem"][1], raw["ps"][77].split()[0]), (2, [0, 1], [], "python3"))
+        n = wd.analyse_npu(raw, [{"id": "a", "path": d + "/runs/a", "state": "running"}], [], cfg, {})
+        self.assertEqual([(c["npu"], c["state"], c["claimed_by"]) for c in n["chips"]], [(0, "busy", ["a"]), (1, "unclaimed", [])])
+
+    def test_ssh_failure_is_non_fatal_and_the_rest_of_the_digest_is_intact(self):
+        d = self.bin_dir(ssh_rc=255)
+        t = Tree()
+        t.run("a_failed", heartbeat=hb_line(-50, "alive"), marker="rc=3 utc=x")
+        cfg = t.cfg(npu_host="npu", no_npu=False)
+        dg, md = self.run_with_path(d, lambda: wd.run_once(cfg, {}, NOW, npu=True))
+        self.assertFalse(dg["npu"]["available"])
+        self.assertIn("ssh/npu-smi failed (rc 255)", dg["npu"]["reason"])
+        self.assertIn("npu n/a", md)
+        self.assertIn("NPU utilisation unavailable", md)
+        self.assertIn("| a_failed | failed", md)
+        self.assertEqual(dg["exit_code"], 40)
+
+    def test_timeout_and_unparseable_output_are_reasons(self):
+        d = self.bin_dir()
+        with open(os.path.join(d, "npu-smi"), "w") as f:
+            f.write("#!/bin/sh\nsleep 5\n")
+        cfg = wd.make_cfg(npu_host="local", npu_timeout=0.5, npu_samples=1)
+        self.assertIn("timed out", self.run_with_path(d, lambda: wd.probe_npu(cfg))["reason"])
+        with open(os.path.join(d, "npu-smi"), "w") as f:
+            f.write("#!/bin/sh\necho 'npu-smi: command went wrong'\n")
+        raw = self.run_with_path(d, lambda: wd.probe_npu(wd.make_cfg(npu_host="local", npu_samples=1)))
+        self.assertFalse(raw["ok"])
+        self.assertIn("no chips parsed", raw["reason"])
+
+    def test_no_npu_flag_and_environment_variable_disable_the_probe(self):
+        t = Tree()
+        t.run("a", heartbeat=hb_line(-50, "alive"), marker="rc=0")
+        dg, md = wd.run_once(t.cfg(no_npu=True), {}, NOW, npu=True)
+        self.assertNotIn("npu", dg)
+        self.assertNotIn("npu", md.splitlines()[1])
+        self.assertTrue(wd.make_cfg().no_npu)                     # the test module sets WATCHDOG_NO_NPU=1
+        old = os.environ.pop("WATCHDOG_NO_NPU")
+        try:
+            self.assertFalse(wd.make_cfg().no_npu)
+            os.environ["WATCHDOG_NO_NPU"] = "0"
+            self.assertFalse(wd.make_cfg().no_npu)
+        finally:
+            os.environ["WATCHDOG_NO_NPU"] = old
+
+    def test_cli_one_shot_writes_the_npu_block(self):
+        d = self.bin_dir()
+        t = Tree()
+        t.run("a_run", heartbeat=hb_line(-30, "alive"))
+        out = os.path.join(t.tmp.name, "o")
+        env = dict(os.environ, PATH=d + os.pathsep + os.environ["PATH"])
+        env.pop("WATCHDOG_NO_NPU")
+        r = subprocess.run([sys.executable] + PFLAG + [os.path.join(HERE, "watchdog.py"), "--root", t.root, "--out-dir", out, "--npu-host", "local",
+                                                       "--npu-samples", "1"], capture_output=True, text=True, timeout=60, env=env)
+        self.assertIn(r.returncode, (0, 10, 20, 30), r.stderr)
+        with open(os.path.join(out, "digest.json")) as f:
+            dg = json.load(f)
+        self.assertTrue(dg["npu"]["available"])
+        self.assertEqual(dg["npu"]["unclaimed"], [1])
+        self.assertIn("UNCLAIMED 1", open(os.path.join(out, "digest.md")).read().splitlines()[1])
+
+    def test_queued_directory_counts_as_work_and_is_listed(self):
+        t = Tree()
+        q = os.path.join(t.root, "waiting")
+        os.makedirs(q)
+        open(os.path.join(q, "QUEUED"), "w").close()
+        s = os.path.join(t.root, "started")
+        os.makedirs(s)
+        open(os.path.join(s, "QUEUED"), "w").close()
+        with open(os.path.join(s, "heartbeat.log"), "w") as f:
+            f.write(hb_line(-30, "alive"))
+        dg = t.digest()
+        self.assertEqual(dg["queued"], ["waiting"])                 # a heartbeat means it started
+        self.assertEqual([r["id"] for r in dg["runs"]], ["started"])
+
+    def _dg(self, t, flags=True):
+        cfg = t.cfg()
+        dg = wd.build_digest(cfg, {}, NOW)
+        raw = raw_probe([(0, 80, 20000), (1, 0, 3450), (2, 0, 3450)] if flags else [(0, 80, 20000)],
+                        procmem={0: [{"pid": 1, "name": "python3", "mem_mb": 9000}]}, procs=[(0, 1, 9000)])
+        dg["npu"] = wd.analyse_npu(raw, dg["runs"], dg["queued"], cfg, {})
+        return cfg, dg
+
+    def test_digest_md_carries_fragment_flag_line_and_table(self):
+        t = Tree()
+        t.run("a_run", heartbeat=hb_line(-60, "alive") + hb_line(-30, "alive"))
+        cfg, dg = self._dg(t)
+        md = wd.render_md(dg, cfg)
+        self.assertIn("| npu UNCLAIMED 1,2 (1 run, 0 queued) of 3", md.splitlines()[1])
+        self.assertIn("## Host utilisation", md)
+        self.assertIn("- [decide] NPU UNCLAIMED", md)
+        self.assertIn("| 1 | 0% | 3.4/64 | unclaimed | - |", md)
+        self.assertEqual(dg["npu"]["escalation"], "decide")
+
+    def test_host_block_never_displaces_anything_else(self):
+        t = Tree()
+        for i in range(12):
+            t.run("f%02d" % i, heartbeat=hb_line(-50, "alive"), marker="rc=3 utc=x", log="Traceback\nValueError: boom %d\n" % i)
+        t.run("p_run", heartbeat=hb_line(-60, "alive") + hb_line(-30, "alive"), report={"primary": {"acc": 1.0}})
+        shown, hidden, fragment_only = [], [], []
+        for cap in range(1300, 9000, 100):
+            cfg, dg = self._dg(t)
+            cfg.max_md_bytes = cap
+            md = wd.render_md(dg, cfg)
+            self.assertLessEqual(len(md.encode()), cap)
+            base = wd.render_md({k: v for k, v in dg.items() if k != "npu"}, cfg)
+            failed_rows = {ln for ln in base.splitlines() if ln.startswith("| f")}
+            primary = {ln for ln in base.splitlines() if "(primary scorer)" in ln}
+            self.assertLessEqual(failed_rows | primary, set(md.splitlines()), "cap %d: failed rows or primary flags pushed out" % cap)
+            self.assertIn("worst=", md.splitlines()[1])
+            lvl0 = wd._render_blocks(wd.build_blocks(dg, cfg, 0), cap)[0]
+            if "## Host utilisation" in md:
+                shown.append(cap)
+                host = ("| chip", "|---", "| 0 |", "| 1 |", "| 2 |", "- [decide] NPU", "- info: claimed")
+                strip = lambda m: [ln for ln in m.splitlines() if ln and not ln.startswith(host) and "## Host" not in ln]  # noqa: E731
+                self.assertEqual(strip(md), strip(lvl0), "cap %d: the host block displaced content" % cap)
+            elif "| npu " in md.splitlines()[1]:
+                fragment_only.append(cap)
+            else:
+                hidden.append(cap)
+        self.assertTrue(shown and fragment_only, (shown, fragment_only, hidden))   # the block appears when there is room, only the fragment when saturated
+        self.assertEqual(max(shown), 8900)                  # with room it is always shown; in between it depends on the slack
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
