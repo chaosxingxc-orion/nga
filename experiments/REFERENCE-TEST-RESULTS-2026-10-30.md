@@ -2,6 +2,8 @@
 
 日期：2026-10-30。状态：**本地镜像中已发布测试结果的统计，未进行新的模型推理或训练**。当前目标按[用户决定](../proposal/04-reference-test-first-decisions-2026-10-30.md)：先看参考结果和不同计算口径，再讨论 Jev 训练方案。
 
+这里的“未进行新推理”描述本表的数值来源，不是暂停推理的决定。用户已明确要求自动驱动与实际推理评测继续完成；执行顺序和最新探测进度见 [指令逻辑与执行次序](../proposal/05-instruction-order-and-execution-2026-10-30.md)。
+
 审查状态：已发起指定 `gpt-6-astra` 的只读对抗审查，但返回仅为规则确认，没有实质意见，**不算 Astra 审查通过**。下表作为带来源和限制的参考统计交付；不构成 NGA 实验结果发布或模型采用放行。
 
 本报告分别呈现官方 test、公开 evaluation／challenge 和内部 holdout；不能把三者合并为同一个榜单。没有报告的模型×数据集单元为缺失，不能填 0，也不能拿 dev 数字代替。27B 等较大模型作为文献参考保留，不代表决定训练这些尺寸。
@@ -182,7 +184,7 @@ hard accuracy 只统计 one-hot targets；expected accuracy 是所有行 `q[argm
 
 `sel90` 指保留 90% coverage 时的准确率，**不是 confidence≥0.9**。ECE15 与前述 ECE10 不混；noul／choice 的 Brier 维度及 soft-label 指标在其分项表中保留。此处均是 Jevify 上游训练／测评结果，不能冠名 NGA 已训练完成。
 
-来源：`Praveenrajus__jev-bench/results/leaderboard/leaderboard.json`；逐 config 位于各 run 的 `test_metrics.json`。prompt 不同本身就能改变 Tev 成绩，后续训练讨论必须拆开“训练收益”与“接口变化收益”。
+来源：`Praveenrajus__jev-bench/results/leaderboard/leaderboard.json`；逐 config 位于各 run 的 `test_metrics.json`。Tev 两行同时改变了 prompt、各类型温度与 noul bias，因此是不同 prompt 与各自校准配置的联合结果，不能把差值归因于 prompt 单一因素；后续训练对照须控制这些配置。
 
 ## 6. 更接近规则执行和稳定性目标的 evaluation
 
@@ -258,7 +260,7 @@ pair accuracy＝组内所有成员都对的组比例；pair direction 则比较�
 | GPT-5.6 Luna | 206 | 89.18 | .2074 | .0932 |
 | GPT-6 Astra | 231 | 100.00 | .0085 | .0149 |
 
-来源：Open-Jev `docs/jevbench-public.md`、`site/jevbench.json`。只覆盖 231 个公开任务，不是完整 534；tie 为字典序最小标签，概率容差和无效处理与 Kev 不同。100% 为该小集合单次结果，需要检查覆盖、污染和测量过程，不能外推普遍能力。
+来源：Open-Jev `docs/jevbench-public.md`、`site/jevbench.json`。只覆盖 231 个公开任务，不是完整 534；tie 为字典序最小标签，概率容差和无效处理与 Kev 不同。GPT 两行使用 verbalized probability，Open-Jev／Jev 使用 native probability；139 个 choice 中有 119 个的 native／GPT 候选顺序不同，上游明确 `order_controlled_comparison=false`。这些行不能支持严格同条件的概率质量优势结论。100% 为该小集合单次结果，需要检查覆盖、污染和测量过程，不能外推普遍能力。
 
 ## 8. 还缺哪些统计，为什么不填数字
 
@@ -291,7 +293,7 @@ pair accuracy＝组内所有成员都对的组比例；pair direction 则比较�
 - [库存与文件哈希](REFERENCE-TEST-INVENTORY-2026-10-30.json)：24 数据镜像、42 个不同模型目录、源文件与导出产物索引。目录存在不证明权重内容或推理准入。
 - [Open-Jev／Nimble 补充原始指标与分区说明](REFERENCE-TEST-ADDITIONAL-2026-10-30.json)。
 - [各数据卡原表附录](/mnt/cephfs/xingchao/experiments/jev/_reference_inventory_20261030/dataset_readme_tables.md)：23 张现有 README 的 91 张表，包含完整 typed-decisions 两榜、JEVal、DecisionBench 等；Kev 数据镜像本身无 README，使用 repo 来源。
-- [跨模型完整统计表](/mnt/cephfs/xingchao/experiments/jev/_reference_inventory_20261030/reference_panels.md)：Jevify 46 设置、DecisionPivot、DecisionRobust、韩语／英文评估等，保留原生列。
+- [跨模型完整统计表](/mnt/cephfs/xingchao/experiments/jev/_reference_inventory_20261030/reference_panels.md)：Jevify 46 设置、DecisionPivot、DecisionRobust、韩语／英文评估等，保留所有模型设置行及主要成绩列；完整配置见 JSON。
 - [分项机器可读 JSON](/mnt/cephfs/xingchao/experiments/jev/_reference_inventory_20261030/reference_panels.json)：131 个原始聚合产物，含 Jevify 各 run 的逐 config test 指标，不含逐题预测。
 - [Kev 服务温度 test CSV](/mnt/cephfs/xingchao/experiments/jev/_reference_inventory_20261030/kev_release_test_metrics.csv)：18 个 release panel；逐 panel 对照源 JSON 完全相等。
 
