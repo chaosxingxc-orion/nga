@@ -5,35 +5,28 @@
 // consumes. The adopt state machine (piece 2) is the single writer; replay
 // (piece 6) is a reader; this package itself is types + document checking.
 //
-// The schema is validated with the same industry stack as the base
-// (santhosh-tekuri/jsonschema, fail-closed), and the cross-event rules JSON
-// Schema cannot express (arbitration_seq monotonicity, payload-digest
-// stability per operation) are checked in code — mirroring schema/ledger.py
-// (the Python oracle) so both sides stay behaviorally aligned.
+// The schema is compiled through internal/schemalib (the growth layer's
+// shared engine entry: santhosh + regexp2, Python-parity '$' semantics), and
+// the cross-event rules JSON Schema cannot express (arbitration_seq
+// monotonicity, payload-digest stability per operation, adoption-before-effect)
+// are checked in code — mirroring schema/ledger.py (the Python oracle) so
+// both sides stay behaviorally aligned.
 package ledger
 
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 
-	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
+	"festival-dev/go/internal/schemalib"
 )
 
-// SchemaDir is where event-ledger.schema.json lives (set by init from the
-// same CWD probe the base packages use).
-var SchemaPath string
+// SchemaPath is where event-ledger.schema.json was found ("" = not found;
+// exported so drivers can resolve the fixture directory from it).
+var SchemaPath = schemalib.FindSchema("event-ledger.schema.json")
 
-func init() {
-	for _, root := range []string{"../../schema", "../../../schema", "../schema", "."} {
-		p := filepath.Join(root, "event-ledger.schema.json")
-		if _, err := os.Stat(p); err == nil {
-			SchemaPath = p
-			return
-		}
-	}
-}
+// schema is the fail-closed compile-once handle for the event ledger schema.
+var schema = schemalib.NewLazy(
+	"https://agent-festival.local/schema/event-ledger/0.1.0", SchemaPath)
 
 // Identity is the three-layer business identity (NGA §7.2).
 type Identity struct {
@@ -89,96 +82,35 @@ type Event struct {
 	Versions         Versions        `json:"versions"`
 	Idempotency      *Idempotency    `json:"idempotency,omitempty"`
 	GrantsAtDecision []Grant         `json:"grants_at_decision,omitempty"`
-	Outcome          Outcome         `json:"outcome,omitempty"`
+	Outcome          Outcome         `json:"outcome"`
 	Accountability   *Accountability `json:"accountability,omitempty"`
 }
 
-// Document is a parsed ledger file.
+// Document is a parsed ledger document.
 type Document struct {
 	LedgerVersion string  `json:"ledger_version"`
 	Events        []Event `json:"events"`
 }
 
-// Fixture pins (popped before validation, same discipline as the base).
-type Fixture struct {
-	Doc         map[string]any
-	ExpectMatch string
-	ParseError  string
-}
-
-// LoadFixture reads a ledger fixture and pops its _expect* pins.
-func LoadFixture(path string) (*Fixture, error) {
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	f := &Fixture{}
-	var doc map[string]any
-	if err := json.Unmarshal(raw, &doc); err != nil {
-		f.ParseError = "document rejected at parse: " + err.Error()
-		return f, nil
-	}
-	if m, ok := doc["_expect_match"].(string); ok {
-		f.ExpectMatch = m
-	}
-	delete(doc, "_expect")
-	delete(doc, "_expect_match")
-	f.Doc = doc
-	return f, nil
-}
-
-// compiled holds the fail-closed schema (nil until first use; ledger has no
-// cross-schema $refs so a local compile is enough — the base's frozen engine
-// only resolves cross-document refs into the contract schema).
-var compiled *jsonschema.Schema
-var compileErr error
-
-func ensureCompiled() error {
-	if compiled != nil || compileErr != nil {
-		return compileErr
-	}
-	if SchemaPath == "" {
-		compileErr = fmt.Errorf("event-ledger schema not found")
-		return compileErr
-	}
-	raw, err := os.ReadFile(SchemaPath)
-	if err != nil {
-		compileErr = err
-		return err
-	}
-	var doc any
-	if err := json.Unmarshal(raw, &doc); err != nil {
-		compileErr = err
-		return err
-	}
-	c := jsonschema.NewCompiler()
-	c.UseRegexpEngine(nil) // ledger schema has no patterns; keep the base's engine choice irrelevant here
-	if err := c.AddResource("https://agent-festival.local/schema/event-ledger/0.1.0", doc); err != nil {
-		compileErr = err
-		return err
-	}
-	compiled, compileErr = c.Compile("https://agent-festival.local/schema/event-ledger/0.1.0")
-	return compileErr
-}
-
 // Errors validates a ledger document against the schema plus the cross-event
-// rules (monotonic arbitration_seq; one payload digest per operation — a
-// changed payload under the same key is a rejection, 15 §B4).
+// rules: arbitration_seq non-decreasing; one payload digest per operation —
+// a changed payload under the same key is a rejection (15 §B4); an effect
+// event needs an earlier adoption event for the same operation (the
+// single-writer discipline: effects only exist downstream of an adoption).
 func Errors(doc map[string]any) []string {
-	if err := ensureCompiled(); err != nil {
-		return []string{"ledger: schema unavailable: " + err.Error() + " (fail closed)"}
-	}
-	var errs []string
-	if err := compiled.Validate(doc); err != nil {
-		errs = append(errs, "schema: "+err.Error())
-		return errs
+	if err := schema.Validate(doc); err != nil {
+		return []string{"schema: " + err.Error()}
 	}
 	// cross-event rules on the typed view
 	var d Document
-	raw, _ := json.Marshal(doc)
-	if err := json.Unmarshal(raw, &d); err != nil {
-		return append(errs, "ledger: internal re-parse failed: "+err.Error())
+	raw, err := json.Marshal(doc)
+	if err != nil {
+		return []string{"ledger: internal re-marshal failed: " + err.Error()}
 	}
+	if err := json.Unmarshal(raw, &d); err != nil {
+		return []string{"ledger: internal re-parse failed: " + err.Error()}
+	}
+	var errs []string
 	prevSeq := -1
 	for i, e := range d.Events {
 		if e.ArbitrationSeq < prevSeq {
@@ -196,6 +128,14 @@ func Errors(doc map[string]any) []string {
 			errs = append(errs, fmt.Sprintf("events/%d: operation_id %q carries payload_digest %q but an earlier event recorded %q — changed payload under the same key", i, op, dig, prev))
 		}
 		seen[op] = dig
+	}
+	adopted := map[string]bool{}
+	for i, e := range d.Events {
+		if e.EventType == "adoption" {
+			adopted[e.Identity.OperationID] = true
+		} else if !adopted[e.Identity.OperationID] {
+			errs = append(errs, fmt.Sprintf("events/%d: effect event for operation %q has no earlier adoption event — a bypass write into the ledger, not a machine transition", i, e.Identity.OperationID))
+		}
 	}
 	return errs
 }

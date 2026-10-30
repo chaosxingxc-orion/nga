@@ -55,6 +55,16 @@ def ledger_errors(doc: dict) -> list[str]:
             errs.append(f"events: operation_id {op!r} carries payload_digest {dig!r} "
                         f"but an earlier event recorded {seen[op]!r} — changed payload under the same key")
         seen[op] = dig
+    # cross-event rule: the single-writer discipline — an effect event only
+    # exists downstream of an adoption event for the same operation (mirrors
+    # the Go checker; a violation is a bypass write, not a machine transition)
+    adopted: set[str] = set()
+    for i, e in enumerate(doc["events"]):
+        if e["event_type"] == "adoption":
+            adopted.add(e["identity"]["operation_id"])
+        elif e["identity"]["operation_id"] not in adopted:
+            errs.append(f"events/{i}: effect event for operation {e['identity']['operation_id']!r} "
+                        f"has no earlier adoption event — a bypass write into the ledger, not a machine transition")
     return errs
 
 

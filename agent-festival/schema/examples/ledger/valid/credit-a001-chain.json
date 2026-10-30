@@ -28,7 +28,25 @@
       "idempotency": {
         "operation_id": "op-credit-1",
         "payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      }
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://credit/a001",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        },
+        {
+          "kind": "tool",
+          "selector": "tool://credit.ledger.register",
+          "actions": [
+            "execute"
+          ],
+          "effect": "irreversible"
+        }
+      ]
     },
     {
       "event_type": "effect",
@@ -81,5 +99,5 @@
       }
     }
   ],
-  "_expect": "ACCEPT: A001's adoption-dispatch-complete chain; P5 five-dimension version binding all present (evidence/rule/model/readout/policy); idempotency on the adoption event"
+  "_expect": "ACCEPT: A001's adoption-dispatch-complete chain; P5 five-dimension version binding all present (evidence/rule/model/readout/policy); idempotency on the adoption event; grants_at_decision rides the adoption event (the 14-A4 pin) — and only the adoption event"
 }

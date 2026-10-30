@@ -352,6 +352,26 @@ func TestDigestJcsBasis(t *testing.T) {
 	if ab == other {
 		t.Fatalf("digest collision across different payloads")
 	}
+	// seam: Digest() is the producer, the schema pattern is the consumer —
+	// close the seam through the real validator so a format regression (e.g.
+	// a dropped "sha256:" prefix) cannot keep every test green while real
+	// requests are refused (R1 m-10)
+	d, err := Digest(map[string]any{"credit": 450})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := testRequest("op-digest-shape", d, pinGrants())
+	rawReq, err := json.Marshal(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var asMap map[string]any
+	if err := json.Unmarshal(rawReq, &asMap); err != nil {
+		t.Fatal(err)
+	}
+	if errs := CheckRequest(asMap); len(errs) > 0 {
+		t.Fatalf("Digest() output does not satisfy the schema pattern: %v", errs)
+	}
 }
 
 // TestMachineOutputConformsToLedger closes the loop with piece 4: the
@@ -413,5 +433,148 @@ func TestMachineOutputConformsToLedger(t *testing.T) {
 	}
 	if errs := ledger.Errors(asMap); len(errs) > 0 {
 		t.Fatalf("machine output is not a conforming ledger document: %v", errs)
+	}
+}
+
+// TestReplayKeepsWinnerIdentity is the R1 BLOCKER regression: the
+// idempotency key (operation_id + digest) does not cover
+// evaluation_revision/versions, so a same-key retry legally differs there.
+// The retry's reused event must NOT overwrite the winner's pinned
+// identity/versions on reload — post-recovery effect events must carry the
+// winner's values, matching the never-crashed machine's output.
+func TestReplayKeepsWinnerIdentity(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-win", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q, want adopted", o.Status)
+	}
+	retry := testRequest("op-win", digestA, pinGrants())
+	retry.Identity.EvaluationRevision = "er-2"
+	retry.Versions.Model = "m-2"
+	if o := m.Adopt(retry); o.Status != "reused" {
+		t.Fatalf("retry = %q, want reused", o.Status)
+	}
+	m2 := mustOpen(t, path)
+	if o := m2.Dispatch("op-win", pinGrants()); o.Status != "dispatched" {
+		t.Fatalf("dispatch after reload = %q, want dispatched: %s", o.Status, o.Detail)
+	}
+	events, _ := m2.Events()
+	if len(events) != 3 {
+		t.Fatalf("events = %d, want 3", len(events))
+	}
+	// the reused event records the RETRYER's identity (a ledger fact)...
+	if events[1].Identity.EvaluationRevision != "er-2" || events[1].Versions.Model != "m-2" {
+		t.Fatalf("reused event does not record the retryer's identity/versions")
+	}
+	// ...but the machine's pin stays the WINNER's for everything it writes next
+	for i, e := range []ledger.Event{events[2]} {
+		if e.Identity.EvaluationRevision != "er-1" || e.Versions.Model != "m-1" {
+			t.Fatalf("post-recovery effect %d carries the retryer's pin (rev=%q model=%q) — the replay forked the event stream", i, e.Identity.EvaluationRevision, e.Versions.Model)
+		}
+	}
+}
+
+// TestBypassWriteRejectedAtLoad pins the single-writer discipline's
+// load-time boundary (R1 M-1): a hand-written file the machine did not
+// produce — an effect with no adoption predecessor, or a registered digest
+// flipped — is refused at Open, never silently absorbed as legal state.
+func TestBypassWriteRejectedAtLoad(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	// form 1: effect event with no adoption predecessor
+	effectOnly := &ledger.Event{
+		EventType: "effect", ArbitrationSeq: 0,
+		Identity:    ledger.Identity{BusinessRequestID: "br-t", OperationID: "op-bypass"},
+		Versions:    ledger.Versions{Evidence: "ev", Rule: "r", Model: "m", Readout: "ro", Policy: "p"},
+		Idempotency: &ledger.Idempotency{OperationID: "op-bypass", PayloadDigest: digestA},
+		Outcome:     ledger.Outcome{Status: "dispatched"},
+	}
+	line, err := json.Marshal(effectOnly)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, append(line, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err == nil {
+		t.Fatal("bypass write (effect without adoption) was accepted at load")
+	}
+	// form 2: adoption with digestA, then an effect carrying digestB — a
+	// registered digest flipped
+	adopted := *effectOnly
+	adopted.EventType = "adoption"
+	adopted.Outcome = ledger.Outcome{Status: "adopted"}
+	flipped := *effectOnly
+	flipped.ArbitrationSeq = 1
+	// fresh Idempotency value: *effectOnly shares the pointer, mutating it
+	// would flip the adoption event's digest too
+	flipped.Idempotency = &ledger.Idempotency{OperationID: "op-bypass", PayloadDigest: digestB}
+	a, _ := json.Marshal(adopted)
+	b, _ := json.Marshal(flipped)
+	if err := os.WriteFile(path, append(append(a, '\n'), append(b, '\n')...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err == nil {
+		t.Fatal("bypass write (flipped registered digest) was accepted at load")
+	}
+	// control: the same two events with a stable digest open cleanly
+	stable := flipped // value copy — but the Idempotency pointer is shared, so give it its own
+	stable.Idempotency = &ledger.Idempotency{OperationID: "op-bypass", PayloadDigest: digestA}
+	s, _ := json.Marshal(stable)
+	if err := os.WriteFile(path, append(append(a, '\n'), append(s, '\n')...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m, err := Open(path)
+	if err != nil {
+		t.Fatalf("clean machine-written shape rejected at load: %v", err)
+	}
+	if m.State("op-bypass") != StateDispatched {
+		t.Fatalf("recovered state = %q, want dispatched", m.State("op-bypass"))
+	}
+}
+
+// TestAccountabilityRidesEveryEvent pins D31 accountability on every event
+// shape the machine writes (R1 M-2): adopted/reused/conflict carry the
+// request's own triple (who adopted / who retried / who lost the race — the
+// ledger fixtures distinguish the loser by session), effect events carry the
+// pin stamped at adoption.
+func TestAccountabilityRidesEveryEvent(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	win := testRequest("op-acc", digestA, pinGrants()) // sess-t
+	if o := m.Adopt(win); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	retry := testRequest("op-acc", digestA, pinGrants())
+	retry.Accountability = &ledger.Accountability{Session: "sess-retry", Skill: "skill-t", Role: "employee"}
+	if o := m.Adopt(retry); o.Status != "reused" {
+		t.Fatalf("retry = %q", o.Status)
+	}
+	comp := testRequest("op-acc", digestB, pinGrants())
+	comp.Accountability = &ledger.Accountability{Session: "sess-comp", Skill: "skill-t", Role: "employee"}
+	if o := m.Adopt(comp); o.Status != "rejected" {
+		t.Fatalf("conflict = %q, want rejected", o.Status)
+	}
+	if o := m.Dispatch("op-acc", pinGrants()); o.Status != "dispatched" {
+		t.Fatalf("dispatch = %q", o.Status)
+	}
+	if o := m.MarkUnresolved("op-acc"); o.Status != "unresolved" {
+		t.Fatalf("unresolved = %q", o.Status)
+	}
+	if o := m.MarkCompleted("op-acc"); o.Status != "completed" {
+		t.Fatalf("complete = %q", o.Status)
+	}
+	events, _ := m.Events()
+	if len(events) != 6 {
+		t.Fatalf("events = %d, want 6", len(events))
+	}
+	want := []string{"sess-t", "sess-retry", "sess-comp", "sess-t", "sess-t", "sess-t"}
+	for i, e := range events {
+		if e.Accountability == nil || e.Accountability.Session != want[i] {
+			got := "<nil>"
+			if e.Accountability != nil {
+				got = e.Accountability.Session
+			}
+			t.Fatalf("event %d (%s) accountability = %q, want %q", i, e.Outcome.Status, got, want[i])
+		}
 	}
 }

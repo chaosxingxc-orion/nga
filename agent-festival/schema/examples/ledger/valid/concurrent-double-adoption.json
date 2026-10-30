@@ -56,5 +56,5 @@
       }
     }
   ],
-  "_expect": "ACCEPT: two concurrent adoptions under the same key \u2014 the recorded arbitration order shows one adopted and one conflict (12 s2); the loser's event is a fact, not an error"
+  "_expect": "ACCEPT: two requests under the same key with DIFFERENT payloads — the recorded arbitration order shows one adopted, one conflict (12 s2); the loser's digest never enters the registry (its event carries no idempotency), which is what distinguishes this from the invalid same-key-different-digest (a registered digest flipped). A same-key same-digest concurrent race collapses to adopted+reused — the ledger cannot distinguish concurrent from sequential arrival; only the arbitration order is recorded."
 }

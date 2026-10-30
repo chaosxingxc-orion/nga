@@ -13,7 +13,13 @@ L3 capability contract 的机器形态。设计依据见 [ADR-0001](../docs/adr/
 | `sign.py` | 用临时密钥重新生成信封样例与密钥库；无效样例由有效样例程序化变异得出 |
 | `examples/valid`, `examples/invalid` | 契约样例：5 必须通过 / 15 必须拒绝 |
 | `examples/envelopes/valid`, `examples/envelopes/invalid` | 信封样例：2 必须通过（带 `_expect_verified_kids`）/ 16 必须拒绝 |
-| `examples/compose/valid`, `examples/compose/invalid` | 执行图样例：7 必须通过（带 `_expect_composed`：effects、bounds、逐原子 requires、并行时每个叶子签发到的 shares）+ 27 必须拒绝（未持有 / 提权 / 多动作 / 无边的 upstream / 幻影 upstream / upstream 动作提权 / upstream 副作用提权 / 链上多重假声明 / 并行超份额 / 切分舍入边界 / 串行超时 / 节点违契约闸 / 孤儿节点 / 重复调度 / 空组 / 双模式组 / 并行兄弟供给边 / 反向供给边 / 多币种 / 父预算单位不符 / 求和不精确 / delegate 到图外 / caller_holds 非规范转义·编码非保留·非 UTF-8 / 父预算 Infinity / 60 位计数切分不可整除） |
+| `examples/compose/valid`, `examples/compose/invalid` | 执行图样例（含 NGA §10 A001 credit-slice 1+4）：10 必须通过（带 `_expect_composed`：effects、bounds、逐原子 requires、并行时每个叶子签发到的 shares）+ 36 必须拒绝（未持有 / 提权 / 多动作 / 无边的 upstream / 幻影 upstream / upstream 动作提权 / upstream 副作用提权 / 链上多重假声明 / 并行超份额 / 切分舍入边界 / 串行超时 / 节点违契约闸 / 孤儿节点 / 重复调度 / 空组 / 双模式组 / 并行兄弟供给边 / 反向供给边 / 多币种 / 父预算单位不符 / 求和不精确 / delegate 到图外 / caller_holds 非规范转义·编码非保留·非 UTF-8 / 父预算 Infinity / 60 位计数切分不可整除） |
+| `event-ledger.schema.json` | 账本 0.1.0（增长层件4，NGA 供件）：adoption/effect 事件文法——三层业务身份 + P5 五维版本 + idempotency（operation_id+payload_digest）+ grants_at_decision（只骑 adoption 事件，if/then 钉死）+ D31 责任三元组；跨事件规则（arbitration_seq 单调 / 同 op 单 digest / effect 必有前驱 adoption=单写者纪律）在 ledger.py 与 go/internal/ledger 双侧镜像 |
+| `ledger.py` | 账本 oracle：schema + 三条跨事件规则，与 Go 侧（go run ./cmd/ledger）双验证器交叉 |
+| `adoption.schema.json` | 采纳契约 0.1.0（增长层件2，NGA 供件）：请求=三层身份+P5 版本+payload_digest（JCS-sha256 同基座形制）+grants_at_decision（14-A4 派发时复核的授权钉照）；闭环契约 additionalProperties:false |
+| `adoption.py` | 采纳请求 oracle：schema 校验，与 Go 侧（go run ./cmd/adopt）交叉；状态机语义（单写者/14-A5 四反例/崩溃耐久）在 go/internal/adopt 测试所有权 |
+| `examples/ledger/valid`, `examples/ledger/invalid` | 账本样例：4 必须通过 / 6 必须拒绝（含旁路直写 effect 无前驱 adoption、事件侧 grant 形状违规） |
+| `examples/adoption/valid`, `examples/adoption/invalid` | 采纳请求样例：2 必须通过 / 5 必须拒绝（缺版本 / 坏 digest / 空授权 / 未知旁路字段 / 杜撰效果烈度） |
 | `examples/keys/trusted.jwks.json` | 样例用可信公钥库：JWKS（publisher、tester、enc-only、ops-enc、alg-rs、other-publisher）+ `subject_of` 绑定；私钥不落盘 |
 | `examples/keys/invalid/*.jwks.json` | 必须拒绝加载的密钥库（重复 kid / 无 kid / 绑定指向不存在的 kid） |
 
@@ -25,7 +31,11 @@ python3 schema/compose.py             # 执行图合成 + ⊆ 判定样例 + 程
 python3 schema/validate.py FILE...    # 校验指定文件，自动识别契约 / 信封
 python3 schema/compose.py GRAPH...    # 合成指定执行图并打印 requires(G)/effects/bounds
 python3 schema/sign.py                # 换密钥重签全部信封样例（连同密钥库一起提交）
+python3 schema/ledger.py              # 账本事件样例（件4），双向断言
+python3 schema/adoption.py            # 采纳请求样例（件2），双向断言
 ```
+
+Go 侧同套件与状态机：`cd go && go run ./cmd/ledger && go run ./cmd/adopt && go test ./...`（夹具套件纪律在 go/internal/suite；引擎与懒编译在 go/internal/schemalib）。
 
 依赖：`jsonschema`（含 `referencing`）；信封验签另需 `pyjwt[crypto]`。
 

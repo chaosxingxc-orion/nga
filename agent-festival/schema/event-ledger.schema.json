@@ -5,7 +5,10 @@
   "description": "Append-only record of adoption and effect events (piece 4 of the NGA unified-architecture growth layer). An event carries the three-layer business identity (NGA overall-design §7.2), the accountability triple (festival D31), the P5 five-dimension version binding, and the correlation keys the replay matcher (piece 6) consumes: operation_id, payload digest, dependency versions, and the recorded arbitration order. The adopt state machine (piece 2) is the single writer; replay (piece 6) is a reader; nothing else writes. Record-family inputs (model outputs, tool responses, guard consumption) are NOT stored here — piece 6 fixtures supply them (S1 fork ruling, impl-2026-10-31/00-priors). Provenance: fields trace to NGA overall-design §7.2 / P5, 12-replay-and-audit-contract §2-§3, 15-graph-loop §B4 — all 'proposed' status in NGA, so every field here is an evidence-track probe answer, not an NGA commitment.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["ledger_version", "events"],
+  "required": [
+    "ledger_version",
+    "events"
+  ],
   "properties": {
     "ledger_version": {
       "type": "string",
@@ -14,43 +17,72 @@
     "events": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/event" }
+      "items": {
+        "$ref": "#/$defs/event"
+      }
     }
   },
   "$defs": {
     "event": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["event_type", "arbitration_seq", "identity", "versions"],
+      "required": [
+        "event_type",
+        "arbitration_seq",
+        "identity",
+        "versions"
+      ],
       "properties": {
         "event_type": {
           "description": "adoption = the control gate committed a decision; effect = an external operation was dispatched or its outcome recorded. Four operation types (inspect/replay/reevaluate/recover, NGA 12 §1) enter as structured callers of the state machine, not as event types.",
           "type": "string",
-          "enum": ["adoption", "effect"]
+          "enum": [
+            "adoption",
+            "effect"
+          ]
         },
         "arbitration_seq": {
           "description": "Monotonic per-ledger sequence recording which concurrent competitor won (12 §2 'recorded arbitration order'). Replay re-uses the recorded order, never re-arbitrates.",
           "type": "integer",
           "minimum": 0
         },
-        "identity": { "$ref": "#/$defs/identity" },
-        "versions": { "$ref": "#/$defs/versions" },
-        "idempotency": { "$ref": "#/$defs/idempotency" },
+        "identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "versions": {
+          "$ref": "#/$defs/versions"
+        },
+        "idempotency": {
+          "$ref": "#/$defs/idempotency"
+        },
         "grants_at_decision": {
           "description": "Grant set pinned at the decision point (adoption events only). It rides the event because the event file is the adopt machine's only durable state — without it, a crash would make the 14-A4 dispatch-time revocation check vacuous.",
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/grant" }
+          "items": {
+            "$ref": "#/$defs/grant"
+          }
         },
         "outcome": {
           "description": "The event's verdict. A 'conflict' outcome records a lost race, not an error. An 'unresolved' state on the effect path records dispatch-with-unknown-outcome (14-A5 counterexample three).",
           "type": "object",
           "additionalProperties": false,
-          "required": ["status"],
+          "required": [
+            "status"
+          ],
           "properties": {
             "status": {
               "type": "string",
-              "enum": ["adopted", "reused", "conflict", "rejected", "dispatched", "unresolved", "completed", "failed"]
+              "enum": [
+                "adopted",
+                "reused",
+                "conflict",
+                "rejected",
+                "dispatched",
+                "unresolved",
+                "completed",
+                "failed"
+              ]
             },
             "detail": {
               "description": "Free-text provenance for the human reader; not a machine-checked field.",
@@ -62,46 +94,115 @@
           "description": "Festival D31 accountability triple — orthogonal to the business identity; both ride the same event (their join point).",
           "type": "object",
           "additionalProperties": false,
-          "required": ["session", "skill", "role"],
+          "required": [
+            "session",
+            "skill",
+            "role"
+          ],
           "properties": {
-            "session": { "type": "string", "minLength": 1 },
-            "skill": { "type": "string", "minLength": 1 },
-            "role": { "type": "string", "minLength": 1 }
+            "session": {
+              "type": "string",
+              "minLength": 1
+            },
+            "skill": {
+              "type": "string",
+              "minLength": 1
+            },
+            "role": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "event_type": {
+                "const": "effect"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "grants_at_decision": false
+            },
+            "description": "grants_at_decision rides adoption events only — the pin is stamped once, at the decision point."
+          }
+        }
+      ]
     },
     "identity": {
       "description": "Three-layer business identity (NGA §7.2). Retries/recovery reuse operation_id; a new evaluation under new versions is a new evaluation_revision linked to the same business_request_id.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["business_request_id", "operation_id"],
+      "required": [
+        "business_request_id",
+        "operation_id"
+      ],
       "properties": {
-        "business_request_id": { "type": "string", "minLength": 1 },
-        "evaluation_revision": { "type": "string", "minLength": 1 },
-        "operation_id": { "type": "string", "minLength": 1 }
+        "business_request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluation_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "versions": {
       "description": "P5 five-dimension version binding. A model version name is an address, not a substitute for the actual output — outputs live in piece-6 record-family fixtures. Evidence is included from day one (P5 names it first).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["evidence", "rule", "model", "readout", "policy"],
+      "required": [
+        "evidence",
+        "rule",
+        "model",
+        "readout",
+        "policy"
+      ],
       "properties": {
-        "evidence": { "type": "string", "minLength": 1 },
-        "rule": { "type": "string", "minLength": 1 },
-        "model": { "type": "string", "minLength": 1 },
-        "readout": { "type": "string", "minLength": 1 },
-        "policy": { "type": "string", "minLength": 1 }
+        "evidence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "readout": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "idempotency": {
       "description": "The replay matcher's key: operation identity + payload digest + dependency versions (12 §3 step 4). Same key + same digest = reuse; same key + different digest = reject (15 §B4, 14-A5 counterexample four).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["operation_id", "payload_digest"],
+      "required": [
+        "operation_id",
+        "payload_digest"
+      ],
       "properties": {
-        "operation_id": { "type": "string", "minLength": 1 },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1
+        },
         "payload_digest": {
           "description": "sha256 hex of JCS(request payload) — same shape and stack as the base's ContractHash.",
           "type": "string",
@@ -113,17 +214,49 @@
       "description": "One entry of a grant set. Shape is shared with the adoption contract schema (each schema stays self-contained; the two copies must stay in lockstep — checked by the shared fixture suites).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "selector", "actions", "effect"],
+      "required": [
+        "kind",
+        "selector",
+        "actions",
+        "effect"
+      ],
       "properties": {
-        "kind": { "type": "string", "enum": ["data", "tool", "agent", "secret", "network"] },
-        "selector": { "type": "string", "minLength": 1 },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "data",
+            "tool",
+            "agent",
+            "secret",
+            "network"
+          ]
+        },
+        "selector": {
+          "type": "string",
+          "minLength": 1
+        },
         "actions": {
           "type": "array",
           "minItems": 1,
           "uniqueItems": true,
-          "items": { "type": "string", "enum": ["read", "write", "execute", "delegate"] }
+          "items": {
+            "type": "string",
+            "enum": [
+              "read",
+              "write",
+              "execute",
+              "delegate"
+            ]
+          }
         },
-        "effect": { "type": "string", "enum": ["none", "reversible", "irreversible"] }
+        "effect": {
+          "type": "string",
+          "enum": [
+            "none",
+            "reversible",
+            "irreversible"
+          ]
+        }
       }
     }
   }

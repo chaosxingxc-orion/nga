@@ -22,10 +22,15 @@
 // crash leaves the old or the new file, never a half-written one). A torn
 // tail line from an earlier partial write is skipped when loading, so
 // recovery resumes at the last complete event boundary. Because the event
-// file is the machine's only durable state, the pinned grants ride the
-// adoption event; otherwise the crash would silently void the revocation
-// check. File-level tamper-proofing is out of scope (12 §6: append-only is
-// not tamper-evidence).
+// file is the machine's only durable state, the pinned grants and the
+// winner's identity/versions/accountability ride the adoption event;
+// otherwise the crash would silently void the revocation check or fork the
+// post-recovery event stream. The durability contract is process-crash
+// level: rename atomicity holds across a killed process, but power-loss
+// grade durability (fsync of file and directory) is out of scope, as is
+// file-level tamper-proofing (12 §6: append-only is not tamper-evidence) —
+// load-time checking (Open runs the ledger checker and rejects bypass
+// documents) is the integrity boundary that IS in scope.
 package adopt
 
 import (
@@ -84,11 +89,12 @@ type Machine struct {
 // opState is the in-memory projection of one operation's events. Every field
 // is reconstructed from the event file on load; nothing is kept only in RAM.
 type opState struct {
-	digest   string
-	state    State
-	grants   []ledger.Grant // pinned at adoption (14-A4 revocation-check baseline)
-	identity ledger.Identity
-	versions ledger.Versions
+	digest         string
+	state          State
+	grants         []ledger.Grant // pinned at adoption (14-A4 revocation-check baseline)
+	identity       ledger.Identity
+	versions       ledger.Versions
+	accountability *ledger.Accountability // pinned at adoption; rides every effect event
 }
 
 // Open loads (or starts) the durable form at path. A torn tail line — the
@@ -103,6 +109,51 @@ func Open(path string) (*Machine, error) {
 	if err != nil {
 		return nil, err
 	}
+	for _, e := range parseCompleteLines(raw) {
+		m.replayEvent(&e)
+	}
+	if err := m.checkLoaded(); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// checkLoaded runs the loaded complete events through the ledger checker —
+// the single-writer discipline's load-time integrity boundary. A document
+// that was not written by this machine (an effect event with no adoption
+// predecessor, a registered digest flipped, a non-conforming event) fails
+// the open: the machine refuses to resume from a bypassed or tampered file
+// rather than silently absorbing it as legal state.
+func (m *Machine) checkLoaded() error {
+	events, err := m.Events()
+	if err != nil {
+		return err
+	}
+	if len(events) == 0 {
+		return nil // fresh (or fully torn) file: nothing to check
+	}
+	doc := ledger.Document{LedgerVersion: "0.1.0", Events: events}
+	raw, err := json.Marshal(doc)
+	if err != nil {
+		return err
+	}
+	var asMap map[string]any
+	if err := json.Unmarshal(raw, &asMap); err != nil {
+		return err
+	}
+	if errs := ledger.Errors(asMap); len(errs) > 0 {
+		return fmt.Errorf("durable form rejected at load: %s", errs[0])
+	}
+	return nil
+}
+
+// parseCompleteLines returns the events in the complete lines of a JSONL
+// byte stream. A torn tail line — the residue of a crash between 'write
+// full content' and 'rename' — is skipped: events end at the last complete
+// line. This is the one parser for the durable form, shared by Open and
+// Events (R1 m-4: two inline copies had to be edited in lockstep).
+func parseCompleteLines(raw []byte) []ledger.Event {
+	var events []ledger.Event
 	lineStart := 0
 	for i := 0; i <= len(raw); i++ {
 		if i != len(raw) && raw[i] != '\n' {
@@ -115,11 +166,11 @@ func Open(path string) (*Machine, error) {
 		}
 		var e ledger.Event
 		if json.Unmarshal(line, &e) != nil {
-			continue // torn tail: resume from the last complete line
+			continue // torn or unparseable tail: not an event boundary
 		}
-		m.replayEvent(&e)
+		events = append(events, e)
 	}
-	return m, nil
+	return events
 }
 
 func (m *Machine) replayEvent(e *ledger.Event) {
@@ -136,10 +187,18 @@ func (m *Machine) replayEvent(e *ledger.Event) {
 		m.ops[op] = st
 	}
 	st.digest = e.Idempotency.PayloadDigest
-	st.identity = e.Identity
-	st.versions = e.Versions
-	if len(e.GrantsAtDecision) > 0 {
+	// The adoption event is the pin: only it stamps the operation's
+	// identity/versions/grants/accountability. A reused event carries the
+	// RETRYER's identity, a conflict event the competitor's — replaying them
+	// over the winner's pin would fork the post-recovery event stream away
+	// from the never-crashed machine's output (R1 BLOCKER: the idempotency
+	// key does not cover evaluation_revision/versions, so same-key retries
+	// legally differ there).
+	if e.Outcome.Status == string(StateAdopted) {
+		st.identity = e.Identity
+		st.versions = e.Versions
 		st.grants = e.GrantsAtDecision
+		st.accountability = e.Accountability
 	}
 	if s := State(e.Outcome.Status); s == StateAdopted || s == StateDispatched ||
 		s == StateUnresolved || s == StateCompleted || s == StateFailed {
@@ -178,6 +237,7 @@ func (m *Machine) Adopt(req *Request) Outcome {
 				ArbitrationSeq: m.seq + 1,
 				Identity:       req.Identity,
 				Versions:       req.Versions,
+				Accountability: req.Accountability,
 				Outcome:        ledger.Outcome{Status: "conflict", Detail: detail},
 			}
 			if err := m.append(ev); err != nil {
@@ -192,6 +252,7 @@ func (m *Machine) Adopt(req *Request) Outcome {
 			Identity:       req.Identity,
 			Versions:       req.Versions,
 			Idempotency:    &ledger.Idempotency{OperationID: op, PayloadDigest: req.PayloadDigest},
+			Accountability: req.Accountability,
 			Outcome:        ledger.Outcome{Status: "reused", Detail: "retry under the same key and digest"},
 		}
 		if err := m.append(ev); err != nil {
@@ -201,11 +262,12 @@ func (m *Machine) Adopt(req *Request) Outcome {
 		return Outcome{Status: "reused", Event: ev}
 	}
 	st := &opState{
-		digest:   req.PayloadDigest,
-		state:    StateAdopted,
-		grants:   req.GrantsAtDecision,
-		identity: req.Identity,
-		versions: req.Versions,
+		digest:         req.PayloadDigest,
+		state:          StateAdopted,
+		grants:         req.GrantsAtDecision,
+		identity:       req.Identity,
+		versions:       req.Versions,
+		accountability: req.Accountability,
 	}
 	ev := &ledger.Event{
 		EventType:        "adoption",
@@ -296,6 +358,7 @@ func (m *Machine) commit(st *opState, to State, detail string) Outcome {
 		Identity:       st.identity,
 		Versions:       st.versions,
 		Idempotency:    &ledger.Idempotency{OperationID: st.identity.OperationID, PayloadDigest: st.digest},
+		Accountability: st.accountability,
 		Outcome:        ledger.Outcome{Status: string(to), Detail: detail},
 	}
 	if err := m.append(ev); err != nil {
@@ -319,24 +382,7 @@ func (m *Machine) Events() ([]ledger.Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	var events []ledger.Event
-	lineStart := 0
-	for i := 0; i <= len(raw); i++ {
-		if i != len(raw) && raw[i] != '\n' {
-			continue
-		}
-		line := raw[lineStart:i]
-		lineStart = i + 1
-		if len(line) == 0 {
-			continue
-		}
-		var e ledger.Event
-		if json.Unmarshal(line, &e) != nil {
-			continue
-		}
-		events = append(events, e)
-	}
-	return events, nil
+	return parseCompleteLines(raw), nil
 }
 
 // append writes one event as a JSON line. The write is atomic at file scope:

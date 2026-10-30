@@ -60,5 +60,5 @@
       }
     }
   ],
-  "_expect": "ACCEPT: a retry under the same operation_id + payload digest records a 'reused' outcome \u2014 repeated-request idempotence in the ledger"
+  "_expect": "ACCEPT: a retry under the same operation_id + payload digest records a 'reused' outcome — repeated-request idempotence in the ledger; also the durable shape a concurrent same-key same-digest race collapses into (arrival order is recorded, concurrency is not)"
 }
