@@ -46,7 +46,7 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E21](E21-nimble-independent-finish-20261030.md) | independent Nimble scoring audit and automatic finish | engineering | independent audit failed at 16:33:52 UTC; diagnosis pending |
 | [E22](E22-kev-devtools-reference-20261030.md) | Kev devtools full/release dual-population inference | reference evaluation | all three sizes completed scoped audits; 9B release differs by one correct question |
 | [E23](E23-openjev-original-data-restoration-20261030.md) | exact original Open-Jev split restoration | data restoration | completed; five original split hashes match; inference not implied |
-| [E24](E24-openjev-original-test-supplement-20261030.md) | original Open-Jev test supplement and exact join | reference evaluation | prepared, not launched; remaining review recorded |
+| [E24](E24-openjev-original-test-supplement-20261030.md) | original Open-Jev test supplement and exact join | reference evaluation | CPU dependency queue running; component review flags preserved; supplement awaits public completion |
 | [E25](E25-nimble-reference-rerun-20261030.md) | Nimble rerun with complete dependency freeze | reference evaluation | 152 frozen files cover 150 required dependencies; inference and observer running |
 
 ## Where the artifacts live

@@ -146,3 +146,5 @@ BoolQ／SQuAD2／HelpSteer2 是 validation，MultiNLI／VitaminC 是 dev，PubMe
 **2026-10-30 16:29 UTC 更新：** E23 原始完整分区恢复已经完成，详情见 [恢复记录](OPENJEV-ORIGINAL-RESTORE-2026-10-30.md)。初始 Nimble 七个 test 子集也已恢复到原 manifest 哈希并正在执行；上文关于最初没有 `data/public/` 的描述是盘点历史，不是当前缺失。当前下一步是完成正在运行的参考推理、自动独立验收及 Open-Jev 补充协议；不新增正式训练。
 
 **2026-10-30 16:36 UTC 更新：** Kev 三尺寸 hard／documents 已完成并通过 scoped 独立审计；devtools 三尺寸均已由队列自动启动，0.8B 已完成双分母审计，4B／9B 仍运行。Nimble 推理已完成 1,884 行，但 E21 独立审计失败，待诊断与重新验收。Open-Jev 两尺寸仍在运行；E24 补充 176 行 test 的协议与实现正在准备，尚未启动。下一步先完成这些推理与审计，之后再提交训练方案讨论。初版 E22 队列异常会停止整个调度器，恢复需核对已启动容器和资源归属，不能宣称通用故障恢复已完成。
+
+**16:55 UTC 执行更新：** E24 CPU 队列已启动并检查公共依赖；公共预测与 176 条补测将按原身份合并，组件审查标记不会丢失。共同集合已完成[具体 schema／指标预检](COMMON-REFERENCE-EVALUATION-PREFLIGHT-2026-10-30.md)。下一项是 typed-decisions 原生 Kev adapter 与全量 token 预检，JEVal 原 scorer 同步核查；不是新正式训练，尚无共同集合推理分数。

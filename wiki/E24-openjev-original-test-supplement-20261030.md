@@ -49,3 +49,25 @@ component review flags in addition to its own full-population flags; the prepare
 snapshot currently retains component audit identities but does not propagate those
 flags. Fix and test this before refreezing the unlaunched plans. A clean full-data
 aggregate must not hide a flagged public or supplementary component.
+
+2026-10-30 16:50 UTC execution update: component review flags now propagate unchanged
+into the joined report, each bound to component name, audit identity and source report
+hash. Any such flag keeps the combined status REVIEW_REQUIRED even with clean full-data
+metrics. The regression executes the artifact audit/join/report chain with a clean
+aggregate; 47 Open-Jev tests pass. Direct execution of the supplement test file now
+includes its integration and queue cases, as discovery already did.
+
+The never-launched prepared snapshot was revised before execution; prior code, configs
+and plans remain in `preparation-before-component-flags/`. The two component manifests
+were rebound before the join plans and queue plan. All hashes passed; 2B / 9B configs
+freeze 111 / 114 files covering all 89 / 92 required dependencies, plus supplement
+protocol/execution bindings. Exact 176-row content/model mappings passed independently.
+
+Retained CPU controller `nga-openjev-original-test-queue` was launched, ID
+`4c3fd7a3759cdfcd3b7bae368f30521a7f625da82927bf4bec7d28a16edad55a`.
+Its plan SHA256 is `e42b87f44da235bc9cb8800cdc822e60b20c01ce6ab7659c12f16d5d88c0552d`;
+all 19 queue frozen inputs were rechecked after launch. The actual Docker identity,
+image, command, CPU-only mapping and wrapper hash are in `LAUNCH_RECEIPT.json`.
+At 16:50:06 both sizes were `waiting_public`. Supplement inference and full-test
+metrics remain pending; CPU queue launch is not their completion. Existing public
+runs and their chip ownership remain unchanged until the guarded dependency transfer.

@@ -73,7 +73,6 @@ class JoinTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'metric differs'):self.join()
 
 
-if __name__=='__main__':unittest.main()
 
 # Full file-backed audit -> join -> report/terminal integration. The test uses small
 # synthetic populations in place of pinned production data; production has no bypass.
@@ -121,6 +120,20 @@ class JoinIntegrationTests(unittest.TestCase):
                 result=j.execute(planpath)
                 self.assertEqual(result['rows'],4);self.assertEqual(v.load(out/'JOIN_COMPLETE.json')['rc'],0)
                 self.assertEqual(len(v.load(out/'joined-records.json')),4)
+                # A clean joined population cannot erase a component review request.
+                clean={'serving':{'count':4,'hard_count':2,'accuracy':.5},'raw_T1':{'accuracy':.5},
+                       'by_source_serving':{},'by_kind_serving':{}}
+                new=root/'join_component_flags';new.mkdir();plan['out']=str(new);fixtures.write(planpath,plan)
+                with patch.object(j,'summarize',return_value=clean):
+                    flagged=j.execute(planpath)
+                self.assertEqual(flagged['status'],'VERIFIED_ORIGINAL_TEST_REVIEW_REQUIRED')
+                self.assertTrue(flagged['review_flags'])
+                for flag in flagged['review_flags']:
+                    self.assertEqual(flag['reason'],'component_review_required')
+                    component=next(c for c in flagged['components'] if c['name']==flag['component'])
+                    self.assertEqual(flag['audit_identity'],component['audit_identity'])
+                    self.assertEqual(flag['report_sha256'],component['report_sha256'])
+                    self.assertIn(flag['flag'],component['review_flags'])
                 # A hash-consistent forged native aggregate fails through the real
                 # independent component audit before a new join report is published.
                 b.mutate_report();new=root/'join_bad';new.mkdir();plan['out']=str(new);fixtures.write(planpath,plan)
@@ -154,3 +167,5 @@ class QueueTests(unittest.TestCase):
             with patch('sys.argv',['queue','--plan',str(plan)]):
                 with self.assertRaisesRegex(ValueError,'restart'):q.main()
             self.assertEqual(terminal.read_text(),'{"rc":0}')
+
+if __name__=='__main__':unittest.main()

@@ -29,3 +29,19 @@ E9 运行时识别到恢复工具缺口，已在原容器仍 live 时记录身�
 另一个边界：逐 record 的 canonical JSON hash 排序对象键，不单独区分候选插入顺序；当前完整
 suite 字节哈希与配置 stamp 会检测题目文件改序，因此不构成已执行 E7 的已证实缺陷。
 未来跨格式迁移或脱离原 suite 的记录复用必须显式绑定候选顺序，不能把无序对象哈希当作完整语义身份。
+
+## 2026-10-30 16:53 UTC 追加：审查身份与温度绑定
+
+本次指定 Astra 的有界只读任务仍只返回仓库规则确认，没有实际文件发现或验收意见；不记为实质审查。跟进任务遇到代理线程数量限制，未得到补充评审。该限制不阻断其他参考实验，但 Astra 验收要求仍未满足。
+
+主会话复核发现 `verify_reference_kev_devtools.py` 的温度取自 `ENVIRONMENT.json`，检查有限、正数并核对预测／报告的一致性，未直接独立读取冻结 `head.pt` 的温度。因此独立算术验收本身不能单独证明“确为 checkpoint 发布温度”。冻结 driver 通过原生 `Checkpoint`、无温度覆盖的 `LoadOptions` 加载；还需核对 checkpoint 元数据。
+
+本次使用现有 CPU 容器、`TORCH_DEVICE_BACKEND_AUTOLOAD=0` 和 `torch.load(..., map_location="cpu", weights_only=True)` 独立读取三个 `head.pt`，随后核对它们仍匹配 E22 启动前冻结哈希，温度分别为：
+
+| 模型 | checkpoint 温度 | E22 运行记录 |
+| --- | ---: | --- |
+| Kev-0.8B | 2.3510958125672174 | 相同 |
+| Kev-4B | 2.406050072164233 | 相同 |
+| Kev-9B | 2.193649959389252 | 相同 |
+
+三个 base ID／revision 也读出为对应 Qwen3.5 Base 尺寸；没有发现本次采用错误温度。该复核是对已执行运行的补充证据，不回写原配置或冒称启动前新增检查。后续验收器应把独立 checkpoint 元数据绑定纳入自动检查；现有 `VERIFIED_SCOPED` 仍不是完整防伪或实质 Astra 放行。

@@ -61,3 +61,7 @@ config hashes. Container completion and an aggregate score alone do not pass acc
 
 Pending implementation review, supplementary execution and exact join. No original-full
 inference score, substantive Astra approval or Jev training benefit is claimed.
+
+2026-10-30 pre-launch clarification: full-test reports preserve every component audit
+review flag, bound to component name, audit identity and report SHA256. Any component
+flag keeps the joined status REVIEW_REQUIRED even when full-population checks are clean.

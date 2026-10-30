@@ -98,7 +98,10 @@ def _execute(plan_path):
     positions = v.load(plan['restoration_report'])['missing_public_rows']['test']['original_line_numbers']
     joined = join_records(full,components,positions)
     metrics = summarize(full,joined,public['temperature'])
-    flags = []
+    flags = [{'reason':'component_review_required','component':component['name'],
+              'audit_identity':audit['identity'],'report_sha256':audit['report_sha256'],
+              'flag':flag}
+             for component,audit in zip(components,audits) for flag in audit['review_flags']]
     for panel in ['serving','raw_T1']:
         for key,value in metrics[panel].items():
             if type(value) is float and value in (0.0,1.0): flags.append({'panel':panel,'metric':key,'reason':'exact_zero_or_one'})
@@ -124,7 +127,8 @@ def _execute(plan_path):
               'soft_count':len(full)-metrics['serving']['hard_count'], 'temperature':public['temperature'],
               'original_data_sha256':p.FULL_SHA, 'joined_records_sha256':v.sha(out/'joined-records.json'),
               'components':[{'name':component['name'],'config_sha256':v.sha(plan[key]),
-                             'report_sha256':audit['report_sha256'],'audit_identity':audit['identity']}
+                             'report_sha256':audit['report_sha256'],'audit_identity':audit['identity'],
+                             'audit_status':audit['status'],'review_flags':audit['review_flags']}
                             for component,key,audit in zip(components,['public_config','supplement_config'],audits)],
               'metrics':metrics,'review_flags':flags,'scope':'Exact original-test reference inference; no Astra approval or new training benefit.'}
     v.atomic(out/'report.json',report)

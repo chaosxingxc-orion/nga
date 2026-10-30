@@ -77,6 +77,10 @@ Nimble E25 已于 16:43 UTC 启动同协议全量复跑，152 个冻结文件覆
 
 本报告分别呈现官方 test、公开 evaluation／challenge 和内部 holdout；不能把三者合并为同一个榜单。没有报告的模型×数据集单元为缺失，不能填 0，也不能拿 dev 数字代替。27B 等较大模型作为文献参考保留，不代表决定训练这些尺寸。
 
+**16:55 UTC 可追溯性补充：** [Kev-9B 逐题对照](KEV9-EXTENDED-ROW-COMPARISON-2026-10-30.md) 核对三套扩展测试共 3,097 问题的顺序、候选和标签。hard 的 `hard-v1/long_policy/test/00020` / `amount` 从 e 改为 b；devtools 的 `prompt_injection/deepset/train/109` / `injection` 从 false 改为 true；均为本地正确，documents 无翻转。统一到相同温度后仍有细小概率差；不能归因于特定硬件，也不称完全数值复现。上游逐题文件没有输入哈希，身份一致不等于证明历史输入字节完全相同。
+
+E24 自动补测队列已启动，仍等待公共推理；完整原 test 指标尚未产生。共同测试的[接口预检](COMMON-REFERENCE-EVALUATION-PREFLIGHT-2026-10-30.md) 已明确 Nimble 候选上限、JEVal 原始来源 train/dev/test 混合及 typed-decisions 原生 uniform fallback，后续表格须分别保留这些方法与分母。
+
 ## 1. 能直接回答什么
 
 现有镜像包括 24 个数据仓库和 42 个模型目录；部分参考模型只有上游结果，没有本地 checkpoint。已存在足够多的 test 证据来比较准确率、概率质量、成对全部正确、扰动敏感性和成本边界，暂不需要先训练 NGA 模型才能形成参考表。
