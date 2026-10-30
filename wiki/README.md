@@ -67,7 +67,8 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E36](E36-openjev-candidate-batch-20261030.md) | Open-Jev candidate batch memory | engineering admission | both 20-forward probes complete; memory improved but numerical admission failed; chip 1 released |
 
 | [E37](E37-openjev-batch-diagnostic-20261030.md) | Open-Jev no-op and layer-memory diagnostic | engineering diagnosis | 2026-10-31: 2B/9B completed 16 NPU forwards each and independent verification; candidate_batch_admission remains false |
-| [E38](E38-openjev-path-trace-20261031.md) | Open-Jev intermediate path trace | engineering diagnosis | planned; fixed-image CPU 6/6 pass; driver/preparer closure in progress; no NPU execution or admission result |
+| [E38](E38-openjev-path-trace-20261031.md) | Open-Jev intermediate path trace | engineering diagnosis | v4 plans BLOCKED by actual Astra re-review; 85/85 CPU tests retained; no NPU/admission result |
+| [E39](E39-legacy-kev-current-reaudit-20261031.md) | current-date CPU re-audit of 28 legacy Kev panels | evidence audit | v2 CPU audit complete: 28 panels/8,462 receipts; parent verified; actual Astra review running; historical bindings unchanged |
 
 ## Where the artifacts live
 

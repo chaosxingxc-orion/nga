@@ -1,0 +1,628 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-10-30T23:42:18.483932+00:00",
+  "status": "ACTUAL_ASTRA_REVIEW_BLOCKED_FROZEN_V4_PLANS",
+  "requested_model": "gpt-6-astra",
+  "model_identity_evidence": "Actual CLI argument/process receipt and substantive output, not provider-internal attestation.",
+  "review_generation": "v3",
+  "execution_plan_generation": "v4",
+  "runner": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_astra_20261031_v3",
+  "bundle": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_candidate_20261031_v3",
+  "bundle_manifest_sha256": "a64f3d0e94ec1d9518e7d494e31d1e130f87aeb156393c8c56de9aa7035e77a1",
+  "included_files": 676,
+  "included_bytes": 134055556,
+  "omitted": [
+    {
+      "original_path": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e38_astra_regressions_old_v2_20261031/__pycache__/verify_openjev_path_trace.cpython-311.pyc",
+      "expected_sha256": "042d6101a2f1303ce18201f14b915219e3f5d5cbe0397f3b6059b53078f27a1f",
+      "reason": "Historical non-normative Python cache; evidence file preserved, cache excluded"
+    },
+    {
+      "original_path": "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-2B/model.safetensors-00001-of-00001.safetensors",
+      "expected_sha256": "aa33250c4fc64891ddfaba3a314fd9542ea371843c387178b425fbcc5ed680b1",
+      "bytes": 4548221488,
+      "reason": "External weights excluded; CPU preparation full_closure verification is provenance, not a new reviewer weight hash"
+    },
+    {
+      "original_path": "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-9B/model.safetensors-00001-of-00004.safetensors",
+      "expected_sha256": "db6f444b43d318c92f360a13a25561a6a65b10c0631b8ed305a426dbaa6c380e",
+      "bytes": 5276436216,
+      "reason": "External weights excluded; CPU preparation full_closure verification is provenance, not a new reviewer weight hash"
+    },
+    {
+      "original_path": "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-9B/model.safetensors-00002-of-00004.safetensors",
+      "expected_sha256": "31c7d7e2dd5d207840b31cc59083c8f4c4718959149e0358c0364052bb9a0330",
+      "bytes": 5335161512,
+      "reason": "External weights excluded; CPU preparation full_closure verification is provenance, not a new reviewer weight hash"
+    },
+    {
+      "original_path": "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-9B/model.safetensors-00003-of-00004.safetensors",
+      "expected_sha256": "7ec36ba3a4176a44c3c0876ad80c56a2f70c84bf008d82e9501df642f17dadec",
+      "bytes": 5368717440,
+      "reason": "External weights excluded; CPU preparation full_closure verification is provenance, not a new reviewer weight hash"
+    },
+    {
+      "original_path": "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-9B/model.safetensors-00004-of-00004.safetensors",
+      "expected_sha256": "b62b0c4cd7e44edee103ee8f4fe225f246d5e768e07bfd5f25b63a8aa1fdd0c6",
+      "bytes": 3325995712,
+      "reason": "External weights excluded; CPU preparation full_closure verification is provenance, not a new reviewer weight hash"
+    },
+    {
+      "original_path": "/mnt/cephfs/xingchao/omni/models/jev/ZefanCai__Open-Jev-2B/package/checkpoint/adapter/adapter_model.safetensors",
+      "expected_sha256": "2d23935b1a7380db444abac572c04646918ba794e59002d1588236182a3ca18f",
+      "bytes": 10042480,
+      "reason": "External weights excluded; CPU preparation full_closure verification is provenance, not a new reviewer weight hash"
+    },
+    {
+      "original_path": "/mnt/cephfs/xingchao/omni/models/jev/ZefanCai__Open-Jev-2B/package/checkpoint/head.pt",
+      "expected_sha256": "3532cd576c58d5ad5bf17c3e9f2df4be8c70e08c07fa6bb7fa673dcd7b401f2a",
+      "bytes": 9997,
+      "reason": "External weights excluded; CPU preparation full_closure verification is provenance, not a new reviewer weight hash"
+    },
+    {
+      "original_path": "/mnt/cephfs/xingchao/omni/models/jev/ZefanCai__Open-Jev-9B/package/checkpoint/adapter/adapter_model.safetensors",
+      "expected_sha256": "f85650a8fb97c6d0ac3e948cdca2f30a0ca6ace8b8a43aebca1c152fe38aeb75",
+      "bytes": 23613816,
+      "reason": "External weights excluded; CPU preparation full_closure verification is provenance, not a new reviewer weight hash"
+    },
+    {
+      "original_path": "/mnt/cephfs/xingchao/omni/models/jev/ZefanCai__Open-Jev-9B/package/checkpoint/head.pt",
+      "expected_sha256": "229fe9800384e824135e59d1af59bda7346da031aea61640be5f456b9be6ce70",
+      "bytes": 18189,
+      "reason": "External weights excluded; CPU preparation full_closure verification is provenance, not a new reviewer weight hash"
+    }
+  ],
+  "plans": [
+    {
+      "model": 2,
+      "path": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/openjev_path_trace_openjev2_20261031_v4/plan.json",
+      "sha256": "882b686ba62c75f1bb41c670b18fb4785f439273bbd32b4c5de29ff9a512a8df",
+      "bundle_path": "files/mnt/cephfs/xingchao/experiments/jev/reference_inference/openjev_path_trace_openjev2_20261031_v4/plan.json"
+    },
+    {
+      "model": 9,
+      "path": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/openjev_path_trace_openjev9_20261031_v4/plan.json",
+      "sha256": "b1afb0e81a5c3c77f6bb5892e8dfdb7da750220d6d44f17dc2a7e52b6d9afce3",
+      "bundle_path": "files/mnt/cephfs/xingchao/experiments/jev/reference_inference/openjev_path_trace_openjev9_20261031_v4/plan.json"
+    }
+  ],
+  "terminal": {
+    "rc": 0,
+    "utc": 1793403673.263427,
+    "reason": null,
+    "requested_model": "gpt-6-astra",
+    "bundle": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_candidate_20261031_v3",
+    "outputs": {
+      "runner.py": "4f727f3a6cacb617c63b960a6a648514abfa09b9dd3b0c78063dc6e26443a395",
+      "brief.txt": "907262f7c09edeaba838d537dd83daa17a473d6131994feb676d562078ca5ef6",
+      "review.md": "512f8f77a977a281694b343e282b14708ea00fe5aff7637948bfa11273707758",
+      "CHILD_EXIT.json": "fa89e6a4be24be0bda889b7d06823bc7fbccb8bf6f3237f297d22a818b5dbe71",
+      "PROCESS.json": "db3954341921cec629d802ffc296cc56768043a245ca980afa8804d82c56a4fa",
+      "EXPECTED_BUNDLE.json": "94379da2553aa5fe28f772dfd0a625363759c8b4bfd3fe2886ff52722895d340"
+    }
+  },
+  "child_exit": {
+    "pid": 1621425,
+    "wait_returncode": 0,
+    "utc": 1793403673.2607183,
+    "source": "Popen.wait actual child exit"
+  },
+  "process": {
+    "command": [
+      "codex",
+      "exec",
+      "--model",
+      "gpt-6-astra",
+      "--sandbox",
+      "read-only",
+      "--skip-git-repo-check",
+      "--ephemeral",
+      "--json",
+      "-C",
+      "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_astra_20261031_v3",
+      "-o",
+      "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_astra_20261031_v3/review.md",
+      "-"
+    ],
+    "pid": 1621425,
+    "runner_pid": 1621423,
+    "started_utc": 1793403118.3016071,
+    "boot_id": "cce12053-8db5-4a8c-a831-414c574f60df",
+    "bundle": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_candidate_20261031_v3",
+    "manifest_sha256": "a64f3d0e94ec1d9518e7d494e31d1e130f87aeb156393c8c56de9aa7035e77a1"
+  },
+  "evidence_sha256": {
+    "COMPLETE.json": "a7fdb605731e6764901d47d87f47d4cf9c51c04ee194db4dc3f0b08646bc726d",
+    "CHILD_EXIT.json": "fa89e6a4be24be0bda889b7d06823bc7fbccb8bf6f3237f297d22a818b5dbe71",
+    "PROCESS.json": "db3954341921cec629d802ffc296cc56768043a245ca980afa8804d82c56a4fa",
+    "review.md": "512f8f77a977a281694b343e282b14708ea00fe5aff7637948bfa11273707758",
+    "runner.py": "4f727f3a6cacb617c63b960a6a648514abfa09b9dd3b0c78063dc6e26443a395",
+    "brief.txt": "907262f7c09edeaba838d537dd83daa17a473d6131994feb676d562078ca5ef6",
+    "EXPECTED_BUNDLE.json": "94379da2553aa5fe28f772dfd0a625363759c8b4bfd3fe2886ff52722895d340",
+    "EXIT": "5778682d38425579dcd7c50bb226b4fff2513b95709b76bb69bed817ee2e5ab6"
+  },
+  "cpu_tests": {
+    "suite": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e38_execution_cpu_tests_20261031_v6",
+    "tests": [
+      {
+        "test": "test_openjev_path_trace.ActualTensors.test_exception_cleanup_signed_zero_and_duplicate",
+        "receipt_sha256": "3def81469540d077d6db493b03c0f96d23d26a162b8a7e6e349c24c5bfb4613b",
+        "log_sha256": "490509618a7802d5b638259850cc5483573153f9c3ca4898fc4c33e07e16854b"
+      },
+      {
+        "test": "test_openjev_path_trace.ActualTensors.test_native_tiny_qwen_mixed_blocks",
+        "receipt_sha256": "1ad3da98057c736cf82e01282a0face111cefa60c43f11ea451ab375605bc286",
+        "log_sha256": "0f20a62c1684f0d57836485409fdeae7223df396ab12786dc5e6bfd37b002d6e"
+      },
+      {
+        "test": "test_openjev_path_trace.ActualTensors.test_real_tensors_passive_hashes_global_rows_and_cleanup",
+        "receipt_sha256": "d6450e9de6926105f2ac729ce0c8c902c88569f85d48c4643a036fb139069f7b",
+        "log_sha256": "61946ec9feac85d80cb0131a8face6fbb22ee0788175e27995d41b301b2e3a80"
+      },
+      {
+        "test": "test_openjev_path_trace.ActualTensors.test_unknown_shape_runtime_or_training_fails_closed",
+        "receipt_sha256": "946a7d212b207911a5c41e18233249d9a08e7a208121756c54331e0abc4e8f2d",
+        "log_sha256": "e7aaed9432a830a0726d8aa1043258e6db9a5d5769f1319269ac3d1a8a89fd98"
+      },
+      {
+        "test": "test_openjev_path_trace.TraceComparison.test_exact_and_changed_candidate",
+        "receipt_sha256": "f6f0228a94d038c70844606cd42cee2b3c181ea73f6c2bdef333eb2eab324ccf",
+        "log_sha256": "42b69d224048f0966fbc9faf717f102e773915bc3e3e17699c24a3af42bfb67f"
+      },
+      {
+        "test": "test_openjev_path_trace.TraceComparison.test_missing_extra_reordered_and_empty_rejected",
+        "receipt_sha256": "f8ccf40c62e0a3aef226e59b4990da2f1f1e122b2ad006ecb09922fc2ac3d53b",
+        "log_sha256": "5abe2621910f03cf59c9e18a011c79b11195e921bb8112c588aec409e00878f2"
+      },
+      {
+        "test": "test_openjev_path_trace_run.NativeIntegration.test_native_bf16_guard_trace_chunks_contract",
+        "receipt_sha256": "90545685182a873abaa2135e19f8236d5e160d5cd4d5cda31ab7412c8d7ca6f7",
+        "log_sha256": "045800f14f0c9615b9eea6c97a57bdbb099ee861ae05c1fc3848e826e3973b93"
+      },
+      {
+        "test": "test_openjev_path_trace_run.NativeIntegration.test_native_guard_trace_chunks_nesting_and_cleanup",
+        "receipt_sha256": "77294708ab0dab357d073bfa26c7e5e6a57a749ba56a328cbe28c308ab3ed56e",
+        "log_sha256": "289148d0939fc14a8ff086dcad8d452b04b07a4ee768159e9dd20bb50973425d"
+      },
+      {
+        "test": "test_openjev_path_trace_run.PureContracts.test_fixed_schedule_order",
+        "receipt_sha256": "d07f3eece698c2f1ba8afb761e217eb3adfa152dacde3a22bbf5f1e3f93710c1",
+        "log_sha256": "a50f4c7f367fc1a779456085c4bc53732c979e01dd8baf8440aa6ae23882bfaa"
+      },
+      {
+        "test": "test_openjev_path_trace_run.PureContracts.test_invalid_controls_publish_review_required_terminal",
+        "receipt_sha256": "63c529d56d63ac56d022a5af72912fdfb0434dd92de7f02db797a7b5e7b6c65f",
+        "log_sha256": "7983668f7c00766c4fde276704e791eaa1443fdb52fb58ff63705cd1aae5ca08"
+      },
+      {
+        "test": "test_openjev_path_trace_run.PureContracts.test_selection_rejects_other_index_or_width",
+        "receipt_sha256": "92250f69deb70b2f3733a3c393b436a812e2a0c2c5d561f79cc1678758c76ea2",
+        "log_sha256": "dd940348929e7b3dbf3b1a726b1f592eaf3249d0d4c60dbd7808aa759391cbbb"
+      },
+      {
+        "test": "test_openjev_path_trace_run.PureContracts.test_trace_contract_native_layer_population",
+        "receipt_sha256": "29f42e478118d303e0be49ed9b4d655cc9acdcfb19b012b07b62f61b7aae86be",
+        "log_sha256": "f747ed4d3b924916cc5b5aba5eddd21f58c967f05e314484d19554f01e8bf066"
+      },
+      {
+        "test": "test_openjev_path_trace_run.ReceiptControls.test_changed_hash_or_rehashed_identity_rejected",
+        "receipt_sha256": "11769bd99ae934f899a6cd7415ba86f50f38ef8cdfa16d277818e935125fd9b2",
+        "log_sha256": "21cdd1a7eec660d8a59e96d6e0e95f04508bce5f43b9291ab61b420b3e2cebd4"
+      },
+      {
+        "test": "test_openjev_path_trace_run.ReceiptControls.test_every_repeat_and_hook_control_is_enforced",
+        "receipt_sha256": "a3eb42d5569520d3475fd2ed17425cb31eedd139a9f55f46bbab4bbbbe2576d2",
+        "log_sha256": "be193c91597f906f654af1b5e8ea5b33257de9f474d5b8886e2137e7f98219f5"
+      },
+      {
+        "test": "test_openjev_path_trace_run.ReceiptControls.test_full_independent_reconstruction_matches_driver",
+        "receipt_sha256": "d47bbfe622e5ae6efbc44b32590f71baa4bb8284a4cb73543b2e62cae125054e",
+        "log_sha256": "85aadfbc0bf57f74300dd99e9a118e46b92ac45f900d2446eed4395344d8275e"
+      },
+      {
+        "test": "test_openjev_path_trace_run.ReceiptControls.test_nonfinite_probabilities_statistics_and_boolean_repetition_rejected",
+        "receipt_sha256": "3d1909496e0de3290990f6a8d047e6eb0217894c77a78d4158fb42a7a60fed83",
+        "log_sha256": "c8d239c705991f9ff1dbf3360a43ff561c47ccbe53c229826e8fa218526683e5"
+      },
+      {
+        "test": "test_openjev_path_trace_run.ReceiptControls.test_padded_input_and_candidate_order_not_only_clean_tokens_checked",
+        "receipt_sha256": "832b610fc1520d74c171a00f931ef71f06ba092574530248eeefd67dcdf34ebe",
+        "log_sha256": "4430fec5e65ffafe36d7555e81804dd82e6470ea7c4e488316ce313d9f1bc4a6"
+      },
+      {
+        "test": "test_openjev_path_trace_run.ReceiptControls.test_schedule_missing_extra_relabelled_and_nonprefix_rejected",
+        "receipt_sha256": "fe40b422ce53b0ac631d0f096d6cbbcbe9144378ee5b014c7c767acc176b2388",
+        "log_sha256": "c64605304bf71a287ac9bb3c167fb59af4b5930d69192e451e3d1bd364700539"
+      },
+      {
+        "test": "test_openjev_path_trace_run.ReceiptControls.test_signed_zero_prediction_is_not_exact",
+        "receipt_sha256": "c0c1ccea7b7c41607ddf6e51fadd7f3f31a45499ee16d897cea0657e1625a523",
+        "log_sha256": "6dfac6133ac3fbc2b27d4c9ae9c84fd8ace61e3349f0b1358fc87c63f7d1c3da"
+      },
+      {
+        "test": "test_openjev_path_trace_run.ReceiptControls.test_strict_partial_next_item_and_symlink_rejected",
+        "receipt_sha256": "2a1f088242c534c04509304f1bf435735d5fdd83c9d31f687e513eb2b41c310f",
+        "log_sha256": "ac781b245e01b332b749bd0d7dba16e07dcadb96b44b15a925eaa4e0e92cf082"
+      },
+      {
+        "test": "test_openjev_path_trace_run.ReceiptControls.test_trace_bad_hash_overlap_candidate_and_order_rejected",
+        "receipt_sha256": "e76b62ff22e99733cd93f1b2823788985665e75f09a7f52bc9246e3171cdd8c5",
+        "log_sha256": "a8e8f0506c942a411bbc7d9ae4b287383e6dc96fee9006b672e1fa15db9ea166"
+      },
+      {
+        "test": "test_openjev_path_trace_run.ReceiptControls.test_trace_missing_event_even_with_self_consistent_rehash_rejected",
+        "receipt_sha256": "160a2542fdf7dbc5f1127bff6928c81a454a4bd7760c71da8c3c5503efdf881f",
+        "log_sha256": "0cd0d705661d14dbcc3af6a12a003f70e177fefc67c44d77d2990023e13c3af8"
+      },
+      {
+        "test": "test_openjev_path_trace_run.ReceiptControls.test_trace_repeat_and_cross_localization_change_invalidates",
+        "receipt_sha256": "5cd9b11264bef29b0b660f650d5e73ef8366dd995196833792f986036e913486",
+        "log_sha256": "e8bb4b30c1a362c3e6f54178964c5a0b0a0bf9bbd4b83477accee58c588c6a7d"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_changed_control_rejected_after_successful_cpu_task",
+        "receipt_sha256": "be667523cda92139fb4af6f482163f7a184cd477a70f2f42d9715585426ec605",
+        "log_sha256": "e5f282e3f21101372a94fa5fc9ec1982021d95fb929e626cbabf6d139a18f89b"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_cpu_launch_has_no_devices_and_no_allocation",
+        "receipt_sha256": "88db18924efb0b1fa73ca86c39488ffb38448f11e86d5c4c6566f700613f936e",
+        "log_sha256": "cae5fb9c1a288ac73c4e22ef59f0f9d6cd68e1bd2aff452c7539138b168d498c"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_cpu_native_entrypoint_is_preserved_and_bypass_rejected",
+        "receipt_sha256": "e7ead6581b884e5853810442fbe97e94f0ec3768f9e8ec36b1c89ca8b934c294",
+        "log_sha256": "253eeb0e41740d0048fb0fc07942551a33e3306f80517bade0ef3bc56d55f89c"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_cpu_resume_publication_gap_preserves_report",
+        "receipt_sha256": "8719e76dc61223d31f759defe4ae1acd489f2621d956bd64ad42a4ae74025683",
+        "log_sha256": "f3dea194a3e9d124858e386a18e3637b828fac5326eb2f5eb9975622c458b7c8"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_cpu_spec_device_bypass_rejected",
+        "receipt_sha256": "f49e9289a50ec1389d976f3b61b0480ec2a990a34f19028d23e9fbcc845e5a9f",
+        "log_sha256": "d594b086fbc2241435814f74523983dbfaf7c2ee35307e2480771eb064f9ba85"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_cpu_task_prepares_and_publishes_terminal",
+        "receipt_sha256": "ffbbb14be8c49463d716451e5f8a6d7b2c77f23c7697ac37989e1744e65b9b98",
+        "log_sha256": "eab5e6f43a92587dbe452b187fcc96b7ede46efe4e14669472731f45c88ee1d9"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_cpu_task_preserves_partial_preparation_directory",
+        "receipt_sha256": "ea5d4868e76ce3e70db1328711b6f0c0ddd1f122aa22fdf44563dff931007556",
+        "log_sha256": "5ce5f9596241374c5616028a69349f355b68a1273cf64168e33ad96eb9d89e21"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_cpu_task_refuses_foreign_partial_preparation",
+        "receipt_sha256": "6ad97b35703826bfead41a7681b1c7f4a650ce9e05604c29853eb3abafc46797",
+        "log_sha256": "6c77afa8e0e9aa0a4ca3d2e9b27f1846efe5f52b1ccd06051c1024fe6af016b7"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_cpu_task_resumes_published_report_without_repreparing",
+        "receipt_sha256": "19fea1151cc2a99eb68c136188b06f6c39aa3dbd2b868cf105063248ad15bf13",
+        "log_sha256": "7fa7476c4b94419201b5aee11518a21e94af92385fe6ab724e2b5811160545b2"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_host_binding_never_reads_weights_and_requires_cpu_exit",
+        "receipt_sha256": "0d09ea640b89ab6b355e8999320a1c3632541f0696d80a1f7fea51e91e73b0b3",
+        "log_sha256": "f8cc7b609bf907a7dd1d74488f9d4c9a89216f5ddb17ea6860a2ea3b8e543124"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_large_control_is_not_silently_hashed_on_host",
+        "receipt_sha256": "ffbeb43042e7f20ff3191edbd583d6ad9d6de2b3b4206f0a83682a0be1c679f9",
+        "log_sha256": "6f355916969735e7d9525a220be54148323699cacab3709d90e2b546f1bb93c2"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_preparation_report_plan_and_source_binding",
+        "receipt_sha256": "8b147c6f09dd8f82ebd2a532c05e516cf538e7ae9813d063ae5e8e772a381c43",
+        "log_sha256": "42a86c30190b20c4095c364c8458b4b3f7d27fda25441284cc00d168b5fd7b9d"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_request_does_not_read_weight_or_claim_chip",
+        "receipt_sha256": "08d72a49dff842e8e63266eaa38d45ce2f9f8e0f3851355e01c4e0b2ca50ae64",
+        "log_sha256": "2879dba53423de83325bb767e242357246542c52fb4aec12b26dc0b7df53dbfa"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_reserved_chip_request_rejected_before_file_creation",
+        "receipt_sha256": "1e74d8c9f5da1da36b12931dd42e6a897a8a025b3bc7a60653c3007d5ea3e33d",
+        "log_sha256": "6e76c6e267d754c0e089c01cc0952b95a5173a924651aad21961112f379d7926"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_runtime_dependency_omission_cannot_be_exempted",
+        "receipt_sha256": "ad6bdc737704c96c70b7eefa5696555af0352b8fb4bf962288a456d30d9ee47b",
+        "log_sha256": "828dc9db619a17abb38e177d996b84a3ef1961ed839e527463576e035107c141"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.CPUWorkflow.test_verify_request_needs_no_chip_or_host_probe",
+        "receipt_sha256": "5cf07801abfe17ae4747101ccd28b909f209644a770bab72ccca4993d26a36c3",
+        "log_sha256": "53241b4acead6189a49b8abd21b7275e82db2b2e2b9e0f488309152f74caff40"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_business_failure_not_signal_resume",
+        "receipt_sha256": "9fc163558f5e1448a93c2d7285bad93c1e3f01a86b4602981dc1e35a34c8d977",
+        "log_sha256": "9ac993f531c0ae2170de2685795d8912109015c41c73896c0db012b1e342a680"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_changed_receipt_rejected",
+        "receipt_sha256": "6dd2111a3b67a43de7fa5b80a6ed1a6214808b80bc9b358323afa6721c174b6a",
+        "log_sha256": "a952ad1c9a9f7eca96207b9e05788617c61a2f593a5cce6c63336674bb021162"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_chip4_mapping_and_launch_keep_source_chip",
+        "receipt_sha256": "1eaf3fb353b6b3ccb5c82fa630a99c3f2aab23192f326f1bc59d58941c7e8e02",
+        "log_sha256": "97903b126f4a343e0149847afc73783e1632744a8c5d216891509d21cdfdd630"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_complete_checks_receipts_and_preserves_admission_false",
+        "receipt_sha256": "941b8a2296eea5d5e192ba4d075d0e2821e2c0ad693cde23ba6e1c0a6f9aab15",
+        "log_sha256": "bec81774d67076ddb1589f88aebabe8a66f4a96411a1d3947e3b0f95b8cfcc5e"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_complete_rejects_changed_arithmetic_even_rehashed_report",
+        "receipt_sha256": "a688afbcf17c42538cc027c3ea66d8f5cfa05798010bf4ed611dcdda46db2c85",
+        "log_sha256": "7adc69f99b02a2629071fbbd4e193c797c95ae8dd20a09df446a2d49217f7e37"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_complete_rejects_missing_item",
+        "receipt_sha256": "182708d476a7cbc5e653828a2284aa6713b9f4e595e8064fbb5f7bfd2a1a5d2d",
+        "log_sha256": "3c71256ae49a19bd507bdd10575d0247f59e630168a19a3bd11c34ce41df270e"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_complete_rejects_success_marker_before_actual_exit",
+        "receipt_sha256": "01cf9a059b0e1b22602f5d9c9de954f059186d8ee2d8af16c25c730d73d87ded",
+        "log_sha256": "d3c9d817bba4456e642cb073e1cdf9aacd4912e54dc240a878752d42f886a82c"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_device_mapping_does_not_mutate_source",
+        "receipt_sha256": "686ed3764ca967ed1b75ccbd7451fce7e2b76a6d756238f930f2b640a205e085",
+        "log_sha256": "0cfe8a6c1a287830825bc18344cc870c0c77d8134b1f4e0f71a304605a51265d"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_exact_empty_process_grammar",
+        "receipt_sha256": "acd3a82b24295f81083ec256df7348c91daa016c2a13246a8de8cc04eefda123",
+        "log_sha256": "8793b1c659be8a858d64ba5d6de4501deda84e59173e20a5de58058551f2437a"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_exit137_requires_exact_review",
+        "receipt_sha256": "3044f2f0dd3a6062139785740bfa5d8e0150892d52d62122b6b55051d9c80967",
+        "log_sha256": "1e272fb30dfea2ce596070bccd3134973d1cb7e6ebb6c781877c3eb63184589a"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_known_created_gap_recovers",
+        "receipt_sha256": "e7047b535816e4992f7c75118c517ff8729cc1fd0c37c724946e90f1ad67cf3a",
+        "log_sha256": "8f9df97e524b69f9a538005ab5ae3a3178dc6991eb708e30aeb8c4643a7d681e"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_launch_claims_once_and_running_noop",
+        "receipt_sha256": "f90304b3762778550f68536976deb77658d55d54b2d8aba13ae95fea3c8f193f",
+        "log_sha256": "e6d94f1a8977e46da8edb256b68955399bd2e09012b98c24828229c024807045"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_missing_or_changed_independent_review_blocks_launch",
+        "receipt_sha256": "193c3ebd8d0d46dcd94a84863a545d12fa6c05b6fd8ecbbfb73f00cbab81211f",
+        "log_sha256": "629fe7d9941b10845a4f6a1af05164722855139eecd563b59ca8b5b7193da308"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_modified_receipt_fails_before_start",
+        "receipt_sha256": "7565fb58f6a418b005e2581d24cfa0e018ea8126930cd437db4b489d110a301b",
+        "log_sha256": "971d55928555268277f2271548c781ac0251762af620fcdb1b874394ebb5c387"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_reserved_chips_rejected_even_if_allocation_says_free",
+        "receipt_sha256": "6afd780a3c5d9f53598c89ea836836b977cee46f407bf77ec66b75fb3816b656",
+        "log_sha256": "45703e564ef94aa4f1082299c2a29ea8d1aaa119d9279725112aa44a7139337c"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_resource_conflict_rejected",
+        "receipt_sha256": "ca9e26c07c145d6847a5fd1d3e1e11cee46e299f2690d5da77a73f08a3d0f28f",
+        "log_sha256": "481bcd0bf48d002c7a5d7e9a2e5821011309e0a4530d4dac1e3a9f8491fe2c9b"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_resume_preserves_items_and_archives_partial",
+        "receipt_sha256": "d3347ff4d573cf74e0de7c64bc7131318b9e85d58b38594bee1dfd53074cf96d",
+        "log_sha256": "ab79064f595e93a29e87fdf1dc02e34e0e2e417048c53c689c56e432d6097583"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_terminal_failure_and_report_never_restarted",
+        "receipt_sha256": "5dd33d57ed1c4f17fd35a7df45c2487c2ce4195fd6f459f11576c137238bd0d0",
+        "log_sha256": "279b5e38d4598bcddaa3ac341a1b393d6255bf2136a5c6c3037daebda272e4cc"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_unknown_container_without_intent_rejected",
+        "receipt_sha256": "20c716e164948b0593005cb47143909cbf31dbf9293a00b7b67267fd33798763",
+        "log_sha256": "74218f182c14ae158da27abd9a8a8b718b5e7a0608f782a1205b017cf4f83675"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_unknown_item_and_symlink_rejected",
+        "receipt_sha256": "b3723849853db4a261e9d5fe306dd2aed3849f7f7003708fe09766941eb86667",
+        "log_sha256": "d86a776056653b8b6bf271893b055866b2b1d23d1abba93004044e2d2fcc6cfb"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_visibility_or_privilege_rejected",
+        "receipt_sha256": "9e10409a4a7c0ec689e9168df74ea918a3433179228048e057091d65808dc3fa",
+        "log_sha256": "840aaee9bc68d09c175621417b90f5e69dd4dbf3ae5a3c5c08793828136b3a35"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_wrapper_preserves_literal_paths",
+        "receipt_sha256": "d479025b9cba964c0c624db0f48d3f41c1808a73483da6bd80ed751f7b90705b",
+        "log_sha256": "9207ae9d6648971a51dadc5cd4940a38311f0ed4fd749deb38230ddb0af2cd59"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.Guards.test_zero_exit_with_process_query_stderr_rejected",
+        "receipt_sha256": "94ac6fa1e8942e917108aa7e50316a58d668bbf3ed87297f9974d384e89ed7ae",
+        "log_sha256": "048d14d6816660463889054759b004c942a057ff5c63878b5488b887c7165ebe"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.HostIdentity.test_container_detection_requires_exact_negative_result",
+        "receipt_sha256": "5a73e23986c5f13ce65aa66f4b661cedd740ce4f267f3d9b1e953e4c2d9ce3c2",
+        "log_sha256": "06d2f5f984981693dea78e42fb008433594ac0004a5f24ffc5ae56e0e115acb2"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.HostIdentity.test_daemon_host_local_host_container_and_pid1_mismatch_rejected",
+        "receipt_sha256": "d5a5f81dc938b3f476b4d261d1815e87b9483a99c0931e264008b863855c4f34",
+        "log_sha256": "207aefebf0de4ef8b3f0924443c6c4b36d7d23e7abe0b317554b8c566d10b4a7"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.HostIdentity.test_readable_physical_host_is_accepted",
+        "receipt_sha256": "0adf7fa2b8f562ae0762bde17fa2308e2567caf83837fe157a63208acf75fa53",
+        "log_sha256": "953ec7a79233414031e81aa902cbfffe3fa2a6958641de1246a2dc6cfa37b559"
+      },
+      {
+        "test": "test_prepare_openjev_path_trace.HostIdentity.test_unreadable_pid1_or_missing_failed_command_is_rejected",
+        "receipt_sha256": "153ecf4f5041bb830b4bc33c4b3793abf867847e7450ebc365e047c924a15043",
+        "log_sha256": "2aaa17de866b97178ca9c58528f6e396c746829431fcd1d293b18a822622044a"
+      },
+      {
+        "test": "test_e38_astra_regressions.CompletionReadRaceRegressions.test_one_atomic_replace_after_parse_cannot_commit_different_report",
+        "receipt_sha256": "0a93b29df0640e96db5f96c2a52e406c6e56cc619a227fea3e9fe3b8bbd6b5b9",
+        "log_sha256": "0b430baac77e3a18c59d7e9dc034a2f009b62d7ead76ce8fe3a1b7b201deaedd"
+      },
+      {
+        "test": "test_e38_astra_regressions.CompletionReadRaceRegressions.test_stable_valid_completion_accepted",
+        "receipt_sha256": "b2c6703b519011497e442e8b01fee3827437874e83a32ab20246d034ed19a59f",
+        "log_sha256": "b0e612549c7c307545e38584b586978677d9681ed0f3a8d209d70676179e3743"
+      },
+      {
+        "test": "test_e38_astra_regressions.CompletionReadRaceRegressions.test_stable_wrong_report_rejected",
+        "receipt_sha256": "00d85d3ce4cdf5cf4724860a38ef26ccb52812929decd880687f2e8a596cb2f7",
+        "log_sha256": "7d144d9d21be5dac65c65ada5b2c23ab38c0e4aec48bc5c77bed693f6196ff0f"
+      },
+      {
+        "test": "test_e38_astra_regressions.NativeAnswerRegressions.test_all_zero_probability_vector_rejected",
+        "receipt_sha256": "fd11c69b14b38bd97d402f5c7cf4cba9f6e5fe1e1f22cdb7c3a5f67f07fca8e6",
+        "log_sha256": "9edcaa0ced989085b56848720ea757b33375baeda758e945b161ec5f51012e23"
+      },
+      {
+        "test": "test_e38_astra_regressions.NativeAnswerRegressions.test_eight_actual_e37_answers_accepted_without_rewriting",
+        "receipt_sha256": "917015910e4a8ed15a05c2cdbf8dbac7c043f8f53f2e484ad5ae0f3a968d4d60",
+        "log_sha256": "25bdc54e670607024d0c756a58972a7ba7d98690c58f2993d0cdc7536893ebe4"
+      },
+      {
+        "test": "test_e38_astra_regressions.NativeAnswerRegressions.test_fixture_has_chance_adjusted_confidence_and_wire_normalization",
+        "receipt_sha256": "faac1a380027e6a759211bf59123828b4313e5a14220418eaff26561314dbacd",
+        "log_sha256": "0b14839fc8c2276adfd0b15855ff91cd034a95226daac19f32fd37da55655ae6"
+      },
+      {
+        "test": "test_e38_astra_regressions.NativeAnswerRegressions.test_logits_disconnected_from_probability_vector_rejected",
+        "receipt_sha256": "08fa7ae7ff5cafad3d2937868874be73aba009329aa9adb221311c329d948a78",
+        "log_sha256": "96ae53c499b8c9ca4924523739dc7985456e71858b31eeb7139f9175e1d70653"
+      },
+      {
+        "test": "test_e38_astra_regressions.NativeAnswerRegressions.test_nonunit_probability_mass_rejected",
+        "receipt_sha256": "0f6eb699d969431c97fa77933b669f131ea759ae43a12653153808422dc66072",
+        "log_sha256": "5168baffd903e9df70fd2ae20abeb3b9f6c71613e1d7bb784485408b5dffc490"
+      },
+      {
+        "test": "test_e38_astra_regressions.NativeAnswerRegressions.test_one_ulp_repeat_difference_remains_nonexact",
+        "receipt_sha256": "1318545d31d01b170cf809dfa619d59eeeb6d195e8a19474d8ad2743156af7fb",
+        "log_sha256": "14de165011fecc34045d5573ff3fe1db3c931929c3429788757de424ee9a80b3"
+      },
+      {
+        "test": "test_e38_astra_regressions.NativeAnswerRegressions.test_wrong_non_argmax_choice_rejected",
+        "receipt_sha256": "544045ef38a7d77eb1a6ce488fac3fc2c5fbe306344cc59a973051e60c1ca5d4",
+        "log_sha256": "ff9b3b2bb4a0c768d9b7ae307d4de849e1233baeb2e8b9c19bce524ce5f87d10"
+      },
+      {
+        "test": "test_e38_astra_regressions.TraceContractRegressions.test_authored_execution_order_and_layout_accepted",
+        "receipt_sha256": "48a81c0ab6283baad3cde4efe0900c1c9945495562e3934083ce93600b154cd1",
+        "log_sha256": "d1a8949ca3ca9a44e062d55d70f717e8f9e4b4274d9a590b3a0389aa4238e37f"
+      },
+      {
+        "test": "test_e38_astra_regressions.TraceContractRegressions.test_folded_batch_mapping_checked_against_contract",
+        "receipt_sha256": "a526f8380b731d5a5de5be8143baae57475349bb4c87ad024284106795f6c54a",
+        "log_sha256": "21b26df9aedb5ecbfd66d11c2489566eca398309cd2fc4035f8806e9c9fb003d"
+      },
+      {
+        "test": "test_e38_astra_regressions.TraceContractRegressions.test_reversed_execution_order_rejected_even_if_every_chunk_agrees",
+        "receipt_sha256": "cd88dcc6750d67975b1ce35804f870b5f46ff2941d459b01598533af22491ec0",
+        "log_sha256": "bf58ac84e323bfa46eb27674079d5e4b7f63fdfd0bcf9a51977b7f9737b45ffe"
+      },
+      {
+        "test": "test_e38_astra_regressions.TraceContractRegressions.test_uniform_wrong_dtype_rejected",
+        "receipt_sha256": "69388ec01fe68f597ece66f2951c01f43f051218adc019d612c5a4c81b66fd55",
+        "log_sha256": "b4587b803307d638136906cecabae4fb2bfec3bf9f263722f6407284592b62f5"
+      },
+      {
+        "test": "test_e38_astra_regressions.TraceContractRegressions.test_uniform_wrong_row_shape_rejected",
+        "receipt_sha256": "16776d796ec8a7d775807b3f3c45ab6aa46d7297dcfc4c823afe75caf353fde2",
+        "log_sha256": "9f12cf50b676712541c3a93b571f67495ad180e7ac684630c68bf5ddc9251a16"
+      },
+      {
+        "test": "test_e38_evidence.EvidenceChecks.test_attempt_requires_matching_receipt_and_digest",
+        "receipt_sha256": "947c580f2c550301e3fed6d5252e5149ee63871019782d75687f6e23741e7c87",
+        "log_sha256": "09ca3aac86bf0e915e54e9f574aa3b48be5084491d8420fab12abdfa028c93ed"
+      },
+      {
+        "test": "test_e38_evidence.EvidenceChecks.test_publish_never_overwrites_and_interrupted_pending_blocks",
+        "receipt_sha256": "6159d821f21c35dd451f678ec93dc95f75d581ee247941b5655c9c9d156f9fdd",
+        "log_sha256": "21a9cf02de74c182c5e1ad96764eb1d1d6546a96c06578e32be8aa6c138fb74b"
+      },
+      {
+        "test": "test_e38_evidence.EvidenceChecks.test_report_gap_fails_generation_without_overwriting_evidence",
+        "receipt_sha256": "a3f7c9d3a4b4188b3fe9581ac04c6556b5e7898497911f83bec020fe4d3cecd2",
+        "log_sha256": "978351063138a40d3c7889570451703efc43e77a586254ee354f33ff8a5bd695"
+      },
+      {
+        "test": "test_e38_evidence.EvidenceChecks.test_snapshot_replacement_and_parent_symlink_rejected",
+        "receipt_sha256": "193c88061abb1786b594d721003e0fe8c8bcc7a78fb14b7d07cfa13f5587047a",
+        "log_sha256": "2f9c0f68cf10d858e4e83b2f4156bd2b7430fd616064917edd45c8ca0f0ecd58"
+      }
+    ],
+    "total": 85,
+    "zero_skips": true,
+    "source_manifest_sha256": "495c861f996064098f1df8d7e8eb743250137338caf843b483b8837d4e115f82",
+    "report_sha256": "9096becaf984c7132ef5c1ce59052b2d49e7451b9d5c3af59db19cefa3570678",
+    "note": "Each report test matches unique receipt JSON and full one-test unittest log; this checks evidence consistency, not independently rerun native checkpoints."
+  },
+  "builder": {
+    "directory": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_prepare_20261031_v3",
+    "terminal_sha256": "cb342d185da67d7f48d8ab18e80894c924a950033778bfa080dcff3172672ff6",
+    "actual_exit_sha256": "7482a64eebd328684151ab3ba3b7ba6acb45dce402e9dee042a043acd3d5f5f6",
+    "actual_exit": {
+      "Status": "exited",
+      "Running": false,
+      "Paused": false,
+      "Restarting": false,
+      "OOMKilled": false,
+      "Dead": false,
+      "Pid": 0,
+      "ExitCode": 0,
+      "Error": "",
+      "StartedAt": "2026-10-30T23:28:50.18531888Z",
+      "FinishedAt": "2026-10-30T23:28:56.01672512Z"
+    }
+  },
+  "post_review_bundle_membership_size_sha_verified": true,
+  "source_plans_unchanged": true,
+  "npu_launched": false,
+  "approval_files_written": false,
+  "prior_v2_block_preserved": true,
+  "review_text": "**结论：BLOCK。两份 v4 精确计划目前仍不应启动。** 旧版四项 P1 的主要修复成立，但本次发现一个可执行复现的 native 回答验收漏洞，以及严格尝试数协议的持久化缺口；另有两处证据闭合不足。此结论独立于先前 v2 审阅及 CLI 退出码。\n\n本次只审查指定 v3 副本。实测 manifest SHA256 为：\n\n`a64f3d0e94ec1d9518e7d494e31d1e130f87aeb156393c8c56de9aa7035e77a1`\n\n| 精确计划 | 实测 SHA256 |\n|---|---|\n| Open-Jev-2B，`openjev_path_trace_openjev2_20261031_v4/plan.json` | `882b686ba62c75f1bb41c670b18fb4785f439273bbd32b4c5de29ff9a512a8df` |\n| Open-Jev-9B，`openjev_path_trace_openjev9_20261031_v4/plan.json` | `b1afb0e81a5c3c77f6bb5892e8dfdb7da750220d6d44f17dc2a7e52b6d9afce3` |\n\n以下源码引用均指包内副本；两模型相关实现字节一致。\n\n1. **P1：首次 forward 前，durable intent 的目录持久化链不完整。**\n\n   [openjev_path_trace_run.py:297](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_candidate_20261031_v3/files/mnt/cephfs/xingchao/experiments/jev/reference_inference/openjev_path_trace_openjev2_20261031_v4/openjev_path_trace_run.py:297) 新建 `items/` 和 `attempts/`，随后发布 intent，再执行 prediction。[e38_evidence.py:102](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_candidate_20261031_v3/files/mnt/cephfs/xingchao/experiments/jev/reference_inference/openjev_path_trace_openjev2_20261031_v4/e38_evidence.py:102) 确实 fsync 文件和直接父目录，但没有 fsync 新建 `attempts/` 所在的 generation 目录。我用完全虚拟的系统调用桩执行了实际 `publish_new`，确认这一调用顺序。\n\n   最小崩溃情形：首次 forward 已执行、receipt 尚未提交，存储恢复丢失尚未被明确持久化的 `attempts/` 目录项。此时 [verify_openjev_path_trace.py:124](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_candidate_20261031_v3/files/mnt/cephfs/xingchao/experiments/jev/reference_inference/openjev_path_trace_openjev2_20261031_v4/verify_openjev_path_trace.py:124) 把“无 attempts、无 items”接受为未开始状态，后续获准恢复可能重做该 forward。\n\n   **这是源码级耐久性缺口，不是本次在 Ceph 上复现了数据丢失。** 包内没有更强的文件系统保证来排除此情形。最小修复是在首次可能执行 forward 前持久化新目录及其父目录，并增加目录项丢失的故障测试。同类问题还存在于 [prepare_openjev_path_trace.py:491](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_candidate_20261031_v3/files/mnt/cephfs/xingchao/experiments/jev/reference_inference/openjev_path_trace_openjev2_20261031_v4/prepare_openjev_path_trace.py:491)：迁移旧 EXIT 后没有持久化源、目标目录，尚不能完整保证崩溃后的历史证据保存。\n\n2. **P2：独立 verifier 接受 native 明确禁止的 confidence，已复现完整八回执误接受。**\n\n   [verify_openjev_path_trace.py:115](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_candidate_20261031_v3/files/mnt/cephfs/xingchao/experiments/jev/reference_inference/openjev_path_trace_openjev2_20261031_v4/verify_openjev_path_trace.py:115) 只检查 confidence 的数值类型、有限性和重建误差，没有检查 `0 <= confidence <= 1`。native 的 [jeval_reference_inference.py:30](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_candidate_20261031_v3/files/mnt/cephfs/xingchao/experiments/jev/reference_inference/jeval_openjev2_probe_20261030/jeval_reference_inference.py:30) 则明确要求该范围。\n\n   本次纯 CPU、内存路径桩反例保留实际 2B 计划身份、全部696个事件布局、八任务及匹配 intents，设置全零 logits、均匀概率、正确首项 choice，仅把 confidence 设为 **`-5e-8`**，重新计算全部 envelope 哈希。实际 `validate_items(..., complete=True)` 接受八份回执，`reconstruct` 返回 **全部11项 controls=true、trace_valid=true**。\n\n   最小修复是先检查 native 硬范围，再应用跨运行时重建误差界限，并加入上下界外数值的完整回执回归。不能用 `confidence_atol` 豁免协议范围。\n\n3. **P2，证据缺口：冻结 trace 与镜像内实际 Qwen 实现的源码对应关系尚未完整提供。**\n\n   包内含合同生成器、两种配置、E37 层身份以及 tiny 模型测试，但没有实际 `modeling_qwen3_5.py`／GDN fallback 源码。测试直接导入镜像安装包，见 [test_openjev_path_trace_run.py:220](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_candidate_20261031_v3/files/mnt/cephfs/xingchao/experiments/jev/reference_inference/e38_execution_cpu_tests_20261031_v6/tools/test_openjev_path_trace_run.py:220)。\n\n   我确认两份合同可以从各自配置和 E37 层列表重新生成，分别为696／928个事件；也确认 producer 和 verifier 强制执行合同。但“生成器重建自身结果”和 tiny24 日志不足以完成要求的**实际 native 源码逐事件核对**。这不是已证明顺序或形状错误。应补入固定镜像实际解析到的相关源码及来源／哈希绑定，才能独立核对两种模型的 GDN、norm 和投影调用顺序。\n\n4. **P2，证据缺口：保存的 CPU preparation 审批时间晚于对应执行。**\n\n   2B 的 [PARENT_REVIEW.json:3](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_candidate_20261031_v3/files/mnt/cephfs/xingchao/experiments/jev/reference_inference/e38_openjev2_prepare_20261031_v4/PARENT_REVIEW.json:3) 时间为 `23:27:25`，但保存的 [执行记录:7](/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e38_execution_candidate_20261031_v3/files/mnt/cephfs/xingchao/experiments/jev/reference_inference/openjev_path_trace_openjev2_20261031_v4/PARENT-CHECKABLE-EVIDENCE.json:7) 显示 `23:26:11` 启动、`23:26:30` 结束；9B 同样如此。\n\n   当前审批与 request 哈希匹配，但不能据此证明它就是启动前读取的审批字节。可能是事后更新记录；**不能据此断言实际未经审批启动**。需要保留原启动前审批及更新说明，或补充启动时绑定的审批摘要。\n\n**对先前问题的逐项处置：**\n\n| 先前问题 | 本次处置 |\n|---|---|\n| 正确 native 回答被拒绝 | 主要修复成立。八份实际 E37 原始 envelope 与副本逐字节匹配，全部原样通过本次重跑；chance-adjusted confidence、wire renormalization 已正确处理。仍须修复上述 confidence 硬范围遗漏。 |\n| 全零、非单位质量、错误 choice、脱离 logits 的概率被接受 | 原反例已关闭。本次在完整八回执路径中重新封装哈希后，四类变异均被拒绝。首项并列选择、非法类型、NaN／Inf 也已检查。 |\n| trace 仅检查相互一致 | 验证逻辑已修复：注册顺序与执行顺序分离，逐事件 dtype、row_shape、layout 被冻结；reverse、float64、`[1]`、错误 folded heads 均拒绝。实际镜像源码审阅仍受上述证据缺口限制。 |\n| parse 后单次 atomic replace | 原漏洞已关闭。Snapshot 从同一 descriptor 读取字节并计算摘要，解析这些字节，并检查文件身份；逐级 `O_NOFOLLOW` 覆盖路径组件。保存的 stable-good、stable-bad、真实 replace 测试均通过，注入测试明确断言 `replaced == [True]`，不是 schema 提前失败。 |\n| 八 receipts 不证明八 attempts | 进程中断路径明显改善：intent 先于 forward，receipt 绑定 intent，未匹配／partial intent 拒绝并标记失败；但目录持久化缺口使严格保证尚未闭合。 |\n| report-before-COMPLETE | **接受当前明确失败的协议选择。** `publication_gate` 保留报告并标记 FAILED_GENERATION，普通恢复拒绝；完成 verifier 也禁止失败 generation 转成功。不要求自动 finalize。 |\n\n两套旧版回归记录已分别检查：old-v2 日志确实记录 native／数值／读取竞态反例；独立 old-schema trace 日志包含一个通过的基线和三个错误接受的变异。没有把新版 layout 被旧 verifier 拒绝当成旧 trace 漏洞复现。历史 pyc 的明确省略不影响这些源码／日志绑定。\n\n**其余核验结果：**\n\n- manifest 的676个成员全部大小／哈希匹配，无额外或缺失文件；PATH_MAP 全部包含项匹配。两计划各有201项包含依赖通过，另分别省略3／6项权重，其预期摘要与遗漏清单一致。\n- CPU_TEST_COVERAGE 的85个登记方法与源码方法集合完全一致；85份唯一收据、85份完整日志及 report 一一对应，零 skip。最终 v6 source manifest、terminal、EXIT 摘要链匹配，无 pyc；两模型计划和 preparation 的 Python 源码与该测试包一致。\n- 本次实际重跑12个纯 CPU 回归；另执行类型／并列／signed-zero检查、完整八回执变异检查。259个 Python 文件内存编译、42个 shell 文件仅语法检查通过。\n- 固定4200、15候选、宽186、八任务顺序、两模型原生温度正确；request 摘要和全部 padded mask 行哈希匹配。重复／hook 使用精确序列化摘要，one-ULP 与 signed zero 没有被数值容差掩盖。\n- preparation request、wrapper、spec、receipt、report、terminal、EXIT 的摘要及保存的容器身份相互匹配；CPU spec 无 devices、network none，保留固定镜像原 entrypoint。实际 Docker 退出状态属于保存的 provenance，本次未重新查询。\n- launcher 在资源锁内检查当前 owner、Docker 暴露和严格 npu-smi 空闲输出，仅允许chip0—5、逻辑 `npu:0`；不释放资源。**两计划都选chip4，不能同时占用。** 后续仍须重新认证实时所有权和占用。\n- E36／E37 的 admission=false 保留；科学 controls 失败会产生 `trace_valid=false`、review_flags，不能由 rc0 推导科学成功。最早 trace 差异只定位观测边界，不能归因 kernel。\n\n本机缺少 torch，且文件系统只读，未重新执行需要磁盘临时夹具的竞态测试或固定镜像张量测试；这些限制没有被记成测试失败，也没有被声称为本次亲验。未重新分词验证全部 padded token IDs，未访问或重新哈希外部权重；权重仅依据保存的 CPU `full_closure_verified` provenance。\n\n包内没有两份 NPU 计划的审批、启动收据或运行终端，与保存的“未启动”记录一致。本次未启动／准备／恢复任何任务，未访问 live Docker、SSH、NPU、allocation 或外部权重，未创建审批或归档文件。**当前结论不授予完整 JEVal、chunk8 精确等价、kernel 因果或训练收益主张。**",
+  "verdict": "BLOCK both exact v4 plans. Existing v2 BLOCK preserved; revised old P1 checks substantially work, but durable directory publication, native confidence hard bounds, native source snapshot and approval chronology provenance remain unresolved.",
+  "findings": [
+    {
+      "priority": "P1",
+      "category": "durability",
+      "summary": "New attempts/items directory entries are not fsynced through generation parent before first forward; preserved EXIT relocation lacks source/destination directory fsync.",
+      "evidence_limit": "Source-level durability counterexample; actual Ceph data loss was not reproduced."
+    },
+    {
+      "priority": "P2",
+      "category": "native_confidence_range",
+      "summary": "Uniform probabilities and zero logits with confidence=-5e-8 are accepted on full eight-receipt/intents path; all11 controls and trace_valid remain true."
+    },
+    {
+      "priority": "P2",
+      "category": "native_source_evidence",
+      "summary": "Actual fixed-image modeling_qwen3_5.py/GDN implementation source is absent; frozen event contract regeneration and tiny models do not independently establish source correspondence."
+    },
+    {
+      "priority": "P2",
+      "category": "approval_chronology_evidence",
+      "summary": "Saved CPU approval UTC is later than saved server execution; need prelaunch binding/provenance explanation, without concluding unauthorized execution from differing timestamps alone."
+    }
+  ],
+  "recorder_note": "The actual reviewer final sentence about not creating archive files concerns the read-only reviewer itself. The outer CLI runner and this recorder retain actual review/child/terminal artifacts. No NPU approval or execution occurred."
+}

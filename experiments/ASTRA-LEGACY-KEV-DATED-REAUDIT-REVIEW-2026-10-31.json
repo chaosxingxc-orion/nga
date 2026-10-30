@@ -1,0 +1,44 @@
+{
+  "experiment": "E39",
+  "status": "ACTUAL_ASTRA_BOUNDED_RESULT_REVIEW_RUNNING",
+  "requested_model": "gpt-6-astra",
+  "runner_directory": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e39_legacy_kev_astra_20261031",
+  "bundle_directory": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e39_legacy_kev_candidate_20261031",
+  "preparation": {
+    "status": "PREPARED_NOT_LAUNCHED",
+    "manifest_sha256": "dfcf9aa9355e2563895f2e489c92acac18523fbacbaefe47583c95bf257d9f58",
+    "file_count": 8930,
+    "bytes": 45876752,
+    "excluded_inputs": 77,
+    "runner_sha256": "a1d8b62423ff59166fb8e3b345807cb4cdcfd37a76d4ef257a1c8b9753cc79b1",
+    "prompt_sha256": "4d701ead4256431b7d79798e3a7a72feb5adf67e0f92602811d70c86288f3624",
+    "prepare_seconds": 13.50471806526184
+  },
+  "review_sha256": null,
+  "terminal": null,
+  "verdict": null,
+  "process": {
+    "command": [
+      "codex",
+      "exec",
+      "--model",
+      "gpt-6-astra",
+      "--sandbox",
+      "read-only",
+      "--skip-git-repo-check",
+      "--ephemeral",
+      "--json",
+      "-C",
+      "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e39_legacy_kev_astra_20261031",
+      "-o",
+      "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e39_legacy_kev_astra_20261031/review.md",
+      "-"
+    ],
+    "pid": 1628133,
+    "runner_pid": 1628131,
+    "started_utc": 1793403841.3572628,
+    "boot_id": "cce12053-8db5-4a8c-a831-414c574f60df",
+    "bundle": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e39_legacy_kev_candidate_20261031",
+    "manifest_sha256": "dfcf9aa9355e2563895f2e489c92acac18523fbacbaefe47583c95bf257d9f58"
+  }
+}
