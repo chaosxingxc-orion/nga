@@ -163,3 +163,100 @@ Open-Jev2 probe actually started on chip 1, retained container
 `8788ccb1b776d6d3053000c91185ef898552d023ad6f0c253cad20672ba396f4`.
 Open-Jev9 and Nimble probe configurations remain prepared only.
 These are launch observations, not full-test results or Astra acceptance.
+
+## Kev4 v2 probe recovery preparation
+
+The old Kev4 formal launcher rejected the Docker-created container before start,
+receipt or chip claim. The retained container
+`05090669e8b9866d6747b3c1f2499daa6c4f1ee4abaef2fed323f2eddea13543`
+remains `created`: exact sorted mount strings match and devices match; only the
+mount-list order differs. `LAUNCH_DIAGNOSIS.json` records this bounded diagnosis.
+Old frozen files and the failed container are preserved.
+
+A separate Kev4 v2 probe uses the already fixed frozen Kev9 v2 source, unchanged
+Kev4 native dependencies and E31 eligibility. Planned chip 3 must remain explicitly
+free and have no live mapping before launch. The probe checks the same three
+synthetic types and longest eligible input twice; formal inference still requires
+separate probe acceptance. CPU-only preparation runs detached in
+`nga-jeval-kev4-v2-prepare`, with persistent log, heartbeat, terminal and exact
+relaunch under `reference_inference/jeval_kev4_v2_prepare_20261030`.
+
+Kev4 v2 preparation completed 1/1 at 19:08:46 UTC; the retained CPU preparation
+container exited 0. The new probe configuration SHA256 is
+`d42acbeef917c5d736a84b70cb6d23efa67e4b9aeec9fbc9de17b7c237095776`,
+with 82 frozen files. Source scripts match the accepted fixed v2 source byte for
+byte; runtime matches, and native dependency paths/hash sets match E31.
+After full frozen-file checks and locked resource verification, retained container
+`6b6319833385c7c59eb850b5fb4edf3efd6b762c4e656fd9e51aca4403ff6eb5`
+actually launched on chip 3. Probe completion and separate formal acceptance remain
+pending; no JEVal score follows from this launch.
+
+## Serial remaining-family probe acceptance and execution
+
+The parent delegated engineering acceptance of Open-Jev2 and serial execution of
+Open-Jev9 then Nimble probes on chip 1. The acceptance script is retained outside
+model/data directories at
+`reference_inference/nga_probe_accept_sequence_20261030.py`.
+It checks full frozen hashes, exact source/runtime/native E31 closure, actual
+Docker/resource/exit/wrapper binding, synthetic and longest-eligible identity,
+repeated probability drift, durations, reserved memory and consumed token hashes.
+Token provenance is not independent retokenization. The allocation release is
+locked and requires the exact owner and absence of a live chip-1 mapping.
+This sequence does not launch formal inference or new training.
+
+### 19:10 UTC — Open-Jev2 probe accepted
+
+All 97 frozen files passed hash verification; eligibility/native/runtime/source
+and actual Docker/resource/exit/wrapper checks passed. Terminal 19:07:58 UTC and
+wrapper 19:08:02 UTC are rc 0; retained container
+`8788ccb1b776d6d3053000c91185ef898552d023ad6f0c253cad20672ba396f4` exited 0.
+The three synthetic types and longest eligible index 9027 (4,096 tokens, 30
+candidates) each repeated with maximum probability delta 0. Boundary timings were
+9.774910/9.182082 seconds, reserved 24.052734 GiB, one chip. Boundary consumed-token
+hashes match E31. `PROBE_REVIEW.json` binds config
+`81113da7d23f9de4f6aff27b4d06a277a177fced4efedf33a9d278e59800551e`
+and probe `d1801ca88a7124e4531f107137c6daa586bdf00397d02260acbf1ebc534f8cbe`.
+Chip 1 was explicitly released under lock after actual live maps were checked.
+This is engineering admission, not a JEVal full-test result or Astra approval.
+
+Kev4 v2 probe completed at 19:10:25 UTC; wrapper 19:10:30 UTC and retained
+container exit code are both 0. Config/terminal/launch/wrapper and PROBE hashes
+were independently checked. PROBE SHA256:
+`26cfdb82fec3d88afbc1406bcf7ff47512d99e471722d134dfce0e1ed12e9315`.
+All four repeated pairs have maximum probability delta 0. The boundary index 9361
+was reselected from the full eligible population (8,187 tokens, input/token hashes
+matched); the two forwards took 3.353422/2.865180 seconds. Reserved memory was
+27.3203125 GiB on one chip; last-probe throughput was 0.349018 questions/s/chip.
+`PROBE_VERIFICATION.json` records engineering checks for parent acceptance.
+No full-test receipts or formal v2 inference were emitted; chip 3 remains owned
+until explicit acceptance and release.
+
+### 19:11 UTC — Open-Jev9 probe actually started
+
+The prepared 100-file config
+`d1e953ca97c89ce0880116a5e48f4eebe733e2d1fe5ce87027c1cfe3a21f6c85`
+passed full hashes, frozen v2 executable identity, runtime/native E31 closure and
+single-chip specification checks. The guarded launcher acquired chip 1 and started
+retained container `16cc0baadea08a6421481662f142c585fb1abfff44fd08ad10bac4ebaf87e8e1`.
+Actual state was running at 19:11:12 UTC. Probe result remains pending.
+
+After the parent requested acceptance, hash-bound `PROBE_REVIEW.json` was written.
+Chip 3 was explicitly released under the allocation lock after rechecking the
+actual retained exit, current ownership and all live device mappings. Formal v2
+inference remains a separate preparation and launch.
+
+## 19:13 UTC — corrected Kev4 formal inference actually started
+
+After parent rechecked v2 probe terminal/output hashes, engineering verification,
+actual retained exit 0 and explicit chip-3 release, formal v2 was prepared from
+that exact frozen source. Config SHA256
+`ca320e1d174d6349042962151af1807fb028f26eb172ed98873cf24f50de2d71`, 85 files,
+run `reference_inference/jeval_kev4_inference_20261030_v2`.
+Executable/runtime/native identity matched the accepted probe; guarded launch
+rehashed frozen files and checked locked live resources. Retained inference
+`2ccdf964c4c22d9831b0baec50895f4fd38065b18e88c8f28f427c245975e906`
+and independent finisher
+`5260f9111d02bab3937ee08299fa03178c25e7afb37857e260d70859be4e8ccb`
+were both actually running. The inference digest at 19:13:25 UTC was loading.
+Old formal-v1 created container and failure evidence remain untouched.
+No final JEVal score or training benefit is claimed.
