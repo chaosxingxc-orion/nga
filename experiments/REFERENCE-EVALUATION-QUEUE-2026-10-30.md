@@ -9,7 +9,7 @@
 | 优先级 | 模型 × 数据 | 当前依据／可执行下一步 | 完成后能够声称什么 |
 | --- | --- | --- | --- |
 | P0 | Kev-0.8B／4B／9B × decision-v7／transfer-v4 | 三个尺寸均完成两套完整 test 及独立核对；9B 于 15:37 UTC 完成自动后处理验收 | 相同官方 test、原生 pointer head、发布温度下的本地复测；raw T=1 单列 |
-| P1 | Open-Jev-2B，然后 9B × release-v2 公共投影 test | 先做 2B 原生 scalar-head loader 的 Ascend 适配和开发集探测；解压现有原生 JSONL，核验 export manifest；跑完整 **10,356** 行公共 test | 公共投影上的新本地结果；不能直接称为已发布 **10,532** 行完整 old test 的复现 |
+| P1 | Open-Jev-2B／9B × release-v2 公共投影 test | 两尺寸原生 scalar-head 合成探测与完整长度预检已完成；均已启动完整 **10,356** 行公共 test；2B 的独立 CPU 后处理已启动等待终态 | 公共投影上的新本地结果；不能直接称为已发布 **10,532** 行完整 old test 的复现 |
 | P1b | Open-Jev-2B／9B × 完整 old test／OOD | 查找本地 Wikispeedia archive；若可得，按固定源哈希和恢复工具重建缺失行；完整 split SHA 必须与 original manifest 一致，再跑或复用身份完全一致的公共行 | 才能与原 **10,532 test／15,920 OOD** 总体指标同分母比较；test 与 OOD 各自报告 |
 | P2 | 初始 Bespoke-Nimble-9B × 原文七个真正 test 子集 | 先还原相同 ids/checksum 的公开子集，适配原生候选 token scorer 到 NPU，并验证 prompt/schema；初始 checkpoint 优先，v2/v3 另行标记 | 文献对应 test 子集复测；不能把原 3,880 行混合分区总数当 test |
 | P3 | 已跑通原生接口的模型 × JEVal／typed-decisions | 用现有完整公开 test 形成共同评测面，先冻结 adapter、字段映射、无效输出计分和原生方法；独立记录新 protocol | 同一公共任务集下的新跨模型比较，不冒称复现各模型自家内部 test |
@@ -25,7 +25,17 @@ P1 与 P2 的适配／数据核验可以在 Kev 正式推理运行时并行推�
 - decision 完整 1,176 records／1,440 questions，clean 主表 1,200；transfer 完整 764 records/questions，clean 主表 656。
 - 不把原生 pointer readout 换成 NGA label-logprob；保持 option order，permuted／NOTA 单独统计。服务温度与 raw T=1 是设置差异，不是两种 Brier 公式。
 
-2026-10-30 15:37 UTC 追加：0.8B／4B／9B 均已完成上述运行及独立核对。下一步推进 Open-Jev 与 Nimble，而非重复完成的 Kev 单元。hard-v1、devtools-v1、documents-v1 可列后续覆盖，但本次没有确认这三者完整本地 test 文件，不以存在报告推定能运行。
+2026-10-30 15:37 UTC 追加：0.8B／4B／9B 均已完成上述运行及独立核对。下一步推进 Open-Jev 与 Nimble，而非重复完成的 Kev 单元。
+
+**2026-10-30 15:54 UTC 纠正库存遗漏：** hard-v1、devtools-v1、documents-v1 完整 dev/test 实际在 Kev 源码仓库的 `evals/<suite>/` 下，此前只看数据镜像而漏报。三个 test 均已逐字节核对 manifest 的 SHA256。不是缺少题目，应该进入后续实际推理队列。
+
+| suite | 完整 test records／questions | test SHA256 | 运行前需要保留的区别 |
+| --- | --- | --- | --- |
+| hard-v1 | 700／1,088 | `246ee92234d33f8e3f10ac6e1542651531b128fd7cc66f3a9964589b77dfa22b` | 所有 ID 唯一；使用该 suite 的 7,552 state／9,216 packed context，不套 decision-v7 限制 |
+| documents-v1 | 574／936 | `742d04a1abc2207bd3e4f24b281f483cdc69238e4da747cbbc3774e836f2e557` | 所有 ID 唯一；8,192 state／16,384 packed context，先验证长输入内存与吞吐 |
+| devtools-v1 | 900／1,073 | `2fb7c2a239fef923bcb62c0eee9d6884a608ce30e5e74a4e6b9082787679767f` | 有两个内容不同的记录共享同一 ID；文献 release 排除这两行，headline 为 1,071 问题，不能混同完整分母 |
+
+devtools-v1 test 第 571／623 行（1-based）共享 `codereviewer/cls-test/19245`，均有 `needs_comment` 问题，但记录不相同。原 `scripts/build_devtools_v1.py:38–46` 说明历史 ID 碰撞；三个 release spec 的 `drop_ids` 都包含该 ID 和 dev 中的另一个碰撞 ID。`scripts/release_numbers.py:42–45` 在计分前应用 `drop_ids`。因此需要保留按行位置和内容哈希区分的完整推理，再分别报告全部 1,073 问题与按原 release 排除后的 1,071；不能静默删题，也不能强行放宽现有 driver 的唯一 ID 检查而不修正结果身份。硬件探测和该协议修订在正式运行前登记。
 
 ## 3. Open-Jev：可运行的模型与不可混同的分母
 
@@ -82,9 +92,11 @@ Wikispeedia 源 archive SHA256 为 `97697096f5d2dcb77aa69e3992305c6c561de89edb9f
 
 ## 4. Nimble：先锁初始 checkpoint 与温度，恢复真正的 test 子集
 
-模型：`/mnt/cephfs/xingchao/omni/models/jev/bespokelabs__Bespoke-Nimble-9B/`。
-这里是 adapter，不是现成 merged backbone；含 `adapter_model.safetensors`、`schema_config.json`、`serving_config.json`、`temperature_config.json`。
-v2、v3 目录同时存在，但不能把初始模型的文献成绩贴到 v3。
+**2026-10-30 15:58 UTC 身份纠正：** 原列 `/mnt/cephfs/xingchao/omni/models/jev/bespokelabs__Bespoke-Nimble-9B/` 虽无版本后缀，实际是 v3-12026（schema v2），不是初始公共 benchmark 的模型。不得以目录名代替 release 身份。
+
+已恢复文献命令明确指定的初始 revision `594dfdcfb6f94e3d0c0db7535180d3c71689169a` 到隔离目录 `reference_inference/nimble_initial_inventory_20261030/adapter/`，七个必需文件逐一匹配该 revision 的 SHA256SUMS。adapter 权重 SHA256 为 `ba7e28acb97f973e80fa51f3aa6fc6f75ea4081b89632ed45d8e5f3a1d7bfa6b`；v1 schema、2,676 训练行。原镜像未覆盖。详情见 [Nimble 执行前检查](NIMBLE-REFERENCE-PREFLIGHT-2026-10-30.md)。
+
+这是 adapter，不是现成 merged backbone；基座为 Qwen3.5-9B Instruct revision `c202236235762e1c871ad0ccb60c8ee5ba337b9a`。E16 四个合成 fixture 各跑两次，结构化终态已为 rc=0；不把此探测算成七个公共 test 的成绩。
 
 代码根：`/mnt/cephfs/xingchao/omni/repos/jev/bespokelabsai__nimble/`。执行链：
 

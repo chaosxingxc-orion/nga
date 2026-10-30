@@ -47,10 +47,12 @@
 | decision-v7 clean | 1,200 | 83.750 | 86.500 | 87.250 | 86.583 |
 | transfer-v4 clean | 656 | 69.665 | 83.841 | 85.213 | 88.872 |
 | hard-v1 | 1,088 | 66.544 | 80.331 | 83.364 | 91.820 |
-| devtools-v1，全来源 | 1,071 | 63.679 | 75.630 | 79.085 | 78.992 |
+| devtools-v1，全来源，按 release 排除碰撞 ID | 1,071 | 63.679 | 75.630 | 79.085 | 78.992 |
 | documents-v1 | 936 | 85.150 | 90.278 | 89.957 | 90.812 |
 
 **Jev 在 decision-v7／transfer-v4 没有已发布 test 值。** README 的 0.845／0.857 是 dev，不填入这张表。2B 没有该 Kev 官方模型行。
+
+**2026-10-30 口径补充：** devtools-v1 原完整 test 有 900 records／1,073 questions，其中两条不同记录共享 `codereviewer/cls-test/19245`。原 release spec 的 `drop_ids` 排除这两条，所以上表是 1,071 问题，不是完整原始分母。题目文件和 manifest 已在源码仓库 `evals/devtools-v1/` 找到并校验；后续本地复测须分别保留完整与 release 口径，详见[队列](REFERENCE-EVALUATION-QUEUE-2026-10-30.md)。
 
 来源：本地 Kev repo `runs/release/{kev-08b-r15,kev-4b-r10,kev-9b-r27,kev-27b-r23}.json` 的 `candidate` 对应字段；4B documents 来自 `runs/fam-4b-docs1test/report.json`；27B decision 来自 `runs/locked/kev-27b-r23-ungated/summary.json`。这两处补充仅用于该准确率，不推定服务温度概率指标已齐全。源码和数据口径详见 [KEV-PROTOCOL](KEV-PROTOCOL.md)。
 

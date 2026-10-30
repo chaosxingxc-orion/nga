@@ -37,6 +37,10 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E12](E12-reference-kev9-test-20261030.md) | native Kev-9B on decision-v7 and transfer-v4 test | reference evaluation | complete; 2,204 questions and scoped independent audit verified |
 | [E13](E13-openjev2-native-probe-20261030.md) | native Open-Jev-2B typed synthetic compatibility | reference evaluation | three synthetic requests completed; public test not yet run |
 | [E14](E14-openjev2-public-test-20261030.md) | native Open-Jev-2B on 10,356 public test rows | reference evaluation | complete length preflight passed; full inference launched on 175 chip 2 |
+| [E15](E15-openjev-independent-finish-20261030.md) | independent Open-Jev metric audit and automatic finish | engineering | CPU waiter launched; whole-test audit awaits inference completion |
+| [E16](E16-nimble-native-probe-20261030.md) | restored initial Nimble native candidate-token readout | engineering | eight synthetic outputs completed; public-test data restoration remains |
+| [E17](E17-openjev9-native-probe-20261030.md) | native Open-Jev-9B typed compatibility | engineering | three synthetic fixtures completed and verified |
+| [E18](E18-openjev9-public-test-20261030.md) | native Open-Jev-9B on the same 10,356 public test rows | reference evaluation | full length preflight passed; inference running on 175 chip 1 |
 
 ## Where the artifacts live
 
