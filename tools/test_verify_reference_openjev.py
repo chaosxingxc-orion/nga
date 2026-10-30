@@ -8,6 +8,9 @@ import tempfile
 import subprocess
 import sys
 import unittest
+import http.server
+import socketserver
+import threading
 
 
 def module(name):
@@ -140,6 +143,51 @@ class AuditTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'terminal failure'):f.inspect_state(info,receipt,c)
         info['Id']='other'
         with self.assertRaisesRegex(ValueError,'identity'):f.inspect_state(info,receipt,c)
+
+    def test_failed_wrapper_without_terminal(self):
+        r=self.fixture.run;(r/'evaluate-COMPLETE.json').unlink()
+        (r/'evaluate-EXIT').write_text('rc=1 utc=2026-10-30T15:00:00Z\n')
+        with self.assertRaisesRegex(ValueError,'Wrapper failed'):f.completion_state(r,v.sha(r/'config.json'))
+
+    def test_actual_finisher_chain_success_and_failure(self):
+        r=self.fixture.run;receipt=v.load(r/'LAUNCH_RECEIPT.json')
+        info={'Id':'id','Image':'image','Config':{'Cmd':receipt['command'],'Entrypoint':None},
+              'HostConfig':{'Devices':[{'PathOnHost':'/dev/davinci2'}]},'State':{'Status':'exited','ExitCode':0}}
+        calls=[]
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                calls.append(self.path)
+                self.send_response(200);self.end_headers();self.wfile.write(json.dumps(info).encode())
+            def log_message(self,*args):pass
+        socket_path=str(Path(self.temp.name)/'docker.sock')
+        server=socketserver.UnixStreamServer(socket_path,Handler)
+        thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        try:
+            # Only the test harness redirects the UNIX socket. The production CLI has no test bypass.
+            entry=Path(self.temp.name)/'entry.py'
+            entry.write_text('import importlib.util,sys\n'
+                f's=importlib.util.spec_from_file_location("finish",{str(Path(__file__).with_name("openjev_reference_finish.py"))!r})\n'
+                'm=importlib.util.module_from_spec(s);s.loader.exec_module(m)\n'
+                f'original=m.container_info\nm.container_info=lambda name:original(name,{socket_path!r})\n'
+                'm.main()\n')
+            for failed in (False,True):
+                out=Path(self.temp.name)/('finish_bad' if failed else 'finish_good');out.mkdir()
+                if failed:self.fixture.mutate_report()
+                auditor=Path(__file__).with_name('verify_reference_openjev.py').resolve()
+                plan={'out':str(out),'config':str(r/'config.json'),'auditor':str(auditor),
+                      'files':{str(auditor):v.sha(auditor),str(r/'config.json'):v.sha(r/'config.json')}}
+                write(out/'plan.json',plan)
+                result=subprocess.run([sys.executable,'-I',str(entry),'--plan',str(out/'plan.json')],
+                                      capture_output=True,text=True,timeout=20)
+                terminal=v.load(out/'FINISH_COMPLETE.json')
+                self.assertEqual(terminal['rc'],int(failed),result.stderr)
+                self.assertEqual(result.returncode==0,not failed,result.stderr)
+                self.assertEqual((out/'INDEPENDENT_AUDIT.json').exists(),not failed)
+                self.assertEqual(v.load(out/'digest.json')['container_status'],'exited')
+                self.assertLess((out/'digest.md').stat().st_size,1500)
+            self.assertTrue(calls);self.assertEqual(set(calls),{'/containers/test/json'})
+        finally:
+            server.shutdown();thread.join();server.server_close()
 
 
 if __name__=='__main__':unittest.main()

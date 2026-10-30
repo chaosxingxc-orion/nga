@@ -32,11 +32,11 @@ def atomic(path,value):
         if os.path.exists(temp):os.unlink(temp)
 
 
-def container_info(name):
+def container_info(name, socket_path='/var/run/docker.sock'):
     if not re.fullmatch(r'[a-zA-Z0-9_.-]+',name):raise ValueError('Invalid container name')
     connection=http.client.HTTPConnection('localhost',timeout=15)
     connection.sock=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
-    connection.sock.settimeout(15);connection.sock.connect('/var/run/docker.sock')
+    connection.sock.settimeout(15);connection.sock.connect(socket_path)
     try:
         connection.request('GET','/containers/'+name+'/json')
         response=connection.getresponse()
@@ -62,6 +62,8 @@ def inspect_state(info,receipt,config):
 def completion_state(run,config_hash):
     if (run/'ERROR.json').exists() or (run/'FAILED').exists():raise ValueError('Recorded inference failure')
     path=run/'evaluate-COMPLETE.json';wrapper=run/'evaluate-EXIT'
+    if wrapper.exists() and not re.fullmatch(r'rc=0 utc=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\n?',wrapper.read_text()):
+        raise ValueError('Wrapper failed or malformed, including missing inference terminal')
     if not path.exists():return 'pending'
     terminal=json.loads(path.read_text())
     if type(terminal.get('rc')) is not int or terminal['rc']!=0:raise ValueError('Inference terminal failed')
@@ -71,6 +73,29 @@ def completion_state(run,config_hash):
     if wrapper.stat().st_mtime_ns<path.stat().st_mtime_ns:raise ValueError('Stale wrapper')
     if terminal.get('outputs',{}).get('report.json')!=sha(run/'report.json'):raise ValueError('Inference report binding differs')
     return 'ready'
+
+
+def publish_digest(out,run,info,status):
+    """Bounded structured observation, not an inference completion certificate."""
+    source=run/'evaluate-STATUS.json'
+    try:
+        upstream=json.loads(source.read_text())
+        fields={key:upstream.get(key) for key in ('utc','stage','progress','total',
+                'questions_per_second_per_chip','chips','reserved_memory_gib')}
+        error=None
+    except (OSError,ValueError) as exc:
+        fields={};error=type(exc).__name__
+    value={'observed_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
+           'container_status':info['State']['Status'],'finisher_stage':status['stage'],
+           'inference_status':fields,'source':str(source),'observation_error':error}
+    atomic(out/'digest.json',value)
+    # Whitelist scalar fields and cap each rendering; no raw log or traceback.
+    safe=lambda x:str(x).replace('\n',' ')[:100]
+    line=(f"{value['observed_utc']} container={safe(value['container_status'])} "
+          f"stage={safe(fields.get('stage'))} progress={safe(fields.get('progress'))}/{safe(fields.get('total'))} "
+          f"q/s/chip={safe(fields.get('questions_per_second_per_chip'))} chips={safe(fields.get('chips'))} "
+          f"reserved_GiB={safe(fields.get('reserved_memory_gib'))} heartbeat_utc={safe(fields.get('utc'))}\n")
+    (out/'digest.md').write_text(line+'Source: '+str(source)+'\n')
 
 
 def main():
@@ -93,7 +118,9 @@ def main():
         status['stage']='waiting_for_inference_terminal_and_container_exit'
         while True:
             # GET only. No container mutations or NPU allocation occur in this process.
-            c=inspect_state(container_info(config['container']),receipt,config)
+            info=container_info(config['container'])
+            c=inspect_state(info,receipt,config)
+            publish_digest(out,run,info,status)
             t=completion_state(run,config_hash)
             if c=='exited':
                 if t!='ready':raise ValueError('Exited container lacks successful terminal/wrapper')

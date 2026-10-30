@@ -73,3 +73,41 @@ command, entrypoint and plan hash are in its `LAUNCH_RECEIPT.json`. E14 is untou
 ## Verdict
 
 Pending E14 completion and the independent audit. Astra review remains separate.
+
+## 2026-10-30 review amendment before replacement launches
+
+The first frozen observer could remain pending if an inference wrapper recorded failure before
+the Python terminal existed. The corrected observer checks any existing wrapper first, and rejects
+nonzero or malformed exit evidence immediately. It also writes bounded `digest.json` / `digest.md`
+with the upstream heartbeat timestamp, progress/total, per-chip throughput, chip count, reserved
+memory and actual Docker state. These fields are observations, not completion certificates.
+
+Eighteen tests pass, including a real finisher subprocess connected to a fixture UNIX Docker GET
+server and invoking the actual independent verifier. Valid complete artifacts succeed; a forged
+hash-consistent metric report makes the chain fail. Production has no fixture-server CLI bypass.
+
+The old CPU-only observer will be intentionally stopped and preserved with an explicit stop record;
+its frozen files are not overwritten. New frozen waiters cover both actual inference runs:
+
+- E14: `reference_inference/openjev2_test_20261030_v3_finish_v2/`, retained container
+  `nga-reference-openjev2-finish-v4`.
+- E18: `reference_inference/openjev9_test_20261030_finish/`, retained container
+  `nga-reference-openjev9-finish`.
+
+Both use the same independent verifier, their own immutable plans/config identities and existing
+CPU image. No NPU is allocated, and inference containers or frozen inference files are untouched.
+Docker socket access is powerful even when mounted `:ro`; this program only issues GET inspection
+requests. This amendment does not claim that the socket mount enforces read-only Docker access.
+
+**16:05 UTC execution:** the specifically identified old CPU observer was intentionally stopped
+while waiting, with `INTENTIONAL_STOP.json` recording the replacement and actual exit code. Its
+original frozen inputs remain intact. Both corrected retained CPU observers are now running:
+
+- 2B: `07bd8c999d8d2bae8ff906bab8768f8e7a7df0f330f23e6423bb0ed7df1cd734`.
+- 9B: `87ffd560e43d692005381e4eb0cd7007bd91efd2901a9a381e78b6640e89726f`.
+
+All nine frozen files for each observer were rechecked after launch. Both inference containers
+were independently confirmed still running. At 16:05:17Z the bounded digests showed 2B
+1,951/10,356 (1.6351 questions/s/chip, one chip, 4.1465 GiB reserved) and 9B 763/10,356
+(1.6282 questions/s/chip, one chip, 17.5879 GiB reserved). These are progress observations;
+no completed full-test audit or final score is claimed.
