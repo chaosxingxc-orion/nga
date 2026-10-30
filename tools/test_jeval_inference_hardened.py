@@ -1,10 +1,12 @@
 """Negative evidence for E35 omissions; CPU fixtures, not model correctness tests."""
 import copy
+import hashlib
 import json
 from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import audit_jeval_inference_hardened as h
@@ -175,6 +177,27 @@ class Hardened(unittest.TestCase):
         self.assertEqual(cells[0]['accuracy'], .5)
         self.assertEqual(cells[0]['valid_accuracy'], 1.)
 
+    def test_identical_valid_accuracy_detected_with_different_full_denominators(self):
+        rows, items = [], []
+        for source, count in [('source-a', 100), ('source-b', 200)]:
+            for i in range(count):
+                rows.append(dict(questions_json=json.dumps({'q': q()}), label_json='"a"', source=source))
+                if i < 50:
+                    item = dict(status='valid', **output())
+                    item['answer']['choice'] = 'a' if i < 25 else 'b'
+                    # Do not rely on constant-probability flags to expose this defect.
+                    item['native_probabilities'] = {'a': (i + 1) / 100, 'b': 1 - (i + 1) / 100}
+                else:
+                    item = dict(status='overlength')
+                items.append(item)
+        cells, flags = h.cell_analysis(rows, items)
+        source_cells = [(i, c) for i, c in enumerate(cells) if c['group'] == 'source_type']
+        self.assertEqual([c['accuracy'] for _, c in source_cells], [.25, .125])
+        self.assertEqual([c['valid_accuracy'] for _, c in source_cells], [.5, .5])
+        equal = [f for f in flags if f['code'] == 'identical_cell_metric']
+        self.assertEqual(equal, [dict(code='identical_cell_metric',
+                                     pointers=[f'/cells/{i}/valid_accuracy' for i, _ in source_cells])])
+
     def test_actual_docker_identity_and_resource_changes_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             run = Path(tmp); wrapper = run / 'run.sh'; wrapper.write_text('frozen')
@@ -200,6 +223,101 @@ class Hardened(unittest.TestCase):
                 bad = copy.deepcopy(info); mutate(bad)
                 with self.assertRaisesRegex(ValueError, message):
                     h.run_binding(c, cp, lambda _: bad)
+
+
+class ReceiptManifest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.run_dir = Path(cls.tmp.name)
+        (cls.run_dir / 'records').mkdir()
+        for i in range(11257):
+            (cls.run_dir / 'records' / f'{i:06d}.json').write_text(json.dumps({'index': i}))
+        cls.manifest = h.receipt_manifest(cls.run_dir)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def test_full_population_stable_and_independently_recomputable_root(self):
+        saved = json.loads(json.dumps(self.manifest))
+        self.assertEqual(saved['count'], 11257)
+        self.assertEqual(saved['entries'][0]['path'], 'records/000000.json')
+        self.assertEqual(saved['entries'][-1]['path'], 'records/011256.json')
+        body = {k: v for k, v in saved.items() if k != 'root_sha256'}
+        independent = hashlib.sha256(json.dumps(body, ensure_ascii=False, allow_nan=False,
+                                                sort_keys=True, separators=(',', ':')).encode('utf-8')).hexdigest()
+        self.assertEqual(saved['root_sha256'], independent)
+        self.assertEqual(h.verify_receipt_manifest(self.run_dir, saved), saved)
+
+    def test_post_audit_deleted_receipt_rejected(self):
+        p = self.run_dir / 'records/000123.json'; original = p.read_bytes(); p.unlink()
+        try:
+            with self.assertRaisesRegex(ValueError, 'Receipt manifest population'):
+                h.verify_receipt_manifest(self.run_dir, self.manifest)
+        finally:
+            p.write_bytes(original)
+
+    def test_post_audit_modified_receipt_rejected_without_report_change(self):
+        p = self.run_dir / 'records/000123.json'; original = p.read_bytes(); p.write_text('{"index":124}')
+        try:
+            with self.assertRaisesRegex(ValueError, 'differs from current artifacts'):
+                h.verify_receipt_manifest(self.run_dir, self.manifest)
+        finally:
+            p.write_bytes(original)
+
+    def test_foreign_receipt_and_non_json_directory_rejected(self):
+        for name, directory in [('011257.json', False), ('hidden-generation', True)]:
+            p = self.run_dir / 'records' / name
+            p.mkdir() if directory else p.write_text('{}')
+            try:
+                with self.assertRaisesRegex(ValueError, 'Receipt manifest population'):
+                    h.verify_receipt_manifest(self.run_dir, self.manifest)
+            finally:
+                p.rmdir() if directory else p.unlink()
+
+    def test_receipt_symlink_cannot_alias_identical_bytes(self):
+        p = self.run_dir / 'records/000123.json'; original = p.read_bytes()
+        target = self.run_dir / 'aliased.json'; target.write_bytes(original); p.unlink(); p.symlink_to(target)
+        try:
+            with self.assertRaisesRegex(ValueError, 'file type'):
+                h.verify_receipt_manifest(self.run_dir, self.manifest)
+        finally:
+            p.unlink(); p.write_bytes(original); target.unlink()
+
+    def test_manifest_count_order_path_hash_and_root_tampering_rejected(self):
+        mutations = [lambda m: m.update(count=11256),
+                     lambda m: m['entries'].reverse(),
+                     lambda m: m['entries'][0].update(path='../000000.json'),
+                     lambda m: m['entries'][0].update(sha256='0' * 64),
+                     lambda m: m.update(root_sha256='0' * 64)]
+        for mutate in mutations:
+            m = copy.deepcopy(self.manifest); mutate(m)
+            with self.assertRaises(ValueError):
+                h.verify_receipt_manifest(self.run_dir, m)
+
+
+class Publication(unittest.TestCase):
+    def test_atomic_publication_preserves_existing_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / 'audit.json'
+            h.publish_text(p, '{"status":"complete"}\n')
+            original = p.read_bytes()
+            self.assertFalse(list(p.parent.glob('*.pending-*')))
+            with self.assertRaisesRegex(ValueError, 'Existing supplemental evidence preserved'):
+                h.publish_text(p, 'replacement')
+            self.assertEqual(p.read_bytes(), original)
+
+    def test_failed_publication_leaves_pending_evidence_not_partial_final(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / 'audit.json'
+            with patch.object(h.os, 'link', side_effect=OSError('simulated publication interruption')):
+                with self.assertRaises(OSError):
+                    h.publish_text(p, '{"status":"complete"}\n')
+            self.assertFalse(p.exists())
+            pending = list(p.parent.glob('audit.json.pending-*'))
+            self.assertEqual(len(pending), 1)
+            self.assertEqual(json.loads(pending[0].read_text()), {'status': 'complete'})
 
 
 if __name__ == '__main__':

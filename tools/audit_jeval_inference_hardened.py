@@ -17,6 +17,7 @@ from pathlib import Path
 import re
 import socket
 import sys
+import tempfile
 import time
 
 MIN_N = 30  # tools/watchdog.py --min-n default, not a score-selection threshold.
@@ -48,6 +49,71 @@ def sha(path):
 def stamp(value):
     return hashlib.sha256(json.dumps(value, ensure_ascii=False, allow_nan=False,
                                      separators=(',', ':')).encode()).hexdigest()
+
+
+def receipt_manifest(run, expected_count=11257):
+    """Bind the complete ordered receipt population, not just aggregate reports.
+
+    The root authenticates the canonical JSON body (all fields except root_sha256).
+    Consumers must rebuild this from disk immediately before acceptance/release;
+    the stored root alone does not prove that the receipt files still exist.
+    """
+    require(type(expected_count) is int and expected_count >= 0, 'Receipt expected count')
+    folder = Path(run) / 'records'
+    require(folder.is_dir() and not folder.is_symlink(), 'Receipt directory missing/aliased')
+    paths = sorted(folder.iterdir(), key=lambda p: p.name)
+    require([p.name for p in paths] == [f'{i:06d}.json' for i in range(expected_count)],
+            'Receipt manifest population')
+    require(all(p.is_file() and not p.is_symlink() for p in paths), 'Receipt manifest file type')
+    body = dict(schema=1, algorithm='sha256', count=expected_count,
+                entries=[dict(path='records/' + p.name, sha256=sha(p)) for p in paths])
+    root = hashlib.sha256(json.dumps(body, ensure_ascii=False, allow_nan=False,
+                                    sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    return dict(body, root_sha256=root)
+
+
+def verify_receipt_manifest(run, manifest, expected_count=11257):
+    require(isinstance(manifest, dict) and set(manifest) ==
+            {'schema', 'algorithm', 'count', 'entries', 'root_sha256'}, 'Receipt manifest schema')
+    require(type(manifest['schema']) is int and manifest['schema'] == 1 and
+            manifest['algorithm'] == 'sha256' and type(manifest['count']) is int and
+            manifest['count'] == expected_count, 'Receipt manifest protocol/count')
+    entries = manifest['entries']
+    require(isinstance(entries, list) and len(entries) == expected_count,
+            'Receipt manifest entry count')
+    for i, entry in enumerate(entries):
+        require(isinstance(entry, dict) and set(entry) == {'path', 'sha256'} and
+                entry['path'] == f'records/{i:06d}.json' and
+                isinstance(entry['sha256'], str) and re.fullmatch(r'[0-9a-f]{64}', entry['sha256']),
+                'Receipt manifest entry schema/order')
+    require(isinstance(manifest['root_sha256'], str) and
+            re.fullmatch(r'[0-9a-f]{64}', manifest['root_sha256']), 'Receipt manifest root schema')
+    actual = receipt_manifest(run, expected_count)
+    require(actual == manifest, 'Receipt manifest differs from current artifacts')
+    return actual
+
+
+def publish_text(path, text):
+    """Publish a complete fsynced artifact atomically without replacing evidence.
+
+    An interrupted/failed write leaves its uniquely named pending file for diagnosis.
+    Hard-link publication is atomic on the same filesystem and refuses a destination
+    created by another writer after the caller's initial existence check.
+    """
+    path = Path(path)
+    require(not path.exists(), 'Existing supplemental evidence preserved')
+    fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=path.name + '.pending-')
+    with os.fdopen(fd, 'w') as f:
+        f.write(text)
+        f.flush()
+        os.fsync(f.fileno())
+    os.link(temporary, path)
+    os.unlink(temporary)
+    directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
 
 
 def finite(value):
@@ -333,10 +399,10 @@ def cell_analysis(rows, items):
             flag('identical_probability_vectors', 'distinct_probability_vectors')
     for group in ['type', 'source_type']:
         for kind in ['choice', 'noul', 'score']:
-            metric = 'mae' if kind == 'score' else 'accuracy'
-            relevant = [(i, c[metric]) for i, c in enumerate(cells) if c['group'] == group and c['type'] == kind and c.get(metric) is not None]
-            if len(relevant) >= 2 and len({v for _, v in relevant}) == 1:
-                flags.append(dict(code='identical_cell_metric', pointers=[f'/cells/{i}/{metric}' for i, _ in relevant]))
+            for metric in (['mae'] if kind == 'score' else ['accuracy', 'valid_accuracy']):
+                relevant = [(i, c[metric]) for i, c in enumerate(cells) if c['group'] == group and c['type'] == kind and c.get(metric) is not None]
+                if len(relevant) >= 2 and len({v for _, v in relevant}) == 1:
+                    flags.append(dict(code='identical_cell_metric', pointers=[f'/cells/{i}/{metric}' for i, _ in relevant]))
     return cells, flags
 
 
@@ -368,7 +434,7 @@ def check(cp, probe_only=False):
     count = required_closure(c)
     eligibility = native_binding(c)
     require(c['mode'] == ('probe' if probe_only else 'inference'), 'Mode/CLI mismatch')
-    receipts_before = {str(p): sha(p) for p in (run / 'records').glob('*.json')}
+    receipts_before = receipt_manifest(run, 0 if probe_only else 11257)
     # The frozen verifier is authenticated before execution, never silently replaced.
     original = module(run / 'verify_jeval_reference_inference.py', 'e35_frozen_verifier')
     if probe_only:
@@ -383,11 +449,12 @@ def check(cp, probe_only=False):
                 term['outputs']['PROBE.json'] == sha(run / 'PROBE.json'), 'Probe terminal output identity')
         require((run / 'PROBE.json').stat().st_mtime_ns <= (run / 'COMPLETE.json').stat().st_mtime_ns <=
                 (run / 'EXIT').stat().st_mtime_ns, 'Probe terminal chronology')
-        require(not receipts_before, 'Probe emitted test receipts')
+        require(receipts_before['count'] == 0, 'Probe emitted test receipts')
         result = strict_probes(c, load(run / 'PROBE.json'), eligibility, rows, tokenizer(c, run))
         actual = run_binding(c, cp)
         native_binding(c)
         require(sha(cp) == ch and sha(run / 'PROBE.json') == term['outputs']['PROBE.json'], 'Probe changed during audit')
+        verify_receipt_manifest(run, receipts_before, expected_count=0)
         return dict(status='VERIFIED_HARDENED_PROBE_SCOPED', mode='probe', config_sha256=ch,
                     probe_sha256=term['outputs']['PROBE.json'], supplemental_required_files=count,
                     probes=result, containers={'probe': actual}, review_flags=[], inherited_review_flags=[],
@@ -427,11 +494,11 @@ def check(cp, probe_only=False):
     for p, h in c['files'].items():
         require(sha(p) == h, 'Frozen file changed during supplemental audit')
     require(sha(run / 'report.json') == original_result['report_sha256'], 'Report changed during supplemental audit')
-    require({str(p): sha(p) for p in (run / 'records').glob('*.json')} == receipts_before,
-            'Receipts changed during supplemental audit')
+    verify_receipt_manifest(run, receipts_before)
     return dict(status='VERIFIED_HARDENED_SCOPED_REVIEW_REQUIRED' if flags or original_result['review_flags'] else 'VERIFIED_HARDENED_SCOPED',
                 config_sha256=ch, report_sha256=sha(run / 'report.json'), original_verifier=original_result,
                 supplemental_required_files=count, probes=probes, containers=bindings, cells=cells,
+                receipt_manifest=receipts_before,
                 review_flags=flags, inherited_review_flags=original_result['review_flags'], min_n=MIN_N,
                 utc=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
                 scope='Original frozen full-population metric verifier plus strict eligibility/probe/closure and actual container checks; four probe requests independently retokenized, full-test token hashes remain provenance checks; not Astra approval or model-memory-envelope certification.')
@@ -444,14 +511,12 @@ def main():
     digest = args.out.with_suffix('.digest.md')
     require(not args.out.exists() and not digest.exists(), 'Existing supplemental evidence preserved')
     result = check(args.config, args.probe_only)
-    with args.out.open('x') as f:
-        json.dump(result, f, ensure_ascii=False, indent=2, allow_nan=False); f.write('\n')
-    with digest.open('x') as f:
-        population = result.get('original_verifier', {}).get('rows', 'probe:4')
-        f.write(f"{result['utc']} {result['status']} rows={population} flags={len(result['review_flags'])} inherited={len(result['inherited_review_flags'])}\n")
-        for flag in result['review_flags'][:12]:
-            f.write(json.dumps(flag, ensure_ascii=False)[:500] + '\n')
-        f.write(f'Full evidence: {args.out}\n')
+    publish_text(args.out, json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False) + '\n')
+    population = result.get('original_verifier', {}).get('rows', 'probe:4')
+    lines = [f"{result['utc']} {result['status']} rows={population} flags={len(result['review_flags'])} inherited={len(result['inherited_review_flags'])}"]
+    lines.extend(json.dumps(flag, ensure_ascii=False)[:500] for flag in result['review_flags'][:12])
+    lines.append(f'Full evidence: {args.out}')
+    publish_text(digest, '\n'.join(lines) + '\n')
 
 
 if __name__ == '__main__':

@@ -1,0 +1,14 @@
+{
+  "model_requested": "gpt-6-astra",
+  "runner_terminal": {
+    "rc": 0,
+    "utc": 1793391825.5277176,
+    "review_exists": true
+  },
+  "review_sha256": "6ec51c941f838e3b55a696d4ceae693af7f6b3479495ca754d69fa9dafc8f3a7",
+  "manifest": {
+    "tools/audit_jeval_inference_hardened.py": "6d61edd54b1c8023c617214ea33593ad5ac160365a11560f9751dbca8a6e21ee",
+    "tools/test_jeval_inference_hardened.py": "6caf1fe1a18737ac6ac28db4d97413c7660f5ba0c04715f30630ca10c6968f17"
+  },
+  "scope": "auditor F2/F5 only, no queue/waiter/model certification"
+}

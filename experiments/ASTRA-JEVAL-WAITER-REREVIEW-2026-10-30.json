@@ -1,0 +1,23 @@
+{
+  "model_requested": "gpt-6-astra",
+  "runner_terminal": {
+    "rc": 124,
+    "utc": 1793391696.326305,
+    "review_exists": false
+  },
+  "recovered_from": "events.jsonl final agent_message item_20; turn.completed observed by bounded tier1 diagnosis",
+  "raw_review_sha256": "8263f92a2ddc2bb45b1c32ed3e772e26ca4cacbdebf825ad0711965888241d8f",
+  "saved_report_sha256": "7c0a7697673a60c44e10a66e554f6f3d68379100db5a1f6f361f39a9fe35934a",
+  "manifest": {
+    "tools/audit_jeval_inference_hardened.py": "6d61edd54b1c8023c617214ea33593ad5ac160365a11560f9751dbca8a6e21ee",
+    "tools/jeval_hardened_waiter.py": "f8991ef4ed1d33a05d3aaae9b359000927e523df23cebab9133b54e19d102889",
+    "tools/test_jeval_inference_hardened.py": "6caf1fe1a18737ac6ac28db4d97413c7660f5ba0c04715f30630ca10c6968f17",
+    "tools/test_jeval_hardened_waiter.py": "83ac35c810e433d9fe3174cd4783b95ed09ea352c91552bf1829308c87cee367",
+    "experiments/JEVAL-AUDIT-AMENDMENT-2026-10-30.md": "ff31a6624e65d9e213382ed26084009e1687c90ab106d49b62ec8d980603764c",
+    "experiments/ASTRA-JEVAL-REVIEW-2026-10-30.md": "123a61ff50d977a73bd0d5ffdc4c38282d765ff7bd79bbcfafe27af62ca7ce0c",
+    "launcher.py": "7681d90a3d92ab7d101a0183b5b43fcdb2c627b27b35e02065b317fdc5e25193"
+  },
+  "verdict": "DO_NOT_DEPLOY_V4",
+  "findings": 6,
+  "scope": "Waiter/auditor/v4 launcher code; no score certification, queue F1/F3 out of scope"
+}
