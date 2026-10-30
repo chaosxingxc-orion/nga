@@ -8,11 +8,14 @@ per operation (15 B4), the idem-identity key coupling, status families
 never crossing the event-type boundary, the grant pin riding the adopted
 event only, and the single-writer event-sequence grammar (each operation
 opens with exactly one adopted event and its effect events follow the
-machine's transition DAG). Aggregation contract: invalid fixtures carry
-exactly one violation by discipline — the Go checker returns at the first
-failing family while this oracle appends and continues, so error-SET
-composition may differ on multi-violation documents; the verdict never
-does, and pins are designed against single-violation documents.
+machine's transition DAG). Aggregation contract: the code-rule families
+aggregate in the same order on both sides; the Go checker short-circuits
+at exactly three points (schema, float-syntax, typed-view parse) where
+this oracle appends and continues — so error-set composition may differ on
+documents violating those, and invalid fixtures are single-violation by
+discipline (the one designed exception: effect-before-adoption is one
+bypass fact that legitimately trips both the grammar and the transition
+table, identically on both sides). The verdict never differs.
 Fixtures follow the base's pin discipline: valid must be accepted, invalid
 must be rejected for the reason its _expect_match names.
 
@@ -192,9 +195,10 @@ def check_status_lockstep() -> list[str]:
 
 
 def check_lockstep() -> list[str]:
-    """Four subtrees exist as two self-contained schema copies each (frozen
-    engine stake C5-a): grant, identity, versions, accountability. 'Stay in
-    lockstep' is only real if something compares them — this check diffs
+    """Five shared atoms exist as two self-contained schema copies each (frozen
+    engine stake C5-a): grant, identity, versions, accountability, and the
+    payload-digest shape. 'Stay in lockstep' is only real if something
+    compares them — this check diffs
     each pair directly, recursively stripped of descriptions (R2 m-4; R6
     M-2 extended it from grant alone to the whole shared surface).
     """
@@ -214,6 +218,12 @@ def check_lockstep() -> list[str]:
          ADOPTION_SCHEMA["properties"]["versions"]),
         ("accountability", LEDGER_SCHEMA["$defs"]["event"]["properties"]["accountability"],
          ADOPTION_SCHEMA["properties"]["accountability"]),
+        # the fifth shared atom: the payload-digest shape. The machine's
+        # "conforming by construction" depends on adoption ⊆ ledger —
+        # without this pair, a loosened request-side pattern lets the
+        # machine write files its own loader rejects (R9 M-1).
+        ("payload_digest", LEDGER_SCHEMA["$defs"]["idempotency"]["properties"]["payload_digest"],
+         ADOPTION_SCHEMA["properties"]["payload_digest"]),
     ]
     errs = []
     for name, a, b in pairs:
@@ -232,7 +242,7 @@ def main() -> int:
         bad += 1
     if bad == 0:
         print("[ledger] lockstep: status enum == checker families; "
-              "grant/identity/versions/accountability subtrees == adoption copies")
+              "grant/identity/versions/accountability/payload_digest shapes == adoption copies")
     return 1 if bad else 0
 
 

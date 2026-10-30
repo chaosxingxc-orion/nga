@@ -134,8 +134,7 @@
           "then": {
             "required": [
               "grants_at_decision"
-            ],
-            "properties": {}
+            ]
           }
         }
       ]

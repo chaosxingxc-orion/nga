@@ -416,13 +416,24 @@ func TestMachineOutputConformsToLedger(t *testing.T) {
 	if o := m.MarkUnresolved("op-3"); o.Status != "unresolved" {
 		t.Fatalf("op-3 unresolved = %q", o.Status)
 	}
+	// op-4: the failed terminal — the one machine-writable status the
+	// conformance proof was missing (R9 m-3)
+	if o := m.Adopt(testRequest("op-4", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("op-4 adopt = %q", o.Status)
+	}
+	if o := m.Dispatch("op-4", pinGrants()); o.Status != "dispatched" {
+		t.Fatalf("op-4 dispatch = %q", o.Status)
+	}
+	if o := m.MarkFailed("op-4"); o.Status != "failed" {
+		t.Fatalf("op-4 failed = %q", o.Status)
+	}
 
 	events, err := m.Events()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(events) != 9 {
-		t.Fatalf("events = %d, want 9", len(events))
+	if len(events) != 12 {
+		t.Fatalf("events = %d, want 12", len(events))
 	}
 	doc := ledger.Document{LedgerVersion: ledger.Version, Events: events}
 	raw, err := json.Marshal(doc)
@@ -729,13 +740,14 @@ func TestAdoptRejectsNonconformingRequests(t *testing.T) {
 	}
 }
 
-// TestOpenRejectsFoldedSeq is the machine-side 2^53 pin (R3 M-2, rebuilt in
-// R4 M-1 after the first version's rejection was driven by a leftover
-// grants-on-effect defect — a pin on the wrong rule): two typed-built lines
-// whose ONLY defect is the folded sequence pair 9007199254740993 -> ...992;
-// the effect line carries no grants. decodeLineDoc's UseNumber is what keeps
-// the pair distinct in the map domain — without it both fold equal in
-// float64 and the load-time monotonicity check goes blind.
+// TestOpenRejectsFoldedSeq pins the DECREASING pair past 2^53 — note this
+// is NOT the UseNumber pin: float64 rounding is monotonic, so the folded
+// pair collapses to equal-or-decreasing and the strict-increase check
+// catches it with or without exact integers. What pins decodeLineDoc's
+// UseNumber is the accept direction (legal adjacent seqs across 2^53) —
+// TestOpenAcceptsLegalHighSeqAcross2e53. This test stays as the boundary's
+// reject-side document (R9 m-1: comment corrected, dead first-marshal
+// removed).
 func TestOpenRejectsFoldedSeq(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "adopt.jsonl")
 	m := mustOpen(t, path)
@@ -743,13 +755,9 @@ func TestOpenRejectsFoldedSeq(t *testing.T) {
 		t.Fatalf("adopt = %q", o.Status)
 	}
 	events, _ := m.Events()
-	first, err := json.Marshal(events[0])
-	if err != nil {
-		t.Fatal(err)
-	}
 	adopted := events[0]
 	adopted.ArbitrationSeq = 9007199254740993
-	first, err = json.Marshal(adopted)
+	first, err := json.Marshal(adopted)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -766,7 +774,7 @@ func TestOpenRejectsFoldedSeq(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := Open(path); err == nil {
-		t.Fatal("folded adjacent seqs past 2^53 were accepted at load — the map domain lost the integers")
+		t.Fatal("decreasing adjacent seqs past 2^53 were accepted at load")
 	}
 }
 

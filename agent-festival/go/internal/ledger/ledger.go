@@ -218,11 +218,15 @@ type Document struct {
 // events carry no grants_at_decision (the pin rides the adopted event
 // only); idempotency.operation_id equals identity.operation_id on every
 // event carrying idempotency; and each operation's effect events follow the
-// machine's own transition DAG in file order. Aggregation contract: this
-// checker returns at the first failing family while the Python oracle
-// appends and continues — error-set composition may differ on
-// multi-violation documents (the verdict never does), and invalid fixtures
-// are disciplined to carry exactly one violation. The monotonicity
+// machine's own transition DAG in file order. Aggregation contract: the
+// code-rule families aggregate in the same order on both sides; this
+// checker short-circuits at exactly three points (schema, float-syntax,
+// typed-view parse) where the Python oracle appends and continues — so
+// error-set composition may differ on documents violating those, and
+// invalid fixtures are single-violation by discipline (the one designed
+// exception: effect-before-adoption is one bypass fact that legitimately
+// trips both the grammar and the transition table, identically on both
+// sides). The verdict never differs. The monotonicity
 // check assumes the map input was decoded with json.Decoder.UseNumber:
 // float64 rounding is monotonic, so DECREASING pairs are caught with or
 // without exact integers — what a float64-decoded map breaks is the other

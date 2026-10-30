@@ -8,11 +8,11 @@ import (
 )
 
 // TestSharedSubtreeLockstep is the Go twin of ledger.py's check_lockstep
-// (R6 M-2): four subtrees exist as two self-contained schema copies each
-// (frozen-engine stake C5-a) — grant, identity, versions, accountability —
-// and 'stay in lockstep' is only real if BOTH validators' sides compare
-// them. Descriptions are stripped recursively — the comparison is contract
-// semantics, not prose.
+// (R6 M-2, R9 M-1): five shared atoms exist as two self-contained schema
+// copies each (frozen-engine stake C5-a) — grant, identity, versions,
+// accountability, and the payload-digest shape — and 'stay in lockstep' is
+// only real if BOTH validators' sides compare them. Descriptions are
+// stripped recursively — the comparison is contract semantics, not prose.
 func TestSharedSubtreeLockstep(t *testing.T) {
 	if SchemaPath == "" {
 		t.Fatal("event-ledger schema not found")
@@ -36,6 +36,8 @@ func TestSharedSubtreeLockstep(t *testing.T) {
 	defs, _ := ledgerSchema["$defs"].(map[string]any)
 	eventDef, _ := defs["event"].(map[string]any)
 	eventProps, _ := eventDef["properties"].(map[string]any)
+	idemDef, _ := defs["idempotency"].(map[string]any)
+	idemProps, _ := idemDef["properties"].(map[string]any)
 	ledgerProps, _ := adoptionSchema["properties"].(map[string]any)
 	grantsAt, _ := ledgerProps["grants_at_decision"].(map[string]any)
 	pairs := []struct {
@@ -47,6 +49,9 @@ func TestSharedSubtreeLockstep(t *testing.T) {
 		{"identity", defs["identity"].(map[string]any), ledgerProps["identity"].(map[string]any)},
 		{"versions", defs["versions"].(map[string]any), ledgerProps["versions"].(map[string]any)},
 		{"accountability", eventProps["accountability"].(map[string]any), ledgerProps["accountability"].(map[string]any)},
+		// the fifth shared atom: the payload-digest shape (R9 M-1) — the
+		// machine's "conforming by construction" depends on adoption ⊆ ledger
+		{"payload_digest", idemProps["payload_digest"].(map[string]any), ledgerProps["payload_digest"].(map[string]any)},
 	}
 	for _, pair := range pairs {
 		a, err := json.Marshal(stripDescription(pair.ledger))
