@@ -276,7 +276,9 @@ argmax flip rate by more than 2 points.
 - For K1-PT (§7.8) B-4 is also evaluated against **R0 itself**. K1-PT's readouts are re-derived under
   the R0 configuration (τ fitted on the full `group70` train side, the whole held-out side, R0's tie
   rule) and compared with `r0_baseline_rederived/report.json`. This is valid because K1-PT never trains
-  on Track T data.
+  on Track T data. *The R0 side here is the re-score of §14.5 item 1, never the published report
+  (§14.2); §14.11 items 3 and 4: that re-score does not yet exist, so this B-4 is not reported until
+  it does.*
 
 6.4 Reporting caveats carried from R0:
 - `openjev-synth` T1 numbers are reported as a label/definition conflict, never as name invariance
@@ -373,6 +375,12 @@ best B only if all three conditions hold:
 
 K1 becomes the first adopted arm if it clears K-floor (§9.2).
 
+*Suspended in part by §14.11 item 4: (c)'s **gating cells** are defined by R0 §13.5 verdicts
+recomputed on the §14.5 item 1 R0-configuration fp32 re-score, which does not yet exist, so until it
+does (c) has no population and **no arm is adopted under this clause**. An arm may be reported as
+clearing K-floor and as winning (a) and (b); it is not reported as adopted. The re-score's deadline
+is before the first §8.2 adoption decision of round 1 and before `FINAL.json` is written for 0.8B.*
+
 8.3 Every §8.2 comparison is reported with each suite's n, the per-seed accuracies, the bootstrap CI,
 and the per-question discordant counts.
 
@@ -428,7 +436,11 @@ declared differences of §3.3". Never "we reach X% of Kev".
 dropped-pair count and C-branch rate (R0 §11.1).
 
 10.2 Every throughput figure is **per chip**, with the chip count stated (tokens/s/chip and
-examples/s/chip), never an aggregate alone.
+examples/s/chip), never an aggregate alone. *Extended by §14.11 item 12: a rate also carries the
+**window** it was measured over and excludes warm-up, a figure from the first seconds of a unit is
+**provisional** and may not be carried into a scheduling or sizing decision, and where a heartbeat
+emits a windowed rate (`ex_s_chip_w20`) that is the figure of record. The clause's full text and the
+occasion that prompted it are there.*
 
 10.3 The watchdog flags any rate of exactly 0.0 or 1.0, any metric identical across cells, and any
 cell below the minimum sample count. Each flag is explained **before** the number is reported
@@ -452,6 +464,20 @@ asserts it. The report header lists the clauses in force and those not in force 
 amendment that changes a decision rule after a result the old rule bore on states what the new rule
 would have decided about that result. The clause's full text, its two scope conditions and its one
 caution are in §14.10 item 15.*
+
+*Added by §14.11: four further standing clauses of this section, each carried in full in the item
+named. (a) **A commissioned measurement is specified and priced before it is ratified** — instrument
+and item set in already-defined terms, an order-of-magnitude chip-hour cost with the rate and window
+it came from, and the decision it could change; if that decision is "none" the clause is
+documentation, scheduled with a deadline and never placed in a step that gates another step
+(§14.11 item 10). (b) **A guarantee cited in an acceptance is demonstrated in the path the accepted
+artefact took** — the file and function, the path the artefact travelled, and whether sibling
+consumers have an equivalent (§14.11 item 11). (c) **A guard that gates a number ships with a
+demonstration that its test fails when the guard is removed** (§14.11 item 15), **and the mutation is
+applied to the path that produces the number, a self-description being no test of behaviour**
+(§14.11 item 21, which sharpens (c) after the reviewer applied it to a test it would have certified).
+(d) **A guard is documented with what it does not stop** (§14.11 item 16). Clauses (b) and (d) are
+one defect seen from its two ends, and are read together.*
 
 ---
 
@@ -514,6 +540,18 @@ gradient in the model: `e_ref` of 0.034 to 0.051 relative error against the fp32
 plausible low-SNR channel. If a later round finds `in_proj_a` adapters contributing little, this
 measurement is the first place to look, rather than a finding about gating's importance in the
 architecture. §7.2's precision is unchanged and no experiment in this round is authorised by this.
+
+12.8 While the R0 erratum and the R0-configuration fp32 re-score are outstanding, this round cannot
+claim any comparison with R0's **published** numbers, in any direction and in any venue including a
+wiki entry or a commit message, and cannot claim that **any arm is adopted** (added by §14.11
+items 3 and 4). It also cannot state R0's own defect magnitude beyond the headline already published
+in `R0-BASELINE-RESULTS.md`, cannot report §6.3's B-4 for K1-PT against R0, and cannot make any claim
+about R0 §12.1's length effect, whose "do not retest it" stays suspended (§14.9 item 6). Unlike
+§12.1–§12.7 this item is **conditional**: it lifts for each clause when the obligation that gates it
+is discharged — the erratum before the first line of `TEST-READS.log`, the re-score before the first
+§8.2 adoption decision — and until then every report of record of wave 1 states in one line that the
+erratum is outstanding and which claims it therefore does not make. What wave 1 **may** claim
+meanwhile is listed in §14.11 item 3.
 
 ---
 
@@ -619,7 +657,12 @@ and report on Kev's own test sets (§9.4 wording). Each item names the clauses i
 and the resolution.
 1. **§6.3, §6.5: the R0 side.** *Re-grounded by §14.9 item 6: the re-score requirement stands, on
    precision instead of padding; (i) below stays pinned as written but is no longer evidence about
-   padding, and (ii)'s erratum headline gains a second sentence.* Reason: both clauses still name
+   padding, and (ii)'s erratum headline gains a second sentence. Corrected further by §14.11, where
+   the substance is: (ii)'s second difference is withdrawn and "unpadded bf16" is defined (item 1),
+   (ii) leaves step 1 of item 4 below (item 2) and gains a deadline of its own (item 3), the R0 side
+   defined here is named as the gate on the round's first §8.2 adoption decision and does not yet
+   exist (item 4), and the (i) verdict is admissible only with `report_compared` true (item 7).*
+   Reason: both clauses still name
    `r0_baseline_rederived/report.json` as the R0 comparison target, which §14.2 forbids as the R0
    side of any comparison. Resolution:
    - The R0 side is `Qwen3.5-0.8B` (§2.1) re-scored by an admissible scorer (item 7) under the R0
@@ -680,7 +723,11 @@ and the resolution.
    §7.1 and §7.6 leave the ladder conditional. Resolution, each step starting only after the previous
    one has finished and been read on dev:
    1. K0 on `Qwen3.5-0.8B-Base` and `Qwen3.5-0.8B` with the admissible scorer, both tracks, all
-      degenerate arms, and the item 1 identity check and erratum measurement.
+      degenerate arms, and the item 1 identity check and erratum measurement. *Replaced by §14.11
+      item 2, which carries the new text: the item 1 (ii) **erratum measurement is not part of this
+      step** and is owed under §14.11 item 3 instead; the item 1 (i) identity check keeps its place
+      and its round-stopping power in full. This wording admitted no split by interpretation, which
+      is why it is amended and not read.*
    2. Wave 1, concurrent, one chip per run (§14.3), eight runs: K1 seeds 2 and 3, K2 seeds 2 and 3,
       K1-PT seeds 2 and 3, K1-QO seed 2, K1-FLA seed 2 (§14.4). *The wave becomes **ten** runs under
       §14.10 items 8 and 13: the eight registered arms unchanged, plus the K1 seed 2 same-config
@@ -868,7 +915,9 @@ generated 03:26Z) was read and before any readout of record exists.
    level before this is relied on.
 5. **Status of §14.2 and §14.5 item 10.** *Re-grounded by §14.9 item 6: the consequences below
    stand on precision rather than on padding, and the erratum headline this item fixes becomes two
-   sentences.* The padding diagnosis is withdrawn: in fp32 with HF32 off, left-padded `r0` vs
+   sentences. The second difference this item commissions is **withdrawn** by §14.11 item 1, which
+   also fixes what "unpadded bf16" means wherever the phrase survives; the substance is there.* The
+   padding diagnosis is withdrawn: in fp32 with HF32 off, left-padded `r0` vs
    `exact` is ≤ 8e-5 nats with zero argmax changes on five suites; in bf16 its
    difference from `exact` (0.74 nats, decision-v7) equals that of the unpadded controls (0.74, 0.81).
    The 0.157-nats figure was one bf16 composition draw. Item 10's RoPE statement is corrected: a
@@ -1054,9 +1103,12 @@ arm of wave 1 was trained and before any readout of record exists.
 **Launch checklist (§14.7).** All of the following are committed before `docker run -d` on any wave-1
 arm. *Extended by §14.10 with items 8 and 9; the item-by-item status as of the gate verdict, which
 leaves items 1, 7, 8 and 9 **open** and wave 1 **not cleared to launch**, is the table at the end of
-§14.10.*
+§14.10. Extended again by §14.11 with item 10; the status as of amendment 11, which leaves items 1,
+7, 8, 9 and 10 **open** and wave 1 **still not cleared to launch**, is the table at the end of
+§14.11.*
 1. This amendment (§14.7), §14.8, which corrects (G2) and adds the (G3) obligation to both
-   branches, and §14.10, which records the gate verdict and adds items 8 and 9 below.
+   branches, §14.10, which records the gate verdict and adds items 8 and 9 below, and §14.11, which
+   releases the erratum from §14.5 item 4 step 1 and adds item 10 below.
 2. `r3_runs/eff/gate_fast_ref/` holding (G1)–(G4) with the four sha256s of item 2, or the recorded
    decision to train on the reference kernel. That recorded decision carries the failing numbers and
    the same four sha256s, names which of the four gates ran, and states that it follows from a gate
@@ -1079,6 +1131,14 @@ leaves items 1, 7, 8 and 9 **open** and wave 1 **not cleared to launch**, is the
    chip 3 and `w1_k1_s2_replicate_samechip` on chip 2, named in the item 7 assignment file before
    the wave launches, with the gating rule (only the different-chip floor gates) and the dev-readout
    sequence written there.
+10. *Added by §14.11 items 17, 19 and 7:* the three checks that gate K0's numbers being read, as
+    **one job with one marker file**, in this order — (a) §14.11 item 19's `rp_c32` and
+    resume-offset composition cells, the control; (b) §14.11 item 17's sampled re-score with its
+    **mandatory cross-model counterpart** that must fail the §14.6 item 3 bar, the sample and its
+    sha1 written before the re-score; (c) §14.11 item 7's `report_compared` check on the (i)
+    identity verdict. Run on a chip freed by K0 before wave 1 launches; minutes on one chip. K0's
+    post-hoc `manifests/` is written with (b), carrying in the file the sentence that it attests the
+    files as they stood when it was written and not their origin.
 
 14.8 **Amendment 8, (G2)'s gating population, the three §14.7 edits ratified with their
 conditions, (G3) on every branch, and two corrections to the orchestrator's own record,
@@ -1316,7 +1376,15 @@ whose §6 carries this text; §14.8 is a different amendment, from a different r
    by-construction zero**: the same tie code reports 137 ties over 2,048 bf16 items, and fp32's
    smallest top-2 gaps are 9.82e-5 and 6.50e-4, so the measurement resolves and lists near-ties it
    could have called ties.
-3. **Scorer of record.** Both `rp` and `fast` passed §14.6 item 3 on all five suites. Under that
+3. **Scorer of record.** *Annotated by §14.11 item 9: the loader refusal cited when this table was
+   accepted — a score file whose `sample_sha1` or per-item `keys` do not match its sidecar is refused
+   — is a property of the **fixed-sample path only**, not of this round's harness. The verdict table
+   is unaffected and no number is withdrawn; the sibling readers that have no equivalent are named
+   there. Corrected further by §14.11 item 20: the `measure_floor.py` hash below is the `fp32/code2/`
+   copy, and the fp32 runs used two frozen copies; both hashes and the confinement of their
+   difference are there. And by §14.11 item 13: until 2026-10-30 this mode could not be selected
+   through the `--full` readout entry point at all — blast radius zero, nothing withdrawn.* Both
+   `rp` and `fast` passed §14.6 item 3 on all five suites. Under that
    clause's own order the first is the scorer of record, and it is also the conservative layout,
    so **the scorer of record of R3 is `r3_code/scorer_r3.py` `R3Scorer` mode `rightpad`**: one row
    per candidate, **right**-padded with an explicit attention mask, the LM head applied only at
@@ -1369,7 +1437,11 @@ whose §6 carries this text; §14.8 is a different amendment, from a different r
    of one option. On the fp32 fixed samples Kev's first-maximal-index rule and the R0 "a tie is not
    correct" convention **coincide** (0 ties over 1,344 items); §4.2 keeps both numbers, and that
    coincidence is reported.
-6. **§14.5 item 1 and item 10, re-grounded on precision.** Left padding without position ids is
+6. **§14.5 item 1 and item 10, re-grounded on precision.** *Corrected in part by §14.11 item 1: the
+   "(unpadded bf16 − fp32)" half of the metric-by-metric structure restated below is **withdrawn**,
+   so §14.5 item 1 (ii) reports one difference; the two headline sentences below are unchanged, and
+   the withdrawn half's content is carried in the erratum's text from the figures this item and
+   §14.6 item 5 already measured.* Left padding without position ids is
    now measured **harmless in fp32**: max |Δ| 1.88e-5 to 9.61e-5 against `exact` with **0 argmax
    disagreements in all 10 cells** under either tie rule. The §14.2 consequences nevertheless
    stand, on this ground instead:
@@ -1920,4 +1992,599 @@ and item 12 above's wiki entries for the new runs (written *before* those runs l
 launching: §14.5 item 4 **step 1 must be complete and read on dev** before step 2 begins, and §14.8
 item 6 left `harness_identity` holding chips 5–7 to its own `DONE`, expected about 09:00Z. That
 ruling stands as written — option (a), let it finish; nothing is stopped — and nothing in this
-amendment changes the step order.
+amendment changes the step order. *§14.11 item 2 changes step 1's **contents**, not the step order:
+the (ii) erratum measurement leaves the step, the (i) identity check keeps its place and its
+round-stopping power, and §14.11 item 7 adds one condition on reading that verdict.*
+
+14.11 **Amendment 11, the withdrawal of the second erratum difference, the erratum's release from
+the gating step and its two deadlines, the R0 re-score named as the adoption gate it is, four
+instrument defects and their accepted fixes, K0's readout provenance and realised composition
+verified by reproduction rather than re-run, the single-partition scorer path closed, and five
+standing clauses one of which is sharpened by the reviewer's own application of it, 2026-10-30.**
+Made before any arm of wave 1 was trained, before any readout of record exists, and before any
+erratum or identity-verdict number exists (verified by search: no `ERRATUM-DIFF.json` and no
+`IDENTITY_VERDICT.json` anywhere in the experiment tree at 07:05Z). Source: the review ruling
+`reviews/R3-ERRATUM-SCOPE-RULING-fable-20261030.md` (Fable 5.1, CLAUDE.md §2), closed at 07:58Z:
+its §9 carries items 1 to 12, its §13 carries items 14 to 18 after the 07:17Z addendum, its §16
+carries item 13 and items 19 to 22 after the 07:40Z addendum, and its §18 corrects two of the
+ruling's own sentences at 07:55Z — a struck bullet in item 4 and K0's roles in item 17, both applied
+here; each item names the ruling section it comes from. Where the ruling wrote an item twice the
+**later text is the one applied**: items 6 and 8 are §13's restatements, not §9's originals, because
+the code moved under them between the two, and item 13 is §16's filled item, not §9's reserved slot.
+There are no reserved slots; this amendment is items 1 to 22 and is committed whole.
+
+**Counterfactual declaration (§10, added by §14.10 item 15), for this amendment as a whole.** Items 1
+to 4 change a sequencing rule and the scope of a commissioned measurement. No result existed that the
+old rules bore on: the erratum, the (i) identity verdict and every readout of record are unwritten,
+and wave 1 has not launched. So there is **no counterfactual verdict to compute**, and the clause's
+second scope condition applies — these are new or withdrawn obligations, not rules rewritten after a
+result. Items 5 to 8 are instrument fixes and a freeze; item 9 is a correction of the stated scope of
+an acceptance, which §14.9 item 1 is the model for; items 10 to 12 are new standing clauses that no
+prior rule could have decided; items 14, 18, 13 and 20 are corrections of fact and items 15, 16, 17,
+19, 21 and 22 are new obligations, so the clause does not apply to any of them either. This paragraph
+exists so the declaration is not omitted silently, as the clause requires. Items 10, 11 and 12 each
+state, in their own text, what they would have decided about the case that prompted them, and item 15
+does the same although as a new obligation it need not.
+
+1. **§14.6 item 5 and §14.5 item 1 (ii): the second difference is withdrawn (ruling §2).** The
+   requirement that the erratum report "(unpadded bf16 − fp32)" as a full-set, metric-by-metric
+   difference is **withdrawn**. Reasons, in the order they decide it: (a) the clause is not
+   executable as written — "unpadded bf16" is defined twice and incompatibly in this file (§14.2's
+   `token_budget=1`, one row per candidate, i.e. mode `exact`; §14.6 item 1's and §14.5 item 7's
+   `eq`, "mathematically the unpadded layout"), and no clause states its item set; (b) the
+   decomposition it was commissioned to perform — how much of R0's defect is padding — **has been
+   performed** at the candidate-score level, in the guarded fixed-sample path, and is accepted: the
+   fp32 padding term is ≤9.61e-5 nats with 0 argmax disagreements in all 10 cells (§14.9 item 6), the
+   bf16 padded and unpadded layouts are the same distance from `exact` (0.74 against 0.74 and 0.81,
+   §14.6 item 5), and the precision term is the whole of it (0.0989 to 0.657 nats, 0 to 10 Kev-rule
+   argmax disagreements per cell); (c) the full-set version costs 2x to 12x the first half of the
+   erratum on the suites it would run on (measured per-mode fp32 rates,
+   `r3_runs/scorer_r3/an_fp32.json`: `exact`/`rp` 3.3x to 20.8x, `eq_a`/`rp` 1.8x to 6.5x over five
+   cells), which is one to two orders of magnitude more than the measurement it qualifies, for a
+   document that has no pass bar and no stopping power.
+   - **Where the phrase survives anywhere in this file, "unpadded bf16" means mode `exact` on the
+     §14.6 item 3 fixed samples** — §14.2's definition, the earlier and more literal one — and not
+     `eq`. No clause of this file commissions a full-set bf16 pass in any layout.
+   - **What is withdrawn is a measurement, not a statement.** The erratum **carries in its text** the
+     decomposition the second difference would have computed, each figure with the file it comes
+     from: the fp32 padding bound, the bf16 padded-versus-unpadded equivalence, and the bf16-to-fp32
+     precision gap, as listed in (b). Every figure in that list comes from the fixed-sample path
+     whose loader refuses files that do not match their sidecar (item 9 below), and none from the
+     path with the defects of items 5 and 6 below.
+   - §14.5 item 1 (ii) accordingly reports **one** difference, (padded bf16 rerun − fp32), metric by
+     metric, with the (i) verdict stated beside it, which is what `r3_code/harness_identity_r3.py`
+     `erratum()` implements. The erratum's two headline sentences (§14.9 item 6) are unchanged.
+
+2. **§14.5 item 4 step 1: the erratum leaves the gating step (ruling §3, §6).** Step 1 is replaced by:
+
+   > 1. K0 on `Qwen3.5-0.8B-Base` and `Qwen3.5-0.8B` with the admissible scorer, both tracks, all
+   >    degenerate arms, and the item 1 (i) pinned identity check. **The item 1 (ii) erratum
+   >    measurement is not part of this step**: it has no pass bar and no stopping power by its own
+   >    terms, no comparison of this round reads it (the R0 side of every R3 comparison is a
+   >    re-score, §14.2, §14.9 item 6), and its output is an artifact of `R0-BASELINE-RESULTS.md`. It
+   >    is owed under §14.11 item 3 and is not a condition of wave 1. The (i) identity check keeps
+   >    its place and its round-stopping power in full.
+
+   This is an amendment and not a reading: step 1's wording as it stood admitted no split, and nobody
+   is to reach this conclusion by interpreting it. Committed before wave 1 launches.
+
+3. **The erratum's deadlines, and what wave 1 may not claim while it is outstanding (ruling §6.3,
+   §6.4).** An obligation with no deadline is how a pending erratum becomes a permanent one, so both
+   deadlines below are tied to events that must occur, not to dates.
+   - **The erratum is published to `R0-BASELINE-RESULTS.md` before the first test read of the round**
+     (§8.4, the first line appended to `TEST-READS.log`), and in any case before any report of record
+     of round 1 is committed. The test lock is the round's point of no return.
+   - Both this deadline and item 4 below's are listed **in `R0-BASELINE-RESULTS.md`'s erratum-pending
+     note**, with their deadlines named, so the owed work is visible in the document that is owed it;
+     and `tools/watchdog.py` flags each as outstanding in every digest until its product exists.
+   - **While the erratum is outstanding, no number of this round is compared with R0's published
+     numbers in any direction**, including in a wiki entry or a commit message (§14.2 is not
+     suspended by the erratum being late; it is the reason the erratum exists), no sentence states
+     R0's own defect magnitude beyond the headline already published in that file, no claim is made
+     about R0 §12.1's length effect, whose "do not retest it" stays suspended (§14.9 item 6), and
+     §6.3's B-4 for K1-PT against R0 is not reported (item 4 below).
+   - **Every report of record of wave 1 states in one line that the R0 erratum is outstanding and
+     which claims it therefore does not make.** Admissible with it outstanding: all Track K dev
+     numbers of every wave-1 arm from the scorer of record, with the §14.9 item 5 near-tie census and
+     §10.1's counts; §9.1 K-align and §9.2 K-floor in their absolute forms, which compare an arm
+     against a fixed line or against the arm's own question-only comparator rather than against R0;
+     §8.2 (a) and (b); the §14.10 items 8 and 13 replicate floors; §14.4's K1-FLA ladder-kernel band,
+     which is arm-against-arm; and every training-performance and throughput figure (§10.2 as
+     extended by item 12 below).
+
+4. **The R0-configuration fp32 re-score is named as the gate it already is: on adoption, not on
+   launch (ruling §6.2).** §14.5 item 1's R0 side — `Qwen3.5-0.8B` re-scored by the scorer of record
+   under the R0 configuration of §6.3 — is the fp32 side `erratum()` requires
+   (`track_t_config == "r0"`, arm K0, R0's model path), and it **does not exist**: the running
+   `r3_runs/k0_fp32` is `track_t_config = "r3"` (`instruct/RUN_IDENTITY.json`). It needs 102,654
+   records per role (`track_t_r3.records_needed`, `CONFIG_R0`; recounted 2026-10-30). Four clauses
+   read it, all of them at selection and adoption time and none of them to launch a training run:
+   - **§8.2 (c)**, whose **gating cells** are "the `typed-decisions` T1 cells that are not void under
+     R0 §13.5 for either model", and whose R0 §13.5 verdicts §14.5 item 1 requires to be recomputed
+     on this re-score. **Until the re-score exists, §8.2 (c) has no population, and no arm is adopted
+     under §8.2.** An arm may be reported as clearing K-floor and as winning (a) and (b); it is not
+     reported as adopted.
+   - §6.3's B-4 for K1-PT against R0, computed against this re-score only; and R0 §13.5's recomputed
+     B-2 pass/void verdicts, which are also what defines §8.2 (c)'s population above.
+   - §14.5 item 10's R0 §12.1 length-effect retest in fp32 (§14.9 item 6).
+
+   **§9.2 K-floor is not a reader of this re-score** (ruling §18, correcting the ruling's own §9
+   item 4): §9.2 compares every seed of every trained arm against the constant arm (§5.1) and against
+   the test-time question-only arm (§5.2), both of which are wave-1 Track K dev arms from the scorer
+   of record. Neither is R0, the re-score, or anything under the R0 configuration, which is why item 3
+   above lists K-floor in its absolute form as admissible while the erratum is outstanding. The
+   struck reading was a conflation with R0 §13.5's B-2 verdicts, which sit beside it in the same list
+   and do depend on the re-score. It is recorded rather than quietly dropped because a clause that
+   names a dependency which does not exist teaches a later reader to distrust the ones that do.
+
+   **Deadline: produced and read before the first §8.2 adoption decision of round 1, and before
+   `FINAL.json` is written for 0.8B.** It is **not** a launch gate for wave 1, and it does not
+   contend for wave-1 chips: §14.10 item 8's arithmetic leaves six of eight chips idle from about
+   t = 1.9 h of the wave and this pass needs about three. That chip count is **provisional** in
+   item 12 below's sense: it is an availability argument extrapolated from the fp32 `rp` rates,
+   not a sizing decision. The run plan sets the count and may set it higher or lower; this clause
+   establishes only that the pass need not wait for wave 1. It is a run of record and obeys
+   §14.5 item 4 step 2 (a): it does not share a chip with a training run of record. **It has no
+   run plan.** Nobody has sized or scheduled it, it was invisible until it was traced through
+   §8.2 (c), and it comes due
+   weeks of wall-clock sooner than it feels, which makes it the single obligation of this amendment
+   most likely to be forgotten. That sentence is in the pre-registration because a clause that
+   records its own forgettability is the only defence against it.
+
+5. **`erratum()` asserts completeness; a reported difference on a partial item set is barred (ruling
+   §1.8, §7.2).** `harness_identity_r3.py` `erratum()` intersected the keys of the two sides and
+   derived its record set from whatever intersection it found, with no comparison against an expected
+   count; a probe produced `n_shared_items = 330` against 102,654 needed per role and the function
+   did not complain. A partial fp32 side therefore reduces **both** blocks consistently, so the
+   difference stays internally coherent and reads as reassuring. Required before the erratum is
+   produced: the shared key set **equals** `records_needed(records, CONFIG_R0)` for every role,
+   asserted, with the function **refusing loudly** and writing no document otherwise; the expected
+   and actual counts are recorded in `ERRATUM-DIFF.json` beside `n_shared_items`. **"The difference
+   is small" is admissible only with this assertion green**, since without it small is
+   indistinguishable from absent. A test naming this clause asserts the refusal on a deliberately
+   truncated side.
+   - *Built and accepted (ruling §11.1), before this ruling arrived:* `_completeness` requires the
+     fp32 side of every role to hold exactly `records_needed(records, CONFIG_R0)` and the padded side
+     to hold all of them, raising `ErratumRefused` naming the role, the count held, the count needed,
+     the number missing and three example keys; the intersection logic is gone. The asymmetry is
+     deliberate and is explained in the code: the padded side legitimately holds more rows than
+     `records_needed(CONFIG_R0)`, and the extras are inert (item 18 below).
+
+6. **Readout provenance lives inside the readouts, the consumer recomputes what it checks against,
+   and no readout file is hand-seeded (ruling §1.9, §7.3, §7.4, §11.1; §13's restatement,
+   applied in place of the ruling's §9 item 6).** The defect: `read_admissible_rows` globbed
+   `trackt/readouts`, took the role from the filename and read rows with no validation, while
+   `erratum()` validated only three fields of a sibling `RUN_IDENTITY.json` (`track_t_config`, `arm`,
+   `model_path`). R3 Track T readout files **carried no header at all** — provenance existed at run
+   granularity (`RUN_IDENTITY.json`'s `model_sha256`, `report.json`'s header) and at no finer
+   granularity, so the enforcement unit was the directory and any file placed in it inherited the
+   directory's claimed identity. A directory holding the **Base** model's `track_t_config = r3` smoke
+   readouts beside a `RUN_IDENTITY.json` claiming the R0 model and `r0` was **accepted** by the real
+   `erratum()`, which produced `argmax_changed` of 142, 210 and 203 and a maximum probability gap of
+   0.79 — a confident, plausible, positive result of exactly the shape the withdrawn padding defect
+   would have had. The remedy, built before this ruling and accepted by it, is
+   `r3_code/provenance_r3.py`, and the pre-registration requires what that module implements:
+   - every readout row produced by `full_eval_r3` carries `m`, the first 16 hex of the sha256 of the
+     model that produced it;
+   - every producing process writes `manifests/<tag>.json` with each readout file's sha256 and row
+     count, the full model sha256, and the scorer descriptor (mode, dtype, hf32, token_budget,
+     record_grade);
+   - the consumer **recomputes the expected model sha256 from the weights on disk**
+     (`testlock_r3.model_identity`) and never takes it from `RUN_IDENTITY.json`, and `verify()`
+     requires: `RUN_IDENTITY`'s model sha equal to the recomputed one, every readout file listed in a
+     manifest with matching sha256 and row count, the manifest's model sha equal to the recomputed
+     one, the manifest's scorer being the scorer of record, every row stamped with the expected
+     model, and no key twice in a role.
+
+   **Principle, carried in the pre-registration's own voice because it generalises past this
+   instrument:** *a gate whose only evidence is written by the thing being gated is no gate.*
+   **No readout file of record is written by hand, copied or seeded from another run**, whatever its
+   numerics permit. This is why the erratum does not reuse K0's instruct readouts as its fp32 side:
+   46,215 of the 102,654 records `CONFIG_R0` needs are already in `CONFIG_R3`'s 46,342 (recounted
+   2026-10-30 over 119,690 T1/T2/T3 records), and the layout difference on the `T1__*/r0model` cells
+   is 2.15e-5 to 4.63e-5 against 0.10 to 0.66 nats being measured, so the numerics did permit it —
+   but reuse means placing files in `trackt/readouts/` that the run did not produce, which is
+   operationally indistinguishable from the spoof above, and an instrument that cannot tell them
+   apart must be fed neither. Once this item's provenance is implemented and asserted, reuse of
+   identically-configured rows **by key** becomes admissible again, because the seeded file must then
+   carry and prove the identity it claims; recorded now, before a later re-score's cost makes the
+   point tempting to argue. Tests naming this clause assert the refusal of a mislabelled directory
+   and of a partial side, and item 15 below applies to both.
+
+7. **The (i) identity verdict is admissible only if it compared the report (ruling §8.2).**
+   `identity_check()` compares the derived report only `if os.path.exists(rp)`; otherwise it can
+   return **IDENTICAL** on the readout comparison alone with `report_compared: false` in the document,
+   while §14.5 item 1 (i) requires the derivation to reproduce `r0_baseline_rederived/report.json`
+   for every metric the tie rule does not affect. An (i) verdict with `report_compared` false is read
+   as **INCOMPLETE** regardless of its readout comparison, and the run is not complete. This is a
+   check on a field of a file after the run and requires no edit to live code.
+
+8. **The (i) code path was frozen in fact; the freeze clause is narrowed to that, with the evidence
+   named (ruling §8.1, §10; §13's restatement, applied in place of the ruling's §9 item 8).**
+   `harness_identity_r3.py` was edited while the pinned control ran — sha1
+   `51070298f8ab89d1ca8aaeb02f18d49dbb738919` at launch (frozen snapshot
+   `r3_runs/k0_fp32/code/harness_identity_r3.py`), sha1 `e01d57460958ad6ac45b5f691b3816b0f35c19a6`
+   at 07:17Z. The (i) verdict remains attributable, by diff rather than by assurance: **every hunk is
+   at line 407 or later**, so `r0_pins`, `compare_headers`, `compare_readouts`, `compare_reports`,
+   `classify`, `identity_check`, `read_padded_rows` and `read_admissible_rows` are byte-identical
+   between the two files, the argument parser and `main` are unchanged, and the two new imports are
+   inside `erratum()` rather than at module scope. Both hashes and that diff are recorded in the (i)
+   run's record.
+   - **Standing, forward**: an edit to an instrument between a control's launch and its verdict is
+     made only in a region the verdict's code path does not reach, and the **diff against the frozen
+     snapshot is produced before the edit, not after it**. If no frozen snapshot of the instrument
+     exists, the edit waits for the verdict. Had a hunk landed at line 300 here, nobody would have
+     known until a DEFECT verdict had to be explained.
+   - The ruling's §8.1 instruction that **no** edit be made at all is superseded by this item, on the
+     ground that the edit was confined and the confinement is checkable. Its other three provisions
+     stand: items 5, 6 and 7 above apply to `erratum()`, nothing inside the pinned run's directory is
+     touched, and the run is not restarted.
+
+9. **§14.9 item 3, annotated: the loader's refusal is path-local (ruling §8.3).** The §14.9 verdict
+   table was accepted partly on the strength of a loader that refuses a score file whose `sample_sha1`
+   or per-item `keys` do not match its sidecar, and that refusal was verified by the reviewer over all
+   140 fp32 score files in 10 cells. **The verdict table is unaffected** and no number is withdrawn:
+   it was produced and read through `sample_r3` / `measure_floor` / `fp32_verdict`, which do implement
+   that refusal (`measure_floor.py:134-136` and `:160`; `fp32_verdict.py`'s strict loading, which also
+   refuses non-harness-written sidecars and cross-checks gold by key). What is corrected is the
+   **scope of the stated reason**: that refusal is a property of the **fixed-sample path only**.
+   `harness_identity_r3.py`'s `read_admissible_rows` has no equivalent of its own — the erratum
+   path's provenance comes from `erratum()`'s own `provenance_r3.verify` call (item 6 above), not
+   from the reader — and `read_padded_rows` validates nothing either; its guarantee is comparison
+   against R0's own published files, which is adequate and different. A later reader must not inherit
+   "the loader refuses mismatched files" as a property of this round's harness.
+
+10. **Standing clause, commissioned measurements, added to §10 (ruling §4.3).** Carried in full:
+
+    > **A commissioned measurement is specified and priced before it is ratified.** Any clause of this
+    > pre-registration that **commissions a measurement** — as distinct from one that sets a bound —
+    > states, in the amendment that creates it: (a) the **instrument**, in terms this file has already
+    > defined, and the **item set**; (b) an **order-of-magnitude cost** in chip-hours, with the rate
+    > and the window it was extrapolated from (§10.2 as extended by §14.11 item 12); and (c) the
+    > **decision the number could change**. If (c) is "none", the clause is **documentation**: it is
+    > scheduled with a deadline tied to an event that must occur, and it is **not placed in a step
+    > that gates another step**. A clause that cannot answer (a) is not executable and must not be
+    > ratified; a clause whose (b) exceeds the measurement or decision it qualifies is re-scoped
+    > before it is ratified, not after it is attempted.
+    >
+    > Reason: a clause that sets a bound is checked against the noise floor (§14.1's precedent, and
+    > the standing project rule that an equivalence threshold needs a measured same-config replicate
+    > floor first). A clause that commissions a measurement has no such check, and fails in its own
+    > ways — naming an instrument the file defines two ways, leaving the item set open, costing more
+    > than the decision it informs, or informing no decision at all. All four occurred in one sentence
+    > of §14.6 item 5.
+
+    Counterfactual, as §10's declaration clause requires: applied to §14.6 item 5's second difference
+    this clause **fires on all three questions** and the clause would not have been ratified in the
+    form it was. Applied to §14.5 item 7's admissibility bar it is **silent**, because that was a
+    tolerance and is covered by the replicate-floor rule instead. One hit, one miss, and the miss is
+    covered elsewhere. The two defects are the same family and different members: §14.6 item 1's bar
+    was unsatisfiable **by construction**, while §14.6 item 5's second difference was
+    **underspecified and unpriced**. What they share is that both were ratified without anyone asking
+    whether they could be carried out as written.
+
+11. **Standing clause, acceptances and path-local guarantees, added to §10 (ruling §8.4).** Carried in
+    full:
+
+    > **A guarantee cited in an acceptance is demonstrated in the path the accepted artefact took.**
+    > Any acceptance of a result that cites a mechanism as a reason to trust it — a refusing loader, a
+    > green test suite, a validating header, an assertion — names the **file and function** that
+    > implements the mechanism and the **code path the accepted artefact actually travelled**, and
+    > states whether sibling consumers of the same data have an equivalent. Where they do not, the
+    > acceptance says so, and the gap becomes a **named obligation** rather than an assumption. An
+    > acceptance may not cite a mechanism as a property of "the harness".
+    >
+    > Reason: three of this round's instrument defects have the same form — a check present in one
+    > code path, absent in a sibling, and cited as general: the fixed-sample loader's sidecar refusal
+    > against `read_admissible_rows` (§14.11 items 6 and 9), the scorer-of-record selection remapped
+    > in a second entry point (§14.11 item 13, the clearest of the three), and §14.9 item 8's
+    > green-suite claim, which was true of the artefact and false of the suite. In each case the
+    > artefact survives scrutiny and the sentence justifying it does not, and the next artefact
+    > through the sibling path inherits a guarantee it never had.
+
+    Counterfactual: applied to the §14.9 verdict table's acceptance this clause reaches the **same
+    verdict** — accept — and adds one sentence naming `fp32_verdict.py`'s strict loading and the
+    absence of an equivalent in `read_admissible_rows`. It changes no verdict in this round's history.
+
+12. **§10.2 extended: a rate carries the window it was measured over (ruling §5).** §10.2's
+    requirement that every throughput figure be per chip with the chip count stated is extended:
+
+    > Every throughput figure and every ETA derived from one also states the **window** it was
+    > measured over — wall-clock span and item count — and **excludes warm-up**. On the Ascend hosts
+    > the first steps of any job are dominated by TBE operator compilation and are not the rate: a
+    > figure taken from the first seconds of a unit, or from fewer items than a warmed-up batch, is
+    > labelled **provisional** and may not be carried into a scheduling or sizing decision. Where a
+    > heartbeat already emits a windowed rate (`ex_s_chip_w20`), that is the figure of record.
+
+    Occasion, recorded because the correction is part of the record: K0 was first estimated at 15 h
+    from throughput lines read in the first 30 seconds of each file; the measured rate was about 13x
+    higher (`K_base_decision_dev_clean`: 1,264 rows in 529 s, 2.4 rows/s/chip). The engineer traced
+    the error to its cause and corrected it **before the number was used irreversibly**, and the
+    joiner sized against the stale estimate was disarmed with `r3_runs/k0_fp32/JOIN_DISARMED.json`
+    recording the cause, the state left behind, the preserved re-arm mechanism and a checkpoint time.
+    Counterfactual: this clause creates a new obligation and decides nothing retroactively; the stale
+    estimate was corrected by the engineer, not by this rule. Two prior measurements of this round
+    (§14.10 items 3 and 6) were also taken over a handful of steps, and §14.10 item 6 already says
+    that is the window in which the quantity is not yet stable; this clause generalises both.
+
+13. **The `eval_r3.make_score_fn` silent downgrade: fixed, blast radius zero, verified (ruling
+    §15.1).** Until 2026-10-30 `make_score_fn` mapped every `--scorer` other than `exact` and `fast`
+    to `exact`, so the scorer of record named by §14.9 item 3 **could not be selected through the
+    `--full` readout entry point**: `--scorer rightpad` ran the exact layout. The line now reads
+    `mode = "exact" if a.scorer == "hf" else a.scorer`, the defect is recorded in the function's
+    docstring, and `--require-record-grade` refuses any configuration that is not the scorer of
+    record, on the flags **read back** from torch rather than as requested.
+    - **Nothing of record is affected and no number is withdrawn.** The 140 fp32 score files behind
+      the §14.9 verdict table were written by `measure_floor.save`, which imports `scorer_r3` and
+      `sample_r3` directly and calls `R3Scorer(...).score_enc(enc, "rightpad", token_budget=16384)`;
+      the frozen `fp32/code/SHA1SUMS` and `fp32/code2/SHA1SUMS` carry bit-identical `scorer_r3.py`
+      (`d4ad2661…`) and `sample_r3.py` (`6f1277f9…`), so the defect lived in a function neither wave
+      imported. The only pre-fix `--full` runs are two CPU dry runs with `--scorer fast`, which the
+      old mapping handled correctly. **K0 of record runs the fixed code**: `r3_code/eval_r3.py` and
+      `r3_runs/k0_fp32/code/eval_r3.py` are both sha1 `b33a8be84a10f3823fa20f3bfdf95c5c346ccf72`
+      (verified by the reviewer). §14.5 item 5's `eval200_rp_*` citations ran the single-partition
+      `score_rightpad`, which the defect does not touch.
+    - **It is the third member of item 11 above's class**, and the clearest: the guarantee "the
+      scorer of record is selected by `--scorer rightpad`" was true in `measure_floor`'s path and
+      false in the readout entry point, and the suite whose greenness §14.9 item 8 cited never
+      imported the file the defect was in (item 21 below).
+
+14. **A withdrawn false alarm, recorded rather than deleted (ruling §10).** It was escalated to the
+    reviewer that `harness_identity_run.sh`'s trailing call could write an erratum difference on an
+    incomplete item set at about 09:00Z. **That is false and is withdrawn.** The trailing call is
+    `compare`, i.e. `identity_check()`, which never calls `erratum()`; `erratum()` is reachable only
+    through its own subcommand, requires `--admissible-run`, and refuses without an
+    `IDENTITY_VERDICT.json` — verified by the engineer running it against the live directory, where it
+    refused and wrote nothing, and independently by the reviewer from the source. `identity_check()`
+    already enforces completeness against R0's **published** readout set rather than against an
+    intersection (`missing_files`, `rows_missing`, `rows_extra`, and `classify()` returning INCOMPLETE
+    with exit 5), which is a stronger check than the one the alarm asked for. The alarm is recorded
+    because it caused a code change to be ordered on a live pinned control, and the engineer's earlier
+    wording, which invited the erratum reading, is recorded as its cause. **Nothing about the
+    completeness defect of item 5 above is withdrawn**; only its reachability through that path was
+    wrong.
+
+15. **Standing clause, guards and mutation, added to §10 (ruling §11.2).** *Sharpened by item 21
+    below, which adds a paragraph to this clause's text: the mutation must be applied to the path
+    that produces the number, and a test that asserts only on a self-description is not a test of
+    behaviour. Read the two together; the sharpening is part of the clause, not a gloss on it.*
+    Carried in full:
+
+    > **A guard that gates a number ships with a demonstration that its test fails when the guard is
+    > removed.** For every check whose failure is supposed to stop a number being reported — a
+    > completeness assertion, a provenance verification, an admissibility bar, a refusal — the run
+    > directory holds a short mutation script that disables the guard and shows the test that covers
+    > it then **fails**, with the output recorded. A test that still passes with its guard disabled is
+    > **too weak and is rewritten**, not annotated.
+    >
+    > Reason: this round has produced a resume test that passed for the wrong reason (§14.10 item 6)
+    > and a green suite asserting a property that had been retired (§14.9 item 8). Both would have
+    > been caught by the one question a mutation asks — does the test fail when the thing it tests is
+    > removed? It is the guard-level analogue of §10's counterfactual declaration: determinate,
+    > computable from what is in hand, impossible to game, and it converts "the test passes" into
+    > "the test passes **because** the guard is there".
+    >
+    > Scope: guards that gate a number, not every unit test. `r3_runs/k0_fp32/analysis/k0_mutation.py`
+    > is the model — two guards disabled, two tests shown to fail, `MUTANT CAUGHT` printed for each.
+
+    Counterfactual: a new obligation, so §10's declaration clause does not apply. Applied backwards it
+    would have caught §14.10 item 6's resume test and §14.9 item 8's retired assertion; neither
+    verdict of this round changes, because both were already corrected by other means.
+
+16. **Standing clause, guards declare their threat model; an extension of item 11 above, added to §10
+    (ruling §11.3).** Carried in full:
+
+    > **A guard is documented with what it does not stop.** Every check introduced to make a number
+    > trustworthy states, where it is implemented and wherever it is cited, the class of failure it
+    > defends against and the class it does not. A provenance check that defends against accident — a
+    > wrong directory, a copy, a stale shard layout, a partial run, a different scorer — says so, and
+    > says that it does not defend against deliberate, consistent rewriting of rows, manifests and
+    > identity files together, which nothing on a shared filesystem can.
+    >
+    > Reason: §14.11 item 11's defect seen from the other end. That item governs what an acceptance
+    > may cite; a guard whose limits are unwritten supplies the overclaim that an acceptance then
+    > cites, and the citation is load-bearing before anyone rechecks it. §14.9's acceptance resting on
+    > a refusal that existed in one path is the instance that cost this round the most; a guard
+    > described without its threat model reaches the same place by the same route.
+    >
+    > `r3_code/provenance_r3.py`'s docstring is the model: it states the defect that prompted it, the
+    > three places provenance now lives, and the limit, in the file a reader will open.
+
+17. **K0's readout provenance: verified by reproduction, not re-run, and the verification is
+    pre-registered here (ruling §12).** `r3_runs/k0_fp32` is the round's first readout of record and
+    was launched from the pre-stamping snapshot: its rows carry no `m` stamp and it has no
+    `manifests/`. Its scorer configuration **is** guarded in flight (`--require-record-grade`, mode,
+    dtype, HF32 and token budget read back from torch, `record_grade` in the header); its readout
+    provenance is not. **K0 is not re-run** — a re-run would buy a producer-written stamp, while a
+    re-score demonstrates the binding a stamp only asserts, and K0 admits the stronger instrument for
+    minutes of one chip against about four hours of five on the critical path. **K0 is not
+    grandfathered either**, and the shape of that decision is stated plainly rather than left for a
+    reader to discover: this verification was devised after K0 launched and while it was still
+    scoring, so it is a bar set on a run already in flight. What keeps it from being a bar shaped to
+    its own data is that the bar is **§14.6 item 3's existing one**, reused rather than invented, and
+    that the sample rule, the counterpart and the consequence are all fixed here before any of the
+    three numbers exists (rule 3).
+    - **Item 19 below is this item's control, not an addition to it**, because the 64-item re-score is
+      itself one or two calls of `full_eval_r3.SCORE_CHUNK = 32` against stored rows that came from
+      32-question calls at unknown offsets, so this comparison **already crosses compositions**. The
+      two items are **one job with one marker file**, run in this order: item 19's `rp_c32` and
+      resume-offset cells, then this item's re-score with its cross-model counterpart, then item 7
+      above's `report_compared` check on the (i) verdict. Those three are what gate K0's numbers
+      being read, and all three are minutes on the one chip K0 itself frees.
+    - **Before any decision reads K0**, and on a chip freed by K0 before wave 1 launches: 64 items per
+      (checkpoint, suite) cell over decision-v7 dev, transfer-v4 dev and the three T1 sources, drawn
+      from K0's **finished** readouts by `numpy.random.default_rng(20261030)` over sorted keys, for
+      both checkpoints, the sample and its sha1 written before the re-score; re-scored by the stamped
+      harness with the scorer of record on the weights K0's `RUN_IDENTITY.json` names, with the model
+      sha256 recomputed from disk.
+    - **Bar, unchanged from §14.6 item 3**: max |Δ| per candidate against the stored scores
+      ≤ τ_s = 1e-3 nats and **0 argmax disagreements** under either tie rule on items whose stored
+      top-2 gap exceeds τ_s, with items at or below τ_s counted and listed (§14.9 item 5).
+      Bit-identity is **not** required and not claimed: the sample's batch composition differs from
+      the production pass, and the measured same-precision layout differences on these suites are
+      1.81e-5 to 1.26e-4.
+    - **Discrimination counterpart, mandatory (rule 2)**: the same sample re-scored on the **other**
+      checkpoint must **fail** the bar. A verification that passes for any model measures nothing,
+      and this round has already produced three by-construction zeros. If the counterpart passes, the
+      verification is void and the fault is in the verification, not a finding about K0.
+    - **Consequence, fixed before the numbers**: a failing cell's K0 readouts are **void and
+      re-scored**; the bar is not relaxed and the failure is not explained away (§14.1 and §14.4's
+      precedent). More than one failing cell re-runs K0 in full from the stamped snapshot.
+    - **Also produced**: a post-hoc `manifests/` for K0, carrying in the file the sentence that it
+      attests the files as they stood when it was written and **not** their origin, the re-score being
+      what attests origin (item 16 above). Writing the manifest without that sentence would create
+      precisely the overclaim item 16 exists to prevent.
+    - **Why this is an input to wave 1 and not a side quest, with K0's roles stated correctly**
+      (ruling §18, correcting the ruling's own §12.3): K0 is **not** the comparator for §9.2's
+      question-only line — §14.5 item 4 step 2 fixes that comparator as **the arm itself**, which is
+      why every trained arm is also scored with `input_mode = drop` and `blank`. K0's actual roles in
+      wave 1's claims are §6.3's B-4 against the **same base checkpoint** and the §5 degenerate
+      baseline reported beside every trained number. The conclusion stands on those roles: K0's
+      numbers enter wave-1 claims, so verifying their provenance is on the critical path.
+    - **Forward, and this is the part that closes the class**: no run of record launches from a
+      snapshot without stamping, and **every** reader of readouts of record verifies provenance, not
+      only `erratum()`. The readers are named here so the next one is not forgotten silently:
+      `erratum()`, `full_eval_r3`'s report stage, `select_r3`, `testlock_r3` at the §8.4 test read, and
+      any analysis that produces a reported number. A reader added later is added to this list in the
+      amendment that adds it. **The preferred implementation is for the reader to verify, not its
+      caller**: `read_admissible_rows` itself calls `provenance_r3.verify`, so the guarantee travels
+      with the reader. As things stand it is `erratum()` that calls `verify`, so the guarantee is
+      demonstrated by the caller and will break the moment a second caller appears (item 9 above,
+      item 11 above's class).
+
+18. **A reading note for the erratum, ratified before the erratum exists (ruling §12, from
+    `r3_runs/k0_fp32/analysis/k0_reconcile.py`).** `tau_fit.<role>.carveout_rows` counts every row the
+    τ splitter puts on the TRAIN side, fitting or not. R0's published report counts **83,005** (every
+    group70 train-side row R0 scored, including 17,036 T2 non-base variant rows that
+    `thresholds.fitting_row` rejects); a measurement over `records_needed(CONFIG_R0)` counts
+    **65,969**. The fitted τ, every cell and every decision line are identical either way (3 of 13,945
+    leaves differ, all of them this row-count field). **A difference in this field against the
+    published report is not a discrepancy**, and in the erratum difference specifically both sides use
+    the same rows. This is ratified now, before any erratum or (i) verdict exists, precisely so that it
+    cannot be produced as an explanation after a difference appears; it lives in the pre-registration
+    and not only in a code constant and a README. The check it rests on is
+    `r3_runs/k0_fp32/analysis/k0_reconcile.py`, a chip-free comparison against R0's published
+    readouts, and it is **not** a readout of record.
+
+19. **The composition of record is measured, and it is the control that makes item 17 readable
+    (ruling §15.3).** Under `--full` the entry point scores in calls of
+    `full_eval_r3.SCORE_CHUNK = 32` questions in stored order, and `core_r3.score_resumable` chunks
+    the **remaining** rows, so a resume **shifts the call boundaries** (70 rows fresh: 32/32/6; after
+    10 stored: 32/28; after 33: 32/5). The §14.6 item 3 fp32 table measured `rp_a` (whole sample),
+    `rp_b` (2048 budget), `rp_chunk` (stored-order 64) and `rp_rev` (reversed 64): **no 32-question
+    composition and no resume-shifted composition is in it**, while K0 of record is resumable at item
+    granularity, so its realised boundaries are not recoverable from its own files.
+    - **Required before K0's numbers are read**, merged into item 17 above's job: on the same §14.6
+      item 3 fixed samples, one chip, add an **`rp_c32`** cell (stored-order 32-question calls) and
+      **one resume-offset** cell (the same sample with a non-zero number of rows pre-stored, so the
+      first call is short), measured against fp32 `exact` at the **unchanged** §14.6 item 3 bar:
+      max |Δ| per candidate ≤ τ_s = 1e-3 and 0 argmax disagreements under either tie rule on items
+      whose `exact` top-2 gap exceeds τ_s.
+    - **Why it is a precondition and not an addition:** item 17's 64-item re-score is itself one or
+      two calls of 32, while the stored rows came from 32-question calls at unknown offsets, so item
+      17's comparison already crosses compositions. Without these two cells, a failure of item 17's
+      bar could not be attributed between a provenance fault and ordinary composition noise — the
+      same confound §14.5 item 1 (i) exists to prevent for the erratum.
+    - Expected to pass with margin (worst measured composition spread 1.13e-4 against 1e-3). **An
+      expected pass is not a reason to skip a measurement; it is the reason it is cheap.** If either
+      cell fails, K0's readouts are void for the affected suites and the bar is not relaxed.
+    - Devised, like item 17 above, after K0 had launched and while it was still scoring, and recorded
+      as such: it is a control added to a run already in flight. What keeps it from being a bar
+      shaped to its own data is that the bar is §14.6 item 3's, unchanged, and that both cells and
+      the consequence of failure are fixed here before either number exists (rule 3).
+
+20. **§14.9 item 3's code citation names both frozen copies and states what differs (ruling §15.2).**
+    §14.9 item 3 quotes `measure_floor.py` `44d80526…`, the `fp32/code2/` copy, while the fp32 runs
+    used two frozen copies: `fp32/code/measure_floor.py` `c39122c3929439449697f65856e23f5bac02cc24`
+    and `fp32/code2/measure_floor.py` `44d80526d4a9238d6c55567a0ab3dfe1584e7375`. Both are cited,
+    with this statement of the difference, verified by diff: **two hunks, confined to the `exact`
+    mode's parallelisation** — the added `--exact-shard K/N` argument and the part-file merge with
+    resume-key checking and timing. No candidate mode (`rp_*`, `fast_*`, `eq_*`, `r0`) is touched,
+    and `scorer_r3.py` and `sample_r3.py` are **bit-identical** between the two copies, so **no score
+    value in any cell can differ by wave**. `exact` vs `exact2` bit-identity in 10 of 10 cells (§14.9
+    item 4) is the measurement that covers the one thing the difference could have touched. A
+    file-to-wave mapping of the 140 score files is **not required and is a declined action, not an
+    open one**, because it cannot change a number; it becomes required if any later document cites
+    the **harness** identity rather than the **scorer** identity, and `exact.part.s*` naming
+    distinguishes the waves on disk.
+
+21. **Item 15 sharpened: a mutation must hit the path that produces the number, and a
+    self-description is not behaviour (ruling §15.4).** Added to item 15 above's clause text, and
+    read as part of it:
+
+    > The mutation is applied to **the code path that produces the number**, not to a metadata or
+    > self-description path. A test that asserts only on a handle's own description of itself — a
+    > `describe()`, a header, a recorded configuration — is **not** a test of the behaviour it
+    > describes, and a mutation that such a test catches certifies the description only. Where a
+    > guard exists to ensure a computation is performed one way, its test calls the computation and
+    > observes what was actually passed to it.
+
+    Occasion, and it is recorded in full because how the limit was found is the most useful part of
+    it: the reviewer applied item 15 to the test written for item 13's fix and found item 15
+    insufficient. `test_scorer_r3.py` never imports `eval_r3`, so the suite whose greenness §14.9
+    item 8 cited could not have caught item 13's defect at all. Its replacement,
+    `test_full_eval_r3.py:317`, builds the scorer handle and asserts on `describe()` **without ever
+    calling it**, so a regression in which `describe()` is right and `score()` is wrong would pass.
+    Reverting item 13's fix makes `describe()` report `exact` and that test does fail — `MUTANT
+    CAUGHT` — **so item 15 as first written would have certified an inadequate test**: a mutation
+    probes only the mutation applied, and this one hits the metadata path. `describe()` is a claim;
+    `score()` is the behaviour. A guard that checks the claim and not the behaviour is item 6 above's
+    principle one level down — a gate whose evidence is written by the gated party. **Required**:
+    `r3_runs/make_score_fn_readback/readback.py`, which patches `R3Scorer` with a recorder and
+    asserts the constructor kwargs **and the mode actually passed to `score_raw`**, becomes a test in
+    `test_full_eval_r3.py`, and item 15's mutation for item 13's guard is applied to that test.
+    Recorded as a limit the reviewer found in its own clause within the hour of writing it, so a
+    later reader does not inherit item 15 as stronger than it is (item 16 above): a clause that
+    records how it was found to be insufficient is worth more than one that reads as if it arrived
+    complete, which is why the limit is written into the clause rather than into a note about it.
+
+22. **The single-partition path stops answering to the record-grade flag names (ruling §15.5).**
+    Without `--full`, `eval_r3.score_model` dispatches `--scorer rightpad` to `score_rightpad`, which
+    loads the model in **bfloat16** and calls `train_r3.row_logprob_sums` — not `R3Scorer` — with no
+    dedup, no HF32 control, `--token-budget` reinterpreted as `micro_tokens`, and a report header
+    that records **neither `dtype` nor `hf32`**; on the same path `exact` and `fast` construct
+    `R3Scorer` without passing `dtype` or `token_budget`, so both flags are silently ignored and the
+    defaults apply. No readout of record comes through this path, so **nothing of record is
+    affected**.
+    - **It is closed, not documented.** One flag name with two meanings in two entry points, one of
+      them bf16 without a precision record, is item 11 above's class in its purest form, and a
+      comment does not stop the next reach for `--scorer rightpad` under time pressure. The path
+      refuses `rightpad`, `exact` and `fast` unless an explicit **`--not-of-record`** acknowledgement
+      is passed; with it, the header records `dtype`, `hf32` and `record_grade: false`, and every
+      ignored flag is reported as ignored rather than accepted silently.
+    - The path is **not removed**: it has legitimate diagnostic uses, and deleting working code after
+      a result has been seen is not something this round does (§14.4's precedent, §14.9 item 1's
+      reasoning). A test naming this clause asserts the refusal without the acknowledgement flag.
+
+**Launch-checklist status (§14.7's checklist as extended by §14.8, by §14.10 and by this amendment,
+ruling §6.5 and §14.2).** This is a status, not an authorisation: **wave 1 is not cleared to launch**.
+Items 1, 7, 8, 9 and 10 are open, and item 10 is open because of this amendment.
+
+| # | Checklist item | Status |
+| --- | --- | --- |
+| 1 | §14.7, §14.8 and §14.10 committed | **Open** — this amendment (§14.11) must be committed too |
+| 2 | `gate_fast_ref/` with (G1)–(G4) **or** the recorded reference-kernel decision | **Met** — §14.10's table, unchanged by this amendment |
+| 2b | (G3) on this branch, model-level **and** trajectory (§14.8 item 4) | **Met** — §14.10's table, unchanged by this amendment |
+| 3 | Corrected equal-length determinism probe, green | **Met** — §14.10's table, unchanged by this amendment |
+| 4 | K2 dropout-mask-semantics test, green | **Met** — §14.10's table, unchanged by this amendment |
+| 5 | Production bf16 K2 cell re-measured against the (G3) floor | **Met for the branch that now trains** — §14.10's table, unchanged by this amendment |
+| 6 | `bench_record.json` carrying `gdn_impl`, `k2_impl`, trainer sha256 | **Met** — §14.10's table, unchanged by this amendment |
+| 7 | §14.5 item 4 step 2 chip-assignment file, sha256 recorded | **Open** — `r3_runs/w1/CHIP-ASSIGNMENT.json` is at revision 2 with its sha256 recorded but marked `DRAFT`; it is not authoritative until §14.10 and this amendment are committed, and it discharges items 7 and 9 together |
+| 8 | §14.3 resume test rewritten and the suite re-run on a chip (§14.10 item 6) | **Open** — unchanged by this amendment; minutes on one chip |
+| 9 | The ninth and tenth runs named in the assignment file before launch (§14.10 items 8 and 13) | **Open** — unchanged by this amendment |
+| 10 | *Added by items 7, 17 and 19 above:* the three checks that gate K0's numbers being read, as **one job with one marker**, in order — item 19's `rp_c32` and resume-offset cells, then item 17's re-score with its mandatory cross-model counterpart, then item 7's `report_compared` check; plus K0's post-hoc `manifests/` with its limitation stated in the file | **Open** — new obligation from this amendment; minutes on the one chip K0 itself frees |
+
+Outside this checklist, and still the actual gate on launching: §14.5 item 4 **step 1 must be complete
+and read on dev** before step 2 begins. Item 2 above removes the (ii) erratum measurement from that
+step and leaves the (i) identity check in it with its round-stopping power; the (i) verdict is
+unwritten, is expected about 09:00Z, and is now additionally subject to item 7 above
+(`report_compared` must be true) and to item 8 above's recorded hashes.
+
+**Not on this checklist by design, and the obligation most likely to be forgotten: the
+R0-configuration fp32 re-score of item 4 above has no run plan.** It gates the round's first §8.2
+adoption decision — and therefore every adoption of round 1 — not the wave's launch, so it will not
+stop anything launching and nothing downstream will notice its absence until an adoption has to be
+decided. Nobody has sized or scheduled it: 102,654 records per role, at a chip count the run plan
+still has to set (item 4's "about three" is provisional, per item 12). The reviewer said
+twice that it is the likeliest obligation of this ruling to be forgotten, and it is repeated here
+because this table is what gets read before a launch.
