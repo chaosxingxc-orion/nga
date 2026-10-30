@@ -124,5 +124,44 @@ class ActualTensors(unittest.TestCase):
         with self.assertRaises(ValueError):r.chunk(0,8,185)
         with self.assertRaises(ValueError):r.record('bad',torch.zeros(14,1))
 
+    def test_native_tiny_qwen_mixed_blocks(self):
+        try:
+            from transformers.models.qwen3_5.configuration_qwen3_5 import Qwen3_5TextConfig
+            from transformers.models.qwen3_5.modeling_qwen3_5 import Qwen3_5TextModel
+        except ImportError:
+            self.skipTest('Native Qwen3.5 transformers implementation is required')
+        torch.set_num_threads(1)
+        torch.manual_seed(381)
+        config = Qwen3_5TextConfig(
+            vocab_size=32, hidden_size=16, intermediate_size=24,
+            num_hidden_layers=24, num_attention_heads=2, num_key_value_heads=1,
+            head_dim=8, linear_num_key_heads=1, linear_num_value_heads=2,
+            linear_key_head_dim=4, linear_value_head_dim=4,
+            layer_types=['linear_attention', 'linear_attention', 'linear_attention', 'full_attention'] * 6,
+            rope_parameters={'rope_type': 'default', 'rope_theta': 10000.,
+                             'partial_rotary_factor': 1., 'mrope_section': [1, 1, 2]},
+            use_cache=False)
+        config._attn_implementation = 'sdpa'
+        model = Qwen3_5TextModel(config).eval()
+        ids = torch.arange(15*186).reshape(15,186) % 32
+        mask = torch.ones_like(ids)
+        mask[:,170:] = 0
+        with torch.inference_mode():
+            baseline = model(input_ids=ids,attention_mask=mask,use_cache=False).last_hidden_state
+            full={}
+            with p.trace_path(model,torch,full):
+                observed = model(input_ids=ids,attention_mask=mask,use_cache=False).last_hidden_state
+            self.assertTrue(torch.equal(baseline,observed))
+            split={}
+            with p.trace_path(model,torch,split) as observer:
+                for start,end in [(0,8),(8,15)]:
+                    observer(start,end,186)
+                    model(input_ids=ids[start:end],attention_mask=mask[start:end],use_cache=False)
+            comparison = p.compare_traces(full,split)
+            self.assertIn('first_differing_observed_event', comparison)
+            self.assertTrue(any('.self_attn.q_proj' in name for name in full['order']))
+            self.assertTrue(any('.linear_attn.norm' in name for name in full['order']))
+        self.assertTrue(all(not m._forward_hooks and not m._forward_pre_hooks for m in model.modules()))
+
 
 if __name__ == '__main__':unittest.main()

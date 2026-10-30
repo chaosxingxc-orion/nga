@@ -58,7 +58,7 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 
 | [E32](E32-openjev-original-ood-20261030.md) | original complete Open-Jev OOD | reference evaluation | both full length preflights accepted; 2B/9B actual NPU inference and CPU finishers running on chips 4/2 |
 
-| [E33](E33-jeval-reference-inference-20261030.md) | native JEVal reference inference | reference evaluation | Kev three sizes and Nimble formal inference running; Open-Jev formal held for candidate-batch numerical admission |
+| [E33](E33-jeval-reference-inference-20261030.md) | native JEVal reference inference | reference evaluation | 2026-10-31: Kev-0.8B and Nimble inference/audits complete, 22,514 receipts rehashed; 6/30 flags retain REVIEW_REQUIRED; Kev-4B/9B running; Open-Jev held for numerical admission |
 
 | [E34](E34-jeval-serial-queue-20261030.md) | immutable JEVal inference queue | engineering / reference execution | Nimble production queue and three Kev read-only audit waiters running; CPU seam fixture passed |
 
@@ -66,7 +66,8 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 
 | [E36](E36-openjev-candidate-batch-20261030.md) | Open-Jev candidate batch memory | engineering admission | both 20-forward probes complete; memory improved but numerical admission failed; chip 1 released |
 
-| [E37](E37-openjev-batch-diagnostic-20261030.md) | Open-Jev no-op and layer-memory diagnostic | engineering diagnosis | prepared only; 10 CPU tests pass; no resource claim or NPU launch |
+| [E37](E37-openjev-batch-diagnostic-20261030.md) | Open-Jev no-op and layer-memory diagnostic | engineering diagnosis | 2026-10-31: 2B/9B completed 16 NPU forwards each and independent verification; candidate_batch_admission remains false |
+| [E38](E38-openjev-path-trace-20261031.md) | Open-Jev intermediate path trace | engineering diagnosis | planned; fixed-image CPU 6/6 pass; driver/preparer closure in progress; no NPU execution or admission result |
 
 ## Where the artifacts live
 
