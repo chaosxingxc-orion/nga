@@ -27,6 +27,7 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [W1](W1-wave1-first-weight-updates.md) | wave 1: the first weight updates (K1, K2, K1-PT, K1-QO, K1-FLA) | R3 round 1 | planned |
 | [E2](E2-scorer-admissibility-fp32.md) | scorer admissibility: the bf16 table that failed and the fp32 verdict that replaced it | R3 round 1 | done |
 | [R0S](R0S-r0-side-fp32-rescore.md) | the R0 side of record: fp32 re-score of `Qwen3.5-0.8B` under the R0 configuration (adoption gate) | R3 round 1 | planned |
+| [E3](E3-k0-readout-precondition.md) | the precondition for reading K0: c32 composition control, realized-call replay, provenance re-score with counterpart | R3 round 1 | planned |
 
 ## Where the artifacts live
 

@@ -2324,6 +2324,19 @@ does the same although as a new obligation it need not.
       `r3_runs/k0_fp32/code/eval_r3.py` are both sha1 `b33a8be84a10f3823fa20f3bfdf95c5c346ccf72`
       (verified by the reviewer). §14.5 item 5's `eval200_rp_*` citations ran the single-partition
       `score_rightpad`, which the defect does not touch.
+    - *Dated note, 2026-10-30 08:20Z, while K0 was still scoring.* **The live copy's hash above is
+      now stale and the claim it supports is not.** `r3_code/eval_r3.py` moved to sha1
+      `ee363143eb37be4df24c1f1304d7b5eb9c1fc5ab` when item 22 below was implemented; the frozen
+      `r3_runs/k0_fp32/code/eval_r3.py` is **untouched at `b33a8be8…`**, and K0's worker invokes
+      `os.path.join(run, "code", "eval_r3.py")` with `python3 -P`, so the run of record cannot reach
+      the live file at all. That is stronger than §14.11 item 8's standing rule requires — the rule
+      asks that a mid-flight edit be confined to a region the verdict's code path does not reach,
+      and here the edited file is not on the path. `make_score_fn` and `score_model` were
+      additionally verified byte-identical between the two copies after the edit. What item 8 was
+      **not** given is its diff before the edit rather than after; the edit is admissible on the
+      frozen-snapshot ground above, and the sequencing lapse is recorded rather than waived. This
+      note exists because a later reader re-checking the two hashes would find one of them failing
+      on the round's most sensitive claim, and would have to reconstruct why.
     - **It is the third member of item 11 above's class**, and the clearest: the guarantee "the
       scorer of record is selected by `--scorer rightpad`" was true in `measure_floor`'s path and
       false in the readout entry point, and the suite whose greenness §14.9 item 8 cited never
