@@ -33,7 +33,7 @@ descend into a run directory.
 
 | item | default | option |
 |---|---|---|
-| terminal marker, content holds the exit code (`rc=0 utc=...`, `exit_code: 0` or a bare integer) | `DONE`, `FAILED`, `exit_code`, `EXIT_CODE` | `--marker-names` |
+| terminal marker, content holds the exit code: plain text (`rc=0 utc=...`, `exit_code: 0`, a bare integer) or a JSON object whose exit code is an **integer** under the first present key of `exit_code`, `exit_status`, `returncode`, `return_code`, `rc` (and optionally `utc`; `{"exit_code": 0, "error": "..."}` with a non-empty `error` is a conflict, not a success) | `DONE`, `FAILED`, `exit_code`, `EXIT_CODE`, `EVAL_COMPLETE.json`, `K0_COMPLETE.json` | `--marker-names` |
 | heartbeat file, lines start with an ISO-8601 UTC timestamp (naive timestamps are read as UTC) | `heartbeat.log` | `--heartbeat-name` |
 | logs scanned for warnings/errors | `*.log`, `logs/*.log` | `--log-globs` |
 | report scanned for suspicious metrics | `report.json` | `--report-name` |
@@ -55,7 +55,10 @@ extrapolated only when a total is known and the rate is positive.
   run that finished long ago; escalation `none`, exit code 0, listed on one summary line. Anything newer stays `stalled`, and a
   run that has a heartbeat file or a marker is never archived.
 - `unknown`, with a stated reason: marker without a parseable exit code or contradicting itself (DONE with a
-  non-zero code, FAILED with 0), heartbeat in the future beyond `--clock-skew-seconds`, or no log and no marker.
+  non-zero code, FAILED with 0), heartbeat in the future beyond `--clock-skew-seconds`, or no log and no marker. A marker problem is a
+  **named condition** (`condition` in `digest.json`, shown in the row's state cell): `marker_unparseable` (`MARKER UNPARSEABLE`) or
+  `marker_conflict` (`MARKER CONFLICT`), escalation `read`, state still `unknown` (exit code 20). **A run with a marker file is never
+  `stalled`, whatever its heartbeats say**; the marker is the source of truth for whether it finished.
 
 Container state is never consulted. Without a `heartbeat.log` the newest log mtime is the heartbeat, and the digest says so
 (`heartbeat_source`). **A run's heartbeat is the newest sign of life across ALL its sources**: its own `heartbeat.log` (or the newest
@@ -238,22 +241,38 @@ line 2 `| <chip> | <bus id> | <AICore %> <mem used>/<mem total> <HBM used>/<HBM 
 table. `proc-mem` prints `Process id:1479047 Process name:python3 Process memory(MB):3936` with **no space after the colons**, or
 `No process in device.`.
 
-**Two signals per chip, because one AICore reading cannot tell a free chip from a claimed one** (a container loading a checkpoint
-sits at 0% while fully claimed):
+**Two things per chip, kept apart and never merged into one word.** *Ownership* (who may use the chip) comes only from
+`CHIP-ALLOCATION.json`, read-only (`--chip-allocation`, default `<first root>/CHIP-ALLOCATION.json`): `allocation[]` gives the owner,
+run and release condition, `free[]` the chips that are free, `pending_claims[]` who is waiting (shown as `pending: ...`). *Activity*
+comes only from the samples. A sample never says that a chip is free: a chip between shards reads 0% with baseline HBM and is still
+owned (the file's own rule, after two incidents where a momentary reading was used as an ownership claim).
 
-- *claimed*: a resident process (in `proc-mem` or in the `npu-smi info` process table; 31 MB is enough), or HBM above
-  `--npu-idle-hbm-mb` (default 4096; the driver baseline is about 3450 MB). A claimed chip is claimed whatever its AICore reads.
-- *working*: AICore, the latest snapshot and the mean of the pass, plus a rolling history of earlier passes (`npu_history.json`, last
-  6 h, survives a restart and serves one-shot passes against the same `--out-dir`).
+- `ownership`: `owned` | `free` | `unlisted` (the file lists the chip neither as allocated nor as free) | `conflict` (listed twice, or both
+  allocated and free) | `unknown` (the file is missing or does not parse). `unlisted`, `conflict` and `unknown` are shown as **ownership
+  unknown** and flagged `read` (`ownership_unknown`), loudly, with the path and the reason; nothing is inferred and no chip is then
+  reported free. Staleness of the file is not judged (its `updated_utc` is printed).
+- *resident*: a resident process (in `proc-mem` or in the `npu-smi info` process table; 31 MB is enough), or HBM above
+  `--npu-idle-hbm-mb` (default 4096; the driver baseline is about 3450 MB). Not an ownership claim.
+- *activity*: AICore, the latest snapshot and the mean of the pass, plus a rolling history of earlier passes (`npu_history.json`, last
+  6 h, survives a restart and serves one-shot passes against the same `--out-dir`, or against another directory's history with
+  `--npu-history-from DIR`, read only).
 
-| state | meaning | flag |
+| activity | meaning | flag |
 |---|---|---|
-| `unclaimed` | no resident process, baseline HBM | **escalation `decide`** while any run is `running` or queued (a real idle chip beside work); `read` when nothing runs or is queued (unused capacity). Says for how many passes it has been unclaimed |
-| `quiet` | claimed, every snapshot at or below `--npu-near-zero-pct` (5) | none (a single low sample, or a load, is normal) |
-| `wedged?` | claimed and quiet for at least `--npu-wedged-passes` (3) consecutive passes spanning at least `--npu-wedged-seconds` (1200) | **escalation `read`**, with the duration (`for >=30m (4 passes)`); a gap longer than three ticks, or one busy pass, resets the streak |
-| `low` | claimed, **window** mean AICore below `--npu-low-pct` (30) but not quiet | informational line, no escalation (launch-bound kernels run healthy at 9-22%) |
-| `busy` | claimed, window mean at or above 30 | none |
-| `unknown` | claimed, fewer than `--npu-min-passes` (3) claimed passes in the window | none; never reported as `low` on thin evidence (a one-shot pass without history is always `unknown`) |
+| `no-process` | no resident process, baseline HBM | combined with ownership: **owned** -> `owned_idle` (`read`): "chip 7 idle, owner X (run), for >=Nm", wasted capacity, never "available". **free** per the file -> `free_unused`: `decide` while any run is `running` or queued, `read` otherwise. Anything else -> the ownership flag |
+| `quiet` | a process, every snapshot at or below `--npu-near-zero-pct` (5) | none (a single low sample, or a load, is normal) |
+| `wedged?` | a process and quiet for at least `--npu-wedged-passes` (3) consecutive passes spanning at least `--npu-wedged-seconds` (1200) | **escalation `read`**, with the duration (`for >=30m (4 passes)`); a gap longer than three ticks, or one busy pass, resets the streak |
+| `low` | a process, **window** mean AICore below `--npu-low-pct` (30) but not quiet | informational line, no escalation (launch-bound kernels run healthy at 9-22%) |
+| `busy` | a process, window mean at or above 30 | none |
+| `unknown` | a process, fewer than `--npu-min-passes` (3) passes in the window | none; never `low` on thin evidence. The table row still shows this pass (`this pass mean 70%`) |
+
+Also flagged (`read`): `free_in_use`, a chip the file lists free that has a resident process (use not recorded).
+
+**A one-shot pass and the window.** A pass has four snapshots over about 9 s, which is not enough to call a chip low, so a one-shot
+pass with no history reports every chip's activity `unknown` (the summary fragment says `util unknown on all chips`, and the table gives
+this pass's mean). The default invocation (`--out-dir` = the daemon's `_watchdog/`) has the daemon's history and gets full windows. For
+a scratch `--out-dir`, add `--npu-history-from /mnt/cephfs/xingchao/experiments/jev/_watchdog`: the history is read from there (never
+written) and the pass is saved to the scratch directory.
 
 **Utilisation window.** The low/busy verdict is the mean of the pass means over the trailing claimed stretch inside
 `--npu-window-seconds` (default 3600 s: about six 10-minute passes of four snapshots, long enough to average out the 14-94% swings a
@@ -261,9 +280,9 @@ bursty eval shows within seconds, short enough that an idle stretch hours ago ca
 the first claimed pass after one is dropped as warm-up. Before 2026-10-30 the verdict was the mean of the current pass alone (four
 snapshots, about 9 s) and nothing stated it. The digest now states the window and the passes it had: `aicore_window_pct`,
 `window_passes`, `window_s` per chip, `window_s`/`min_passes` on the block, `win 78%/60m n=7` in the table, and
-`low chips 5 (mean AICore over 60m window)` in the summary fragment (the numbers after `low`/`UNCLAIMED` are chip ids, not counts).
+`low chips 5 (mean AICore over 60m window)` in the summary fragment (numbers after `chips` are chip ids, not counts).
 
-A container that has started but has not yet opened the device is invisible to `npu-smi`, so a first sighting of an unclaimed chip can
+A container that has started but has not yet opened the device is invisible to `npu-smi`, so a first sighting of a chip with no process can
 be a startup; the flag text says "first seen this pass" or "for >=Xm (N passes)" so a reader can discount it. In a one-shot pass without
 history, `wedged?` cannot be reached.
 
@@ -277,15 +296,16 @@ parents and the first directory that is a discovered run claims the process (`cl
 a claimant that is not `running` is shown as `run(done)`). A process whose command line names no run directory is counted in
 `processes_without_run`. The mapping is by command line, so it names a run only if the run's directory is in its arguments.
 
-`npu` in `digest.json`: `available`, `reason`, `host`, `sampled_utc`, `samples`, `chips[]` (`npu`, `state`, `claimed`, `aicore_last`,
+`npu` in `digest.json`: `available`, `reason`, `host`, `sampled_utc`, `samples`, `allocation` (`ok`, `path`, `reason`, `updated_utc`, `allocated`, `free`, `pending`), `chips[]` (`npu`, `ownership`, `owner`, `owner_run`, `pending_claims`, `activity`, `resident`, `aicore_last`,
 `aicore_pct` mean, `aicore_samples`, `aicore_recent_passes`, `hbm_used_mb`, `hbm_total_mb`, `power_w`, `temp_c`, `claimed_by`,
-`claimed_state`, `processes[]`, `quiet_s`, `unclaimed_s`), the chip-id lists `unclaimed`, `wedged`, `quiet`, `low`, `running_runs`,
+`claimed_state`, `processes[]`, `quiet_s`, `no_process_s`), the chip-id lists `no_process`, `owned_idle`, `free_unused`, `ownership_unknown`, `wedged`, `quiet`, `low`, `unknown`, `running_runs`,
 `queued_runs`, `flags[]` (`kind`, `escalation`, `chips`, `text`) and `escalation`. `queued` (run ids) sits at the top level. The probe adds
 about 10 s to a pass. The NPU flags do not change the exit code (exit codes follow run states).
 
-**In `digest.md`.** A fragment on the summary line, always present (`| npu UNCLAIMED 4 (2 run, 0 queued); low chips 0,3 (mean AICore over 60m window) of 8`,
-`| npu 8/8 claimed, AICore window 60m`, `| npu n/a`), and one `## Host utilisation` block at **priority 3**, after the primary-scorer flags: the escalation
-lines and the per-chip table (AICore latest [earlier passes], HBM GiB, state, claimed by), about 1 KB. It ranks above the ERROR
+**In `digest.md`.** A fragment on the summary line, always present (`| npu owned but idle chips 7; low chips 0,3 (mean AICore over 60m window) of 8, AICore window 60m`,
+`| npu OWNERSHIP UNKNOWN chips 0,1,2 (CHIP-ALLOCATION.json unreadable) of 3, AICore window 60m`,
+`| npu 8/8 resident, owners per file, AICore window 60m`, `| npu n/a`), and one `## Host utilisation` block at **priority 3**, after the primary-scorer flags: the escalation
+lines and the per-chip table (owner from the allocation file, AICore latest [earlier passes] and window, HBM GiB, activity, process claimed by), about 1 KB. It ranks above the ERROR
 signatures of ordinary runs and above every warning, and below the status rows, the failed/stalled runs' pointers and their own errors.
 Whether it fits depends on how much sits above it: on the live tree at the default 16000 bytes it does not (the failures and
 stalls ahead of it need about 22500 bytes before it shows; with every stalled run dispositioned about 20750; with every stalled and
@@ -314,7 +334,7 @@ flag is still a flag):
 - an error-severity signature in a run's log (one flag per run and signature); warning-only signatures are not flags;
 - `PROGRESS FLAT`, `TOTAL EXCEEDED/UNREACHABLE`, a throughput regression;
 - any escalation `read` or `decide`, including the level a WHY disposition removed (`expected: true` runs are still flagged);
-- an escalating NPU flag (`unclaimed_while_work`, `unclaimed_no_work`, `possibly_wedged`); the informational "claimed low" line is not.
+- an escalating NPU flag (`ownership_unknown`, `owned_idle`, `free_unused`, `free_in_use`, `possibly_wedged`); the informational low line is not.
 
 **When a pass is retained** (non-empty flag set only): (a) **a flag key appears that was not in the previous pass**, unless that same key
 was retained within `--retain-flap-seconds` (default 1 h), so a flag that toggles does not retain every tick; (b) **refresh**: the newest
@@ -447,6 +467,12 @@ directory file (`id`, `dir`, `file`, `note`, `runs`, `by_state`, `run_ids`). The
 
 ### Error signatures
 
+**Deliberate-shutdown records are not errors.** Two phrases are removed from a line before the error-word test (`BENIGN_SPANS` in
+`watchdog.py`): `killed (disarmed|deliberate|intentional)` (a process the run's own launcher stopped on purpose) and
+`waiting for <path>/DONE (or FAILED)` (FAILED is a marker file name there). Only the matched span is silenced: any other error word on
+the same line still counts, and a bare `killed`, `Killed` or `FAILED` is still an error. There is no per-run declaration mechanism,
+on purpose: a run could then silence a real error; a new benign phrase is added to the list in the code, with a test.
+
 Lines matching error words (error, exception, traceback, fatal, failed, OOM, killed, ...) or warning words are normalized
 (ANSI codes, timestamps, hex addresses, UUIDs, PIDs, absolute paths, line numbers, bare integers and `shardN`-style indices
 become placeholders) and grouped. Per signature the digest has the count, first and last occurrence (timestamp when the
@@ -547,8 +573,9 @@ was dropped; `digest.json` is complete. Signatures are clustered across runs; th
 pointers and the primary flags, before ordinary-run errors and all warnings).
 
 **Throughput and NPUs**: `perf` per run (per chip, chip count, reserved GiB; `host` for chip-less runs; `r=` against the run's declared
-`perf.json` baseline, `decide` below 0.7 for a running run, `base?` when undeclared); `npu` block (claimed by a resident process vs
-working by AICore; `unclaimed` beside work is `decide`, `wedged?` is `read`, `low` is informational; optional, `--no-npu`).
+`perf.json` baseline, `decide` below 0.7 for a running run, `base?` when undeclared); `npu` block (ownership from
+CHIP-ALLOCATION.json vs activity from the samples; `free_unused` beside work is `decide`, `owned_idle` / `ownership_unknown` / `wedged?` are
+`read`, `low` is informational; optional, `--no-npu`).
 
 **Launch detached (CLAUDE.md rule 7)**
 

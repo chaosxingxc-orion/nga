@@ -66,7 +66,8 @@ def build_parser():
     a("--why-names", default="WHY_STOPPED.json,WHY_FAILED.json",
       help="files whose note is surfaced in the digest as one short line")
     a("--max-depth", type=int, default=4, help="directory depth below a root to look for runs (default 4)")
-    a("--marker-names", default="DONE,FAILED,exit_code,EXIT_CODE", help="terminal marker file names")
+    a("--marker-names", default="DONE,FAILED,exit_code,EXIT_CODE,EVAL_COMPLETE.json,K0_COMPLETE.json",
+      help="terminal marker file names (plain text or a JSON object with an integer exit_code)")
     a("--heartbeat-name", default="heartbeat.log")
     a("--log-globs", default="*.log,logs/*.log", help="log files in a run dir; also <rundir>.*log beside the dir")
     a("--report-name", default="report.json")
@@ -119,8 +120,14 @@ def build_parser():
            "seconds, short enough that an idle stretch hours ago cannot colour it); the digest states the window and the passes it had")
     a("--npu-min-passes", type=int, default=3,
       help="a claimed chip with fewer passes than this in the window is reported 'unknown', never 'low' (default 3)")
+    a("--chip-allocation", default=None,
+      help="CHIP-ALLOCATION.json, the source of truth for who OWNS a chip (default <first root>/CHIP-ALLOCATION.json). Read only. Ownership comes "
+           "only from this file, never from a sample; missing or unparseable means 'ownership unknown', never 'free'")
+    a("--npu-history-from", default=None,
+      help="read npu_history.json from this directory (e.g. the daemon's _watchdog/) instead of --out-dir, read only, so a one-shot pass "
+           "into a scratch --out-dir has the same utilisation window as the daemon")
     a("--npu-idle-hbm-mb", type=float, default=4096.0,
-      help="a chip with no resident process and at most this much HBM is unclaimed (the driver baseline is about 3450 MB; default 4096)")
+      help="a chip with no resident process and at most this much HBM has no process (the driver baseline is about 3450 MB; default 4096)")
     a("--npu-near-zero-pct", type=float, default=5.0, help="a claimed chip whose every snapshot is at or below this %% AICore is quiet (default 5)")
     a("--npu-wedged-passes", type=int, default=3, help="a claimed chip quiet for at least this many consecutive passes ... (default 3)")
     a("--npu-wedged-seconds", type=float, default=1200.0,
@@ -259,11 +266,24 @@ WARN_RE = re.compile(r"\bwarn(?:ing|ings)?\b|\b\w*Warning\b", re.I)
 SOFT_RE = re.compile(r"\b(failed|failure|failures)\b", re.I)
 
 
+# Phrases that contain an error word but are a run's own record of a deliberate act, not a failure. Each pattern is removed from the line
+# BEFORE the error-word test, so it can silence only its own span: any other error word on the same line still counts, and a line that
+# merely says "killed" or "FAILED" elsewhere is unaffected. The qualifier must be written by the run itself in the line:
+#   "killed (disarmed|deliberate|intentional)"  a process the run's own launcher stopped on purpose (k0_fp32/join.log, 2026-10-30)
+#   "waiting for <path>/DONE (or FAILED)"        FAILED here is the name of a marker file the run is waiting for, not an outcome
+BENIGN_SPANS = [
+    re.compile(r"\bkilled\s*\(\s*(?:disarmed|deliberate|deliberately|intentional|intentionally)\s*\)", re.I),
+    re.compile(r"\bwaiting\s+for\s+\S*/(?:DONE|exit_code|EXIT_CODE)\s*\(or\s+FAILED\)", re.I),
+]
+
+
 def classify_line(seg, cfg):
     """'error' | 'warning' | None. A line that says 'warning' and carries no hard error word is a warning
     even if it also says 'failed' (e.g. 'UserWarning: Failed to create processor')."""
     if cfg.ignore_re is not None and cfg.ignore_re.search(seg):
         return None
+    for rx in BENIGN_SPANS:
+        seg = rx.sub(" ", seg)
     if WARN_RE.search(seg) and not re.search(r"\b(?:traceback|fatal|critical|panic|segmentation fault)\b", seg, re.I) \
             and not re.search(r"\b\w*(?:Error|Exception)\b", ANSI_RE.sub("", seg).replace("Warning", "")):
         return "warning"
@@ -1094,8 +1114,42 @@ def discover(cfg, queued=None):
     return runs
 
 
+MARKER_JSON_KEYS = ("exit_code", "exit_status", "returncode", "return_code", "rc")
+MARKER_UNPARSEABLE = "MARKER UNPARSEABLE"
+MARKER_CONFLICT = "MARKER CONFLICT"
+
+
+def parse_marker_content(content):
+    """-> (exit_code or None, utc text or None, problem or None). A marker is either plain text (`rc=0 utc=...`, `exit_code: 0` or a
+    bare integer) or a JSON object whose exit code is an integer under one of MARKER_JSON_KEYS (first present key wins). A JSON marker
+    that holds exit code 0 together with a non-empty `error` is a contradiction, not a success."""
+    txt = content.strip()
+    if txt.startswith("{"):
+        try:
+            o = json.loads(txt)
+        except ValueError as e:
+            return None, None, "JSON marker does not parse (%s)" % str(e)[:60]
+        if not isinstance(o, dict):
+            return None, None, "JSON marker is not an object"
+        key = next((k for k in MARKER_JSON_KEYS if k in o), None)
+        if key is None:
+            return None, None, "JSON marker has none of the keys %s" % "/".join(MARKER_JSON_KEYS)
+        v = o[key]
+        if isinstance(v, bool) or not isinstance(v, int):
+            return None, None, "JSON marker key %s is %s, not an integer" % (key, type(v).__name__)
+        utc = o.get("utc") if isinstance(o.get("utc"), str) else None
+        if v == 0 and o.get("error"):
+            return v, utc, "JSON marker holds %s 0 and a non-empty error field" % key
+        return v, utc, None
+    m = re.search(r"(?:\brc|exit(?:[_ ]?code)?)\s*[=:]\s*(-?\d+)", content, re.I)
+    if m is None:
+        m = re.match(r"\s*(-?\d+)\b", content)
+    return (int(m.group(1)) if m else None), None, (None if m else "no integer exit code found")
+
+
 def read_marker(d, cfg):
-    """Returns (marker_dict_or_None, problem_or_None)."""
+    """Returns (marker_dict_or_None, problem_or_None). A problem always starts with a named condition (MARKER UNPARSEABLE or MARKER
+    CONFLICT); a run that has a marker file is terminal and is never classified stalled, whatever its heartbeats say."""
     found = []
     for name in cfg.markers:
         p = os.path.join(d, name)
@@ -1103,32 +1157,35 @@ def read_marker(d, cfg):
             continue
         try:
             with open(p, "r", encoding="utf-8", errors="replace") as f:
-                content = f.read(2000)
+                content = f.read(4000)
             mtime = os.path.getmtime(p)
         except OSError:
             continue
-        m = re.search(r"(?:\brc|exit(?:[_ ]?code)?)\s*[=:]\s*(-?\d+)", content, re.I)
-        if m is None:
-            m = re.match(r"\s*(-?\d+)\b", content)
-        rc = int(m.group(1)) if m else None
-        um = TS_RE.search(content)
-        found.append({"name": name, "path": p, "exit_code": rc, "utc": iso(parse_ts(um)) if um and parse_ts(um) else iso(mtime),
-                      "ts": parse_ts(um) if um and parse_ts(um) else mtime, "empty": not content.strip()})
+        rc, jutc, prob = parse_marker_content(content)
+        um = TS_RE.search(jutc or content)
+        ts = parse_ts(um) if um else None
+        found.append({"name": name, "path": p, "exit_code": rc, "utc": iso(ts) if ts else iso(mtime),
+                      "ts": ts if ts else mtime, "empty": not content.strip(), "problem": prob})
     if not found:
         return None, None
     rcs = {m["exit_code"] for m in found if m["exit_code"] is not None}
     names = ",".join(m["name"] for m in found)
     mk = dict(found[0])
+    bad = [m for m in found if m["problem"]]
+    if bad:                      # a marker we cannot read is never ignored, even beside one we can
+        m = bad[0]
+        kind = MARKER_CONFLICT if m["exit_code"] is not None else MARKER_UNPARSEABLE
+        return mk, "%s: marker %s: %s" % (kind, m["name"], m["problem"])
     if not rcs:
-        return mk, "marker %s present but holds no parseable exit code" % names
+        return mk, "%s: marker %s present but holds no parseable exit code" % (MARKER_UNPARSEABLE, names)
     if len(rcs) > 1:
-        return mk, "markers %s disagree on the exit code (%s)" % (names, sorted(rcs))
+        return mk, "%s: markers %s disagree on the exit code (%s)" % (MARKER_CONFLICT, names, sorted(rcs))
     rc = rcs.pop()
     mk["exit_code"] = rc
     if rc == 0 and any(m["name"].upper() == "FAILED" for m in found):
-        return mk, "FAILED marker holds exit code 0"
+        return mk, "%s: FAILED marker holds exit code 0" % MARKER_CONFLICT
     if rc != 0 and any(m["name"].upper() == "DONE" for m in found):
-        return mk, "DONE marker holds non-zero exit code %d" % rc
+        return mk, "%s: DONE marker holds non-zero exit code %d" % (MARKER_CONFLICT, rc)
     return mk, None
 
 
@@ -1482,6 +1539,11 @@ def evaluate_run(run, cfg, states, now, prev=None):
             notes.append(err)
 
     esc, why_text = escalate(state, sus["total"], out_sigs)
+    condition = None
+    if marker is not None and problem and state == "unknown":
+        # A marker file exists, so the run is terminal; what is unknown is its outcome. Named, not a generic "unknown".
+        condition = "marker_conflict" if problem.startswith(MARKER_CONFLICT) else "marker_unparseable"
+        esc, why_text = "read", problem
     progress = summarize_progress(samples, d, cfg, tier.get("declared_total"), tier.get("uniform_cost", True)) if samples else None
     # Declared-total anomalies. Exceeded: the run wrote more rows than it declared, so the declaration or the run is wrong.
     # Unreachable: even the optimistic end of the estimate is past --deadline-hours. Never raised without a declaration.
@@ -1565,7 +1627,7 @@ def evaluate_run(run, cfg, states, now, prev=None):
         progress = {"done": None, "total": None, "percent": None, "rate_per_min": None, "window_s": None,
                     "eta_utc": None, "note": "no heartbeat samples", "counters": None, "fields": None}
     return {
-        "id": run["id"], "path": d, "state": state, "state_reason": reason, "escalation": esc, "escalation_reason": why_text,
+        "id": run["id"], "path": d, "state": state, "condition": condition, "state_reason": reason, "escalation": esc, "escalation_reason": why_text,
         "tier": {k: tier[k] for k in ("name", "short", "source", "recheck_s", "stall_s")},
         "heartbeat_epoch": hb_ts, "heartbeat_utc": iso(hb_ts), "heartbeat_source": hb_src, "age_s": int(now - hb_ts) if hb_ts is not None else None,
         "marker": ({k: marker[k] for k in ("name", "path", "exit_code", "utc")} if marker else None),
@@ -1695,7 +1757,7 @@ NPU_HIST_KEEP_S = 6 * 3600
 
 def load_npu_history(cfg):
     try:
-        with open(os.path.join(cfg.out_dir, "npu_history.json"), "r", encoding="utf-8") as f:
+        with open(os.path.join(cfg.npu_history_from or cfg.out_dir, "npu_history.json"), "r", encoding="utf-8") as f:
             o = json.load(f)
         return {int(k): [e for e in v if isinstance(e, list) and len(e) == 4] for k, v in o.items()}
     except (OSError, ValueError, AttributeError, TypeError):
@@ -1738,18 +1800,91 @@ def window_passes(entries, t, cfg):
     return [e for e in stretch if t - e[0] <= cfg.npu_window_seconds]
 
 
+ALLOCATION_NAME = "CHIP-ALLOCATION.json"
+
+
+def load_allocation(cfg):
+    """Chip OWNERSHIP, from the allocation file only (read only). -> {"ok", "path", "reason", "updated_utc", "updated_by", "owners":
+    {chip: entry}, "dup": {chips listed twice}, "free": {chips}, "pending": {chip: [who]}}. ok is False when the file is missing or
+    does not parse into the expected shape; nothing is then assumed about any chip."""
+    path = cfg.chip_allocation or os.path.join(os.path.abspath(cfg.root[0]), ALLOCATION_NAME)
+    out = {"ok": False, "path": path, "reason": None, "updated_utc": None, "updated_by": None, "owners": {}, "dup": set(), "free": set(),
+           "pending": {}}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            o = json.load(f)
+    except OSError as e:
+        out["reason"] = "cannot read: %s" % redact(str(e))[:80]
+        return out
+    except ValueError as e:
+        out["reason"] = "not valid JSON: %s" % str(e)[:60]
+        return out
+    isint = lambda v: isinstance(v, int) and not isinstance(v, bool)   # noqa: E731
+    if not isinstance(o, dict) or not isinstance(o.get("allocation"), list):
+        out["reason"] = "no 'allocation' list"
+        return out
+    for e in o["allocation"]:
+        if not isinstance(e, dict) or not isint(e.get("chip")) or not (isinstance(e.get("owner"), str) and e["owner"].strip()):
+            out["reason"] = "allocation entry without an integer chip and an owner: %s" % redact(json.dumps(e))[:60]
+            return out
+        if e["chip"] in out["owners"]:
+            out["dup"].add(e["chip"])
+        out["owners"].setdefault(e["chip"], e)
+    fr = o.get("free", [])
+    if not isinstance(fr, list):
+        out["reason"] = "'free' is not a list"
+        return out
+    for e in fr:
+        c = e.get("chip") if isinstance(e, dict) else e
+        if not isint(c):
+            out["reason"] = "free entry without an integer chip: %s" % redact(json.dumps(e))[:60]
+            return out
+        out["free"].add(c)
+    for e in o.get("pending_claims") or []:
+        if isinstance(e, dict):
+            who = e.get("who") if isinstance(e.get("who"), str) else "unnamed claimant"
+            chips = e.get("chips") if isinstance(e.get("chips"), list) else [e.get("chip")]
+            for c in chips:
+                if isint(c):
+                    out["pending"].setdefault(c, []).append(who)
+    out["updated_utc"] = o.get("updated_utc") if isinstance(o.get("updated_utc"), str) else None
+    out["updated_by"] = o.get("updated_by") if isinstance(o.get("updated_by"), str) else None
+    out["ok"] = True
+    return out
+
+
+def chip_ownership(alloc, npu_id):
+    """-> (ownership word, entry or None): owned | free | conflict (listed twice, or both owned and free) | unlisted (the file says
+    neither) | unknown (the file could not be read). Never derived from a sample."""
+    if not alloc["ok"]:
+        return "unknown", None
+    ent = alloc["owners"].get(npu_id)
+    if ent is not None and (npu_id in alloc["free"] or npu_id in alloc["dup"]):
+        return "conflict", ent
+    if ent is not None:
+        return "owned", ent
+    return ("free", None) if npu_id in alloc["free"] else ("unlisted", None)
+
+
 def analyse_npu(raw, runs, queued, cfg, hist=None):
-    """Raw probe -> the digest's `npu` block. Two independent signals per chip, because one AICore reading cannot tell a free chip
-    from a claimed one (a container loading weights sits at 0 % AICore while fully claimed):
-      claimed  = a resident process (proc-mem, and the process table of `npu-smi info`), or HBM above the ~3450 MB driver baseline;
-      working  = AICore, the latest snapshots and a rolling history of earlier passes.
-    States: unclaimed | quiet (claimed, near-zero AICore, not yet long enough to mean anything) | wedged? (claimed, near-zero for
-    --npu-wedged-passes consecutive passes spanning --npu-wedged-seconds) | low (claimed, below --npu-low-pct: informational, a
-    launch-bound kernel runs healthy at 9-22 %) | busy. Flags: unclaimed while any run is running or queued (decide), wedged? (read);
-    never a flag for one low sample. A chip's own throughput against the run's declared baseline is the real health measure."""
-    out = {"available": False, "reason": None, "host": cfg.npu_host, "sampled_utc": None, "samples": 0, "chips": [], "unclaimed": [],
+    """Raw probe -> the digest's `npu` block. Two things per chip, kept apart and never merged into one word:
+      OWNERSHIP (who may use the chip) comes only from CHIP-ALLOCATION.json: owned | free | conflict | unlisted | unknown (file unreadable).
+        A sample cannot establish that a chip is free: a chip between shards reads 0 % with baseline HBM and is still owned.
+      ACTIVITY (what the chip is doing) comes only from the samples: no-process (no resident process, baseline HBM) | quiet (a process,
+        near-zero AICore, not yet long enough to mean anything) | wedged? (near-zero for --npu-wedged-passes passes spanning
+        --npu-wedged-seconds) | low | busy (window mean below / at or above --npu-low-pct, informational: a launch-bound kernel runs
+        healthy at 9-22 %) | unknown (fewer than --npu-min-passes claimed passes in the window).
+    Flags combine the two without merging them: an OWNED chip with no process is 'idle, owner X' (wasted capacity, never available); a
+    chip the file lists FREE and that has no process is 'free and unused' (decide while work runs or is queued); a FREE chip with a process
+    is unrecorded use; a chip the file does not list, lists twice, or a file that cannot be read gives 'ownership unknown'."""
+    out = {"available": False, "reason": None, "host": cfg.npu_host, "sampled_utc": None, "samples": 0, "chips": [], "no_process": [],
            "wedged": [], "quiet": [], "low": [], "running_runs": 0, "queued_runs": 0, "flags": [], "escalation": "none",
-           "low_pct": cfg.npu_low_pct, "unknown": [], "window_s": cfg.npu_window_seconds, "min_passes": cfg.npu_min_passes}
+           "low_pct": cfg.npu_low_pct, "unknown": [], "window_s": cfg.npu_window_seconds, "min_passes": cfg.npu_min_passes,
+           "owned_idle": [], "free_unused": [], "ownership_unknown": [], "allocation": None}
+    alloc = load_allocation(cfg)
+    out["allocation"] = {"ok": alloc["ok"], "path": alloc["path"], "reason": alloc["reason"], "updated_utc": alloc["updated_utc"],
+                         "updated_by": alloc["updated_by"], "allocated": sorted(alloc["owners"]), "free": sorted(alloc["free"]),
+                         "pending": {str(k): v for k, v in sorted(alloc["pending"].items())}}
     if not raw.get("ok"):
         out["reason"] = raw.get("reason") or "unavailable"
         return out
@@ -1774,16 +1909,16 @@ def analyse_npu(raw, runs, queued, cfg, hist=None):
             ids = claim_runs(raw["ps"].get(pid), by_path)
             claimed_runs |= ids
             pl.append({"pid": pid, "name": pr["name"], "mem_mb": pr["mem_mb"], "runs": sorted(ids)})
-        claimed = bool(pl) or c["hbm_used_mb"] > cfg.npu_idle_hbm_mb
+        resident = bool(pl) or c["hbm_used_mb"] > cfg.npu_idle_hbm_mb
         hl = h.setdefault(c["npu"], [])
-        hl.append([raw["t"], round(mean, 1), max(vals), claimed])
+        hl.append([raw["t"], round(mean, 1), max(vals), resident])
         hl[:] = [e for e in hl if raw["t"] - e[0] <= NPU_HIST_KEEP_S][-48:]
         wpass = window_passes(hl, raw["t"], cfg)
         wmean = round(sum(e[1] for e in wpass) / float(len(wpass)), 1) if wpass else None
         qn, qs = streak(hl, cfg, lambda e: e[3] and e[2] <= cfg.npu_near_zero_pct)
         un, us = streak(hl, cfg, lambda e: not e[3])
-        if not claimed:
-            st = "unclaimed"
+        if not resident:
+            st = "no-process"
         elif max(vals) <= cfg.npu_near_zero_pct:
             st = "wedged?" if (qn >= cfg.npu_wedged_passes and qs >= cfg.npu_wedged_seconds) else "quiet"
         elif len(wpass) < cfg.npu_min_passes:
@@ -1792,52 +1927,80 @@ def analyse_npu(raw, runs, queued, cfg, hist=None):
             st = "low"
         else:
             st = "busy"
-        chips.append({"npu": c["npu"], "chip": c["chip"], "health": c["health"], "name": c["name"], "state": st, "claimed": claimed,
+        own, ent = chip_ownership(alloc, c["npu"])
+        chips.append({"npu": c["npu"], "chip": c["chip"], "health": c["health"], "name": c["name"],
+                      "ownership": own, "owner": ent["owner"] if ent else None, "owner_run": ent.get("run") if ent else None,
+                      "release_when": ent.get("release_when") if ent else None, "pending_claims": alloc["pending"].get(c["npu"], []),
+                      "activity": st, "resident": resident,
                       "aicore_last": vals[-1], "aicore_pct": round(mean, 1), "aicore_samples": vals,
                       "aicore_window_pct": wmean, "window_passes": len(wpass), "window_s": cfg.npu_window_seconds,
                       "aicore_recent_passes": [[iso(e[0]), e[1]] for e in hl[-6:]], "passes_seen": len(hl),
                       "quiet_passes": qn if st in ("quiet", "wedged?") else 0, "quiet_s": int(qs) if st in ("quiet", "wedged?") else 0,
-                      "unclaimed_passes": un if st == "unclaimed" else 0, "unclaimed_s": int(us) if st == "unclaimed" else 0,
+                      "no_process_passes": un if st == "no-process" else 0, "no_process_s": int(us) if st == "no-process" else 0,
                       "hbm_used_mb": c["hbm_used_mb"], "hbm_total_mb": c["hbm_total_mb"], "power_w": c["power_w"], "temp_c": c["temp_c"],
                       "claimed_by": sorted(claimed_runs), "claimed_state": {i: state_of.get(i) for i in sorted(claimed_runs)},
                       "processes": pl[:8], "n_processes": len(pl), "processes_without_run": sum(1 for p_ in pl if not p_["runs"])})
     n_run = sum(1 for r in runs if r["state"] == "running")
     n_q = len(queued)
-    names = {k: [c["npu"] for c in chips if c["state"] == v] for k, v in
-             (("unclaimed", "unclaimed"), ("wedged", "wedged?"), ("quiet", "quiet"), ("low", "low"), ("unknown", "unknown"))}
+    names = {k: [c["npu"] for c in chips if c["activity"] == v] for k, v in
+             (("no_process", "no-process"), ("wedged", "wedged?"), ("quiet", "quiet"), ("low", "low"), ("unknown", "unknown"))}
     out.update(names)
+    out["owned_idle"] = [c["npu"] for c in chips if c["activity"] == "no-process" and c["ownership"] == "owned"]
+    out["free_unused"] = [c["npu"] for c in chips if c["activity"] == "no-process" and c["ownership"] == "free"]
+    out["ownership_unknown"] = [c["npu"] for c in chips if c["ownership"] in ("unknown", "unlisted", "conflict")]
     out.update({"available": True, "sampled_utc": iso(raw["t"]), "samples": len(snaps), "chips": chips,
-                "running_runs": n_run, "queued_runs": n_q, "window_s": cfg.npu_window_seconds, "min_passes": cfg.npu_min_passes})
+                "running_runs": n_run, "queued_runs": n_q})
 
     def ids(lst):
         return ",".join(str(x) for x in lst)
+
+    def since(c):
+        return ("for >=%s (%d passes)" % (human_age(c["no_process_s"]), c["no_process_passes"])) if c["no_process_passes"] > 1 else "first seen this pass"
+    by = {c["npu"]: c for c in chips}
     work = n_run + n_q
-    if out["unclaimed"]:
-        if work:
-            since = ", ".join("%d %s" % (c["npu"], ("for >=%s (%d passes)" % (human_age(c["unclaimed_s"]), c["unclaimed_passes"]))
-                                         if c["unclaimed_passes"] > 1 else "first seen this pass") for c in chips if c["state"] == "unclaimed")
-            out["flags"].append({"kind": "unclaimed_while_work", "escalation": "decide", "chips": out["unclaimed"], "text":
-                                 "NPU UNCLAIMED (no resident process, baseline HBM only) while %d run(s) running and %d queued: chip %s. "
-                                 "A container still starting is not yet visible, so a first sighting may be one" % (n_run, n_q, since)})
-        else:
-            out["flags"].append({"kind": "unclaimed_no_work", "escalation": "read", "chips": out["unclaimed"], "text":
-                                 "NPU UNCLAIMED chips %s and nothing running or queued: unused capacity" % ids(out["unclaimed"])})
+    if not alloc["ok"]:
+        out["flags"].append({"kind": "ownership_unknown", "escalation": "read", "chips": [c["npu"] for c in chips], "text":
+                             "CHIP OWNERSHIP UNKNOWN: %s is unreadable (%s). Utilisation below is from samples only; a sample can never "
+                             "show that a chip is free, so none is reported free" % (alloc["path"], alloc["reason"])})
+    else:
+        odd = [c for c in chips if c["ownership"] in ("unlisted", "conflict")]
+        if odd:
+            out["flags"].append({"kind": "ownership_unknown", "escalation": "read", "chips": [c["npu"] for c in odd], "text":
+                                 "CHIP OWNERSHIP UNKNOWN for chip %s: %s lists %s; nothing is assumed free" % (
+                                     ids([c["npu"] for c in odd]), os.path.basename(alloc["path"]),
+                                     "no owner and no free entry" if all(c["ownership"] == "unlisted" for c in odd) else "a chip twice or as both owned and free")})
+    if out["owned_idle"]:
+        det = "; ".join("chip %d idle, owner %s%s, %s" % (
+            k, _clip(by[k]["owner"], 40), " (%s)" % by[k]["owner_run"] if by[k]["owner_run"] else "", since(by[k])) for k in out["owned_idle"])
+        out["flags"].append({"kind": "owned_idle", "escalation": "read", "chips": out["owned_idle"], "text":
+                             "NPU OWNED BUT IDLE (no resident process, baseline HBM; owned, not available): %s. The allocation file, not this "
+                             "sample, says who may use it; a chip between shards also reads like this" % det})
+    if out["free_unused"]:
+        det = ", ".join("%d %s" % (k, since(by[k])) for k in out["free_unused"])
+        out["flags"].append({"kind": "free_unused", "escalation": "decide" if work else "read", "chips": out["free_unused"], "text":
+                             "NPU FREE per %s and unused (no resident process) while %d run(s) running and %d queued: chip %s. A container "
+                             "still starting is not yet visible, so a first sighting may be one" % (os.path.basename(alloc["path"]), n_run, n_q, det)})
+    fin = [c["npu"] for c in chips if c["ownership"] == "free" and c["resident"]]
+    if fin:
+        out["flags"].append({"kind": "free_in_use", "escalation": "read", "chips": fin, "text":
+                             "NPU LISTED FREE but has a resident process or HBM above baseline: chip %s (use not recorded in the allocation file)" % ids(fin)})
     if out["wedged"]:
-        det = ", ".join("%d for >=%s (%d passes)" % (c["npu"], human_age(c["quiet_s"]), c["quiet_passes"]) for c in chips if c["state"] == "wedged?")
+        det = ", ".join("%d for >=%s (%d passes)" % (c["npu"], human_age(c["quiet_s"]), c["quiet_passes"]) for c in chips if c["activity"] == "wedged?")
         out["flags"].append({"kind": "possibly_wedged", "escalation": "read", "chips": out["wedged"], "text":
-                             "NPU CLAIMED BUT NEAR-ZERO AICore (<=%g%%) possibly wedged or starved: chip %s" % (cfg.npu_near_zero_pct, det)})
+                             "NPU HAS A PROCESS BUT NEAR-ZERO AICore (<=%g%%) possibly wedged or starved: chip %s" % (cfg.npu_near_zero_pct, det)})
     if out["low"]:
         out["flags"].append({"kind": "claimed_low_info", "escalation": "none", "chips": out["low"], "text":
-                             "info: claimed chips %s below %g%% mean AICore over the last %s (%s); not a fault by itself, judge by throughput against the run's own baseline" % (
+                             "info: chips %s below %g%% mean AICore over the last %s (%s); not a fault by itself, judge by throughput against the run's own baseline" % (
                                  ids(out["low"]), cfg.npu_low_pct, human_age(cfg.npu_window_seconds),
-                                 ", ".join("%d=%g%% over %d passes" % (c["npu"], c["aicore_window_pct"], c["window_passes"]) for c in chips if c["state"] == "low"))})
+                                 ", ".join("%d=%g%% over %d passes" % (c["npu"], c["aicore_window_pct"], c["window_passes"]) for c in chips if c["activity"] == "low"))})
     acts = [f["escalation"] for f in out["flags"] if f["escalation"] != "none"]
     out["escalation"] = "decide" if "decide" in acts else "read" if acts else "none"
     return out
 
 
 def npu_fragment(npu):
-    """Compact status for the summary line: always present, a few dozen bytes."""
+    """Compact status for the summary line: always present, a few dozen bytes. Ownership words (owned-idle, FREE, OWNERSHIP UNKNOWN) come
+    from the allocation file; activity words (resident, low, util unknown, wedged?) from the samples. Chip numbers are always labelled."""
     if not npu:
         return ""
     if not npu["available"]:
@@ -1845,29 +2008,54 @@ def npu_fragment(npu):
     n = len(npu["chips"])
     ids = lambda l: ",".join(str(x) for x in l)   # noqa: E731
     bits = []
-    if npu["unclaimed"]:
-        bits.append("UNCLAIMED %s (%d run, %d queued)" % (ids(npu["unclaimed"]), npu["running_runs"], npu["queued_runs"]))
+    if npu.get("ownership_unknown"):
+        al = npu.get("allocation") or {}
+        bits.append("OWNERSHIP UNKNOWN chips %s%s" % (ids(npu["ownership_unknown"]), "" if al.get("ok") else " (%s unreadable)" % ALLOCATION_NAME))
+    if npu.get("owned_idle"):
+        bits.append("owned but idle chips %s" % ids(npu["owned_idle"]))
+    if npu.get("free_unused"):
+        bits.append("FREE per file and unused chips %s (%d run, %d queued)" % (ids(npu["free_unused"]), npu["running_runs"], npu["queued_runs"]))
     if npu["wedged"]:
-        bits.append("wedged? %s" % ids(npu["wedged"]))
+        bits.append("wedged? chips %s" % ids(npu["wedged"]))
     win = human_age(npu.get("window_s") or 0)
     if npu["low"]:
         bits.append("low chips %s (mean AICore over %s window)" % (ids(npu["low"]), win))
     if npu.get("unknown"):
-        bits.append("util unknown chips %s (<%d passes in %s window)" % (ids(npu["unknown"]), npu.get("min_passes") or 0, win))
+        who = "all chips" if len(npu["unknown"]) == n else "chips %s" % ids(npu["unknown"])
+        now = ", ".join("%d=%g%%" % (c["npu"], c["aicore_pct"]) for c in npu["chips"] if c["activity"] == "unknown")
+        bits.append("util unknown on %s (<%d passes in %s window, no usable history; this pass's mean only: %s)" % (
+            who, npu.get("min_passes") or 0, win, now))
     tail = ", AICore window %s" % win          # every pass states the window its utilisation verdict used
     if not bits:
-        return " | npu %d/%d claimed%s" % (n - len(npu["unclaimed"]), n, tail)
+        return " | npu %d/%d resident, owners per file%s" % (n - len(npu["no_process"]), n, tail)
     return " | npu " + "; ".join(bits) + " of %d%s" % (n, tail)
 
 
 def _aicore_cell(c):
     prev = [e[1] for e in c["aicore_recent_passes"][:-1]][-3:]
     cell = "%g%%" % c["aicore_last"] + (" [%s]" % " ".join("%g" % v for v in prev) if prev else "")
-    if not c["claimed"]:
+    if not c["resident"]:
         return cell
-    win = ("%g%%/%s n=%d" % (c["aicore_window_pct"], human_age(c["window_s"]), c["window_passes"]) if c.get("aicore_window_pct") is not None
-           else "unknown n=%d/%s" % (c.get("window_passes", 0), human_age(c.get("window_s") or 0)))
+    if c.get("aicore_window_pct") is not None and c["activity"] != "unknown":
+        win = "%g%%/%s n=%d" % (c["aicore_window_pct"], human_age(c["window_s"]), c["window_passes"])
+    else:
+        win = "unknown n=%d/%s, this pass mean %g%%" % (c.get("window_passes", 0), human_age(c.get("window_s") or 0), c["aicore_pct"])
     return cell + " win " + win
+
+
+def _owner_cell(c):
+    o = c["ownership"]
+    if o == "owned":
+        txt = "%s%s" % (_clip(c["owner"], 30), " (%s)" % _clip(c["owner_run"], 30) if c["owner_run"] else "")
+    elif o == "free":
+        txt = "FREE per file"
+    elif o == "unknown":
+        txt = "ownership unknown"
+    else:
+        txt = "ownership unknown (%s)" % o
+    if c["pending_claims"]:
+        txt += "; pending: " + _clip(", ".join(c["pending_claims"]), 40)
+    return txt
 
 
 def npu_block_lines(npu, level):
@@ -1877,21 +2065,25 @@ def npu_block_lines(npu, level):
     ts = (npu.get("sampled_utc") or "")[11:16]
     if not npu["available"]:
         return ["NPU utilisation unavailable (%s): %s" % (npu["host"], _clip(npu["reason"], 140))]
-    lines = ["- [%s] %s" % (f["escalation"], _clip(f["text"], 200)) if f["escalation"] != "none" else "- %s" % _clip(f["text"], 200)
+    lines = ["- [%s] %s" % (f["escalation"], _clip(f["text"], 230)) if f["escalation"] != "none" else "- %s" % _clip(f["text"], 200)
              for f in npu["flags"]]
-    if not lines:
-        lines = ["NPU: every chip is claimed by a process and none is near-zero for long (%s)" % ts]
+    al = npu.get("allocation") or {}
+    if al.get("ok"):
+        lines.append("Ownership: from %s (updated %s by %s); activity: from samples, AICore window %s" % (
+            os.path.basename(al["path"]), al.get("updated_utc") or "?", _clip(al.get("updated_by") or "?", 40), human_age(npu.get("window_s") or 0)))
+    if not npu["flags"]:
+        lines.append("NPU: every chip has a resident process and none is near-zero for long (%s)" % ts)
     if level >= 2:
-        lines += ["| chip | AICore [earlier passes] | HBM GiB | state | claimed by |", "|---|---|---|---|---|"]
+        lines += ["| chip | owner (allocation file) | AICore [earlier passes] win | HBM GiB | activity (samples) | process claimed by |", "|---|---|---|---|---|---|"]
         for c in npu["chips"]:
             cl = list(c["claimed_by"])
             who = ", ".join(_clip(x, 36) + ("" if c["claimed_state"].get(x) == "running" else "(%s)" % c["claimed_state"].get(x)) for x in cl[:2]) \
                 + (" +%d" % (len(cl) - 2) if len(cl) > 2 else "")
             if not cl:
-                who = ("%d proc, no run dir" % c["n_processes"]) if c["n_processes"] else ("HBM only" if c["claimed"] else "-")
-            st = c["state"] + (" %s" % human_age(c["quiet_s"]) if c["state"] in ("quiet", "wedged?") and c["quiet_s"] else "")
-            lines.append("| %d | %s | %.1f/%.0f | %s | %s |" % (c["npu"], _aicore_cell(c), c["hbm_used_mb"] / 1024.0,
-                                                             c["hbm_total_mb"] / 1024.0, st, who))
+                who = ("%d proc, no run dir" % c["n_processes"]) if c["n_processes"] else ("HBM only" if c["resident"] else "-")
+            st = c["activity"] + (" %s" % human_age(c["quiet_s"]) if c["activity"] in ("quiet", "wedged?") and c["quiet_s"] else "")
+            lines.append("| %d | %s | %s | %.1f/%.0f | %s | %s |" % (c["npu"], _owner_cell(c), _aicore_cell(c), c["hbm_used_mb"] / 1024.0,
+                                                                  c["hbm_total_mb"] / 1024.0, st, who))
     return lines
 
 
@@ -2513,7 +2705,7 @@ def build_blocks(dg, cfg):
     bad = ("failed", "stalled", "unknown")
     for r in shown:
         row = "| %s | %s | %s | %s | %s | %s | %s | %s |" % (
-            _clip(r["id"], 40), r["state"], r["escalation"] + (" expected=yes" if r["expected_applied"] else ""), human_age(r["age_s"]),
+            _clip(r["id"], 40), r.get("condition") or r["state"], r["escalation"] + (" expected=yes" if r["expected_applied"] else ""), human_age(r["age_s"]),
             _watch_cell(r), _clip(_prog_cell(r["progress"]), 48),
             _clip(_perf_cell(r.get("perf")) if r["state"] in ("running", "stalled") else "-", 64),
             _clip(r["escalation_reason"] or r["state_reason"], 70))
@@ -2690,7 +2882,8 @@ def npu_pass(cfg, dg, states):
         return npu
     except Exception as e:   # noqa: BLE001 - the digest must survive a broken probe
         return {"available": False, "reason": "npu analysis failed: %s" % repr(e)[:100], "host": cfg.npu_host, "chips": [],
-                "low": [], "unclaimed": [], "wedged": [], "quiet": [], "flags": [], "escalation": "none", "sampled_utc": None, "samples": 0,
+                "low": [], "no_process": [], "unknown": [], "owned_idle": [], "free_unused": [], "ownership_unknown": [], "allocation": None,
+                "wedged": [], "quiet": [], "flags": [], "escalation": "none", "sampled_utc": None, "samples": 0,
                 "running_runs": 0, "queued_runs": 0}
 
 
