@@ -22,6 +22,7 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | id | title | round | status |
 | --- | --- | --- | --- |
 | [F1](F1-fetch-qwen3-0.6b.md) | fetch `Qwen3-0.6B`, the attention-only control | R0 | done |
+| [K0](K0-untuned-readout.md) | untuned readout of the Qwen3.5 checkpoints on Kev's suites and our task set | R3 round 1 | planned |
 
 ## Where the artifacts live
 
