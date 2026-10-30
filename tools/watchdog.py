@@ -66,7 +66,8 @@ def build_parser():
     a("--why-names", default="WHY_STOPPED.json,WHY_FAILED.json",
       help="files whose note is surfaced in the digest as one short line")
     a("--max-depth", type=int, default=4, help="directory depth below a root to look for runs (default 4)")
-    a("--marker-names", default="DONE,FAILED,exit_code,EXIT_CODE,EVAL_COMPLETE.json,K0_COMPLETE.json",
+    a("--marker-names", default="DONE,FAILED,exit_code,EXIT_CODE,EVAL_COMPLETE.json,K0_COMPLETE.json,"
+      "EXIT,COMPLETE.json,FINISH_COMPLETE.json,evaluate-EXIT,evaluate-COMPLETE.json,inference-COMPLETE.json",
       help="terminal marker file names (plain text or a JSON object with an integer exit_code)")
     a("--heartbeat-name", default="heartbeat.log")
     a("--log-globs", default="*.log,logs/*.log", help="log files in a run dir; also <rundir>.*log beside the dir")
@@ -1124,13 +1125,20 @@ def discover(cfg, queued=None):
 MARKER_JSON_KEYS = ("exit_code", "exit_status", "returncode", "return_code", "rc")
 MARKER_UNPARSEABLE = "MARKER UNPARSEABLE"
 MARKER_CONFLICT = "MARKER CONFLICT"
+REFERENCE_JSON_MARKERS = {"COMPLETE.json", "FINISH_COMPLETE.json", "evaluate-COMPLETE.json", "inference-COMPLETE.json"}
+REFERENCE_SUCCESS_STATUS = {"COMPLETED_SCOPED", "COMPLETED_SCOPED_REVIEW_REQUIRED", "VERIFIED_HARDENED_SCOPED",
+                            "VERIFIED_HARDENED_SCOPED_REVIEW_REQUIRED", "PREPARED_NOT_LAUNCHED"}
+REFERENCE_SUCCESS_STAGE = {"complete", "completed", "probe_completed", "prepared"}
+MARKER_MAX_BYTES = 1 << 20
 
 
-def parse_marker_content(content):
+def parse_marker_content(content, name=None):
     """-> (exit_code or None, utc text or None, problem or None). A marker is either plain text (`rc=0 utc=...`, `exit_code: 0` or a
     bare integer) or a JSON object whose exit code is an integer under one of MARKER_JSON_KEYS (first present key wins). A JSON marker
     that holds exit code 0 together with a non-empty `error` is a contradiction, not a success."""
     txt = content.strip()
+    if name in REFERENCE_JSON_MARKERS and not txt.startswith("{"):
+        return None, None, "reference terminal marker must hold a JSON object"
     if txt.startswith("{"):
         try:
             o = json.loads(txt)
@@ -1147,11 +1155,52 @@ def parse_marker_content(content):
         utc = o.get("utc") if isinstance(o.get("utc"), str) else None
         if v == 0 and o.get("error"):
             return v, utc, "JSON marker holds %s 0 and a non-empty error field" % key
+        if name in REFERENCE_JSON_MARKERS:
+            # These are final task records, not STATUS.json or preflight markers. rc remains mandatory;
+            # neither a filename nor a status string alone establishes execution success.
+            for rc_key in MARKER_JSON_KEYS:
+                if rc_key in o and type(o[rc_key]) is not int:
+                    return None, utc, "JSON marker key %s is not an integer" % rc_key
+                if rc_key in o and o[rc_key] != v:
+                    return v, utc, "JSON marker exit-code keys disagree"
+            if v == 0:
+                for field, allowed in (("status", REFERENCE_SUCCESS_STATUS), ("stage", REFERENCE_SUCCESS_STAGE)):
+                    if field in o and (not isinstance(o[field], str) or o[field] not in allowed):
+                        return v, utc, "JSON marker holds %s 0 and an unrecognized terminal %s" % (key, field)
+            for field in ("review_flags", "inherited_review_flags"):
+                if field in o and not isinstance(o[field], list):
+                    return None, utc, "JSON marker %s is not a list" % field
+            if "review_flag_count" in o and (type(o["review_flag_count"]) is not int or o["review_flag_count"] < 0):
+                return None, utc, "JSON marker review_flag_count is not a non-negative integer"
         return v, utc, None
     m = re.search(r"(?:\brc|exit(?:[_ ]?code)?)\s*[=:]\s*(-?\d+)", content, re.I)
     if m is None:
         m = re.match(r"\s*(-?\d+)\b", content)
     return (int(m.group(1)) if m else None), None, (None if m else "no integer exit code found")
+
+
+def marker_review(content, name, path):
+    """Bounded summary and pointers only; a review requirement never changes the execution exit code."""
+    if name not in REFERENCE_JSON_MARKERS:
+        return None
+    try:
+        obj = json.loads(content)
+    except ValueError:
+        return None
+    if not isinstance(obj, dict):
+        return None
+    paths = []
+    for key in ("review_flags", "inherited_review_flags", "review_flag_count"):
+        if obj.get(key):
+            paths.append("$." + key)
+    status = obj.get("status")
+    if isinstance(status, str) and status.endswith("_REVIEW_REQUIRED"):
+        paths.append("$.status")
+    if not paths:
+        return None
+    return {"path": path, "json_paths": paths, "status": status,
+            "review_flag_count": obj.get("review_flag_count"),
+            "listed_flags": sum(len(obj[k]) for k in ("review_flags", "inherited_review_flags") if isinstance(obj.get(k), list))}
 
 
 def read_marker(d, cfg):
@@ -1164,20 +1213,23 @@ def read_marker(d, cfg):
             continue
         try:
             with open(p, "r", encoding="utf-8", errors="replace") as f:
-                content = f.read(4000)
+                content = f.read(MARKER_MAX_BYTES + 1)
             mtime = os.path.getmtime(p)
         except OSError:
             continue
-        rc, jutc, prob = parse_marker_content(content)
+        rc, jutc, prob = parse_marker_content(content, name) if len(content) <= MARKER_MAX_BYTES else (
+            None, None, "terminal marker exceeds size limit")
         um = TS_RE.search(jutc or content)
         ts = parse_ts(um) if um else None
         found.append({"name": name, "path": p, "exit_code": rc, "utc": iso(ts) if ts else iso(mtime),
-                      "ts": ts if ts else mtime, "empty": not content.strip(), "problem": prob})
+                      "ts": ts if ts else mtime, "empty": not content.strip(), "problem": prob,
+                      "review": marker_review(content, name, p) if prob is None else None})
     if not found:
         return None, None
     rcs = {m["exit_code"] for m in found if m["exit_code"] is not None}
     names = ",".join(m["name"] for m in found)
     mk = dict(found[0])
+    mk["reviews"] = [m["review"] for m in found if m["review"]]
     bad = [m for m in found if m["problem"]]
     if bad:                      # a marker we cannot read is never ignored, even beside one we can
         m = bad[0]
@@ -1546,6 +1598,10 @@ def evaluate_run(run, cfg, states, now, prev=None):
             notes.append(err)
 
     esc, why_text = escalate(state, sus["total"], out_sigs)
+    reviews = marker.get("reviews", []) if marker else []
+    if reviews and state == "done":
+        esc = "decide"
+        why_text = "terminal marker requires scientific review" + ("; " + why_text if why_text else "")
     condition = None
     if marker is not None and problem and state == "unknown":
         # A marker file exists, so the run is terminal; what is unknown is its outcome. Named, not a generic "unknown".
@@ -1599,6 +1655,8 @@ def evaluate_run(run, cfg, states, now, prev=None):
     if shards and shards["note"] and shards["lost"]:
         notes.append("shards: " + shards["note"])
     pointers = []
+    for review in reviews:
+        pointers.append({"path": review["path"], "json_paths": review["json_paths"], "why": "terminal scientific review flags"})
     if esc != "none":
         if (state in ("failed", "stalled", "unknown") or flat_on or anomaly) and newest is not None:
             n = last_lines.get(newest[1], 0)
@@ -1638,6 +1696,7 @@ def evaluate_run(run, cfg, states, now, prev=None):
         "tier": {k: tier[k] for k in ("name", "short", "source", "recheck_s", "stall_s")},
         "heartbeat_epoch": hb_ts, "heartbeat_utc": iso(hb_ts), "heartbeat_source": hb_src, "age_s": int(now - hb_ts) if hb_ts is not None else None,
         "marker": ({k: marker[k] for k in ("name", "path", "exit_code", "utc")} if marker else None),
+        "terminal_reviews": reviews,
         "progress": progress, "errors": errors, "suspicious_metrics": sus, "pointers": pointers[:6], "notes": notes, "why": why,
         "declared_total": tier.get("declared_total"), "uniform_cost": tier.get("uniform_cost", True), "total_anomaly": anomaly, "progress_flat": flat_info, "flat_reads": flat_reads, "flat_done": flat_done, "shards": shards,
         "perf": perf, "perf_regression": perf_on,

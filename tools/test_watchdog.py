@@ -1923,6 +1923,97 @@ class JsonMarker(unittest.TestCase):
         self.assertIn("| marker_unparseable | read |", row)
 
 
+class ReferenceTerminalMarkers(unittest.TestCase):
+    """Reference tasks use explicit terminal filenames; completion does not imply scientific acceptance."""
+
+    state = JsonMarker.state
+
+    def test_reference_task_markers_override_stale_heartbeats(self):
+        for name, obj in (("COMPLETE.json", {"rc": 0, "stage": "completed"}),
+                          ("FINISH_COMPLETE.json", {"rc": 0, "status": "COMPLETED_SCOPED"}),
+                          ("evaluate-COMPLETE.json", {"rc": 0, "stage": "complete", "mode": "evaluate"}),
+                          ("inference-COMPLETE.json", {"rc": 0, "stage": "completed"})):
+            with self.subTest(name=name):
+                r = self.state(json.dumps(obj), name=name)
+                self.assertEqual((r["state"], r["condition"], r["escalation"]), ("done", None, "none"))
+        for name in ("EXIT", "evaluate-EXIT"):
+            self.assertEqual(self.state("rc=0 utc=2027-01-15T08:00:00Z", name=name)["state"], "done")
+
+    def test_new_marker_alone_discovers_a_run(self):
+        t = Tree()
+        t.run("terminal_only", marker='{"rc": 0, "stage": "completed"}', marker_name="COMPLETE.json")
+        self.assertEqual(t.states(), {"terminal_only": "done"})
+
+    def test_failures_are_failed_even_when_stage_names_the_interrupted_work(self):
+        for name in ("COMPLETE.json", "FINISH_COMPLETE.json", "evaluate-COMPLETE.json", "inference-COMPLETE.json"):
+            r = self.state('{"rc": 1, "stage": "independent_audit", "error": "audit failed"}', name=name)
+            self.assertEqual((r["state"], r["escalation"]), ("failed", "decide"))
+
+    def test_unknown_rc_and_incomplete_or_unknown_status_never_establish_success(self):
+        for obj in ({"status": "COMPLETED_SCOPED"}, {"rc": None}, {"rc": "0"}, {"rc": False},
+                    {"rc": 0, "status": "RUNNING"}, {"rc": 0, "stage": "loading"},
+                    {"rc": 0, "status": "COMPLETED_NEW_SCHEMA"}, {"rc": 0, "status": {}},
+                    {"rc": 0, "review_flags": "unknown"}, {"rc": 0, "review_flag_count": True},
+                    {"exit_code": 0, "rc": None}, {"exit_code": 0, "rc": 1}):
+            with self.subTest(obj=obj):
+                r = self.state(json.dumps(obj), name="COMPLETE.json")
+                self.assertEqual((r["state"], r["escalation"]), ("unknown", "read"))
+        self.assertEqual(self.state('{"rc": 0', name="COMPLETE.json")["condition"], "marker_unparseable")
+        self.assertEqual(self.state('rc=0', name="COMPLETE.json")["condition"], "marker_unparseable")
+
+    def test_status_and_preflight_files_do_not_end_the_full_run(self):
+        for name in ("STATUS.json", "preflight-COMPLETE.json", "preflight-EXIT", "novel-COMPLETE.json"):
+            r = self.state('{"rc": 0, "stage": "completed"}', name=name)
+            self.assertEqual(r["state"], "stalled", name)
+            self.assertIsNone(r["marker"])
+
+    def test_review_required_is_done_with_separate_escalation_and_pointer(self):
+        variants = [
+            {"status": "VERIFIED_HARDENED_SCOPED_REVIEW_REQUIRED", "review_flags": [{"code": "small_population"}],
+             "inherited_review_flags": []},
+            {"status": "COMPLETED_SCOPED_REVIEW_REQUIRED", "review_flag_count": 6},
+            {"status": "COMPLETED_SCOPED_REVIEW_REQUIRED"},
+            {"status": "COMPLETED_SCOPED", "review_flags": [{"code": "boundary"}]},
+            {"status": "VERIFIED_HARDENED_SCOPED", "inherited_review_flags": [{"code": "boundary"}]},
+        ]
+        for variant in variants:
+            with self.subTest(variant=variant):
+                t = Tree()
+                d = t.run("review", marker="rc=0", marker_name="EXIT", heartbeat=hb_line(-9999, "alive"))
+                with open(os.path.join(d, "COMPLETE.json"), "w") as f:
+                    json.dump(dict(rc=0, **variant), f)
+                dg = t.digest()
+                r = dg["runs"][0]
+                self.assertEqual((r["state"], r["escalation"], dg["exit_code"]), ("done", "decide", 0))
+                self.assertIn("scientific review", r["escalation_reason"])
+                self.assertEqual(r["terminal_reviews"][0]["status"], variant["status"])
+                self.assertTrue(r["pointers"][0]["path"].endswith("COMPLETE.json"))
+                self.assertIn("| done | decide |", wd.render_md(dg, t.cfg()))
+                self.assertIn("escalation:decide:review", wd.pass_flags(dg))
+
+    def test_review_flags_over_legacy_4000_byte_limit_are_still_read(self):
+        flags = [{"code": "small_population", "pointer": "/cells/%d/total" % i} for i in range(100)]
+        r = self.state(json.dumps({"rc": 0, "review_flags": flags}), name="COMPLETE.json")
+        self.assertEqual((r["state"], r["escalation"], r["terminal_reviews"][0]["listed_flags"]), ("done", "decide", 100))
+
+    def test_new_success_never_masks_a_failed_or_incomplete_marker(self):
+        for old_name, content, condition in (("FAILED", "rc=1", "marker_conflict"),
+                                             ("EXIT", "rc=1", "marker_conflict"),
+                                             ("EXIT", "incomplete", "marker_unparseable")):
+            t = Tree()
+            d = t.run("r", marker=content, marker_name=old_name)
+            with open(os.path.join(d, "COMPLETE.json"), "w") as f:
+                json.dump({"rc": 0, "stage": "completed"}, f)
+            r = t.digest()["runs"][0]
+            self.assertEqual((r["state"], r["condition"]), ("unknown", condition))
+
+    def test_old_failed_attempt_remains_separate_from_successful_retry(self):
+        t = Tree()
+        t.run("old_attempt", marker='{"rc": 1, "error": "failed"}', marker_name="COMPLETE.json")
+        t.run("retry", marker='{"rc": 0}', marker_name="COMPLETE.json")
+        self.assertEqual(t.states(), {"old_attempt": "failed", "retry": "done"})
+
+
 class DeliberateShutdownLines(unittest.TestCase):
     """k0_fp32/join.log ('joiner killed (disarmed)', 'waiting for .../DONE (or FAILED)') raised 'error lines in log' on a healthy run."""
 
