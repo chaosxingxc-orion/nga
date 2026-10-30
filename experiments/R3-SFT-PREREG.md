@@ -544,7 +544,9 @@ written, so they test rounding, not the kernel. They are replaced, before the fp
   satisfies e_fast ≤ 1.2 · e_ref.
 - (c) is unchanged. If any of (a′), (b′) and (c) fails, the run uses the reference kernel.
 
-14.2 **Amendment 2, scorer padding, 2026-10-30.** A second, independent implementation of the
+14.2 **Amendment 2, scorer padding, 2026-10-30.** *Superseded in part by §14.6 item 5: the padding
+diagnosis is withdrawn; the consequences stand on the corrected ground.* A second, independent
+implementation of the
 option log-probability (the K2 loss test) found that `r0_code/scorer.py`'s `HFScorer`, at its default
 `token_budget`, LEFT-pads a question's candidates of different token lengths in one batch, and that
 the padding changes the score (0.157 nats on one decision-v7 train row; repro
@@ -612,11 +614,13 @@ and the resolution.
      byte-identical to the live `r0_code/scorer.py`; and R0 ran under image
      `sha256:4d683043…` while §11.1 names `nga-verl-qwen35-v030:20261029`, so if the R0 image is
      unavailable the image difference is recorded and (ii) is read with it stated.
-     **(ii) Erratum measurement**: the admissible unpadded/right-padded scorer is run on the same
-     items, and the two are differenced metric by metric. This has **no** pass bar and no stopping
-     power; it is the content of the R0 erratum. Without the (i) padded rerun the (ii) difference could
-     not separate the padding effect from environment drift, which is why (i) is the control and why it
-     is pinned.
+     **(ii) Erratum measurement**: the scorer of record is run on the same items, and the two are
+     differenced metric by metric. Per §14.6 item 5, (ii) reports (padded bf16 rerun − fp32) and
+     (unpadded bf16 − fp32), and the scorer of record is fp32 with HF32 off (§14.6 items 2 and 3);
+     the (i) rerun keeps R0's bf16, since reproducing R0 requires R0's precision. This has **no**
+     pass bar and no stopping power; it is the content of the R0 erratum. Without the (i) padded rerun
+     the (ii) difference could not separate the bf16 batch-composition noise these numbers carry
+     (§14.6 item 5) from environment drift, which is why (i) is the control and why it is pinned.
      The (i) derivation is the only use of the padded scorer admitted in R3: it is a code-identity
      check against a published report, never a readout of record, so §14.2's unpadded/right-padded
      requirement is not weakened by it. Every number this round reports comes from the admissible
@@ -648,7 +652,7 @@ and the resolution.
    §7.1 and §7.6 leave the ladder conditional. Resolution, each step starting only after the previous
    one has finished and been read on dev:
    1. K0 on `Qwen3.5-0.8B-Base` and `Qwen3.5-0.8B` with the admissible scorer, both tracks, all
-      degenerate arms, and the item 1 padding measurement.
+      degenerate arms, and the item 1 identity check and erratum measurement.
    2. Wave 1, concurrent, one chip per run (§14.3), eight runs: K1 seeds 2 and 3, K2 seeds 2 and 3,
       K1-PT seeds 2 and 3, K1-QO seed 2, K1-FLA seed 2 (§14.4). K-align, K-floor, K1 against K2
       (§8.2, item 2) and the ladder kernel test (§14.4) are decided from this wave. Every trained arm
@@ -722,6 +726,13 @@ and the resolution.
 
    `[FILLED BY ORCHESTRATOR: floor table]`
 
+   **Resolved, 2026-10-30.** The table was generated and read
+   (`r3_runs/scorer_r3/floor_table.md`, 03:26Z). Its verdict under the rule below is in §14.6 item 1:
+   no bf16 batched scorer is admissible, including a null control that is mathematically the unpadded
+   layout, so the rule below is **superseded by the fp32 bar of §14.6 item 3** and bf16 is no longer an
+   admissible precision for a readout of record (§14.6 item 2). The rule below is kept as the record of
+   what was required when the measurement was commissioned.
+
    The table gives, per suite, the fixed sample and its n, the admitted layout's replicate floor, the
    admitted scorer's difference from the unpadded layout, and the verdict under this rule,
    fixed before the table is filled: a scorer is admissible on a suite only if, on that suite's fixed
@@ -735,7 +746,7 @@ and the resolution.
    No readout of record is produced before the table is filled.
 8. **Header: status.** Reason: the header still said "Draft", but the file was committed at
    `387521b` (2026-10-30 00:44 +0800) before any scored run it covers. Resolution: the file is
-   **frozen as of `387521b`**. Every later change is a numbered amendment in §14 (§14.1–§14.5). This
+   **frozen as of `387521b`**. Every later change is a numbered amendment in §14 (§14.1–§14.6). This
    amendment's only edits outside §14 are in that header line and the sentence after it: the header's
    `2026-10-30 · Draft.` now reads `2026-10-30 · Frozen as of 387521b (2026-10-30 00:44 +0800).`, and
    "It becomes frozen when committed, and it must be committed" is put in the past tense, since it did.
@@ -746,6 +757,9 @@ and the resolution.
    verification records 0 `openjev-synth` rows with a `digits`-family augmentation and 0 `openjev-synth`
    T1 `digits` rows. F2 is **discharged**.
 10. **§14.2 widened: the padding defect is not confined to candidates of unequal length.**
+    *Superseded in part by §14.6 item 5: the padding diagnosis is withdrawn; the consequences stand on
+    the corrected ground. The RoPE statement below is corrected there — a uniform position offset
+    leaves relative positions unchanged.*
     `r0_code/scorer.py:342-383` flattens every candidate of every item into one list, sorts it globally
     by descending length, and cuts batches at `token_budget // longest`. A row's pad count is therefore
     set by the longest row in its batch, usually from another question, and one question's candidates
@@ -767,3 +781,65 @@ and the resolution.
 11. **§11.1's trainer line.** Reason: §11.1 still reads "verl FSDP SFT", which §14.3 superseded.
     Resolution: §11.1's trainer clause is read as §14.3's single-chip PyTorch + peft trainer. The host,
     chip count, image and `python3 -P` requirement of §11.1 are unchanged.
+
+14.6 **Amendment 6, precision of record, scorer admissibility bar, duplicate candidates, and the
+status of §14.2, 2026-10-30.** Made after the §14.5 item 7 table (`r3_runs/scorer_r3/floor_table.md`,
+generated 03:26Z) was read and before any readout of record exists.
+1. **Verdict under §14.5 item 7 as written.** No bf16 batched scorer is admissible on any suite: `rp`
+   and `fast` fail in every measured cell, and the null control `eq` (the unpadded layout batched only
+   with equal-length rows, no padding anywhere) fails 10 of 10 cells (i: 8, ii: 10, iii: 10). `exact`
+   vs `exact2` is bit-identical in 9 of 9 cells, so the variation is batch composition, not
+   nondeterminism. Criterion (i) compares one draw of bf16 composition noise with another and is
+   non-diagnostic in bf16. The bound is not relaxed; bf16 is removed from the admissible precisions for
+   readouts of record.
+2. **Precision of record.** Every readout of record, Track K and Track T, every arm including K0, the
+   degenerate baselines, the R0 re-score of §14.5 item 1 and the erratum, is scored in float32 with
+   HF32 matmul disabled. Each readout's header records `dtype`, `hf32` (must be false, asserted by a
+   test naming this clause), layout, token budget and batch composition. bf16 may be used for smoke
+   runs and never for a reported number. Training precision is unchanged. The change is not a cost
+   concession: fp32 batched scoring costs 0.133 s per item against 6.12 s per item for the bf16 exact
+   layout the §14.5 item 7 rule required, about 46x faster (`r3_runs/scorer_r3/an_fp32.json`), so the
+   correct choice is also the cheaper one. This supersedes §11.1's dtype only; its host, chip count,
+   image and `python3 -P` requirement are unchanged.
+3. **Admissibility bar, fixed before the fp32 runs it needs exist.** τ_s = 1e-3 nats (the `NEAR`
+   constant of `r3_code/floor_table.py:34`). On each suite's fixed sample (the §14.5 item 7 samples,
+   with the three T1 `r0model` samples re-fixed at n = 128 with per-tag sidecars and their key sha1
+   recorded before scoring):
+   - (a) **null gate**: max |Δ| per candidate over all pairs among fp32 `exact`, `eq_a`, `eq_b`, `eq_c`
+     ≤ τ_s; if this fails, the bar is wrong and the round stops; it is not raised.
+   - (b) **(i′)** the candidate scorer's max |Δ| per candidate vs fp32 `exact`, under two compositions
+     a and b, ≤ τ_s.
+   - (c) **(ii′)** zero argmax disagreements under either tie rule on items whose `exact` top-2 gap
+     exceeds τ_s; items at or below τ_s are counted and listed.
+   - (d) **(iii′)** sample headline accuracy equal under both tie rules, or differing only on the
+     listed items.
+
+   Both `rp` and `fast` are candidates; the first that passes on every suite is the scorer of record
+   for the round, the other is retained as a check. Declared as already seen: one fp32 composition per
+   mode on n = 32 to 64 (`data_fp32/`), max |Δ| vs `exact` 2.4e-5 to 7.1e-5 for `eq_a`, `rp_a`,
+   `fast_a` and `r0`, zero disagreements; HF32-on fp32 differs from HF32-off by 3.80e-3 to 5.26e-3
+   per mode (`probe2_float32.json` against `probe2_nohf32_float32.json`, raw max |Δ| over 251
+   candidates: `exact` 3.80e-3, `eqlen` 4.54e-3, `r0` 4.44e-3, `rightpad` 4.65e-3, `fast` 5.26e-3;
+   the ruling quoted 3.1e-3 to 3.8e-3, corrected here after recomputation). The verdict is the same
+   for any τ_s in [1e-4, 3e-3], and every mode's HF32 error exceeds the top of that interval, which
+   is the only use this clause makes of the figure.
+4. **Duplicate candidates.** Every tied maximum in the `exact` layout on the fixed samples is between
+   candidates of equal token length with bit-identical scores, i.e. identical token sequences. The
+   readout definition is fixed: candidates of one question with identical token sequences receive one
+   forward pass and share the score bit for bit in every layout. The count of such questions is
+   reported per suite beside the tie count of §4.2. The engineer confirms identity at string level
+   before this is relied on.
+5. **Status of §14.2 and §14.5 item 10.** The padding diagnosis is withdrawn: in fp32 with HF32 off,
+   left-padded `r0` vs `exact` is ≤ 8e-5 nats with zero argmax changes on five suites; in bf16 its
+   difference from `exact` (0.74 nats, decision-v7) equals that of the unpadded controls (0.74, 0.81).
+   The 0.157-nats figure was one bf16 composition draw. Item 10's RoPE statement is corrected: a
+   uniform position offset leaves relative positions unchanged. §14.2's three consequences stand on
+   the corrected ground (bf16 composition noise of up to 2.6 sample-accuracy points against 1.0-point
+   bars): pre-amendment K0 numbers are void; published R0 readouts are not the R0 side of any
+   comparison; §14.5 item 1 (i) stands as the pinned identity check. Item 1 (ii) now reports (padded
+   bf16 rerun − fp32) and (unpadded bf16 − fp32) metric by metric; the erratum's headline sentence is
+   "the padding claim does not survive a noise floor". The R0 §12.1 retest of item 10 stays.
+6. **Reference precision.** §14.5 item 3's band is unchanged. Every K-align sentence states that the
+   reference stage-1 numbers' measurement precision is unknown and that this round's side is fp32.
+7. **Harness fixes required before scoring**: `measure_floor.py` writes `rows.json`/`enc_info.json`
+   per tag, and every score file carries per-item keys and the sample sha1.

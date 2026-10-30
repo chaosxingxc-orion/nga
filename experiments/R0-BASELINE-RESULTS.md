@@ -1,19 +1,22 @@
 # R0 readout baseline: results
 
-> **Erratum pending (note added 2026-10-30).** `R3-SFT-PREREG.md` §14.2 and §14.5 item 10 (R3
-> amendments 2 and 5) found that the R0 scorer `r0_code/scorer.py` (`HFScorer`, default `token_budget`)
-> flattens every candidate of every item into one list, sorts it globally by length and cuts batches at
-> `token_budget // longest`, so a row's pad count is set by the longest row in its batch — usually from
-> another question — and one question's candidates can land in batches of different widths. **Rows of
-> equal token length are therefore left-padded too, by differing amounts**, and because the forward pass
-> supplies no `position_ids`, left padding also shifts every real token's RoPE position by the pad
-> count. The measured score shift is 0.157 nats on one row. Every number below was produced by that
-> scorer. The size of the effect on these numbers is being measured, and the fixed sample and its n are
-> recorded in `R3-SFT-PREREG.md` §14.5 item 7 before the measurement is read; the result will be
-> published as an erratum to this file. Until then the numbers stand as published with this caveat, and,
-> per R3 §14.2, they are not used as the R0 side of any comparison. §7.3's length analysis was measured
-> on the same padded scores and is within the erratum's scope: R0 §12.1's and §7.3's "do not retest it"
-> is **suspended** until this erratum reports.
+> **Erratum pending (note added 2026-10-30, corrected the same day).** **The padding claim does not
+> survive a noise floor.** `R3-SFT-PREREG.md` §14.2 and §14.5 item 10 diagnosed the left padding in
+> `r0_code/scorer.py`'s `HFScorer` as a systematic perturbation of every batched row. Measurement
+> withdrew that diagnosis (§14.6 item 5): in float32 with HF32 matmul disabled, the left-padded R0
+> layout differs from the exact unpadded layout by **≤ 1e-4 nats with zero argmax changes** on five
+> suites, so left padding itself is not the defect. The 0.157-nats figure was one draw of **bf16
+> batch-composition noise**, which is what the numbers below actually carry: in bf16 the padded layout's
+> difference from exact (0.74 nats on decision-v7) is the same size as that of unpadded controls (0.74
+> and 0.81), and composition noise alone moves sample accuracy by up to 2.6 points. The magnitude of
+> that noise in these numbers is being measured on the fixed samples recorded in `R3-SFT-PREREG.md`
+> §14.5 item 7 and §14.6 item 3, and the result will be published as an erratum to this file. Until
+> then the numbers stand as published with this caveat, and, per R3 §14.2, **they are not used as the
+> R0 side of any comparison**. §12.1's and §7.3's "do not retest it" stays **suspended** until the
+> erratum reports — but note the expected direction has changed: the retest is now expected to
+> **reproduce** §12.1 ground 3's length effect at fp32 rather than overturn it, since the padding
+> artifact that could have manufactured it is gone. Ground 1's "an identical constant to every
+> candidate" is still not exact under this scorer, because batch composition varies per row.
 
 > 2026-10-29. Results of the first scored pass of the R0 readout baseline, judged against
 > `R0-BASELINE-PREREG.md` as it stood before the run. Numbers are taken from
