@@ -499,7 +499,7 @@ func TestComposeSuiteCountFloors(t *testing.T) {
 			t.Fatalf("clean-tree run() = %d", rc)
 		}
 	})
-	if !strings.Contains(buf, "[compose] 9 must-accept + 32 must-reject, 0 failures") {
+	if !strings.Contains(buf, "[compose] 10 must-accept + 36 must-reject, 0 failures") {
 		t.Fatalf("compose summary line missing (corpus shrank?):\n%s", buf)
 	}
 }
