@@ -104,3 +104,62 @@ changed. Four negative mapping tests pass. Parent approved and launched retained
 `a408eff9da038857d001a9886287134d80caea353ee0aee43b79228d115277b1`,
 chip5, actual running; digest18:55:30UTC model loading. Failed v1 created container
 and LAUNCH_FAILURE remain untouched. No9B fullJEVal inference yet.
+
+## 19:03 UTC — Kev4 and Kev9 formal configurations prepared
+
+Both separate probes have terminal and retained-container exit 0, approved
+config/report hashes and four repeated groups with zero measured drift. Kev9 v2
+longest-eligible 8,187-token forwards took 4.048164/3.696138 seconds, with
+41.484375 GiB reserved on one chip. Probe report SHA256:
+`4a41fcf11f2c51decef92eac9bb293fecab079ccc597a373e5115d2657aefea5`.
+Chips 3 and 5 were explicitly released under the allocation lock after probe
+acceptance; actual live container mappings were checked again before preparation.
+
+Formal configurations are prepared, not launched:
+
+| Model | Run directory under `reference_inference/` | Config SHA256 | Frozen files | Planned chip |
+| --- | --- | --- | ---: | ---: |
+| Kev4 | `jeval_kev4_inference_20261030` | `0efd92cfba52fe4c68e1c4302901e2e448b5f5e0a63692dd4e8db8f9d8868cc7` | 84 | 3 |
+| Kev9 | `jeval_kev9_inference_20261030` | `1ade170ff6543894b4de210ea27ee1d282c816c83faa70defd73e7cf16134936` | 83 | 5 |
+
+Each formal run binds its accepted probe and identical executable/native source
+closure, immutable image, checkpoint, temperature and eligibility configuration.
+Kev4 preserves the v1 launcher; any ordering-only launch rejection will be retained
+as a failed launch rather than fixed inside its frozen files. Full-test results
+and independent acceptance remain pending.
+
+## Remaining-family probe preparation
+
+Open-Jev 2B/9B and Nimble probe configurations were prepared from the frozen
+Kev9 v2 executable source, all planned serially on chip 1. No model inference was
+performed by the preparation container. `jeval_remaining_probe_prepare_20261030`
+completed 3/3 with actual retained Docker exit 0 and no NPU devices; audit SHA256
+`e4c230c5cfa506f8319395a9cf3acd925386262cb77b3b7f24457204f7b008f8`.
+Configs under `reference_inference/jeval_{openjev2,openjev9,nimble}_probe_20261030`:
+
+| Model | Config SHA256 | Frozen files |
+| --- | --- | ---: |
+| Open-Jev2 | `81113da7d23f9de4f6aff27b4d06a277a177fced4efedf33a9d278e59800551e` | 97 |
+| Open-Jev9 | `d1e953ca97c89ce0880116a5e48f4eebe733e2d1fe5ce87027c1cfe3a21f6c85` | 100 |
+| Nimble | `9cc49322c7a515e1e6fec56b4f34d4d1b1b404c089166589ee142ebe3ed17997` | 148 |
+
+Chip 1 was explicitly released after rechecking E24 supplement/queue exit 0,
+join plan/output hashes and actual live maps. Next execute the Open-Jev2 separate
+probe; the longest eligible input has 30 candidates and max 4,096 tokens.
+The 9B and Nimble probes remain prepared until serial resource acceptance.
+
+## 19:08 UTC — additional actual execution
+
+Parent checked executable/probe/runtime identity and approved the exact configs;
+the guarded launcher rehashed frozen dependencies and checked locked resources.
+Kev9 formal inference actually started on chip 5: retained container
+`ec04b7dba1f656d57aa1a30040e498cbd8bdb841c000ab9bc53fa9fc4742a372`;
+independent finisher `32597ee2603b8f33527fb9b42e47e363f8164eeea26dcbc09574a2474a09d295`.
+Both actual states running; digest 19:07:09 UTC was model loading.
+Kev4 formal launch returned rc 1 before a launch receipt; `LAUNCH_FAILURE.json`
+and created container are retained. Diagnosis and a separate corrected v2 probe
+are assigned; the frozen original sources are unchanged.
+Open-Jev2 probe actually started on chip 1, retained container
+`8788ccb1b776d6d3053000c91185ef898552d023ad6f0c253cad20672ba396f4`.
+Open-Jev9 and Nimble probe configurations remain prepared only.
+These are launch observations, not full-test results or Astra acceptance.
