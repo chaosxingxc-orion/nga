@@ -99,9 +99,8 @@ func Inspect(path string) (*InspectReport, error) {
 		r.Events = append(r.Events, l.Event)
 		op := l.Event.Identity.OperationID
 		r.ByOperation[op] = append(r.ByOperation[op], l.Event)
-		if s := l.Event.Outcome.Status; s == "adopted" || s == "dispatched" ||
-			s == "unresolved" || s == "completed" || s == "failed" {
-			r.States[op] = s
+		if s := l.Event.Outcome.Status; ledger.AdoptStatuses[s] || ledger.EffectStatuses[s] {
+			r.States[op] = s // derived from the ledger's family sets — no fifth vocabulary copy
 		}
 	}
 	return r, nil
@@ -168,7 +167,7 @@ type ReplayReport struct {
 	Conformance  Verdict
 	Recomputed   []ledger.Event
 	Recorded     []ledger.Event
-	DivergenceAt int // first step index where recomputation diverged (-1 = none)
+	DivergenceAt int // first diverging EVENT index (-1 = none) — the single coordinate system the schema pins
 	Detail       string
 }
 
@@ -261,6 +260,13 @@ func Reevaluate(c *Case, substitution func(*Case)) (*SubstitutionReport, error) 
 		return nil, err
 	}
 	substitution(sub)
+	// mode 3's substitution domain is the STEPS (declared versions/basis).
+	// A closure that rewrites the RECORD leaves the documented contract —
+	// refused loudly rather than reported as an intended difference (the
+	// report would silently carry a conformance it claims cannot change).
+	if !eventsEqual(sub.RecordedEvents, c.RecordedEvents) {
+		return nil, fmt.Errorf("substitution left the steps domain: the case %q's recorded events were rewritten — mode 3 substitutes declared inputs, never the record", c.CaseID)
+	}
 	base, err := Replay(c)
 	if err != nil {
 		return nil, err

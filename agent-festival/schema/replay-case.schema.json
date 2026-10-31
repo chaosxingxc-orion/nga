@@ -113,6 +113,23 @@
             ],
             "description": "A divergence verdict must LOCATE — a boolean divergence is exactly the anti-pattern the priors forbid (family b)."
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "fidelity": {
+                "const": "match"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "divergence_at"
+              ]
+            },
+            "description": "A match verdict has nothing to locate — carrying a location is authoring noise."
+          }
         }
       ]
     }

@@ -403,3 +403,36 @@ func TestInspectByOperationProjection(t *testing.T) {
 		t.Fatalf("by-operation projection = %v, want one event for op-h", rep.ByOperation["op-h"])
 	}
 }
+
+// TestIdempotencySingleDimension pins the one comparison dimension whose
+// only guard lived at the cmd-suite layer (R5): tampering the record's
+// payload digest alone must diverge.
+func TestIdempotencySingleDimension(t *testing.T) {
+	c := loadCase(t, "happy-chain.json")
+	for i := range c.RecordedEvents {
+		if c.RecordedEvents[i].Idempotency != nil {
+			c.RecordedEvents[i].Idempotency.PayloadDigest =
+				"sha256:" + strings.Repeat("e", 64)
+		}
+	}
+	rep, err := Replay(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.Fidelity != Divergence {
+		t.Fatalf("idempotency tamper not caught — fidelity=%q (the dimension is blind)", rep.Fidelity)
+	}
+}
+
+// TestReevaluateRefusesRecordRewrites pins the mode-3 boundary guard (R5:
+// "steps-substitutions cannot change the record" was convention, not
+// structure — the closure signature reaches the record).
+func TestReevaluateRefusesRecordRewrites(t *testing.T) {
+	c := loadCase(t, "happy-chain.json")
+	_, err := Reevaluate(c, func(sub *Case) {
+		sub.RecordedEvents = sub.RecordedEvents[:0]
+	})
+	if err == nil || !strings.Contains(err.Error(), "steps domain") {
+		t.Fatalf("record-rewriting substitution: err = %v, want the loud domain refusal", err)
+	}
+}
