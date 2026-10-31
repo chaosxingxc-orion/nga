@@ -39,6 +39,12 @@ class Evidence(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'pin differs'):self.validate(pin='0'*64)
         with self.assertRaisesRegex(ValueError,'execution evidence'):self.validate(image='other')
 
+    def test_legacy_full_pack_cannot_be_reused_as_qo_or_pt(self):
+        with self.assertRaisesRegex(ValueError, 'legacy training evidence'):
+            self.validate(control_arm='K1-QO', input_mode='drop')
+        with self.assertRaisesRegex(ValueError, 'legacy training evidence'):
+            self.validate(control_arm='K1-PT', input_mode='full')
+
     def test_changed_model_code_and_training_data_refused(self):
         for p in [self.model/'weights',self.code/'train_r3.py',self.train]:
             old=p.read_bytes();p.write_text('changed')
