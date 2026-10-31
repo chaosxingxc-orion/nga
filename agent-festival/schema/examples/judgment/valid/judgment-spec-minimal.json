@@ -55,6 +55,6 @@
     "effective_scope": "team-a services",
     "change_rationale": "initial publication"
   },
-  "_expect": "ACCEPT: minimal form — term unit, rule exceptions, ownership impacted_links, and the optional vocabularies exercised (nominal + ordinal levels, change_rationale); spec_version is not optional — identity and version are inseparable per §6",
+  "_expect": "ACCEPT: minimal form — absent: term unit, rule exceptions, impacted_links (the optional-absence paths); carried: nominal + ordinal levels and change_rationale (the vocabulary positives); spec_version is not optional — identity and version are inseparable per §6",
   "candidate_set": "stackable"
 }

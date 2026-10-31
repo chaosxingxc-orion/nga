@@ -11,6 +11,9 @@
         "definition": "d"
       }
     ],
+    "evidence_sources": [
+      "the source of record"
+    ],
     "reference_time": "now",
     "time_window": "none"
   },
@@ -21,9 +24,9 @@
       "type": "boolean"
     }
   ],
+  "candidate_set": "weighted",
   "rules": [
     {
-      "rule_id": "r",
       "precedence": 0,
       "coverage": "c"
     }
@@ -48,6 +51,5 @@
     "effective_scope": "e"
   },
   "_expect": "REJECT: candidate-set semantics are exclusive | stackable (§6) — a third mode is a new decision semantic and must enter the explicit specification-version process, not slide in as data",
-  "_expect_match": "stackable",
-  "candidate_set": "weighted"
+  "_expect_match": "candidate_set"
 }

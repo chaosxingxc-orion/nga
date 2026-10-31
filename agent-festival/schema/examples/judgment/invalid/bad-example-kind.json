@@ -1,18 +1,55 @@
 {
   "judgment_version": "0.1.0",
-  "question": { "question_id": "q-x", "spec_version": "1.0.0" },
+  "question": {
+    "question_id": "q-x",
+    "spec_version": "1.0.0"
+  },
   "conventions": {
-    "terms": [{ "name": "t", "definition": "d" }],
+    "terms": [
+      {
+        "name": "t",
+        "definition": "d"
+      }
+    ],
+    "evidence_sources": [
+      "the source of record"
+    ],
     "reference_time": "now",
     "time_window": "none"
   },
-  "levels": [{ "name": "l", "definition": "d", "type": "boolean" }],
-  "candidate_set": { "semantics": "exclusive" },
-  "rules": [{ "rule_id": "r", "precedence": 0, "coverage": "c" }],
-  "resolution": { "on_missing_evidence": "record issue", "on_undefined_rule": "record issue" },
-  "examples": [{ "kind": "happy-path", "case": "c", "expected": "e" }],
-  "scope": { "supported": "s" },
-  "ownership": { "owner": "o", "review_authority": "r", "effective_scope": "e" },
+  "levels": [
+    {
+      "name": "l",
+      "definition": "d",
+      "type": "boolean"
+    }
+  ],
+  "candidate_set": "exclusive",
+  "rules": [
+    {
+      "precedence": 0,
+      "coverage": "c"
+    }
+  ],
+  "resolution": {
+    "on_missing_evidence": "record issue",
+    "on_undefined_rule": "record issue"
+  },
+  "examples": [
+    {
+      "kind": "happy-path",
+      "case": "c",
+      "expected": "e"
+    }
+  ],
+  "scope": {
+    "supported": "s"
+  },
+  "ownership": {
+    "owner": "o",
+    "review_authority": "r",
+    "effective_scope": "e"
+  },
   "_expect": "REJECT: the example kinds are the §6.1 counterexample discipline (boundary / equivalent / competing / unresolved) — happy-path examples do not exercise the gaps the discipline exists for",
-  "_expect_match": "kind"
+  "_expect_match": "examples/0/kind"
 }

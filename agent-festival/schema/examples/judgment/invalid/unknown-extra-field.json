@@ -1,18 +1,55 @@
 {
   "judgment_version": "0.1.0",
-  "question": { "question_id": "q-x", "spec_version": "1.0.0" },
+  "question": {
+    "question_id": "q-x",
+    "spec_version": "1.0.0"
+  },
   "conventions": {
-    "terms": [{ "name": "t", "definition": "d" }],
+    "terms": [
+      {
+        "name": "t",
+        "definition": "d"
+      }
+    ],
+    "evidence_sources": [
+      "the source of record"
+    ],
     "reference_time": "now",
     "time_window": "none"
   },
-  "levels": [{ "name": "l", "definition": "d", "type": "boolean" }],
-  "candidate_set": { "semantics": "exclusive" },
-  "rules": [{ "rule_id": "r", "precedence": 0, "coverage": "c" }],
-  "resolution": { "on_missing_evidence": "record issue", "on_undefined_rule": "record issue" },
-  "examples": [{ "kind": "boundary", "case": "c", "expected": "e" }],
-  "scope": { "supported": "s" },
-  "ownership": { "owner": "o", "review_authority": "r", "effective_scope": "e" },
+  "levels": [
+    {
+      "name": "l",
+      "definition": "d",
+      "type": "boolean"
+    }
+  ],
+  "candidate_set": "exclusive",
+  "rules": [
+    {
+      "precedence": 0,
+      "coverage": "c"
+    }
+  ],
+  "resolution": {
+    "on_missing_evidence": "record issue",
+    "on_undefined_rule": "record issue"
+  },
+  "examples": [
+    {
+      "kind": "boundary",
+      "case": "c",
+      "expected": "e"
+    }
+  ],
+  "scope": {
+    "supported": "s"
+  },
+  "ownership": {
+    "owner": "o",
+    "review_authority": "r",
+    "effective_scope": "e"
+  },
   "authority_hint": "auto-approve under 100k",
   "_expect": "REJECT: a closed contract — an unnamed field like authority_hint is exactly a semantic classification smuggling authority (§6: a semantic classification must not be treated as proof of authority)",
   "_expect_match": "authority_hint"

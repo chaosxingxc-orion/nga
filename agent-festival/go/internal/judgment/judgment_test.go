@@ -7,11 +7,11 @@ import (
 	"testing"
 )
 
-// TestSchemaVersionLockstep pins the version's four copies against drift
-// (R1 m-4): the schema file's $id, its judgment_version const, and the Go
-// compile id (read from this package's source) must all carry the same
-// version — a bump that misses one place goes unnoticed by the fixtures
-// alone.
+// TestSchemaVersionLockstep pins the version copies against drift (R1 m-4):
+// three direct assertions — the schema file's $id, its judgment_version
+// const, and the Go compile id (read from this package's source) — with the
+// fixtures' version carried only by transmission through the const. A bump
+// that misses one of the three goes unnoticed by the fixtures alone.
 func TestSchemaVersionLockstep(t *testing.T) {
 	if SchemaPath == "" {
 		t.Fatal("judgment schema not found")
