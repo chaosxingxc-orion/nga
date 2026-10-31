@@ -65,7 +65,8 @@ def verify(path, pin, reviewed=True):
     if engineering and p.get('k2_impl') == 'shared':
         require(arm == 'k2' and p.get('stop_after') == 45, 'shared path requires bounded engineering validation')
         expected.remove('--grad-ckpt')
-        expected += ['--k2-impl', 'shared', '--gdn-impl', 'ref', '--k2-rows', '96']
+        expected[expected.index('--micro-tokens')+1] = '3000'
+        expected += ['--k2-impl', 'shared', '--gdn-impl', 'ref', '--k2-rows', '48']
     require(p['command'] == expected, 'training recipe mismatch')
     for filename, digest in p['files'].items():
         q = Path(filename)

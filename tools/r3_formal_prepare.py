@@ -66,7 +66,8 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
         if not engineering or arm != 'k2' or stop_after != 45:
             raise ValueError('shared path is a 45-step K2 engineering validation')
         command.remove('--grad-ckpt')
-        command += ['--k2-impl', 'shared', '--gdn-impl', 'ref', '--k2-rows', '96']
+        command[command.index('--micro-tokens')+1] = '3000'
+        command += ['--k2-impl', 'shared', '--gdn-impl', 'ref', '--k2-rows', '48']
     plan = {'schema': 'r3-formal-k1-plan-v1', 'seed': seed, 'chip': chip, 'run': str(out.relative_to(BASE)),
             'out': str(out), 'code': str(code), 'model': str(model), 'train_file': str(TRAIN),
             'allocation': str(BASE / 'CHIP-ALLOCATION.json'), 'image_sha256': IMAGE,
