@@ -37,3 +37,43 @@ Per size/input: original, L1, L2 and L1L2 each have two uninstrumented repetitio
 Fixed-name detached retained Docker, CephFS logs, heartbeat, per-item identity-bound receipt and resumable completed-item handling, exact relaunch command, wrapper EXIT, terminal marker and real Docker exit are required. Uncertain forwards, failed publication or mismatched identity must fail closed rather than silently rerun. Independent verifier reconstructs all comparisons and retains suspicious successes, counts and flags. Wiki setup is written before execution and results afterward. Actual Astra must review the frozen code/plan and later the bounded results. Resources are released only with the applicable independently reviewed transaction.
 
 The candidate requires fixed-image tensor tests and integration with the experiment driver before any NPU launch. Current CPU tests prove structural generation/guard behavior only. This draft is not the runner, a frozen metric registration, a release approval, an efficiency result or a JEVal test score. If L1/L2 cannot establish a safe full workload, tensor/parameter byte offload is a separate future experiment.
+
+## 2026-10-31 first NPU stage implementation (review candidate)
+
+The first executable stage is narrower than the proposed multi-input study: Open-Jev-2B,
+metadata-selected input 4200, original full 15 candidates and global width 186. Fixed
+order is original ×2, L1 ×2, L2 ×2, L1L2 ×2. All 18 native GDN calls must occur in their
+frozen model order with shape `[15,186,16,128]`; no candidate split occurs. Identical
+passive token/mask guards and call counters apply to every path. Candidate creation
+is outside the timed forward. There are no internal stage-memory hooks in this first
+stage, so no stage-liveness or alias-release claim may be inferred from its result.
+
+Safety envelope before any first-stage forward: at least 8 GiB free HBM; after each
+forward, peak reserved must be at most 48 GiB. Exceeding either threshold or any OOM
+stops the generation and retains all evidence. The short shape is the previously
+executed E38 shape; this ceiling is a stop rule, not proof that later shapes fit.
+Each forward reports wall seconds, questions/s/chip, nonpadding tokens/s/chip,
+one chip, baseline allocated/reserved and peak allocated/reserved memory. There are
+only two repeats and no warmup subtraction; no generalized speedup claim is admitted.
+
+`openjev_lifetime_npu.py` and `openjev_lifetime_verify.py` retain full serialized
+predictions, including all logits/probabilities/wire values. Independent reconstruction
+checks exact serialized output equality (including signed zero) within repeats and
+against original. Negative comparisons remain negative; `candidate_batch_admission`
+stays false regardless of this small-shape result. Every record binds the frozen plan,
+input, request, native config, candidate source, token/mask observations, 18 core calls,
+forward intent, launch receipt, Docker ID and StartedAt.
+
+A completed fixed prefix can be reused only in the same Docker start generation.
+An unmatched intent, pending receipt, changed file, out-of-order item, foreign file,
+or Docker restart requires a new reviewed generation; it cannot silently rerun an
+uncertain forward. Execution is detached with retained fixed-name Docker and CephFS
+heartbeat/report/terminal/EXIT. The guarded launcher claims only chip 1 while holding
+the shared allocation lock. It never reclaims an existing unrelated owner or restarts
+an exited container. A separate reviewed release transaction remains necessary.
+
+Implementation status: 11 real-filesystem CPU protocol tests and the existing 7 AST
+candidate tests pass. These tests are not a live Docker launch/resume test. The frozen
+candidate must receive actual independent code/plan review before NPU launch. Independent
+post-exit verification must itself run in a detached device-free container; the supplied
+verifier performs no model forward and verifies actual retained NPU exit and generation.

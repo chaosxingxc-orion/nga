@@ -81,3 +81,33 @@ in `experiments/E40-LIFETIME-CPU-RESULT-2026-10-31.json`. This was a first compl
 run; interruption/resume and cached-item authenticity were not tested. The CPU
 driver's resume branch checks only plan/index and must not be described as a
 validated unattended recovery path or reused as the NPU experiment controller.
+
+## 2026-10-31 first NPU-stage implementation and freeze
+
+A new driver, protocol validator, independent post-exit verifier, immutable preparer
+and guarded launcher are implemented in `tools/openjev_lifetime_{npu,protocol,verify,prepare,launch}.py`.
+The first stage retains only 2B input 4200, all 15 candidates with width 186, original/L1/L2/L1L2
+and two repeats (8 forwards), 18 native GDN calls per forward. It does not run larger
+inputs or internal memory instrumentation. Full prediction serialization and identical
+passive input guards are retained; all experiment IDs and actual Docker StartedAt are
+bound to every attempt and receipt. Unmatched attempts and Docker restarts fail closed.
+
+The review-candidate plan is
+`reference_inference/e40_lifetime_npu_openjev2_20261031_v1/plan.json`, SHA256
+`cb3a8c516f812d158db9b9a9e4cc681508bd419adcbf0b2a8f93fc541a696f7f`.
+It binds 227 dependency entries, 13 local Python files and the exact first-stage
+protocol. Its 3 shell scripts passed syntax checks. Physical chip 1 is requested;
+**no chip was claimed, no approval created, and no NPU container launched**.
+`LAUNCH_EXACT.sh` records the exact externally pinned plan command. Two independent
+exact-plan review artifacts and fresh physical host/resource checks are required by
+the launcher. Resource release is deliberately outside this launcher.
+
+Fourteen CPU tests pass, covering real durable receipt prefixes, incomplete and
+unmatched attempts, pending/foreign records, wrong Docker generation, modified
+identity/source/input/core population, attempt binding, memory stop rules, signed
+zero, symlinks, bootstrap pin rejection and an actual saved native prediction's
+logit/probability consistency. The existing seven structural candidate tests also
+pass. No live Docker launch/recovery, fixed-image NPU integration, throughput or
+memory savings are established by those tests. Review of the frozen candidate is
+still required before execution, and the independent verifier must be run detached
+without accelerator devices after the retained NPU container actually exits.

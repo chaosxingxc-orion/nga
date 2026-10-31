@@ -19,9 +19,9 @@
 
 Open-Jev 两个 JEVal 单元仍受完整路径数值与内存准入阻塞。实际 Astra release v4 已对精确 v6 工具代码及拟议证据给出 PASS。2B 资源已通过 guarded release 释放，9B v7 已于 UTC 03:40:15 实际启动并完成 8/8 项诊断，NPU 于 03:44:24 exited/0；独立 CPU verifier 于 03:45:29 exited/0。
 
-两尺寸首个不同观测事件均为第一层 `in_proj_qkv` 输出；9B 最大 logits/probability/wire 差为 0.13169223070144653 / 0.013869159693189886 / 0.01485981395698921，decision 未变，`candidate_batch_admission=false` 不变。9B 的有界结果审查和资源释放仍需独立收尾。没有新增 JEVal 分数或训练收益。
+两尺寸首个不同观测事件均为第一层 `in_proj_qkv` 输出；9B 最大 logits/probability/wire 差为 0.13169223070144653 / 0.013869159693189886 / 0.01485981395698921，decision 未变，`candidate_batch_admission=false` 不变。9B 资源已释放并独立核对，free=[1,4]；有界 Astra 结果审查仍在准备。没有新增 JEVal 分数或训练收益。
 
-E40 的固定镜像 CPU 检查完成 32 cells/256 forwards，输出字节 exact；NPU 驱动、计划、恢复验证与审查正在准备。9B 最大实际输入的某阶段清理后仍约 59.4 GiB core-only，不能从 E38 成功跳到 full-test。详见 [准入路线](OPENJEV-JEVAL-NEXT-ADMISSION-2026-10-31.md)。
+E40 的固定镜像 CPU 检查完成 32 cells/256 forwards，输出字节 exact；NPU 驱动和首阶段计划已有冻结候选，实际 Astra 审查及 detached CPU 验证启动支持正在准备。9B 最大实际输入的某阶段清理后仍约 59.4 GiB core-only，不能从 E38 成功跳到 full-test。详见 [准入路线](OPENJEV-JEVAL-NEXT-ADMISSION-2026-10-31.md)。
 
 本轮实际使用了 chip 4，持续八卡满载尚未实现。chip 1 已登记 free，其他历史 owner 的释放条件另行核验。CPU 准备不计入 NPU 利用率。最新累计报告已直接收录参考指标表及口径、flags 和限制，旧读数不变。
 

@@ -1,0 +1,14 @@
+{
+  "plan_sha256": "cb3a8c516f812d158db9b9a9e4cc681508bd419adcbf0b2a8f93fc541a696f7f",
+  "npu_launched": false,
+  "resource_claimed": false,
+  "tests": 14,
+  "rc": 0,
+  "test_source_sha256": "bdce902fe2fe3dee752e141eaf3d370c236aab2d6bf2086c0d6ae915feacd6da",
+  "test_output": "..............\n----------------------------------------------------------------------\nRan 14 tests in 0.072s\n\nOK\n",
+  "limitations": [
+    "CPU fixtures only; no live launcher recovery",
+    "NPU candidate requires independent exact-code/plan review",
+    "Independent verifier detached wrapper remains to be prepared after NPU terminal"
+  ]
+}

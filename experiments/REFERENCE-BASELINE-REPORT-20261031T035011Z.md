@@ -8,7 +8,7 @@
 - 2B 的真实资源释放事务完成。主会话独立核验 intent/commit/RELEASED 的哈希、调用方固定的 anchor，以及 allocation 仅移除 chip 4 原 owner、其他 owner 不变。随后既有 9B v7 计划实际启动。
 - 9B NPU 于 `2026-10-31T03:40:15.49105426Z` 启动，`03:44:24.39875505Z` 实际 exited/0，8/8 forward 完成；独立 detached CPU verifier 于 `03:45:29.50054917Z` 实际 exited/0，未映射 NPU。
 - 9B 诊断 `trace_valid=true`，11 项重复/观测控制均为 true，flags 为空；两次整批/分批比较的最大 logits/probability/wire 差分别为 `0.13169223070144653`、`0.013869159693189886`、`0.01485981395698921`，最终 decision 未变。两个重复的首个不同观测事件均为第一层 `linear_attn.in_proj_qkv:output`，涉及全部 15 候选。这是观测边界，不是 kernel 因果证明。
-- `candidate_batch_admission=false` 保持不变，以上不是完整 JEVal 分数。9B 的独立结果审查和资源释放仍单独收尾，不能由退出码推定完成。
+- `candidate_batch_admission=false` 保持不变，以上不是完整 JEVal 分数。9B 的有界 Astra 结果审查另行进行；资源释放现已由工具完成，主会话独立核对 intent/commit/terminal、固定 anchor 和当前 allocation。
 
 ## 累计工程进度与剩余工作
 
@@ -18,7 +18,7 @@ E40 的 L1/L2/L1L2 候选仅插入删除死引用的语句，7/7 结构测试通
 
 本轮只实际使用 chip 4，**持续八卡满载尚未实现**。历史占用的只读核验发现部分任务已退出但未完成资源关闭，另有 created 容器和未证明完成的 suite/probe。空闲读数不能替代释放条件；CPU 工作不计作 NPU 利用率。当前有效计算准备的主要缺口是 E40 的可执行、已审查计划。
 
-下一步：完成 9B 的有界结果审查与释放；完成并审查 E40 NPU 计划，在已登记空闲卡运行全形状对照；按实测数值与内存边界逐级扩大，必要时另立字节搬运实验。完整 JEVal 路径准入后执行两个剩余 test 组合，再讨论并冻结 Jev 训练方案、seed、对照与收益阈值。9B 最大实际输入的清理后某阶段仍约 59.4 GiB core-only，不能直接跳到 full-test。
+下一步：完成 9B 的有界结果审查；完成并审查 E40 NPU 计划，在已登记空闲卡运行全形状对照；按实测数值与内存边界逐级扩大，必要时另立字节搬运实验。完整 JEVal 路径准入后执行两个剩余 test 组合，再讨论并冻结 Jev 训练方案、seed、对照与收益阈值。9B 最大实际输入的清理后某阶段仍约 59.4 GiB core-only，不能直接跳到 full-test。
 
 ## 已确定的决策
 
@@ -250,3 +250,7 @@ Ceph 根目录 `/mnt/cephfs/xingchao/experiments/jev/reference_inference/`：
 参考机器索引未变：matrix JSON SHA `03459facf6f86a919e10d9a0acef413b89c5a5d4ffd232352260722b05d0266e`；increment JSON SHA `fd5fc213295de50d8ffe4a38fd5c8b4fbc81517474bbd378341412286e3ab74b`。
 
 完整阶段计划：[当前任务现状与下一阶段计划](../proposal/08-task-status-decisions-and-next-plan-current.md)。
+
+### 发布核验补记（2026-10-31 03:54 UTC）
+
+9B release journal `e38_release_openjev9_20261031_v1` 已完成，`RELEASED.json` SHA `8b212111c4d06b4e770e889370bc220d5cd4914620e77452f7437aea054adef1`，外部 anchor SHA `f4359466aa97f700fd85f4e134c12178a13ac497ec59e0aa7dbb0cdeeea7358f`。主会话核验只有 chip 4 转 free、其他 owner 未改；现场 allocation SHA 为 `c8c94a2f63844df50b1fc72e6d9a0575aecb5cdd0e4a3db2d8819cca81ac60e8`，free=[1,4]。9B 已结束，当前没有正在运行的本项目 NPU 容器。E40 首阶段代码和计划已冻结候选，仍待实际 Astra 审查；未启动。此补记不改变参考读数。
