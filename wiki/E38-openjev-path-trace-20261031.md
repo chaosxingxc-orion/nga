@@ -367,3 +367,27 @@ PID 1756162. Its brief separates code readiness and proposed evidence from live
 operational authorization; an actual release journal cannot exist before release.
 Tool SHA is `9219c7feaaeaefb58f5d9d44ff146b06a88ffae4d8f85b4c854c37902d62be24`.
 Verdict pending; chip 4 and the 9B no-launch state remain unchanged.
+
+### 2026-10-31 03:40 UTC — actual v4 PASS, guarded 2B release, 9B launched
+
+Actual Astra v4 returned PASS for the exact v6 code and prospective evidence,
+with live authorization separate. Parent verified all six COMPLETE output hashes
+and child/runner/EXIT rc 0. The review is archived in
+`experiments/ASTRA-E38-RELEASE-V4-2026-10-31.json`.
+
+Fresh retained CPU/NPU exit checks and the guarded release checks passed. A new
+approved review was created in `e38_release_openjev2_20261031_v5`; the proposal
+remains unchanged. External anchor SHA256 is
+`c35f2df31e0467ffb4e704b07a9562acd8ae50a1389e49135ceb7c5d736e0b5a`.
+Release returned rc 0 / RELEASED; independent checks verified intent/commit
+hashes, allocation after hash `b8b82adedd7f68ad931a248acb3f2df3257d44021ae3ccfe21b3499d8874e5ba`,
+and that only chip 4 changed from its 2B owner to free.
+
+The existing approved 9B v7 LAUNCH_EXACT.sh then launched retained detached
+container `nga-e38-openjev9-20261031-v7`, ID
+`36fe2217fe1f994b7403a2ea26254f6dc90ea8380eebff84c72a1d7b29f8e861`,
+StartedAt `2026-10-31T03:40:15.49105426Z`; actual running state independently
+observed. Frozen plan SHA remains
+`fae8ac8368b7a98fad32e07acc1b54b1dded55c1812f95ec4cdb136b92ef3593`.
+This is an eight-forward diagnostic, not a full JEVal test or training run.
+Scientific candidate-batch admission remains false; no reference metrics changed.
