@@ -53,6 +53,8 @@ Then close the execution boundaries in AQ-10–AQ-13; compare model placement an
 <a id="aq-01"></a>
 ### AQ-01 — First business slice and promise
 
+Focused discussion: [document 17](17-credit-scope-identity-and-revision-review.md) makes initial registration versus later correction and the intended credit-relationship scope explicit. Status remains OPEN.
+
 - **Question:** is the first complete slice an eligibility judgment, registration of a credit limit, or a broader application process? What constitutes completion, refusal, waiting and correction?
 - **Why it matters:** a correct recommendation does not establish an idempotent business effect; a completed credit registration is not cash disbursement.
 - **Options and tradeoff:** judgment-only makes model/control evaluation simpler but leaves external-effect claims untested; limit registration exposes adoption and reconciliation; a full lending process introduces additional contracts before the core boundary is understood.
@@ -61,6 +63,8 @@ Then close the execution boundaries in AQ-10–AQ-13; compare model placement an
 
 <a id="aq-02"></a>
 ### AQ-02 — Identity, equivalence and revision
+
+Focused discussion: [document 17](17-credit-scope-identity-and-revision-review.md) distinguishes submission, application, decision purpose/frame/revision, plan, operation and attempt; it tests material changes against execution phase. Status remains OPEN.
 
 - **Question:** when are two submissions the same business application? Which evidence/rule/time changes create a new decision revision, and which changes merely revise the execution plan or retry an operation?
 - **Failure case:** a new graph node or user-channel request creates a fresh operation key and repeats a grant; the opposite mistake caches an obsolete decision and prevents a legitimate new application.
