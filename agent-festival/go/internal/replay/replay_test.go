@@ -519,6 +519,15 @@ func TestOperationSetLockstep(t *testing.T) {
 	if derr == nil || !strings.Contains(derr.Error(), "unknown op") {
 		t.Fatal("a non-member passed drive's switch — the refusal direction drifted")
 	}
+	// the goOps→drive direction: every member of the DECLARED Go-side set
+	// must be drivable (a drive switch that grew or shrank silently would
+	// leave the declared set lying)
+	for op := range goOps {
+		_, derr := drive(m, []Step{{Op: op}})
+		if derr != nil && strings.Contains(derr.Error(), "unknown op") {
+			t.Fatalf("declared Go-side op %q refused by drive — the set and the switch drifted", op)
+		}
+	}
 }
 
 // TestReplayPropagatesDriveErrors pins the propagation leg (R8: the drive
@@ -607,5 +616,89 @@ func TestInspectStatesTailProjection(t *testing.T) {
 	}
 	if rep2.States["op-a"] != "reused" {
 		t.Fatalf("reused tail projection = %q, want the reused fact word", rep2.States["op-a"])
+	}
+}
+
+// TestScratchWriteFailureIsLoud pins the WRITE-path fail-loud guard (R11:
+// the fix was real and triggerable but unpinned — reverting stayed green).
+// A read-only scratch directory makes the machine's append fail; Replay
+// must return that error, never a forged divergence verdict. This pin also
+// carries the cross-package string lockstep: adopt's refusal detail must
+// keep carrying "ledger append failed" for replay to see it.
+func TestScratchWriteFailureIsLoud(t *testing.T) {
+	dir := t.TempDir()
+	scratchPath := filepath.Join(dir, "scratch.jsonl")
+	if err := os.WriteFile(scratchPath, nil, 0o444); err != nil { // read-only file in a writable dir? no — need dir-level
+		t.Fatal(err)
+	}
+	_ = scratchPath
+	roDir := filepath.Join(t.TempDir(), "ro")
+	if err := os.Mkdir(roDir, 0o500); err != nil { // write-denied directory
+		t.Fatal(err)
+	}
+	path := filepath.Join(roDir, "scratch.jsonl")
+	m, err := adopt.Open(path)
+	if err != nil {
+		t.Skipf("cannot set up read-only scratch: %v", err)
+	}
+	digest := "sha256:" + strings.Repeat("a", 64)
+	_, derr := drive(m, []Step{{Op: "adopt", Request: mustAdoptRequest(t, "op-w", digest)}})
+	if derr == nil || !strings.Contains(derr.Error(), "scratch write failed") {
+		t.Fatalf("scratch write failure: err = %v, want the loud write-path refusal (a forged verdict means the guard regressed or adopt's detail wording drifted)", derr)
+	}
+}
+
+// mustAdoptRequest marshals a minimal valid adoption request.
+func mustAdoptRequest(t *testing.T, op, digest string) json.RawMessage {
+	t.Helper()
+	req := adopt.Request{
+		AdoptionVersion:  "0.1.0",
+		Identity:         ledger.Identity{BusinessRequestID: "br-w", OperationID: op},
+		Versions:         ledger.Versions{Evidence: "e", Rule: "r", Model: "m", Readout: "ro", Policy: "p"},
+		PayloadDigest:    digest,
+		GrantsAtDecision: []ledger.Grant{{Kind: "data", Selector: "s", Actions: []string{"read"}, Effect: "none"}},
+	}
+	b, err := json.Marshal(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
+}
+
+// TestLoadCaseRefusesFoldedNumbers pins the structural UseNumber discipline
+// (R11: it was comment-only — a float64-decoded doc must be refused).
+func TestLoadCaseRefusesFoldedNumbers(t *testing.T) {
+	c := loadCase(t, "happy-chain.json")
+	// re-decode the raw recorded view the float64 way
+	b, _ := json.Marshal(c.RecordedRawDoc)
+	var folded []any
+	json.Unmarshal(b, &folded)
+	doc := map[string]any{"case_version": "0.1.0", "case_id": "folded",
+		"steps": c.Steps, "recorded_events": folded, "expected": c.Expected}
+	_, err := LoadCase(doc)
+	if err == nil || !strings.Contains(err.Error(), "UseNumber") {
+		t.Fatalf("float-folded recorded doc: err = %v, want the discipline refusal", err)
+	}
+}
+
+// TestLoadCaseRefusesBadPinnedFixture pins the ParseError contract wiring
+// (R11: the guard was unreachable dead code in today's test set).
+func TestLoadCaseRefusesBadPinnedFixture(t *testing.T) {
+	dir := t.TempDir()
+	poison := filepath.Join(dir, "poison.json")
+	if err := os.WriteFile(poison, []byte(`{"case_version":"0.1.0","case_id":"p","_expect_match":5}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := suite.Load(poison)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// loadCase-shaped path must fail loudly on the malformed pin
+	fx, err := suite.Load(poison)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fx.ParseError == "" {
+		t.Fatal("the shared loader did not flag the wrong-typed pin")
 	}
 }

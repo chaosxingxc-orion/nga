@@ -30,7 +30,12 @@
 // RECORDED arbitration order — it never re-arbitrates (legacy semantics,
 // drift register L5). This applies to true adjudication results only (the
 // adopt race's first-wins outcome); purely-ordered events that a stable key
-// could sort must not enter arbitration records.
+// could sort must not enter arbitration records. Family (e) note: the
+// priors' original wording ("the same steps sequence, two outcomes") is
+// unrealizable under a sequential driver — the realized form is the pair
+// race-outcome-{a,b} (different step orders, one recorded outcome each),
+// which pins the same property: the recorded arbitration order is consumed,
+// never re-derived.
 //
 // Known limitation (recorded, not pretended solved — dsh precedent): a
 // case whose steps race the SAME operation concurrently binds
@@ -80,6 +85,12 @@ type InspectReport struct {
 // Inspect is mode 1: historical inspection — reconstruct retained history
 // and expose missing evidence; no live effects, no recomputation. It is a
 // projection reducer (second implementation by design).
+//
+// Known blind spot (inherited from the piece-4 boundary, declared here):
+// a TORN TAIL — an unparseable remnant at EOF — is skipped by the loader,
+// so neither the projection nor Gaps sees it; a record whose newest events
+// live in the torn remnant projects to its prefix silently. Closing this
+// belongs to the loader (piece 4), not to this projection.
 func Inspect(path string) (*InspectReport, error) {
 	lines, err := ledger.LoadDocument(path)
 	if err != nil {
@@ -154,10 +165,37 @@ func LoadCase(doc map[string]any) (*Case, error) {
 		return nil, err
 	}
 	if rec, ok := doc["recorded_events"].([]any); ok {
+		for i, e := range rec {
+			if !numbersSurvived(e) {
+				return nil, fmt.Errorf("recorded_events/%d: the map was decoded WITHOUT UseNumber — the conformance arm refuses float-folded integers (decode with json.Decoder.UseNumber)", i)
+			}
+		}
 		c.RecordedRawDoc = rec
 	}
 	c.rawCaseDoc = doc
 	return &c, nil
+}
+
+// numbersSurvived reports whether every numeric leaf in the node is a
+// json.Number — the structural form of the UseNumber input discipline.
+func numbersSurvived(node any) bool {
+	switch v := node.(type) {
+	case map[string]any:
+		for _, child := range v {
+			if !numbersSurvived(child) {
+				return false
+			}
+		}
+	case []any:
+		for _, child := range v {
+			if !numbersSurvived(child) {
+				return false
+			}
+		}
+	case float64:
+		return false // folded — the discipline was broken upstream
+	}
+	return true
 }
 
 // Expected is the pinned double verdict.
