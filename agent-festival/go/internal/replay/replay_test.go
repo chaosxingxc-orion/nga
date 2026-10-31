@@ -20,29 +20,36 @@ func loadCase(t *testing.T, name string) *Case {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var c Case
-	if err := json.Unmarshal(raw, &c); err != nil {
+	var doc map[string]any
+	if err := json.Unmarshal(raw, &doc); err != nil {
 		t.Fatal(err)
 	}
-	return &c
+	c, err := LoadCase(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return c
 }
 
 // TestRecomputeIsNotPlayback is the machine-checked form of pre-registered
-// attack surface B (piece-6 priors): a pure PLAYBACK checker — one that
-// "verifies" by returning the record as its own recomputation — matches the
-// tampered-conclusion fixture and catches nothing, while the real Replay
-// recomputes by driving the production machine and diverges at the tampered
-// event. Recomputation, not playback.
+// attack surface B: a real PLAYBACK engine — one that "verifies" by
+// returning the record as its own recomputation — matches the
+// tampered-conclusion fixture and catches nothing, while Replay recomputes
+// by driving the production machine and diverges at the tampered event.
+// The playback arm is executable (a literal engine function), not a narrated
+// constant.
 func TestRecomputeIsNotPlayback(t *testing.T) {
 	c := loadCase(t, "tampered-conclusion.json")
 
-	// the playback strawman: "recomputation" == the record, byte for byte
-	playbackFidelity := "match" // a playback checker always matches by construction
-	if playbackFidelity != string(Match) {
-		t.Fatal("strawman misconstructed")
+	// the playback engine: recomputation == the record, by construction
+	playback := func(c *Case) *ReplayReport {
+		return &ReplayReport{CaseID: c.CaseID, Recomputed: c.RecordedEvents, Recorded: c.RecordedEvents, Fidelity: Match, DivergenceAt: -1}
+	}
+	pb := playback(c)
+	if pb.Fidelity != Match {
+		t.Fatal("playback engine misconstructed — it must match by construction")
 	}
 
-	// the real engine
 	rep, err := Replay(c)
 	if err != nil {
 		t.Fatal(err)
@@ -53,19 +60,19 @@ func TestRecomputeIsNotPlayback(t *testing.T) {
 	if rep.DivergenceAt != 2 {
 		t.Fatalf("divergence located at %d, want 2 (the tampered conclusion event)", rep.DivergenceAt)
 	}
-	// and the tampered record is itself a legal transition: conformance passes
 	if rep.Conformance != Pass {
 		t.Fatalf("conformance = %q, want pass (completed→failed is legal — only recomputation catches it)", rep.Conformance)
 	}
 }
 
-// TestReevaluateSubstitutionIsolates pins mode 3: a substitution changes the
-// recomputation and the ORIGINAL case is untouched (isolated run).
+// TestReevaluateSubstitutionIsolates pins mode 3: a version-only
+// substitution leaves the event stream unchanged (versions ride the pin
+// without forking transitions), a material one changes it at a located
+// event, and the original case is untouched.
 func TestReevaluateSubstitutionIsolates(t *testing.T) {
 	c := loadCase(t, "happy-chain.json")
 	orig, _ := json.Marshal(c)
 	rep, err := Reevaluate(c, func(sub *Case) {
-		// a different model version for the same chain
 		for i := range sub.Steps {
 			if sub.Steps[i].Op == "adopt" {
 				var m map[string]any
@@ -78,21 +85,57 @@ func TestReevaluateSubstitutionIsolates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rep.Fidelity != Match {
-		t.Fatalf("version-only substitution changed the event stream: %s (versions ride the pin but do not fork transitions)", rep.Detail)
+	// full-field comparison: a version substitution IS material — the
+	// recomputed stream's versions field changes (that is what mode 3
+	// exists to surface: intended differences), located at event 0.
+	if !rep.Changed || rep.At != 0 {
+		t.Fatalf("version substitution should change the recomputation at event 0, got changed=%v at=%d", rep.Changed, rep.At)
 	}
-	// a material substitution forks it
+	if rep.BaseFidelity != Match || rep.BaseConformance != Pass || rep.AltConformance != Pass {
+		t.Fatalf("baseline verdicts wrong: %+v", rep)
+	}
 	rep2, err := Reevaluate(c, func(sub *Case) {
 		sub.Steps[1].OpID = "op-nonexistent"
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rep2.Fidelity != Divergence {
-		t.Fatalf("material substitution (dispatch a different op) should diverge, got %q", rep2.Fidelity)
+	if !rep2.Changed || rep2.At < 0 {
+		t.Fatalf("material substitution (dispatch a different op) should change the recomputation at a located event, got changed=%v at=%d", rep2.Changed, rep2.At)
 	}
 	if string(orig) != string(mustMarshal(t, c)) {
 		t.Fatal("Reevaluate mutated the original case — mode 3 must be isolated")
+	}
+}
+
+// TestMutatedInputDivergenceLocated pins family (b)'s location in the unit
+// test layer (the suite-level divergence_at check rides the cmd checker;
+// this makes the pin load-bearing here too — deleting either catches it).
+func TestMutatedInputDivergenceLocated(t *testing.T) {
+	c := loadCase(t, "mutated-input-located.json")
+	rep, err := Replay(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.Fidelity != Divergence || rep.DivergenceAt != 1 {
+		t.Fatalf("family (b): fidelity=%q at=%d, want divergence at 1", rep.Fidelity, rep.DivergenceAt)
+	}
+}
+
+// TestIdentityOnlyDivergence pins the identity comparison dimension (the
+// deletion-probe found no fixture exercised it — a record whose operation
+// identity differs from the recomputation's must diverge at event 0).
+func TestIdentityOnlyDivergence(t *testing.T) {
+	c := loadCase(t, "happy-chain.json")
+	for i := range c.RecordedEvents {
+		c.RecordedEvents[i].Identity.OperationID = "op-swapped"
+	}
+	rep, err := Replay(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.Fidelity != Divergence || rep.DivergenceAt != 0 {
+		t.Fatalf("identity-only divergence: fidelity=%q at=%d, want divergence at 0", rep.Fidelity, rep.DivergenceAt)
 	}
 }
 
@@ -150,7 +193,10 @@ func TestInspectProjectsAndExposesGaps(t *testing.T) {
 // authority).
 func TestRecoversToDispatchableNotBeyond(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "adopt.jsonl")
-	m, _ := adopt.Open(path)
+	m, err := adopt.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
 	digest := "sha256:" + strings.Repeat("a", 64)
 	grants := []ledger.Grant{{Kind: "data", Selector: "s", Actions: []string{"read"}, Effect: "none"}}
 	m.Adopt(&adopt.Request{
@@ -172,10 +218,31 @@ func TestRecoversToDispatchableNotBeyond(t *testing.T) {
 	if len(rep.Unresolved) != 1 || !strings.Contains(rep.Unresolved[0], "never re-dispatch") {
 		t.Fatalf("reconciliation exit report wrong: %v", rep.Unresolved)
 	}
-	// recovery must not have written anything (read-only consumer)
 	events, _ := m.Events()
 	if len(events) != 3 {
 		t.Fatalf("Recover wrote to the durable form: %d events", len(events))
+	}
+}
+
+// TestInspectExposesGapsInViolatingRecord pins the projection's gap arm
+// (R1: both test ledgers were clean — the exposing path had zero coverage).
+func TestInspectExposesGapsInViolatingRecord(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "violating.jsonl")
+	// a hand-written violating record: an effect event with no adoption
+	// predecessor (the bypass shape the eight families reject)
+	line := `{"event_type":"effect","arbitration_seq":0,"identity":{"business_request_id":"br-x","operation_id":"op-x"},"versions":{"evidence":"e","rule":"r","model":"m","readout":"ro","policy":"p"},"outcome":{"status":"dispatched"},"idempotency":{"operation_id":"op-x","payload_digest":"sha256:` + strings.Repeat("a", 64) + `"}}`
+	if err := os.WriteFile(path, []byte(line+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	rep, err := Inspect(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rep.Gaps) == 0 {
+		t.Fatal("a violating record projected to zero gaps — Inspect's gap arm is blind")
+	}
+	if !strings.Contains(rep.Gaps[0], "bypass write") {
+		t.Fatalf("gap reported for the wrong reason: %v", rep.Gaps[0])
 	}
 }
 

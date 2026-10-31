@@ -34,8 +34,8 @@ def main() -> int:
     # D93 count-floor (the Go twin lives in cmd/replay/main_test.go)
     n_valid = len(list((ex / "valid").glob("*.json")))
     n_invalid = len(list((ex / "invalid").glob("*.json")))
-    if (n_valid, n_invalid) != (6, 3):
-        print(f"[replay] FAIL corpus count {n_valid}+{n_invalid} != pinned 6+3 (corpus count changed?)")
+    if (n_valid, n_invalid) != (7, 3):
+        print(f"[replay] FAIL corpus count {n_valid}+{n_invalid} != pinned 7+3 (corpus count changed?)")
         bad += 1
     return 1 if bad else 0
 

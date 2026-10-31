@@ -1,12 +1,11 @@
 // replay runs the replay-case fixture suite (piece 6, Go side of the oracle):
 // every examples/replay/valid/* must recompute to its pinned double verdict
-// (fidelity × conformance — all four quadrants are pinned), every invalid/*
+// (fidelity × conformance — the three reachable quadrants are pinned), every invalid/*
 // must be rejected for the reason its _expect_match names. The suite
 // discipline lives in internal/suite.
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -26,12 +25,11 @@ func run() int {
 	bad := suite.Run("replay",
 		filepath.Join(base, "valid"), filepath.Join(base, "invalid"),
 		func(doc map[string]any) []string {
-			var c replay.Case
-			raw, _ := json.Marshal(doc)
-			if err := json.Unmarshal(raw, &c); err != nil {
+			c, err := replay.LoadCase(doc)
+			if err != nil {
 				return []string{"case decode failed: " + err.Error()}
 			}
-			return caseVerdictErrors(&c)
+			return caseVerdictErrors(c)
 		})
 	if bad == 0 {
 		return 0

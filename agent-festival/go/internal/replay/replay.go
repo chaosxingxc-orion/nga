@@ -24,7 +24,7 @@
 // are legal outcomes; a replay of a recorded violation is fidelity-match +
 // conformance-fail. No ecosystem precedent defines the double-verdict
 // runner output contract — this package is that contract's first machine
-// form, and the fixture corpus pins all four quadrants.
+// form, and the fixture corpus pins the three reachable quadrants (the match+fail quadrant needs a historical machine version — see the Known Limitation).
 //
 // Arbitration (collision ruling B, narrowed): re-execution consumes the
 // RECORDED arbitration order — it never re-arbitrates (legacy semantics,
@@ -115,13 +115,36 @@ type Step struct {
 	OpID    string          `json:"op_id,omitempty"`
 }
 
-// Case is one replay-case document.
+// Case is one replay-case document. RecordedRawDoc carries the recorded
+// events as the RAW decoded documents (json:"-" — LoadCase fills it from
+// the case file's own map). The conformance arm judges the record through
+// this raw view: re-marshalling typed events would launder it (unknown
+// fields dropped, empty arrays folded) — the R2 laundering lesson, applied
+// here from day one.
 type Case struct {
 	CaseVersion    string         `json:"case_version"`
 	CaseID         string         `json:"case_id"`
 	Steps          []Step         `json:"steps"`
 	RecordedEvents []ledger.Event `json:"recorded_events"`
+	RecordedRawDoc []any          `json:"-"`
 	Expected       Expected       `json:"expected"`
+}
+
+// LoadCase decodes a case document from its RAW map form, preserving the
+// recorded events' raw view for the conformance arm.
+func LoadCase(doc map[string]any) (*Case, error) {
+	raw, err := json.Marshal(doc)
+	if err != nil {
+		return nil, err
+	}
+	var c Case
+	if err := json.Unmarshal(raw, &c); err != nil {
+		return nil, err
+	}
+	if rec, ok := doc["recorded_events"].([]any); ok {
+		c.RecordedRawDoc = rec
+	}
+	return &c, nil
 }
 
 // Expected is the pinned double verdict.
@@ -150,7 +173,11 @@ type ReplayReport struct {
 // stream against the record. Live effects are structurally disabled: the
 // machine is in-memory and dispatch never leaves it.
 func Replay(c *Case) (*ReplayReport, error) {
-	if err := caseSchema.Validate(caseAsDoc(c)); err != nil {
+	doc, err := caseAsDoc(c)
+	if err != nil {
+		return nil, err
+	}
+	if err := caseSchema.Validate(doc); err != nil {
 		return nil, fmt.Errorf("case rejected by replay-case schema: %v", err)
 	}
 	// the recomputation machine runs on a scratch durable form, not the
@@ -168,25 +195,31 @@ func Replay(c *Case) (*ReplayReport, error) {
 	if err != nil {
 		return nil, fmt.Errorf("scratch machine failed to open: %v", err)
 	}
-	recomputed, firstStep := drive(m, c.Steps)
+	recomputed, err := drive(m, c.Steps)
+	if err != nil {
+		return nil, err
+	}
 
 	rep := &ReplayReport{CaseID: c.CaseID, Recomputed: recomputed, Recorded: c.RecordedEvents, DivergenceAt: -1}
 
-	// fidelity: event-stream comparison, step-located
+	// fidelity: event-stream comparison, located at the first diverging
+	// EVENT index (the single coordinate system; every machine step that is
+	// not refused emits exactly one event, so the value coincides with the
+	// step index today — the schema pins the event coordinate)
 	rep.Fidelity = Match
 	if !eventsEqual(recomputed, c.RecordedEvents) {
 		rep.Fidelity = Divergence
-		if firstStep >= 0 && eventsEqual(recomputed, c.RecordedEvents[:min(len(recomputed), len(c.RecordedEvents))]) {
-			rep.DivergenceAt = firstStep
-		} else {
-			rep.DivergenceAt = locateDivergence(recomputed, c.RecordedEvents)
-		}
-		rep.Detail = fmt.Sprintf("recomputation diverged at step %d — recomputed %d events, record has %d", rep.DivergenceAt, len(recomputed), len(c.RecordedEvents))
+		rep.DivergenceAt = locateDivergence(recomputed, c.RecordedEvents)
+		rep.Detail = fmt.Sprintf("recomputation diverged at event %d — recomputed %d events, record has %d", rep.DivergenceAt, len(recomputed), len(c.RecordedEvents))
 	}
 
-	// conformance: does the RECORD itself pass the eight families?
+	// conformance: does the RECORD itself pass the eight families? Judged
+	// through the RAW recorded documents — never a typed re-projection.
+	if c.RecordedRawDoc == nil {
+		return nil, fmt.Errorf("case %q carries no raw recorded view — the conformance arm refuses to judge a laundered projection (load via LoadCase)", c.CaseID)
+	}
 	rep.Conformance = Pass
-	if errs := ledger.Errors(eventsAsDoc(c.RecordedEvents)); len(errs) > 0 {
+	if errs := ledger.Errors(map[string]any{"ledger_version": ledger.Version, "events": c.RecordedRawDoc}); len(errs) > 0 {
 		rep.Conformance = Fail
 		if rep.Detail == "" {
 			rep.Detail = errs[0]
@@ -195,12 +228,29 @@ func Replay(c *Case) (*ReplayReport, error) {
 	return rep, nil
 }
 
+// SubstitutionReport is mode 3's own output contract (it deliberately does
+// NOT reuse the ReplayReport field names — fidelity/conformance there mean
+// "recomputation vs record"; here the question is what the substitution
+// changed, with both sides' verdicts carried separately).
+type SubstitutionReport struct {
+	CaseID          string
+	Changed         bool // did the substitution alter the recomputation?
+	At              int  // first diverging event index (-1 = unchanged)
+	BaseFidelity    Verdict
+	BaseConformance Verdict
+	AltConformance  Verdict
+	Detail          string
+}
+
 // Reevaluate is mode 3: candidate reevaluation — substitute declared
 // versions/basis in an isolated recomputation and report the intended
-// differences. The original history is never touched (the case document is
-// read-only input; the report is a diff between two recomputations).
-func Reevaluate(c *Case, substitution func(*Case)) (*ReplayReport, error) {
-	sub := deepCopyCase(c)
+// differences. The original case is never touched (read-only input; the
+// report is a diff between two recomputations).
+func Reevaluate(c *Case, substitution func(*Case)) (*SubstitutionReport, error) {
+	sub, err := deepCopyCase(c)
+	if err != nil {
+		return nil, err
+	}
 	substitution(sub)
 	base, err := Replay(c)
 	if err != nil {
@@ -210,16 +260,17 @@ func Reevaluate(c *Case, substitution func(*Case)) (*ReplayReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	rep := &ReplayReport{
-		CaseID:   c.CaseID + "→" + sub.CaseID,
-		Fidelity: base.Fidelity, Conformance: alt.Conformance,
-		Recomputed: alt.Recomputed, Recorded: alt.Recorded,
-		DivergenceAt: -1,
+	rep := &SubstitutionReport{
+		CaseID:          c.CaseID + "→" + sub.CaseID,
+		BaseFidelity:    base.Fidelity,
+		BaseConformance: base.Conformance,
+		AltConformance:  alt.Conformance,
+		At:              -1,
 	}
 	if !eventsEqual(base.Recomputed, alt.Recomputed) {
-		rep.Fidelity = Divergence
-		rep.DivergenceAt = locateDivergence(alt.Recomputed, base.Recomputed)
-		rep.Detail = fmt.Sprintf("substitution changed the recomputation at step %d (baseline fidelity: %s)", rep.DivergenceAt, base.Fidelity)
+		rep.Changed = true
+		rep.At = locateDivergence(alt.Recomputed, base.Recomputed)
+		rep.Detail = fmt.Sprintf("substitution changed the recomputation at event %d", rep.At)
 	}
 	return rep, nil
 }
@@ -265,70 +316,58 @@ func Recover(path string) (*RecoverReport, error) {
 }
 
 // drive runs the steps against a fresh machine, collecting emitted events
-// from the machine's own in-memory output. It returns the events and the
-// index of the first step the machine refused outright (rejected with no
-// event written), or -1.
-func drive(m *adopt.Machine, steps []Step) ([]ledger.Event, int) {
+// from the machine's scratch output. An I/O failure reading the scratch
+// form is an ERROR, never a silent empty stream (a silent nil would forge a
+// divergence@0 verdict — fail loud). An unknown op is an error too: the
+// four operations never collapse into one generic call.
+func drive(m *adopt.Machine, steps []Step) ([]ledger.Event, error) {
 	for i, s := range steps {
 		switch s.Op {
 		case "adopt":
 			var req adopt.Request
 			if err := json.Unmarshal(s.Request, &req); err != nil {
-				return machineEvents(m), i
+				return nil, fmt.Errorf("step %d: adopt request undecodable: %v", i, err)
 			}
-			if o := m.Adopt(&req); o.Status == "rejected" && o.Event == nil {
-				return machineEvents(m), i
-			}
+			m.Adopt(&req)
 		case "dispatch":
-			if o := m.Dispatch(s.OpID, s.Grants); o.Status == "rejected" && o.Event == nil {
-				return machineEvents(m), i
-			}
+			m.Dispatch(s.OpID, s.Grants)
 		case "mark_unresolved":
-			if o := m.MarkUnresolved(s.OpID); o.Status == "rejected" && o.Event == nil {
-				return machineEvents(m), i
-			}
+			m.MarkUnresolved(s.OpID)
 		case "mark_completed":
-			if o := m.MarkCompleted(s.OpID); o.Status == "rejected" && o.Event == nil {
-				return machineEvents(m), i
-			}
+			m.MarkCompleted(s.OpID)
 		case "mark_failed":
-			if o := m.MarkFailed(s.OpID); o.Status == "rejected" && o.Event == nil {
-				return machineEvents(m), i
-			}
+			m.MarkFailed(s.OpID)
+		default:
+			return nil, fmt.Errorf("step %d: unknown op %q — the four operations never collapse into one generic call", i, s.Op)
 		}
 	}
-	return machineEvents(m), -1
+	return machineEvents(m)
 }
 
-// machineEvents reads the in-memory machine's collected events.
-func machineEvents(m *adopt.Machine) []ledger.Event {
-	events, err := m.Events()
-	if err != nil {
-		return nil
-	}
-	return events
+// machineEvents reads the machine's scratch output.
+func machineEvents(m *adopt.Machine) ([]ledger.Event, error) {
+	return m.Events()
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-// eventsEqual compares two event streams on the fields the record pins:
-// seq, event_type, identity, digest, outcome status. (Accountability and
-// grants ride the adopted pin and are covered by conformance.)
+// eventsEqual compares two event streams on the FULL field set the record
+// pins: seq, event_type, identity, versions (the replay matcher's matching
+// inputs — event-ledger schema), idempotency, grants, outcome status, and
+// the accountability triple. Detail is the one exception: the schema
+// declares it free-text provenance, "not a machine-checked field".
 func eventsEqual(a, b []ledger.Event) bool {
 	if len(a) != len(b) {
 		return false
 	}
 	for i := range a {
-		if a[i].ArbitrationSeq != b[i].ArbitrationSeq ||
-			a[i].EventType != b[i].EventType ||
-			a[i].Identity != b[i].Identity ||
-			!idemEqual(a[i].Idempotency, b[i].Idempotency) ||
-			a[i].Outcome.Status != b[i].Outcome.Status {
+		x, y := a[i], b[i]
+		if x.ArbitrationSeq != y.ArbitrationSeq ||
+			x.EventType != y.EventType ||
+			x.Identity != y.Identity ||
+			x.Versions != y.Versions ||
+			!idemEqual(x.Idempotency, y.Idempotency) ||
+			x.Outcome.Status != y.Outcome.Status ||
+			!grantsEqual(x.GrantsAtDecision, y.GrantsAtDecision) ||
+			!acctEqual(x.Accountability, y.Accountability) {
 			return false
 		}
 	}
@@ -338,6 +377,41 @@ func eventsEqual(a, b []ledger.Event) bool {
 // idemEqual nil-safely compares the optional idempotency pairs (a conflict
 // event carries none).
 func idemEqual(a, b *ledger.Idempotency) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
+}
+
+// grantsEqual deep-compares the optional grant slices.
+func grantsEqual(a, b []ledger.Grant) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].Kind != b[i].Kind || a[i].Selector != b[i].Selector ||
+			a[i].Effect != b[i].Effect || !slicesEqual(a[i].Actions, b[i].Actions) {
+			return false
+		}
+	}
+	return true
+}
+
+// slicesEqual compares two string slices.
+func slicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// acctEqual nil-safely compares the optional triples.
+func acctEqual(a, b *ledger.Accountability) bool {
 	if a == nil || b == nil {
 		return a == b
 	}
@@ -362,27 +436,29 @@ func locateDivergence(recomputed, recorded []ledger.Event) int {
 	return -1
 }
 
-func eventsAsDoc(events []ledger.Event) map[string]any {
-	raw, _ := json.Marshal(events)
-	var arr []any
-	dec := json.NewDecoder(bytes.NewReader(raw))
-	dec.UseNumber()
-	dec.Decode(&arr)
-	return map[string]any{"ledger_version": ledger.Version, "events": arr}
-}
-
-func caseAsDoc(c *Case) map[string]any {
-	raw, _ := json.Marshal(c)
+func caseAsDoc(c *Case) (map[string]any, error) {
+	raw, err := json.Marshal(c)
+	if err != nil {
+		return nil, err
+	}
 	var doc map[string]any
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.UseNumber()
-	dec.Decode(&doc)
-	return doc
+	if err := dec.Decode(&doc); err != nil {
+		return nil, err
+	}
+	return doc, nil
 }
 
-func deepCopyCase(c *Case) *Case {
-	raw, _ := json.Marshal(c)
+func deepCopyCase(c *Case) (*Case, error) {
+	raw, err := json.Marshal(c)
+	if err != nil {
+		return nil, err
+	}
 	var cp Case
-	json.Unmarshal(raw, &cp)
-	return &cp
+	if err := json.Unmarshal(raw, &cp); err != nil {
+		return nil, err
+	}
+	cp.RecordedRawDoc = c.RecordedRawDoc
+	return &cp, nil
 }
