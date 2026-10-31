@@ -65,12 +65,31 @@ def verify(path, pin):
         require(sha(entry['snapshot']) == entry['sha256'], 'frozen closure code changed')
     jobs = doc['jobs']
     require(jobs and len({j['id'] for j in jobs}) == len(jobs), 'empty or duplicate jobs')
-    for key in ('eval_out', 'output'):
+    reports = [j for j in jobs if j.get('kind', 'report') == 'report']
+    comparisons = [j for j in jobs if j.get('kind') == 'comparison']
+    require(len(reports) + len(comparisons) == len(jobs), 'unknown CPU job kind')
+    for key in ('eval_out',):
+        require(len({j[key] for j in reports}) == len(reports), 'duplicate ' + key)
+    for key in ('output',):
         require(len({j[key] for j in jobs}) == len(jobs), 'duplicate ' + key)
     for job in jobs:
         require(re.fullmatch(r'[A-Za-z0-9_-]+', job['id']), 'unsafe job ID')
-        require(Path(job['eval_out']).is_absolute() and Path(job['output']).is_absolute(), 'absolute paths required')
-        require(Path(job['output']).name == 'selection_report.json', 'selection report filename required')
+        require(Path(job['output']).is_absolute(), 'absolute output required')
+        if job.get('kind', 'report') == 'report':
+            require(Path(job['eval_out']).is_absolute(), 'absolute evaluation path required')
+            require(Path(job['output']).name == 'selection_report.json', 'selection report filename required')
+    if comparisons:
+        config = doc['comparison']
+        for key in ('tool', 'selector'):
+            require(Path(config[key]).is_absolute() and sha(config[key]) == config[key + '_sha256'],
+                    'comparison code changed')
+        report_ids = {j['id'] for j in reports}
+        for job in comparisons:
+            require(len(job['candidate']) == 2 and len(set(job['candidate'])) == 2, 'two candidate reports required')
+            require(not job.get('incumbent') or len(job['incumbent']) == 2 and len(set(job['incumbent'])) == 2,
+                    'two incumbent reports required')
+            require(set(comparison_dependencies(job)) <= report_ids, 'comparison dependency is not a report job')
+            require(Path(job['output']).name == 'development_comparison.json', 'comparison output filename required')
     return doc
 
 
@@ -121,7 +140,38 @@ def ready(job):
     return 'ready' if end['exit_code'] == 0 else 'inference_failed'
 
 
+def comparison_dependencies(job):
+    return job['candidate'] + [job['baseline']] + job.get('incumbent', [])
+
+
+def job_ready(path, doc, job):
+    if job.get('kind', 'report') == 'report':
+        return ready(job)
+    by_id = {j['id']: j for j in doc['jobs']}
+    for name in comparison_dependencies(job):
+        dependency = by_id[name]
+        terminal = workdir(path, dependency) / 'EXIT.json'
+        if not terminal.exists():
+            return 'waiting_reports'
+        end = load(terminal)
+        if end['exit_code'] != 0:
+            return 'comparison_blocked'
+        require(sha(dependency['output']) == end['output_sha256'], 'dependency report changed')
+    return 'ready'
+
+
 def report_command(doc, job):
+    if job.get('kind') == 'comparison':
+        config = doc['comparison']; by_id = {j['id']: j for j in doc['jobs']}
+        command = [sys.executable, '-P', config['tool'], '--candidate',
+                   *[by_id[x]['output'] for x in job['candidate']], '--baseline', by_id[job['baseline']]['output'],
+                   '--frozen-code-dir', str(Path(doc['closure']) / 'r3_code'),
+                   '--selector', config['selector'], '--selector-sha256', config['selector_sha256'],
+                   '--report-tool', doc['report_tool'], '--report-tool-sha256', doc['report_tool_sha256'],
+                   '--output', job['output']]
+        if job.get('incumbent'):
+            command += ['--incumbent', *[by_id[x]['output'] for x in job['incumbent']]]
+        return command
     return [sys.executable, '-P', doc['report_tool'], '--run', str(Path(job['eval_out']) / 'results'),
             '--frozen-code-dir', str(Path(doc['closure']) / 'r3_code'), '--output', job['output']]
 
@@ -139,7 +189,7 @@ def worker(path, pin, job_id):
     doc = verify(path, pin)
     job = next(j for j in doc['jobs'] if j['id'] == job_id)
     root = workdir(path, job)
-    require(ready(job) == 'ready', 'inference not ready')
+    require(job_ready(path, doc, job) == 'ready', 'job inputs not ready')
     require(not (root / 'EXIT.json').exists(), 'worker already terminal')
     require(not Path(job['output']).exists(), 'fresh report output required')
     command = report_command(doc, job)
@@ -158,8 +208,11 @@ def worker(path, pin, job_id):
                 rc = 128 - rc
             if rc == 0:
                 report = load(job['output'])
-                require(report.get('schema') == 'r3-selection-report-v1' and
+                schema = 'r3-development-comparison-v1' if job.get('kind') == 'comparison' else 'r3-selection-report-v1'
+                require(report.get('schema') == schema and
                         report.get('scientific_acceptance') is False, 'report output scope differs')
+                if job.get('kind') == 'comparison':
+                    require(report.get('test_read') is False, 'comparison read test')
     except BaseException:
         rc = 125
         with (root / 'report.log').open('a') as log:
@@ -175,7 +228,7 @@ def worker(path, pin, job_id):
     return rc
 
 
-def observe(path, pin, job):
+def observe(path, pin, job, doc=None):
     root = workdir(path, job)
     terminal = root / 'EXIT.json'
     if terminal.exists():
@@ -195,14 +248,14 @@ def observe(path, pin, job):
         return {'status': 'needs_repair', 'reason': 'worker absent or PID reused without terminal'}
     if (root / 'START_INTENT.json').exists():
         return {'status': 'needs_repair', 'reason': 'start intent without receipt; no duplicate execution'}
-    return {'status': ready(job)}
+    return {'status': job_ready(path, doc, job) if doc is not None else ready(job)}
 
 
 def tick(path, pin, doc):
     states = {}
     for job in doc['jobs']:
         try:
-            states[job['id']] = observe(path, pin, job)
+            states[job['id']] = observe(path, pin, job, doc)
         except Exception as error:
             states[job['id']] = {'status': 'observation_uncertain', 'error': str(error)[:300]}
     # Uncertain workers may still consume CPU. Stop new starts until inspected.

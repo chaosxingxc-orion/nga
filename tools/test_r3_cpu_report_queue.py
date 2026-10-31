@@ -118,5 +118,39 @@ class CPUQueueTests(unittest.TestCase):
         self.assertEqual(Q.observe(self.path,self.pin,self.job)['status'],'report_failed')
         self.assertFalse(Path(self.job['output']).exists())
 
+    def comparison_fixture(self):
+        reports = [dict(self.job, id=name, output=str(self.root/name/'selection_report.json'))
+                   for name in ('s2','s3','k0')]
+        job = {'id':'comparison','kind':'comparison','candidate':['s2','s3'],'baseline':'k0',
+               'output':str(self.root/'development_comparison.json')}
+        doc = {**self.doc, 'jobs':reports+[job], 'comparison':{'tool':str(self.root/'compare.py'),
+               'selector':'/frozen/select.py','selector_sha256':'pin'}, 'report_tool_sha256':'report-pin'}
+        for report in reports:
+            self.write(Path(report['output']), {'synthetic':True})
+            self.write(Q.workdir(self.path,report)/'EXIT.json',{'exit_code':0,'output_sha256':Q.sha(report['output'])})
+        return doc,job,reports
+
+    def test_comparison_waits_for_all_report_terminals_and_hashes(self):
+        doc,job,reports=self.comparison_fixture()
+        self.assertEqual(Q.job_ready(self.path,doc,job),'ready')
+        end=Q.workdir(self.path,reports[0])/'EXIT.json';original=end.read_bytes();end.unlink()
+        self.assertEqual(Q.job_ready(self.path,doc,job),'waiting_reports')
+        self.write(end,{'exit_code':7})
+        self.assertEqual(Q.job_ready(self.path,doc,job),'comparison_blocked')
+        end.write_bytes(original);Path(reports[0]['output']).write_text('{}')
+        with self.assertRaisesRegex(RuntimeError,'report changed'):Q.job_ready(self.path,doc,job)
+
+    def test_real_comparison_worker_uses_common_serial_cpu_lane(self):
+        doc,job,reports=self.comparison_fixture();root=Q.workdir(self.path,job);root.mkdir(parents=True)
+        Path(doc['comparison']['tool']).write_text('import sys,json\nfrom pathlib import Path\np=Path(sys.argv[sys.argv.index("--output")+1]);p.write_text(json.dumps({"schema":"r3-development-comparison-v1","scientific_acceptance":False,"test_read":False}))\n')
+        with patch.object(Q,'verify',return_value=doc):self.assertEqual(Q.worker(self.path,self.pin,job['id']),0)
+        self.assertEqual(Q.observe(self.path,self.pin,job,doc)['status'],'done')
+        command=Q.report_command(doc,job)
+        self.assertEqual(command[command.index('--candidate')+1:command.index('--baseline')],
+                         [reports[0]['output'],reports[1]['output']])
+        with patch.object(Q,'observe',side_effect=[{'status':'reporting'},{'status':'done'},{'status':'done'},{'status':'ready'}]),patch.object(Q.subprocess,'Popen') as popen:
+            Q.tick(self.path,self.pin,doc)
+        popen.assert_not_called()
+
 
 if __name__=='__main__':unittest.main()

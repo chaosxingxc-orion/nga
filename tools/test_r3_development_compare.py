@@ -26,7 +26,8 @@ def report(seed=None, impl='rows'):
     if seed is not None:
         evidence.update(seed=seed,adapter_path=model['path'],training_variant={'schema':1,'args':{'k2_impl':impl}})
     return {'header':{'arm':arm,'model':model,'partitions':['dev','calibration'],'track_t_config':'r3',
-                      'data_files':{'/dev':'same'}}, 'selection_evidence':evidence,
+                      'data_files':{'/dev':'same'},'prompt_version':'v1','prompt_format':'fixed',
+                      'render':'record_name','primary_input_mode':'full','dtype':'float32','readings':{}}, 'selection_evidence':evidence,
             'track_k':{'partitions':{s+'/dev':{'headline':{'kev_rule_accuracy':.8},
                 'arms':{k:{'kev_rule_accuracy':.5} for k in ['constant','question_only']}}
                 for s in ['decision-v7','transfer-v4']}},
@@ -48,7 +49,7 @@ class CompareTests(unittest.TestCase):
         self.assertTrue(result['blockers'])
 
     def test_mixed_recipes_duplicate_seeds_and_foreign_base_rejected(self):
-        for change in ['recipe','seed','base','revision','data','keys','report_half']:
+        for change in ['recipe','seed','base','revision','data','keys','report_half','prompt','reading']:
             with self.subTest(change=change):
                 a=copy.deepcopy(self.a)
                 if change=='recipe':a[1]['selection_evidence']['training_variant']['args']['k2_impl']='shared'
@@ -58,6 +59,8 @@ class CompareTests(unittest.TestCase):
                 if change=='data':a[1]['header']['data_files']['/dev']='other'
                 if change=='keys':a[1]['selection_evidence']['keys'][0][1]='different'
                 if change=='report_half':a[1]['track_t']['cells']['report']={'accuracy':.9}
+                if change=='prompt':a[1]['header']['prompt_version']='other'
+                if change=='reading':a[1]['header']['readings']={'denominator':'other'}
                 with self.assertRaises(ValueError):D.compare(a,self.b,E,S)
 
     def test_incumbent_missing_r0_returns_blocker_not_winner(self):

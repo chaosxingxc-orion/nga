@@ -62,6 +62,9 @@ def compare(candidate, baseline, E, S, incumbent=None, r0_gating=None):
         require(len(evidence['correct']) == len(keys) and all(type(x) is int and x in (0, 1)
                 for x in evidence['correct']), 'invalid correctness vector')
         require(h['data_files'] == baseline['header']['data_files'], 'producer datasets differ')
+        for field in ('prompt_version', 'prompt_format', 'render', 'primary_input_mode', 'dtype', 'readings'):
+            require(field in h and h[field] == baseline['header'].get(field),
+                    'evaluation protocol differs: ' + field)
         require(Path(h['model']['base_path']).resolve() == Path(base['path']).resolve()
                 and h['model']['base_revision'] == base['base_revision'], 'different base checkpoint')
         for field in ('cells', 'question70', 'decision_lines'):
