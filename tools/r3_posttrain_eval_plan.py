@@ -59,6 +59,8 @@ def prepare(training, closure, out):
     required=[adapter/'adapter_config.json',adapter/'adapter_model.safetensors']
     if not all(p.is_file() for p in required):raise RuntimeError('successful training lacks complete adapter')
     config=load(closure/'manifest.json')
+    if config.get('evaluation_profile') == 'track_t_pt_r0' and evaluation_arm != 'K1-PT':
+        raise RuntimeError('R0-config posttraining scoring is restricted to K1-PT')
     files={str(terminal):sha(terminal),str(training/'manifest.json'):sha(training/'manifest.json')}
     for path,digest in config['data'].items():
         if '/test' in path or sha(path)!=digest:raise RuntimeError('data differs or test data included')

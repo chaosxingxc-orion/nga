@@ -55,6 +55,61 @@ def process_matches(receipt, proc_root=Path('/proc')):
     return actual == [os.fsencode(x) for x in receipt['command']]
 
 
+def dependency_path(job):
+    value = job['after_eval']; root = Path(value)
+    require(isinstance(value, str) and root.is_absolute() and str(root) == value
+            and '..' not in root.parts and not value.startswith('//')
+            and not any(p.is_symlink() for p in (root, *root.parents))
+            and root != Path(job['out']), 'unsafe predecessor path')
+    return root
+
+
+def predecessor(job, resource):
+    """A terminal marker alone cannot authorize the next use of a chip."""
+    root = dependency_path(job)
+    marker_path = root / 'ENGINEERING_EVAL_EXIT.json'
+    if not marker_path.exists():
+        return {'status': 'waiting_predecessor_release'}
+    marker = load(marker_path)
+    path = root / 'execution.json'; plan = load(path)
+    require(plan.get('schema') == 'r3-engineering-posttrain-execution-v1'
+            and plan.get('chip') == job['chip'] and plan.get('out') == str(root)
+            and plan.get('scientific_acceptance') is False and plan.get('test_read') is False,
+            'predecessor execution ownership differs')
+    receipt_path = root / 'SUPERVISOR_RECEIPT.json'; receipt = load(receipt_path)
+    prefix = [sys.executable, '-P', plan['launcher'], 'supervise', '--plan', str(path),
+              '--sha256', sha(path), '--attempt']
+    command = receipt['command']
+    require(isinstance(command, list) and len(command) == len(prefix) + 1
+            and command[:-1] == prefix and isinstance(command[-1], str)
+            and command[-1].isdigit(), 'predecessor supervisor command differs')
+    number = int(command[-1])
+    require(number > 0 and str(number) == command[-1], 'invalid predecessor attempt')
+    require(type(marker.get('attempt')) is int and 1 <= marker['attempt'] <= number,
+            'predecessor terminal attempt differs')
+    # A newer supervisor supersedes the global terminal of a failed attempt.
+    if marker['attempt'] != number:
+        return {'status': 'waiting_predecessor_release', 'attempt': number}
+    attempt = root / 'attempts' / str(number)
+    if not (attempt / 'RELEASE.json').exists():
+        return {'status': 'waiting_predecessor_release', 'attempt': number}
+    require(load(attempt / 'EXIT.json') == marker, 'predecessor markers disagree')
+    proof = load(attempt / 'RELEASE.json'); launch = load(attempt / 'LAUNCH_RECEIPT.json')
+    actual = resource.docker_inspect(plan['container'] + '-a' + str(number))
+    require(actual and actual['Id'] == launch['id'] == proof.get('container_id'),
+            'predecessor container identity differs')
+    require(actual['State']['Status'] in ('exited', 'dead'), 'predecessor container still live')
+    require(type(marker.get('exit_code')) is int and
+            actual['State']['ExitCode'] == marker['exit_code'] == proof.get('exit_code'),
+            'predecessor exit differs')
+    require(proof.get('chip') == job['chip'] and proof.get('run') == plan['run']
+            and proof.get('scientific_acceptance') is False, 'predecessor release ownership differs')
+    require(load(receipt_path) == receipt and load(marker_path) == marker and sha(path) == prefix[-2],
+            'predecessor changed during observation')
+    return {'status': 'predecessor_done' if marker['exit_code'] == 0 else 'predecessor_failed',
+            'exit_code': marker['exit_code'], 'attempt': number}
+
+
 def verify_manifest(path, pin):
     require(sha(path) == pin, 'queue manifest changed')
     doc = load(path)
@@ -75,6 +130,8 @@ def verify_manifest(path, pin):
     for key in ('out', 'container', 'training'):
         require(len({j[key] for j in jobs}) == len(jobs), 'duplicate job ' + key)
     for job in jobs:
+        if 'after_eval' in job:
+            dependency_path(job)
         require(type(job['chip']) is int and 0 <= job['chip'] < 8, 'invalid chip')
         require(sha(Path(job['training']) / 'plan.json') == job['training_plan_sha256'], 'training plan changed')
         require(load(Path(job['training']) / 'plan.json')['chip'] == job['chip'], 'training chip differs')
@@ -89,6 +146,10 @@ def tick(job, closure, prepare, launcher, resource):
         return {'status': 'waiting_training'}
     if load(terminal)['exit_code'] != 0:
         return {'status': 'training_failed', 'exit_code': load(terminal)['exit_code']}
+    if 'after_eval' in job:
+        previous = predecessor(job, resource)
+        if previous['status'] != 'predecessor_done':
+            return previous
     spec_path = out / 'plan.json'
     if not spec_path.exists():
         state = prepare.prepare(training, Path(closure), out)
@@ -188,7 +249,7 @@ def watch(path, pin):
                     states[job['id']] = {'status': 'observation_or_execution_uncertain', 'error': str(error)[:300]}
             digest = {'utc_seconds': time.time(), 'jobs': states, 'test_read': False, 'scientific_acceptance': False}
             atomic(out / 'digest.json', digest)
-            if all(x['status'] in ('done', 'evaluation_failed', 'training_failed', 'not_complete_training') for x in states.values()):
+            if all(x['status'] in ('done', 'evaluation_failed', 'training_failed', 'not_complete_training', 'predecessor_failed') for x in states.values()):
                 atomic(out / 'DONE.json', digest)
                 return
             time.sleep(30)

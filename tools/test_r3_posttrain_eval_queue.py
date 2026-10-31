@@ -152,5 +152,82 @@ class QueueTests(unittest.TestCase):
         self.write(self.out / 'plan.json', {'training': 'another'})
         with self.assertRaisesRegex(RuntimeError, 'another training'): self.tick()
 
+    def predecessor_fixture(self, exit_code=0):
+        self.ready(); root = self.root / 'previous'; self.job['after_eval'] = str(root)
+        plan = {'schema': 'r3-engineering-posttrain-execution-v1', 'out': str(root),
+                'chip': 2, 'run': 'r3_runs/previous', 'launcher': '/frozen/launcher.py',
+                'container': 'nga-r3-eng-eval-previous', 'scientific_acceptance': False, 'test_read': False}
+        self.write(root / 'execution.json', plan)
+        command = [Q.sys.executable, '-P', plan['launcher'], 'supervise', '--plan', str(root / 'execution.json'),
+                   '--sha256', Q.sha(root / 'execution.json'), '--attempt', '1']
+        self.write(root / 'SUPERVISOR_RECEIPT.json', {'pid': 234, 'command': command})
+        marker = {'attempt': 1, 'exit_code': exit_code}
+        self.write(root / 'ENGINEERING_EVAL_EXIT.json', marker)
+        self.write(root / 'attempts/1/EXIT.json', marker)
+        self.write(root / 'attempts/1/LAUNCH_RECEIPT.json', {'id': 'previous-id'})
+        self.write(root / 'attempts/1/RELEASE.json', {'container_id': 'previous-id', 'exit_code': exit_code,
+                    'chip': 2, 'run': plan['run'], 'scientific_acceptance': False})
+        self.resource.docker_inspect.return_value = {'Id': 'previous-id', 'State': {'Status': 'exited', 'ExitCode': exit_code}}
+        return root
+
+    def test_predecessor_success_then_launch_and_failed_predecessor_blocks(self):
+        self.predecessor_fixture()
+        with patch.object(Q.subprocess, 'run') as run:
+            self.assertEqual(self.tick()['status'], 'launch_requested'); run.assert_called_once()
+        self.predecessor_fixture(exit_code=9)
+        with patch.object(Q.subprocess, 'run') as run:
+            self.assertEqual(self.tick()['status'], 'predecessor_failed'); run.assert_not_called()
+
+    def test_predecessor_missing_marker_release_and_new_retry_wait(self):
+        root = self.predecessor_fixture()
+        marker = Q.load(root / 'ENGINEERING_EVAL_EXIT.json')
+        (root / 'ENGINEERING_EVAL_EXIT.json').unlink()
+        self.assertEqual(self.tick()['status'], 'waiting_predecessor_release')
+        self.write(root / 'ENGINEERING_EVAL_EXIT.json', marker)
+        (root / 'attempts/1/RELEASE.json').unlink()
+        self.assertEqual(self.tick()['status'], 'waiting_predecessor_release')
+        receipt = Q.load(root / 'SUPERVISOR_RECEIPT.json'); receipt['command'][-1] = '2'
+        self.write(root / 'SUPERVISOR_RECEIPT.json', receipt)
+        self.assertEqual(self.tick()['status'], 'waiting_predecessor_release')
+        self.prepare.prepare.assert_not_called(); self.launcher.bind.assert_not_called()
+        self.resource.docker_inspect.assert_not_called()
+
+    def test_predecessor_live_container_bad_release_and_uncertain_docker_refused(self):
+        root = self.predecessor_fixture()
+        self.resource.docker_inspect.return_value['State']['Status'] = 'running'
+        with self.assertRaisesRegex(RuntimeError, 'still live'): self.tick()
+        self.resource.docker_inspect.return_value['State']['Status'] = 'exited'
+        p = root / 'attempts/1/RELEASE.json'; proof = Q.load(p); proof['run'] = 'foreign'; self.write(p, proof)
+        with self.assertRaisesRegex(RuntimeError, 'ownership differs'): self.tick()
+        self.resource.docker_inspect.side_effect = RuntimeError('daemon unavailable')
+        with self.assertRaisesRegex(RuntimeError, 'daemon unavailable'): self.tick()
+        self.assertFalse((self.out / 'QUEUE_START_INTENT.json').exists())
+
+    def test_predecessor_latest_retry_completion_and_wrong_command(self):
+        root = self.predecessor_fixture(exit_code=9)
+        receipt = Q.load(root / 'SUPERVISOR_RECEIPT.json'); receipt['command'][-1] = '2'
+        self.write(root / 'SUPERVISOR_RECEIPT.json', receipt)
+        marker = {'attempt': 2, 'exit_code': 0}
+        self.write(root / 'ENGINEERING_EVAL_EXIT.json', marker)
+        self.write(root / 'attempts/2/EXIT.json', marker)
+        self.write(root / 'attempts/2/LAUNCH_RECEIPT.json', {'id': 'retry-id'})
+        self.write(root / 'attempts/2/RELEASE.json', {'container_id': 'retry-id', 'exit_code': 0,
+                    'chip': 2, 'run': 'r3_runs/previous', 'scientific_acceptance': False})
+        self.resource.docker_inspect.return_value = {'Id': 'retry-id', 'State': {'Status': 'exited', 'ExitCode': 0}}
+        self.assertEqual(Q.predecessor(self.job, self.resource)['status'], 'predecessor_done')
+        self.resource.docker_inspect.assert_called_once_with('nga-r3-eng-eval-previous-a2')
+        receipt['command'][-3] = 'wrong-pin'; self.write(root / 'SUPERVISOR_RECEIPT.json', receipt)
+        with self.assertRaisesRegex(RuntimeError, 'supervisor command'): self.tick()
+
+    def test_predecessor_path_rejects_alias_symlink_and_relative(self):
+        for value in (str(self.out), 'relative', str(self.root) + '/a/../previous', '//tmp/previous'):
+            self.job['after_eval'] = value
+            with self.assertRaisesRegex(RuntimeError, 'unsafe predecessor'): Q.dependency_path(self.job)
+        link = self.root / 'link'; link.symlink_to(self.out, target_is_directory=True)
+        self.job['after_eval'] = str(link)
+        with self.assertRaisesRegex(RuntimeError, 'unsafe predecessor'): Q.dependency_path(self.job)
+        self.job['after_eval'] = str(self.root / 'not-created-yet')
+        self.assertEqual(Q.dependency_path(self.job), Path(self.job['after_eval']))
+
 
 if __name__ == '__main__': unittest.main()

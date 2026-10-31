@@ -63,7 +63,7 @@ def safe_file(path):
 
 def profile(spec):
     value = spec.get('evaluation_profile', 'track_k')
-    require(value in ('track_k', 'track_kt', 'track_t_r0'), 'unsupported evaluation profile')
+    require(value in ('track_k', 'track_kt', 'track_t_r0', 'track_t_pt_r0'), 'unsupported evaluation profile')
     return value
 
 
@@ -78,6 +78,20 @@ def is_baseline(spec):
 def expected_command(spec, out):
     kind = profile(spec)
     baseline = is_baseline(spec)
+    if kind == 'track_t_pt_r0':
+        variant = spec.get('training_variant', {})
+        require(not baseline and spec['model'] == R0_MODEL
+                and variant.get('arm', '').upper() == 'K1-PT'
+                and type(variant.get('seed')) is int and variant['seed'] in (2, 3)
+                and bool(spec.get('adapter')), 'PT R0 requires instruct K1-PT seeds 2/3 and adapter')
+        return ['python3', '-P', ENTRY, '--full', '--model-path', spec['model'],
+                '--adapter', spec['adapter'], '--arm', 'K1-PT',
+                '--out', str(result_directory(spec, out)), '--round-dir', str(out / 'identity'),
+                '--partitions', 'dev,calibration', '--stages', 't_score', '--scorer', 'rightpad',
+                '--dtype', 'float32', '--no-hf32', '--token-budget', '16384', '--require-record-grade',
+                '--device', 'npu:0', '--unit-tag', kind, '--track-t-config', 'r0',
+                '--data-root', str(BASE), '--track-t-sources', 'typed-decisions,openjev-synth,akhilaaa3',
+                '--shard', '0', '--num-shards', '1']
     if kind == 'track_t_r0':
         require(baseline and spec['model'] == R0_MODEL, 'R0 requires the fixed instruct baseline')
         return ['python3', '-P', ENTRY, '--full', '--model-path', spec['model'], '--arm', 'K0',
@@ -106,7 +120,7 @@ def expected_command(spec, out):
 
 
 def allowed_data_files(spec):
-    if profile(spec) == 'track_t_r0':
+    if profile(spec) in ('track_t_r0', 'track_t_pt_r0'):
         return {str(BASE / 'manifest.json')} | {
             str(BASE / directory / (source + '.jsonl'))
             for directory in ('T1_level_names', 'T2_definition_swap', 'T3_question_set')
@@ -168,7 +182,7 @@ def verify_spec(spec, out):
         require(sha(safe_file(filename)) == digest, 'frozen dependency changed: ' + filename)
     require(allowed_data <= set(spec['files']), 'unbound data input')
     expected_dest = {str(BASE / 'r3_code'), str(BASE / 'r0_code')}
-    if profile(spec) == 'track_t_r0':
+    if profile(spec) in ('track_t_r0', 'track_t_pt_r0'):
         expected_dest.add(str(BASE / 'r1_code'))
     require(len(spec['code_mounts']) == len(expected_dest) and {m['destination'] for m in spec['code_mounts']} == expected_dest,
             'code mount destinations differ')
