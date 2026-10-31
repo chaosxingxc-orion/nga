@@ -92,11 +92,13 @@ Keep operational recovery and reusable improvement as two linked paths. An autho
 
 The proposed minimum linking structure is:
 
-**business objective and owning scope → agent definition → release manifest → task/run and decision revisions → operation attempts/outcomes → reviewed case/evaluation → candidate and subsequent release.**
+**business objective and owning scope → agent definition → sealed release manifest → scoped activation binding → task/run and decision revisions → operation attempts/outcomes → reviewed case/evaluation → candidate and subsequent release/activation.**
 
 A release manifest references compatible model/readout versions, semantic/adoption specifications, capability/workflow/graph definitions, default/customer primitive packages and their implementation/configuration dependencies, context policies, and controller/enforcement contracts. Resolve namespaces and applicability explicitly. References may point to independently managed artifacts; a release is not necessarily one deployment unit.
 
 A task records the release and material dependency versions actually consumed. Candidate promotion never silently rewrites an adopted decision or the artifacts used to replay it.
+
+The [core object contracts](23-core-objects-and-plane-handoffs.md) separate immutable release content from its evaluation records and scoped activation. Management maintains definitions, manifests and evidence; control admits ACT1 for a particular scope/generation. A release's presence or display label in a catalog is not task-admission authority. The same document specifies task/case fields, command receipts and the management/control permission boundary.
 
 Rollout policy must state which new tasks receive a release and what happens to in-flight work. Available choices include completing under pinned compatible definitions, an explicit state migration, or a hold/revision process. Live permission revocation still applies where required; version pinning cannot preserve revoked rights.
 

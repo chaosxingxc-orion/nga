@@ -18,6 +18,8 @@ This directory holds the owner-supplied enterprise architecture baseline and NGA
 
 **Current runtime contract proposal:** [Framework primitives and API capability contracts](21-runtime-primitives-and-capability-contracts.md) separates a common runtime contract, a default primitive library, customer extensions, provider guarantees and model judgments. Primitives must support configuration, package import, composition and custom implementations. The document includes twenty execution cases plus eight extension cases; engine and package technology choices remain open.
 
+**Current core object contracts:** [Agent definitions, releases, tasks, cases and handoffs](23-core-objects-and-plane-handoffs.md) separates immutable release content from scoped activation authority. It specifies fields, lifecycle/mutation rules, seven handoff families, publication command/receipt examples and the credit lifecycle through operational attribution and a new release, with sixteen proposed counterexamples.
+
 ## Reading order and document status
 
 | Document | Role | Status |
@@ -40,6 +42,7 @@ This directory holds the owner-supplied enterprise architecture baseline and NGA
 | [20 — Task, decision and business-request identity](20-task-decision-request-identity.md) | Current AQ-01/AQ-02 proposals: task completion, decision questions/revisions, provider-request continuity, phase-specific changes and eighteen adversarial cases. | Working business-system boundary accepted; detailed identity/lifecycle policies remain OPEN and unimplemented. |
 | [21 — Runtime primitives and API capability contracts](21-runtime-primitives-and-capability-contracts.md) | Default primitive library, customer configuration/import/custom implementations, API contracts, Graph/Workflow operators, twenty execution cases and eight extension cases. | Customer extensibility is required; package/runtime mechanisms, technologies and implementation guarantees remain proposed. |
 | [22 — Integrated lifecycle and plane review](22-integrated-lifecycle-and-plane-review.md) | Business objective/agent/release/task/case lineage, twelve responsibility cells, authority handoffs, recovery versus improvement and eight adversarial findings. | Organizing dimensions remain established; handoffs and twelve acceptance cases are proposals, not executed tests. |
+| [23 — Core objects and plane handoffs](23-core-objects-and-plane-handoffs.md) | AgentDefinition, ReleaseManifest, ActivationBinding, Task and OperationalCase fields; management/control authority; commands/receipts; credit development-to-evolution trace and sixteen adversarial cases. | Concrete logical-contract proposal; no final schema, protocol, implementation or executed acceptance claim. |
 
 The [NGA overall design](../design/nga-overall-design.md) remains the program-level source for the three projects and established principles. This directory develops the architecture for project 2 and its integration into project 3.
 

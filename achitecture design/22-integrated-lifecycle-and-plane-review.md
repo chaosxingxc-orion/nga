@@ -4,6 +4,7 @@
 > Status: adversarial architecture review and proposed refinements, not an implemented architecture or closure of the AQ register.
 > Established: agent evolution is the integrating whole; development/runtime/operations are three lifecycle states; user/runtime/management/control are four responsibility planes. Customer primitives are configurable, importable and extensible. The provider retains authoritative business execution.
 > Basis: [V0.2](13-nga-architecture-v0.2.md), [prior adversarial review](14-v0-adversarial-review.md), [task and request identity](20-task-decision-request-identity.md), [extensible primitives and API contracts](21-runtime-primitives-and-capability-contracts.md), and [discussion register](16-architecture-discussion-register.md).
+> Subsequent contract detail: [document 23](23-core-objects-and-plane-handoffs.md) specifies the core objects, separately scoped activation binding, command/receipt fields, authority matrix and a full illustrative credit lifecycle. These remain proposals to qualify rather than completed implementation evidence.
 
 ## 1. Assessment and interpretation of the dimensions
 
@@ -21,13 +22,14 @@ Evolution connects these responsibilities through attributable changes and obser
 
 The proposed backbone is:
 
-**business objective and owning scope → maintained agent definition → compatible release manifest → task/decision/request history → observed outcome and reviewed case → candidate change and evaluation → admitted release or withdrawal.**
+**business objective and owning scope → maintained agent definition → compatible release manifest → scoped activation → task/decision/request history → observed outcome and reviewed case → candidate change and evaluation → admitted activation or withdrawal.**
 
 | Object | Required relationship across the dimensions |
 | --- | --- |
 | **Objective and semantic contract** | State intended business behavior, delegated judgment scope, completion promise and what a proposed improvement would preserve or intentionally change. Meaning has an accountable owner. |
 | **Agent definition and capability catalog** | Reference models, semantics, context, primitives, Graph/Workflow definitions and API contracts. Distinguish platform defaults, industry packages and customer definitions/configuration by explicit namespace, ownership and dependency resolution. |
-| **Release manifest** | Bind a compatible set of actual artifacts/configuration, qualification evidence, publication scope and treatment of active tasks. References can point to independently maintained components; this is not a monolithic deployment requirement. |
+| **Release manifest** | Seal a compatible set of actual artifacts/configuration and capability assumptions. Evaluation/lifecycle records reference that immutable content; they do not change what was tested. This is not a monolithic deployment requirement. |
+| **Activation binding** | Record the admitted release, customer/workload scope, effective conditions, policy/evidence and active-task handling. Management's published view reflects this control-authorized record rather than a global release boolean. |
 | **Task and execution history** | T1/J1/D1/B1, plans, child scopes, waits/timers, attempts, provider observations and recovery records point to the actual definitions consumed. |
 | **Reviewed operational case** | Link a reported outcome to the relevant task/provider evidence and original release, with an attribution hypothesis, limitations and accountable handling. It is not automatically a training example. |
 | **Candidate and evaluation** | State the proposed changed component, preserved obligations, expected distinction/improvement, comparison evidence and affected scopes. Promotion requires the applicable policy, which may be automatic. |
@@ -108,6 +110,8 @@ Automatic promotion is permitted under a declared policy and evidence contract. 
 ## 7. Proposed cross-plane handoffs
 
 These are logical exchanges, not a final network API:
+
+The concrete field, duplicate/conflict and receipt proposals are in [document 23](23-core-objects-and-plane-handoffs.md). In particular, ActivateRelease changes a scoped binding; it does not mutate the tested release manifest.
 
 | Handoff | Required inputs → observable result |
 | --- | --- |

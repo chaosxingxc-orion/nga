@@ -172,6 +172,8 @@ Semantic judgment remains a model capability where appropriate; deterministic co
 
 These information requirements are a starting point for interface design, not a frozen API or serialization schema.
 
+The [concrete object and handoff proposal](../achitecture%20design/23-core-objects-and-plane-handoffs.md) defines four core families: AgentDefinition, ReleaseManifest, Task and OperationalCase. A separate ActivationBinding records where and when a sealed release is eligible for task admission. Management maintains definitions, immutable release content and associated evidence; control admits scoped activation and effective task changes. Evaluation records reference the exact tested content without mutating it. Actual provider outcomes remain observations from the business system, not editable catalog or case fields.
+
 | Object | Required information | Producer/consumer boundary |
 | --- | --- | --- |
 | **Business judgment specification** | Question identity and version; terms, units and temporal conventions; level names, definitions and type; candidate-set semantics; precedence, coverage and exception rules; examples; supported scope; owner and effective scope. | Project 3's knowledge workflow supports authorized business publication; S1 reads; S2 can propose drafts or approved template instances; the framework validates and resolves versions. |
@@ -361,7 +363,7 @@ Recording an answer requires its rationale, evidence, affected principles/interf
 
 ## 11. Next design artifact
 
-The current integration priority is the shared agent/candidate/release/task/case contract and its cross-plane handoffs in [document 22](../achitecture%20design/22-integrated-lifecycle-and-plane-review.md). Trace one customer primitive through import/qualification, scoped publication, normal execution, operational recovery and an explicit compatible upgrade. This gives the workbench a complete lifecycle slice while preserving the framework-first, case-coverage method below.
+The shared agent/release/activation/task/case contract and seven cross-plane handoffs are now proposed concretely in [document 23](../achitecture%20design/23-core-objects-and-plane-handoffs.md), following [document 22](../achitecture%20design/22-integrated-lifecycle-and-plane-review.md). The next verification boundary is a contract fixture for actual commands, observations, state transitions and receipts: customer capability qualification, scoped publication, normal waiting, operational attribution and compatible improvement. These documents supply proposed cases, not an executed runtime or a finalized schema.
 
 Following the owner's clarification, first define a small general framework contract for case identity, bound decisions, plans, NGA-effective transitions and invocation of business capabilities. The owning business system remains responsible for its internal shared constraints and authoritative commits. Then challenge the integration with a small portfolio of explicitly scoped business fixtures. Do not require detailed banking semantics to be settled before continuing the architecture. See [framework logic and case coverage](../achitecture%20design/18-framework-core-and-case-coverage.md) and the proposed [business-system boundary](../achitecture%20design/19-business-system-capability-boundary.md).
 
