@@ -12,6 +12,63 @@ import json
 from pathlib import Path
 
 SOURCE_SHA256 = '16e8401a2b90dbafbdbe6f82f0bbfa25aab48e51fb4ed1b4ce842e25d88d0b8c'
+TESTLOCK_SHA256 = '9b9b85220c493ee301c9bcdb7fd74d036e8cb1ed442500923f9ac41a3698cbba'
+
+RECOVERY = '''
+def verify_reserved_test_result(args, *, suite, result, leases, owner, completion_log):
+    """Verify staged evidence under both locks; never return a scoring ticket.
+
+    This is the only recovery extension to ticket issuance. It admits no new
+    scoring and requires same-owner staged results even before reading data.
+    """
+    import r3_test_transaction as TX
+    G = TX.G
+    root = G.safe_path(args.out)
+    round_root = G.safe_path(args.round_dir)
+    G.require(str(root) == owner['run_dir'] and suite in TX.SUITES, 'recovery scope differs')
+    G.require(set(leases) == set(TX.SUITES), 'both recovery locks required')
+    expected_owner = {k: owner[k] for k in ('run_dir', 'execution_sha256', 'final_sha256')}
+    final_path = round_root / FINAL_NAME
+    G.safe_path(final_path)
+    G.require(C.sha256_file(str(final_path)) == owner['final_sha256'], 'recovery FINAL changed')
+    staged_path = root / 'TEST-STAGED-RESULTS.json'
+    G.safe_path(staged_path)
+    staged = json.loads(staged_path.read_text())
+    G.require(staged.get('schema') == 'r3-test-staged-results-v1' and staged.get('owner') == owner
+              and staged.get('suites') == list(TX.SUITES)
+              and set(staged.get('results', {})) == set(TX.SUITES), 'recovery staging identity differs')
+    G.require(staged['results'][suite] == result, 'recovery result differs')
+    G.require(completion_log.model_sha == owner['model_sha256']
+              and completion_log.execution_sha == owner['execution_sha256']
+              and completion_log.final_sha == owner['final_sha256']
+              and completion_log.run == root and completion_log.root == round_root,
+              'recovery log adapter identity differs')
+    for name in TX.SUITES:
+        key = {'model_sha256': owner['model_sha256'], 'suite': name, 'partition': 'test'}
+        path = round_root / 'test-execution-reservations' / (G.digest(key) + '.json')
+        G.safe_path(path)
+        lease = leases[name]
+        G.require(isinstance(lease, G.Reservation) and lease.active and lease.path == path
+                  and lease.value.get('key') == key and lease.value.get('owner') == expected_owner
+                  and lease.value.get('state') in ('reserved', 'completed')
+                  and json.loads(path.read_text()) == lease.value, 'recovery lease differs')
+        normalized = {'suite': name, 'model_sha256': owner['model_sha256'],
+                      'execution_sha256': owner['execution_sha256'],
+                      'result_sha256': G.digest(staged['results'][name])}
+        prior = completion_log.read(name)
+        G.require(prior is None or prior == normalized, 'recovery completion differs')
+        if lease.value['state'] == 'completed':
+            G.require(prior == normalized and lease.value.get('verified_result_sha256') == normalized['result_sha256'],
+                      'completed recovery evidence differs')
+    with tempfile.TemporaryDirectory(prefix='nga-test-recovery-hash-') as cache:
+        identity = model_identity(args.model_path, args.adapter, cache)
+    G.require(identity['sha256'] == owner['model_sha256']
+              and _abs(identity['path']) == completion_log.model_path
+              and is_named(read_final(args.round_dir), identity), 'recovery model is not the selected model')
+    # Internal verification capability: no ticket escapes, no scorer is called.
+    ticket = TestTicket(identity, suite, 'test', _TOKEN)
+    return verify_test_result(ticket, result['n'], result['headline_accuracy'], args.out)
+'''
 
 AUTH = '''    tickets = {}
     if "test" in a.partitions:
@@ -132,6 +189,18 @@ def prepare(source, output):
                               'real producer integration validation and independent review']}
     (output / 'PREPARATION.json').write_text(json.dumps(manifest, indent=2) + '\n')
     return manifest
+
+
+def prepare_testlock(source, output):
+    source, output = Path(source), Path(output)
+    raw = source.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != TESTLOCK_SHA256:
+        raise ValueError('testlock source differs')
+    text = raw.decode('utf-8') + '\n' + RECOVERY
+    ast.parse(text)
+    with output.open('x') as f:
+        f.write(text)
+    return hashlib.sha256(output.read_bytes()).hexdigest()
 
 
 if __name__ == '__main__':

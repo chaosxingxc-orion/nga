@@ -15,7 +15,8 @@ SUITES=('decision-v7','transfer-v4')
 
 
 def run(round_dir, *, model_sha256, run_dir, execution_sha256, final_sha256,
-        validate_admission, score, verify_result, read_completion, append_completion):
+        validate_admission, score, verify_result, read_completion, append_completion,
+        bind_execution=None):
     """Both suite locks precede admission or scoring; interrupted commits resume.
 
     score(suites) must return a JSON object for each suite, including provenance.
@@ -24,6 +25,8 @@ def run(round_dir, *, model_sha256, run_dir, execution_sha256, final_sha256,
     the normalized completion object. append_completion(suite, object) must
     perform durable, locked insertion; its reconciliation key is the result SHA.
     A real adapter for legacy TEST-READS.log must supply the exact mapping.
+    bind_execution(leases, owner), when provided, receives the live capabilities
+    only after admission and while both locks are held; they expire on return.
     """
     root=G.safe_path(run_dir)
     owner=dict(model_sha256=model_sha256,run_dir=str(root),execution_sha256=execution_sha256,
@@ -32,6 +35,8 @@ def run(round_dir, *, model_sha256, run_dir, execution_sha256, final_sha256,
         leases={suite:stack.enter_context(G.execution(round_dir,suite=suite,
                 recover_completed=True,**owner)) for suite in SUITES}
         validate_admission()
+        if bind_execution is not None:
+            bind_execution(leases, dict(owner))
         root.mkdir(parents=True,exist_ok=True)
         staged=root/'TEST-STAGED-RESULTS.json';G.safe_path(staged)
         binding={'schema':'r3-test-staged-results-v1','owner':owner,'suites':list(SUITES)}
