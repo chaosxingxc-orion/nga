@@ -113,6 +113,7 @@ def check_prediction(pred, p):
     mass = sum(wire.values()); chance = 1 / len(keys)
     confidence = (max(wire.values()) / mass - chance) / (1 - chance)
     require(type(ans['confidence']) in (int, float) and math.isfinite(ans['confidence'])
+            and 0 <= ans['confidence'] <= 1
             and abs(ans['confidence'] - confidence) <= nc['confidence_atol'],
             'Native chance-adjusted confidence differs')
 
@@ -253,7 +254,10 @@ def verify_complete(path, q):
     require(q.sha(p['source_config']) == p['source_config_sha256'], 'Native source changed')
     receipt = q.load(out / 'LAUNCH_RECEIPT.json'); d = q.inspect(p['container'])
     q.binding(d, q.load(p['container_spec']), receipt)
-    require(receipt['plan_sha256'] == ph and receipt['wrapper_sha256'] == q.sha(p['wrapper']), 'Launch receipt differs')
+    require(receipt['plan_sha256'] == ph and receipt['wrapper_sha256'] == q.sha(p['wrapper'])
+            and receipt['parent_review_sha256'] == q.sha(out / 'PARENT_REVIEW.json')
+            and receipt['launcher_hostname'] == 'k8s-node1' and type(receipt['launcher_utc']) is str,
+            'Launch receipt or parent approval snapshot differs')
     require(d['State']['Status'] == 'exited' and d['State']['ExitCode'] == 0, 'Retained Docker not successfully exited')
     require(re.fullmatch(r'rc=0 utc=\S+\n?', q.snapshot(out / 'EXIT').data.decode()), 'Wrapper exit differs')
     terminal = q.load(out / 'COMPLETE.json'); report = q.load(out / 'report.json')
@@ -280,7 +284,15 @@ def verify_complete(path, q):
     require(committed == {n: q.sha(out / n) for n in committed} and q.sha(path) == ph, 'Completion evidence changed during verification')
     q.frozen(p['files'])
     q.verify()
+    current = q.inspect(p['container'])
+    require(current and current['Id'] == d['Id']
+            and current['State']['Status'] == 'exited' and current['State']['ExitCode'] == 0
+            and current['State']['StartedAt'] == d['State']['StartedAt']
+            and current['State']['FinishedAt'] == d['State']['FinishedAt'],
+            'NPU exit generation changed during independent verification')
     return dict(plan_sha256=ph, container_id=d['Id'], actual_exit=0,
+                npu_started_at=d['State']['StartedAt'], npu_finished_at=d['State']['FinishedAt'],
+                npu_exit_sha256=q.sha(out / 'EXIT'), npu_launch_receipt_sha256=q.sha(out / 'LAUNCH_RECEIPT.json'),
                 terminal_sha256=q.sha(out / 'COMPLETE.json'), report_sha256=q.sha(out / 'report.json'),
                 receipt_manifest=manifest, attempt_manifest=attempt_manifest, trace_valid=expected['trace_valid'], candidate_batch_admission=False,
                 scope='Independent CPU receipt/trace reconstruction plus retained Docker identity; no new NPU forward, kernel cause or admission')

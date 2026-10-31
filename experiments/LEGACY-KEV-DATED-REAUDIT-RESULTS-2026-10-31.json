@@ -551,5 +551,49 @@
     "Weights are rehashed as bytes; model inference, tokenization and device numerical behavior are not rerun.",
     "No training/business gain, paired consistency, new data population, NPU work, resource release or Open-Jev JEVal admission claim."
   ],
-  "parent_result_verification": "Current Codex parent independently verified terminal/report,8952equal before/after entries,seven audit SHA,8462records/11495questions/28panels,unchanged legacy matrix and actual new Docker exited0. Actual Astra bounded result review remains a separate next step."
+  "parent_result_verification": "Current Codex parent independently verified terminal/report,8952equal before/after entries,seven audit SHA,8462records/11495questions/28panels,unchanged legacy matrix and actual new Docker exited0. Actual Astra bounded result review remains a separate next step.",
+  "current_publication_status": "ACTUAL_ASTRA_BOUNDED_RESULT_REVIEW_COMPLETE_WITH_DATED_CLARIFICATIONS",
+  "dated_updates": [
+    {
+      "recorded_utc": "2026-10-30T23:57:08.520067+00:00",
+      "status": "ACTUAL_ASTRA_BOUNDED_RESULT_REVIEW_COMPLETE_WITH_DATED_CLARIFICATIONS",
+      "actual_review_record": "experiments/ASTRA-LEGACY-KEV-DATED-REAUDIT-REVIEW-2026-10-31.json",
+      "review_sha256": "588a9431baa419735055b76943fef841a015cae9d2829fa9d9d28c2dd16bf6d0",
+      "erratum": {
+        "recorded_utc": "2026-10-30T23:57:08.520067+00:00",
+        "path": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e39_legacy_kev_current_reaudit_20261031_v2/ERRATUM-ASTRA-SCOPE-20261031.md",
+        "sha256": "61a0c621cad1af89b029f53b6695c684b35298c29a8194f958bef80ccdcc7885",
+        "metric_change": false,
+        "review_sha256": "588a9431baa419735055b76943fef841a015cae9d2829fa9d9d28c2dd16bf6d0",
+        "clarifications": [
+          "Auditor source hashes checked before bounded in-memory read adapter; original auditor bytes are not executed unmodified.",
+          "Durable per-file journal covers BEFORE/AFTER hash_phase only, not every internal auditor read.",
+          "Cross-scan equality is path/SHA/bytes; fd/stat identity is checked within reads, not stored across scans."
+        ],
+        "resume_scope": "Successful generation did not reuse cache; reviewer did not execute cache/restart/recovery or unit tests. Safe unattended resume remains unverified.",
+        "reviewer_extra_subgroups": [
+          {
+            "source": "devtools aegis_category",
+            "n": 25,
+            "correct_by_model": {
+              "kev08": 22,
+              "kev4": 23,
+              "kev9": 21
+            }
+          },
+          {
+            "source": "kev08 transfer clean native confidence>=0.99",
+            "n": 13,
+            "correct": 13
+          },
+          {
+            "source": "kev08 decision dbpedia14",
+            "n": 80,
+            "correct": 80
+          }
+        ]
+      }
+    }
+  ],
+  "snapshot_scope": "Original top-level status describes CPU and parent-verification snapshot. Current actual Astra publication status is current_publication_status and dated_updates; original report/metrics are unchanged."
 }

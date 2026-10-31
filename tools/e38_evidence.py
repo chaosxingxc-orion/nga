@@ -99,9 +99,76 @@ class Evidence:
         return result
 
 
+def sync_directory(path):
+    fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try: os.fsync(fd)
+    finally: os.close(fd)
+
+
+def durable_mkdir(path):
+    """Persist every directory entry from / to path, including existing links.
+
+    This deliberately does not rely on fsync of a new child directory to persist
+    its name in its own parent. All traversal rejects symlinks.
+    """
+    path = Path(os.path.abspath(path))
+    fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        for part in path.parts[1:]:
+            try: os.mkdir(part, 0o755, dir_fd=fd)
+            except FileExistsError: pass
+            child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            try:
+                os.fsync(child)
+                os.fsync(fd)
+            except BaseException:
+                os.close(child)
+                raise
+            os.close(fd); fd = child
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def durable_move(source, target):
+    """Preserve a historical artifact; persist both sides and destination chain.
+
+    Files use a no-overwrite hard link committed before removing the old name.
+    A crash between those actions leaves two recoverable copies, never zero.
+    Directory moves are used only under the CPU task's exclusive lock into a
+    unique previously absent history path.
+    """
+    source, target = Path(source), Path(target)
+    require(not source.is_symlink() and not target.is_symlink(),
+            'Historical move source/target differs')
+    durable_mkdir(target.parent)
+    durable_mkdir(source.parent)
+    if target.exists():
+        require(source.is_file() and target.is_file(), 'Historical directory target already exists')
+        left, right = Snapshot(source), Snapshot(target)
+        require(left.identity[:2] == right.identity[:2] and left.sha256 == right.sha256,
+                'Ambiguous historical duplicate: source and target are not the same committed link')
+        left.verify(); right.verify()
+        sync_directory(target.parent)
+        source.unlink(); sync_directory(source.parent)
+        return
+    if source.is_dir():
+        os.rename(source, target)
+        sync_directory(target.parent)
+        sync_directory(source.parent)
+    else:
+        with os.fdopen(open_regular(source), 'rb') as stream:
+            os.fsync(stream.fileno())
+        os.link(source, target, follow_symlinks=False)
+        sync_directory(target.parent)
+        source.unlink()
+        sync_directory(source.parent)
+
+
 def publish_new(path, value):
     """Durably publish without replacing any existing artifact or stale temp."""
     path = Path(path)
+    durable_mkdir(path.parent)
     raw = (json.dumps(value, ensure_ascii=False, allow_nan=False, indent=2) + '\n').encode()
     tmp = path.with_name(path.name + '.pending')
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644)

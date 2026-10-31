@@ -242,7 +242,9 @@ class CompletionReadRaceRegressions(unittest.TestCase):
         write(self.out / 'INDEPENDENT_REVIEW.json', dict(approved=True, approved_plan_sha256=self.ph,
               review_path=str(independent), review_sha256=digest(independent.read_bytes())))
         write(self.out / 'LAUNCH_RECEIPT.json', dict(plan_sha256=self.ph,
-              wrapper_sha256=digest(self.wrapper.read_bytes())))
+              wrapper_sha256=digest(self.wrapper.read_bytes()),
+              parent_review_sha256=digest((self.out/'PARENT_REVIEW.json').read_bytes()),
+              launcher_hostname='k8s-node1', launcher_utc='2026-10-31T00:00:00Z'))
         write(self.out / 'SELECTION.json', self.plan['selection'])
         (self.out / 'EXIT').write_text('rc=0 utc=2026-10-31T00:00:00Z\n')
         self.items = self.out / 'items'; self.items.mkdir()
@@ -286,7 +288,8 @@ class CompletionReadRaceRegressions(unittest.TestCase):
         self.helper=types.SimpleNamespace(
             IMAGE='fixture-image',load=lambda p:json.loads(Path(p).read_text()),
             sha=lambda p:digest(Path(p).read_bytes()),frozen=lambda p:None,
-            inspect=lambda c:dict(Id='fixture-id',State=dict(Status='exited',ExitCode=0)),
+            inspect=lambda c:dict(Id='fixture-id',State=dict(Status='exited',ExitCode=0,
+                StartedAt='2026-10-31T00:00:00Z', FinishedAt='2026-10-31T00:01:00Z')),
             binding=lambda *a:None)
         for name in ['check_prediction','check_trace']:
             guard=patch.object(v,name,return_value=None);guard.start();self.addCleanup(guard.stop)

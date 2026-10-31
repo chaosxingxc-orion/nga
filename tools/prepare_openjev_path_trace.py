@@ -30,7 +30,8 @@ NAMES = ['openjev_path_trace_run.py', 'openjev_path_trace.py',
          'test_openjev_path_trace_run.py', 'test_prepare_openjev_path_trace.py',
          'openjev_candidate_chunks.py', 'openjev_batch_diagnostic.py',
          'prepare_openjev_batch_diagnostic.py', 'jeval_reference_queue.py', 'e38_evidence.py',
-         'test_e38_evidence.py', 'test_e38_astra_regressions.py', 'fixtures/e38_e37_native_predictions.json']
+         'test_e38_evidence.py', 'test_e38_astra_regressions.py', 'test_e38_astra_v4_regressions.py',
+         'fixtures/e38_e37_native_predictions.json']
 
 
 def module(path, name):
@@ -43,6 +44,10 @@ def module(path, name):
 def helper(folder):
     q = module(folder / 'jeval_reference_queue.py', 'e38_resource_helpers')
     return module(folder / 'e38_evidence.py', 'e38_control_evidence').Evidence(q)
+
+
+def durable():
+    return module(Path(__file__).with_name('e38_evidence.py'), 'e38_directory_durability')
 
 
 def require(value, message):
@@ -322,7 +327,10 @@ def cpu_binding(q, request_path, status=None):
     r, spec = cpu_request_check(q, request_path); out = request_path.parent
     d = q.inspect(r['container']); receipt = q.load(out / 'LAUNCH_RECEIPT.json')
     q.binding(d, spec, receipt)
-    require(receipt['request_sha256'] == q.sha(request_path) and receipt['wrapper_sha256'] == q.sha(r['wrapper']), 'CPU launch receipt differs')
+    require(receipt['request_sha256'] == q.sha(request_path) and receipt['wrapper_sha256'] == q.sha(r['wrapper'])
+            and receipt['parent_review_sha256'] == q.sha(out / 'PARENT_REVIEW.json')
+            and receipt['launcher_hostname'] == 'k8s-node1' and type(receipt['launcher_utc']) is str,
+            'CPU launch receipt or approval snapshot differs')
     if status: require(d['State']['Status'] == status, 'CPU actual state differs')
     return r, d
 
@@ -347,7 +355,9 @@ def cpu_launch(path, resume=False):
         if not receipt.exists():
             require(d['State']['Status'] == 'created' and intent.exists() and q.load(intent) == expected, 'Unknown CPU receipt gap')
             q.atomic(receipt, dict(container_id=d['Id'], image=q.IMAGE, command=spec['Cmd'], entrypoint=spec['Entrypoint'],
-                                  request_sha256=rh, wrapper_sha256=q.sha(r['wrapper']), utc=q.utc()))
+                                  request_sha256=rh, wrapper_sha256=q.sha(r['wrapper']),
+                                  parent_review_sha256=q.sha(out / 'PARENT_REVIEW.json'),
+                                  launcher_utc=q.utc(), launcher_hostname=socket.gethostname(), utc=q.utc()))
         cpu_binding(q, path)
         if d['State']['Status'] == 'running':
             require(not (out / 'EXIT').exists(), 'Running CPU with stale EXIT')
@@ -406,9 +416,9 @@ def cpu_task(path):
                                 and q.load(target / 'PREPARATION_AUDIT.json')['plan_sha256'] == q.sha(target_plan), 'Recovered preparation identity differs')
                         q.frozen(prior['files'])
                     else:
-                        history = out / 'partial_preparations'; history.mkdir(exist_ok=True)
+                        history = out / 'partial_preparations'; durable().durable_mkdir(history)
                         q.verify(metadata_only=True)
-                        target.rename(history / str(time.time_ns()))
+                        durable().durable_move(target, history / str(time.time_ns()))
                         for key in list(q.snapshots):
                             if Path(key).is_relative_to(target): q.snapshots.pop(key)
                 if not target.exists():
@@ -488,11 +498,10 @@ def review_interruption(q, out, ph, d):
     if evidence.exists():
         match = re.fullmatch(r'rc=([0-9]+) utc=\S+\n?', q.snapshot(evidence).data.decode())
         require(match and int(match[1]) == d['State']['ExitCode'] and review.get('exit_sha256') == q.sha(evidence), 'Reviewed EXIT differs')
-        archive.mkdir(parents=True, exist_ok=True)
+        durable().durable_mkdir(archive)
         if evidence == out / 'EXIT':
-            require(not (archive / 'EXIT').exists(), 'Ambiguous interruption archive')
             q.verify(metadata_only=True)
-            evidence.replace(archive / 'EXIT')
+            durable().durable_move(evidence, archive / 'EXIT')
             q.snapshots.pop(os.path.abspath(evidence), None)
     else:
         require(review.get('exit_sha256') is None, 'Reviewed EXIT missing')
@@ -501,10 +510,9 @@ def review_interruption(q, out, ph, d):
     folder = out / 'items'
     if folder.exists():
         for partial in folder.glob('*.json.tmp'):
-            archive.mkdir(parents=True, exist_ok=True)
+            durable().durable_mkdir(archive)
             saved = archive / partial.name
-            require(not saved.exists(), 'Partial archive already exists')
-            partial.replace(saved)
+            durable().durable_move(partial, saved)
 
 
 def launch(path, resume=False):
@@ -542,11 +550,15 @@ def launch(path, resume=False):
             q.binding(d, spec)
             if receipt.exists():
                 r = q.load(receipt); q.binding(d, spec, r)
-                require(r['plan_sha256'] == ph and r['wrapper_sha256'] == q.sha(p['wrapper']), 'Receipt binding differs')
+                require(r['plan_sha256'] == ph and r['wrapper_sha256'] == q.sha(p['wrapper'])
+                        and r['parent_review_sha256'] == q.sha(out / 'PARENT_REVIEW.json')
+                        and r['launcher_hostname'] == 'k8s-node1', 'Receipt/approval binding differs')
             else:
                 require(d['State']['Status'] == 'created' and intent.exists() and q.load(intent) == expected, 'Foreign or receipt-gap container')
                 q.atomic(receipt, dict(container_id=d['Id'], image=p['image'], command=spec['Cmd'],
-                         entrypoint=spec['Entrypoint'], plan_sha256=ph, wrapper_sha256=q.sha(p['wrapper']), utc=q.utc()))
+                         entrypoint=spec['Entrypoint'], plan_sha256=ph, wrapper_sha256=q.sha(p['wrapper']),
+                         parent_review_sha256=q.sha(out / 'PARENT_REVIEW.json'),
+                         launcher_utc=q.utc(), launcher_hostname=socket.gethostname(), utc=q.utc()))
             status = d['State']['Status']
             if status == 'running':
                 require(owned and not (out / 'EXIT').exists(), 'Running allocation/EXIT differs')

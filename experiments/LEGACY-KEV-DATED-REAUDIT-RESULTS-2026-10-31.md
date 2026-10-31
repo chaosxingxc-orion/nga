@@ -1,5 +1,7 @@
 # E39 — new dated CPU re-audit of 28 legacy Kev reference panels
 
+**Current publication status: actual Astra bounded review is complete, with the dated clarifications below.** The original CPU-result text is retained as its publication snapshot; no original metrics or frozen evidence were changed.
+
 **All 28 fixed panels were independently reconstructed from the current saved evidence; no metric changed.** The new CPU run completed 7 original runs, 8,462 record receipts and 11,495 questions. Its 8,952-file before/after manifests match exactly, and the retained new container actually exited 0. This adds evidence of current integrity; all 28 original `absent_legacy_inline_audit` labels and the old matrix remain unchanged. The current Codex parent independently verified the result bindings and actual exit; a separate actual Astra bounded result review is being prepared.
 
 Recorded locally: 2026-10-30T23:38:05.395478+00:00. Host 175 terminal time: 2026-10-30T23:34:02Z; actual Docker FinishedAt: 2026-10-30T23:34:02.99185183Z. The host clock was approximately 98 seconds behind the local observation clock; both original timestamps are preserved.
@@ -43,3 +45,21 @@ Directory: `/mnt/cephfs/xingchao/experiments/jev/reference_inference/e39_legacy_
 V1 remains retained with actual exit 1 and generation 0001 failure at 0/8,952: the local repository matrix path was absent on host 175. V2 froze a SHA-identical portable matrix snapshot and made root-created atomic outputs readable with 0644. No original reference data was rewritten, no metric changed and no NPU run was launched.
 
 This result does not establish historical binding, all upstream diagnostics, contamination exclusion, paired consistency, training/business gain, resource release or Open-Jev JEVal admission. It does not change the 36 result-combination count or the 2 blocked JEVal units.
+
+## 2026-10-31 actual Astra review and dated clarifications
+
+The [full actual review](ASTRA-LEGACY-KEV-DATED-REAUDIT-REVIEW-2026-10-31.md) supports bounded publication after the following clarifications. Runner and real child both exited 0. The reviewer independently rebuilt all 28 panels from original receipts; maximum absolute difference from the original matrix was 1.1102230246251565e-16. This is an independent new review, not inherited approval.
+
+1. The driver verifies the frozen original auditor source bytes, then performs one bounded in-memory replacement of the direct test.jsonl text-read expression and compiles the modified source. It does not execute the original auditor bytes unchanged. Actual Astra AST comparison confirmed that build_rows, softmax and metric mathematics were unchanged; its independent reconstruction from original receipts establishes the metric result.
+2. Durable per-file journal entries apply to the BEFORE/AFTER hash_phase scans. Additional auditor dependency digests and JSON/source reads are not each individually journaled. No claim of journaling every read is made.
+3. Equal before/after manifests prove equality of saved path-to-SHA256/byte-count entries. File-descriptor/stat identity is checked within each read; inode/mtime/ctime identity is not stored and compared across the two full scans.
+
+The successful v2 generation 0001 reused no cached arithmetic. Cache reuse, restart, crash and recovery paths were not executed by the actual reviewer, who did not rerun the 11 unit tests. RESUME_EXACT.sh only runs docker start by name; its required prior container ID/spec/exit checks and saved terminal observations remain manual, documented conditions. This result does not establish verified unattended safe recovery.
+
+The reviewer independently rehashed 8,930 bundle files / 45,876,752 bytes and rebuilt 11,495 questions from all 8,462 original receipts. Of the original 8,952 scan inputs, 8,875 files / 31,876,988 bytes were included and re-read; 77 inputs / 30,878,489,118 bytes were excluded. Exclusions include weights, tokenizers/configs and some development inputs. E39 saved full-scan records cover 30,910,366,106 bytes; the actual review did not independently read all those bytes.
+
+Zero new headline flags applies to the original 28 fixed panels and whole-suite constant-vector screen only. Additional reviewer observations retain subgroup limits: devtools aegis_category has 25 questions (correct 22/23/21 for 0.8B/4B/9B); 0.8B transfer clean at native confidence>=0.99 selects 13 questions, all correct; 0.8B decision dbpedia14 is 80/80. These are reviewer diagnostics, not new preregistered inference panels, and do not change any headline metric or original flag count.
+
+All 28 absent_legacy_inline_audit labels remain unchanged. No historical finisher reconstruction, historical immutability, no-contamination, model/tokenization/device rerun, training/business gain, resource release, or Open-Jev JEVal admission follows.
+
+Additive erratum SHA `61a0c621cad1af89b029f53b6695c684b35298c29a8194f958bef80ccdcc7885`.

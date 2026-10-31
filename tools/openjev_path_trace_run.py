@@ -294,8 +294,8 @@ def run(plan_path):
         chunks = module(out / 'openjev_candidate_chunks.py', 'e38_chunks')
         req = p['input']['request']; e = model.eligibility(req)
         require(e == p['input']['eligibility'], 'Loaded tokenizer eligibility changed')
-        folder = out / 'items'; folder.mkdir(exist_ok=True); results = {}
-        attempts = out / 'attempts'; attempts.mkdir(exist_ok=True)
+        folder = out / 'items'; evidence.durable_mkdir(folder); results = {}
+        attempts = out / 'attempts'; evidence.durable_mkdir(attempts)
         for count, task in enumerate(schedule()):
             key = name(task); path = folder / (key + '.json'); state.update(stage=key, progress=count)
             expected = identity(p, ph, task)

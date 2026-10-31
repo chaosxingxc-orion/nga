@@ -1,6 +1,6 @@
 # E39 — current-date CPU re-audit of 28 legacy Kev reference panels
 
-> Status: v2 CPU re-audit complete, parent verification complete; actual Astra review running; v1 failure retained · Round: reference evaluation / evidence audit · Date: 2026-10-31 (Asia/Shanghai)
+> Status: v2 CPU re-audit complete, parent verification complete; actual Astra bounded review complete with dated clarifications; v1 failure retained · Round: reference evaluation / evidence audit · Date: 2026-10-31 (Asia/Shanghai)
 > Original pre-run plan (v1; successful v2 recorded below): `/mnt/cephfs/xingchao/experiments/jev/reference_inference/e39_legacy_kev_current_reaudit_20261031_v1/PLAN.json`
 > Code: [dated audit driver](../tools/legacy_kev_dated_reaudit.py); independent arithmetic from [Kev auditor](../tools/verify_reference_kev.py) and [devtools auditor](../tools/verify_reference_kev_devtools.py).
 
@@ -89,3 +89,11 @@ A unique E39 review bundle contains **8,930 files / 45,876,752 bytes**, includin
 ## 2026-10-31 dated actual Astra launch
 
 After parent independently verified all 8,930 bundle hashes/byte counts and the specific review scope, the new actual `codex exec --model gpt-6-astra --sandbox read-only` process started. Runner PID **1628131**, real CLI child PID **1628133**; both were observed alive, and the bounded digest reported reviewing. PROCESS.json records the exact command and manifest identity. No review verdict exists yet. This is independent of the E38 review, and does not reuse another result approval.
+
+## 2026-10-31 actual Astra bounded review complete
+
+Actual review completed at 2026-10-30T23:54:43.046664+00:00, real child/runner rc 0. [Full verbatim review](../experiments/ASTRA-LEGACY-KEV-DATED-REAUDIT-REVIEW-2026-10-31.md) supports bounded current-evidence and 28-panel publication after the [dated source-result note](../experiments/LEGACY-KEV-DATED-REAUDIT-RESULTS-2026-10-31.md). The original registration and prior result text are preserved as historical snapshots.
+
+Required wording correction: frozen auditor bytes are verified then one source-read expression is replaced in memory before execution; per-file durable journals cover BEFORE/AFTER hash_phase only; cross-scan equality means saved path/SHA/bytes, while descriptor/stat identity is checked within each read. No metric changed, original matrix and 28 historical-binding labels remain. New erratum `/mnt/cephfs/xingchao/experiments/jev/reference_inference/e39_legacy_kev_current_reaudit_20261031_v2/ERRATUM-ASTRA-SCOPE-20261031.md` SHA `61a0c621cad1af89b029f53b6695c684b35298c29a8194f958bef80ccdcc7885`.
+
+The reviewer rehashed 8,930 bundle files and independently rebuilt all 28 panels, maximum matrix difference 1.1102230246251565e-16. It did not re-read 77 excluded dependencies or all 30.9 GB, rerun the 11 unit tests, exercise cache/restart/recovery, or query live Docker. Resume remains a manually guarded command, not verified unattended recovery. Subgroup observations (aegis n=25; transfer confidence>=.99 n=13 all correct; dbpedia14 80/80) preserve small/perfect-cell limitations without changing original headline flags. Review SHA `588a9431baa419735055b76943fef841a015cae9d2829fa9d9d28c2dd16bf6d0`, COMPLETE SHA `49c9584ba95b599df571f6ad93c223ef8b122faf284fcf8fceffc740ec3f1dac`.

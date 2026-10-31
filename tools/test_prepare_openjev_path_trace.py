@@ -94,6 +94,8 @@ class Guards(unittest.TestCase):
         self.approve()
         q.atomic(self.allocation,{'allocation':[],'free':[{'chip':0}]})
         self.d=None; self.calls=[]
+        hostname_patch=patch.object(p.socket,'gethostname',return_value='k8s-node1')
+        hostname_patch.start();self.addCleanup(hostname_patch.stop)
         self.stack=[]
         for name,value in [('ROOT',self.root),('ALLOCATION',self.allocation)]:
             patcher=patch.object(p,name,value);patcher.start();self.addCleanup(patcher.stop)
@@ -114,7 +116,7 @@ class Guards(unittest.TestCase):
             self.calls.pop();return {'Config':{'Entrypoint':['native-image-entrypoint']}}
         if '/create?' in path:
             self.d=dict(Id='container1',Image=q.IMAGE,Config={k:value[k] for k in ['Cmd','Entrypoint','Env','Labels']},
-                HostConfig=copy.deepcopy(value['HostConfig']),State=dict(Status='created',ExitCode=0,FinishedAt='time0'))
+                HostConfig=copy.deepcopy(value['HostConfig']),State=dict(Status='created',ExitCode=0,StartedAt='start0',FinishedAt='time0'))
         elif path.endswith('/start'):self.d['State']['Status']='running'
 
     def start(self):return p.launch(self.path)
@@ -258,7 +260,7 @@ class Guards(unittest.TestCase):
         self.assertIn('python3 -P',script.read_text());self.assertIn('2>&1',script.read_text())
 
     def complete(self):
-        self.start();self.d['State']=dict(Status='exited',ExitCode=0,FinishedAt='completed')
+        self.start();self.d['State']=dict(Status='exited',ExitCode=0,StartedAt='start',FinishedAt='completed')
         (self.out/'EXIT').write_text('rc=0 utc=2026-10-31T00:00:00Z\n')
         folder=self.out/'items';folder.mkdir()
         ph=q.sha(self.path)
