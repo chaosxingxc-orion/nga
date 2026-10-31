@@ -72,18 +72,39 @@ def main():
         'pt_evidence': evidence(PT, 'K1-PT', PT_MODEL),
     }
     k0 = load(a.k0_preparation) if a.k0_preparation.is_file() else {}
-    checks['fresh_k0'] = {'path': str(a.k0_preparation), 'status':
-                          'PASS' if k0.get('status') == 'PASS' else k0.get('status', 'MISSING')}
+    # PREPARED.json is a queue hand-off record.  It intentionally remains in
+    # WAITING_VERIFIED_K0_REPORT after the worker starts; only the immutable
+    # K0_PRECHECKS.json produced by the worker can establish PASS.
+    k0_bundle = a.k0_preparation.parent / 'evidence' / 'K0_PRECHECKS.json'
+    if k0_bundle.is_file():
+        bundle = load(k0_bundle)
+        k0_status = 'PASS' if (bundle.get('schema') == 'r3-fresh-k0-prechecks-v1'
+                               and bundle.get('status') == 'PASS'
+                               and bundle.get('scientific_acceptance') is False
+                               and bundle.get('test_read') is False) else 'INVALID'
+    else:
+        k0_status = k0.get('status', 'MISSING')
+    checks['fresh_k0'] = {'path': str(k0_bundle), 'status': k0_status}
     resume = load(a.resume_plan) if a.resume_plan.is_file() else {}
     train_exit = Path(resume.get('out', a.resume_plan.parent)) / 'attempts/1/TRAIN_EXIT.json'
+    exit_doc = load(train_exit) if train_exit.is_file() else {}
     checks['resume_source'] = {'path': str(a.resume_plan), 'status':
-                               'PASS' if train_exit.is_file() else 'WAITING_TRAIN_EXIT',
+                               'PASS' if (exit_doc.get('exit_code') == 0
+                                          and exit_doc.get('scientific_acceptance') is False
+                                          and exit_doc.get('test_read') is False)
+                               else ('INVALID' if train_exit.is_file() else 'WAITING_TRAIN_EXIT'),
                                'train_exit': str(train_exit)}
     rec = load(a.resume_reconstruction) if a.resume_reconstruction.is_file() else {}
     checks['resume_reconstruction'] = {'path': str(a.resume_reconstruction), 'status':
                                       'PASS' if rec.get('status') == 'PASS' else rec.get('status', 'WAITING')}
-    checks['independent_astra_review'] = {'status': 'PASS' if a.review and a.review.is_file() and
-                                         load(a.review).get('verdict') == 'PASS' else 'MISSING'}
+    review = load(a.review) if a.review and a.review.is_file() else {}
+    checks['independent_astra_review'] = {'status': 'PASS' if (
+        review.get('verdict') == 'PASS'
+        and review.get('review_kind') == 'independent_astra'
+        and review.get('reviewer_model') == 'gpt-6-astra'
+        and isinstance(review.get('approved_plan_sha256'), str)
+        and len(review['approved_plan_sha256']) == 64
+    ) else ('INVALID' if review else 'MISSING')}
     missing = [key for key, value in checks.items() if value.get('status') != 'PASS']
     result = {'schema': 'r3-formal-control-readiness-v1', 'scientific_acceptance': False,
               'test_read': False, 'status': 'READY' if not missing else 'WAITING',
