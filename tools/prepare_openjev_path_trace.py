@@ -206,6 +206,16 @@ def _prepare(source, prereg, config, e37_path, out, name, chip, request_path, he
         plan['files'][str(p)] = q.sha(p)
     plan['files'].update(q.load(request_path)['files'])
     plan['files'][str(request_path)] = q.sha(request_path)
+    # Bind the actual fixed-image native implementation exported by the CPU
+    # suite.  This is deliberately part of the exact plan closure so an
+    # independent reviewer can inspect the Qwen/GDN source used by the native
+    # import, rather than trusting a package version label alone.
+    native_dir = source / 'native_source'
+    if native_dir.is_dir():
+        for native_path in sorted(x for x in native_dir.rglob('*') if x.is_file()):
+            plan['files'][str(native_path)] = q.sha(native_path)
+        plan['native_source_manifest'] = str(native_dir / 'SOURCE.json')
+        plan['native_source_manifest_sha256'] = q.sha(native_dir / 'SOURCE.json')
     q.atomic(out / 'plan.json', plan)
     for p in out.glob('*.py'): compile(p.read_bytes(), str(p), 'exec')
     for p in out.glob('*.sh'): subprocess.run(['bash', '-n', str(p)], check=True)
@@ -278,6 +288,12 @@ def make_request(source, prereg, config, e37_path, out, name, chip, request_out,
     for name_ in NAMES:
         (request_out / name_).parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source / name_, request_out / name_)
+    native_source = source / 'native_source'
+    if native_source.is_dir():
+        for native_path in sorted(x for x in native_source.rglob('*') if x.is_file()):
+            target = request_out / native_path.relative_to(source)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(native_path, target)
     shutil.copy2(prereg, request_out / 'PREREGISTRATION.md')
     request_path = request_out / 'request.json'
     command = ['python3', '-P', str(request_out / 'prepare_openjev_path_trace.py'), '--cpu-task', str(request_path)]
