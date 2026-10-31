@@ -136,3 +136,15 @@ Retained fixed-image CPU `nga-e40-native-runtime-cpu-20261031-v2` completed 8/8
 tests without skips and exited 0 at 04:12:10.90846683Z, no devices. Final driver
 source including rejected terminal manifest was tested. Evidence is
 `experiments/E40-NATIVE-RUNTIME-CPU-V2-2026-10-31.json`; no NPU was launched.
+
+## 2026-10-31 actual v3 NPU launch
+
+After actual Astra exact-code/plan PASS (`d7631ea9249f60e39443d74e5fe3dbdb96cb076b55a30db5a9629580c9747ed5`), exact parent/independent approvals were written for plan `90721d6509df030a71ed012848f7a0b11ce31b7fd11d63c306fbaf90b223c3d9`. The guarded launcher rechecked physical host, occupancy and allocation, claimed only chip 1 and started retained container `a4c560fb26e89f9d41bd58352e1f4b5d934d3da8970a3357635682bd92f30df7` at `2026-10-31T06:13:18.64908503Z`. Run directory: `reference_inference/e40_lifetime_npu_openjev2_20261031_v3`. Initial digest is verifying, 0/8. No result, numerical admission or resource release is claimed at launch.
+
+## 2026-10-31 v3 actual NPU results, independent verifier and release
+
+The retained NPU container completed 8/8 and actually exited/0 at `06:14:21.58421406Z`. All 10 repeat/candidate controls are exact; all candidate logit deltas are zero. Original/L2 peak allocated is `3.8616762161254883 GiB`; L1/L1L2 is `3.8067426681518555 GiB`, both repeats. Peak reserved is `4.142578125 GiB` for every mode. These are one chip, one fixed 2B input; no large-shape safety, full JEVal admission or generic speedup claim. Original first forward takes 1.1337145201 s versus 0.3344910201 s for its repeat; timings are retained per-forward and not averaged into a claimed speedup. The one-input/two-repeat review flag and `candidate_batch_admission=false` remain.
+
+Detached no-device CPU verifier `eb053292fc401dd772846ca1d2457fd8f15047fb3d2b6f93e31f28f58062e554` completed and actually exited/0 at `06:15:34.94236611Z`; report SHA `de50f86c79adffef2ffa3ed4e89c7c6ef0e8ded21b1ee7478d6058e700885d58`. Its post-exit attestation was generated from the real retained Docker generation.
+
+The approved release tool then reconstructed all item/control evidence, checked both real exits and current device occupancy, and released chip 1 using an external caller pin `7c6c56383d845b2549da2bfdfc46ce388aff50d31e5a9df63e0677fdbaa5fb64`. Journal `e40_release_openjev2_20261031_v1`, RELEASED SHA `e0834bb6e259cf2333e253bfe2ff828ba17526f6eefdebe8f7af482ed324bd45`; allocation after SHA `7a7fd6803c4e9e543b9727dd30ea27c7ac63480b1ae359bcfb9e9bae9d108783`, free=[4,1]. Independent post-transaction check confirmed only chip 1 ownership changed and other owners remain unchanged. Both containers stay inspectable. The new bounded actual-results Astra review remains pending. Full evidence and per-chip measurements: `experiments/E40-LIFETIME-NPU-RESULT-2026-10-31.json`.
