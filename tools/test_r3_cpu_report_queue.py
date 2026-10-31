@@ -21,6 +21,9 @@ class CPUQueueTests(unittest.TestCase):
 
     def inference_ready(self):
         root=Path(self.job['eval_out']);end={'attempt':2,'exit_code':0}
+        self.write(root/'attempts/1/EXIT.json',{'attempt':1,'exit_code':7})
+        self.write(root/'attempts/1/RELEASE.json',{'exit_code':7,'container_id':'prior','run':'run','chip':1,'scientific_acceptance':False})
+        self.write(root/'attempts/1/LAUNCH_RECEIPT.json',{'id':'prior'})
         self.write(root/'ENGINEERING_EVAL_EXIT.json',end)
         self.write(root/'attempts/2/EXIT.json',end)
         self.write(root/'attempts/2/RELEASE.json',{'exit_code':0,'container_id':'exact','run':'run','chip':1,'scientific_acceptance':False})
@@ -31,13 +34,49 @@ class CPUQueueTests(unittest.TestCase):
     def test_wait_release_failure_and_mismatch(self):
         self.assertEqual(Q.ready(self.job),'waiting_inference')
         root=Path(self.job['eval_out'])
-        self.write(root/'ENGINEERING_EVAL_EXIT.json',{'attempt':1,'exit_code':1})
-        self.assertEqual(Q.ready(self.job),'inference_failed')
-        self.write(root/'ENGINEERING_EVAL_EXIT.json',{'attempt':1,'exit_code':0})
+        self.inference_ready()
+        end={'attempt':2,'exit_code':7}
+        self.write(root/'ENGINEERING_EVAL_EXIT.json',end)
+        self.write(root/'attempts/2/EXIT.json',end)
+        (root/'attempts/2/RELEASE.json').unlink()
         self.assertEqual(Q.ready(self.job),'waiting_release')
+        self.write(root/'attempts/2/RELEASE.json',{'exit_code':7,'container_id':'exact','run':'run','chip':1,'scientific_acceptance':False})
+        self.assertEqual(Q.ready(self.job),'inference_failed')
         self.inference_ready();self.assertEqual(Q.ready(self.job),'ready')
         self.write(root/'attempts/2/EXIT.json',{'attempt':1,'exit_code':0})
         with self.assertRaisesRegex(RuntimeError,'terminal mismatch'):Q.ready(self.job)
+
+    def test_previous_failure_during_new_attempt_waits_then_accepts_success(self):
+        self.inference_ready();root=Path(self.job['eval_out'])
+        self.write(root/'ENGINEERING_EVAL_EXIT.json',{'attempt':1,'exit_code':7})
+        self.assertEqual(Q.ready(self.job),'waiting_inference')
+        # A waiting retry must not close the queue, even when it is the only job.
+        with patch.object(Q,'verify',return_value=self.doc),patch.object(Q.time,'sleep',side_effect=InterruptedError):
+            with self.assertRaises(InterruptedError):Q.watch(self.path,self.pin)
+        self.assertFalse((self.root/'DONE.json').exists())
+        self.write(root/'ENGINEERING_EVAL_EXIT.json',{'attempt':2,'exit_code':0})
+        self.assertEqual(Q.ready(self.job),'ready')
+
+    def test_failed_inference_remains_observed_for_later_retry(self):
+        with patch.object(Q,'verify',return_value=self.doc),patch.object(Q,'tick',return_value={'one':{'status':'inference_failed'}}),patch.object(Q.time,'sleep',side_effect=InterruptedError):
+            with self.assertRaises(InterruptedError):Q.watch(self.path,self.pin)
+        self.assertFalse((self.root/'DONE.json').exists())
+
+    def test_failed_terminal_requires_matching_release_and_prior_history(self):
+        self.inference_ready();root=Path(self.job['eval_out'])
+        self.write(root/'ENGINEERING_EVAL_EXIT.json',{'attempt':2,'exit_code':7})
+        self.write(root/'attempts/2/EXIT.json',{'attempt':2,'exit_code':7})
+        with self.assertRaisesRegex(RuntimeError,'release mismatch'):Q.ready(self.job)
+        self.inference_ready()
+        self.write(root/'attempts/1/EXIT.json',{'attempt':1,'exit_code':0})
+        with self.assertRaisesRegex(RuntimeError,'retry after successful'):Q.ready(self.job)
+
+    def test_future_terminal_and_wrong_plan_pin_refused(self):
+        self.inference_ready();root=Path(self.job['eval_out'])
+        self.write(root/'ENGINEERING_EVAL_EXIT.json',{'attempt':3,'exit_code':0})
+        with self.assertRaisesRegex(RuntimeError,'generation differs'):Q.ready(self.job)
+        self.inference_ready();plan=Q.load(root/'execution.json');plan['chip']=5;self.write(root/'execution.json',plan)
+        with self.assertRaisesRegex(RuntimeError,'generation differs'):Q.ready(self.job)
 
     def test_ready_later_job_runs_without_waiting_first(self):
         later=dict(self.job,id='two',eval_out=str(self.root/'later'))

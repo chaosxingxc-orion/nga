@@ -80,28 +80,45 @@ def ready(job):
     if not terminal.exists():
         return 'waiting_inference'
     end = load(terminal)
-    number = end.get('attempt')
-    require(type(number) is int and number > 0, 'invalid inference attempt')
-    if end['exit_code'] != 0:
-        return 'inference_failed'
-    attempt = root / 'attempts' / str(number)
-    if not (attempt / 'RELEASE.json').exists():
-        return 'waiting_release'
-    require(load(attempt / 'EXIT.json') == end, 'inference terminal mismatch')
-    release = load(attempt / 'RELEASE.json')
-    launch = load(attempt / 'LAUNCH_RECEIPT.json')
+    ended_number = end.get('attempt')
+    require(type(ended_number) is int and ended_number > 0, 'invalid inference attempt')
     plan_path = root / 'execution.json'
     plan = load(plan_path)
     supervisor = load(root / 'SUPERVISOR_RECEIPT.json')
     command = supervisor['command']
     require(isinstance(command, list) and len(command) == 10 and
-            command[1:] == ['-P', plan['launcher'], 'supervise', '--plan', str(plan_path),
-                            '--sha256', sha(plan_path), '--attempt', str(number)],
+            command[1:9] == ['-P', plan['launcher'], 'supervise', '--plan', str(plan_path),
+                            '--sha256', sha(plan_path), '--attempt'] and
+            isinstance(command[-1], str) and command[-1].isdigit(),
             'inference supervisor generation differs')
-    require(release['exit_code'] == 0 and release['container_id'] == launch['id']
-            and release['run'] == plan['run'] and release['chip'] == plan['chip']
-            and release['scientific_acceptance'] is False, 'inference release mismatch')
-    return 'ready'
+    number = int(command[-1])
+    require(number >= 1 and str(number) == command[-1] and ended_number <= number,
+            'inference terminal generation differs')
+
+    def released(attempt_number, marker):
+        attempt = root / 'attempts' / str(attempt_number)
+        require(marker.get('attempt') == attempt_number, 'inference terminal mismatch')
+        require(load(attempt / 'EXIT.json') == marker, 'inference terminal mismatch')
+        release = load(attempt / 'RELEASE.json')
+        launch = load(attempt / 'LAUNCH_RECEIPT.json')
+        require(release['exit_code'] == marker['exit_code'] and release['container_id'] == launch['id']
+                and release['run'] == plan['run'] and release['chip'] == plan['chip']
+                and release['scientific_acceptance'] is False, 'inference release mismatch')
+
+    for previous in range(1, number):
+        marker = load(root / 'attempts' / str(previous) / 'EXIT.json')
+        require(marker['exit_code'] != 0, 'retry after successful inference')
+        released(previous, marker)
+        if previous == ended_number:
+            require(marker == end, 'inference terminal mismatch')
+    if ended_number < number:
+        # Supervisor runs on host 175; this CPU service may run elsewhere.
+        # A newer receipt is reason to wait, never proof of liveness or success.
+        return 'waiting_inference'
+    if not (root / 'attempts' / str(number) / 'RELEASE.json').exists():
+        return 'waiting_release'
+    released(number, end)
+    return 'ready' if end['exit_code'] == 0 else 'inference_failed'
 
 
 def report_command(doc, job):
@@ -214,7 +231,9 @@ def watch(path, pin):
             states = tick(path, pin, doc)
             digest = {'utc_seconds': time.time(), 'jobs': states, 'scientific_acceptance': False}
             atomic(path.parent / 'digest.json', digest)
-            if all(x['status'] in ('done', 'report_failed', 'inference_failed') for x in states.values()):
+            # An inference failure can still receive an operator-authorized
+            # retry. Keep observing it so later success is not left unreported.
+            if all(x['status'] in ('done', 'report_failed') for x in states.values()):
                 atomic(path.parent / 'DONE.json', digest); return
             time.sleep(15)
 
