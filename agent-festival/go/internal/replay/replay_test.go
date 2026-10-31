@@ -306,3 +306,81 @@ func TestUnknownFieldRecordIsMatchPlusFail(t *testing.T) {
 		t.Fatalf("quadrant = %s/%s, want match/fail (typed fields equal + smuggled property rejected by the raw arm)", rep.Fidelity, rep.Conformance)
 	}
 }
+
+// TestIsolationCoversRawViews pins the M5 fix (R3): a substitution closure
+// that mutates the substitute's raw views must not reach the original
+// case's raw conformance inputs — the isolation contract covers the raw
+// layer, and the assertion compares the raw views DIRECTLY (a json.Marshal
+// of the Case is blind to the json:"-" fields).
+func TestIsolationCoversRawViews(t *testing.T) {
+	c := loadCase(t, "unknown-field-in-record.json")
+	rawRecBefore, _ := json.Marshal(c.RecordedRawDoc)
+	rawCaseBefore, _ := json.Marshal(c.rawCaseDoc)
+	_, err := Reevaluate(c, func(sub *Case) {
+		// hostile closure: rewrite the substitute's raw views in place
+		if len(sub.RecordedRawDoc) > 0 {
+			if last, ok := sub.RecordedRawDoc[len(sub.RecordedRawDoc)-1].(map[string]any); ok {
+				delete(last, "smuggled")
+			}
+		}
+		sub.RecordedRawDoc = sub.RecordedRawDoc[:0]
+		sub.rawCaseDoc = map[string]any{"tampered": true}
+	})
+	_ = err // the hostile closure breaking the substitute is expected; the assertion is about the ORIGINAL
+	rawRecAfter, _ := json.Marshal(c.RecordedRawDoc)
+	rawCaseAfter, _ := json.Marshal(c.rawCaseDoc)
+	if string(rawRecBefore) != string(rawRecAfter) {
+		t.Fatal("a substitution closure reached the original case's RecordedRawDoc — isolation does not cover the raw layer")
+	}
+	if string(rawCaseBefore) != string(rawCaseAfter) {
+		t.Fatal("a substitution closure reached the original case's raw case view — isolation does not cover the raw layer")
+	}
+}
+
+// TestMissingRawViewsRefuseJudgment pins the two fail-loud guards (R3:
+// deleting either stayed green): a hand-built Case without the raw views is
+// REFUSED — schema validation and the conformance arm never judge a
+// laundered projection silently.
+func TestMissingRawViewsRefuseJudgment(t *testing.T) {
+	c := loadCase(t, "happy-chain.json")
+	// strip both raw views (hand-built Case shape)
+	stripped := &Case{
+		CaseVersion: c.CaseVersion, CaseID: c.CaseID,
+		Steps: c.Steps, RecordedEvents: c.RecordedEvents, Expected: c.Expected,
+	}
+	_, err := Replay(stripped)
+	if err == nil || !strings.Contains(err.Error(), "raw case view") {
+		t.Fatalf("missing rawCaseDoc (checked first): err = %v, want the laundering refusal", err)
+	}
+	withCase := *stripped
+	withCase.rawCaseDoc = c.rawCaseDoc // raw case view present, raw recorded still missing
+	_, err = Replay(&withCase)
+	if err == nil || !strings.Contains(err.Error(), "raw recorded view") {
+		t.Fatalf("missing RecordedRawDoc: err = %v, want the laundering refusal", err)
+	}
+}
+
+// TestInspectByOperationProjection pins the by-operation projection (R3:
+// zero consumers made it dead weight — it is the audit view, assert it).
+func TestInspectByOperationProjection(t *testing.T) {
+	c := loadCase(t, "happy-chain.json")
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m, err := adopt.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var req adopt.Request
+	if err := json.Unmarshal(c.Steps[0].Request, &req); err != nil {
+		t.Fatal(err)
+	}
+	if o := m.Adopt(&req); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	rep, err := Inspect(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rep.ByOperation["op-h"]) != 1 {
+		t.Fatalf("by-operation projection = %v, want one event for op-h", rep.ByOperation["op-h"])
+	}
+}

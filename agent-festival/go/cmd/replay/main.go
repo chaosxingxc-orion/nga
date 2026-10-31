@@ -1,6 +1,6 @@
 // replay runs the replay-case fixture suite (piece 6, Go side of the oracle):
 // every examples/replay/valid/* must recompute to its pinned double verdict
-// (fidelity × conformance — the three reachable quadrants are pinned), every invalid/*
+// (fidelity × conformance — all four quadrants are pinned), every invalid/*
 // must be rejected for the reason its _expect_match names. The suite
 // discipline lives in internal/suite.
 package main

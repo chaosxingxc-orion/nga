@@ -188,5 +188,5 @@
     "conformance": "fail",
     "divergence_at": 3
   },
-  "_expect": "ACCEPT family (d): the record carries a recorded violation (dispatched after the completed terminal — a revival, exactly the duplicate-effect family) that the production machine can never reproduce: recomputation forks in length at event 3 AND the record fails the eight families — the divergence+fail quadrant. The match+fail quadrant remains out of reach in 0.1.0: full-field comparison means record==recomputation implies the record is machine-written hence conformant; reproducing a HISTORICAL violation would need the historical machine version (Known Limitation)."
+  "_expect": "ACCEPT family (d): the record carries a recorded violation (dispatched after the completed terminal — a revival, exactly the duplicate-effect family) that the production machine can never reproduce: recomputation forks in length at event 3 AND the record fails the eight families — the divergence+fail quadrant. The match+fail quadrant is pinned separately by unknown-field-in-record (the unknown-property channel)."
 }

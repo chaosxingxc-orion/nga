@@ -456,7 +456,9 @@ func deepCopyCase(c *Case) (*Case, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err := json.Unmarshal(b, &cp.RecordedRawDoc); err != nil {
+		dec := json.NewDecoder(bytes.NewReader(b))
+		dec.UseNumber() // RecordedRawDoc is a ledger.Errors input — the integer-domain discipline applies to copies too
+		if err := dec.Decode(&cp.RecordedRawDoc); err != nil {
 			return nil, err
 		}
 	}
