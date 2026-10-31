@@ -1,0 +1,22 @@
+{
+  "scope": "separate E40 CPU verifier launcher fixtures only; not actual E40 verification",
+  "tests": 12,
+  "rc": 0,
+  "container_id": "88df273068210bf399f741d54985777ef7f9702f1475a755a476c24ad142375b",
+  "started_at": "2026-10-31T03:53:50.26880492Z",
+  "finished_at": "2026-10-31T03:53:50.75274857Z",
+  "actual_devices": [],
+  "run": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e40_cpu_verify_launcher_tests_20261031_v1",
+  "files": {
+    "PLAN.json": "3eb3d1432db2107425a6f52d41b3f65ced039cf50c78da7db15962d83c0208ac",
+    "COMPLETE.json": "c96dca03d5cd524f5687ef0ce0adbfc8e33e3cdebaaa01291a8753e8e588ed08",
+    "EXIT": "e3645aee087c1ad7c1312e648dc7d5fc4f7f111be82d3a96445a0edfa48cbf8b",
+    "openjev_lifetime_verify_launch.py": "a5a40323b7afabe0105495f62d53c06a70bd26b59b4b1cbbd98ce1a672510e16",
+    "test_openjev_lifetime_verify_launch.py": "eb8e2f28d0301a83fa25e4fe6859276ec69b1812282ab3e039f1c9277f825e4e"
+  },
+  "limitations": [
+    "Docker transport in tests mocked; actual detached outer fixture tested",
+    "Production E40 request created only after successful NPU terminal",
+    "New verifier launcher requires independent review; no release permission"
+  ]
+}

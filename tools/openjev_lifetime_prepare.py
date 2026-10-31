@@ -32,9 +32,12 @@ def prepare(source,e38_plan,native_source,prereg,out,container):
     out.mkdir(parents=False)
     for n in NAMES:shutil.copy2(source/n,out/n)
     shutil.copy2(prereg,out/'PREREGISTRATION.md');shutil.copy2(native_source,out/'modeling_qwen3_5.py')
-    wrapper=('#!/usr/bin/env bash\nset -uo pipefail\ncd /tmp\n'
+    wrapper=('#!/usr/bin/env bash\nset -uo pipefail\ncd /\n'
+        'unset PYTHONHOME PYTHONUSERBASE PYTHONSTARTUP\n'
+        'export PYTHONNOUSERSITE=1\n'
+        'export PYTHONPATH=/usr/local/python3.12.13/lib/python3.12/site-packages:/usr/local/Ascend/ascend-toolkit/latest/python/site-packages:/usr/local/Ascend/ascend-toolkit/latest/opp/built-in/op_impl/ai_core/tbe:/usr/local/Ascend/cann-9.2.0/python/site-packages:/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe\n'
         'pin=$(cat '+shlex.quote(str(out/'PLAN.sha256'))+')\n'
-        'python3 -B -P '+shlex.quote(str(out/'openjev_lifetime_npu.py'))+' --plan '+shlex.quote(str(out/'plan.json'))+
+        '/usr/local/python3.12.13/bin/python3 -B -S -s -P '+shlex.quote(str(out/'openjev_lifetime_npu.py'))+' --plan '+shlex.quote(str(out/'plan.json'))+
         ' --plan-sha256 "$pin" >> '+shlex.quote(str(out/'run.log'))+' 2>&1\nrc=$?\nset -o noclobber\n'
         'printf \'rc=%s utc=%s\\n\' "$rc" "$(date -u +%FT%TZ)" > '+shlex.quote(str(out/'EXIT'))+'\nexit "$rc"\n')
     (out/'run.sh').write_text(wrapper)

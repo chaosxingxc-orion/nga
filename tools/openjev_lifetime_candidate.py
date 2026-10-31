@@ -96,8 +96,10 @@ def validate_call(torch, bound):
     a = bound.arguments
     if (type(a['chunk_size']) is not int or a['chunk_size'] != 64
             or a['initial_state'] is not None or a['output_final_state'] is not False
-            or type(a['use_qk_l2norm_in_kernel']) is not bool or a['kwargs']):
-        raise ValueError('Only C64, no cache/final state, and no extra kwargs supported')
+            or type(a['use_qk_l2norm_in_kernel']) is not bool
+            or set(a['kwargs']) - {'cu_seqlens'}
+            or a['kwargs'].get('cu_seqlens') is not None):
+        raise ValueError('Only C64, no cache/final state, and native cu_seqlens=None supported')
     if not torch.is_inference_mode_enabled() or torch.is_grad_enabled():
         raise ValueError('Lifetime candidate requires inference_mode and disabled gradients')
     tensors = [a[k] for k in ('query', 'key', 'value', 'g', 'beta')]
@@ -112,7 +114,7 @@ def validate_call(torch, bound):
         raise ValueError('Expected nonempty native Qwen3.5 2B/9B GDN shapes')
 
 
-def build_candidate(source, native_function, variant):
+def build_arithmetic(source, native_function, variant):
     """Compile only the verified function, using the supplied native globals.
 
     Loading/authenticating the native module and framework remains the run
@@ -125,10 +127,18 @@ def build_candidate(source, native_function, variant):
     actual = ast.parse(inspect.getsource(native_function)).body[0]
     if tree_dump(actual) != tree_dump(original):
         raise ValueError('Loaded native function differs from frozen source')
+    if variant == 'original':
+        return native_function
     tree = ast.Module(body=[candidate_tree(source, variant)], type_ignores=[])
     namespace = dict(native_function.__globals__)
     exec(compile(tree, '<openjev-lifetime-' + variant + '>', 'exec'), namespace)
-    candidate = namespace[FUNCTION]
+    return namespace[FUNCTION]
+
+
+def build_candidate(source, native_function, variant):
+    """Standalone guarded API; runtime uses arithmetic under one common guard."""
+    candidate = build_arithmetic(source, native_function, variant)
+    namespace = native_function.__globals__
     signature = inspect.signature(native_function)
     @functools.wraps(native_function)
     def guarded(*args, **kwargs):

@@ -7,6 +7,7 @@ import hashlib
 import importlib.util
 import inspect
 import json
+import math
 import os
 from pathlib import Path
 import socket
@@ -51,7 +52,7 @@ def lifetime_path(backbone, torch, source, mode, expected_names, candidate, call
             original = mod.chunk_gated_delta_rule
             if Path(inspect.getsourcefile(original)).read_bytes() != source:
                 raise ValueError('Loaded native module source differs')
-            selected = original if mode == 'original' else candidate.build_candidate(source, original, mode)
+            selected = candidate.build_arithmetic(source, original, mode)
             signature = inspect.signature(original)
             def wrapper(*args, _name=name, _fn=selected, _sig=signature, **kwargs):
                 call = _sig.bind(*args, **kwargs); call.apply_defaults()
@@ -69,6 +70,31 @@ def lifetime_path(backbone, torch, source, mode, expected_names, candidate, call
     finally:
         for mod, original in replaced:
             mod.chunk_gated_delta_rule = original
+
+
+def rejected_value(value):
+    """Keep nonfinite observations explicit while writing strict JSON evidence."""
+    if isinstance(value, float) and not math.isfinite(value):
+        return {'nonfinite_float': repr(value)}
+    if isinstance(value, dict):
+        return {k: rejected_value(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [rejected_value(v) for v in value]
+    return value
+
+
+def publish_measurement(out, key, value, plan, durable, proto, prediction_check):
+    """A rejected completed forward retains measurements outside success receipts."""
+    try:
+        prediction_check(value['prediction'], plan)
+        proto.check_metrics(value, plan)
+    except Exception as exc:
+        durable.publish_new(out/'rejected'/(key+'.json'), dict(
+            status='REJECTED_COMPLETED_FORWARD', successful_prefix_eligible=False,
+            candidate_batch_admission=False, reason=type(exc).__name__+': '+str(exc),
+            observed_payload=rejected_value(value)))
+        raise
+    durable.publish_new(out/'items'/(key+'.json'), dict(payload=value, sha256=proto.stamp(value)))
 
 
 def generation(q, e, p, ph, running=True):
@@ -163,8 +189,7 @@ def run(path, ph):
                         tokens_per_second_per_chip=sum(eligible['lengths'])/seconds, chips=1, **baseline,
                         peak_allocated_gib=torch.npu.max_memory_allocated()/2**30,
                         peak_reserved_gib=torch.npu.max_memory_reserved()/2**30)
-                    old.check_prediction(prediction, p); proto.check_metrics(value, p)
-                    durable.publish_new(receipt, dict(payload=value, sha256=proto.stamp(value)))
+                    publish_measurement(out, key, value, p, durable, proto, old.check_prediction)
                 state.update(progress=index+1, questions_per_second_per_chip=value['questions_per_second_per_chip'],
                              tokens_per_second_per_chip=value['tokens_per_second_per_chip'], reserved_gib=value['peak_reserved_gib'])
             values = proto.check_receipts(p, ph, bound, old.check_prediction, complete=True, generation=gen)
@@ -179,7 +204,9 @@ def run(path, ph):
             stop.set(); thread.join()
             durable.publish_new(out/'COMPLETE.json', dict(rc=rc, error=error, plan_sha256=ph, **state,
                 output_sha256=bound.sha(out/'report.json') if report is not None and (out/'report.json').exists() else None,
-                candidate_batch_admission=False, utc=q.utc()))
+                candidate_batch_admission=False,
+                rejected_manifest={f.name:bound.sha(f) for f in sorted((out/'rejected').glob('*.json'))},
+                utc=q.utc()))
 
 
 if __name__ == '__main__':

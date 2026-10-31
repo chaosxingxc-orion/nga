@@ -1,0 +1,35 @@
+{
+  "scope": "CPU native-call AST/full-shape arithmetic and runtime wrapper only; no full transformer/checkpoint/NPU",
+  "tests": 6,
+  "skips": 0,
+  "rc": 0,
+  "container_id": "5d49fd139e27c3cf9a50d1e3416cacdee2553d53653188a304e4de826235d936",
+  "started_at": "2026-10-31T04:00:49.96216653Z",
+  "finished_at": "2026-10-31T04:00:56.92107561Z",
+  "run": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e40_native_runtime_cpu_20261031_v1",
+  "native_call": {
+    "native_call_full_shape": [
+      15,
+      186,
+      16,
+      128
+    ],
+    "outputs": {
+      "original": "2ac102ed163f1dcf3f6fc5ffda203f14c4dbbee5c153d30566d54cd38747c8a9",
+      "L1": "2ac102ed163f1dcf3f6fc5ffda203f14c4dbbee5c153d30566d54cd38747c8a9",
+      "L2": "2ac102ed163f1dcf3f6fc5ffda203f14c4dbbee5c153d30566d54cd38747c8a9",
+      "L1L2": "2ac102ed163f1dcf3f6fc5ffda203f14c4dbbee5c153d30566d54cd38747c8a9"
+    },
+    "guard_calls_per_mode": 1
+  },
+  "files": {
+    "PLAN.json": "583b12126d12698832306372649f378d81508a6b86f30a1fd046ee7dcac6deea",
+    "run.log": "1c810df01e6da13874df270d3bbf1c712a8ed308553f3695b6a70c3d63a69aa2",
+    "COMPLETE.json": "71d19aef81129a5359d4118d9878d26a1613851c08aded694d8ad57b19bf0f59",
+    "EXIT": "f39322e3db0cf2c6af9109470963ae9e3d2c0a8a0fa69395a0b82c8fa72a7445",
+    "openjev_lifetime_candidate.py": "13954cd93c7f4529bee9ee8af7b7fc24d2beb9c855b0084a26e29f3eea59280f",
+    "openjev_lifetime_npu.py": "851a2ffda49c5e3c51fc7aad09daa339dc2f7a8d78ea945d801e8e6f3f64b007",
+    "test_openjev_lifetime_runtime.py": "958acfdc621fb208e9fa41e9e26ba0fd30dae32ac9828ef0bc4061af1d8e52d4",
+    "e38_evidence.py": "12a5e895d6fa16df0506418dfbad0affe584cd06e62993a40bee0b4d86ee5b77"
+  }
+}

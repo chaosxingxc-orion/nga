@@ -1,0 +1,34 @@
+{
+  "scope": "Actual Astra v2 launch only; not approval and no NPU launch",
+  "runner": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e40_lifetime_astra_20261031_v2",
+  "process": {
+    "command": [
+      "/home/xingchao/.npm-global/bin/codex",
+      "exec",
+      "--model",
+      "gpt-6-astra",
+      "--sandbox",
+      "read-only",
+      "--skip-git-repo-check",
+      "--ephemeral",
+      "--json",
+      "-C",
+      "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e40_lifetime_astra_20261031_v2",
+      "-o",
+      "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e40_lifetime_astra_20261031_v2/review.md",
+      "-"
+    ],
+    "pid": 1787902,
+    "runner_pid": 1787901,
+    "utc": 1793419584.8094742
+  },
+  "expected": {
+    "bundle": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e40_lifetime_candidate_20261031_v2",
+    "manifest_sha256": "6b5ee438eef270aaad48354d8d29413dcd72f99c88114d5d7d34dc5a5de5bc54",
+    "runner_sha256": "0977cc3b96ce6b1e12fe13ca5eb3783438aa8f126a29e2676d3493cb629d5125",
+    "brief_sha256": "c4a14bbdc08fd12bdca2c812d7f267fbf47b7067a89c0e8d7844b778664642ce"
+  },
+  "plan": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e40_lifetime_npu_openjev2_20261031_v2/plan.json",
+  "plan_sha256": "fc119e89b508a11af34023c9a20cbbaaf8251b8bcb92deca102151d4bab644cd",
+  "cpu_verify_launcher_sha256": "802751fe99fdf439590f94ff2f838ed1359ea307ddc0545ed4a94f3bbf52882b"
+}

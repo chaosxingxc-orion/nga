@@ -76,8 +76,9 @@ class LifetimeTests(unittest.TestCase):
 
     def test_supported_shape_guard_and_rejected_modes(self):
         torch,bound=self.fixture(); m.validate_call(torch,bound)
+        bound.arguments['kwargs']={'cu_seqlens':None}; m.validate_call(torch,bound)
         for key,value in [('chunk_size',1),('chunk_size',64.0),('initial_state',object()),
-                          ('output_final_state',True),('kwargs',{'cache':True}),('use_qk_l2norm_in_kernel',1)]:
+                          ('output_final_state',True),('kwargs',{'cache':True}),('kwargs',{'cu_seqlens':[0,1]}),('use_qk_l2norm_in_kernel',1)]:
             torch,bound=self.fixture();bound.arguments[key]=value
             with self.subTest(key=key),self.assertRaises(ValueError):m.validate_call(torch,bound)
         torch,bound=self.fixture();torch.is_grad_enabled=lambda:True

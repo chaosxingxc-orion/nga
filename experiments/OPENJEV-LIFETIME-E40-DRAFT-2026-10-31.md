@@ -77,3 +77,22 @@ candidate tests pass. These tests are not a live Docker launch/resume test. The 
 candidate must receive actual independent code/plan review before NPU launch. Independent
 post-exit verification must itself run in a detached device-free container; the supplied
 verifier performs no model forward and verifies actual retained NPU exit and generation.
+
+## 2026-10-31 v2 repair amendment, before any NPU execution
+
+The v1 candidate was BLOCKED by actual Astra and remains unlaunched and immutable.
+The v2 candidate keeps the same eight forwards, full shape, numeric comparisons,
+stop rules and false admission. It explicitly permits only native `cu_seqlens=None`
+in extra kwargs. Original and candidate arithmetic now share one external guard,
+with equal bind/default/validation work. Completed forwards rejected for numerical
+or memory reasons retain their observations and reason under `rejected/`, bound by
+the terminal; these records never become successful-prefix resume entries.
+
+The NPU and separate CPU verifier wrappers use an explicit fixed-image interpreter,
+`-S -s -P`, and nonempty fixed-image site-packages/CANN paths, avoiding writable
+PYTHONPATH and site `.pth` additions. This preserves CANN/tbe without forbidden
+Ascend-container `-I`. Clean startup was tested in a retained CPU container.
+Launch recovery authenticates an already-running owned generation without demanding
+that its own device be empty, and reuses validated pending receipt/claim bytes.
+Crash fixtures use synthetic Docker transport; they do not prove live crash recovery.
+The new exact plan and independent CPU verification support require actual review.

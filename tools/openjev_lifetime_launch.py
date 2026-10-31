@@ -45,7 +45,11 @@ def launch(path, pin):
     proto.require(len(device)==1 and device[0]['PathOnHost']=='/dev/davinci1','Only physical chip 1 allowed')
     proto.require(not any(spec['HostConfig'].get(k) for k in ['Privileged','DeviceRequests','DeviceCgroupRules','Mounts','PidMode']),
                   'Unexpected device exposure')
-    allocation=Path('/mnt/cephfs/xingchao/experiments/jev/CHIP-ALLOCATION.json')
+    return transaction(p, pin, out, spec, q, e, durable, old, proto,
+        Path('/mnt/cephfs/xingchao/experiments/jev/CHIP-ALLOCATION.json'))
+
+
+def transaction(p, pin, out, spec, q, e, durable, old, proto, allocation):
     lockfd=os.open(str(allocation)+'.lock',os.O_WRONLY|os.O_CREAT|os.O_NOFOLLOW,0o644)
     with os.fdopen(lockfd,'w') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX)
@@ -57,7 +61,6 @@ def launch(path, pin):
         if actual is not None:
             q.binding(actual,spec)
             proto.require(actual['State']['Status'] in ('created','running'),'Docker restart requires new generation')
-        old.free_now(q,1,ignore=actual['Id'] if actual is not None else None)
         expected=dict(plan_sha256=pin,spec_sha256=e.sha(p['container_spec']),run=run,chip=1)
         if intent_path.exists():proto.require(q.load(intent_path)==expected,'Launch intent differs')
         else:
@@ -69,10 +72,19 @@ def launch(path, pin):
             current['allocation'].append(dict(chip=1,run=run,owner='E40 full-shape lifetime diagnostic',claimed_utc=q.utc(),
                 release_when='independent complete receipt verification, actual exit and reviewed release transaction'))
             claim=out/'CLAIM.json'
-            if claim.exists():
-                saved=q.load(claim)
+            claim_pending=claim.with_name(claim.name+'.pending')
+            if claim.exists() or claim_pending.exists():
+                saved=q.load(claim if claim.exists() else claim_pending)
                 proto.require(saved['before']==before and saved['plan_sha256']==pin,'Claim recovery differs')
-                current=saved['after']
+                recovered=saved['after']
+                proto.require([x for x in recovered['allocation'] if x.get('chip')!=1]==before['allocation']
+                    and recovered['free']==[x for x in before['free'] if x.get('chip')!=1]
+                    and len([x for x in recovered['allocation'] if x.get('chip')==1 and x.get('run')==run])==1,
+                    'Pending claim transition differs')
+                proto.require(all(recovered[k]==v for k,v in before.items() if k not in ('allocation','free')),
+                    'Pending claim changes unrelated metadata')
+                current=recovered
+                durable.publish_new(claim,saved)
             else:durable.publish_new(claim,dict(plan_sha256=pin,before=before,after=current))
             e.verify(metadata_only=True);q.atomic(allocation,current);durable.sync_directory(allocation.parent)
         else:
@@ -80,19 +92,41 @@ def launch(path, pin):
             proto.require(claim['plan_sha256']==pin and any(x['run']==run and x['chip']==1 for x in claim['after']['allocation']),
                           'Existing owner lacks exact claim')
         if actual is None:
+            proto.require(not (out/'LAUNCH_RECEIPT.json').exists()
+                and not (out/'LAUNCH_RECEIPT.json.pending').exists(), 'Receipt without retained Docker')
+            old.free_now(q,1)
             q.docker('POST','/containers/create?name='+p['container'],spec);actual=q.inspect(p['container'])
         q.binding(actual,spec)
         receipt=out/'LAUNCH_RECEIPT.json'
-        if not receipt.exists():
-            proto.require(actual['State']['Status']=='created','Missing receipt for started Docker')
-            durable.publish_new(receipt,dict(container_id=actual['Id'],image=proto.IMAGE,command=spec['Cmd'],
-                entrypoint=spec['Entrypoint'],plan_sha256=pin,wrapper_sha256=e.sha(p['wrapper']),
-                parent_review_sha256=e.sha(out/'PARENT_REVIEW.json'),launcher_hostname=socket.gethostname(),launcher_utc=q.utc()))
+        receipt_fields=dict(container_id=actual['Id'],image=proto.IMAGE,command=spec['Cmd'],
+            entrypoint=spec['Entrypoint'],plan_sha256=pin,wrapper_sha256=e.sha(p['wrapper']),
+            parent_review_sha256=e.sha(out/'PARENT_REVIEW.json'),launcher_hostname=socket.gethostname())
+        pending=receipt.with_name(receipt.name+'.pending')
+        if not receipt.exists() or pending.exists():
+            proto.require(actual['State']['Status']=='created','Missing or uncertain receipt for started Docker')
+            if pending.exists():
+                value=q.load(pending)
+                proto.require(set(value)==set(receipt_fields)|{'launcher_utc'}
+                    and all(value[k]==v for k,v in receipt_fields.items())
+                    and type(value['launcher_utc']) is str and bool(value['launcher_utc']), 'Pending receipt differs')
+            else:value=dict(**receipt_fields,launcher_utc=q.utc())
+            durable.publish_new(receipt,value)
+        saved=q.load(receipt)
+        proto.require(set(saved)==set(receipt_fields)|{'launcher_utc'}
+            and all(saved[k]==v for k,v in receipt_fields.items()),'Receipt identity differs')
         q.binding(actual,spec,q.load(receipt))
         proto.require(q.load(receipt)['plan_sha256']==pin,'Receipt plan differs')
         # The wrapper convenience pin is checked against the external review-bound pin before start.
         proto.require((out/'PLAN.sha256').read_text()==pin+'\n','Wrapper pin differs')
-        if actual['State']['Status']=='created':
+        if actual['State']['Status']=='running':
+            # A start response can be lost after successful device acquisition.
+            # Authenticate retained ownership/intent/receipt, then acknowledge it;
+            # demanding an empty NPU would reject the very job being recovered.
+            for item in q.docker('GET','/containers/json'):
+                proto.require(item['Id']==actual['Id'] or not q.chip_access(q.inspect(item['Id']),1),
+                    'Other live Docker resource conflict')
+        else:
+            old.free_now(q,1,ignore=actual['Id'])
             e.verify(metadata_only=True);q.docker('POST','/containers/'+actual['Id']+'/start')
         return dict(container_id=actual['Id'],status=q.inspect(p['container'])['State']['Status'],physical_chip=1)
 

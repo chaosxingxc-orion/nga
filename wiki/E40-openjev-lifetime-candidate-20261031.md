@@ -111,3 +111,17 @@ pass. No live Docker launch/recovery, fixed-image NPU integration, throughput or
 memory savings are established by those tests. Review of the frozen candidate is
 still required before execution, and the independent verifier must be run detached
 without accelerator devices after the retained NPU container actually exits.
+
+## 2026-10-31 detached CPU verifier launcher fixture, before execution
+
+A no-device retained fixed-image CPU fixture `e40_cpu_verify_launcher_tests_20261031_v1` / `nga-e40-cpu-verify-launch-tests-20261031-v1` will execute 12 unit tests of the separate verifier launcher. It tests creation/retry, missing or mismatched receipts, stopped-generation rejection, device-spec rejection and authenticated helper bytes. Docker lifecycle in these tests is mocked; the outer fixture container is actual detached Docker. This is not an E40 NPU forward, numerical result, launcher end-to-end validation or release authorization. Source hashes, plan, wrapper, log and terminal are retained in the fixture directory.
+
+### Detached verifier launcher fixture result
+
+The retained outer fixture container `88df273068210bf399f741d54985777ef7f9702f1475a755a476c24ad142375b` actually exited/0 at `2026-10-31T03:53:50.75274857Z` with no mapped devices; terminal rc=0. All 12 fixture tests passed, source/plan hashes were rechecked. Binding record: `experiments/E40-CPU-VERIFY-LAUNCHER-TESTS-2026-10-31.json`. The new `tools/openjev_lifetime_verify_launch.py` prepares a pinned separate request after NPU exit, launches no-device retained verification, preserves uncertain generations and records post-exit attestation separately. It has not yet verified an actual E40 run and requires review before use. Frozen E40 v1 files were not modified.
+
+## 2026-10-31 native-call CPU regression before E40 v2
+
+Before launch, register `e40_native_runtime_cpu_20261031_v1`: fixed image, retained no-device CPU container, 2 cores/4 GiB, seed4071, full15×186×16×128 bf16 tensors. Extract authenticated native GDN call AST and arithmetic, apply actual runtime wrapper to all4 modes, compare output bytes and single guard invocation; check non-None packed argument rejection/restoration and rejected-measurement retention. No full transformer/checkpoint/NPU or performance claim. Exact commands and plan in run directory.
+
+Native-call CPU regression completed: 6/6 tests, no skip, all four full15×186×16×128 bf16 outputs byte exact, exactly one common guard per call, invalid packed argument restores original function. Actual retained Docker exited/0 at 04:00:56.92107561Z. Failed completed-forward metrics and nonfinite observations retain explicit rejected records outside success receipts. Evidence: `experiments/E40-NATIVE-RUNTIME-CPU-2026-10-31.json`. This does not establish NPU parity, peak memory improvement or throughput.
