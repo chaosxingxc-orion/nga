@@ -89,3 +89,44 @@ def run_suite(label: str, valid_dir: Path, invalid_dir: Path, errors) -> int:
 def main(label: str, valid_dir: Path, invalid_dir: Path, errors) -> int:
     bad = run_suite(label, valid_dir, invalid_dir, errors)
     return 1 if bad else 0
+
+
+def _self_test() -> bool:
+    """Pin the V28/V32 hardening arms (R17 m-3): wrong-typed pins fail LOUD
+    and parse-failed pins stay armed — the Go twin has seven poison tests;
+    without this, the Python half of the hardening is dead code no oracle
+    ever exercises."""
+    import tempfile
+    ok = True
+    with tempfile.TemporaryDirectory() as tmp:
+        valid = Path(tmp) / "valid"
+        invalid = Path(tmp) / "invalid"
+        valid.mkdir()
+        invalid.mkdir()
+        (valid / "ok.json").write_text('{"_expect": "clean"}')
+        # wrong-typed pin on the must-reject side: loud FAIL, not a silent
+        # downgrade to "no pin"
+        bad = invalid / "bad-pin.json"
+        bad.write_text('{"poison": "x", "_expect_match": 5}')
+        captured = _capture(lambda: run_suite("t", valid, invalid, lambda d: ["poison"] if "poison" in d else []))
+        if "FAIL must-reject bad-pin.json" not in captured or "_expect_match must be a string" not in captured:
+            print("[_suite] SELF-TEST FAIL: wrong-typed pin not loud")
+            ok = False
+        # parse-failed fixture with a NON-matching pin: the wrong-reason
+        # check must stay armed against the parse error
+        unparseable = invalid / "unparseable.json"
+        unparseable.write_text('{"poison": "unterminated", "_expect_match": "zzz"}')
+        captured = _capture(lambda: run_suite("t", valid, invalid, lambda d: ["poison"] if "poison" in d else []))
+        if "rejected for the wrong reason" not in captured:
+            print("[_suite] SELF-TEST FAIL: parse-failed pin disarmed")
+            ok = False
+    return ok
+
+
+def _capture(f) -> str:
+    import io
+    import contextlib
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        f()
+    return buf.getvalue()

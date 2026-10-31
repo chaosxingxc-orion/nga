@@ -50,6 +50,12 @@ func mustOpen(t *testing.T, path string) *Machine {
 	return m
 }
 
+// freshMemory returns an in-memory machine (path == "").
+func freshMemory(t *testing.T) *Machine {
+	t.Helper()
+	return mustOpen(t, "")
+}
+
 // TestConcurrentDoubleAdoption is 14-A5 counterexample one: N goroutines race
 // an identical request under one key. Exactly one adopts; every other gets
 // 'reused' and the retry is a recorded fact; the durable file holds one
@@ -1556,5 +1562,64 @@ func TestOpenRejectsSeqDomainShapes(t *testing.T) {
 	// fixture pins)
 	if !strings.Contains(err.Error(), "not an event") {
 		t.Fatalf("float-syntax rejection came from an unexpected rule (error: %v)", err)
+	}
+}
+
+// TestInMemoryMode pins the documented in-memory mode (path == ""): state
+// advances without any durable form — Events() reports none, nothing is
+// written to disk (R17 m-2: the mode was documented and guarded but had
+// zero coverage; deleting the append early-exit would have killed it with
+// no red test).
+func TestInMemoryMode(t *testing.T) {
+	m := mustOpen(t, "")
+	if o := m.Adopt(testRequest("op-mem", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	if o := m.Dispatch("op-mem", pinGrants()); o.Status != "dispatched" {
+		t.Fatalf("dispatch = %q: %s", o.Status, o.Detail)
+	}
+	if o := m.MarkCompleted("op-mem"); o.Status != "completed" {
+		t.Fatalf("completed = %q: %s", o.Status, o.Detail)
+	}
+	if m.State("op-mem") != StateCompleted {
+		t.Fatalf("state = %q, want completed", m.State("op-mem"))
+	}
+	events, err := m.Events()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != 0 {
+		t.Fatalf("in-memory mode reported %d durable events, want 0", len(events))
+	}
+	// idempotence still holds in memory
+	if o := m.Adopt(testRequest("op-mem", digestA, pinGrants())); o.Status != "reused" {
+		t.Fatalf("retry = %q, want reused", o.Status)
+	}
+}
+
+// TestReturnedEventGrantsDoNotAliasPin extends the output-direction alias
+// pin to the grants field (R17 m-4: only accountability had one — a future
+// refactor unifying the two copies would reopen the 14-A4 baseline to
+// caller mutation with every test green).
+func TestReturnedEventGrantsDoNotAliasPin(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	o := m.Adopt(testRequest("op-gr", digestA, pinGrants()))
+	if o.Status != "adopted" || o.Event == nil {
+		t.Fatalf("adopt = %q, event = %v", o.Status, o.Event)
+	}
+	// the caller shrinks the returned event's grant pin to reversible...
+	o.Event.GrantsAtDecision[1].Effect = "reversible"
+	// ...then offers a live set downgraded to match: if the returned event
+	// aliased the machine's baseline, this dispatch would PASS — the intact
+	// pin (irreversible) rejects it
+	downgraded := pinGrants()
+	downgraded[1].Effect = "reversible"
+	if d := m.Dispatch("op-gr", downgraded); d.Status != "rejected" {
+		t.Fatalf("dispatch with downgraded live set = %q — the returned event aliased the machine's pin: %s", d.Status, d.Detail)
+	}
+	// control: the covering live set dispatches
+	if d := m.Dispatch("op-gr", pinGrants()); d.Status != "dispatched" {
+		t.Fatalf("dispatch with covering live set = %q, want dispatched: %s", d.Status, d.Detail)
 	}
 }

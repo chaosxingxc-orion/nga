@@ -12,7 +12,10 @@ crossing the event-type boundary, the grant pin riding the adopted event
 only, effect events carrying the adopted pin's attribution triple, and the
 single-writer event-sequence grammar (each operation opens with exactly
 one adopted event and its effect events follow the machine's transition
-DAG). Aggregation contract: the code-rule families
+DAG). Input discipline: documents come in as exact-decoded maps
+(json.loads int/float) — a Go caller feeding a float64-decoded map loses
+three rules silently (monotonicity at 2^53, the float-syntax-beyond rule,
+integral-float normalization). Aggregation contract: the code-rule families
 aggregate in the same order on both sides; both checkers short-circuit at
 the schema, and the Go checker additionally short-circuits at the
 float-syntax and typed-view-parse points where this oracle appends and

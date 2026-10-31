@@ -238,13 +238,14 @@ type Document struct {
 // single-violation by discipline (the one designed exception:
 // effect-before-adoption is one bypass fact that legitimately trips both
 // the grammar and the transition table, identically on both sides). The
-// verdict never differs. The monotonicity
-// check assumes the map input was decoded with json.Decoder.UseNumber:
-// float64 rounding is monotonic, so DECREASING pairs are caught with or
-// without exact integers — what a float64-decoded map breaks is the other
-// direction, silently rejecting LEGAL consecutive seqs that cross 2^53 (the
-// suite loader and the adopt machine's line decoder both keep this
-// discipline; future callers — the replay reader — must too).
+// verdict never differs. The map input must be decoded with
+// json.Decoder.UseNumber: on a float64 map, the monotonicity check loses
+// the DECREASING-pairs-become-equal direction silently rejecting LEGAL
+// consecutive seqs past 2^53, AND the float-syntax-beyond-±2^53 rule plus
+// the integral-float normalization go ENTIRELY silent (json.Number
+// assertions fail, values slip through as float64) — three rules, one
+// input discipline (the suite loader and the adopt machine's line decoder
+// both keep it; future callers — the replay reader — must too).
 func Errors(doc map[string]any) []string {
 	if err := schema.Validate(doc); err != nil {
 		return []string{"schema: " + err.Error()}
