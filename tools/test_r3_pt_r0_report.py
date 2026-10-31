@@ -5,6 +5,8 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import subprocess
+import sys
 from types import SimpleNamespace as NS
 import unittest
 from unittest.mock import patch
@@ -33,6 +35,7 @@ class Report(unittest.TestCase):
                 if task=='T3' and source!='typed-decisions':continue
                 p=self.data/directory/(source+'.jsonl');p.parent.mkdir(exist_ok=True)
                 row={'key':task+source};p.write_text(json.dumps(row)+'\n');self.rows[str(p)]=[row];files[str(p)]=R.sha(p)
+                manifest['tasks'][directory][source]={'records':1,'sha256':R.hashlib.sha256(p.read_bytes()[:-1]).hexdigest()}
         self.write(self.data/'manifest.json',manifest);files[str(self.data/'manifest.json')]=R.sha(self.data/'manifest.json')
         self.model={'path':str(self.training/'adapter'),'kind':'lora-adapter-unmerged','sha256':'a'*64,'base_path':R.PT_MODEL,'base_revision':'rev'}
         self.scorer={'record_grade':True,'mode':'rightpad','dtype':'float32','hf32':{'hf32':False},'token_budget':16384, 'model_path':R.PT_MODEL, 'adapter':self.model['path'],
@@ -59,7 +62,7 @@ class Report(unittest.TestCase):
         self.deps={'prompt':NS(PROMPT_VERSION='v',PROMPT_FORMAT='f'),
             'provenance_r3':NS(_scorer_problems=lambda s:[] if s==self.scorer else ['wrong']),
             'selection_evidence_r3':NS(train_identity=lambda r:self.identity,verify_run=lambda *a:{'manifests':{'one':{'scorer':self.scorer}}},
-                verify_task_manifest=lambda *a:None,validate_population=validate),
+                validate_population=validate),
             'core_r3':NS(read_jsonl=lambda p:[json.loads(x) for x in Path(p).read_text().splitlines()]),
             'common':NS(SOURCE_FILES=sources,TASK_DIRS=tasks,task_path=lambda root,t,s:str(Path(root)/tasks[t]/(s+'.jsonl')),
                 load_records=lambda p:self.rows[p]),
@@ -153,6 +156,49 @@ class Report(unittest.TestCase):
             path.write_text(original);self.contract[key]['sha256']=R.sha(path)
         inv=Path(self.contract['base_inventory']['path']);inv.write_text('{}')
         with self.assertRaisesRegex(ValueError,'bound artifact'):self.run_rebuild()
+
+    def test_builder_manifest_bytes_counts_and_framing(self):
+        path=self.root/'builder.jsonl';raw=b'{"a": 1}\n{"a": 2}\n';path.write_bytes(raw)
+        entry={'records':2,'sha256':R.hashlib.sha256(b'{"a": 1}{"a": 2}').hexdigest()}
+        self.assertEqual(R.verify_task_manifest(path,entry)['records'],2)
+        for wrong in (dict(entry,records=1),dict(entry,sha256='0'*64)):
+            with self.assertRaisesRegex(ValueError,'builder manifest'):R.verify_task_manifest(path,wrong)
+        for raw in (b'{"a": 1}',b'\n'):
+            path.write_bytes(raw)
+            with self.assertRaisesRegex(ValueError,'framing'):R.verify_task_manifest(path,entry)
+
+    def test_actual_frozen_r0_api_contract_in_clean_process(self):
+        root=Path('/mnt/cephfs/xingchao/experiments/jev/r3_runs/r0_current_gating_20261031_v1')
+        if not root.exists():self.skipTest('frozen R0 source unavailable')
+        program = r"""
+import ast,hashlib,importlib.util,json,sys,tempfile
+from pathlib import Path
+root=Path(sys.argv[1]);report=Path(sys.argv[2])
+p=root/'code/selection_evidence_r3.py'
+assert hashlib.sha256(p.read_bytes()).hexdigest()=='a386dcbfccb65eeb85036a1fc9ae67d25a7cc4e94b9668da97247c9b4017f3d1'
+spec=importlib.util.spec_from_file_location('source_report',sys.argv[3]);RR=importlib.util.module_from_spec(spec);spec.loader.exec_module(RR)
+deps=RR.frozen_modules(json.loads((root/'PREPARATION.json').read_text()))
+# Enumerate every dependency attribute actually referenced by the PT library.
+alias={'C':'core_r3','T':'track_t_r3','E':'selection_evidence_r3','PV':'provenance_r3','RC':'common'}
+for node in ast.walk(ast.parse(report.read_text())):
+ if isinstance(node,ast.Attribute) and isinstance(node.value,ast.Name) and node.value.id in alias:
+  assert hasattr(deps[alias[node.value.id]],node.attr),(node.value.id,node.attr)
+assert hasattr(deps['prompt'],'PROMPT_VERSION') and hasattr(deps['prompt'],'PROMPT_FORMAT')
+E=deps['selection_evidence_r3'];assert not hasattr(E,'verify_task_manifest')
+spec=importlib.util.spec_from_file_location('pt_report',report);R=importlib.util.module_from_spec(spec);spec.loader.exec_module(R)
+with tempfile.TemporaryDirectory() as directory:
+ p=Path(directory)/'task.jsonl';p.write_bytes(b'{"key":"synthetic"}\n')
+ R.verify_task_manifest(p,{'records':1,'sha256':hashlib.sha256(p.read_bytes()[:-1]).hexdigest()})
+ expected=[{'key':'synthetic','levels':[{'id':'a'},{'id':'b'}],'gold_id':'a'}]
+ stored=[{'k':'synthetic','ids':['a','b'],'gold':'a','s':[1.,0.]}]
+ assert E.validate_population(stored,expected,lambda r:r['key'])==stored
+assert 'torch' not in sys.modules
+print('FROZEN_API_AND_SYNTHETIC_POPULATION_OK')
+"""
+        source_report=root.parent/'r0_cpu_report_closure_20261031_v2/r3_r0_report.py'
+        result=subprocess.run([sys.executable,'-B','-I','-c',program,str(root),str(Path(R.__file__).resolve()),str(source_report)],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn('FROZEN_API_AND_SYNTHETIC_POPULATION_OK',result.stdout)
 
     def test_real_b4_rule_preserves_b1_admissibility(self):
         path=Path('/mnt/cephfs/xingchao/experiments/jev/r3_runs/selection_cpu_closure_20261031_v2/r3_code/track_t_r3.py')

@@ -38,6 +38,23 @@ def canonical_sha(value):
                                    allow_nan=False).encode()).hexdigest()
 
 
+def verify_task_manifest(path, entry):
+    """Match build_tasks.py's serialized-line hash (LF excluded) and count.
+
+    This lives in the pinned CPU consumer because the original frozen R0
+    selection module predates this helper. No metric implementation is changed.
+    """
+    digest, count = hashlib.sha256(), 0
+    with Path(path).open('rb') as stream:
+        for line in stream:
+            require(line.endswith(b'\n') and line != b'\n',
+                    'Track T task has malformed line framing')
+            digest.update(line[:-1]); count += 1
+    require(digest.hexdigest() == entry['sha256'] and count == entry['records'],
+            'Track T input differs from the builder manifest')
+    return {'records': count, 'builder_sha256': digest.hexdigest()}
+
+
 def pinned_json(entry):
     require(set(entry) == {'path', 'sha256'}, 'artifact descriptor differs')
     path = Path(entry['path'])
@@ -211,7 +228,7 @@ def rebuild(run, contract, deps, baseline, baseline_pin):
                 continue
             filename = RC.task_path(str(root), task, source); paths.append(filename)
             require(filename in contract['data'], 'required task input absent')
-            E.verify_task_manifest(filename, manifest['tasks'][RC.TASK_DIRS[task]][source])
+            verify_task_manifest(filename, manifest['tasks'][RC.TASK_DIRS[task]][source])
             records.extend(RC.load_records(filename))
     require(set(contract['data']) == set(paths + manifests), 'extra task input')
     needed = T.records_needed(records, T.CONFIG_R0)
