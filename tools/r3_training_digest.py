@@ -35,6 +35,8 @@ def summarize(root):
         rates={'measured_steps':len(measured),'warmup_steps_excluded':5,'step_seconds':seconds,
                'tokens_per_second_per_chip':sum(x['tokens'] for x in measured)/seconds,
                'questions_per_second_per_chip':sum(x['base_questions'] for x in measured)/seconds,
+               'token_unit': 'logical prompt-plus-option tokens (repeated prompt counted per option); not physically forwarded tokens' if plan.get('k2_impl')=='shared' else 'trainer-recorded tokens; padding excluded',
+               'mature_window': len(measured)>=10 and seconds>=60,
                'chips':1,'measurement_scope':'sum of trainer step times, excludes startup/checkpoint overhead'}
     return {'run':str(root),'arm':plan.get('arm','k1'),'model':Path(plan['model']).name,
             'completed_steps':steps[-1] if steps else 0,'invocation_target':expected,
