@@ -18,10 +18,11 @@ import socket
 import subprocess
 import sys
 import time
+import traceback
 
 BASE = Path('/mnt/cephfs/xingchao/experiments/jev')
 IMAGE = 'sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7'
-ENTRY = str(BASE / 'r3_code/eval_r3.py')
+ENTRY = str(BASE / 'r3_code/r3_scoring_entry.py')
 GROUPS = ','.join(f'{suite}/{split}/{kind}'
     for suite, split in [('decision-v7', 'dev'), ('decision-v7', 'calibration'), ('transfer-v4', 'dev')]
     for kind in (('clean', 'question_only', 'empty_input') if split == 'calibration'
@@ -67,7 +68,7 @@ def expected_command(spec, out):
             '--round-dir', str(out / 'identity'), '--partitions', 'dev,calibration',
             '--stages', 'k_score', '--k-only', GROUPS, '--scorer', 'rightpad',
             '--dtype', 'float32', '--no-hf32', '--token-budget', '16384',
-            '--require-record-grade', '--device', 'npu:0']
+            '--require-record-grade', '--device', 'npu:0', '--unit-tag', 'track_k']
 
 
 def verify_spec(spec, out):
@@ -215,12 +216,30 @@ def drive(path, pin, number):
                        'progress_unit': 'files and bytes, not scored questions'})
                 time.sleep(15)
             rc = process.returncode
+            if rc < 0:
+                rc = 128 - rc  # subprocess signals are negative; container exit codes are not.
             if rc == 0:
-                marker = Path(p['out']) / 'results/EVAL_COMPLETE.json'
+                marker = Path(p['out']) / 'results/EVAL_COMPLETE.track_k.json'
                 require(marker.exists() and load(marker).get('exit_code') == 0, 'evaluator terminal marker missing or failed')
     except BaseException:
-        if rc == 0: rc = 125
-        raise
+        rc = 125
+        # A driver failure must not leave the scorer running after its marker.
+        if process is not None and process.poll() is None:
+            try:
+                os.killpg(process.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.wait()
+        with (attempt / 'run.log').open('a') as log:
+            traceback.print_exc(file=log)
+        # Return the recorded code instead of re-raising (Python would exit 1).
     finally:
         terminal = {'exit_code': rc, 'attempt': number, 'utc_seconds': time.time(), 'scientific_acceptance': False}
         atomic(attempt / 'EXIT.json', terminal)

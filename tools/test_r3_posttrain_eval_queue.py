@@ -32,6 +32,47 @@ class QueueTests(unittest.TestCase):
         self.write(self.out / 'execution.json', self.plan)
         self.write(self.out / 'QUEUE_EXECUTION_PIN.json', {'sha256': Q.sha(self.out / 'execution.json')})
 
+    def supervisor(self, number):
+        pin = Q.sha(self.out / 'execution.json')
+        command = [Q.sys.executable, '-P', self.plan['launcher'], 'supervise', '--plan',
+                   str(self.out / 'execution.json'), '--sha256', pin, '--attempt', str(number)]
+        self.write(self.out / 'SUPERVISOR_RECEIPT.json', {'pid': 123, 'command': command})
+
+    def failed_first_attempt(self):
+        self.write(self.out / 'attempts/1/EXIT.json', {'exit_code': 125, 'attempt': 1})
+        self.write(self.out / 'ENGINEERING_EVAL_EXIT.json', {'exit_code': 125, 'attempt': 1})
+        self.write(self.out / 'attempts/1/RELEASE.json',
+                   {'exit_code': 125, 'chip': 2, 'run': self.plan['run']})
+        self.write(self.out / 'attempts/1/SUPERVISOR_FAILED.json', {'error': 'old'})
+
+    def test_recovered_attempt_live_ignores_previous_failure(self):
+        self.ready(); self.failed_first_attempt(); self.supervisor(2)
+        with patch.object(Q, 'process_matches', return_value=True), patch.object(Q.subprocess, 'run') as run:
+            state = self.tick()
+            self.assertEqual((state['status'], state['attempt']), ('supervisor_live', 2))
+            run.assert_not_called()
+        self.resource.docker_inspect.assert_not_called()
+
+    def test_recovered_attempt_success_uses_matching_container(self):
+        self.ready(); self.failed_first_attempt(); self.supervisor(2)
+        marker = {'exit_code': 0, 'attempt': 2}
+        self.write(self.out / 'ENGINEERING_EVAL_EXIT.json', marker)
+        self.write(self.out / 'attempts/2/EXIT.json', marker)
+        self.write(self.out / 'attempts/2/RELEASE.json',
+                   {'container_id': 'second', 'exit_code': 0, 'chip': 2, 'run': self.plan['run']})
+        self.write(self.out / 'attempts/2/LAUNCH_RECEIPT.json', {'id': 'second'})
+        self.resource.docker_inspect.return_value = {'Id': 'second', 'State': {'Status': 'exited', 'ExitCode': 0}}
+        self.assertEqual(self.tick()['status'], 'done')
+        self.resource.docker_inspect.assert_called_once_with(self.job['container'] + '-a2')
+
+    def test_recovery_without_prior_release_or_wrong_command_refused(self):
+        self.ready(); self.supervisor(2)
+        with self.assertRaisesRegex(RuntimeError, 'previous attempt not terminal'): self.tick()
+        self.failed_first_attempt()
+        path = self.out / 'SUPERVISOR_RECEIPT.json'; doc = Q.load(path)
+        doc['command'][-3] = 'different pin'; self.write(path, doc)
+        with self.assertRaisesRegex(RuntimeError, 'receipt command differs'): self.tick()
+
     def test_manifest_binds_tools_closure_and_training_chip(self):
         tools = self.root / 'tools'; tools.mkdir()
         names = ('r3_posttrain_eval_queue.py', 'r3_posttrain_eval_plan.py',
@@ -92,7 +133,9 @@ class QueueTests(unittest.TestCase):
 
     def test_completion_requires_matching_marker_release_and_retained_container(self):
         self.ready()
-        self.write(self.out / 'ENGINEERING_EVAL_EXIT.json', {'exit_code': 0})
+        self.supervisor(1)
+        self.write(self.out / 'ENGINEERING_EVAL_EXIT.json', {'exit_code': 0, 'attempt': 1})
+        self.write(self.out / 'attempts/1/EXIT.json', {'exit_code': 0, 'attempt': 1})
         self.write(self.out / 'attempts/1/RELEASE.json', {'container_id': 'exact', 'exit_code': 0, 'chip': 2, 'run': self.plan['run']})
         self.write(self.out / 'attempts/1/LAUNCH_RECEIPT.json', {'id': 'exact'})
         self.resource.docker_inspect.return_value = {'Id': 'exact', 'State': {'Status': 'exited', 'ExitCode': 0}}

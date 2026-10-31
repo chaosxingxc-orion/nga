@@ -4,6 +4,7 @@ Recompute development results from stamped rows and the frozen question populati
 Never open a Kev test partition. Report summaries alone are not selection evidence.
 """
 import copy
+import hashlib
 import json
 import math
 import os
@@ -146,6 +147,19 @@ def verify_run(run_dir, report):
     return PV.verify(run_dir, readout_directories(run_dir), identity["sha256"], role_of=role_for_path)
 
 
+def verify_task_manifest(path, entry):
+    """build_tasks.py hashes each serialized JSON line without its trailing LF."""
+    digest, count = hashlib.sha256(), 0
+    with open(path, "rb") as stream:
+        for line in stream:
+            require(line.endswith(b"\n") and line != b"\n", "Track T task has malformed line framing")
+            digest.update(line[:-1])
+            count += 1
+    require(digest.hexdigest() == entry["sha256"] and count == entry["records"],
+            "Track T input differs from the builder manifest")
+    return {"records": count, "builder_sha256": digest.hexdigest(), "file_sha256": C.sha256_file(path)}
+
+
 def rebuild_track_t(run_dir, config_name, data_root=C.DATA_ROOT, selection_only=False):
     import common as RC
     import track_t_r3 as T
@@ -156,8 +170,7 @@ def rebuild_track_t(run_dir, config_name, data_root=C.DATA_ROOT, selection_only=
             path = RC.task_path(data_root, task, source)
             if task == "T3" and source != "typed-decisions":
                 continue
-            expected_sha = manifest["tasks"][RC.TASK_DIRS[task]][source]["sha256"]
-            require(C.sha256_file(path) == expected_sha, "Track T input differs from the frozen manifest")
+            verify_task_manifest(path, manifest["tasks"][RC.TASK_DIRS[task]][source])
             all_records.extend(RC.load_records(path))
     config = T.CONFIGS[config_name]
     needed = T.records_needed(all_records, config)

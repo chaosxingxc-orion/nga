@@ -2,6 +2,9 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import subprocess
+import sys
+import os
 import unittest
 from unittest.mock import patch
 
@@ -86,9 +89,57 @@ class ExecutionTests(unittest.TestCase):
         execution, pin = L.bind(self.path, 2, 'nga-r3-eng-eval-fixture')
         attempt = self.out / 'attempts/1'; attempt.mkdir(parents=True)
         with patch.object(L.subprocess, 'Popen', side_effect=OSError('fixture spawn error')):
-            with self.assertRaises(OSError): L.drive(execution, pin, 1)
+            self.assertEqual(L.drive(execution, pin, 1), 125)
         self.assertEqual(L.load(self.out / 'ENGINEERING_EVAL_EXIT.json')['exit_code'], 125)
         self.assertFalse(L.load(attempt / 'EXIT.json')['scientific_acceptance'])
+
+    def driver_subprocess(self, command, fail_heartbeat=False):
+        # Exercise actual Python exit behavior; only the scorer command is synthetic.
+        self.spec['command'] = command
+        self.path.write_text(json.dumps(self.spec))
+        execution = self.out / 'execution.json'
+        execution.write_text(json.dumps({'out': str(self.out), 'spec': str(self.path),
+                                         'spec_sha256': L.sha(self.path)}))
+        (self.out / 'attempts/1').mkdir(parents=True)
+        script = self.out / 'driver_test.py'
+        script.write_text("\n".join([
+            'import importlib.util,sys,pathlib,time',
+            's=importlib.util.spec_from_file_location("driver",sys.argv[1]);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)',
+            'm.expected_command=lambda spec,out:spec["command"]',
+            'sleep=time.sleep;m.time.sleep=lambda seconds:sleep(.01)',
+            'original=m.subprocess.Popen',
+            'def start(*args,**kwargs):',
+            ' p=original(*args,**kwargs);pathlib.Path(sys.argv[2]).with_name("child.pid").write_text(str(p.pid));return p',
+            'm.subprocess.Popen=start',
+            'atomic=m.atomic',
+            'def write(path,value):',
+            ' if sys.argv[4]=="True" and path.name=="heartbeat.json":raise OSError("heartbeat fixture failure")',
+            ' return atomic(path,value)',
+            'm.atomic=write',
+            'sys.exit(m.drive(sys.argv[2],sys.argv[3],1))',
+        ]))
+        result = subprocess.run([sys.executable, '-I', str(script), L.__file__, str(execution),
+                                 L.sha(execution), str(fail_heartbeat)], capture_output=True, timeout=15)
+        marker = L.load(self.out / 'ENGINEERING_EVAL_EXIT.json')
+        self.assertEqual(result.returncode, marker['exit_code'], result.stderr.decode())
+        self.assertEqual(marker, L.load(self.out / 'attempts/1/EXIT.json'))
+        return result.returncode
+
+    def test_real_process_startup_failure_exit_matches_marker(self):
+        self.assertEqual(self.driver_subprocess(['/nonexistent/scorer']), 125)
+
+    def test_real_process_missing_evaluator_marker_exit_matches_marker(self):
+        self.assertEqual(self.driver_subprocess([sys.executable, '-c', 'pass']), 125)
+
+    def test_real_process_signal_exit_matches_marker(self):
+        self.assertEqual(self.driver_subprocess([sys.executable, '-c',
+            'import os,signal;os.kill(os.getpid(),signal.SIGTERM)']), 143)
+
+    def test_driver_failure_reaps_scorer_before_terminal(self):
+        self.assertEqual(self.driver_subprocess([sys.executable, '-c', 'import time;time.sleep(60)'], True), 125)
+        pid = int((self.out / 'child.pid').read_text())
+        with self.assertRaises(ProcessLookupError):
+            os.kill(pid, 0)
 
 
 if __name__ == '__main__': unittest.main()

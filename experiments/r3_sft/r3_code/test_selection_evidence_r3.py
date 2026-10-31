@@ -250,6 +250,17 @@ class Evidence(unittest.TestCase):
         with self.assertRaisesRegex(E.SelectionRefusal, "variant identity"):
             E.validate_seed_reports(pair)
 
+    def test_builder_manifest_uses_line_payload_not_file_bytes(self):
+        import hashlib
+        path = self.root / 'task.jsonl'
+        path.write_bytes(b'{"a":1}\n{"b":2}\n')
+        entry = {"sha256": hashlib.sha256(b'{"a":1}{"b":2}').hexdigest(), "records": 2}
+        self.assertEqual(E.verify_task_manifest(path, entry)["records"], 2)
+        with self.assertRaises(E.SelectionRefusal):
+            E.verify_task_manifest(path, dict(entry, records=3))
+        path.write_bytes(b'{"a":2}\n{"b":2}\n')
+        with self.assertRaises(E.SelectionRefusal): E.verify_task_manifest(path, entry)
+
     def test_compare_cannot_bypass_loader_with_summaries(self):
         (self.run / "manifests" / "fixture.json").unlink()
         with self.assertRaises(PV.ProvenanceRefusal):

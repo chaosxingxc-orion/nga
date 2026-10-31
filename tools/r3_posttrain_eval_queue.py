@@ -113,28 +113,53 @@ def tick(job, closure, prepare, launcher, resource):
         atomic(pin_path, {'sha256': sha(execution)})
     pin = load(pin_path)['sha256']
     require(sha(execution) == pin, 'bound execution changed')
-    attempt = out / 'attempts/1'
+    receipt_path = out / 'SUPERVISOR_RECEIPT.json'
+    receipt, number = None, 1
+    if receipt_path.exists():
+        receipt = load(receipt_path)
+        command = receipt['command']
+        prefix = [sys.executable, '-P', plan['launcher'], 'supervise', '--plan', str(execution),
+                  '--sha256', pin, '--attempt']
+        require(isinstance(command, list) and len(command) == len(prefix) + 1
+                and command[:-1] == prefix, 'supervisor receipt command differs')
+        require(isinstance(command[-1], str) and command[-1].isdigit(), 'invalid supervisor attempt')
+        number = int(command[-1])
+        require(number >= 1 and str(number) == command[-1], 'invalid supervisor attempt')
+        # A later supervisor is admitted only after every previous generation
+        # failed and released. No retry is launched automatically by this queue.
+        for previous in range(1, number):
+            prior = out / 'attempts' / str(previous)
+            require((prior / 'EXIT.json').exists() and (prior / 'RELEASE.json').exists(),
+                    'previous attempt not terminal and released')
+            terminal, released = load(prior / 'EXIT.json'), load(prior / 'RELEASE.json')
+            require(terminal.get('attempt') == previous and terminal['exit_code'] != 0
+                    and released['exit_code'] == terminal['exit_code']
+                    and released['chip'] == job['chip'] and released['run'] == plan['run'],
+                    'previous attempt release identity differs')
+    attempt = out / 'attempts' / str(number)
     if (attempt / 'SUPERVISOR_FAILED.json').exists():
-        return {'status': 'needs_repair', 'reason': 'supervisor failure; see bounded failure receipt'}
+        return {'status': 'needs_repair', 'reason': 'supervisor failure; see bounded failure receipt', 'attempt': number}
     end, release = out / 'ENGINEERING_EVAL_EXIT.json', attempt / 'RELEASE.json'
-    if end.exists() and release.exists():
-        marker, proof = load(end), load(release)
-        receipt = load(attempt / 'LAUNCH_RECEIPT.json')
-        actual = resource.docker_inspect(job['container'] + '-a1')
-        require(actual and actual['Id'] == receipt['id'] == proof['container_id'], 'terminal container identity differs')
+    marker = load(end) if end.exists() else None
+    if marker:
+        require(type(marker.get('attempt')) is int and 1 <= marker['attempt'] <= number,
+                'terminal attempt differs from supervisor')
+    if marker and marker['attempt'] == number and release.exists():
+        require(receipt is not None, 'terminal lacks supervisor identity')
+        proof = load(release)
+        local_marker = load(attempt / 'EXIT.json')
+        require(local_marker == marker, 'global and attempt terminal differ')
+        launch = load(attempt / 'LAUNCH_RECEIPT.json')
+        actual = resource.docker_inspect(job['container'] + '-a' + str(number))
+        require(actual and actual['Id'] == launch['id'] == proof['container_id'], 'terminal container identity differs')
         require(actual['State']['Status'] in ('exited', 'dead'), 'terminal container still live')
         require(actual['State']['ExitCode'] == marker['exit_code'] == proof['exit_code'], 'terminal exit differs')
         require(proof['chip'] == job['chip'] and proof['run'] == plan['run'], 'release ownership differs')
-        return {'status': 'done' if marker['exit_code'] == 0 else 'evaluation_failed', 'exit_code': marker['exit_code']}
-    receipt_path = out / 'SUPERVISOR_RECEIPT.json'
-    if receipt_path.exists():
-        receipt = load(receipt_path)
-        expected = [sys.executable, '-P', plan['launcher'], 'supervise', '--plan', str(execution),
-                    '--sha256', pin, '--attempt', '1']
-        require(receipt['command'] == expected, 'supervisor receipt command differs')
+        return {'status': 'done' if marker['exit_code'] == 0 else 'evaluation_failed', 'exit_code': marker['exit_code'], 'attempt': number}
+    if receipt is not None:
         if process_matches(receipt):
-            return {'status': 'supervisor_live', 'pid': receipt['pid']}
-        return {'status': 'needs_repair', 'reason': 'supervisor absent or PID reused; no automatic restart'}
+            return {'status': 'supervisor_live', 'pid': receipt['pid'], 'attempt': number}
+        return {'status': 'needs_repair', 'reason': 'supervisor absent or PID reused; no automatic restart', 'attempt': number}
     intent = out / 'QUEUE_START_INTENT.json'
     if intent.exists():
         return {'status': 'needs_repair', 'reason': 'launch requested without receipt; do not duplicate'}
