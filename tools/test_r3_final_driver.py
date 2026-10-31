@@ -25,6 +25,7 @@ class Driver(unittest.TestCase):
         self.assertEqual(json.loads((directory/'EXIT.json').read_text())['exit_code'],0)
         self.assertTrue((directory/'heartbeat.json').exists())
         self.assertTrue((directory/'COMMAND.txt').exists())
+        self.assertEqual((directory/'EXIT.json').stat().st_mode & 0o777,0o644)
         self.assertFalse(json.loads((directory/'EXIT.json').read_text())['scientific_acceptance'])
 
     def test_failure_retained_then_new_attempt_does_not_erase_evidence(self):

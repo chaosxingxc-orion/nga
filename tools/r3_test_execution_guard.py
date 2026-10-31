@@ -40,6 +40,7 @@ def pin(value):
 def atomic(path, value):
     fd,tmp = tempfile.mkstemp(prefix='.'+path.name+'.',dir=path.parent)
     try:
+        os.fchmod(fd, 0o644)  # root container output must be readable by host CPU consumers
         with os.fdopen(fd,'w') as f:
             json.dump(value,f,indent=2,sort_keys=True,allow_nan=False);f.write('\n');f.flush();os.fsync(f.fileno())
         os.replace(tmp,path)

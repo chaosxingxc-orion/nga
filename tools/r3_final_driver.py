@@ -34,6 +34,9 @@ def atomic(path,value):
     import tempfile
     fd,tmp=tempfile.mkstemp(prefix='.'+path.name+'.',dir=path.parent)
     try:
+        # Containers write as root; host CPU consumers must read terminal and
+        # heartbeat evidence after exit without a privileged repair step.
+        os.fchmod(fd,0o644)
         with os.fdopen(fd,'w') as f:
             json.dump(value,f,sort_keys=True,indent=2,allow_nan=False);f.write('\n');f.flush();os.fsync(f.fileno())
         os.replace(tmp,path)

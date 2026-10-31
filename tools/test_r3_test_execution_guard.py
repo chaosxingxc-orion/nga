@@ -30,6 +30,12 @@ class GuardTests(unittest.TestCase):
         self.kw=dict(model_sha256='a'*64,suite='decision-v7',run_dir=str(self.root/'run'),
                      execution_sha256='b'*64,final_sha256='c'*64)
 
+    def test_durable_evidence_is_host_readable(self):
+        with G.execution(self.root,**self.kw) as lease:
+            self.assertEqual(lease.path.stat().st_mode & 0o777,0o644)
+            lease.complete('f'*64)
+            self.assertEqual(lease.path.stat().st_mode & 0o777,0o644)
+
     def test_other_process_cannot_acquire_active_test_even_same_owner(self):
         # fork child closes inherited lock FDs through normal process teardown;
         # its new independent flock must still conflict with parent's held lock.
