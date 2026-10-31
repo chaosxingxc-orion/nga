@@ -1,12 +1,24 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from types import SimpleNamespace
 
 s=importlib.util.spec_from_file_location('probe',Path(__file__).with_name('r3_prefix_probe.py'))
 P=importlib.util.module_from_spec(s);s.loader.exec_module(P)
 
 
 class Probe(unittest.TestCase):
+    def test_complete_population_and_duplicate_contract(self):
+        enc = [SimpleNamespace(cands=[[1], [2], [1]]) for _ in range(12)]
+        good = [[0., -1., 0.] for _ in enc]
+        self.assertEqual(P.validate_scores(good, enc), 12)
+        # Pairwise agreement alone accepts equally truncated output.
+        self.assertTrue(P.compare(good[:1], good[:1])['pass'])
+        for bad in (good[:1], [[0., -1.] for _ in enc],
+                    [[0., -1., .1] for _ in enc],
+                    [[float('nan'), -1., 0.] for _ in enc]):
+            with self.assertRaises(ValueError): P.validate_scores(bad, enc)
+
     def test_stratification_is_deterministic_and_without_duplicates(self):
         rows=[{'levels':list(range(n))} for n in (77,2,4,77,2,4,10)]
         selected=P.select(rows)

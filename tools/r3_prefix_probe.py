@@ -58,6 +58,19 @@ def select(rows, count=6):
     return chosen
 
 
+def validate_scores(scores, enc):
+    require(len(scores) == len(enc) and bool(enc), 'incomplete score population')
+    for values, row in zip(scores, enc):
+        require(len(values) == len(row.cands), 'incomplete candidate population')
+        require(all(type(v) in (int, float) and math.isfinite(v) for v in values), 'nonfinite score')
+        seen = {}
+        for tokens, value in zip(row.cands, values):
+            key = tuple(tokens)
+            require(key not in seen or seen[key] == value, 'duplicate candidates diverged')
+            seen[key] = value
+    return len(scores)
+
+
 def compare(reference, candidate, threshold=1e-3):
     require(len(reference) == len(candidate) and reference, 'population differs')
     maximum = 0.; disagreements = []; near = []
@@ -133,7 +146,9 @@ def run(a):
                     name=f'{role}-{order}-{mode}-{phase}'; target=out/(name+'.json');receipt=out/(name+'.complete.json')
                     if receipt.exists():
                         r=load(receipt);require(r['plan_sha256']==a.sha256 and r['sha256']==sha(target), 'case receipt differs')
-                        cases[name]=load(target);continue
+                        record=load(target)
+                        validate_scores(record['scores'], enc)
+                        cases[name]=record;continue
                     intent=out/(name+'.intent.json');require(not intent.exists(), 'interrupted case requires explicit new generation')
                     save(intent,{'plan_sha256':a.sha256,'utc_seconds':time.time()})
                     stop=threading.Event()
@@ -146,13 +161,11 @@ def run(a):
                         torch.npu.synchronize(); t=time.perf_counter();scores=scorer.score_enc(enc,mode);torch.npu.synchronize();elapsed=time.perf_counter()-t
                     finally:
                         stop.set();watcher.join()
-                    _,maps,_,_=S.dedup_enc(enc)
-                    for values,mapping in zip(scores,maps):
-                        for i,j in enumerate(mapping):
-                            require(all(values[i]==values[k] for k,x in enumerate(mapping) if x==j), 'duplicate candidates diverged')
+                    samples = validate_scores(scores, enc)
                     record={'scores':scores,'seconds':elapsed,'reserved_gib':torch.npu.memory_reserved()/2**30,
                             'peak_reserved_gib':torch.npu.max_memory_reserved()/2**30,'chips':1,'mode':mode,'phase':phase,
-                            'samples':len(batch),'questions_per_second_per_chip':len(batch)/elapsed,'invocation_started_utc_seconds':start}
+                            'samples':samples,'questions_per_second_per_chip':samples/elapsed,'invocation_started_utc_seconds':start,
+                            'peak_memory_scope':'process cumulative; not reset per case'}
                     save(target,record);save(receipt,{'plan_sha256':a.sha256,'sha256':sha(target)});cases[name]=record
     judgments={}
     for role in p['roles']:
@@ -169,6 +182,7 @@ def run(a):
     save(out/'digest.json',{'status':'PASS' if ok else 'FAIL','judgments':judgments,
          'timings':{k:{x:v[x] for x in ('seconds','reserved_gib','peak_reserved_gib','chips','questions_per_second_per_chip')} for k,v in cases.items()},
          'wall_seconds':time.time()-start,'model_loaded_once_per_invocation':True,'corruption_control_rejected':True,
+         'peak_memory_scope':'process cumulative; not reset per case',
          'scientific_acceptance':False,'test_read':False,'plan_sha256':a.sha256,
          'limits':['12 fixed development records; not full scorer admissibility','rightpad comparator, not independent exact scorer',
                    'first means first call of that case; model is already loaded','restarted cases may mix process timing environments; receipts expose provenance']})
