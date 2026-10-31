@@ -214,6 +214,12 @@ The owner's illustrative credit rules show why this matters: assets above 30 mil
 
 ## 7. Proposed adoption, execution, and recovery behavior
 
+### 7.0 Business-system integration boundary
+
+The proposed default is to invoke authorized business operations exposed by the owning enterprise IT system. That system retains its domain data, internal business/risk constraints and transaction commit authority. NGA governs its own task state, bound semantic judgments, local/delegated adoption and capability requests; an NGA adoption does not by itself establish external business approval or effect completion. A model-generated field update or generic CRUD interface is not a substitute for the business operation's enforcement contract.
+
+An existing system may own the whole decision or explicitly delegate a qualified semantic question to NGA/Jev. Either arrangement requires a clear capability contract. NGA can replay its request/response control path; internal provider replay and audit remain a separate scope. See the [business-system capability boundary](../achitecture%20design/19-business-system-capability-boundary.md) for the proposal and its counterexamples.
+
 ### 7.1 Logical lifecycle
 
 A typical path is **propose → observe/verify → assess → adopt → dispatch → confirm and record**. It may include further evidence gathering, rejection, escalation, or a revised plan. These are logical milestones rather than a selected state-machine implementation.
@@ -224,21 +230,24 @@ A typical path is **propose → observe/verify → assess → adopt → dispatch
 4. Obtain S1 observations and any required independent checks.
 5. Apply the registered decision policy and record the adoption or exception.
 6. Admit and dispatch actions only when dependencies, current authorization, and execution conditions hold.
-7. Record confirmed or unresolved outcomes; resume, reconcile, or compensate under the contract.
+7. Wait for the declared API result using a correlated framework event/time primitive, then record and resume. A synchronous terminal response can satisfy the wait immediately; an asynchronous receipt can establish a longer wait. Preserve waiting across restarts without resubmission. Record incoming evidence for the next decision boundary unless an explicit interruption policy applies; timer expiry is not external failure or cancellation.
 
 A high S1 score cannot relax permission, approval, or budget constraints. S2 explanations are recorded proposals, not replacements for missing evidence.
 
+Cancellation or reversal is a separate requested/policy-authorized branch. Use the provider's native capability or an admitted composition of supported operations with explicit recovery outcomes, preconditions and partial-failure handling. Compensation need not restore the original state or be atomic. If no qualified path exists, declare reversal unsupported rather than writing business fields directly. See [waiting and recovery contracts](../achitecture%20design/20-task-decision-request-identity.md#4-normal-waiting-explicit-interruption-and-qualified-recovery).
+
 ### 7.2 Identity and duplicate handling
 
-Use distinct identities for the business request, an evaluation revision, and a business operation.
+Distinguish an **NGA task T1**, a **decision question J1 and its revisions D1/D2**, and a **business-operation request B1**. Plans, runtime runs, model observations and transport attempts have their own records without automatically creating new business intent. Provider application identities are mapped explicitly rather than equated to NGA tasks.
 
-- A repeated request with unchanged material input resolves to its existing adopted decision or known in-progress state.
-- Reuse of a request identity with different material content is a conflict requiring an explicit revision, not an ordinary retry.
-- An evaluation records its rule, evidence, model, readout, and decision-policy dependencies.
-- An action identity follows the business operation. A new model version or evaluation must not automatically create a fresh operation that repeats the same effect.
-- Semantic equivalence comes from the business question and its evaluation protocol. An arbitrary text hash or model-generated “equivalent” label does not establish it.
+- T1 binds an admitted objective, scope and completion promise. A task awaiting a terminal provider outcome cannot claim completion from a receipt alone; submission-only tasks declare their narrower boundary in advance.
+- Repeated submission/resume resolves the same authorized task. Identical text or customer data alone cannot distinguish duplicate intent from a legitimate new task.
+- New admitted material evidence or applicable rules create a new decision basis/revision, even when the answer is unchanged. Pure replanning and technical retries preserve the current decision basis; retries add attempt records.
+- B1 binds one provider operation and fixed material parameters. A changed amount or required decision artifact cannot silently replace its payload under the same key. A new D2 does not itself authorize a new B2.
+- Changes after dispatch preserve uncertainty until the provider's status/cancellation/amendment contract resolves it. Local holds do not establish that an external effect did not occur.
+- Historical retrieval, current-status lookup, semantic consistency evaluation and live recovery are separate operations. Recorded result reuse does not prove model consistency; replay cannot trigger live effects.
 
-Identity scope, retention windows, material-field normalization, and revision rules require a concrete business scenario before they can be frozen.
+See the [current AQ-01/AQ-02 analysis](../achitecture%20design/20-task-decision-request-identity.md) for definitions, phase-specific handling and eighteen proposed adversarial cases. Identity authority, materiality, retention, task amendments and provider recovery guarantees remain explicit contract choices, without requiring a design for business-system internals.
 
 ### 7.3 Concurrency and uncertain execution
 
@@ -255,6 +264,14 @@ Historical reconstruction uses the original recorded versions. Live dispatch add
 The reference design suggests authority attenuation, bounded delegation, isolated drafts, controlled publication of intermediate results, and explicit adoption events. NGA should evaluate these as candidate mechanisms. Task trees, token formats, draft/seal/reveal protocols, and enforcement topology are not selected here.
 
 Generated assertions remain marked as such. Replacing evidence, sharing previously isolated context, or consuming another model's conclusion creates a traceable dependency and may require a new evaluation.
+
+### 7.5 Runtime primitives and API capability contracts
+
+The [runtime contract proposal](../achitecture%20design/21-runtime-primitives-and-capability-contracts.md) separates framework execution primitives, provider capability guarantees, reusable recovery operators and model ports. Proposed primitive families cover admitted transitions, invocation/observation, waiting, timers and child/join scopes. Retry, cancellation and compensation compose those mechanisms under an operation-specific contract; exposing an operator does not create a missing provider guarantee.
+
+Graph nodes/edges and Workflow steps/handlers must preserve the same identities, completion predicates, deadlines, authority and recovery ownership. Normal typed events drive deterministic transitions. Jev supplies explicitly delegated semantic judgments; S2 proposes investigation, workflow selection or composition within its admitted scope. Neither model certifies an unobserved external effect. A parent stop, timeout or first-result join must account for outstanding child operations; replay uses recorded events and cannot perform live effects.
+
+The proposal includes twenty adversarial cases and a three-state/four-plane responsibility matrix. These are design and future acceptance artifacts, not executed tests or a choice of runtime engine, storage, scheduling or protocol.
 
 ## 8. Traceability and feedback
 
@@ -338,9 +355,9 @@ Recording an answer requires its rationale, evidence, affected principles/interf
 
 ## 11. Next design artifact
 
-Select one bounded business case and describe its judgment specification, capability contract, evidence snapshot, S2 plan, S1 observations, adoption conditions, and external operation. The credit-rule example in section 6.1 is a candidate once its unresolved conventions are settled by the business owner.
+Following the owner's clarification, first define a small general framework contract for case identity, bound decisions, plans, NGA-effective transitions and invocation of business capabilities. The owning business system remains responsible for its internal shared constraints and authoritative commits. Then challenge the integration with a small portfolio of explicitly scoped business fixtures. Do not require detailed banking semantics to be settled before continuing the architecture. See [framework logic and case coverage](../achitecture%20design/18-framework-core-and-case-coverage.md) and the proposed [business-system boundary](../achitecture%20design/19-business-system-capability-boundary.md).
 
-Use this case to produce three connected artifacts: a project 1 task/data/evaluation definition, a project 2 collaboration trace and control contract, and a project 3 V0 workbench flow with semantic authoring and exception resolution. Keep proposed mechanisms distinct from the principles already agreed.
+For each selected fixture, describe the supplied judgment specification, capability contract, evidence, S2 plan, S1 observations, adoption conditions and intended operation. The credit example is one fixture; independent cases with shared constraints and a non-credit counterpart test whether the core is general. Use these to produce connected project 1 task/evaluation definitions, project 2 control traces, and project 3 workbench flows. A real deployment still needs approved domain semantics and integration evidence; hypothetical fixtures do not supply that approval.
 
-Walk it through unchanged repetition, changed evidence, changed rule, concurrent submission, interrupted execution, revoked authority, and reconstruction. Use the resulting conflicts to refine the logical interfaces before freezing schemas or choosing technologies.
+Walk these fixtures through unchanged repetition, legitimate new cases, shared constraints, changed evidence, changed rule, concurrent submission, interrupted execution, revoked authority and reconstruction. Use the resulting conflicts to refine the logical interfaces before freezing schemas or choosing technologies.
 

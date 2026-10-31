@@ -41,6 +41,8 @@ A cell describes responsibility, not a required separate application or service.
 
 The framework spans these responsibilities; it is not synonymous with one plane. An execution scheduler may physically live beside the graph engine in the runtime plane, while eligibility, authority, and committed transitions remain controlled by the authoritative contract. Execution adapters perform admitted calls; the control boundary establishes whether the intended call is effective and permitted.
 
+Proposed external-system boundary: NGA's control plane governs its own agent state, local/delegated decision adoption and capability invocations. Existing business systems remain authoritative for their domain data, internal risk/consistency rules and transaction commits. An NGA adoption is not automatically external business approval or completion. [Document 19](19-business-system-capability-boundary.md) specifies this distinction and the business-capability integration proposal; it does not prescribe the provider's internal implementation.
+
 Specify one authoritative transition path for each state change even when planes share a process or database. Four planes must not create four unrelated copies of task truth or four independent meanings of "latest."
 
 The user plane serves business users, developers, reviewers, and operators in their respective roles. It includes programmatic interaction as well as visual interfaces. Roles acquire permissions through explicit policy, not merely by which screen they use.

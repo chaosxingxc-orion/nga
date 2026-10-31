@@ -16,17 +16,22 @@ The discussion does not reopen these owner requirements:
 - Business-configurable behavior and governed semantic specifications; semantic gray areas require explicit resolution paths rather than silent model invention.
 - Three related projects: decision-model research and engineering, S1 + S2 framework design, and an enterprise agent workbench.
 - For this architecture exercise, assume a Jev-like model satisfies the required capabilities within its declared scope. That premise does not assert that current repository models have passed those gates.
+- Owner correction after the AQ-01/AQ-02 discussion: design the framework's general logic first, then challenge it with varied cases. Detailed banking semantics are not prerequisites to that design. Independent cases can remain distinct while sharing a business constraint; see [document 18](18-framework-core-and-case-coverage.md).
+
+The owner has accepted the business-capability/IT-authority boundary as the working premise for the resumed AQ-01/AQ-02 discussion: NGA invokes qualified operations while the existing IT system owns its domain records, internal rules and execution. See [document 20](20-task-decision-request-identity.md).
 
 What remains open is the precise scope of each promise, its enforcement and composition contracts, and the evidence needed to adopt an implementation. Requiring replay, for example, does not yet settle replay granularity, retention or access.
 
 Role labels below identify proposed participants, not named assignees. A recommendation becomes a decision only through the recording procedure in section 7. No numerical service target, risk threshold, storage technology or model topology is selected here.
 
+Current cross-cutting proposal: [document 21](21-runtime-primitives-and-capability-contracts.md) specifies runtime primitive families, API capability contracts and Graph/Workflow recovery expression, with twenty adversarial cases. It primarily advances AQ-05/AQ-07/AQ-08/AQ-10/AQ-11/AQ-12/AQ-14/AQ-15; their proposed mechanisms remain OPEN.
+
 ## 2. The 18 questions and suggested discussion order
 
 | ID | Decision to discuss | Kind | Proposed participants |
 | --- | --- | --- | --- |
-| [AQ-01](#aq-01) | What is the first business slice and exactly what does NGA promise for it? | Business / product contract | Business owner, framework and workbench leads |
-| [AQ-02](#aq-02) | What counts as the same application, equivalent decision basis, decision revision and operation? | Business / identity contract | Business/knowledge owner, framework lead |
+| [AQ-01](#aq-01) | What outcome closes an NGA task, and which case patterns test that promise at the business-capability boundary? | Coverage / product contract | Business owner, framework and workbench leads |
+| [AQ-02](#aq-02) | What counts as the same task, decision question/revision and business request across changes and retries? | Intent / identity contract | Business/knowledge owner, framework lead |
 | [AQ-03](#aq-03) | What is the minimum publishable semantic specification and who may change it? | Semantic governance | Knowledge owner, model and framework leads |
 | [AQ-04](#aq-04) | Who constructs the effective evidence basis, and when must it be refreshed? | Evidence / temporal contract | Data owner, knowledge owner, framework lead |
 | [AQ-05](#aq-05) | What is Jev's judgment contract, and which placements should be evaluated first? | Interface plus empirical choice | Model and framework leads, business owner |
@@ -44,29 +49,33 @@ Role labels below identify proposed participants, not named assignees. A recomme
 | [AQ-17](#aq-17) | What evidence qualifies a model, rule or workflow change as agent improvement? | Evolution / evaluation contract | Business owner and all three project leads |
 | [AQ-18](#aq-18) | What is the smallest workbench slice and the end-to-end acceptance package? | Product / validation contract | Business owner and all three project leads |
 
-**Suggested first conversation:** AQ-01 → AQ-02 → AQ-04 → AQ-06 → AQ-07. These establish the unit of work, its basis, unresolved behavior and permissible adaptation. AQ-03 supplies the semantic contract alongside that conversation; the first fixture must not invent its unresolved business conventions.
+**Revised discussion order after owner feedback:** first define general case/decision/operation identity and effective-state contracts (AQ-02/AQ-11), then plan composition, effects and shared-constraint boundaries (AQ-07/AQ-10/AQ-12). Use AQ-01/AQ-18 to select small, explicit coverage fixtures rather than requiring a detailed credit-product design. [Document 18](18-framework-core-and-case-coverage.md) provides the proposed core and eight case patterns. This replaces the earlier banking-scope-first interpretation of the agenda.
 
 Then close the execution boundaries in AQ-10–AQ-13; compare model placement and execution organization in AQ-05/AQ-08/AQ-09; define the lifecycle and operational acceptance in AQ-14–AQ-18. This is a discussion agenda, not a waterfall delivery plan. Retention, operator needs and release behavior must inform interfaces early, and AQ-18's evaluation design precedes comparative experiments.
 
 ## 3. Question cards
 
 <a id="aq-01"></a>
-### AQ-01 — First business slice and promise
+### AQ-01 — Task completion and coverage promises
 
-- **Question:** is the first complete slice an eligibility judgment, registration of a credit limit, or a broader application process? What constitutes completion, refusal, waiting and correction?
-- **Why it matters:** a correct recommendation does not establish an idempotent business effect; a completed credit registration is not cash disbursement.
-- **Options and tradeoff:** judgment-only makes model/control evaluation simpler but leaves external-effect claims untested; limit registration exposes adoption and reconciliation; a full lending process introduces additional contracts before the core boundary is understood.
-- **Starting recommendation:** retain the illustrative eligibility-plus-limit-registration slice from document 10, initially against an isolated adapter. Declare later disbursement and credit amendments as separate operations. This is still a proposal, not a real lending policy or integration commitment.
-- **To close:** a one-page scope, accountable business role, business states, effect inventory and acceptance examples, including valid refusal and unresolved completion. Establish the operation scope before AQ-02/AQ-12; develop acceptance with AQ-18.
+Current focused discussion: [document 20](20-task-decision-request-identity.md) defines task completion at the business-capability boundary and exercises it with credit cases. [Document 17](17-credit-scope-identity-and-revision-review.md) is earlier fixture analysis; [document 18](18-framework-core-and-case-coverage.md) establishes the framework-first method. Status remains OPEN; no production banking scope is selected.
+
+- **Question:** what outcome does an NGA task promise, and which small case portfolio tests that promise? Distinguish local judgment completion, submission/receipt, provider terminal outcome, waiting, recovery handoff and later review.
+- **Why it matters:** a judgment-only demo does not establish request/effect recovery, and a provider acknowledgement does not establish its terminal business result. One domain-specific success does not prove the core is general.
+- **Options and tradeoff:** one happy-path example is easy to demonstrate but hides architectural gaps; complete products across many domains demand too much detail at this stage. A small portfolio of distinct case patterns tests the core without first specifying every business process.
+- **Starting recommendation:** declare task scope and completion before execution. The end-to-end credit fixture uses a correlated framework wait for the provider's terminal application outcome; a submission-only task may close earlier only under its explicit contract. Incoming evidence does not automatically replace an in-flight request: record it for the next boundary or use an explicit interruption policy. Track local decision, request outcome and recovery separately without importing provider internals.
+- **To close:** a small coverage portfolio, each with declared intent, effect, constraints, expected states and positive/counterexample outcomes. Develop it with AQ-02/AQ-12/AQ-18; detailed production domain semantics are a later binding requirement.
 
 <a id="aq-02"></a>
 ### AQ-02 — Identity, equivalence and revision
 
-- **Question:** when are two submissions the same business application? Which evidence/rule/time changes create a new decision revision, and which changes merely revise the execution plan or retry an operation?
+Current focused discussion: [document 20](20-task-decision-request-identity.md) distinguishes NGA task, decision question/revision and business-operation request, with plan/run/attempt records beneath them. It refines the earlier application-centered treatment in [document 17](17-credit-scope-identity-and-revision-review.md). Status remains OPEN; NGA task identity is not automatically the provider's application identity.
+
+- **Question:** what establishes continuity of an NGA task, one delegated decision question and one business request? Which evidence/rule/time changes create a decision revision, and which changes only revise a plan or add an attempt?
 - **Failure case:** a new graph node or user-channel request creates a fresh operation key and repeats a grant; the opposite mistake caches an obsolete decision and prevents a legitimate new application.
 - **Options and tradeoff:** upstream application identity is precise when available but needs conflict handling; governed business keys can join channels but need domain-specific definitions. Text similarity or a payload hash alone cannot establish business equivalence.
-- **Starting recommendation:** separate application, decision frame/revision, plan revision, operation and attempt identities. Let the business contract define cross-channel identity and equivalent material inputs; keep graph structure out of the identity of a repeated business effect. Same key with changed material parameters produces an explicit conflict/amendment path.
-- **To close:** an identity table and paired examples for duplicate submission, irrelevant paraphrase, changed evidence, new reference time, intentional new application and later amendment. Depends on AQ-01 and the semantics/evidence work in AQ-03/AQ-04.
+- **Starting recommendation:** bind T1 to admitted objective/scope, J1/D1 to a delegated question and immutable basis, and B1 to one provider operation with fixed material parameters. Map provider application references explicitly. New evidence or applicable rules can create D2 without creating T2 or B2; pure replanning preserves these identities, and retries add attempts. Unknown external completion blocks an assumed-safe conflicting replacement.
+- **To close:** a general identity/lineage contract, then paired fixtures for duplicate submission, legitimate new cases, shared constraints, changed evidence, new reference time and later amendment. Bind the AQ-03/AQ-04 semantics/evidence assumptions needed by each fixture without making a full production business model a prerequisite.
 
 <a id="aq-03"></a>
 ### AQ-03 — Publishable business semantics
@@ -119,7 +128,7 @@ Then close the execution boundaries in AQ-10–AQ-13; compare model placement an
 - **Question:** must every executable procedure use one graph representation, or may several engines expose compatible control, event and recovery contracts? What is the minimum visibility required from an integrated engine?
 - **Failure case:** one engine treats child completion as decision adoption while another treats it as a proposal; an opaque agent-loop node performs unaudited tool calls. A common diagram format does not remove these disagreements.
 - **Options and tradeoff:** one representation simplifies inspection and compilation but can restrict existing capabilities; adapters reduce migration work but must demonstrate compatible semantics. One implementation does not itself prove one authoritative state model.
-- **Starting recommendation:** first define common identities, invocation/result semantics, transition authority, effect admission and replay coverage. Evaluate a typed graph as the reference representation without making it mandatory yet. Keep execution graph, question graph, delegation and provenance distinct.
+- **Starting recommendation:** first define common identities, invocation/result semantics, transition authority, effect admission and replay coverage. Use [document 21](21-runtime-primitives-and-capability-contracts.md) to compare typed Graph nodes/edges with Workflow steps, await clauses and recovery handlers under the same contracts. A graph is not an enforcement boundary, and every edge need not call Jev. Keep representation/engine choices open and execution, question, delegation and provenance graphs distinct.
 - **To close:** a conformance contract and comparison using the same credit task through a workflow and a bounded loop, including recovery and hidden-action attempts. Depends on AQ-10/AQ-11/AQ-14; informed by AQ-18. Concrete engine selection is deferred.
 
 <a id="aq-09"></a>
@@ -137,7 +146,7 @@ Then close the execution boundaries in AQ-10–AQ-13; compare model placement an
 - **Question:** what identities, rights, context, budgets, cancellation obligations and results must a child loop/workflow/agent preserve? When is a child result usable by its parent?
 - **Failure case:** a parent retry creates a new child, repeating a confirmed operation; each child assumes it owns the full remaining budget; parent cancellation is reported as proof that an external write stopped.
 - **Options and tradeoff:** opaque calls are easy to integrate but cannot support detailed guarantees; native subgraphs expose fine-grained events but increase coupling; adapters can expose a declared intermediate contract with explicit limits.
-- **Starting recommendation:** stable child-call identity, root business correlation, bounded delegation, material-parameter binding, typed statuses and one-time result consumption. Add consumable costs; model concurrency and deadlines separately. Share evidence only with independently admitted access, without merging the consumers' authority.
+- **Starting recommendation:** stable child-call identity, root business correlation, bounded delegation, material-parameter binding, typed statuses and one-time result consumption. Declare join/sibling handling, outstanding effects and recovery ownership: a local first-success result or parent exit cannot erase a child's external work. Add consumable costs; model concurrency and deadlines separately. Share evidence only with independently admitted access, without merging the consumers' authority.
 - **To close:** a child-invocation contract and tests specified for duplicate delivery, suspend/resume, budget exhaustion, recursion limits and cancellation races. Requires AQ-02/AQ-07/AQ-11/AQ-13. Allocation algorithms and physical schedulers remain open.
 
 <a id="aq-11"></a>
@@ -146,7 +155,7 @@ Then close the execution boundaries in AQ-10–AQ-13; compare model placement an
 - **Question:** which logical owner makes a plan revision, decision adoption, hold, dispatch or release effective? How are concurrent changes ordered, and what durable evidence accompanies the transition?
 - **Failure case:** the UI, graph worker and operations console each maintain a different effective decision; a hold and a dispatch both claim to have won.
 - **Options and tradeoff:** one centralized controller is easy to reason about but may create unnecessary coupling; authority per governed object permits distribution but needs explicit cross-object and external-effect contracts. Independent engine-local truth cannot establish a shared guarantee.
-- **Starting recommendation:** one authoritative transition contract per governed object, expected-revision checks and durable correlation between committed state and audit evidence. Allow bounded local scheduling; define arbitration only where changes actually conflict. Do not assume that one database transaction covers an external system.
+- **Starting recommendation:** one authoritative transition contract per governed object, expected-revision checks and durable correlation between committed state and audit evidence. Distinguish NGA-owned agent state and local/delegated adoption from provider-owned business state and transaction commit; see [document 19](19-business-system-capability-boundary.md). Allow bounded local scheduling and do not assume that an NGA transaction covers an external system.
 - **To close:** a state/command/result table, consistency-boundary diagram and race traces for duplicate adoption, stale frame, hold/dispatch and child completion. Depends on AQ-02/AQ-06/AQ-07/AQ-09 and co-designs the operation boundary with AQ-12.
 
 <a id="aq-12"></a>
@@ -155,8 +164,8 @@ Then close the execution boundaries in AQ-10–AQ-13; compare model placement an
 - **Question:** what does each target resource guarantee about duplicate requests, payload binding, querying completion, conditional writes and correction? What can NGA promise when any capability is missing?
 - **Failure case:** the resource registers credit, loses the acknowledgement and cannot answer a status query. Repeating a non-idempotent request may duplicate the effect; refusing to retry may leave progress unresolved.
 - **Options and tradeoff:** require a strong integration contract for automatic execution, accept a documented weaker guarantee with explicit reconciliation, or keep the resource outside automated effect execution. A framework label cannot remove the tradeoff.
-- **Starting recommendation:** classify resources before admitting live effects. Use stable operation identity and bound parameters where supported; preserve unresolved completion and use an authorized reconciliation route where it is not. Treat correction as a separate business operation. Do not advertise an unsupported exactly-once guarantee.
-- **To close:** a resource-capability matrix, allowed guarantee per operation and failure traces for lost acknowledgement, resource switching, changed parameters and confirmed-effect correction. Depends on AQ-01/AQ-02/AQ-11; determines AQ-15 recovery behavior.
+- **Starting recommendation:** invoke semantically defined business capabilities and wait for their declared result. The owning IT system enforces its internal rules and commits its data. Separate normal waiting, local deadline expiry and explicit interruption. Qualify native cancellation/reversal or compose a recovery capability from supported operations with a defined outcome, preconditions and recovery for partial failure. Compensation is not automatically atomic rollback; absent a qualified path, declare reversal unsupported. Preserve original/request-recovery lineage and never substitute arbitrary field writes. See [document 20, section 4](20-task-decision-request-identity.md#4-normal-waiting-explicit-interruption-and-qualified-recovery).
+- **To close:** qualify the [document 21 capability matrix and operators](21-runtime-primitives-and-capability-contracts.md) against synchronous/asynchronous, native-cancel, composite-compensation and unsupported-reversal fixtures. Verify normal completion, early/late/duplicate responses, deadline and retry-budget continuity, cancellation races and partial compensation failure. Depends on AQ-01/AQ-02/AQ-11; determines AQ-15 recovery behavior.
 
 <a id="aq-13"></a>
 ### AQ-13 — Trust, permission and context sharing
@@ -173,7 +182,7 @@ Then close the execution boundaries in AQ-10–AQ-13; compare model placement an
 - **Question:** which execution boundaries must be replayable, for how long, by whom, and with which preserved artifacts? How is replay capability reported when evidence is unavailable or retention expires?
 - **Failure case:** a timeline exists but consumed evidence or model outputs do not; a digest is mistaken for recoverable content; a replay button reissues a real grant.
 - **Options and tradeoff:** event inspection costs less but is not executable control replay; preserved control artifacts and recorded inputs support stronger reproduction at greater retention/access cost. Retention must be reconciled with the applicable data policy without silently overstating replay coverage.
-- **Starting recommendation:** preserve the distinction between inspection, control replay, reevaluation and live recovery. Define a bounded replay package, access policy and comparison contract. Report historical fidelity and contract conformance separately. Historical model outputs suffice for control replay; hidden internal reasoning is not required.
+- **Starting recommendation:** preserve the distinction between inspection, control replay, reevaluation and live recovery. Define a bounded replay package, access policy and comparison contract. Report historical fidelity and contract conformance separately. Historical model outputs suffice for control replay; hidden internal reasoning is not required. NGA replays its own control path with recorded provider responses; provider-internal audit/replay is separately owned and requires supported correlation/evidence.
 - **To close:** a replay/retention matrix, complete and incomplete package examples, integrity/access requirements and isolated replay acceptance. Depends on AQ-04/AQ-08/AQ-11/AQ-13 and applies to release/evolution actions as well as runtime tasks.
 
 <a id="aq-15"></a>

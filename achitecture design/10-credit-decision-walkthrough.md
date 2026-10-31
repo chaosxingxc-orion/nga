@@ -5,6 +5,8 @@
 > Basis: the owner's credit example and [NGA architecture V0.1](08-nga-architecture-v0.1.md).
 > Premise: the required Jev-like semantic decision capability is available within its declared scope.
 
+> Follow-up: [document 17](17-credit-scope-identity-and-revision-review.md) sharpens the application/credit-relationship scope and separates decision revisions from new external effects. In particular, a post-registration refusal assessment is not proof that no credit exists, and a new adopted grant does not automatically authorize another initial registration. These refinements remain under discussion.
+
 ## 1. The two boundaries to make explicit
 
 **Decision adoption** makes a business judgment authoritative inside NGA and eligible to support an admitted action. **External completion** confirms that the intended business effect occurred. These are different transitions.
