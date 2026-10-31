@@ -255,11 +255,63 @@ def release(args):
     print(json.dumps({"status": "OPERATIONALLY_RELEASED", "chip": args.chip, "run": args.run,
                       "exit_code": proof["exit_code"], "proof": args.proof}))
 
+
+def reclaim_legacy(args):
+    """Release a legacy owner without inventing a historical claim receipt.
+
+    Pins the exact owner entry, retained generation and successful terminal marker.
+    The marker's directory must appear in the container's command arguments.
+    """
+    alloc = validated_path(args.alloc)
+    container = docker_inspect(args.container)
+    if container is None or container['Id'] != args.container_id:
+        raise RuntimeError('legacy container generation differs')
+    if container['State']['Status'] != 'exited' or container['State']['ExitCode'] != 0:
+        raise RuntimeError('legacy container not successfully exited')
+    if container['HostConfig'].get('AutoRemove') or not any(
+            x.get('PathOnHost') == f'/dev/davinci{args.chip}' for x in container['HostConfig'].get('Devices') or []):
+        raise RuntimeError('legacy device binding differs')
+    marker = validated_path(args.marker)
+    marker_raw = read_bytes(marker)
+    if sha_bytes(marker_raw) != args.marker_sha256 or not marker_raw.decode().startswith('rc=0 '):
+        raise RuntimeError('legacy terminal marker differs')
+    if str(marker.parent) not in container['Config'].get('Cmd', []):
+        raise RuntimeError('marker not bound to container command')
+    if live_chip_conflict(args.chip, args.container):
+        raise RuntimeError('another nonterminal container maps chip')
+    with locked(alloc):
+        before = load(alloc); validate_doc(before)
+        entries = [x for x in before['allocation'] if x['chip'] == args.chip]
+        if len(entries) != 1 or sha_bytes(json.dumps(entries[0], sort_keys=True).encode()) != args.entry_sha256:
+            raise RuntimeError('legacy owner entry changed')
+        proof_path = Path(args.proof)
+        if proof_path.exists():
+            raise RuntimeError('legacy reclaim evidence already exists; reconcile before retry')
+        after = dict(before)
+        after['allocation'] = [x for x in before['allocation'] if x['chip'] != args.chip]
+        after['free'] = sorted(before['free'] + [dict(chip=args.chip, previous_run=entries[0]['run'],
+            released_utc=utc(), release_evidence=str(proof_path.resolve()))], key=lambda x:x['chip'])
+        after['updated_by'], after['updated_utc'] = 'r3_resource_adapter legacy reclaim', utc()
+        proof = dict(schema='r3-legacy-reclaim-v1', scientific_acceptance=False, chip=args.chip,
+                     container=args.container, container_id=container['Id'],
+                     marker=str(marker), marker_sha256=args.marker_sha256,
+                     allocation_before=before, allocation_after=after,
+                     note='Operational resource release only; historical pending claims are not approved.')
+        # Durable before/after evidence precedes mutation; interruption is reconciled from these snapshots.
+        write_atomic(proof_path, proof)
+        write_atomic(alloc, after)
+    print(json.dumps({'status':'LEGACY_OPERATIONALLY_RELEASED','chip':args.chip,'proof':str(proof_path)}))
+
 def main(argv=None):
     p = argparse.ArgumentParser(); sub = p.add_subparsers(dest="op", required=True)
     c = sub.add_parser("claim"); c.add_argument("--alloc", default=ALLOC_DEFAULT); c.add_argument("--run", required=True); c.add_argument("--chip", type=int, required=True); c.add_argument("--owner", required=True); c.add_argument("--purpose", required=True); c.add_argument("--proof", required=True)
     a = sub.add_parser("abort"); a.add_argument("--alloc", default=ALLOC_DEFAULT); a.add_argument("--run", required=True); a.add_argument("--chip", type=int, required=True); a.add_argument("--container", required=True); a.add_argument("--claim", required=True); a.add_argument("--proof", required=True)
     r = sub.add_parser("release"); r.add_argument("--alloc", default=ALLOC_DEFAULT); r.add_argument("--run", required=True); r.add_argument("--chip", type=int, required=True); r.add_argument("--container", required=True); r.add_argument("--claim", required=True); r.add_argument("--proof", required=True)
-    a = p.parse_args(argv); return claim(a) if a.op == "claim" else abort_claim(a) if a.op == "abort" else release(a)
+    l = sub.add_parser('reclaim-legacy')
+    for name in ('alloc', 'container', 'container-id', 'marker', 'marker-sha256', 'entry-sha256', 'proof'):
+        l.add_argument('--' + name, required=True)
+    l.add_argument('--chip', type=int, required=True)
+    a = p.parse_args(argv)
+    return {'claim':claim, 'abort':abort_claim, 'release':release, 'reclaim-legacy':reclaim_legacy}[a.op](a)
 
 if __name__ == "__main__": raise SystemExit(main())

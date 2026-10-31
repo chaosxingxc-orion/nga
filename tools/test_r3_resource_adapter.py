@@ -12,6 +12,29 @@ m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
 
 class AdapterTests(unittest.TestCase):
+    def test_legacy_reclaim_requires_bound_terminal_and_unchanged_owner(self):
+        marker = self.root / 'DONE'; marker.write_text('rc=0 utc=fixture\n')
+        entry = json.loads(self.alloc.read_text())['allocation'][0]
+        a = self.args(chip=2, container='legacy', container_id='cid', marker=str(marker),
+                      marker_sha256=m.sha_bytes(marker.read_bytes()),
+                      entry_sha256=m.sha_bytes(json.dumps(entry, sort_keys=True).encode()))
+        d = {'Id':'cid','Config':{'Cmd':[str(self.root)]},
+             'HostConfig':{'AutoRemove':False,'Devices':[{'PathOnHost':'/dev/davinci2'}]},
+             'State':{'Status':'exited','ExitCode':0}}
+        with mock.patch.object(m, 'docker_inspect', return_value=d), mock.patch.object(m, 'live_chip_conflict', return_value=False):
+            a.entry_sha256='wrong'
+            with self.assertRaises(RuntimeError): m.reclaim_legacy(a)
+            self.assertFalse(Path(a.proof).exists())
+            a.entry_sha256=m.sha_bytes(json.dumps(entry,sort_keys=True).encode())
+            d['Config']['Cmd']=[]
+            with self.assertRaises(RuntimeError): m.reclaim_legacy(a)
+            d['Config']['Cmd']=[str(self.root)]
+            m.reclaim_legacy(a)
+        after=json.loads(self.alloc.read_text())
+        self.assertEqual(after['allocation'],[])
+        self.assertEqual([x['chip'] for x in after['free']],[1,2,4])
+        self.assertFalse(json.loads(Path(a.proof).read_text())['scientific_acceptance'])
+
     def test_docker_uncertainty_is_not_absence(self):
         for message in ('Error: No such object: c', 'error: no such object: c'):
             with mock.patch.object(m.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, '', message)):

@@ -26,7 +26,9 @@ def write(path, value):
     Path(path).write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 
-def prepare(out, seed, chip, engineering=False):
+def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0):
+    if not engineering and (model != MODEL or stop_after):
+        raise ValueError('formal recipe cannot be overridden')
     out.mkdir(parents=True, exist_ok=False)
     code = out / 'code'
     code.mkdir()
@@ -48,14 +50,16 @@ def prepare(out, seed, chip, engineering=False):
         shutil.copy2(prereg / name, out / name)
     files = {str(p): sha(p) for p in out.rglob('*') if p.is_file()}
     files[str(TRAIN)] = sha(TRAIN)
-    for p in MODEL.iterdir():
+    for p in model.iterdir():
         if p.is_file():
             files[str(p)] = sha(p)
     command = ['python3', '-P', '/workspace/train_r3.py', '--out', str(out), '--arm', 'k1', '--seed', str(seed),
-               '--model-path', str(MODEL), '--kernel', 'ref', '--grad-ckpt', '--micro-tokens', '12000', '--max-len', '4096',
-               '--save-every', '200', '--no-merge', '--epochs', '2', '--total-steps', '3116', '--expect-pairs', '186']
+               '--model-path', str(model), '--kernel', 'ref', '--grad-ckpt', '--micro-tokens', '12000', '--max-len', '4096',
+               '--save-every', '200', '--no-merge', '--epochs', '2', '--total-steps', '3116', '--expect-pairs', '186' if model == MODEL else '0']
+    if stop_after:
+        command += ['--stop-after', str(stop_after)]
     plan = {'schema': 'r3-formal-k1-plan-v1', 'seed': seed, 'chip': chip, 'run': str(out.relative_to(BASE)),
-            'out': str(out), 'code': str(code), 'model': str(MODEL), 'train_file': str(TRAIN),
+            'out': str(out), 'code': str(code), 'model': str(model), 'train_file': str(TRAIN),
             'allocation': str(BASE / 'CHIP-ALLOCATION.json'), 'image_sha256': IMAGE,
             'container': f'nga-r3-formal-k1-s{seed}-20261031', 'command': command,
             'environment': {'ASCEND_RT_VISIBLE_DEVICES': '0', 'TASK_QUEUE_ENABLE': '2',
@@ -72,7 +76,7 @@ def prepare(out, seed, chip, engineering=False):
     if engineering:
         plan.update(schema='r3-engineering-k1-plan-v1', execution_scope='engineering_only',
                     authorization='user_execute_engineering_when_ready_20261031',
-                    container=f'nga-r3-eng-k1-s{seed}-20261031',
+                    container=f'nga-r3-eng-{out.parent.name}-s{seed}', stop_after=stop_after,
                     evaluation={'candidate_test_forbidden': True, 'formal_acceptance_requires_new_review': True})
     pin = hashlib.sha256((json.dumps(plan, indent=2, sort_keys=True) + '\n').encode()).hexdigest()
     write(out / 'plan.json', plan)

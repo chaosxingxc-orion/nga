@@ -48,10 +48,18 @@ def verify(path, pin, reviewed=True):
     p = load(path)
     require(identity(p) == pin, 'plan identity changed')
     require(p['schema'] in ('r3-formal-k1-plan-v1', 'r3-engineering-k1-plan-v1') and p['image_sha256'] == IMAGE, 'plan schema/image mismatch')
-    require(p['seed'] in (2, 3) and p['chip'] in (1, 4), 'unregistered seed/chip')
+    engineering = p['schema'] == 'r3-engineering-k1-plan-v1'
+    require(p['seed'] in (2, 3) and p['chip'] in ((1, 4, 6, 7) if engineering else (1, 4)), 'unregistered seed/chip')
+    model_name = Path(p['model']).name
+    require(model_name in (('Qwen__Qwen3.5-0.8B-Base', 'Qwen__Qwen3.5-2B-Base', 'Qwen__Qwen3.5-4B-Base') if engineering
+                          else ('Qwen__Qwen3.5-0.8B-Base',)), 'model outside registered execution scope')
+    pairs = '186' if model_name == 'Qwen__Qwen3.5-0.8B-Base' else '0'
     expected = ['python3', '-P', '/workspace/train_r3.py', '--out', p['out'], '--arm', 'k1', '--seed', str(p['seed']),
                 '--model-path', p['model'], '--kernel', 'ref', '--grad-ckpt', '--micro-tokens', '12000', '--max-len', '4096',
-                '--save-every', '200', '--no-merge', '--epochs', '2', '--total-steps', '3116', '--expect-pairs', '186']
+                '--save-every', '200', '--no-merge', '--epochs', '2', '--total-steps', '3116', '--expect-pairs', pairs]
+    if engineering and p.get('stop_after', 0):
+        require(type(p['stop_after']) is int and 10 <= p['stop_after'] <= 3116, 'invalid engineering step bound')
+        expected += ['--stop-after', str(p['stop_after'])]
     require(p['command'] == expected, 'training recipe mismatch')
     for filename, digest in p['files'].items():
         q = Path(filename)
