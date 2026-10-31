@@ -236,7 +236,12 @@ func Replay(c *Case) (*ReplayReport, error) {
 // SubstitutionReport is mode 3's own output contract (it deliberately does
 // NOT reuse the ReplayReport field names — fidelity/conformance there mean
 // "recomputation vs record"; here the question is what the substitution
-// changed, with both sides' verdicts carried separately).
+// changed, against the BASELINE's two verdicts). The substitute's own
+// conformance verdict is deliberately not carried: steps-substitutions
+// cannot change the record, so it is structurally equal to the baseline's
+// (the substitute's raw views still go through the same discipline — the
+// deep copies are UseNumber-decoded as ledger.Errors inputs, currently
+// consumed only inside Replay(sub)).
 type SubstitutionReport struct {
 	CaseID          string
 	Changed         bool // did the substitution alter the recomputation?

@@ -70,10 +70,11 @@ func TestRecomputeIsNotPlayback(t *testing.T) {
 	}
 }
 
-// TestReevaluateSubstitutionIsolates pins mode 3: a version-only
-// substitution leaves the event stream unchanged (versions ride the pin
-// without forking transitions), a material one changes it at a located
-// event, and the original case is untouched.
+// TestReevaluateSubstitutionIsolates pins mode 3: under FULL-field
+// comparison a version substitution IS material — the recomputed stream's
+// versions field changes (that is what mode 3 exists to surface), located
+// at event 0; a substitution that breaks a step's operability diverges the
+// streams; and the original case is untouched.
 func TestReevaluateSubstitutionIsolates(t *testing.T) {
 	c := loadCase(t, "happy-chain.json")
 	orig, _ := json.Marshal(c)
@@ -324,7 +325,7 @@ func TestIsolationCoversRawViews(t *testing.T) {
 			}
 		}
 		sub.RecordedRawDoc = sub.RecordedRawDoc[:0]
-		sub.rawCaseDoc = map[string]any{"tampered": true}
+		delete(sub.rawCaseDoc, "expected") // IN-PLACE mutation — a rebound map would never reach the original
 	})
 	_ = err // the hostile closure breaking the substitute is expected; the assertion is about the ORIGINAL
 	rawRecAfter, _ := json.Marshal(c.RecordedRawDoc)
@@ -357,6 +358,24 @@ func TestMissingRawViewsRefuseJudgment(t *testing.T) {
 	_, err = Replay(&withCase)
 	if err == nil || !strings.Contains(err.Error(), "raw recorded view") {
 		t.Fatalf("missing RecordedRawDoc: err = %v, want the laundering refusal", err)
+	}
+}
+
+// TestDriveGuardsRefuseLoudly pins the two fail-loud drive guards (R4:
+// deleting either stayed green): an unknown op and an undecodable adopt
+// request propagate as errors — never silently skipped steps.
+func TestDriveGuardsRefuseLoudly(t *testing.T) {
+	m, err := adopt.Open(filepath.Join(t.TempDir(), "scratch.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := drive(m, []Step{{Op: "re-execute-everything"}}); err == nil ||
+		!strings.Contains(err.Error(), "unknown op") {
+		t.Fatalf("unknown op: err = %v, want the loud refusal", err)
+	}
+	if _, err := drive(m, []Step{{Op: "adopt", Request: json.RawMessage(`{"identity": 5}`)}}); err == nil ||
+		!strings.Contains(err.Error(), "undecodable") {
+		t.Fatalf("undecodable request: err = %v, want the loud refusal", err)
 	}
 }
 

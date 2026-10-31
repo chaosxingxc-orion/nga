@@ -97,7 +97,24 @@
           "type": "integer",
           "minimum": 0
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "fidelity": {
+                "const": "divergence"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "divergence_at"
+            ],
+            "description": "A divergence verdict must LOCATE — a boolean divergence is exactly the anti-pattern the priors forbid (family b)."
+          }
+        }
+      ]
     }
   }
 }
