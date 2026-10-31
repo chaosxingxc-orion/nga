@@ -56,7 +56,7 @@
 
 这些是组织原则。工作台界面、语义规范编译器、授权执行、版本发布、并发采纳、外部副作用幂等及可执行回放尚未形成完整实现证据。
 
-`14-v0-adversarial-review.md` 已列出关键反例：并行预算不能一律取最大值；可逆操作仍可能越权；初始准入不能保证后续权限永远有效；采纳事件本身不能保证外部动作不重复；隔离上下文不能证明验证独立。下一阶段应把这些反例转成可执行验收，而不是把评审文档当作测试已经通过。
+The [current architecture proposal](../achitecture%20design/07-nga-architecture-proposal.md) consolidates the adversarial requirements: budget dimensions need distinct accounting; reversible operations still require authorization; initial admission cannot guarantee future permission; adoption alone cannot prevent duplicate effects; and context isolation cannot prove independent judgments. Its acceptance cases are implementation requirements, not executed results.
 
 ## 3. 原研究路线与当前实验的关系
 
@@ -240,7 +240,7 @@ E3 实际耗时、消费端修复成本、完整 suite 通过情况、2B/4B/9B �
 | K0 前置 | [E3](../wiki/E3-k0-readout-precondition.md) | 检查必需步骤及终态完整性 |
 | W1 与 R0S | [W1](../wiki/W1-wave1-first-weight-updates.md)、[R0S](../wiki/R0S-r0-side-fp32-rescore.md) | W1 的八次原始描述须结合后续十次修订；R0S 含未提交更新 |
 | 工作中复现计划与审计 | [复现草案](../experiments/JEV-REPRODUCTION-PLAN.md)、[参考审计](../experiments/KEV-STAGE1-REFERENCE-AUDIT.json)、[消费端审计](../experiments/R3-CONSUMER-PRECHECK-AUDIT.json) | 本次开始时均未提交；参考结果与函数探针不是本地模型最终成绩 |
-| 架构当前版本 | [架构索引](../achitecture%20design/README.md)、[V0.2](../achitecture%20design/13-nga-architecture-v0.2.md)、[反例评审](../achitecture%20design/14-v0-adversarial-review.md) | 组织方案与未执行的验收要求 |
+| Current architecture | [Architecture index](../achitecture%20design/README.md), [canonical proposal and acceptance gate](../achitecture%20design/07-nga-architecture-proposal.md) | Proposed implementation scope; acceptance remains unexecuted. |
 
 运行事实来自 CephFS 根目录 `/mnt/cephfs/xingchao/experiments/jev/`：
 

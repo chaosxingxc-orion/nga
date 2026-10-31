@@ -1,66 +1,21 @@
-# NGA Architecture Workspace
+# NGA Architecture
 
-This directory holds the owner-supplied enterprise architecture baseline and NGA's subsequent analysis and revisions. The directory spelling is retained so existing local references continue to work.
+Start with [07 — NGA Architecture and Minimum Java SDK Proposal](07-nga-architecture-proposal.md). This is the single current architecture proposal for collaborators and implementers.
 
-**Current organizing view:** [V0.2 — three states, four planes, agent evolution](13-nga-architecture-v0.2.md). Read it with the [V0 adversarial review](14-v0-adversarial-review.md), which challenges both the supplied source and our earlier proposals. Development/runtime/operations are lifecycle states; user/runtime/management/control are responsibility planes; agent evolution coordinates the whole.
+The proposed first deliverable is an embeddable Java SDK on openJiuwen, an openJiuwen adapter, a Spring Boot Starter, a credit reference application and a conformance/failure suite. The proposal covers agent evolution across three states and four planes, S1/S2/framework authority, identities, business APIs, extensible primitives, persistence/recovery, replay and the minimum acceptance gate. It distinguishes established requirements from the implementation target and unresolved qualification choices.
 
-**Current integrated review:** [Agent evolution across three states and four planes](22-integrated-lifecycle-and-plane-review.md) brings the runtime and customer-extension proposals back into the full architecture. It defines common object lineage, four-plane authority, operational recovery versus reusable improvement, seven handoffs, eight review findings and twelve cross-dimensional acceptance cases. V0.2 and the diagrams are updated to reflect this review; detailed mechanisms remain proposed.
+| Document | Role |
+| --- | --- |
+| [07 — Architecture and minimum Java SDK proposal](07-nga-architecture-proposal.md) | Canonical architecture and implementation scope; update this document in place. |
+| [05 — Original architecture brief](05-architecture-brief-and-decisions.md) | Preserved V0 source input in its original language and context. |
+| [06 — Original architecture diagrams](06-architecture-diagrams-md.md) | Preserved V0 source diagrams; not the current NGA design. |
 
-**Current discussion:** [Graph, Agent Loop, and Workflow control review](15-graph-loop-workflow-control-review.md) challenges their composition, decision-basis ownership, nested execution, and the S1/S2/framework authority boundaries. Its refinements are proposals, not a replacement of the established organizing axes or an implemented guarantee.
-
-**Discussion agenda:** [Architecture discussion register](16-architecture-discussion-register.md) consolidates 18 open questions with options, proposed starting positions, closure evidence, dependencies and a suggested discussion order. Recommendations remain open until explicitly decided.
-
-**Current design direction:** [Framework logic first, case coverage second](18-framework-core-and-case-coverage.md) records the owner's correction: define NGA's general invariants and configurable contracts, then test different cases. Independent cases may share constraints. The [credit review](17-credit-scope-identity-and-revision-review.md) remains an illustrative analysis; its earlier single-relationship starting scope is not a framework prerequisite.
-
-**Current integration proposal:** [NGA and enterprise IT capability boundaries](19-business-system-capability-boundary.md) places NGA over authorized business operations while the owning IT system retains its domain rules, data and commit authority. It distinguishes delegated semantic judgment, request continuity and agent replay from provider-internal execution.
-
-**Current AQ-01/AQ-02 discussion:** [Task, decision and business-request identity](20-task-decision-request-identity.md) applies the accepted integration boundary to task completion, question/revision identity, fixed requests and changes. Following owner feedback, normal execution waits for the API result; concurrent revision is an explicit branch, and cancellation/reversal requires native capabilities or qualified composition. Its eighteen adversarial cases keep provider internals outside NGA's design; detailed mechanisms remain proposals.
-
-**Current runtime contract proposal:** [Framework primitives and API capability contracts](21-runtime-primitives-and-capability-contracts.md) separates a common runtime contract, a default primitive library, customer extensions, provider guarantees and model judgments. Primitives must support configuration, package import, composition and custom implementations. The document includes twenty execution cases plus eight extension cases; engine and package technology choices remain open.
-
-**Current core object contracts:** [Agent definitions, releases, tasks, cases and handoffs](23-core-objects-and-plane-handoffs.md) separates immutable release content from scoped activation authority. It specifies fields, lifecycle/mutation rules, seven handoff families, publication command/receipt examples and the credit lifecycle through operational attribution and a new release, with sixteen proposed counterexamples.
-
-**Engineering foundation and reuse:** [openJiuwen reuse and incremental evolution](24-openjiuwen-reuse-and-evolution.md) reviews pinned public Java Core/Runtime sources and Studio architecture against V0. openJiuwen remains the base; reuse and componentized, pluggable extension are established constraints. The document maps existing components to NGA contracts, identifies eight adversarial findings, proposes extension ports and five evolution stages, and defines twelve unexecuted integration cases. Supporting technology and compatible version selection remain open.
-
-## Reading order and document status
-
-| Document | Role | Status |
-| --- | --- | --- |
-| [05 — Architecture brief and decisions](05-architecture-brief-and-decisions.md) | Original agent-festival architecture brief and nine decision requests. | Archived V0 source, retained as supplied in Chinese. |
-| [06 — Architecture diagrams](06-architecture-diagrams-md.md) | Original overview, task walkthrough, and mechanism inventory. | Archived V0 source, retained as supplied in Chinese. |
-| [07 — NGA architecture analysis](07-nga-architecture-analysis.md) | What survives the assumed availability of a capable Jev-like model; gaps and proposed corrections. | Analysis, 2026-10-30. |
-| [08 — NGA architecture V0.1](08-nga-architecture-v0.1.md) | Earlier S1/S2/framework responsibilities, decision lifecycle, and contracts. | Earlier draft; its three-view organization is superseded by V0.2. Mechanisms require review and validation. |
-| [09 — NGA architecture diagrams](09-nga-architecture-diagrams.md) | Current four-plane/evolution view, lifecycle matrix, and decision/recovery views. | Companion to V0.2; detailed mechanisms remain proposed. |
-| [10 — Credit decision walkthrough](10-credit-decision-walkthrough.md) | Complete credit example: S1 participation, S2 change boundaries, adoption, retries, new evidence, and reconstruction. | Demonstration fixture and proposed contracts; no execution claimed. |
-| [11 — Jev and agentic orchestration](11-jev-agentic-orchestration.md) | Compare loops, graphs, and workflows; typed nodes, semantic transitions, local S1/S2 cooperation, and architecture-driven model tasks. | Proposed reference organization; alternatives remain under evaluation. |
-| [12 — Replay and audit contract](12-replay-and-audit-contract.md) | Historical inspection, executable control replay, reevaluation, live recovery, and audit evidence. | Replay/audit are required; mechanisms and acceptance contracts are proposed. |
-| [13 — NGA architecture V0.2](13-nga-architecture-v0.2.md) | Three-state/four-plane matrix, integrated agent evolution, release continuity, and the credit lifecycle. | Current organizing proposal; axes are owner-defined, detailed mechanisms are proposed. |
-| [14 — V0 adversarial review](14-v0-adversarial-review.md) | Source-linked findings, counterexamples, corrections, and acceptance obligations for V0 and our own drafts. | Design review; no implementation tests claimed. |
-| [15 — Graph, Agent Loop, and Workflow control review](15-graph-loop-workflow-control-review.md) | Eight adversarial findings; decision-basis ownership, common execution contracts, three-state/four-plane responsibilities, logical interfaces, and governed evolution. | Discussion proposal; technology and topology choices remain open. |
-| [16 — Architecture discussion register](16-architecture-discussion-register.md) | Eighteen open architecture questions, discussion sequence, decision evidence, three-state/four-plane coverage and deferred technical choices. | All items OPEN; recommendations are not approved decisions. |
-| [17 — AQ-01 / AQ-02 credit scope and identity review](17-credit-scope-identity-and-revision-review.md) | Credit-fixture boundary, application and decision identity, material changes, rule applicability, replanning, retries and fourteen adversarial cases. | Corrected after owner feedback; business-specific scope is not a prerequisite for framework design. AQ-01 and AQ-02 remain OPEN. |
-| [18 — Framework logic and case coverage](18-framework-core-and-case-coverage.md) | Stable core versus business contracts, independent cases with shared constraints, S1/S2/control roles and eight coverage patterns. | Framework-first method is owner-established; mechanisms and coverage expectations remain proposed. |
-| [19 — Business-system capability boundary](19-business-system-capability-boundary.md) | Business-operation interfaces, delegated decisions, authoritative IT-system state, idempotent invocation and bounded replay visibility. | General boundary is the owner-accepted working premise; detailed guarantees, protocols and provider implementations remain open. |
-| [20 — Task, decision and business-request identity](20-task-decision-request-identity.md) | Current AQ-01/AQ-02 proposals: task completion, decision questions/revisions, provider-request continuity, phase-specific changes and eighteen adversarial cases. | Working business-system boundary accepted; detailed identity/lifecycle policies remain OPEN and unimplemented. |
-| [21 — Runtime primitives and API capability contracts](21-runtime-primitives-and-capability-contracts.md) | Default primitive library, customer configuration/import/custom implementations, API contracts, Graph/Workflow operators, twenty execution cases and eight extension cases. | Customer extensibility is required; package/runtime mechanisms, technologies and implementation guarantees remain proposed. |
-| [22 — Integrated lifecycle and plane review](22-integrated-lifecycle-and-plane-review.md) | Business objective/agent/release/task/case lineage, twelve responsibility cells, authority handoffs, recovery versus improvement and eight adversarial findings. | Organizing dimensions remain established; handoffs and twelve acceptance cases are proposals, not executed tests. |
-| [23 — Core objects and plane handoffs](23-core-objects-and-plane-handoffs.md) | AgentDefinition, ReleaseManifest, ActivationBinding, Task and OperationalCase fields; management/control authority; commands/receipts; credit development-to-evolution trace and sixteen adversarial cases. | Concrete logical-contract proposal; no final schema, protocol, implementation or executed acceptance claim. |
-| [24 — openJiuwen reuse and incremental evolution](24-openjiuwen-reuse-and-evolution.md) | Current engineering mapping: fixed openJiuwen foundation, reuse inventory, source-backed gaps, extension/control boundaries and compatible evolution path. | Foundation/reuse constraints are established; public Java analysis only, integration mechanisms and OJ01–OJ12 cases remain proposed. Read with V0.2 and source V0. |
-
-The [NGA overall design](../design/nga-overall-design.md) remains the program-level source for the three projects and established principles. This directory develops the architecture for project 2 and its integration into project 3.
-
-## Scope and source boundaries
-
-For this architecture exercise, **assume a Jev-like model already meets the required semantic consistency, business-definition following, typed-output, and declared unresolved-case behavior within its supported scope**. This is a design premise, not a new experiment result or a claim that the repository's current models pass those requirements.
-
-The original documents describe a different project context. Their statements about implemented schemas, tested examples, named hosts, external repositories, industry comparisons, and prior approvals retain their original scope. Those artifacts and evidence are not imported by archiving these two files. This revision does not independently verify their external-product claims. In particular, a mechanism drawn in 06 may still be pending in 05; the diagram does not resolve the decision.
-
-S1 and S2 in the new NGA documents mean decision and reasoning capabilities. Do not infer those meanings from stage labels in the source roadmap.
+The [overall design](../design/nga-overall-design.md) defines NGA's three-project program. Model research protocols and results remain in their existing research directories.
 
 ## Maintenance
 
-- Preserve 05 and 06 as source snapshots. Record corrections or departures in the NGA analysis and revision documents with source-section references.
-- Keep new NGA artifacts in English. The two owner-supplied Chinese snapshots are a source-preservation exception.
-- Separate established principles, assumptions, proposed mechanisms, and unresolved decisions. An architecture draft does not amend experiment protocols.
-- Keep the explanation and diagrams aligned. Use an explicit revision when a change affects decision meaning, authority, adoption, execution, or reconstruction.
-- Preserve the established openJiuwen foundation and reuse-first, pluggable extension constraints. Qualify compatible public Java artifacts and integration mappings before implementation; supporting storage, hosting, model serving, authorization and packaging choices remain open. Do not treat the public Studio/Python and Java execution lines as interchangeable without evidence.
+- Maintain one current proposal rather than adding numbered iteration documents.
+- Keep exploratory drafts in the locally ignored architecture-history directory. Git history also preserves earlier published versions.
+- Preserve 05/06 as source snapshots. Their implementation claims are not NGA implementation evidence.
+- Keep new artifacts in English. State established requirements, proposed implementation and verified results distinctly.
+- Change the proposal, its diagrams, reference application and acceptance evidence together when the public architecture changes.

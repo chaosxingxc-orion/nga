@@ -10,11 +10,11 @@ The preceding generation of agent frameworks centers on an **agentic model**: th
 
 The research direction starts from the required business behavior. The [survey](survey/README.md) and its [PDF](survey/nga-survey.pdf) identify useful evidence, defects, and gaps in Jev-class research. They inform task definition and controlled comparisons; published architectures and benchmarks do not determine NGA's objectives.
 
-Start with the [NGA overall design](design/nga-overall-design.md) for the program and established principles, then the [V0.2 architecture](achitecture%20design/13-nga-architecture-v0.2.md) and [V0 adversarial review](achitecture%20design/14-v0-adversarial-review.md). **These are design objectives and proposed mechanisms, not demonstrated runtime guarantees.**
+Start with the [NGA overall design](design/nga-overall-design.md) for the program and established principles, then [07 — NGA Architecture and Minimum Java SDK Proposal](achitecture%20design/07-nga-architecture-proposal.md) for the single current architecture and implementation scope. **These are design objectives and proposed mechanisms, not demonstrated runtime guarantees.**
 
 NGA is organized across **three lifecycle states — development, runtime, and operations — and four responsibility planes — user, runtime, management, and control**. **Agent evolution is the integrating whole across the planes and states**: business experience informs versioned improvements to models, semantics, capabilities, workflows, and their controls. Each plane participates in all three states; operations includes business performance and improvement, not only infrastructure maintenance. The three repository projects below are a separate work organization.
 
-**openJiuwen remains NGA's engineering foundation.** The current integration review starts from public Java Core and Java Runtime, reuses existing execution and workbench capabilities, and identifies the componentized extensions needed for NGA's decision and control contracts. Read the [openJiuwen reuse and evolution review](achitecture%20design/24-openjiuwen-reuse-and-evolution.md) for pinned source evidence, Studio integration differences, extension boundaries and a staged compatibility path.
+**openJiuwen remains NGA's engineering foundation.** The proposed first framework deliverable is an **embeddable Java SDK + openJiuwen adapter + Spring Boot Starter**, with a credit reference application and conformance suite. It reuses existing execution capabilities and adds explicit decision, effect, recovery and replay contracts. The architecture proposal includes pinned source evidence, compatibility limits and the acceptance gate; a full workbench is not required for this first delivery.
 
 ## Three projects and how they connect
 
@@ -53,13 +53,15 @@ S2 proposes plans and revisions; the framework controls whether and when they be
 
 The placement of S1 remains an engineering question: routing, monitoring, evidence selection, intermediate-state evaluation, and final readout have different requirements. Compare candidate loops on task success, cost per successful outcome, latency, semantic consistency, duplicate-effect prevention, and recovery. A cheaper isolated judgment does not establish a better agent.
 
+The first SDK scope makes five capabilities concrete: task/version binding, decision adoption, qualified business effects, durable waiting/recovery, and audit/executable replay. The Starter assembles these within a Spring Boot host; openJiuwen retains graph/loop execution ownership. Module names and implementation choices are proposed, and no SDK artifacts are published yet. See the [minimum delivery contract](achitecture%20design/07-nga-architecture-proposal.md#1-architecture-decision-and-first-deliverable).
+
 ### 3. Build the enterprise workbench and govern semantics
 
 The workbench turns enterprise requirements into maintained business contracts and usable task, execution, review, and accountability workflows. **Knowledge engineering in this third project owns the management of semantic gray areas.** Business experts need a way to define terms, units, time windows, boundaries, precedence, coverage, and exception behavior, then review, publish, version, and revise those specifications.
 
 The objective is that decision execution never silently invents a missing convention. Ambiguous rules, uncovered cases, missing evidence, and model uncertainty must lead to declared handling rather than an improvised business answer. An unresolved state is distinct from a business rejection unless the published policy explicitly equates them. Model detection and framework handling of these states still require work in projects 1 and 2; specification governance belongs to project 3.
 
-**The supplied enterprise architecture remains the V0 source baseline.** NGA's current V0.2 organizes the workbench by three states and four planes, with agent evolution connecting them. Capability contracts, bounded authority, context provenance, and adoption/accountability remain useful foundations; inherited assumptions are corrected where counterexamples invalidate them. S1 + S2, Graph, Loop, and Workflow designs evolve on openJiuwen. Prefer reuse, configuration and adapters before custom implementation; necessary NGA components must remain replaceable through explicit contracts. Specific compatible versions, supporting technologies and unvalidated mechanisms remain open.
+**The supplied enterprise architecture remains the V0 source baseline.** The current proposal organizes the workbench by three states and four planes, with agent evolution connecting them. Capability contracts, bounded authority, context provenance, and adoption/accountability remain useful foundations; inherited assumptions are corrected where counterexamples invalidate them. S1 + S2, Graph, Loop, and Workflow designs evolve on openJiuwen. Prefer reuse, configuration and adapters before custom implementation; necessary NGA components must remain replaceable through explicit contracts. Specific compatible versions, supporting technologies and unvalidated mechanisms remain open.
 
 ## Decision idempotence and traceability
 
@@ -74,25 +76,23 @@ The objective is that decision execution never silently invents a missing conven
 
 Caching the same request does not prove semantic consistency. Historical reconstruction, re-evaluation under new versions, and action compensation are separate operations. A new evaluation must not silently rewrite history or repeat an external business operation.
 
-## Overall design and open questions
+## Architecture and implementation scope
 
-The [overall design document](design/nga-overall-design.md) records established principles, develops a proposed logical design, and maintains an open-question register. Its interfaces cover business specifications, capability contracts, evidence/context snapshots, plans, S1 observations, adopted decisions, and execution records.
+The [overall design document](design/nga-overall-design.md) records the program scope and established principles. The [canonical architecture proposal](achitecture%20design/07-nga-architecture-proposal.md) defines the minimum Java SDK, public contracts, object model, control boundaries, execution/recovery behavior and acceptance requirements.
 
-The current [orchestration discussion](achitecture%20design/11-jev-agentic-orchestration.md) compares loops, typed execution graphs, and reusable workflows as ways to combine Jev and agentic models. The [replay and audit contract](achitecture%20design/12-replay-and-audit-contract.md) separates executable control replay, model reevaluation, and live recovery. These are proposed mechanisms under established business objectives.
+The proposal composes Jev judgment, bounded Agent Loops and reusable Workflows on the existing Graph engine. It distinguishes historical inspection, executable control replay, candidate reevaluation and live recovery, and includes a complete credit lifecycle plus fifteen minimum acceptance cases.
 
-The [architecture workspace](achitecture%20design/README.md) preserves the two supplied V0 references and earlier NGA drafts alongside the current V0.2 proposal, adversarial findings, and diagrams. It assumes the required Jev-like capability is available for architectural analysis. The references' implementation claims belong to their original context; pending decisions and technologies are not automatically imported into NGA.
+The [architecture workspace](achitecture%20design/README.md) contains the current 07 Proposal and the two preserved V0 references. Exploratory iterations are retained locally and in Git history rather than presented as competing current proposals. Architecture analysis assumes the required Jev-like capability within its supported scope; this is not a claim that the research model has passed its gates.
 
-| Design area | Questions to resolve |
+| Design area | Current proposal |
 | --- | --- |
-| **Control and orchestration** | How much may S2 revise automatically within an admitted scope? Which runtime organization enforces adoption and execution boundaries? How are handoffs and failures handled? |
-| **Capability contracts** | How should a capability declare its inputs, outputs, required authority, effects, and resource bounds? |
-| **Semantic specifications** | How should project 3 author, check, publish, and revise business conventions? How are unresolved cases handled and released specifications consumed by projects 1 and 2? |
-| **Execution structure** | When should execution use a loop, graph, bounded workflow, or a combination? How should runtime planning interact with declared constraints? |
-| **Context and intermediate results** | What evidence does each component receive? How should results be isolated, shared, verified, and reused? |
-| **Authorization and enforcement** | How should delegated authority and budgets be constrained, and where should those constraints be enforced? |
-| **Accountability and feedback** | How are proposals, verification, adoption, execution, and outcomes linked? Which feedback can validly improve the model or controller? |
+| **SDK and hosting** | Three artifacts, one Spring Boot reference application and a conformance suite; reuse openJiuwen execution. |
+| **Models and control** | Jev supplies typed judgment; S2 supplies bounded reasoning/proposals; framework contracts govern adoption and effects. |
+| **Identity and recovery** | Preserve task, decision and business-request identities across retries and replanning; qualify durable waits and provider-specific recovery. |
+| **Audit and evolution** | Retain required evidence, replay without live effects, and connect attributed cases to independently evaluated releases. |
+| **Deferred product scope** | Full graphical workbench, marketplace and distributed orchestration follow the minimum SDK. |
 
-openJiuwen is the established engineering base, with the public Java line as the current analysis reference. Compatible version selection, supporting storage and authorization mechanisms, control topology and integration details remain open. Existing graph/loop/workflow facilities are the starting point; a new execution engine is not the default. The overall design introduces no frozen API or replacement experiment protocol. Existing proposal defaults remain hypotheses or recommendations to test.
+openJiuwen is the established engineering base, with the public Java line as the current analysis reference. Before accepting the implementation, qualify the exact dependency matrix, durable storage/continuation integration, semantic fixture/provider guarantees, public schemas and deployment assumptions. These choices are tracked in the proposal; the documentation does not amend model-research protocols or claim the SDK is already available.
 
 ## What is in the repository today
 
@@ -100,8 +100,8 @@ This is an active research and engineering repository. Most existing code and ex
 
 | Area | Contents and entry point |
 | --- | --- |
-| **Overall design** | Three-project scope, decision and business-result idempotence, semantic-specification ownership, S1/S2/framework boundaries, V0 evolution, and open questions in [`design/nga-overall-design.md`](design/nga-overall-design.md). |
-| **Architecture workspace** | Archived V0 sources, architectural analysis, proposed S1/S2 collaboration and recovery contracts, and diagrams in [`achitecture design/`](achitecture%20design/README.md). |
+| **Overall design** | Program vision, three projects, research boundaries and established principles in [`design/nga-overall-design.md`](design/nga-overall-design.md). |
+| **Architecture proposal** | Canonical SDK scope, openJiuwen reuse, S1/S2/framework contracts, credit lifecycle, diagrams and acceptance gate in [07 — Architecture Proposal](achitecture%20design/07-nga-architecture-proposal.md); original V0 inputs remain in the [architecture workspace](achitecture%20design/README.md). |
 | **Survey** | Nine analytical chapters covering Jev-class models, semantics, consistency, business value, fast/slow cooperation, and limitations. Start with [`survey/README.md`](survey/README.md); a [PDF](survey/nga-survey.pdf) is also available. |
 | **Research plan** | R0–R8 hypotheses, work packages, dependencies, and decision gates. See the [proposal](proposal/00-research-proposal.md) and [four-direction work plan](proposal/01-work-plan-four-directions.md). |
 | **Tasks and protocols** | Data builders, manifests, frozen protocols and amendments, and result documents in [`experiments/`](experiments/README.md). |

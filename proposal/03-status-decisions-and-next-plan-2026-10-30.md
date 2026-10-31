@@ -90,7 +90,7 @@ E3 中的 realized-call replay 是归因诊断，现行修订明确它不单独�
 
 ## 3. 架构线：设计进度与实现缺口
 
-当前入口应是 [V0.2](../achitecture%20design/13-nga-architecture-v0.2.md) 和 [对抗评审](../achitecture%20design/14-v0-adversarial-review.md)。05／06 是保留的原始中文快照，08 的三视图组织已由 V0.2 更新；源文档原项目里的“已实现”或“已测试”不能自动转成 NGA 的实现证据。
+The current collaborator entry is [07 — NGA Architecture and Minimum Java SDK Proposal](../achitecture%20design/07-nga-architecture-proposal.md). Documents 05/06 remain original V0 inputs. The proposal retains the three-state/four-plane organizing model and distinguishes source-project implementation claims from NGA evidence.
 
 已经确定的方向包括：三态四平面；业务判断、采纳与外部执行分开；语义规范的管理归项目 3；回放和审计是要求；agent 演进贯通从开发、运行到运营反馈的版本链。**这些不需要再次让你确认。**
 
@@ -223,8 +223,8 @@ D2 的 24 小时来自工作区尚未提交的复现草案，不是本报告认�
 | R0 结果及失效比较口径 | [R0 results](../experiments/R0-BASELINE-RESULTS.md)，开头 erratum note 与 §1 |
 | W1、采用、test 与最新工程义务 | [R3 prereg](../experiments/R3-SFT-PREREG.md)，§8–10、§14.5、§14.11 checklist、§14.12 |
 | 运行记录 | [wiki 索引](../wiki/README.md)，K0／W1 的 planned 不能取代实时完成标记 |
-| 三项目与业务待决策事项 | [总体设计](../design/nga-overall-design.md)，§10–11 |
-| 架构当前版本与验收缺口 | [架构索引](../achitecture%20design/README.md)、[V0.2](../achitecture%20design/13-nga-architecture-v0.2.md)、[评审](../achitecture%20design/14-v0-adversarial-review.md) |
+| Program scope and implementation choices | [Overall program design](../design/nga-overall-design.md), [architecture implementation decisions](../achitecture%20design/07-nga-architecture-proposal.md#12-implementation-sequence-and-remaining-decisions) |
+| Current architecture and acceptance gaps | [Architecture index](../achitecture%20design/README.md), [canonical proposal](../achitecture%20design/07-nga-architecture-proposal.md) |
 
 ### 8.2 本次亲查的共享存储产物
 
