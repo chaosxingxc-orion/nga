@@ -267,11 +267,13 @@ Generated assertions remain marked as such. Replacing evidence, sharing previous
 
 ### 7.5 Runtime primitives and API capability contracts
 
-The [runtime contract proposal](../achitecture%20design/21-runtime-primitives-and-capability-contracts.md) separates framework execution primitives, provider capability guarantees, reusable recovery operators and model ports. Proposed primitive families cover admitted transitions, invocation/observation, waiting, timers and child/join scopes. Retry, cancellation and compensation compose those mechanisms under an operation-specific contract; exposing an operator does not create a missing provider guarantee.
+The owner requires **configurable, importable and customer-extensible control primitives**. The [runtime contract proposal](../achitecture%20design/21-runtime-primitives-and-capability-contracts.md) therefore separates a common runtime contract, a default primitive library, customer extensions, provider guarantees and model ports. Transition admission, invocation/observation, waiting, timers and child/join scopes are proposed defaults, not a closed list of industry semantics. Customers can configure/import definitions, compose reusable primitives or supply compatible custom implementations with additional states and events. Retry, cancellation and compensation still depend on the actual operation contracts.
+
+The proposed extension package binds namespace/version, input/configuration/output types, execution and recovery semantics, capability/model dependencies, compatibility and qualification evidence. Graph/Workflow nodes resolve built-in or imported definitions through the same declared contracts. Imported candidates become active under the publication policy; active invocations retain their bound implementation/configuration or follow an explicit migration. Identity, authority, effect and replay obligations apply to every implementation; the kernel need not hardcode each industry's control logic.
 
 Graph nodes/edges and Workflow steps/handlers must preserve the same identities, completion predicates, deadlines, authority and recovery ownership. Normal typed events drive deterministic transitions. Jev supplies explicitly delegated semantic judgments; S2 proposes investigation, workflow selection or composition within its admitted scope. Neither model certifies an unobserved external effect. A parent stop, timeout or first-result join must account for outstanding child operations; replay uses recorded events and cannot perform live effects.
 
-The proposal includes twenty adversarial cases and a three-state/four-plane responsibility matrix. These are design and future acceptance artifacts, not executed tests or a choice of runtime engine, storage, scheduling or protocol.
+The proposal includes twenty execution cases, eight extension cases and a three-state/four-plane responsibility matrix. These are design and future acceptance artifacts, not executed tests or a choice of package format, runtime engine, storage, scheduling or protocol.
 
 ## 8. Traceability and feedback
 
