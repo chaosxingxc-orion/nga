@@ -31,6 +31,35 @@ class CPUQueueTests(unittest.TestCase):
         self.write(root/'execution.json',{'run':'run','chip':1,'launcher':'/frozen/launcher.py'})
         self.write(root/'SUPERVISOR_RECEIPT.json',{'command':['python','-P','/frozen/launcher.py','supervise','--plan',str(root/'execution.json'),'--sha256',Q.sha(root/'execution.json'),'--attempt','2']})
 
+    def test_prechecks_wait_for_hash_bound_baseline_and_run_real_child(self):
+        job={'id':'prechecks','kind':'k0_prechecks','baseline':'one','model':'/model',
+             'output':str(self.root/'fresh/K0_PRECHECKS.json')}
+        self.doc['jobs'].append(job)
+        tool=self.root/'prechecks.py'
+        tool.write_text("""import sys,json,hashlib
+from pathlib import Path
+get=lambda k:sys.argv[sys.argv.index(k)+1]
+out=Path(get('--out'));out.mkdir()
+base=Path(get('--k0-report'))
+check=out/'check.json';check.write_text('{}')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+(out/'K0_PRECHECKS.json').write_text(json.dumps({'schema':'r3-fresh-k0-prechecks-v1','status':'PASS','model':get('--model'),'scientific_acceptance':False,'test_read':False,'inputs':{str(base):sha(base)},'checks':{str(check):sha(check)}}))
+""")
+        self.doc.update(k0_prechecks={'tool':str(tool)},report_tool_sha256='report-pin',closure_sha256='closure-pin')
+        self.assertEqual(Q.job_ready(self.path,self.doc,job),'waiting_reports')
+        self.write(Path(self.job['output']),{'schema':'fixture'})
+        self.write(Q.workdir(self.path,self.job)/'EXIT.json',{'exit_code':0,'output_sha256':Q.sha(self.job['output'])})
+        self.assertEqual(Q.job_ready(self.path,self.doc,job),'ready')
+        command=Q.report_command(self.doc,job)
+        self.assertEqual(command[command.index('--k0-report')+1],self.job['output'])
+        self.assertEqual(command[command.index('--closure-sha256')+1],'closure-pin')
+        Q.workdir(self.path,job).mkdir(parents=True)
+        with patch.object(Q,'verify',return_value=self.doc):
+            self.assertEqual(Q.worker(self.path,self.pin,'prechecks'),0)
+        Path(self.job['output']).write_text('{}')
+        with self.assertRaisesRegex(RuntimeError,'dependency report changed'):
+            Q.job_ready(self.path,self.doc,job)
+
     def test_wait_release_failure_and_mismatch(self):
         self.assertEqual(Q.ready(self.job),'waiting_inference')
         root=Path(self.job['eval_out'])

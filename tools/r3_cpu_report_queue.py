@@ -68,7 +68,16 @@ def verify(path, pin):
     reports = [j for j in jobs if j.get('kind', 'report') == 'report']
     comparisons = [j for j in jobs if j.get('kind') == 'comparison']
     r0_reports = [j for j in jobs if j.get('kind') == 'r0_report']
-    require(len(reports) + len(comparisons) + len(r0_reports) == len(jobs), 'unknown CPU job kind')
+    prechecks = [j for j in jobs if j.get('kind') == 'k0_prechecks']
+    require(len(reports) + len(comparisons) + len(r0_reports) + len(prechecks) == len(jobs), 'unknown CPU job kind')
+    if prechecks:
+        config = doc['k0_prechecks']
+        require(Path(config['tool']).is_absolute() and sha(config['tool']) == config['tool_sha256'], 'precheck tool changed')
+        report_ids = {j['id'] for j in reports}
+        for job in prechecks:
+            require(job['baseline'] in report_ids, 'precheck baseline must be a report')
+            require(Path(job['model']).is_absolute(), 'absolute precheck model required')
+            require(Path(job['output']).name == 'K0_PRECHECKS.json', 'precheck output differs')
     if r0_reports:
         require(len(r0_reports) == 1, 'one full R0 report required')
         config = doc['r0_report']
@@ -158,6 +167,8 @@ def ready(job):
 
 
 def comparison_dependencies(job):
+    if job.get('kind') == 'k0_prechecks':
+        return [job['baseline']]
     return job['candidate'] + [job['baseline']] + job.get('incumbent', []) + ([job['r0_report']] if job.get('r0_report') else [])
 
 
@@ -178,6 +189,14 @@ def job_ready(path, doc, job):
 
 
 def report_command(doc, job):
+    if job.get('kind') == 'k0_prechecks':
+        baseline = next(j for j in doc['jobs'] if j['id'] == job['baseline'])
+        return [sys.executable, '-P', doc['k0_prechecks']['tool'],
+                '--k0-report', baseline['output'], '--report-tool', doc['report_tool'],
+                '--report-tool-sha256', doc['report_tool_sha256'],
+                '--frozen-code-dir', str(Path(doc['closure'])/'r3_code'),
+                '--closure-sha256', doc['closure_sha256'], '--model', job['model'],
+                '--out', str(Path(job['output']).parent)]
     if job.get('kind') == 'r0_report':
         config = doc['r0_report']
         return [sys.executable, '-P', config['tool'], '--run', job['eval_out'],
@@ -241,6 +260,14 @@ def worker(path, pin, job_id):
                     require(sha(report['verified']) == report['verified_sha256'] and
                             sha(Path(job['eval_out'])/'instruct/report.json') == report['report_sha256'],
                             'R0 verified output identity differs')
+                elif job.get('kind') == 'k0_prechecks':
+                    require(report.get('schema') == 'r3-fresh-k0-prechecks-v1'
+                            and report.get('status') == 'PASS'
+                            and report.get('scientific_acceptance') is False
+                            and report.get('test_read') is False
+                            and report.get('model') == job['model'], 'precheck output scope differs')
+                    for filename, digest in {**report['inputs'], **report['checks']}.items():
+                        require(sha(filename) == digest, 'precheck evidence changed')
                 else:
                     schema = 'r3-development-comparison-v1' if job.get('kind') == 'comparison' else 'r3-selection-report-v1'
                     require(report.get('schema') == schema and
