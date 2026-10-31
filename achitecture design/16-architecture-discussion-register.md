@@ -14,6 +14,7 @@ The discussion does not reopen these owner requirements:
 - Agent evolution as the integrating whole across the states and planes.
 - Decision consistency, decision/business-result idempotence, replay and audit as objectives.
 - Business-configurable behavior and governed semantic specifications; semantic gray areas require explicit resolution paths rather than silent model invention.
+- Configurable/importable control primitives and customer extensions: the framework may provide defaults, but industry-specific control semantics must not be restricted to a closed built-in vocabulary.
 - Three related projects: decision-model research and engineering, S1 + S2 framework design, and an enterprise agent workbench.
 - For this architecture exercise, assume a Jev-like model satisfies the required capabilities within its declared scope. That premise does not assert that current repository models have passed those gates.
 - Owner correction after the AQ-01/AQ-02 discussion: design the framework's general logic first, then challenge it with varied cases. Detailed banking semantics are not prerequisites to that design. Independent cases can remain distinct while sharing a business constraint; see [document 18](18-framework-core-and-case-coverage.md).
@@ -24,7 +25,7 @@ What remains open is the precise scope of each promise, its enforcement and comp
 
 Role labels below identify proposed participants, not named assignees. A recommendation becomes a decision only through the recording procedure in section 7. No numerical service target, risk threshold, storage technology or model topology is selected here.
 
-Current cross-cutting proposal: [document 21](21-runtime-primitives-and-capability-contracts.md) specifies runtime primitive families, API capability contracts and Graph/Workflow recovery expression, with twenty adversarial cases. It primarily advances AQ-05/AQ-07/AQ-08/AQ-10/AQ-11/AQ-12/AQ-14/AQ-15; their proposed mechanisms remain OPEN.
+Current cross-cutting proposal: [document 21](21-runtime-primitives-and-capability-contracts.md) specifies default primitive families, customer configuration/import/custom implementations, API contracts and Graph/Workflow recovery expression, with twenty execution cases and eight extension cases. It advances model, composition, recovery and release questions; detailed mechanisms remain OPEN. Customer extensibility itself is an owner requirement.
 
 ## 2. The 18 questions and suggested discussion order
 
@@ -128,7 +129,7 @@ Current focused discussion: [document 20](20-task-decision-request-identity.md) 
 - **Question:** must every executable procedure use one graph representation, or may several engines expose compatible control, event and recovery contracts? What is the minimum visibility required from an integrated engine?
 - **Failure case:** one engine treats child completion as decision adoption while another treats it as a proposal; an opaque agent-loop node performs unaudited tool calls. A common diagram format does not remove these disagreements.
 - **Options and tradeoff:** one representation simplifies inspection and compilation but can restrict existing capabilities; adapters reduce migration work but must demonstrate compatible semantics. One implementation does not itself prove one authoritative state model.
-- **Starting recommendation:** first define common identities, invocation/result semantics, transition authority, effect admission and replay coverage. Use [document 21](21-runtime-primitives-and-capability-contracts.md) to compare typed Graph nodes/edges with Workflow steps, await clauses and recovery handlers under the same contracts. A graph is not an enforcement boundary, and every edge need not call Jev. Keep representation/engine choices open and execution, question, delegation and provenance graphs distinct.
+- **Starting recommendation:** first define common identities, invocation/result semantics, transition authority, effect admission and replay coverage. Use [document 21](21-runtime-primitives-and-capability-contracts.md) to compare typed Graph nodes/edges with Workflow steps and recovery handlers. Both must resolve configurable/imported/custom primitive types without a closed built-in vocabulary. A graph is not an enforcement boundary, and every edge need not call Jev. Keep representation, package and engine choices open.
 - **To close:** a conformance contract and comparison using the same credit task through a workflow and a bounded loop, including recovery and hidden-action attempts. Depends on AQ-10/AQ-11/AQ-14; informed by AQ-18. Concrete engine selection is deferred.
 
 <a id="aq-09"></a>
@@ -200,7 +201,7 @@ Current focused discussion: [document 20](20-task-decision-request-identity.md) 
 - **Question:** which models, rules, prompts, workflows, adapters, operators and context policies form a compatible release? Which changes affect new tasks, active tasks, cached judgments or adopted decisions?
 - **Failure case:** a running task combines a new rule with an old adoption operator and an untested model; deployment rollback is treated as reversal of a confirmed business effect.
 - **Options and tradeoff:** pinning versions simplifies continuity but needs explicit handling of urgent changes; task migration permits updates but requires state/dependency compatibility. Independently selecting every component's latest version is not an evaluated release.
-- **Starting recommendation:** a dependency manifest with compatibility and business-acceptance evidence; explicit selection for new tasks and pin/migrate/hold behavior for active tasks. Enforce current revocation where required. Preserve original decision and effect records; evaluate cache invalidation against actual semantic dependencies.
+- **Starting recommendation:** a dependency manifest with compatibility and business-acceptance evidence, including imported primitive packages, implementation/configuration versions and checkpoint dependencies. Select definitions explicitly for new tasks and pin/migrate/hold active ones; installing a package cannot silently replace a suspended control's semantics. Enforce current revocation where required. Preserve original decision/effect records and evaluate cache invalidation against actual semantic dependencies.
 - **To close:** a change-impact matrix and rollout/withdrawal traces including urgent rule change, model upgrade, workflow patch and active OP1. Depends on AQ-02/AQ-03/AQ-11/AQ-14; supports AQ-17.
 
 <a id="aq-17"></a>

@@ -3,13 +3,15 @@
 > Date: 2026-10-30.
 > Status: architecture proposal and adversarial acceptance design; no runtime implementation or executed integration tests are claimed. Relevant AQ items remain OPEN.
 > Established direction: invoke business capabilities, preserve provider authority, and use waiting as the normal continuation boundary. Cancellation or compensation is an explicit branch supported by native APIs or a qualified composition.
+> Owner-established extensibility requirement: primitives must be configurable, importable and customer-extensible. The six families below are a default library, not a closed vocabulary or a requirement that all industry control semantics reduce to those six types. The extension mechanism proposed below remains open for discussion.
 > Context: [working architecture](13-nga-architecture-v0.2.md), [control review](15-graph-loop-workflow-control-review.md), [discussion register](16-architecture-discussion-register.md), [business-system boundary](19-business-system-capability-boundary.md), and [task/decision/request identity](20-task-decision-request-identity.md).
 
 ## 1. Separate execution mechanism, capability promise and semantic judgment
 
 NGA should supply a common execution contract that a Graph, a reusable Workflow and a bounded Agent Loop can all use. A workflow engine or graph representation is not selected here.
 
-- **Framework primitives** admit transitions, invoke capabilities, consume observations, suspend/resume work, manage timers and compose child scopes. Their behavior follows published policies and recorded state.
+- **Default primitive library** supplies transition admission, capability invocation, observation handling, waiting, timers and child scopes. Customers can configure these definitions, import reusable packages, compose new operators or supply qualified custom implementations.
+- **Runtime kernel contracts** preserve identity, admitted authority, effective-state transitions, recovery and attributable history across built-in and imported implementations. Industry-specific control meaning belongs in extensible definitions rather than a closed list of kernel node types.
 - **API capability contracts** state what an external operation means and what the provider guarantees about completion, retry, cancellation and reversal. Adapters map transport details into that contract without inventing guarantees.
 - **Control operators** such as Retry, Cancel and Compensate compose primitives under capability-specific policies. They are first-class in the authoring model, but are not unconditional powers over an external system.
 - **Jev and S2 ports** provide typed semantic judgments and work proposals. They use the same execution, identity and observation boundaries without acquiring transition or business-commit authority.
@@ -26,7 +28,9 @@ The envelope also binds the capability version, material parameters, governing p
 
 These are logical fields and invariants, not mandated services, tables, tokens or wire schemas.
 
-## 3. Proposed framework primitive families
+## 3. Default primitive families and customer extension
+
+The following families are a proposed default package. Their names and implementation are not privileged substitutes for the common runtime contracts, and they do not exhaust the control primitives a customer may need.
 
 | Primitive family | Inputs and result | Framework obligation |
 | --- | --- | --- |
@@ -40,6 +44,61 @@ These are logical fields and invariants, not mandated services, tables, tokens o
 All families preserve attributable transition/observation history. Storage, scheduling, fencing and event-delivery mechanisms must eventually demonstrate these obligations, but no particular implementation is chosen here. At-most-once consumption of an NGA continuation is not a claim of exactly-once external execution; any resulting external call still needs B1's own capability contract.
 
 Deterministic guards use typed observations and published policy. An edge that requires a semantic judgment refers to a qualified Jev result and its adoption policy. Do not ask a model to vote on whether a timer fired or an authenticated typed receipt says completed.
+
+### 3.1 Configuration, import, composition and custom implementation
+
+| Extension route | Customer-defined content | Runtime treatment |
+| --- | --- | --- |
+| **Configure a definition** | Parameters and policy bindings such as applicable calendar, timeout semantics, retry classes, completion predicate or approval roles. | Validate and bind a versioned configuration to the task/release. Changing business meaning is a revision, not an unnoticed parameter edit. |
+| **Import a package** | Namespaced primitive definitions, capability contracts, workflow templates, semantic specifications, implementation references and dependencies. | Register the package as a candidate; validate/qualify and activate it under the publication policy, which may be automated. Import is not implicit execution or universal activation. |
+| **Compose a new control primitive** | A reusable graph/workflow with its own inputs, typed outcomes, state/recovery semantics and constituent capabilities. | Expose the composite as a first-class primitive while preserving its child identities, observations and outstanding-effect obligations. |
+| **Provide a custom implementation** | A new state machine, event/time interpretation or control algorithm implemented through a compatible handler or qualified external executor. | Bind its execution contract and implementation version. It need not be rewritten as a graph of the six defaults; it must expose enough control and evidence for its advertised guarantees. |
+
+For example, a customer-defined **BusinessCalendarWait** could count only periods in a configured calendar, while **QuorumReview** could await approvals from a declared set of roles under an explicit counting rule. These are illustrative controls, not asserted industry requirements. Calendar versions, role policy and consumed events must be bound so their behavior remains explainable and replayable. Ordinary clock expiry is still a framework event; whether that event satisfies the extension's completion rule follows its admitted semantics.
+
+The stable boundary is the execution contract: identity and authority cannot be silently reset, effective changes remain attributable, external effects go through qualified capabilities, and history/recovery promises are explicit. Customers may define additional internal states, public outcome types, predicates and event handlers. There is no requirement to squeeze every industry state into the default library's labels.
+
+### 3.2 Logical extension package and execution contract
+
+A package descriptor should declare the following, without choosing a file format, programming language, binary ABI or distribution service:
+
+- **Identity and dependency resolution:** namespace/name, immutable release identity, compatible runtime contract, dependencies and implementation/configuration references. Resolve a concrete dependency set when admitting a release; do not silently override another primitive with the same display name.
+- **Meaning and types:** purpose, applicability, input/configuration schema, event and output schemas, completion predicates and unsupported conditions. Describe both local continuation state and any claimed business outcome.
+- **Execution behavior:** how to start or resume an identified invocation, accept a correlated event, expose/checkpoint progress and report completion or suspension. State required timer, observation and child-scope facilities. An external executor may expose a different binding with explicitly limited visibility.
+- **Effects and model dependencies:** requested business capabilities, authorization scope, any Jev questions or S2 proposal ports, material evidence dependencies, and the applicable admission policy. Configuration alone does not grant new rights.
+- **Recovery and replay:** retry/cancel/compensation support or explicit absence, checkpoint compatibility, retained observations and implementation artifacts, live-recovery ownership and replay coverage. Custom time/random/model/external inputs must be recorded or governed by a qualified reconstruction contract.
+- **Qualification and lifecycle:** example traces and counterexamples, compatibility evidence, publication scope, active-invocation migration/retirement behavior and maintained ownership.
+
+These are logical obligations, not mandatory method names or separate services. A handler may compute a proposed transition and request framework effects; an integrated executor may instead expose a qualified status/event contract. The host must actually enforce the declared authority/effect boundary, or explicitly narrow its assurance to the trusted integration model. Registration metadata alone does not establish isolation or enforcement.
+
+An imported API description supplies useful interface information but does not automatically establish waiting, cancellation or compensation guarantees. Missing execution semantics need explicit completion/qualification before tasks rely on them; unrelated supported capabilities can still be used under their narrower contracts.
+
+### 3.3 First-class use in Graph, Workflow and model planning
+
+Graph nodes and Workflow steps should resolve **primitive type + bound version + configuration**, including customer namespaces. Imported definitions carry typed ports, control/event semantics and lifecycle handlers, so they are more than labels on a generic tool-call box. A composite can be inspected as a subgraph where available; a custom implementation declares its actual trace/replay boundary.
+
+Jev consumes any semantic specification explicitly declared by the extension. S2 can discover admitted definitions, select/configure them, compose a candidate primitive or propose an implementation. Publishing or invoking that candidate still follows the relevant admission contract; no mandatory human review is introduced unless the customer's policy requires it. Neither model may infer missing cancellation guarantees from a primitive's name.
+
+The kernel uses the resolved contract and admitted transitions; it does not need banking, manufacturing or other industry-specific branches hardcoded into its scheduler. Extending one customer's catalog does not automatically expose that capability or its permissions to another scope.
+
+### 3.4 Versioning, three-state lifecycle and extension counterexamples
+
+Development imports/authors and qualifies definitions. Runtime binds exact primitive/configuration/dependency versions and executes their declared control behavior. Operations observes usage and failures, manages compatibility/retirement and proposes improved packages. Management maintains the catalog; control admits activation and transitions; runtime executes; the user plane explains the primitive's real status. Evolution connects these activities without silently replacing live semantics.
+
+A suspended invocation resumes the version/configuration it actually bound, unless an explicit compatible migration is admitted. Installing a new package does not redirect its old callbacks, change its business calendar or restart its deadline. Retirement must account for active work and retained replay requirements; disabling new invocations does not itself erase the implementation or outstanding obligations of old ones.
+
+The following supplement the P01-P20 execution cases; they are proposed checks, not executed tests:
+
+| ID | Extension challenge | Required behavior / positive counterpart |
+| --- | --- | --- |
+| X01 | A customer needs a control state unavailable in the six defaults | Admit a qualified custom primitive with typed states/handlers; the default vocabulary must not prevent the extension. |
+| X02 | An imported primitive shares a display name with a built-in or another customer | Resolve namespace and bound version explicitly; no silent override or cross-scope publication. |
+| X03 | A business-calendar configuration changes while a wait is suspended | Preserve the bound version or admit migration; new invocations can use the new calendar without rewriting old elapsed time. |
+| X04 | A custom handler performs an unrecorded external write | Enforce the admitted capability boundary or expose an unsupported assurance; registering the handler does not make the effect idempotent or auditable. |
+| X05 | An imported API schema claims rollback without execution evidence | Mark the guarantee unqualified; accept a tested native or composite recovery contract when it supplies the missing semantics. |
+| X06 | A package upgrade changes checkpoint layout or removes a dependency | Resolve compatibility/migration/retirement for active invocations; do not resume old state with arbitrary latest code. |
+| X07 | Custom code reads live time or calls a model during historical replay | Use recorded/qualified replay inputs and preserve effect isolation; disclose narrower replay coverage when reconstruction is unsupported. |
+| X08 | S2 imports a candidate and immediately uses its expanded privileges | Separate candidate import, activation and scoped invocation; automatic publication remains possible under the customer's existing policy. |
 
 ## 4. Minimum API capability contract
 
@@ -239,7 +298,7 @@ Agent evolution integrates these cells: observed wait/retry/compensation cases i
 
 ## 10. Open decisions and engineering sequence
 
-Recommended starting point: build the common contract before choosing an engine. First qualify one synchronous and one asynchronous capability fixture; then add native cancellation, a composite compensation fixture and an unsupported-reversal fixture. All are simulated or contract-scoped until connected-provider evidence exists. Include the Jev judgment boundary and one bounded S2 investigation path without making model calls mandatory for deterministic control.
+Recommended starting point: build the common execution and extension contracts before choosing an engine. Qualify a default primitive, a configured/imported industry control and a custom implementation with an additional state/event model. Exercise them with one synchronous and one asynchronous capability fixture, then native cancellation, composite compensation and unsupported reversal. All are simulated or contract-scoped until connected-provider evidence exists. Include the Jev judgment boundary and one bounded S2 investigation path without making model calls mandatory for deterministic control.
 
 Remaining choices:
 
@@ -248,6 +307,7 @@ Remaining choices:
 3. **Composition:** Graph/Workflow interoperability, nested join/cancellation obligations and the permitted envelope for runtime S2 composition (AQ-07/AQ-08/AQ-10).
 4. **Semantic participation:** which applicability/recovery questions are delegated to Jev and what S2 can propose when no registered path fits (AQ-05/AQ-06/AQ-09).
 5. **Lifecycle:** evidence retention, recovery handoff, suspended-work compatibility and qualification of improved definitions (AQ-14/AQ-16/AQ-17).
+6. **Customer extension:** the minimal kernel contract, package descriptor, custom-handler/executor binding, namespace/scope resolution and conformance/migration requirements. Extensibility is required; these mechanisms remain proposals (AQ-08/AQ-10/AQ-13/AQ-16/AQ-18).
 
 No programming language, workflow engine, graph storage, event broker, timer backend, protocol, model-serving topology or numerical timeout/retry policy is selected. The primitive grouping and public API names above are proposals, not a final SDK.
 
