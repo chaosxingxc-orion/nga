@@ -58,7 +58,7 @@ D1 是阶段顺序，不是暂停推理。为取得参考指标而进行的推�
 
 ### 当前阻塞
 
-1. **release-only Astra 尚未放行**：新版 release 工具虽有 15 项纯 CPU 回归通过，但审查要求继续补齐 NPU/CPU verifier 与实际 `LAUNCH_RECEIPT.json`、`EXIT`、`FinishedAt` 的代次绑定。
+1. **release-only Astra 尚未放行**：当前纯 CPU 回归为 38/38 通过，但审查要求继续补齐 NPU/CPU verifier 与实际 `LAUNCH_RECEIPT.json`、`EXIT`、`FinishedAt` 的代次绑定。
 2. **allocation before-state 的可信锚仍不足**：不能只依赖可改写的 parent review/journal 自洽声明，必须绑定可信原始 before-state。
 3. **审查包覆盖不足**：需要把 `jeval_reference_queue.py`、真实 release 入口和 `publish_new()` 的 pending/link/unlink 崩溃窗口纯 CPU 测试纳入新 bundle。
 4. **资源尚未释放**：chip 4 仍属于 2B 任务；在新 release-only Astra PASS、实际设备为空闲且 allocation 独立核对前，不得手工修改 `CHIP-ALLOCATION.json`。
