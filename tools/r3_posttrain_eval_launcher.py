@@ -207,9 +207,12 @@ def drive(path, pin, number):
                 except ProcessLookupError: pass
             signal.signal(signal.SIGTERM, stop); signal.signal(signal.SIGINT, stop)
             while process.poll() is None:
-                count = sum(1 for _ in (Path(p['out']) / 'results').rglob('*.jsonl'))
+                readouts = list((Path(p['out']) / 'results').rglob('*.jsonl'))
+                count = len(readouts)
+                size = sum(f.stat().st_size for f in readouts)
                 atomic(attempt / 'heartbeat.json', {'utc_seconds': time.time(), 'pid': process.pid,
-                       'readout_files': count, 'progress_unit': 'files, not scored questions'})
+                       'readout_files': count, 'readout_bytes': size,
+                       'progress_unit': 'files and bytes, not scored questions'})
                 time.sleep(15)
             rc = process.returncode
             if rc == 0:

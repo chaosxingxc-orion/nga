@@ -55,9 +55,9 @@ def verify(path, pin, reviewed=True):
     require(identity(p) == pin, 'plan identity changed')
     require(p['schema'] in ('r3-formal-k1-plan-v1', 'r3-engineering-k1-plan-v1') and p['image_sha256'] == IMAGE, 'plan schema/image mismatch')
     engineering = p['schema'] == 'r3-engineering-k1-plan-v1'
-    require(p['seed'] in (2, 3) and p['chip'] in ((0, 1, 2, 4, 6, 7) if engineering else (1, 4)), 'unregistered seed/chip')
+    require(p['seed'] in (2, 3) and p['chip'] in (tuple(range(8)) if engineering else (1, 4)), 'unregistered seed/chip')
     model_name = Path(p['model']).name
-    require(model_name in (('Qwen__Qwen3.5-0.8B-Base', 'Qwen__Qwen3.5-2B-Base', 'Qwen__Qwen3.5-4B-Base') if engineering
+    require(model_name in (('Qwen__Qwen3.5-0.8B-Base', 'Qwen__Qwen3.5-2B-Base', 'Qwen__Qwen3.5-4B-Base', 'Qwen__Qwen3.5-9B-Base') if engineering
                           else ('Qwen__Qwen3.5-0.8B-Base',)), 'model outside registered execution scope')
     pairs = '186' if model_name == 'Qwen__Qwen3.5-0.8B-Base' else '0'
     arm = p.get('arm', 'k1') if engineering else 'k1'
