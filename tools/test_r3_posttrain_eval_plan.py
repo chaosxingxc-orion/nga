@@ -31,10 +31,11 @@ class PostTrainTests(unittest.TestCase):
             (t/'manifest.json').write_text('{"summary":{"final_step":3116}}')
             (t/'plan.json').write_text(json.dumps({'model':str(model),'files':{str(w):P.sha(w)},'arm':'k2','image_sha256':'fixture'}))
             command=['python3','--arm','K1','--adapter','<COMPLETED_ADAPTER>']
-            (c/'manifest.json').write_text(json.dumps({'data':{},'code':{},'mounts':[],'command_template':command}))
+            (c/'manifest.json').write_text(json.dumps({'data':{},'code':{},'mounts':[],'command_template':command,'evaluation_profile':'track_kt'}))
             out=root/'out';result=P.prepare(t,c,out);self.assertEqual(result['status'],'prepared')
             plan=json.loads((out/'plan.json').read_text())
             self.assertIn('K2',plan['command']);self.assertFalse(plan['scientific_acceptance'])
+            self.assertEqual(plan['evaluation_profile'], 'track_kt')
             self.assertEqual(plan['files'][str(w)],P.sha(w))
             w.write_bytes(b'changed')
             with self.assertRaises(RuntimeError):P.prepare(t,c,root/'out2')

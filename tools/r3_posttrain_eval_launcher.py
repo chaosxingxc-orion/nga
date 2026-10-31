@@ -60,30 +60,65 @@ def safe_file(path):
     return p
 
 
+def profile(spec):
+    value = spec.get('evaluation_profile', 'track_k')
+    require(value in ('track_k', 'track_kt'), 'unsupported evaluation profile')
+    return value
+
+
+def is_baseline(spec):
+    return spec['schema'] == 'r3-baseline-dev-spec-v1'
+
+
 def expected_command(spec, out):
-    arm = spec['training_variant']['arm'].upper()
-    require(arm in ('K1', 'K2'), 'unsupported training arm')
-    return ['python3', '-P', ENTRY, '--full', '--model-path', spec['model'],
-            '--adapter', spec['adapter'], '--arm', arm, '--out', str(out / 'results'),
-            '--round-dir', str(out / 'identity'), '--partitions', 'dev,calibration',
-            '--stages', 'k_score', '--k-only', GROUPS, '--scorer', 'rightpad',
-            '--dtype', 'float32', '--no-hf32', '--token-budget', '16384',
-            '--require-record-grade', '--device', 'npu:0', '--unit-tag', 'track_k']
+    kind = profile(spec)
+    baseline = is_baseline(spec)
+    arm = 'K0' if baseline else spec['training_variant']['arm'].upper()
+    require(arm in (('K0',) if baseline else ('K1', 'K2')), 'unsupported training arm')
+    command = ['python3', '-P', ENTRY, '--full', '--model-path', spec['model']]
+    if not baseline:
+        command += ['--adapter', spec['adapter']]
+    command += ['--arm', arm, '--out', str(out / 'results'),
+                '--round-dir', str(out / 'identity'), '--partitions', 'dev,calibration',
+                '--stages', 'k_score,t_score' if kind == 'track_kt' else 'k_score',
+                '--k-only', GROUPS, '--scorer', 'rightpad', '--dtype', 'float32',
+                '--no-hf32', '--token-budget', '16384', '--require-record-grade',
+                '--device', 'npu:0', '--unit-tag', kind]
+    if kind == 'track_kt':
+        command += ['--track-t-config', 'r3', '--data-root', str(BASE),
+                    '--track-t-sources', 'typed-decisions,openjev-synth,akhilaaa3',
+                    '--shard', '0', '--num-shards', '1']
+    return command
+
+
+def allowed_data_files(spec):
+    files = {str(BASE / 'KEV/manifest.json'), str(BASE / 'KEV/decision-v7/train.jsonl')}
+    for suite, split in [('decision-v7', 'dev'), ('decision-v7', 'calibration'), ('transfer-v4', 'dev')]:
+        files.add(str(BASE / 'KEV' / suite / (split + '.jsonl')))
+        if split == 'dev':
+            files.add(str(BASE / 'KEV' / suite / (split + '.variants.jsonl')))
+    if profile(spec) == 'track_kt':
+        files.add(str(BASE / 'manifest.json'))
+        for directory in ('T1_level_names', 'T2_definition_swap', 'T3_question_set'):
+            sources = ('typed-decisions',) if directory == 'T3_question_set' else ('typed-decisions', 'openjev-synth', 'akhilaaa3')
+            files.update(str(BASE / directory / (source + '.jsonl')) for source in sources)
+    return files
 
 
 def verify_spec(spec, out):
-    require(spec['schema'] == 'r3-posttrain-dev-spec-v1', 'unexpected specification')
+    require(spec['schema'] in ('r3-posttrain-dev-spec-v1', 'r3-baseline-dev-spec-v1'), 'unexpected specification')
+    baseline = is_baseline(spec)
+    if baseline:
+        require(not any(key in spec for key in ('training', 'training_exit', 'training_variant', 'adapter')),
+                'baseline must not impersonate training or an adapter')
     require(spec['image_sha256'] == IMAGE and spec['network'] == 'none', 'image/network differs')
     require(spec['test_read'] is False and spec['scientific_acceptance'] is False, 'scope differs')
-    require(spec['training_exit']['exit_code'] == 0, 'training did not succeed')
+    if not baseline:
+        require(spec['training_exit']['exit_code'] == 0, 'training did not succeed')
     require(spec['command'] == expected_command(spec, out), 'command differs from engineering Track K recipe')
-    require(len(spec['readonly_data_mounts']) == 7, 'expected seven non-test data inputs')
-    allowed_data = {str(BASE / 'KEV/manifest.json'), str(BASE / 'KEV/decision-v7/train.jsonl')}
-    for suite, split in [('decision-v7', 'dev'), ('decision-v7', 'calibration'), ('transfer-v4', 'dev')]:
-        allowed_data.add(str(BASE / 'KEV' / suite / (split + '.jsonl')))
-        if split == 'dev':
-            allowed_data.add(str(BASE / 'KEV' / suite / (split + '.variants.jsonl')))
-    require(set(spec['readonly_data_mounts']) == allowed_data, 'non-test data inventory differs')
+    allowed_data = allowed_data_files(spec)
+    require(len(spec['readonly_data_mounts']) == len(allowed_data) and
+            set(spec['readonly_data_mounts']) == allowed_data, 'non-test data inventory differs')
     for filename, digest in spec['files'].items():
         require(sha(safe_file(filename)) == digest, 'frozen dependency changed: ' + filename)
     require(allowed_data <= set(spec['files']), 'unbound data input')
@@ -96,17 +131,17 @@ def verify_spec(spec, out):
         require(not any(p.is_symlink() for p in (root, *root.parents, *root.rglob('*'))), 'code symlink')
         files = {str(p) for p in root.rglob('*') if p.is_file()}
         require(files and files <= set(spec['files']), 'unbound code dependency')
-    for directory in (spec['model'], spec['adapter']):
+    for directory in ([spec['model']] if is_baseline(spec) else [spec['model'], spec['adapter']]):
         root = Path(directory)
         require(not any(p.is_symlink() for p in (root, *root.parents, *root.rglob('*'))), 'model/adapter symlink')
         files = {str(p) for p in root.rglob('*') if p.is_file()}
         require(files and files <= set(spec['files']), 'unbound model/adapter dependency')
-    training = Path(spec['training'])
-    require(str(training / 'manifest.json') in spec['files'] and str(training / 'TRAIN_EXIT.json') in spec['files'],
-            'unbound training identity')
-    require(load(training / 'TRAIN_EXIT.json')['exit_code'] == 0 and
-            load(training / 'manifest.json').get('summary', {}).get('final_step') == 3116, 'incomplete training')
-
+    if not baseline:
+        training = Path(spec['training'])
+        require(str(training / 'manifest.json') in spec['files'] and str(training / 'TRAIN_EXIT.json') in spec['files'],
+                'unbound training identity')
+        require(load(training / 'TRAIN_EXIT.json')['exit_code'] == 0 and
+                load(training / 'manifest.json').get('summary', {}).get('final_step') == 3116, 'incomplete training')
 
 def bind(spec_path, chip, container):
     source = safe_file(spec_path)
@@ -163,7 +198,7 @@ def resource_op(p, op, attempt, name):
     command = [sys.executable, '-P', p['resource_adapter'], op, '--alloc', p['allocation'],
                '--run', p['run'], '--chip', str(p['chip']), '--proof', str(attempt / (op.upper() + '.json'))]
     if op == 'claim':
-        command += ['--owner', 'R3 engineering dev inference', '--purpose', 'Track K dev/calibration only']
+        command += ['--owner', 'R3 engineering dev inference', '--purpose', 'Frozen engineering development scoring; no candidate test']
     else:
         command += ['--container', name, '--claim', str(attempt / 'CLAIM.json')]
     subprocess.run(command, check=True)
@@ -174,9 +209,10 @@ def docker_command(p, spec, plan_path, pin, attempt):
     command = ['docker', 'run', '-d', '--pull=never', '--name', name, '--network=none', '--shm-size', '64g',
                '--ulimit', 'memlock=-1:-1', '--ulimit', 'stack=67108864:67108864']
     mounts = {m['destination']: (m['source'], True) for m in spec['code_mounts']}
-    for directory in (spec['model'], spec['adapter']):
+    for directory in ([spec['model']] if is_baseline(spec) else [spec['model'], spec['adapter']]):
         mounts[directory] = (directory, True)
-    for filename in spec['readonly_data_mounts'] + [str(Path(spec['training']) / 'manifest.json')]:
+    training_mounts = [] if is_baseline(spec) else [str(Path(spec['training']) / 'manifest.json')]
+    for filename in spec['readonly_data_mounts'] + training_mounts:
         mounts[filename] = (filename, True)
     mounts[p['out']] = (p['out'], False)
     mounts['/usr/local/Ascend/driver'] = ('/usr/local/Ascend/driver', True)
@@ -219,7 +255,7 @@ def drive(path, pin, number):
             if rc < 0:
                 rc = 128 - rc  # subprocess signals are negative; container exit codes are not.
             if rc == 0:
-                marker = Path(p['out']) / 'results/EVAL_COMPLETE.track_k.json'
+                marker = Path(p['out']) / 'results' / ('EVAL_COMPLETE.' + profile(spec) + '.json')
                 require(marker.exists() and load(marker).get('exit_code') == 0, 'evaluator terminal marker missing or failed')
     except BaseException:
         rc = 125

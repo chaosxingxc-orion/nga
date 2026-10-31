@@ -58,6 +58,7 @@ def prepare(training, closure, out):
                                'seed':manifest.get('args',{}).get('seed'),
                                'training_plan_sha256':sha(training/'plan.json'),
                                'pooling_policy':'never pool shared and rows implementations as seeds of one candidate'},
+          'evaluation_profile':config.get('evaluation_profile', 'track_k'),
           'command':command,'files':files,'code_mounts':config['mounts'],
           'readonly_data_mounts':list(config['data']), 'model':plan['model'],'adapter':str(adapter),
           'image_sha256':plan['image_sha256'],'network':'none','test_read':False,

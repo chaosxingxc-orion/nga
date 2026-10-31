@@ -380,8 +380,13 @@ def constant_and_uniform_rows(all_records, needed_records_list):
     return out
 
 
-def build_track_t(rows_by_role, records_for_sizes, config=CONFIG_R3, meta=None):
-    """Assemble the Track T block from readout rows per role. Pure function of its inputs (no model)."""
+def build_track_t(rows_by_role, records_for_sizes, config=CONFIG_R3, meta=None, selection_only=False):
+    """Assemble the Track T block from readout rows per role. Pure function of its inputs (no model).
+
+    selection_only limits metric aggregation, never the threshold-fitting view.
+    """
+    if selection_only and not config["halves"]:
+        raise ValueError("selection-only aggregation requires a split into selection/report halves")
     block = {"config": config["name"], "tie_rule": config["tie_rule"], "tau_splitter": config["tau_splitter"].name, "clauses": ["sec 2.3", "sec 2.5", "sec 2.6", "sec 5", "sec 6.1", "sec 6.2"],
              "constants": {"R3SEL_SELECTION_BELOW": R3SEL_SELECTION_BELOW, "R3TAU_BELOW": R3TAU_BELOW, "MIN_N": MIN_N, "TIE_RATE_FLAG": TIE_RATE_FLAG,
                            "B1_MARGIN": B1_MARGIN, "B2_PASS_GAP": B2_PASS_GAP, "B2_VOID_BELOW": B2_VOID_BELOW,
@@ -406,6 +411,11 @@ def build_track_t(rows_by_role, records_for_sizes, config=CONFIG_R3, meta=None):
         for d in decided:
             r = d.row
             half = half_of(r["group_id"]) if config["halves"] else "all"
+            # Fit tau above on every registered carve-out row, including report-half
+            # groups. Their QUESTION70 held-out membership must not make them
+            # eligible for report metrics during candidate selection.
+            if selection_only and half != "selection":
+                continue
             if S.GROUP70.assign(r) == S.HELDOUT:
                 by_cell[(half, r["source"], r["level_type"])].append(d)
             if config["name"] == "r3" and r["source"].startswith("akhilaaa3") and S.QUESTION70.assign(r) == S.HELDOUT:
@@ -413,7 +423,7 @@ def build_track_t(rows_by_role, records_for_sizes, config=CONFIG_R3, meta=None):
         for target, cells in ((block["cells"], by_cell), (block["question70"], by_cell_q)):
             for (half, source, lt), ds in cells.items():
                 target.setdefault(half, {}).setdefault(source, {}).setdefault(lt, {})[role] = CELL_METRICS[config["tie_rule"]](ds, fitted)
-    report_key = "report" if config["halves"] else "all"
+    report_key = "selection" if selection_only else ("report" if config["halves"] else "all")
     block["decision_lines"] = {report_key: decision_lines(block["cells"].get(report_key, {}))}
     if config["halves"]:
         block["selection"] = selection_summary(block["cells"].get("selection", {}))

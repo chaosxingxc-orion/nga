@@ -191,7 +191,7 @@ def rebuild_track_t(run_dir, config_name, data_root=C.DATA_ROOT, selection_only=
         keep = {r["key"] for r in needed if split_rules.GROUP70.assign(r) == split_rules.TRAIN
                 or T.half_of(r["group_id"]) == "selection"}
         by_role = {role: [row for row in rows if row["k"] in keep] for role, rows in by_role.items()}
-    return T.build_track_t(by_role, all_records, config)
+    return T.build_track_t(by_role, all_records, config, selection_only=selection_only)
 
 
 def load_selection_report(run_dir, kev_dir=C.KEV_DIR, require_track_t=False, report_half=False):

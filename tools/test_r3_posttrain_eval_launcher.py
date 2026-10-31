@@ -45,6 +45,74 @@ class ExecutionTests(unittest.TestCase):
         self.path = self.out / 'plan.json'
         self.path.write_text(json.dumps(self.spec))
 
+    def full_profile(self):
+        self.spec['evaluation_profile'] = 'track_kt'
+        for name in L.allowed_data_files(self.spec):
+            path = Path(name)
+            if not path.exists():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b'fixture')
+            self.files[name] = L.sha(path)
+        self.spec['readonly_data_mounts'] = sorted(L.allowed_data_files(self.spec))
+        self.spec['command'] = L.expected_command(self.spec, self.out)
+
+    def test_full_profile_fixed_population_and_no_report_stage(self):
+        self.full_profile()
+        L.verify_spec(self.spec, self.out)
+        self.assertEqual(len(self.spec['readonly_data_mounts']), 15)
+        command = self.spec['command']
+        self.assertEqual(command[command.index('--stages') + 1], 'k_score,t_score')
+        self.assertEqual(command[command.index('--unit-tag') + 1], 'track_kt')
+        self.assertEqual(command[command.index('--track-t-config') + 1], 'r3')
+        self.spec['readonly_data_mounts'].pop()
+        with self.assertRaisesRegex(RuntimeError, 'inventory differs'):
+            L.verify_spec(self.spec, self.out)
+
+    def test_full_profile_refuses_test_mount_and_changed_track_t(self):
+        self.full_profile()
+        original = list(self.spec['readonly_data_mounts'])
+        self.spec['readonly_data_mounts'][0] = str(self.base / 'KEV/decision-v7/test.jsonl')
+        with self.assertRaisesRegex(RuntimeError, 'inventory differs'):
+            L.verify_spec(self.spec, self.out)
+        self.spec['readonly_data_mounts'] = original
+        (self.base / 'T1_level_names/typed-decisions.jsonl').write_bytes(b'changed')
+        with self.assertRaisesRegex(RuntimeError, 'dependency changed'):
+            L.verify_spec(self.spec, self.out)
+
+    def baseline(self):
+        self.full_profile()
+        self.spec['schema'] = 'r3-baseline-dev-spec-v1'
+        for key in ('training', 'training_exit', 'training_variant', 'adapter'):
+            self.spec.pop(key)
+        self.spec['command'] = L.expected_command(self.spec, self.out)
+
+    def test_baseline_has_k0_no_fabricated_training_and_no_adapter_mount(self):
+        self.baseline()
+        L.verify_spec(self.spec, self.out)
+        command = self.spec['command']
+        self.assertEqual(command[command.index('--arm') + 1], 'K0')
+        self.assertNotIn('--adapter', command)
+        self.path.write_text(json.dumps(self.spec))
+        execution, pin = L.bind(self.path, 2, 'nga-r3-eng-eval-k0')
+        plan = L.load(execution)
+        docker = L.docker_command(plan, self.spec, execution, pin, 1)
+        mounts = [docker[i+1] for i,x in enumerate(docker) if x == '--mount']
+        self.assertFalse(any(str(self.training) in m for m in mounts))
+        self.spec['training_exit'] = {'exit_code': 0}
+        with self.assertRaisesRegex(RuntimeError, 'impersonate'):
+            L.verify_spec(self.spec, self.out)
+
+    def test_baseline_refuses_unbound_base_file_and_unknown_profile(self):
+        self.baseline()
+        extra = Path(self.spec['model']) / 'unbound.json'
+        extra.write_text('{}')
+        with self.assertRaisesRegex(RuntimeError, 'unbound model'):
+            L.verify_spec(self.spec, self.out)
+        extra.unlink()
+        self.spec['evaluation_profile'] = 'test'
+        with self.assertRaisesRegex(RuntimeError, 'unsupported evaluation profile'):
+            L.verify_spec(self.spec, self.out)
+
     def test_valid_contract_and_test_partition_injection_refused(self):
         L.verify_spec(self.spec, self.out)
         self.spec['command'][self.spec['command'].index('--partitions') + 1] = 'test'
@@ -124,6 +192,20 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(result.returncode, marker['exit_code'], result.stderr.decode())
         self.assertEqual(marker, L.load(self.out / 'attempts/1/EXIT.json'))
         return result.returncode
+
+    def test_full_profile_driver_requires_its_own_terminal_marker(self):
+        self.full_profile()
+        marker = self.out / 'results/EVAL_COMPLETE.track_kt.json'
+        command = [sys.executable, '-c',
+                   'import pathlib; p=pathlib.Path(' + repr(str(marker)) + '); p.parent.mkdir(); p.write_text(' + repr('{"exit_code":0}') + ')']
+        self.assertEqual(self.driver_subprocess(command), 0)
+
+    def test_full_profile_driver_refuses_track_k_terminal_marker(self):
+        self.full_profile()
+        marker = self.out / 'results/EVAL_COMPLETE.track_k.json'
+        command = [sys.executable, '-c',
+                   'import pathlib; p=pathlib.Path(' + repr(str(marker)) + '); p.parent.mkdir(); p.write_text(' + repr('{"exit_code":0}') + ')']
+        self.assertEqual(self.driver_subprocess(command), 125)
 
     def test_real_process_startup_failure_exit_matches_marker(self):
         self.assertEqual(self.driver_subprocess(['/nonexistent/scorer']), 125)
