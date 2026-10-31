@@ -13,9 +13,61 @@ def require(ok, message):
         raise ValueError(message)
 
 
+ARMS = ('K0', 'K1', 'K2', 'K1-QO', 'K1-PT')
+
+
+def validate_header(header, *, prompt, expected_arm=None, expected_model=None,
+                    expected_adapter=None, expected_sha256=None):
+    """Validate actual producer protocol before reading data or publishing.
+
+    Identity is checked against execution arguments when supplied. This does not
+    prove training eligibility or review authorship. The returned protocol names
+    QO's dropped input explicitly rather than labelling it full-input scoring.
+    """
+    arm = header.get('arm')
+    require(arm in ARMS and (expected_arm is None or arm == expected_arm), 'final header arm differs')
+    mode = 'drop' if arm == 'K1-QO' else 'full'
+    require(header.get('primary_input_mode') == mode, 'final primary input mode differs')
+    require(header.get('stages') == 'k' and header.get('partitions') in
+            (['calibration', 'test'], ['test', 'calibration']), 'final header stage/partitions differ')
+    require(type(header.get('limit')) is int and header['limit'] == 0
+            and type(header.get('limit_groups')) is int and header['limit_groups'] == 0
+            and header.get('dry_run_warnings') == [], 'final header partial/diagnostic scope')
+    require(header.get('dtype') == 'float32' and header.get('render') == 'record_name',
+            'final header dtype/render differs')
+    require(header.get('prompt_version') == prompt.PROMPT_VERSION
+            and header.get('prompt_format') == prompt.PROMPT_FORMAT, 'final prompt differs')
+    model = header.get('model', {})
+    require(model.get('kind') == ('checkpoint' if arm == 'K0' else 'lora-adapter-unmerged'),
+            'final model kind differs')
+    require(all(isinstance(model.get(k), str) and Path(model[k]).is_absolute()
+                for k in ('path', 'base_path')), 'final model paths differ')
+    if arm == 'K0': require(model['path'] == model['base_path'], 'K0 model/base differs')
+    if arm in ('K1-QO', 'K1-PT'):
+        wanted = 'Qwen__Qwen3.5-0.8B-Base' if arm == 'K1-QO' else 'Qwen__Qwen3.5-0.8B'
+        require(Path(model['base_path']).name == wanted, 'final control base differs')
+    if expected_sha256 is not None:
+        require(model.get('sha256') == expected_sha256, 'final model SHA differs')
+    if expected_model is not None:
+        require(model['base_path'] == expected_model
+                and model['path'] == (expected_adapter or expected_model), 'final model execution identity differs')
+    scorer = header.get('scorer', {})
+    require(isinstance(scorer, dict) and scorer.get('record_grade') is True
+            and scorer.get('mode') == 'rightpad' and scorer.get('dtype') == 'float32'
+            and scorer.get('token_budget') == 16384 and isinstance(scorer.get('hf32'), dict)
+            and scorer['hf32'].get('hf32') is False
+            and scorer.get('render') == 'record_name' and scorer.get('dedup') is True,
+            'final scorer protocol differs')
+    require(scorer.get('model_path') == model['base_path'] and 'adapter' in scorer
+            and scorer['adapter'] == (None if arm == 'K0' else model['path']),
+            'final scorer model/adapter differs')
+    return {'mode':'rightpad', 'dtype':'float32', 'hf32':False, 'token_budget':16384,
+            'headline':'kev_argmax_first', 'input_mode':mode, 'render':'record_name'}
+
+
 def rebuild_suite(C, E, D, V, *, train, calibration, clean, variants, readouts, arm, suite):
     """Reconstruct every numerical field of one final suite and calibration."""
-    require(arm in ('K0', 'K1', 'K2'), 'unregistered final arm')
+    require(arm in ARMS, 'unregistered final arm')
     require(suite in C.SUITES, 'unregistered final suite')
     require(len(clean) == {'decision-v7':1200, 'transfer-v4':656}[suite], 'final population count differs')
     require(bool(train) and bool(calibration) and bool(variants), 'missing reference population')
@@ -64,11 +116,14 @@ def verify(ticket, run_dir, *, kev_dir, report=None):
     import variants_r3 as V
     import prechecks_r3 as PC
     import testlock_r3 as TL
+    import prompt as P
     require(isinstance(ticket,TL.TestTicket) and ticket.split=='test', 'existing final ticket required')
     if report is None:
         report = json.loads((Path(run_dir)/'TEST-PRODUCER-REPORT.json').read_text())
     header=report['header']
-    require(header['model']['sha256']==ticket.identity['sha256'], 'metric report model differs')
+    validate_header(header, prompt=P, expected_sha256=ticket.identity['sha256'])
+    require(all(header['model'].get(k) == ticket.identity.get(k)
+                for k in ('path','sha256','kind','base_path','base_revision')), 'metric report model differs')
     populations={};paths=[]
     for kind,suite,split,variant in (
             ('train','decision-v7','train',False),('calibration','decision-v7','calibration',False),

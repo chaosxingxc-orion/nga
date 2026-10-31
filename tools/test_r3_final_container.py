@@ -14,7 +14,7 @@ class Container(unittest.TestCase):
         root=Path(self.tmp.name);artifact=lambda n:{'path':str(root/(n+'.json')),'sha256':'b'*64}
         self.plan={'chip':1,'image':'sha256:'+'a'*64,'closure':{'root':str(root/'code')},
             'out':str(root/'out'),'round_dir':str(root/'round'),'model':str(root/'model'),
-            'adapter':None,'adapter_inventory':None,'final':artifact('round/FINAL'),
+            'adapter':None,'adapter_inventory':None,'campaign':artifact('campaign'),'final':artifact('round/FINAL'),
             'dataset_manifest':artifact('data/manifest'),'base_inventory':artifact('inventory'),
             'eligibility':artifact('eligibility'),'evidence':{'selection':artifact('selection')}}
         self.spec=C.contract(self.plan,str(root/'plan.json'),'c'*64,artifact('review'),1)
@@ -32,6 +32,7 @@ class Container(unittest.TestCase):
         self.assertIn('-d',cmd);self.assertNotIn('--rm',cmd);self.assertIn('--network=none',cmd)
         self.assertEqual(len([x for x in self.spec['mounts'] if x.endswith('.jsonl')]),6)
         self.assertTrue(all(not rw for p,rw in self.spec['mounts'].items() if p.endswith('.jsonl')))
+        self.assertIs(self.spec['mounts'][self.plan['campaign']['path']],False)
         C.verify_observation(self.spec,self.observed,'actual-container-id')
 
     def test_training_manifest_is_individually_readonly(self):

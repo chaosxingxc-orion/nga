@@ -65,11 +65,20 @@ def verify_reserved_test_result(args, *, suite, result, leases, owner, completio
     G.require(identity['sha256'] == owner['model_sha256']
               and _abs(identity['path']) == completion_log.model_path
               and is_named(read_final(args.round_dir), identity), 'recovery model is not the selected model')
+    # Reject a mismatched producer before any recovery test-data read.
+    import r3_final_metrics as FM
+    import prompt as P
+    producer_path = G.safe_path(root / 'TEST-PRODUCER-REPORT.json')
+    producer = json.loads(producer_path.read_text())
+    G.require(G.digest(producer) == result['producer_report_sha256'],
+              'recovery producer report changed')
+    FM.validate_header(producer['header'], prompt=P, expected_arm=args.arm,
+                       expected_model=args.model_path, expected_adapter=args.adapter,
+                       expected_sha256=owner['model_sha256'])
     # Internal verification capability: no ticket escapes, no scorer is called.
     ticket = TestTicket(identity, suite, 'test', _TOKEN)
     verified = verify_test_result(ticket, result['n'], result['headline_accuracy'], args.out)
-    import r3_final_metrics as FM
-    metrics = FM.verify(ticket, args.out, kev_dir=C.KEV_DIR)
+    metrics = FM.verify(ticket, args.out, kev_dir=C.KEV_DIR, report=producer)
     return {'source':verified,'metrics':metrics}
 '''
 

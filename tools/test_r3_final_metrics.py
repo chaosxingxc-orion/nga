@@ -18,6 +18,16 @@ def load(name,path):
     m=importlib.util.module_from_spec(spec);sys.modules[name]=m;spec.loader.exec_module(m);return m
 
 
+def header(identity, arm, prompt):
+    return {'model':identity,'arm':arm,'primary_input_mode':'drop' if arm=='K1-QO' else 'full',
+        'stages':'k','partitions':['calibration','test'],'limit':0,'limit_groups':0,
+        'dry_run_warnings':[],'dtype':'float32','render':'record_name',
+        'prompt_version':prompt.PROMPT_VERSION,'prompt_format':prompt.PROMPT_FORMAT,
+        'scorer':{'record_grade':True,'mode':'rightpad','dtype':'float32','token_budget':16384,
+                  'hf32':{'hf32':False},'render':'record_name','dedup':True,
+                  'model_path':identity['base_path'],'adapter':None if arm=='K0' else identity['path']}}
+
+
 class Metrics(unittest.TestCase):
     def setUp(self):
         if not SOURCE.exists():self.skipTest('frozen closure missing')
@@ -65,7 +75,8 @@ class Metrics(unittest.TestCase):
                 self.scores[path]=values
                 self.C.write_jsonl(path,[self.C.readout_row(r,s) for r,s in zip(population,values)])
         (self.data/'manifest.json').write_text(json.dumps(manifest))
-        self.identity={'path':str(self.root/'model'),'sha256':'a'*64}
+        self.identity={'path':str(self.root/'adapter'),'sha256':'a'*64, 'kind':'lora-adapter-unmerged',
+            'base_path':str(self.root/'model'),'base_revision':'synthetic'}
         rounddir=self.root/'round';rounddir.mkdir();(rounddir/'FINAL.json').write_text(json.dumps({'models':[self.identity]}))
         self.tickets={(s,'test'):self.TL.authorize_test_read(self.identity,s,'test',str(rounddir)) for s in self.C.SUITES}
         # Execute the exact original producer function, with in-memory fixtures
@@ -84,7 +95,9 @@ class Metrics(unittest.TestCase):
         exec(compile(ast.Module(body=[node],type_ignores=[]),'<original-run-track-k>','exec'),env)
         args=SimpleNamespace(partitions=['calibration','test'],stages='k',limit=0,arm='K1',arm_kind='K1',primary_mode='full')
         block,_=env['run_track_k'](args,None,self.identity,str(self.run),lambda text:None,self.tickets)
-        self.report={'header':{'model':self.identity,'arm':'K1','data_files':self.files},'track_k':block}
+        self.prompt=__import__('prompt')
+        self.report={'header':{**header(self.identity,'K1',self.prompt),'data_files':self.files},'track_k':block}
+        self.producer_fn=env['run_track_k'];self.producer_args=args
 
     def verify(self,report=None):
         for ticket in self.tickets.values():
@@ -98,6 +111,27 @@ class Metrics(unittest.TestCase):
         self.assertEqual(sum(vector['correct'])/1200,self.report['track_k']['partitions']['decision-v7/test']['headline']['kev_rule_accuracy'])
         self.assertEqual(vector['keys'],[self.C.kev_key(r) for r in self.rows[('decision-v7','test')]])
         self.assertEqual(self.report['track_k']['partitions']['decision-v7/test']['headline']['tie_count'],1)
+
+    def test_controls_match_original_producer(self):
+        for arm,base in [('K1-QO','Qwen__Qwen3.5-0.8B-Base'),('K1-PT','Qwen__Qwen3.5-0.8B')]:
+            self.identity['base_path']=str(self.root/base)
+            self.producer_args.arm=arm;self.producer_args.arm_kind=arm
+            self.producer_args.primary_mode='drop' if arm=='K1-QO' else 'full'
+            block,_=self.producer_fn(self.producer_args,None,self.identity,str(self.run),lambda text:None,self.tickets)
+            self.report={'header':{**header(self.identity,arm,self.prompt),'data_files':self.files},'track_k':block}
+            self.verify()
+
+    def test_bad_header_refused_before_dataset_load(self):
+        for field,value in [('primary_input_mode','drop'),('arm','K1-QO'),('stages','k_score'),
+                            ('partitions',['dev']),('limit',1),('prompt_version','wrong')]:
+            report=copy.deepcopy(self.report);report['header'][field]=value
+            with self.subTest(field=field),patch.object(self.C,'load_partition') as loader:
+                with self.assertRaises(ValueError):self.verify(report)
+                loader.assert_not_called()
+        report=copy.deepcopy(self.report);report['header']['scorer']['adapter']=None
+        with patch.object(self.C,'load_partition') as loader:
+            with self.assertRaisesRegex(ValueError,'adapter'):self.verify(report)
+            loader.assert_not_called()
 
     def test_secondary_calibration_and_degenerate_changes_refused(self):
         for kind in ('permutation','nota','operator','constant','fitted'):

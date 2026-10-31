@@ -88,6 +88,25 @@ class FinalGain(unittest.TestCase):
             self.assertEqual(cell['paired_bootstrap']['ci_level'],.9)
             self.assertEqual(cell['paired_bootstrap']['resamples'],10000)
 
+    def test_control_protocol_and_seed_identity_without_candidate_pooling(self):
+        for arm,base,seeds in [('K1-QO',G.CONTROL_BASE,(2,)),('K1-PT',G.CONTROL_INSTRUCT,(2,3))]:
+            for seed in seeds:
+                value=report(seed);value.update(arm=arm,protocol=G.protocol_for_arm(arm),role='control')
+                value['model']['base_path']=base
+                G.validate(value)
+                for key,bad in [('seed',True),('role','candidate'),('protocol',dict(G.PROTOCOL,input_mode='blank'))]:
+                    wrong=copy.deepcopy(value);wrong[key]=bad
+                    with self.subTest(arm=arm,key=key),self.assertRaises(ValueError):G.validate(wrong)
+                wrong=copy.deepcopy(value);wrong['model']['base_path']='/other'
+                with self.assertRaisesRegex(ValueError,'control base'):G.validate(wrong)
+        qo=report(3);qo.update(arm='K1-QO',protocol=G.protocol_for_arm('K1-QO'))
+        qo['model']['base_path']=G.CONTROL_BASE
+        with self.assertRaisesRegex(ValueError,'control seed'):G.validate(qo)
+        pt=[report(2),report(3)];baseline=report()
+        for r in pt:r.update(arm='K1-PT');r['model']['base_path']=G.CONTROL_INSTRUCT
+        baseline['model'].update(path=G.CONTROL_INSTRUCT,base_path=G.CONTROL_INSTRUCT)
+        with self.assertRaisesRegex(ValueError,'candidate arms'):G.compare(pt,baseline)
+
     def test_changed_selector_refused(self):
         G.original_bootstrap.cache_clear()
         try:

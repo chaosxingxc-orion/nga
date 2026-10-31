@@ -29,7 +29,7 @@ class Flow(unittest.TestCase):
         artifact=lambda n:{'path':str(self.root/(n+'.json')),'sha256':'b'*64}
         self.plan={'image':'sha256:'+'a'*64,'closure':{'root':str(closure)},'chip':1,'arm':'K1',
             'out':str(self.out),'round_dir':str(self.root/'round'),'model':str(self.root/'model'),
-            'adapter':None,'adapter_inventory':None,'final':artifact('round/FINAL'),
+            'adapter':None,'adapter_inventory':None,'campaign':artifact('campaign'),'final':artifact('round/FINAL'),
             'dataset_manifest':artifact('data/manifest'),'base_inventory':artifact('base'),
             'eligibility':artifact('eligibility'),'evidence':{'selection':artifact('selection')}}
         self.path=self.root/'plan.json';self.path.write_text(json.dumps(self.plan));self.pin='c'*64

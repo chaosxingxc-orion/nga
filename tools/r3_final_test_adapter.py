@@ -50,9 +50,15 @@ def run(args, scorer, evaluator, *, owner, validate_admission, validate_publicat
         G.require(actual_owner == owner, 'transaction owner differs')
         state['leases'] = leases
 
+    def check_header(report):
+        return M.validate_header(report.get('header', {}), prompt=evaluator.P,
+            expected_arm=args.arm, expected_model=args.model_path,
+            expected_adapter=args.adapter, expected_sha256=owner['model_sha256'])
+
     def score(suites):
         G.require(tuple(suites) == T.SUITES, 'suite order differs')
         report, tickets = evaluator.run_guarded_test(args, scorer, leases=state['leases'], owner=owner)
+        check_header(report)
         state['tickets'] = tickets
         G.require(report.get('test_publication', {}).get('state') == 'unpublished', 'report not deferred')
         G.require(set(report['track_k']['partitions']) == {
@@ -67,6 +73,7 @@ def run(args, scorer, evaluator, *, owner, validate_admission, validate_publicat
         G.safe_path(report_path)
         report = json.loads(report_path.read_text())
         G.require(G.digest(report) == result['producer_report_sha256'], 'producer report changed')
+        check_header(report)
         headline = report['track_k']['partitions'][suite+'/test']['headline']
         G.require(result == dict(n=headline['n'], headline_accuracy=headline['kev_rule_accuracy'],
                                 producer_report_sha256=G.digest(report)), 'suite summary differs')

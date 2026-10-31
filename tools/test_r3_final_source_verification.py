@@ -50,7 +50,7 @@ class SourceVerification(unittest.TestCase):
         final=self.round/'FINAL.json';final.write_text(json.dumps({'models':[self.identity]}))
         self.owner=dict(model_sha256=self.identity['sha256'],execution_sha256='b'*64,
             final_sha256=self.C.sha256_file(str(final)),run_dir=str(self.run))
-        self.args=SimpleNamespace(out=str(self.run),round_dir=str(self.round),adapter=None,
+        self.args=SimpleNamespace(arm='K0',out=str(self.run),round_dir=str(self.round),adapter=None,
             model_path=str(self.model),partitions='calibration,test',stages='k',limit=0,
             limit_groups=0,shard=0,num_shards=1,k_only='',b4_base=None,unit_tag='',dtype='float32',
             no_hf32=True,require_record_grade=True,device='npu')
@@ -74,11 +74,13 @@ class SourceVerification(unittest.TestCase):
         (self.data/'manifest.json').write_text(json.dumps(self.manifest))
         (self.run/'RUN_IDENTITY.json').write_text(json.dumps({'model_sha256':self.identity['sha256']}))
         self.refresh_provenance()
-        report={'test_publication':{'state':'unpublished'},'track_k':{'operator_fit':{'synthetic':True},'partitions':parts}}
+        F=load('source_header_fixture',HERE/'test_r3_final_metrics.py')
+        self.prompt=__import__('prompt')
+        report={'header':F.header(self.identity,'K0',self.prompt),'test_publication':{'state':'unpublished'},'track_k':{'operator_fit':{'synthetic':True},'partitions':parts}}
         self.producer=Mock(return_value=report)
         env=dict(C=self.C,TL=self.TL,_run_full_deferred=self.producer)
         exec(compile(self.P.BRIDGE,'<generated-bridge>','exec'),env)
-        self.evaluator=SimpleNamespace(run_guarded_test=env['run_guarded_test'],TL=self.TL)
+        self.evaluator=SimpleNamespace(run_guarded_test=env['run_guarded_test'],TL=self.TL,P=self.prompt)
         self.opened=[];original_open=builtins.open
         def guarded_open(path,*args,**kwargs):
             if isinstance(path,(str,Path)) and str(path).endswith('.jsonl'):

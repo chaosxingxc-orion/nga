@@ -48,7 +48,7 @@ def atomic(path,value):
         if os.path.exists(tmp):os.unlink(tmp)
 
 
-def export_vector(plan, pin, result, report, training=None):
+def export_vector(plan, pin, result, report, training=None, *, prompt):
     """Persist only vectors returned by the completed source/metric transaction."""
     G=local('r3_final_gain_compare')
     C.require(result.get('state')=='completed','publication not completed')
@@ -57,17 +57,29 @@ def export_vector(plan, pin, result, report, training=None):
     identity=report['header']['model']
     C.require(identity['sha256']==plan['model_sha256'] and report['header']['arm']==plan['arm'],
               'vector model/arm differs')
+    header=report['header']
+    M=local('r3_final_metrics')
+    protocol=M.validate_header(header,prompt=prompt,expected_arm=plan['arm'],
+        expected_model=plan['model'],expected_adapter=plan['adapter'],expected_sha256=plan['model_sha256'])
+    C.require(protocol==G.protocol_for_arm(plan['arm']),'vector producer protocol differs')
+    C.require(plan['scoring']=={'mode':'rightpad','dtype':'float32','hf32':False,
+              'token_budget':16384,'stages':'k','shards':1},'vector plan scoring protocol differs')
+    scorer=header['scorer']
     inventory=json.loads(Path(plan['base_inventory']['path']).read_text())
     evidence_binding={'plan_sha256':pin,'result':result,'report':report,'training':training}
-    vector={'schema':'r3-verified-test-vector-v1','partition':'test','protocol':dict(G.PROTOCOL),
+    vector={'schema':'r3-verified-test-vector-v1','partition':'test','protocol':protocol,
         'arm':plan['arm'],'suites':suites,'model':{**identity,
             'base_inventory_sha256':inventory['inventory_sha256']},
         'scoring_protocol_sha256':hashlib.sha256(G.canonical({'closure':plan['closure']['sha256'],
-            'scoring':plan['scoring'],'protocol':G.PROTOCOL}).encode()).hexdigest(),
+            'scoring':plan['scoring'],'protocol':protocol,
+            'prompt_version':header['prompt_version'],'prompt_format':header['prompt_format'],
+            'scorer':{k:v for k,v in scorer.items() if k not in ('model_path','adapter')}}).encode()).hexdigest(),
         'verified_evidence_sha256':hashlib.sha256(G.canonical(evidence_binding).encode()).hexdigest(),
-        'scientific_acceptance':False,'execution_plan_sha256':pin}
+        'scientific_acceptance':False,'execution_plan_sha256':pin,
+        'role':'control' if plan['arm'] in ('K1-QO','K1-PT') else 'baseline' if plan['arm']=='K0' else 'candidate'}
     if plan['arm']!='K0':
-        C.require(training is not None and training['arm']==plan['arm'] and training['seed'] in (2,3),
+        C.require(training is not None and training['arm']==plan['arm'] and type(training.get('seed')) is int
+                  and training['seed'] in ((2,) if plan['arm']=='K1-QO' else (2,3)),
                   'verified training seed/arm required')
         vector.update(seed=training['seed'],training_variant=training['training_variant'])
     G.validate(vector)
@@ -119,7 +131,7 @@ def evaluate(plan,pin,review):
     C.require(result.get('state')=='completed','publication transaction incomplete')
     report=json.loads((Path(plan['out'])/'TEST-PRODUCER-REPORT.json').read_text())
     validate()
-    export_vector(plan,pin,result,report,training_state.get('verified'))
+    export_vector(plan,pin,result,report,training_state.get('verified'),prompt=evaluator.P)
     return result
 
 

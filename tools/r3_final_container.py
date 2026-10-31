@@ -36,7 +36,7 @@ def contract(plan,plan_path,pin,review,attempt):
     # test-log/reservation directories must remain writable for transactions.
     mounts={out:True,rd:True,root:False,path(plan['model']):False}
     if plan['adapter']:mounts[path(plan['adapter'])]=False
-    entries=[plan['final'],plan['dataset_manifest'],plan['base_inventory'],plan['eligibility'],review,
+    entries=[plan['campaign'],plan['final'],plan['dataset_manifest'],plan['base_inventory'],plan['eligibility'],review,
              *plan['evidence'].values()]
     if plan['adapter_inventory']:entries.append(plan['adapter_inventory'])
     if plan.get('training_manifest'):entries.append(plan['training_manifest'])

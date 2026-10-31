@@ -31,11 +31,13 @@ class Publication(unittest.TestCase):
         self.model=self.root/'model';self.model.mkdir()
         (self.model/'model.safetensors').write_bytes(b'synthetic identity bytes')
         (self.model/'.complete').write_text('synthetic-revision\n')
-        self.identity=self.TL.model_identity(str(self.model),round_dir=str(self.root/'hash-cache'))
+        self.adapter=self.root/'trained/adapter';self.adapter.mkdir(parents=True)
+        (self.adapter/'adapter_model.safetensors').write_bytes(b'synthetic adapter')
+        self.identity=self.TL.model_identity(str(self.model),str(self.adapter),round_dir=str(self.root/'hash-cache'))
         final=self.round/'FINAL.json';final.write_text(json.dumps({'models':[self.identity]}))
         self.owner=dict(model_sha256=self.identity['sha256'],execution_sha256='b'*64,
             final_sha256=hashlib.sha256(final.read_bytes()).hexdigest(),run_dir=str(self.run))
-        self.args=SimpleNamespace(out=str(self.run),round_dir=str(self.round),adapter=None,
+        self.args=SimpleNamespace(arm='K1',out=str(self.run),round_dir=str(self.round),adapter=str(self.adapter),
             model_path=str(self.model),partitions='calibration,test',stages='k',limit=0,
             limit_groups=0,shard=0,num_shards=1,k_only='',b4_base=None,unit_tag='',dtype='float32',
             no_hf32=True,require_record_grade=True,device='npu')
@@ -46,12 +48,12 @@ class Publication(unittest.TestCase):
         (self.run/'RUN_IDENTITY.json').write_text(json.dumps({'model_sha256':self.identity['sha256']}))
         PV.write_unit_manifest(str(self.run),'synthetic',self.identity['sha256'],
             {'record_grade':True,'mode':'rightpad','dtype':'float32','token_budget':16384,'hf32':{'hf32':False}},paths)
-        report=copy.deepcopy(c.report);report['header']['model']=self.identity
+        report=copy.deepcopy(c.report);report['header']={**fixture.header(self.identity,'K1',c.prompt),'data_files':c.files}
         report['test_publication']={'state':'unpublished'}
         self.producer=Mock(return_value=report)
         env=dict(C=c.C,TL=self.TL,_run_full_deferred=self.producer)
         exec(compile(P.BRIDGE,'<generated-bridge>','exec'),env)
-        self.evaluator=SimpleNamespace(run_guarded_test=env['run_guarded_test'],TL=self.TL)
+        self.evaluator=SimpleNamespace(run_guarded_test=env['run_guarded_test'],TL=self.TL,P=c.prompt)
 
     def execute(self):
         return self.A.run(self.args,Mock(),self.evaluator,owner=self.owner,validate_admission=lambda:None)

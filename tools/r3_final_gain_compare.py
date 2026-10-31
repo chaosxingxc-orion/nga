@@ -17,6 +17,8 @@ import re
 SELECTOR = Path('/mnt/cephfs/xingchao/experiments/jev/r3_runs/cpu_selection_queue_20261031_v5/select_r3.py')
 SELECTOR_SHA256 = '43b9a54530bf178596fc06ed2e714054b935115cf2d7dedfa354ea7d64a71e08'
 SUITES = {'decision-v7': 1200, 'transfer-v4': 656}
+CONTROL_BASE = '/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base'
+CONTROL_INSTRUCT = '/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B'
 PROTOCOL = {'mode': 'rightpad', 'dtype': 'float32', 'hf32': False,
             'token_budget': 16384, 'headline': 'kev_argmax_first',
             'input_mode': 'full', 'render': 'record_name'}
@@ -55,10 +57,15 @@ def original_bootstrap():
     return namespace['paired_bootstrap']
 
 
+def protocol_for_arm(arm):
+    require(arm in ('K0', 'K1', 'K2', 'K1-QO', 'K1-PT'), 'unregistered vector arm')
+    return dict(PROTOCOL, input_mode='drop' if arm == 'K1-QO' else 'full')
+
+
 def validate(report):
     require(report.get('schema') == 'r3-verified-test-vector-v1', 'vector schema differs')
     require(report.get('partition') == 'test', 'same-test vectors required')
-    require(report.get('protocol') == PROTOCOL, 'scoring protocol differs')
+    require(report.get('protocol') == protocol_for_arm(report.get('arm')), 'scoring protocol differs')
     require(set(report.get('suites', {})) == set(SUITES), 'suite population differs')
     model = report['model']
     for field in ('sha256', 'base_inventory_sha256'):
@@ -72,6 +79,16 @@ def validate(report):
     # The caller hashes the complete scoring code/layout/prompt protocol,
     # excluding model weights so trained and untuned arms can be compared.
     pin(report['scoring_protocol_sha256'])
+    arm = report['arm']
+    if arm in ('K1-QO', 'K1-PT'):
+        require(model.get('kind') == 'lora-adapter-unmerged', 'control requires unmerged adapter')
+        require(type(report.get('seed')) is int and report['seed'] in ((2,) if arm == 'K1-QO' else (2, 3)),
+                'control seed differs')
+        require(model['base_path'] == (CONTROL_BASE if arm == 'K1-QO' else CONTROL_INSTRUCT),
+                'control base differs')
+        require(isinstance(report.get('training_variant'), dict) and report['training_variant'],
+                'control training recipe absent')
+        require(report.get('role', 'control') == 'control', 'control cannot be a candidate')
     for suite, n in SUITES.items():
         cell = report['suites'][suite]
         pin(cell['dataset_sha256'])
