@@ -110,6 +110,16 @@ def verify(path, pin, reviewed=True):
     require(source_files == {f for f in p['files'] if f.startswith(p['code'] + '/')}, 'code closure inventory mismatch')
     if not engineering:
         verify_fresh_prechecks(p)
+        import importlib.util
+        helper_path = Path(__file__).with_name('r3_training_evidence.py')
+        require(str(helper_path) in p['files'], 'training evidence verifier not pinned')
+        require(p.get('training_evidence') in p['files'] and
+                p['files'][p['training_evidence']] == p.get('training_evidence_sha256'), 'training evidence not bound')
+        spec = importlib.util.spec_from_file_location('formal_training_evidence', helper_path)
+        helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+        evidence = helper.validate(p['training_evidence'], p['training_evidence_sha256'],
+                                   p['code'], p['model'], p['train_file'], p['image_sha256'])
+        require(all(p['files'].get(f) == h for f,h in evidence.items()), 'training evidence dependencies not bound')
     if p['schema'] == 'r3-engineering-k1-plan-v1':
         require(p.get('execution_scope') == 'engineering_only' and p.get('scientific_acceptance') is False
                 and p.get('test_read') is False, 'engineering scope must exclude scientific acceptance/test')
