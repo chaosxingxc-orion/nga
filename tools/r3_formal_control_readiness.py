@@ -66,6 +66,39 @@ def evidence(path, arm, model):
     return result
 
 
+def resume_source_ready(plan_path):
+    """Check the retained receipt chain before treating a restart as usable."""
+    try:
+        plan = load(plan_path)
+        root = Path(plan['out'])
+        terminal_path = root / 'TRAIN_EXIT.json'
+        terminal = load(terminal_path)
+        if not (terminal.get('exit_code') == 0 and isinstance(terminal.get('attempt'), int)
+                and terminal.get('scientific_acceptance') is False
+                and terminal.get('test_read') is False):
+            return False
+        attempt = root / 'attempts' / str(terminal['attempt'])
+        required = ('EXIT.json', 'LAUNCH_RECEIPT.json', 'LAUNCH_SPEC.json',
+                    'RELEASE.json', 'SUPERVISOR_DONE.json')
+        if not all((attempt / name).is_file() for name in required):
+            return False
+        if load(attempt/'EXIT.json') != terminal:
+            return False
+        launch = load(attempt/'LAUNCH_RECEIPT.json')
+        spec = load(attempt/'LAUNCH_SPEC.json')
+        release = load(attempt/'RELEASE.json')
+        done = load(attempt/'SUPERVISOR_DONE.json')
+        return (launch.get('plan_sha256') == plan.get('plan_sha256')
+                and isinstance(launch.get('id'), str) and len(launch['id']) == 64
+                and spec.get('plan_sha256') == plan.get('plan_sha256')
+                and release.get('exit_code') == 0
+                and done.get('exit_code') == 0
+                and (root/'CONTRACT_RESULT.json').is_file()
+                and (root/'digest.json').is_file())
+    except (OSError, KeyError, TypeError, ValueError):
+        return False
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--k0-preparation', type=Path,
@@ -100,9 +133,7 @@ def main():
     train_exit = Path(resume.get('out', a.resume_plan.parent)) / 'attempts/1/TRAIN_EXIT.json'
     exit_doc = load(train_exit) if train_exit.is_file() else {}
     checks['resume_source'] = {'path': str(a.resume_plan), 'status':
-                               'PASS' if (exit_doc.get('exit_code') == 0
-                                          and exit_doc.get('scientific_acceptance') is False
-                                          and exit_doc.get('test_read') is False)
+                               'PASS' if resume_source_ready(a.resume_plan)
                                else ('INVALID' if train_exit.is_file() else 'WAITING_TRAIN_EXIT'),
                                'train_exit': str(train_exit)}
     rec = load(a.resume_reconstruction) if a.resume_reconstruction.is_file() else {}
