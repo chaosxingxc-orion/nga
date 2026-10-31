@@ -33,9 +33,10 @@
 // could sort must not enter arbitration records. Family (e) note: the
 // priors' original wording ("the same steps sequence, two outcomes") is
 // unrealizable under a sequential driver — the realized form is the pair
-// race-outcome-{a,b} (different step orders, one recorded outcome each),
-// which pins the same property: the recorded arbitration order is consumed,
-// never re-derived.
+// race-outcome-{a,b} (SAME step order, different step INPUTS: the two
+// adopts' digest order swaps, one recorded outcome each), which pins the
+// same property: the recorded arbitration order is consumed, never
+// re-derived.
 //
 // Known limitation (recorded, not pretended solved — dsh precedent): a
 // case whose steps race the SAME operation concurrently binds
@@ -546,7 +547,7 @@ func deepCopyCase(c *Case) (*Case, error) {
 			return nil, err
 		}
 		dec := json.NewDecoder(bytes.NewReader(b))
-		dec.UseNumber() // RecordedRawDoc is a ledger.Errors input — the integer-domain discipline applies to copies too
+		dec.UseNumber() // RecordedRawDoc is a ledger.Errors input — the integer-domain discipline applies to copies too (declared-only: the corpus's small seqs cannot distinguish this from a plain decode; a ≥2^53 fixture through Reevaluate would pin it)
 		if err := dec.Decode(&cp.RecordedRawDoc); err != nil {
 			return nil, err
 		}
