@@ -18,6 +18,7 @@ ROOT=Path('/mnt/cephfs/xingchao/experiments/jev/reference_inference')
 E40=ROOT/'e40_lifetime_npu_openjev2_20261031_v3'
 E40_PIN='90721d6509df030a71ed012848f7a0b11ce31b7fd11d63c306fbaf90b223c3d9'
 PINS={
+ 'verify_openjev_path_trace.py':'bb1c20fa74d9f1f286ed5ece2f60ac387f9d053cd9a6a87c532b0550de82305e',
  'openjev_lifetime_protocol.py':'15d1f093eb877fa4bf61eca9b04f2e98be2e2aee72a29aaada0bf06211b4a783',
  'openjev_lifetime_npu.py':'3287f8aed2150cd6c3f088609154e8605efd9adc224a91c98f0bfcd25eb3878d',
  'openjev_lifetime_verify.py':'27238178f3459f949f442fdbe1ed3dfdc6a5f4f032ff225e99a44ede000a67c9',
@@ -58,10 +59,12 @@ def derive(filename,raw,case):
   s=replace(s,'First stage is 2B only',f'E41 {case} model differs',1)
  elif filename=='openjev_lifetime_verify.py':
   s=replace(s,'4200',idx);s=replace(s,'2B fixed input',f'{c["model"]}B fixed input',1)
+ elif filename=='verify_openjev_path_trace.py':
+  s=replace(s,'len(z) == len(keys) == 15',f'len(z) == len(keys) == {b}',1)
  elif filename=='openjev_lifetime_launch.py':
   for a,z in [('physical chip 1',f'physical chip {chip}'),('/dev/davinci1',f'/dev/davinci{chip}'),
     ('current,1,run',f'current,{chip},run'),('chip=1',f'chip={chip}'),("x['chip']!=1",f"x['chip']!={chip}"),
-    ("x.get('chip')!=1",f"x.get('chip')!={chip}"),("x.get('chip')==1",f"x.get('chip')=={chip}"),
+    ("x['chip']==1",f"x['chip']=={chip}"),("x.get('chip')!=1",f"x.get('chip')!={chip}"),("x.get('chip')==1",f"x.get('chip')=={chip}"),
     ('free_now(q,1',f'free_now(q,{chip}'),("]),1)",f"]),{chip})")]:
    s=replace(s,a,z)
   s=replace(s,'E40 full-shape lifetime diagnostic',f'E41 {case} full-shape lifetime diagnostic',1)

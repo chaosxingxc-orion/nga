@@ -32,3 +32,14 @@ Independent CPU verification reuses the separately reviewed E40 request launcher
 ## CPU input preparation preregistration
 
 Device-free fixed-image preparation derives only 8409 request/candidate/token/mask identity from the same frozen test and native tokenizer. It loads no checkpoint weights and uses no NPU. It validates inherited dependencies before native imports. Retained output includes source hashes, request output hash, exit code and container identity. 9B/4200 identity is copied byte-for-byte from its accepted E38 plan and revalidated by the runtime.
+
+## 2026-10-31 v3 execution-path correction
+
+Actual v1 review blocked the unlaunched v2 plans: the inherited prediction checker
+still required 15 candidates, and chip-4 owned recovery still required chip 1.
+The finite derivation now includes the exact candidate-count predicate in the
+complete prediction checker and the target-chip owner predicate. All numerical,
+wire, token, attempt and generation checks remain. New tests execute valid
+24-candidate prediction checking and actual chip-4 transaction recovery after
+a lost start response, with wrong-logit/count negative cases. New plans and
+release pins replace no historical frozen bytes. No NPU approval is implied.

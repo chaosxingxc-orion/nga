@@ -85,6 +85,46 @@ class Tests(unittest.TestCase):
     self.assertIs(core.chunk_gated_delta_rule,original)
     with self.assertRaises(ValueError):
      with driver.lifetime_path(backbone,torch,source,'original',['wrong.core'],cand,[]):pass
+ def test_actual_prediction_checker_complete_case_and_numeric_rejection(self):
+  import math
+  for case,c in prep.CASES.items():
+   p=json.loads((prep.ROOT/f"e41_lifetime_{case}_20261031_v2"/'plan.json').read_bytes())
+   checker=compiled('verify_openjev_path_trace.py',case)
+   keys=p['input']['candidate_order'];n=c['batch'];z=[float(i)/n for i in range(n)]
+   scaled=[x/p['numeric_contract']['temperature'] for x in z];top=max(scaled)
+   probs=[math.exp(x-top) for x in scaled];probs=[x/sum(probs) for x in probs]
+   wire=[x/sum(probs) for x in probs];confidence=(max(wire)/sum(wire)-1/n)/(1-1/n)
+   pred=dict(logits=z,native_probabilities=dict(zip(keys,probs)),logits_temperature='unscaled',
+    consumed_token_sha256=p['input']['token_sha256'],answer=dict(type='choice',choice=keys[-1],
+    probabilities=dict(zip(keys,wire)),confidence=confidence))
+   checker.check_prediction(pred,p)
+   wrong=copy.deepcopy(pred);wrong['logits'][0]+=3
+   with self.assertRaises(ValueError):checker.check_prediction(wrong,p)
+   wrong=copy.deepcopy(pred);wrong['logits']=wrong['logits'][:-1]
+   with self.assertRaises(ValueError):checker.check_prediction(wrong,p)
+ def test_actual_owned_chip4_running_and_lost_start_recovery(self):
+  import tempfile
+  f=HERE/'test_openjev_lifetime_launch.py';sp=importlib.util.spec_from_file_location('launchfixtures',f)
+  fixture=importlib.util.module_from_spec(sp);sp.loader.exec_module(fixture)
+  launch=compiled('openjev_lifetime_launch.py','openjev9_short')
+  for lost in (False,True):
+   t=fixture.Tests();t.setUp()
+   try:
+    t.before={'allocation':[{'chip':1,'run':'other'}],'free':[{'chip':4},{'chip':7}],'metadata':'retain'}
+    t.allocation.write_text(json.dumps(t.before))
+    if lost:t.q.crash='start'
+    def run():
+     with patch.object(fixture.old,'free_now',side_effect=t.free):
+      return launch.transaction(t.p,'pin',t.out,t.spec,t.q,t.e,fixture.d,fixture.old,fixture.proto,t.allocation)
+    if lost:
+     with self.assertRaises(RuntimeError):run()
+    else:self.assertEqual(run()['physical_chip'],4)
+    count=t.empty_checks
+    self.assertEqual(run()['status'],'running');self.assertEqual(t.empty_checks,count)
+    self.assertEqual((t.q.creates,t.q.starts),(1,1))
+    a=t.q.load(t.allocation);self.assertEqual(a['allocation'][0],t.before['allocation'][0])
+    self.assertEqual(a['allocation'][1]['chip'],4)
+   finally:t.doCleanups()
  def test_input_helper_only_changes_input_functions(self):
   import ast
   for case in prep.CASES:
