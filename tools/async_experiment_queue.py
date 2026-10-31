@@ -84,6 +84,7 @@ def validate(manifest):
     require(len({j['cpu']['container'] for j in jobs})==len(jobs),'Reused CPU container')
     require(not ({j['npu']['container'] for j in jobs}&{j['cpu']['container'] for j in jobs}),'Cross-lane container collision')
     for job in jobs:
+        require(job.get('depends_on', []) == [], 'Dependent jobs require a later reviewed queue after acceptance')
         require(type(job['chip']) is int and 0<=job['chip']<8,'Invalid chip')
         require(job['release_policy']=='operational_exit_before_scientific_analysis','CPU analysis must not gate release')
         require(job['plan_sha256']==sha(job['plan']),'Changed frozen job plan')
@@ -132,16 +133,35 @@ def operational_proof(job,observation):
     return sha(job['release_marker'])
 
 
+def npu_resource_released(record):
+    """Whether the chip may advance while scientific analysis is pending.
+
+    ``failed_released`` deliberately remains distinct from ``done``: the
+    operational release is complete, but the NPU result is a scientific
+    failure and must never enter an accepted result set.
+    """
+    return record.get('npu') in ('done', 'failed_released')
+
+
+def completion_record(state, pin, state_hash):
+    """Execution completion cannot confer scientific acceptance."""
+    return dict(rc=0, queue_sha256=pin, state_sha256=state_hash,
+                scientific_failures=[k for k, v in state['jobs'].items()
+                                     if v.get('npu') == 'failed_released'],
+                scientific_acceptance=False,
+                scientific_acceptance_owner='independent_scorer')
+
+
 def tick(manifest,state,save,query=inspect,action=checked_action):
     """Advance NPU lanes first; CPU progress never gates unrelated NPU jobs."""
     jobs=manifest['jobs'];records=state['jobs']
     def checkpoint():save(state)
     for job in jobs:
         rec=records[job['id']]
-        if rec['npu'] in ('done','quarantined'):continue
+        if rec['npu'] in ('done','failed_released','quarantined'):continue
         # FIFO only within the assigned chip; a blocked chip cannot hold others.
         earlier=[records[x['id']] for x in jobs[:jobs.index(job)] if x['chip']==job['chip']]
-        if any(x['npu']!='done' for x in earlier):continue
+        if any(not npu_resource_released(x) for x in earlier):continue
         try:
             obs=observe(job['npu'],query)
             if obs is None:
@@ -152,22 +172,30 @@ def tick(manifest,state,save,query=inspect,action=checked_action):
                 if obs['status']=='created':rec['last_launch']=action(job['launch'],job['action_log']);checkpoint()
                 continue
             rec['generation']=obs
-            if obs['rc']!=0:
-                rec['npu']='quarantined';rec['error']='Nonzero NPU exit requires separate operational disposition';checkpoint();continue
             # Save completed identity before calling the release adapter. Lost
             # responses are reconciled from its immutable proof next tick.
             rec['npu']='release_pending';checkpoint()
+            rec['npu_exit_code']=obs['rc']
             if not Path(job['release_marker']).exists():
                 rec['last_release']=action(job['operational_release'],job['action_log']);checkpoint()
             if Path(job['release_marker']).exists():
-                rec['release_sha256']=operational_proof(job,obs);rec['npu']='done';checkpoint()
+                rec['release_sha256']=operational_proof(job,obs)
+                # A release proves ownership handoff only.  Preserve a
+                # non-zero scientific exit as a first-class failure while
+                # allowing the next FIFO entry on this chip to run.
+                if obs['rc']==0:
+                    rec['npu']='done'
+                else:
+                    rec['npu']='failed_released'
+                    rec['error']='NPU exited nonzero; released operationally, scientific result rejected'
+                checkpoint()
         except Exception as exc:
             rec['npu']='quarantined';rec['error']=type(exc).__name__+': '+str(exc);checkpoint()
     # Strict original queue order for CPU analysis; independent of NPU assignment.
     for job in jobs:
         rec=records[job['id']]
         if rec['cpu']=='done':continue
-        if rec['cpu']=='quarantined' or rec['npu']!='done':break
+        if rec['cpu']=='quarantined' or not npu_resource_released(rec):break
         try:
             obs=observe(job['cpu'],query)
             if obs is None:
@@ -200,7 +228,12 @@ def run(path,pin,out,once=False):
             atomic(out/'digest.json',digest)
             with (out/'heartbeat.log').open('a') as f:f.write(json.dumps(digest)+'\n')
             if all(x['cpu']=='done' for x in state['jobs'].values()):
-                atomic(out/'COMPLETE.json',dict(rc=0,queue_sha256=pin,state_sha256=sha(state_path)));return 0
+                # Queue completion is an execution/CPU-lane terminal only.
+                # Scientific acceptance is written by the independent scorer
+                # and is never inferred from exit codes or absence of the
+                # ``failed_released`` flag.
+                atomic(out/'COMPLETE.json',completion_record(state,pin,sha(state_path)))
+                return 0
             if once:return 0
             time.sleep(5)
 

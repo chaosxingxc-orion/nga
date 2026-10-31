@@ -1,6 +1,6 @@
 # 当前任务现状、待决策事项与下一阶段计划
 
-更新时间：2026-10-31（依据当前仓库、参考矩阵、E38/E39 记录、E38 release 修复状态和实际审查结果）。本文件保留为完整状态说明；每个 milestone 的最新阅读入口是 [`REFERENCE-BASELINE-LATEST.md`](../experiments/REFERENCE-BASELINE-LATEST.md)。
+更新时间：2026-10-31（E41 v2 审查、双芯片执行与 CPU 后处理已追加）。本文件保留为完整状态说明；每个 milestone 的最新阅读入口是 [`REFERENCE-BASELINE-LATEST.md`](../experiments/REFERENCE-BASELINE-LATEST.md)。
 
 这是一份面向项目负责人的当前快照。它只描述已经形成证据的进度，不把运行中的容器、CPU 回归或历史报告当成科学结果。用户已经确认的 D1–D7 和“推理实验也必须自动驱动执行”均作为本文件的硬约束。
 
@@ -63,9 +63,9 @@ D1 是阶段顺序，不是暂停推理。为取得参考指标而进行的推�
 1. **2B 实际交接已完成**：新建 approved review 和调用方固定的外部 anchor，经现场核验和 guarded release 释放 chip 4；主会话核验 journal 哈希与其他 owner 未改变，旧 approved=false 提案未覆盖。
 2. **9B E38 已执行并独立验证**：UTC 03:40:15 启动、03:44:24 NPU exited/0，8/8 完成；03:45:29 独立 CPU verifier exited/0。两个重复的首个不同事件均为第一层 in_proj_qkv 输出，candidate_batch_admission=false。资源释放已完成，free=[1,4]，有界 Astra 结果审查也已 PASS。
 3. **完整 JEVal 数值/内存准入仍未完成**：E38 诊断通过不能替代 full-test 准入。E40 v3 已通过代码/计划审查，实际 NPU 完成 8/8、独立 CPU 验证和资源释放。固定 2B/4200 上 L1/L1L2 全输出 exact，peak allocated 降低 56.251953125 MiB（1.422531%），reserved 不变；L2 单独无改善。结果有界 Astra 审查已实际 PASS，不能外推 full-test 或普遍提速。
-4. **满载尚未实现**：E40 本轮使用 chip 1，结束后已释放；free=[4,1]。正在准备 E41 的 9B/4200 与 2B/8409 全形状对照，以便通过新计划审查后并行运行。其余历史 owner 条件仍需逐项关闭，不能由瞬时空闲读数改成授权。
+4. **E41 双芯片执行与交接已完成**：E40 之后，E41 v2 exact-plan Astra PASS；9B/4200（chip 4）与 2B/8409（chip 1）于 06:47Z detached 并行执行，均完成 8/8、NPU exit 0；两个独立 CPU verifier 也均 exit 0。2B/9B 固定输入生命周期 controls 和 exact 输出已写入各自报告。Astra 随后审查了 E41 release tools；caller-side anchor、现场 Docker/分配核验和两笔 guarded release transaction 已完成，chip 1/4 已进入 `free[]`。这些仍是工程准入证据，不是 JEVal 分数、完整测试集结果或训练收益。
 
-下一顺序是：E40 有界结果审查完成，E41 两份计划审查发现两处执行常量遗漏，正在修复并重冻结 → 冻结/审查后执行 9B 短输入及 2B 长输入 → 按数值/内存边界逐级扩大 → 完整 JEVal。参考主指标不变，没有新增训练收益。
+下一顺序是：E41 v1 计划审查发现的两处执行常量遗漏已在 v2 修正并通过实际审查；9B 短输入与 2B 长输入已完成 8/8 诊断、独立 CPU 验证和 guarded release。下一步先完成 Q-host 的 CPU-only 冻结与审查材料，再把通过审查的 NPU 任务放入按芯片 FIFO；完整 JEVal 仍需数值/内存准入。参考主指标不变，没有新增训练收益。
 
 ## 4. 推理实验的自动执行闭环
 
@@ -129,20 +129,21 @@ REGISTERED
 
 出口已达到：实际 Astra v4 对精确 v6 候选代码与拟议证据给出 PASS。该阶段不涵盖现场释放；实际交接和新 anchor 属于 P2。历史 BLOCK 及修复过程保留归档。
 
-### P2：释放 2B 并串行完成 9B E38（执行、独立 CPU 验证、释放与有界结果审查均完成）
+### P2：双芯片并行完成 E41 诊断与交接（执行、独立 CPU 验证、释放与有界结果审查均完成）
 
-- 重新核验 175 上 allocation、Docker、`npu-smi` 和 chip 4 实际状态。
-- 只由审查通过的 release 事务释放 2B；独立确认 allocation 变为 free。
-- 串行启动 9B，完成 8/8 诊断、独立 CPU verifier 和 wiki 记录。
+- 重新核验 175 上 allocation、Docker、`npu-smi` 和 chip 1/4 实际状态。
+- 在两个独立芯片上并行执行 9B/4200 与 2B/8409；每项完成 8/8 诊断、独立 CPU verifier 和 wiki 记录。
+- 只由审查通过的 release 事务释放两项任务，并独立确认 allocation 变为 free。
 
-出口：两尺寸 E38 诊断均有完整终态、独立验收和资源证据；仍需把它们与 JEVal 计分严格区分。
+出口：两尺寸 E41 诊断均有完整终态、独立验收和资源证据；仍需把它们与 JEVal 计分严格区分。
 
-### P3：完成 Open-Jev JEVal 并更新参考矩阵
+### P3：完成 Open-Jev JEVal 并更新参考矩阵（E41 诊断完成，准入仍阻塞）
 
 - E38 完成后先做独立的数值与内存准入。2B 的首个观测差异在第一层 `in_proj_qkv` 输出，早于 GDN core；chunk8 仍不等价。保持完整运算形状的生命周期优化及必要的字节搬运需另立实验，不能从 E38 成功直接跳到全量 JEVal。详见 [后续准入路线](../experiments/OPENJEV-JEVAL-NEXT-ADMISSION-2026-10-31.md)。
 - 只使用准入通过的原生结果；严格分开 hard、expected、valid、overlength 和 score 分母。
 - 按已登记公式并列输出不同文献口径，执行独立计分和限定审查。
 - 更新增量索引，不覆盖旧矩阵。
+- NPU 任务按已审查的 ready manifest 持续消费；CPU verifier、计分、Astra 结果审查和报告更新在有序 CPU lane 异步处理，不能成为无依赖 NPU 任务的排队条件。
 
 出口：38 个原登记组合都有明确状态，D1 参考报告可以完整说明缺口和限制。
 
@@ -170,6 +171,8 @@ REGISTERED
 3. **资源释放与科学验收分开**：资源可交接表示实际容器退出、设备无冲突且所有权事务可核验，不代表科学结果已验收。未完成 CPU 验证的结果保持 pending，不进入锁定基线；阴性结果和失败证据永久保留。当前旧 release 工具将完整 CPU 验证作为释放前提，需要新增受审查的操作交接路径后切换，不直接绕过既有检查。
 4. **只有真实数据依赖才等待**：后续计划的参数或安全边界必须由前一结果决定时，等待该项 CPU 结论；已有固定计划、独立控制及其他不依赖任务继续执行。Astra 结果分析或报告未完成本身不是 NPU 排队阻塞理由。
 5. **持续准备队列**：并行准备后续输入、模型、计划、测试和执行前审查，记录 ready 数量、空闲时间、吞吐、reserved/allocated 显存及明确阻塞原因。CPU 忙碌不能记为 NPU 利用率，也不能用无效占位任务冒充满载。
+
+当前落地状态：`tools/async_experiment_queue.py` 已实现每芯片 FIFO、独立芯片并行、科学失败与操作释放分离；非零 NPU 退出在释放证据完整时进入 `failed_released`，不会伪装成成功，也不会阻塞同芯片后继任务。异步队列 15 项回归测试和 Q-host CPU 契约 8 项测试均通过。控制器尚未部署，当前没有通过完整审查的 ready manifest，也没有新的 NPU 运行；因此“异步规则已编码”不等于“当前已经满载”。
 
 这一修订替代此前逐实验“执行→完整分析验收→释放→下一实验”的调度顺序。测试集口径、冻结预注册、资源所有权真实性和正式训练的 D1 阶段顺序不变。
 

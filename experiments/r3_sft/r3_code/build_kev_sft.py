@@ -40,7 +40,7 @@ from collections import Counter
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
-R0_CODE = "/mnt/cephfs/xingchao/experiments/jev/r0_code"
+R0_CODE = os.environ.get("NGA_R0_CODE", "/mnt/cephfs/xingchao/experiments/jev/r0_code")
 DEFAULT_TRAIN = "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/train.jsonl"
 
 import kev_aug  # noqa: E402

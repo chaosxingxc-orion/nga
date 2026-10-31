@@ -1,0 +1,232 @@
+#!/usr/bin/env python3
+"""Guarded host-side resource claim/release adapter for R3 jobs on host 175.
+
+The allocation file is the ownership source of truth. This adapter never
+infers ownership from npu-smi. Claim and release are short, locked,
+idempotent transactions; scientific acceptance is outside this module.
+"""
+from __future__ import annotations
+import argparse
+import datetime as dt
+import fcntl
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+
+ALLOC_DEFAULT = "/mnt/cephfs/xingchao/experiments/jev/CHIP-ALLOCATION.json"
+
+def utc():
+    return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+def sha_bytes(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+def read_bytes(path):
+    # Reject symlink components before resolving.  Resolving first makes the
+    # subsequent ``is_symlink`` check vacuous and could silently redirect the
+    # ownership ledger to an attacker-controlled file.
+    path = validated_path(path)
+    with path.open("rb") as f:
+        before, raw, after = os.fstat(f.fileno()), f.read(), None
+        after = os.fstat(f.fileno())
+    ident = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
+    if ident(before) != ident(after):
+        raise RuntimeError("allocation changed during read")
+    return raw
+
+
+def validated_path(path):
+    """Return a regular allocation path without traversing symlink components."""
+    raw_path = Path(path)
+    absolute = raw_path.absolute()
+    if any(part.is_symlink() for part in (absolute, *absolute.parents)):
+        raise RuntimeError(f"symlink allocation path: {raw_path}")
+    resolved = absolute.resolve(strict=True)
+    if resolved.is_symlink() or not resolved.is_file():
+        raise RuntimeError(f"not a regular allocation file: {resolved}")
+    return resolved
+
+def load(path):
+    return json.loads(read_bytes(path))
+
+def write_atomic(path, value):
+    path = Path(path)
+    raw = (json.dumps(value, indent=2, sort_keys=True, allow_nan=False) + "\n").encode()
+    fd, name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".pending", dir=str(path.parent))
+    try:
+        os.fchmod(fd, 0o644)
+        with os.fdopen(fd, "wb") as f:
+            f.write(raw); f.flush(); os.fsync(f.fileno())
+        os.replace(name, path)
+        dfd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try: os.fsync(dfd)
+        finally: os.close(dfd)
+    finally:
+        try: os.unlink(name)
+        except FileNotFoundError: pass
+    return sha_bytes(raw)
+
+def read_json_if(path):
+    path = Path(path)
+    return load(path) if path.exists() else None
+
+def locked(path):
+    f = Path(str(path) + ".lock").open("a+")
+    fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+    return f
+
+def validate_doc(doc):
+    if not isinstance(doc, dict) or not isinstance(doc.get("allocation"), list) or not isinstance(doc.get("free"), list):
+        raise RuntimeError("invalid allocation document")
+    chips = [e.get("chip") for e in doc["allocation"] + doc["free"]]
+    if any(type(c) is not int or not 0 <= c < 8 for c in chips) or len(chips) != len(set(chips)):
+        raise RuntimeError("invalid or duplicated chip entry")
+
+def claim(args):
+    alloc = validated_path(args.alloc)
+    intent_path = Path(args.proof).with_suffix(Path(args.proof).suffix + ".intent")
+    with locked(alloc):
+        before_raw = read_bytes(alloc); before = json.loads(before_raw); validate_doc(before)
+        existing = read_json_if(args.proof)
+        if existing is not None:
+            if existing.get("schema") == "r3-resource-claim-v1" and existing.get("run") == args.run and existing.get("chip") == args.chip:
+                print(json.dumps({"status": "ALREADY_CLAIMED", "chip": args.chip, "run": args.run, "proof": args.proof}))
+                return
+            raise RuntimeError("claim proof already exists with another identity")
+        intent = read_json_if(intent_path)
+        if intent is not None and (intent.get("schema") != "r3-resource-claim-intent-v1" or
+                                   intent.get("run") != args.run or intent.get("chip") != args.chip):
+            raise RuntimeError("claim intent identity differs")
+        # Recover a crash after the allocation ledger was replaced but before
+        # the immutable claim proof was written.  The intent carries both
+        # snapshots, so an after-image match is safe to finalize; an unrelated
+        # ledger change must never be overwritten.
+        if intent is not None:
+            after = intent.get("allocation_after")
+            after_raw = (json.dumps(after, indent=2, sort_keys=True, allow_nan=False) + "\n").encode() if after is not None else None
+            after_hash = sha_bytes(after_raw) if after_raw is not None else None
+            current_hash = sha_bytes(before_raw)
+            if after_hash == current_hash:
+                proof = {"schema": "r3-resource-claim-v1", "run": args.run, "chip": args.chip,
+                         "allocation": str(alloc), "allocation_before_sha256": intent.get("allocation_before_sha256"),
+                         "allocation_after_sha256": after_hash, "allocation_before": intent.get("allocation_before"),
+                         "allocation_after": after, "entry": intent.get("entry"),
+                         "claimed_utc": intent.get("entry", {}).get("claimed_utc")}
+                Path(args.proof).parent.mkdir(parents=True, exist_ok=True)
+                write_atomic(args.proof, proof)
+                try: intent_path.unlink()
+                except FileNotFoundError: pass
+                print(json.dumps({"status": "CLAIM_RECOVERED", "chip": args.chip, "run": args.run, "proof": args.proof}))
+                return
+            if intent.get("allocation_before_sha256") != current_hash:
+                raise RuntimeError("claim intent exists but allocation is neither before nor after")
+        if any(e.get("chip") == args.chip for e in before["allocation"]):
+            raise RuntimeError(f"chip {args.chip} is allocated")
+        if sum(e.get("chip") == args.chip for e in before["free"]) != 1:
+            raise RuntimeError(f"chip {args.chip} is not explicitly free")
+        now = utc()
+        entry = {"chip": args.chip, "owner": args.owner, "run": args.run, "purpose": args.purpose,
+                 "claimed_utc": now, "release_when": "retained container exited and guarded release proof written"}
+        after = dict(before); after["free"] = [e for e in before["free"] if e.get("chip") != args.chip]
+        after["allocation"] = sorted(before["allocation"] + [entry], key=lambda e: e["chip"])
+        after["updated_utc"], after["updated_by"] = now, "r3_resource_adapter claim"
+        intent = {"schema": "r3-resource-claim-intent-v1", "run": args.run, "chip": args.chip,
+                  "allocation_before_sha256": sha_bytes(before_raw), "allocation_before": before,
+                  "allocation_after": after,
+                  "entry": entry, "proof": str(Path(args.proof).resolve())}
+        write_atomic(intent_path, intent)
+        after_hash = write_atomic(alloc, after)
+        proof = {"schema": "r3-resource-claim-v1", "run": args.run, "chip": args.chip,
+                 "allocation": str(alloc), "allocation_before_sha256": sha_bytes(before_raw),
+                 "allocation_after_sha256": after_hash, "allocation_before": before,
+                 "allocation_after": after, "entry": entry, "claimed_utc": now}
+    Path(args.proof).parent.mkdir(parents=True, exist_ok=True); write_atomic(args.proof, proof)
+    try: intent_path.unlink()
+    except FileNotFoundError: pass
+    print(json.dumps({"status": "CLAIMED", "chip": args.chip, "run": args.run, "proof": args.proof}))
+
+def docker_inspect(name):
+    p = subprocess.run(["docker", "inspect", name], capture_output=True, text=True, check=False)
+    if p.returncode: return None
+    rows = json.loads(p.stdout); return rows[0] if rows else None
+
+def live_chip_conflict(chip, own_name):
+    p = subprocess.run(["docker", "ps", "-aq"], capture_output=True, text=True, check=False)
+    if p.returncode: raise RuntimeError("docker ps failed")
+    for cid in p.stdout.split():
+        d = docker_inspect(cid)
+        if not d or d.get("Name", "").lstrip("/") == own_name or d.get("State", {}).get("Status") in ("exited", "dead"): continue
+        if any(x.get("PathOnHost") == f"/dev/davinci{chip}" for x in d.get("HostConfig", {}).get("Devices") or []): return True
+    return False
+
+def release(args):
+    alloc = validated_path(args.alloc); claim = load(args.claim)
+    if claim.get("schema") != "r3-resource-claim-v1" or claim.get("chip") != args.chip or claim.get("run") != args.run:
+        raise RuntimeError("claim identity differs")
+    container = docker_inspect(args.container)
+    if container is None or container.get("State", {}).get("Status") not in ("exited", "dead"):
+        raise RuntimeError("retained container has not exited")
+    if container.get("HostConfig", {}).get("AutoRemove"): raise RuntimeError("auto-remove container")
+    if live_chip_conflict(args.chip, args.container): raise RuntimeError("live container still owns device")
+    intent_path = Path(args.proof).with_suffix(Path(args.proof).suffix + ".intent")
+    with locked(alloc):
+        before_raw = read_bytes(alloc); before = json.loads(before_raw); validate_doc(before)
+        existing = read_json_if(args.proof)
+        if existing is not None:
+            if existing.get("schema") != "r3-resource-release-v1" or existing.get("run") != args.run or existing.get("chip") != args.chip:
+                raise RuntimeError("release proof identity differs")
+            print(json.dumps({"status": "ALREADY_RELEASED", "chip": args.chip, "run": args.run, "proof": args.proof}))
+            return
+        intent = read_json_if(intent_path)
+        if intent is not None:
+            if intent.get("schema") != "r3-resource-release-intent-v1" or intent.get("run") != args.run or intent.get("chip") != args.chip:
+                raise RuntimeError("release intent identity differs")
+            current_hash = sha_bytes(read_bytes(alloc))
+            if current_hash == intent.get("allocation_before_sha256"):
+                after = intent["allocation_after"]
+                after_hash = write_atomic(alloc, after)
+                before = intent["allocation_before"]
+                before_raw = json.dumps(before, indent=2, sort_keys=True, allow_nan=False).encode() + b"\n"
+            elif current_hash == intent.get("allocation_after_sha256"):
+                after = intent["allocation_after"]
+                after_hash = intent["allocation_after_sha256"]
+                before = intent["allocation_before"]
+                before_raw = json.dumps(before, indent=2, sort_keys=True, allow_nan=False).encode() + b"\n"
+            else:
+                raise RuntimeError("release intent exists but allocation is neither before nor after")
+        else:
+            owners = [e for e in before["allocation"] if e.get("chip") == args.chip and e.get("run") == args.run]
+            if len(owners) != 1 or any(e.get("chip") == args.chip for e in before["free"]): raise RuntimeError("ownership differs")
+            after = dict(before); after["allocation"] = [e for e in before["allocation"] if e is not owners[0]]
+            after["free"] = sorted(before["free"] + [{"chip": args.chip, "previous_run": args.run,
+                "release_evidence": str(Path(args.proof).resolve()), "released_utc": utc()}], key=lambda e: e["chip"])
+            after["updated_utc"], after["updated_by"] = utc(), "r3_resource_adapter release"
+            intent = {"schema": "r3-resource-release-intent-v1", "run": args.run, "chip": args.chip,
+                      "allocation_before": before, "allocation_before_sha256": sha_bytes(before_raw),
+                      "allocation_after": after, "allocation_after_sha256": sha_bytes((json.dumps(after, indent=2, sort_keys=True, allow_nan=False) + "\n").encode()),
+                      "proof": str(Path(args.proof).resolve())}
+            write_atomic(intent_path, intent)
+            after_hash = write_atomic(alloc, after)
+        proof = {"schema": "r3-resource-release-v1", "run": args.run, "chip": args.chip,
+                 "container": args.container, "container_id": container["Id"],
+                 "container_started_at": container["State"].get("StartedAt"),
+                 "container_finished_at": container["State"].get("FinishedAt"),
+                 "exit_code": container["State"].get("ExitCode"), "scientific_acceptance": False,
+                 "allocation_before_sha256": sha_bytes(before_raw), "allocation_after_sha256": after_hash,
+                 "allocation_before": before, "allocation_after": after, "released_utc": utc()}
+    write_atomic(args.proof, proof)
+    try: intent_path.unlink()
+    except FileNotFoundError: pass
+    print(json.dumps({"status": "OPERATIONALLY_RELEASED", "chip": args.chip, "run": args.run,
+                      "exit_code": proof["exit_code"], "proof": args.proof}))
+
+def main(argv=None):
+    p = argparse.ArgumentParser(); sub = p.add_subparsers(dest="op", required=True)
+    c = sub.add_parser("claim"); c.add_argument("--alloc", default=ALLOC_DEFAULT); c.add_argument("--run", required=True); c.add_argument("--chip", type=int, required=True); c.add_argument("--owner", required=True); c.add_argument("--purpose", required=True); c.add_argument("--proof", required=True)
+    r = sub.add_parser("release"); r.add_argument("--alloc", default=ALLOC_DEFAULT); r.add_argument("--run", required=True); r.add_argument("--chip", type=int, required=True); r.add_argument("--container", required=True); r.add_argument("--claim", required=True); r.add_argument("--proof", required=True)
+    a = p.parse_args(argv); return claim(a) if a.op == "claim" else release(a)
+
+if __name__ == "__main__": raise SystemExit(main())

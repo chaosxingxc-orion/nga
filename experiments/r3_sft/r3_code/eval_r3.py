@@ -28,7 +28,7 @@ import os
 import sys
 from collections import Counter, defaultdict
 
-R0_CODE = "/mnt/cephfs/xingchao/experiments/jev/r0_code"
+R0_CODE = os.environ.get("NGA_R0_CODE", "/mnt/cephfs/xingchao/experiments/jev/r0_code")
 if R0_CODE not in sys.path:
     sys.path.insert(0, R0_CODE)
 import prompt as prompt_mod  # noqa: E402

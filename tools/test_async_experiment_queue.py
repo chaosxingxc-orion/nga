@@ -56,9 +56,32 @@ class Tests(unittest.TestCase):
  def test_failed_cpu_does_not_stop_npu(self):
   self.finish(self.jobs[0],'npu');self.proof(self.jobs[0]);self.finish(self.jobs[0],'cpu',1);self.tick()
   self.assertEqual(self.state['jobs']['0']['cpu'],'quarantined');self.assertIn(('launch','1'),self.calls)
- def test_failed_npu_blocks_its_chip_only(self):
-  self.finish(self.jobs[0],'npu',1);self.tick();self.assertEqual(self.state['jobs']['0']['npu'],'quarantined')
-  self.assertNotIn(('launch','1'),self.calls);self.assertIn(('launch','2'),self.calls)
+ def test_failed_npu_is_released_and_does_not_block_its_chip(self):
+  self.finish(self.jobs[0],'npu',1);self.tick();self.assertEqual(self.state['jobs']['0']['npu'],'failed_released')
+  self.assertIn(('operational_release','0'),self.calls)
+  self.assertIn(('launch','1'),self.calls);self.assertIn(('launch','2'),self.calls)
+  self.assertEqual(self.state['jobs']['0']['npu_exit_code'],1)
+ def test_failed_npu_without_proof_keeps_chip_blocked(self):
+  self.finish(self.jobs[0],'npu',137)
+  def no_release(a,out):
+   if a['kind']=='operational_release':return {'returncode':1,'uncertain':True}
+   return self.action(a,out)
+  m.tick(self.manifest,self.state,lambda _:None,self.live.get,no_release)
+  self.assertEqual(self.state['jobs']['0']['npu'],'release_pending')
+  self.assertEqual(self.state['jobs']['0']['npu_exit_code'],137)
+  self.assertNotIn(('launch','1'),self.calls)
+  self.assertIn(('launch','2'),self.calls)
+ def test_failed_npu_invalid_proof_keeps_chip_blocked(self):
+  j=self.jobs[0];self.finish(j,'npu',1);self.proof(j)
+  p=m.load(j['release_marker']);p['container_id']='wrong';self.put(j['release_marker'],p)
+  self.tick();self.assertEqual(self.state['jobs']['0']['npu'],'quarantined')
+  self.assertNotIn(('launch','1'),self.calls)
+ def test_completion_never_confers_scientific_acceptance(self):
+  for failed in (False,True):
+   state={'jobs':{'a':{'npu':'failed_released' if failed else 'done','cpu':'done'}}}
+   terminal=m.completion_record(state,'queue','state')
+   self.assertIs(terminal['scientific_acceptance'],False)
+   self.assertEqual(terminal['scientific_failures'],['a'] if failed else [])
  def test_wrong_generation_never_released(self):
   self.finish(self.jobs[0],'npu');self.live['npu0']['Id']='other';self.tick()
   self.assertEqual(self.state['jobs']['0']['npu'],'quarantined');self.assertNotIn(('operational_release','0'),self.calls)

@@ -37,7 +37,7 @@ import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-R0_CODE = "/mnt/cephfs/xingchao/experiments/jev/r0_code"
+R0_CODE = os.environ.get("NGA_R0_CODE", "/mnt/cephfs/xingchao/experiments/jev/r0_code")
 for _p in (HERE, R0_CODE):
     if _p not in sys.path:
         sys.path.insert(0, _p)
