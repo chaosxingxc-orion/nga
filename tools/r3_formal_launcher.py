@@ -69,7 +69,13 @@ def verify(path, pin, reviewed=True):
         require(type(p['stop_after']) is int and 10 <= p['stop_after'] <= 3116, 'invalid engineering step bound')
         expected += ['--stop-after', str(p['stop_after'])]
     if engineering and p.get('k2_impl') == 'shared':
-        require(arm == 'k2' and p.get('stop_after') == 45, 'shared path requires bounded engineering validation')
+        require(arm == 'k2' and p.get('stop_after') in (0, 45), 'invalid shared engineering schedule')
+        if not p.get('stop_after'):
+            evidence = p.get('shared_contract')
+            require(evidence in p['files'], 'shared numerical evidence not pinned')
+            contract = load(evidence)
+            require(contract.get('status') == 'CONTRACT_PASS' and len(contract.get('results', [])) == 4,
+                    'shared numerical tests incomplete')
         expected.remove('--grad-ckpt')
         expected[expected.index('--micro-tokens')+1] = '3000'
         expected += ['--k2-impl', 'shared', '--gdn-impl', 'ref', '--k2-rows', '48']

@@ -56,12 +56,14 @@ def prepare(out):
                '--model-path', '<FROZEN_BASE_MODEL>', '--adapter', '<COMPLETED_ADAPTER>',
                '--arm', 'K1', '--out', '<FRESH_EVAL_OUTPUT>', '--round-dir', '<FRESH_IDENTITY_CACHE>',
                '--partitions', 'dev,calibration', '--stages', 'k_score',
-               '--k-only', 'decision-v7/dev/clean,decision-v7/calibration/clean,transfer-v4/dev/clean',
+               '--k-only', ','.join(f'{suite}/{split}/{kind}'
+                   for suite, split in [('decision-v7','dev'),('decision-v7','calibration'),('transfer-v4','dev')]
+                   for kind in (('clean','question_only','empty_input') if split=='calibration' else ('clean','variants','question_only','empty_input'))),
                '--scorer', 'rightpad', '--dtype', 'float32', '--no-hf32',
                '--token-budget', '16384', '--require-record-grade', '--device', 'npu:0']
     manifest = {'schema': 'r3-dev-evaluator-closure-v1', 'code': mapping, 'data': files,
                 'command_template': command, 'test_read': False, 'scientific_acceptance': False,
-                'scope': 'Track K clean dev/calibration readouts; full variants/Track T/report still separate',
+                'scope': 'Track K dev/calibration clean, variants and degenerate-input controls; Track T/report still separate',
                 'mounts': [{'source': str(out / r.name), 'destination': str(r), 'readonly': True} for r in ROOTS],
                 'pending': ['finished adapter identity', 'base weight hashes', 'exact executable launch plan',
                             'resource claim', 'independent review', 'full selection report']}

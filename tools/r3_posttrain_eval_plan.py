@@ -54,11 +54,15 @@ def prepare(training, closure, out):
     command=[replacements.get(x,x) for x in command]
     command[command.index('--arm')+1]=plan.get('arm','k1').upper()
     spec={'schema':'r3-posttrain-dev-spec-v1','training':str(training),'training_exit':end,
+          'training_variant': {'arm':plan.get('arm','k1'), 'k2_impl':plan.get('k2_impl','rows'),
+                               'seed':manifest.get('args',{}).get('seed'),
+                               'training_plan_sha256':sha(training/'plan.json'),
+                               'pooling_policy':'never pool shared and rows implementations as seeds of one candidate'},
           'command':command,'files':files,'code_mounts':config['mounts'],
           'readonly_data_mounts':list(config['data']), 'model':plan['model'],'adapter':str(adapter),
           'image_sha256':plan['image_sha256'],'network':'none','test_read':False,
           'scientific_acceptance':False,'execution_review':'PENDING','chip_assignment':'PENDING',
-          'scope':'clean dev/calibration readouts; full variants and Track T remain required for selection'}
+          'scope':config.get('scope','Track K dev/calibration; Track T selection evidence still required')}
     out.mkdir(parents=True,exist_ok=True)
     with (out/'plan.json').open('x') as f:json.dump(spec,f,indent=2);f.write('\n')
     return {'status':'prepared','plan':str(out/'plan.json'),'sha256':sha(out/'plan.json')}

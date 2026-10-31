@@ -68,8 +68,8 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
     if stop_after:
         command += ['--stop-after', str(stop_after)]
     if shared:
-        if not engineering or arm != 'k2' or stop_after != 45:
-            raise ValueError('shared path is a 45-step K2 engineering validation')
+        if not engineering or arm != 'k2' or stop_after not in (0, 45):
+            raise ValueError('shared path must be engineering K2, full or 45-step validation')
         command.remove('--grad-ckpt')
         command[command.index('--micro-tokens')+1] = '3000'
         command += ['--k2-impl', 'shared', '--gdn-impl', 'ref', '--k2-rows', '48']
@@ -95,6 +95,13 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
                     evaluation={'candidate_test_forbidden': True, 'formal_acceptance_requires_new_review': True})
     if shared:
         plan['k2_impl'] = 'shared'
+        if not stop_after:
+            evidence = BASE / 'r3_runs/k2_shared_contract_20261031_v2/seed2/CONTRACT_DIGEST.json'
+            verdict = json.loads(evidence.read_text())
+            if verdict.get('status') != 'CONTRACT_PASS' or len(verdict.get('results', [])) != 4:
+                raise ValueError('shared numerical contract incomplete')
+            plan['shared_contract'] = str(evidence)
+            plan['files'][str(evidence)] = sha(evidence)
     if validate_shared:
         plan['validation_kind'] = 'shared_k2_reference_contract'
         plan['command'] = ['python3', '-P', '/workspace/test_k2_shared.py', '--device', 'npu:0', '--impls', 'ref']
