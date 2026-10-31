@@ -391,3 +391,33 @@ observed. Frozen plan SHA remains
 `fae8ac8368b7a98fad32e07acc1b54b1dded55c1812f95ec4cdb136b92ef3593`.
 This is an eight-forward diagnostic, not a full JEVal test or training run.
 Scientific candidate-batch admission remains false; no reference metrics changed.
+
+### 2026-10-31 03:47 UTC — 9B diagnosis, independent verification and release complete
+
+9B completed 8/8 forwards, trace_valid=true, review_flags=[], terminal rc 0.
+Actual NPU container exited 0 at `2026-10-31T03:44:24.39875505Z`. Independent
+CPU verifier `e38_openjev9_verify_20261031_v1` also exited 0 at
+`2026-10-31T03:45:29.50054917Z`; its report SHA is
+`27142cd19530a1ee95454a2154019dc151edc4f5832c64cab59c627b8d90205e`.
+Terminal output hashes and actual retained exits were checked independently.
+
+Original versus chunk8 maximum logits/probability/wire deltas were
+0.13169223070144653 / 0.013869159693189886 / 0.01485981395698921, identical
+across both repeats; decisions unchanged for this one selected input. Both
+traces first differed at layer 0 `linear_attn.in_proj_qkv:output`, all 15
+candidates, before the GDN core. This localizes the earliest observed difference;
+it does not identify a kernel cause or admit candidate batching. Repeated
+same-path and hook controls were byte-exact, as designed for these controls.
+
+Measured diagnostic throughput was about 0.0502 questions/s/chip, one chip,
+reserved memory 17.5703125 GiB. This is traced diagnostic throughput, not a
+production inference speed claim. Full JEVal admission remains false.
+
+Post-exit CPU attestation was generated and a new approved release review plus
+external anchor `f4359466aa97f700fd85f4e134c12178a13ac497ec59e0aa7dbb0cdeeea7358f`
+was fixed before release. Guarded release in `e38_release_openjev9_20261031_v1`
+returned RELEASED rc 0; independent intent/commit/allocation checks confirmed
+only chip 4 became free. Allocation SHA after release is
+`c8c94a2f63844df50b1fc72e6d9a0575aecb5cdd0e4a3db2d8819cca81ac60e8`,
+with free chips [1, 4]. Machine evidence summary:
+`experiments/E38-OPENJEV9-DIAGNOSTIC-RESULT-2026-10-31.json`. No test metric changed.

@@ -1,0 +1,186 @@
+{
+  "scope": "Fixed exploratory trace, no full-test score, numeric admission, kernel cause or speedup claim",
+  "run": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/openjev_path_trace_openjev9_20261031_v7",
+  "plan_sha256": "fae8ac8368b7a98fad32e07acc1b54b1dded55c1812f95ec4cdb136b92ef3593",
+  "report_sha256": "5af001b068a57671f3e3f0d68945dcabff548fce80df1278a0ae8d61dddd7d98",
+  "terminal": {
+    "rc": 0,
+    "error": null,
+    "plan_sha256": "fae8ac8368b7a98fad32e07acc1b54b1dded55c1812f95ec4cdb136b92ef3593",
+    "outputs": {
+      "SELECTION.json": "9df89026dd51942bf29a94c937fffb3339214a618662601092cb01ceca759b65",
+      "report.json": "5af001b068a57671f3e3f0d68945dcabff548fce80df1278a0ae8d61dddd7d98"
+    },
+    "utc": "2026-10-31T03:44:20Z",
+    "stage": "completed",
+    "progress": 8,
+    "total": 8,
+    "chips": 1,
+    "questions_per_second_per_chip": 0.050206752234206696,
+    "reserved_gib": 17.5703125,
+    "status": "COMPLETED_SCOPED",
+    "trace_valid": true,
+    "review_flags": []
+  },
+  "verification_directory": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e38_openjev9_verify_20261031_v1",
+  "verification_report_sha256": "27142cd19530a1ee95454a2154019dc151edc4f5832c64cab59c627b8d90205e",
+  "verification_terminal": {
+    "rc": 0,
+    "error": null,
+    "request_sha256": "e3ae53cb7806f556310c0488ff40afc24dbfa79790992fb1bc6b9cc360df0100",
+    "outputs": {
+      "report.json": "27142cd19530a1ee95454a2154019dc151edc4f5832c64cab59c627b8d90205e"
+    },
+    "utc": "2026-10-31T03:45:29Z",
+    "stage": "completed",
+    "progress": 1,
+    "total": 1,
+    "chips": 0
+  },
+  "cpu_exit_binding_sha256": "aff1910c3f8f8f4a154721efac62151161013d09837c5569fb9549ae04754ac1",
+  "comparisons": {
+    "original_untraced_repeat": {
+      "logits_max_delta": 0.0,
+      "probability_max_delta": 0.0,
+      "probability_mean_abs_delta": 0.0,
+      "wire_max_delta": 0.0,
+      "decision_changed": false,
+      "tokens_identical": true,
+      "exact_prediction": true
+    },
+    "original_traced_repeat": {
+      "logits_max_delta": 0.0,
+      "probability_max_delta": 0.0,
+      "probability_mean_abs_delta": 0.0,
+      "wire_max_delta": 0.0,
+      "decision_changed": false,
+      "tokens_identical": true,
+      "exact_prediction": true
+    },
+    "original_hook_effect_0": {
+      "logits_max_delta": 0.0,
+      "probability_max_delta": 0.0,
+      "probability_mean_abs_delta": 0.0,
+      "wire_max_delta": 0.0,
+      "decision_changed": false,
+      "tokens_identical": true,
+      "exact_prediction": true
+    },
+    "original_hook_effect_1": {
+      "logits_max_delta": 0.0,
+      "probability_max_delta": 0.0,
+      "probability_mean_abs_delta": 0.0,
+      "wire_max_delta": 0.0,
+      "decision_changed": false,
+      "tokens_identical": true,
+      "exact_prediction": true
+    },
+    "chunk8_untraced_repeat": {
+      "logits_max_delta": 0.0,
+      "probability_max_delta": 0.0,
+      "probability_mean_abs_delta": 0.0,
+      "wire_max_delta": 0.0,
+      "decision_changed": false,
+      "tokens_identical": true,
+      "exact_prediction": true
+    },
+    "chunk8_traced_repeat": {
+      "logits_max_delta": 0.0,
+      "probability_max_delta": 0.0,
+      "probability_mean_abs_delta": 0.0,
+      "wire_max_delta": 0.0,
+      "decision_changed": false,
+      "tokens_identical": true,
+      "exact_prediction": true
+    },
+    "chunk8_hook_effect_0": {
+      "logits_max_delta": 0.0,
+      "probability_max_delta": 0.0,
+      "probability_mean_abs_delta": 0.0,
+      "wire_max_delta": 0.0,
+      "decision_changed": false,
+      "tokens_identical": true,
+      "exact_prediction": true
+    },
+    "chunk8_hook_effect_1": {
+      "logits_max_delta": 0.0,
+      "probability_max_delta": 0.0,
+      "probability_mean_abs_delta": 0.0,
+      "wire_max_delta": 0.0,
+      "decision_changed": false,
+      "tokens_identical": true,
+      "exact_prediction": true
+    },
+    "original_vs_chunk_0": {
+      "logits_max_delta": 0.13169223070144653,
+      "probability_max_delta": 0.013869159693189886,
+      "probability_mean_abs_delta": 0.0018492212924253178,
+      "wire_max_delta": 0.01485981395698921,
+      "decision_changed": false,
+      "tokens_identical": true,
+      "exact_prediction": false
+    },
+    "original_vs_chunk_1": {
+      "logits_max_delta": 0.13169223070144653,
+      "probability_max_delta": 0.013869159693189886,
+      "probability_mean_abs_delta": 0.0018492212924253178,
+      "wire_max_delta": 0.01485981395698921,
+      "decision_changed": false,
+      "tokens_identical": true,
+      "exact_prediction": false
+    }
+  },
+  "first_observed_differences": {
+    "0": {
+      "event": "base_model.model.layers.0.linear_attn.in_proj_qkv:output",
+      "changed_candidates": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ]
+    },
+    "1": {
+      "event": "base_model.model.layers.0.linear_attn.in_proj_qkv:output",
+      "changed_candidates": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ]
+    }
+  },
+  "candidate_batch_admission": false,
+  "release_directory": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e38_release_openjev9_20261031_v1",
+  "release": {
+    "rc": 0,
+    "status": "RELEASED",
+    "intent_sha256": "23861e505974c7e720d46f72de58d63120af68e71bb455b067bec477e51e2172",
+    "intent_commit_sha256": "e212099551569b254ad39ab50332774000c22cdfd2203746d3db253455e22e3f",
+    "allocation_before_sha256": "97060cc090783c771e13f7e3197b12e3aba653a7272770275c6818b25b59ad6b",
+    "allocation_after_sha256": "c8c94a2f63844df50b1fc72e6d9a0575aecb5cdd0e4a3db2d8819cca81ac60e8"
+  },
+  "anchor_sha256": "f4359466aa97f700fd85f4e134c12178a13ac497ec59e0aa7dbb0cdeeea7358f"
+}
