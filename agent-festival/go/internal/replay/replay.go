@@ -48,9 +48,11 @@ package replay
 
 import (
 	"bytes"
+
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"festival-dev/go/internal/adopt"
@@ -487,20 +489,7 @@ func grantsEqual(a, b []ledger.Grant) bool {
 	}
 	for i := range a {
 		if a[i].Kind != b[i].Kind || a[i].Selector != b[i].Selector ||
-			a[i].Effect != b[i].Effect || !slicesEqual(a[i].Actions, b[i].Actions) {
-			return false
-		}
-	}
-	return true
-}
-
-// slicesEqual compares two string slices.
-func slicesEqual(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
+			a[i].Effect != b[i].Effect || !slices.Equal(a[i].Actions, b[i].Actions) {
 			return false
 		}
 	}

@@ -737,3 +737,25 @@ func TestRecoverDoesNotDispatchAdoptedWork(t *testing.T) {
 		t.Fatalf("Recover moved a dispatchable operation: %d events, want 1 — the never-dispatch boundary regressed", len(events))
 	}
 }
+
+// TestGrantSubdimensions pins the grants dimension's three UNPINNED sub-legs
+// (R15: only Selector had a tamper arm — Kind/Effect/Actions tampering
+// stayed invisible to fidelity).
+func TestGrantSubdimensions(t *testing.T) {
+	tamper := func(name string, f func(ev []ledger.Event)) {
+		t.Run(name, func(t *testing.T) {
+			c := loadCase(t, "happy-chain.json")
+			f(c.RecordedEvents)
+			rep, err := Replay(c)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if rep.Fidelity != Divergence {
+				t.Fatalf("%s tamper not caught — fidelity=%q (the sub-leg is blind)", name, rep.Fidelity)
+			}
+		})
+	}
+	tamper("kind", func(ev []ledger.Event) { ev[0].GrantsAtDecision[0].Kind = "secret" })
+	tamper("effect", func(ev []ledger.Event) { ev[0].GrantsAtDecision[0].Effect = "irreversible" })
+	tamper("actions", func(ev []ledger.Event) { ev[0].GrantsAtDecision[0].Actions = []string{"write"} })
+}
