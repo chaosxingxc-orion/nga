@@ -1,8 +1,8 @@
 # 当前参考基线报告入口（最新）
 
-更新时间：20261031T040827Z
+更新时间：20261031T041735Z
 
-最新累计报告：[REFERENCE-BASELINE-REPORT-20261031T040827Z.md](REFERENCE-BASELINE-REPORT-20261031T040827Z.md)。
+最新累计报告：[REFERENCE-BASELINE-REPORT-20261031T041735Z.md](REFERENCE-BASELINE-REPORT-20261031T041735Z.md)。
 
 这是当前参考基线阶段的最新报告入口。以后每个 milestone 完成后，新建带时间戳的报告并更新本文件；旧报告保留在归档目录或旧文件名中，只用于追溯，不作为当前事实权威。指标不得因刷新而改变；若指标、分母、公式或审查范围改变，必须新建代次并明确变更。
 
@@ -21,7 +21,7 @@ Open-Jev 两个 JEVal 单元仍受完整路径数值与内存准入阻塞。实�
 
 两尺寸首个不同观测事件均为第一层 `in_proj_qkv` 输出；9B 最大 logits/probability/wire 差为 0.13169223070144653 / 0.013869159693189886 / 0.01485981395698921，decision 未变，`candidate_batch_admission=false` 不变。9B 资源已释放并独立核对，free=[1,4]；有界 Astra 结果审查已 PASS，仅支持诊断与冻结资源证据。没有新增 JEVal 分数或训练收益。
 
-E40 的固定镜像 CPU 检查完成 32 cells/256 forwards，输出字节 exact；NPU 驱动和首阶段计划已有冻结候选，实际 Astra 已对 v1 给出 BLOCK，五项代码问题已修复，v2 实际复审进程已启动且核验存活；detached CPU 验证启动支持已完成 12 项测试，仍需独立审查。9B 最大实际输入的某阶段清理后仍约 59.4 GiB core-only，不能从 E38 成功跳到 full-test。详见 [准入路线](OPENJEV-JEVAL-NEXT-ADMISSION-2026-10-31.md)。
+E40 的固定镜像 CPU 检查完成 32 cells/256 forwards，输出字节 exact；NPU 驱动和首阶段计划已有冻结候选，实际 Astra 已对 v1 给出 BLOCK，五项代码问题已修复，v2 发现 Native.predict 失败数据保存遗漏，已补齐并通过固定镜像 8/8 测试；v3 实际复审进程已启动且核验存活；detached CPU 验证启动支持已完成 12 项测试，仍需独立审查。9B 最大实际输入的某阶段清理后仍约 59.4 GiB core-only，不能从 E38 成功跳到 full-test。详见 [准入路线](OPENJEV-JEVAL-NEXT-ADMISSION-2026-10-31.md)。
 
 本轮实际使用了 chip 4，持续八卡满载尚未实现。chip 1 已登记 free，其他历史 owner 的释放条件另行核验。CPU 准备不计入 NPU 利用率。最新累计报告已直接收录参考指标表及口径、flags 和限制，旧读数不变。
 
