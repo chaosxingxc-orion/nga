@@ -162,6 +162,10 @@ These are logical responsibilities, not four required services. The framework sp
 
 The [V0.2 matrix](../achitecture%20design/13-nga-architecture-v0.2.md) maps each plane to development, runtime, and operations. Agent evolution links release definitions, task/decision history, actual outcomes, reviewed cases, evaluations, and subsequent releases. It preserves historical decisions and defines treatment of active tasks explicitly.
 
+The [integrated architecture review](../achitecture%20design/22-integrated-lifecycle-and-plane-review.md) makes this whole concrete through **business objective/owning scope → maintained agent definition → compatible release → task/decision/request history → reviewed case → candidate/evaluation → admitted release**. Imported primitives and customer configuration follow the same lineage. Management owns maintained definitions and proposals; control admits effective scoped changes; runtime executes them and user views report that same state. The architecture does not require four isolated products or a single global controller.
+
+Operational recovery of an existing task and reusable improvement are separate linked paths. A qualified resume/cancel/compensation can proceed under existing authority while a lasting model, semantic, workflow, primitive or integration change is evaluated for publication. Attribute the problem before selecting the change target. Operational usefulness, decision behavior and observed business outcomes matter alongside infrastructure metrics; specific evaluation targets remain to be defined.
+
 Semantic judgment remains a model capability where appropriate; deterministic control cannot substitute for all business understanding. S1/S2 and Graph/Loop/Workflow choices remain proposals within this larger organization.
 
 ## 6. Proposed logical interfaces
@@ -356,6 +360,8 @@ For their architectural refinement and a concrete discussion agenda, see the [ar
 Recording an answer requires its rationale, evidence, affected principles/interfaces, and version impact. Changes to registered experiments still follow their amendment process.
 
 ## 11. Next design artifact
+
+The current integration priority is the shared agent/candidate/release/task/case contract and its cross-plane handoffs in [document 22](../achitecture%20design/22-integrated-lifecycle-and-plane-review.md). Trace one customer primitive through import/qualification, scoped publication, normal execution, operational recovery and an explicit compatible upgrade. This gives the workbench a complete lifecycle slice while preserving the framework-first, case-coverage method below.
 
 Following the owner's clarification, first define a small general framework contract for case identity, bound decisions, plans, NGA-effective transitions and invocation of business capabilities. The owning business system remains responsible for its internal shared constraints and authoritative commits. Then challenge the integration with a small portfolio of explicitly scoped business fixtures. Do not require detailed banking semantics to be settled before continuing the architecture. See [framework logic and case coverage](../achitecture%20design/18-framework-core-and-case-coverage.md) and the proposed [business-system boundary](../achitecture%20design/19-business-system-capability-boundary.md).
 

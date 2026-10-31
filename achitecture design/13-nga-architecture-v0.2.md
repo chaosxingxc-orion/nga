@@ -4,6 +4,7 @@
 > Established direction: development, runtime, and operations states; user, runtime, management, and control planes; agent evolution as the integrating whole across the four planes.
 > Status: the organizing dimensions are owner-defined. The responsibilities, contracts, and evolution lifecycle below are proposed for review, not implemented guarantees.
 > Supersedes the three-view organization in [V0.1](08-nga-architecture-v0.1.md). The [V0 adversarial review](14-v0-adversarial-review.md) explains corrections rather than treating all inherited mechanisms as commitments.
+> Current integration review: [document 22](22-integrated-lifecycle-and-plane-review.md) applies these dimensions to extensible primitives, API waiting/recovery and the full customer lifecycle. It adds concrete object lineage, cross-plane handoffs and twelve acceptance cases without claiming the detailed architecture is complete.
 
 ## 1. The dimensions have different meanings
 
@@ -18,6 +19,8 @@ Operations means business operation and continuous improvement, not only infrast
 The **four planes** assign responsibilities within each state. The runtime plane therefore also executes development evaluations and operational replays; it is not restricted to the runtime lifecycle state.
 
 **Agent evolution is the integrating whole:** coordinated improvement of the agent's business behavior through all four planes and all three states. It includes models, semantic specifications, knowledge/context, skills, graphs/workflows, decision operators, interaction patterns, and governance mechanisms. It is not limited to model training, a feedback dashboard, or an extra plane with privileged write access.
+
+Tie this whole to an accountable business objective and maintained agent definition in its owning scope. Default and imported/custom control primitives are part of that definition. The common lineage connects definitions/releases, actual tasks and provider outcomes, reviewed operational cases and subsequent candidates; it does not require a single global agent or unrestricted sharing of records.
 
 ## 2. The three-state / four-plane matrix
 
@@ -40,6 +43,8 @@ A cell describes responsibility, not a required separate application or service.
 | **Control plane** | Effective admission, state changes, adoption, effect permission, lifecycle transitions, and enforcement obligations. | Admission/transition decisions, bound execution grants, adoption records, operation intents, release/hold/recovery decisions. | Control consumes published semantics and model observations; it cannot invent business meaning or treat a model score as permission. |
 
 The framework spans these responsibilities; it is not synonymous with one plane. An execution scheduler may physically live beside the graph engine in the runtime plane, while eligibility, authority, and committed transitions remain controlled by the authoritative contract. Execution adapters perform admitted calls; the control boundary establishes whether the intended call is effective and permitted.
+
+Management owns maintained definitions and publication proposals; control admits the effective scoped activation, and registry/routing/user views reflect that same record. This is not a requirement for a central round trip on every token or local computation. Bounded admitted execution and distributed placement remain possible while preserving the authoritative transition contract per governed object.
 
 Proposed external-system boundary: NGA's control plane governs its own agent state, local/delegated decision adoption and capability invocations. Existing business systems remain authoritative for their domain data, internal risk/consistency rules and transaction commits. An NGA adoption is not automatically external business approval or completion. [Document 19](19-business-system-capability-boundary.md) specifies this distinction and the business-capability integration proposal; it does not prescribe the provider's internal implementation.
 
@@ -81,13 +86,15 @@ Promotion may be automatic under an authorized, validated policy or may require 
 
 Runtime adaptation within a declared task scope is distinct from changing reusable behavior. A local S2 plan revision can be admitted under the current contract. Persistently changing a model, rule, workflow, memory policy, or adoption operator requires an identified candidate/release path.
 
+Keep operational recovery and reusable improvement as two linked paths. An authorized resume/status/cancel/compensation action may use an existing release immediately, while a lasting primitive, workflow or model correction follows candidate/evaluation/publication. Attribute the observed problem before choosing what to improve; a callback, evidence or presentation defect is not automatically a Jev training case. [Document 22](22-integrated-lifecycle-and-plane-review.md) makes these handoffs explicit.
+
 ## 5. Version continuity across the dimensions
 
 The proposed minimum linking structure is:
 
-**agent identity → release manifest → task/run and decision revisions → operation attempts/outcomes → reviewed case/evaluation → candidate and subsequent release.**
+**business objective and owning scope → agent definition → release manifest → task/run and decision revisions → operation attempts/outcomes → reviewed case/evaluation → candidate and subsequent release.**
 
-A release manifest references the compatible model/readout versions, semantic and adoption specifications, capability/workflow/graph definitions, context policies, and relevant controller/enforcement contracts. It may consist of references to independently managed artifacts; it does not require a single deployment unit.
+A release manifest references compatible model/readout versions, semantic/adoption specifications, capability/workflow/graph definitions, default/customer primitive packages and their implementation/configuration dependencies, context policies, and controller/enforcement contracts. Resolve namespaces and applicability explicitly. References may point to independently managed artifacts; a release is not necessarily one deployment unit.
 
 A task records the release and material dependency versions actually consumed. Candidate promotion never silently rewrites an adopted decision or the artifacts used to replay it.
 
@@ -112,13 +119,13 @@ The three repository projects do not map one-to-one to planes. Project 1 supplie
 
 ## 7. Credit example across the three states
 
-**Development:** a business owner resolves the rule conventions; developers construct R1/AP1, the credit graph, required evidence bindings, and demonstration cases. The runtime executes isolated evaluations. Control checks the candidate's admission/publication conditions. Management records the approved release and evidence; user-plane views support review.
+**Development:** a business owner resolves the rule conventions and completion promise; developers construct R1/AP1, the credit workflow/graph, required evidence bindings, configured/imported primitives and demonstration cases. Runtime executes isolated evaluations. Control checks candidate admission/publication; management records the compatible release and evidence; user-plane views support review.
 
-**Runtime:** the user submits A001. Management resolves the applicable release and definitions. The runtime obtains evidence and calls S1/S2 as admitted. Control binds F1, adopts D1, and admits OP1; the external adapter performs the operation. The user sees the decision separately from execution status. Receipts and trace data remain linked.
+**Runtime:** the user initiates NGA task T1, linked explicitly to a provider application reference when available. Management resolves the applicable release and definitions. Runtime obtains evidence and calls S1/S2 as admitted. Control binds the basis, adopts D1 and admits B1 (the operation called OP1 in earlier fixtures); the adapter invokes the business capability and the framework waits for its declared result. The user sees decision, request and recovery status separately. Actual primitive/configuration versions, observations and history remain linked.
 
 **Operations:** operators observe that a group of applications produces repeated history-coverage gaps or inconsistent source interpretation. They inspect the actual decisions and replay traces, distinguish data-quality defects from business-rule issues, and create a reviewed improvement case. Candidate changes might affect source adapters, semantic definitions, S1 behavior, the investigation workflow, or user evidence collection. The change is evaluated and promoted through the same cross-plane contracts.
 
-An active A001 does not silently switch to the candidate model or revised rule because an operations dashboard now labels that version "better." Its handling follows the explicit release/hold/revision policy.
+An active T1 does not silently switch to a candidate model, primitive or rule because an operations dashboard now labels that version "better." A suspended wait preserves its actual implementation/configuration or follows an explicit migration/hold policy. Historical replay and candidate reevaluation remain distinguishable.
 
 This is agent evolution in the credit case: experience changes the maintained agent through attributable, evaluated versions while preserving the identity and auditability of past decisions.
 
