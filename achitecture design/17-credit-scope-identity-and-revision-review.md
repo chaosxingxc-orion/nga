@@ -7,6 +7,8 @@
 
 > Owner correction: the preceding discussion treated credit-relationship details as a prerequisite too early. Design the general framework first, then use business cases to challenge coverage. The user-supplied shared-preapproval example permits independent cases subject to a common limit. See [document 18](18-framework-core-and-case-coverage.md). The former single-relationship starting recommendation is withdrawn as a framework prerequisite; the traces below remain illustrative fixtures.
 
+> Current boundary and identity refinement: [document 20](20-task-decision-request-identity.md) is the current AQ-01/AQ-02 discussion. It separates NGA tasks from provider applications, distinguishes decision questions/revisions and business-operation requests, and scopes completion to the public capability contract. Read the older initial-limit-registration trace below as a historical fixture, not a requirement for NGA to own credit records, shared exposure enforcement or provider transactions. Those remain with the business system under [document 19](19-business-system-capability-boundary.md).
+
 ## 1. Illustrative credit-fixture boundary
 
 One credit fixture used to exercise the general execution contract is:

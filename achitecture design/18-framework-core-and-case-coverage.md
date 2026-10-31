@@ -38,13 +38,15 @@ Nor should the core simply execute arbitrary business code and assume its guaran
 
 These are proposed concepts, not mandatory tables, classes or independent services:
 
-1. **Case:** an admitted unit of business intent and its lifecycle. A submission, model invocation or graph node is not automatically a new case.
+1. **Case / NGA task:** an admitted unit of intent and its lifecycle, with a declared objective, scope and completion contract. A submission, model invocation or graph node is not automatically a new task. This is not automatically the provider's application identity; explicit references link them.
 2. **Decision:** a named question within a case, evaluated against a bound basis, with observations distinct from adopted revisions.
 3. **Plan:** the admitted organization of work, represented or integrated through Graph, Workflow and Agent Loop contracts. A changed plan need not change the case or decision basis.
 4. **Operation:** one intended external effect with immutable material parameters, separately identifiable attempts and authoritative outcomes.
 5. **Capability contract:** the business meaning, authority, material inputs, delegated judgment scope, effects, status and recovery guarantees of an available operation. It can reference constraints owned by the provider without importing its internal state engine. Related cases remain distinct.
 
 Their definitions and execution artifacts are linked through the existing agent/release lineage in V0.2. Model calls, evidence observations, approvals and receipts remain identifiable records around these concepts.
+
+The current [AQ-01/AQ-02 refinement](20-task-decision-request-identity.md) names the three continuity boundaries T1 (task), J1/D1 (decision question/revision) and B1 (business-operation request, previously OP1). It defines completion at the public capability boundary and handles changes independently of plan/run/attempt identities.
 
 Two distinct cases may have identical input content and semantic judgments. They still require separate admitted case histories. Conversely, repeated delivery with a different transport identifier may belong to the same case. The business identity contract resolves this; a framework-wide text similarity heuristic does not.
 

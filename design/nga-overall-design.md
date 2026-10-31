@@ -236,15 +236,16 @@ A high S1 score cannot relax permission, approval, or budget constraints. S2 exp
 
 ### 7.2 Identity and duplicate handling
 
-Use distinct identities for the business request, an evaluation revision, and a business operation.
+Distinguish an **NGA task T1**, a **decision question J1 and its revisions D1/D2**, and a **business-operation request B1**. Plans, runtime runs, model observations and transport attempts have their own records without automatically creating new business intent. Provider application identities are mapped explicitly rather than equated to NGA tasks.
 
-- A repeated request with unchanged material input resolves to its existing adopted decision or known in-progress state.
-- Reuse of a request identity with different material content is a conflict requiring an explicit revision, not an ordinary retry.
-- An evaluation records its rule, evidence, model, readout, and decision-policy dependencies.
-- An action identity follows the business operation. A new model version or evaluation must not automatically create a fresh operation that repeats the same effect.
-- Semantic equivalence comes from the business question and its evaluation protocol. An arbitrary text hash or model-generated “equivalent” label does not establish it.
+- T1 binds an admitted objective, scope and completion promise. A task awaiting a terminal provider outcome cannot claim completion from a receipt alone; submission-only tasks declare their narrower boundary in advance.
+- Repeated submission/resume resolves the same authorized task. Identical text or customer data alone cannot distinguish duplicate intent from a legitimate new task.
+- New admitted material evidence or applicable rules create a new decision basis/revision, even when the answer is unchanged. Pure replanning and technical retries preserve the current decision basis; retries add attempt records.
+- B1 binds one provider operation and fixed material parameters. A changed amount or required decision artifact cannot silently replace its payload under the same key. A new D2 does not itself authorize a new B2.
+- Changes after dispatch preserve uncertainty until the provider's status/cancellation/amendment contract resolves it. Local holds do not establish that an external effect did not occur.
+- Historical retrieval, current-status lookup, semantic consistency evaluation and live recovery are separate operations. Recorded result reuse does not prove model consistency; replay cannot trigger live effects.
 
-Identity scope, retention windows, material-field normalization, and revision rules require a concrete business scenario before they can be frozen.
+See the [current AQ-01/AQ-02 analysis](../achitecture%20design/20-task-decision-request-identity.md) for definitions, phase-specific handling and eighteen proposed adversarial cases. Identity authority, materiality, retention, task amendments and provider recovery guarantees remain explicit contract choices, without requiring a design for business-system internals.
 
 ### 7.3 Concurrency and uncertain execution
 

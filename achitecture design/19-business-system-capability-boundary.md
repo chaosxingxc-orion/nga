@@ -1,9 +1,11 @@
 # NGA and Enterprise IT: Business Capability and Authority Boundaries
 
 > Date: 2026-10-30.
-> Status: architecture proposal responding to the owner's boundary challenge. The API-oriented default and responsibility allocation below are proposed refinements, not a claim of owner approval or implemented integration.
+> Status: the business-capability/IT-authority boundary is the owner-accepted working premise for the resumed identity discussion. Detailed mechanisms, provider guarantees and integration implementations remain proposals requiring qualification.
 > Premise: the existing enterprise IT system owns its business data and enforces its domain rules, including authoritative credit/exposure controls in the supplied example.
 > References: [V0.2](13-nga-architecture-v0.2.md), [framework core](18-framework-core-and-case-coverage.md), and [discussion register](16-architecture-discussion-register.md).
+
+> Subsequent owner direction: use this business-capability/IT-authority boundary as the basis for the resumed AQ-01/AQ-02 discussion. [Document 20](20-task-decision-request-identity.md) develops task, decision and request continuity within it. The general boundary is now the working premise; detailed mechanisms and provider guarantees still require qualification.
 
 ## 1. Recommended default: invoke business capabilities
 

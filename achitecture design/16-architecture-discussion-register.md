@@ -18,6 +18,8 @@ The discussion does not reopen these owner requirements:
 - For this architecture exercise, assume a Jev-like model satisfies the required capabilities within its declared scope. That premise does not assert that current repository models have passed those gates.
 - Owner correction after the AQ-01/AQ-02 discussion: design the framework's general logic first, then challenge it with varied cases. Detailed banking semantics are not prerequisites to that design. Independent cases can remain distinct while sharing a business constraint; see [document 18](18-framework-core-and-case-coverage.md).
 
+The owner has accepted the business-capability/IT-authority boundary as the working premise for the resumed AQ-01/AQ-02 discussion: NGA invokes qualified operations while the existing IT system owns its domain records, internal rules and execution. See [document 20](20-task-decision-request-identity.md).
+
 What remains open is the precise scope of each promise, its enforcement and composition contracts, and the evidence needed to adopt an implementation. Requiring replay, for example, does not yet settle replay granularity, retention or access.
 
 Role labels below identify proposed participants, not named assignees. A recommendation becomes a decision only through the recording procedure in section 7. No numerical service target, risk threshold, storage technology or model topology is selected here.
@@ -26,8 +28,8 @@ Role labels below identify proposed participants, not named assignees. A recomme
 
 | ID | Decision to discuss | Kind | Proposed participants |
 | --- | --- | --- | --- |
-| [AQ-01](#aq-01) | Which initial case patterns should test the general core, and what does each fixture promise? | Coverage / product contract | Business owner, framework and workbench leads |
-| [AQ-02](#aq-02) | What counts as the same application, equivalent decision basis, decision revision and operation? | Business / identity contract | Business/knowledge owner, framework lead |
+| [AQ-01](#aq-01) | What outcome closes an NGA task, and which case patterns test that promise at the business-capability boundary? | Coverage / product contract | Business owner, framework and workbench leads |
+| [AQ-02](#aq-02) | What counts as the same task, decision question/revision and business request across changes and retries? | Intent / identity contract | Business/knowledge owner, framework lead |
 | [AQ-03](#aq-03) | What is the minimum publishable semantic specification and who may change it? | Semantic governance | Knowledge owner, model and framework leads |
 | [AQ-04](#aq-04) | Who constructs the effective evidence basis, and when must it be refreshed? | Evidence / temporal contract | Data owner, knowledge owner, framework lead |
 | [AQ-05](#aq-05) | What is Jev's judgment contract, and which placements should be evaluated first? | Interface plus empirical choice | Model and framework leads, business owner |
@@ -52,25 +54,25 @@ Then close the execution boundaries in AQ-10–AQ-13; compare model placement an
 ## 3. Question cards
 
 <a id="aq-01"></a>
-### AQ-01 — Initial coverage portfolio and promises
+### AQ-01 — Task completion and coverage promises
 
-Focused discussion: [document 17](17-credit-scope-identity-and-revision-review.md) provides a credit fixture; [document 18](18-framework-core-and-case-coverage.md) records the owner's correction to design the general framework first and test varied case coverage. Status remains OPEN; the design method is clarified without selecting a production banking scope.
+Current focused discussion: [document 20](20-task-decision-request-identity.md) defines task completion at the business-capability boundary and exercises it with credit cases. [Document 17](17-credit-scope-identity-and-revision-review.md) is earlier fixture analysis; [document 18](18-framework-core-and-case-coverage.md) establishes the framework-first method. Status remains OPEN; no production banking scope is selected.
 
-- **Question:** which small case portfolio tests the general intent, judgment, adoption, effect and recovery contract? What constitutes completion, refusal, waiting and correction in each explicitly scoped fixture?
-- **Why it matters:** a judgment-only demo does not establish effect idempotence, recovery or cross-case constraint enforcement; one domain-specific success does not prove the core is general.
+- **Question:** what outcome does an NGA task promise, and which small case portfolio tests that promise? Distinguish local judgment completion, submission/receipt, provider terminal outcome, waiting, recovery handoff and later review.
+- **Why it matters:** a judgment-only demo does not establish request/effect recovery, and a provider acknowledgement does not establish its terminal business result. One domain-specific success does not prove the core is general.
 - **Options and tradeoff:** one happy-path example is easy to demonstrate but hides architectural gaps; complete products across many domains demand too much detail at this stage. A small portfolio of distinct case patterns tests the core without first specifying every business process.
-- **Starting recommendation:** define the general framework contract first, then use the credit trace alongside duplicate/new-case, shared-constraint, change-of-basis and recovery fixtures. Keep their assumptions explicit and avoid hardcoding banking semantics into the core.
+- **Starting recommendation:** declare task scope and completion before execution. The end-to-end credit fixture waits for the provider's terminal application outcome; a submission-only task may close earlier only under its explicit contract. Track local decision, request outcome and unresolved recovery separately. Challenge this with duplicate/new-task, change-of-basis, replanning and recovery cases without importing provider internals.
 - **To close:** a small coverage portfolio, each with declared intent, effect, constraints, expected states and positive/counterexample outcomes. Develop it with AQ-02/AQ-12/AQ-18; detailed production domain semantics are a later binding requirement.
 
 <a id="aq-02"></a>
 ### AQ-02 — Identity, equivalence and revision
 
-Focused discussion: [document 17](17-credit-scope-identity-and-revision-review.md) distinguishes submission, case, decision, plan, operation and attempt; [document 18](18-framework-core-and-case-coverage.md) separates case identity from cross-case constraints. Status remains OPEN; do not infer duplicate cases solely from a shared customer/product or constraint scope.
+Current focused discussion: [document 20](20-task-decision-request-identity.md) distinguishes NGA task, decision question/revision and business-operation request, with plan/run/attempt records beneath them. It refines the earlier application-centered treatment in [document 17](17-credit-scope-identity-and-revision-review.md). Status remains OPEN; NGA task identity is not automatically the provider's application identity.
 
-- **Question:** when are two submissions the same business application? Which evidence/rule/time changes create a new decision revision, and which changes merely revise the execution plan or retry an operation?
+- **Question:** what establishes continuity of an NGA task, one delegated decision question and one business request? Which evidence/rule/time changes create a decision revision, and which changes only revise a plan or add an attempt?
 - **Failure case:** a new graph node or user-channel request creates a fresh operation key and repeats a grant; the opposite mistake caches an obsolete decision and prevents a legitimate new application.
 - **Options and tradeoff:** upstream application identity is precise when available but needs conflict handling; governed business keys can join channels but need domain-specific definitions. Text similarity or a payload hash alone cannot establish business equivalence.
-- **Starting recommendation:** separate application, decision frame/revision, plan revision, operation and attempt identities. Let the business contract define cross-channel identity and equivalent material inputs; keep graph structure out of the identity of a repeated business effect. Same key with changed material parameters produces an explicit conflict/amendment path.
+- **Starting recommendation:** bind T1 to admitted objective/scope, J1/D1 to a delegated question and immutable basis, and B1 to one provider operation with fixed material parameters. Map provider application references explicitly. New evidence or applicable rules can create D2 without creating T2 or B2; pure replanning preserves these identities, and retries add attempts. Unknown external completion blocks an assumed-safe conflicting replacement.
 - **To close:** a general identity/lineage contract, then paired fixtures for duplicate submission, legitimate new cases, shared constraints, changed evidence, new reference time and later amendment. Bind the AQ-03/AQ-04 semantics/evidence assumptions needed by each fixture without making a full production business model a prerequisite.
 
 <a id="aq-03"></a>
