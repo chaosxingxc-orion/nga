@@ -158,7 +158,7 @@ REGISTERED
 - 每芯片报告吞吐、芯片数、reserved/allocated 显存、峰值显存和有效工作量。
 - 只有 seed、paired protocol、结果来源、终态和资源证据全部通过，才能写“观察到 Jev 收益”或“未观察到收益”。
 
-## 9. NPU 满载原则的实际执行方式
+## 7. NPU 满载原则的实际执行方式
 
 “持续保持 NPU 满载”是调度原则，但必须服从实验准入和证据链。当前执行顺序如下：
 
@@ -168,7 +168,7 @@ REGISTERED
 4. 9B E38 完成并验收后，立即进入两个 Open-Jev JEVal 的原生 test 推理、独立计分和报告刷新；每项均用 detached、可恢复、带 heartbeat 的自动任务。
 5. 每芯片记录吞吐、芯片数、reserved/allocated/peak 显存、heartbeat、终态和释放时间。没有安全且已登记的 NPU 工作时，受控空闲优于污染正式实验。
 
-## 7. 当前明确不能做的事
+## 8. 当前明确不能做的事
 
 - 不启动被实际 Astra BLOCK 的旧 E38 计划。
 - 不把 CPU 100/100 或容器 exit 0 写成 JEVal 完成。
@@ -177,7 +177,7 @@ REGISTERED
 - 不在 D1 参考结果汇报和训练预注册前启动正式 Jev 训练。
 - 不把 D6 候选架构写成已验证收益，不把公开任务收益写成真实业务收益。
 
-## 8. 证据入口
+## 9. 证据入口
 
 - [上一版完整状态与执行计划](07-current-status-decisions-and-inference-execution-plan-2026-10-31.md)
 - [参考矩阵](../experiments/REFERENCE-BASELINE-MATRIX-2026-10-31.json)
