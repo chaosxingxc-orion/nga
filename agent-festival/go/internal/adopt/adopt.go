@@ -131,14 +131,7 @@ type opState struct {
 // machine did not write fails the open (see checkLoaded).
 func Open(path string) (*Machine, error) {
 	m := &Machine{ops: map[string]*opState{}, seq: -1, path: path}
-	raw, err := os.ReadFile(path)
-	if os.IsNotExist(err) {
-		return m, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	lines, err := parseCompleteLines(raw)
+	lines, err := ledger.LoadDocument(path)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +139,7 @@ func Open(path string) (*Machine, error) {
 		return nil, err
 	}
 	for i := range lines {
-		m.replayEvent(&lines[i].ev)
+		m.replayEvent(&lines[i].Event)
 	}
 	return m, nil
 }
@@ -160,103 +153,19 @@ func Open(path string) (*Machine, error) {
 // violates the ledger grammar, a registered digest flipped, a non-conforming
 // event — fails the open: the machine refuses to resume from a bypassed or
 // tampered file rather than silently absorbing it as legal state.
-func (m *Machine) checkLoaded(lines []parsedLine) error {
+func (m *Machine) checkLoaded(lines []ledger.ParsedLine) error {
 	if len(lines) == 0 {
 		return nil // fresh (or fully torn) file: nothing to check
 	}
 	events := make([]any, 0, len(lines))
 	for _, l := range lines {
-		events = append(events, l.doc)
+		events = append(events, l.Doc)
 	}
 	doc := map[string]any{"ledger_version": ledger.Version, "events": events}
 	if errs := ledger.Errors(doc); len(errs) > 0 {
 		return fmt.Errorf("durable form rejected at load: %s", errs[0])
 	}
 	return nil
-}
-
-// parsedLine is one complete durable-form line in three views: the raw bytes
-// (what append rewrites from — no laundering on the heal path either), the
-// raw document (what the schema validates — the on-disk truth), and the
-// typed event (the replay projection). A line yields a parsedLine only when
-// it parses as BOTH; otherwise it is not an event boundary.
-type parsedLine struct {
-	raw []byte
-	doc map[string]any
-	ev  ledger.Event
-}
-
-// parseCompleteLines returns the parsed lines of a JSONL byte stream, or an
-// error naming a line that is not a machine write. The boundary rule: a
-// complete line is one that parses in BOTH views (raw map + typed event).
-// Two forms of non-event content are tolerated: a torn tail — an
-// unparseable remnant at EOF WITHOUT a trailing newline (a conservative
-// compatibility boundary for externally-damaged files; under the machine's
-// own temp+rename protocol a crash leaves the old or the new file, never a
-// partial line) — and empty lines (zero-byte segments anywhere, carrying no
-// audit data, healing away on rewrite). Any other unparseable line
-// (mid-file, or newline-terminated), or a line whose JSON parses but whose
-// fields do not fit the event type, is a bypass or corruption: an
-// append-only audit ledger must not silently drop (and the next append must
-// not silently erase) audit data — it fails (R4 M2). This is the ONE
-// boundary definition for the durable form — the loader, the load-time
-// checker, and the append-path rewrite all consume it (R1 m-4, R2 BLOCKER).
-func parseCompleteLines(raw []byte) ([]parsedLine, error) {
-	var lines []parsedLine
-	lineStart := 0
-	for i := 0; i <= len(raw); i++ {
-		if i != len(raw) && raw[i] != '\n' {
-			continue
-		}
-		line := raw[lineStart:i]
-		atEOF := i == len(raw) // the segment not terminated by a newline
-		lineStart = i + 1
-		if len(line) == 0 {
-			continue
-		}
-		// valid UTF-8 comes FIRST: Go's json decoder silently replaces
-		// invalid bytes with U+FFFD, so an invalid-UTF-8 line would parse
-		// "successfully" with laundered keys — the load-side twin of the
-		// request-gate BLOCKER (R6). The machine's own writes are always
-		// valid UTF-8 (the gate enforces it), so such a line is provably
-		// not a machine write.
-		if !utf8.Valid(line) {
-			if atEOF {
-				continue // torn tail: tolerated at EOF without a newline
-			}
-			return nil, fmt.Errorf("durable form line is not valid UTF-8 — a bypass or corrupted write, not machine output (Go's json decoder would launder it to U+FFFD)")
-		}
-		var ev ledger.Event
-		typedOK := json.Unmarshal(line, &ev) == nil
-		doc, docErr := decodeLineDoc(line)
-		if typedOK && docErr == nil && doc != nil {
-			lines = append(lines, parsedLine{raw: line, doc: doc, ev: ev})
-			continue
-		}
-		if atEOF && docErr != nil {
-			continue // torn tail: crash residue, tolerated at EOF only
-		}
-		if docErr != nil {
-			return nil, fmt.Errorf("durable form has an unparseable line where no torn tail can be (not the last byte range) — a bypass or corrupted write, not machine output")
-		}
-		return nil, fmt.Errorf("durable form line is valid JSON but not an event (field type mismatch) — a bypass or corrupted write, not machine output")
-	}
-	return lines, nil
-}
-
-// decodeLineDoc parses one line into a raw map with UseNumber, so integers
-// survive the map domain exactly: float64 rounding is monotonic and never
-// hides a decreasing pair — what it breaks is the other direction, the
-// false rejection of legal consecutive seqs crossing 2^53 (pinned by
-// TestOpenAcceptsLegalHighSeqAcross2e53).
-func decodeLineDoc(line []byte) (map[string]any, error) {
-	dec := json.NewDecoder(bytes.NewReader(line))
-	dec.UseNumber()
-	var doc map[string]any
-	if err := dec.Decode(&doc); err != nil {
-		return nil, err
-	}
-	return doc, nil
 }
 
 func (m *Machine) replayEvent(e *ledger.Event) {
@@ -477,20 +386,13 @@ func (m *Machine) commit(st *opState, to State, detail string) Outcome {
 func (m *Machine) Events() ([]ledger.Event, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	raw, err := os.ReadFile(m.path)
-	if os.IsNotExist(err) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	lines, err := parseCompleteLines(raw)
+	lines, err := ledger.LoadDocument(m.path)
 	if err != nil {
 		return nil, err
 	}
 	events := make([]ledger.Event, 0, len(lines))
 	for _, l := range lines {
-		events = append(events, l.ev)
+		events = append(events, l.Event)
 	}
 	return events, nil
 }
@@ -520,13 +422,13 @@ func (m *Machine) append(ev *ledger.Event) error {
 	// what the loader accepted — R2 BLOCKER). Concatenating onto raw bytes
 	// instead would fuse a torn tail and the new line into one unparseable
 	// line.
-	parsed, err := parseCompleteLines(existing)
+	parsed, err := ledger.ParseLines(existing)
 	if err != nil {
 		return err
 	}
 	next := make([]byte, 0, len(existing)+len(line)+1)
 	for _, l := range parsed {
-		next = append(next, l.raw...)
+		next = append(next, l.Raw...)
 		next = append(next, '\n')
 	}
 	next = append(next, line...)
