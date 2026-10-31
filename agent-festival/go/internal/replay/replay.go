@@ -44,6 +44,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"festival-dev/go/internal/adopt"
 	"festival-dev/go/internal/ledger"
@@ -355,23 +356,31 @@ func Recover(path string) (*RecoverReport, error) {
 // machine's operation set never collapses into one generic call.
 func drive(m *adopt.Machine, steps []Step) ([]ledger.Event, error) {
 	for i, s := range steps {
+		var o adopt.Outcome
 		switch s.Op {
 		case "adopt":
 			var req adopt.Request
 			if err := json.Unmarshal(s.Request, &req); err != nil {
 				return nil, fmt.Errorf("step %d: adopt request undecodable: %v", i, err)
 			}
-			m.Adopt(&req)
+			o = m.Adopt(&req)
 		case "dispatch":
-			m.Dispatch(s.OpID, s.Grants)
+			o = m.Dispatch(s.OpID, s.Grants)
 		case "mark_unresolved":
-			m.MarkUnresolved(s.OpID)
+			o = m.MarkUnresolved(s.OpID)
 		case "mark_completed":
-			m.MarkCompleted(s.OpID)
+			o = m.MarkCompleted(s.OpID)
 		case "mark_failed":
-			m.MarkFailed(s.OpID)
+			o = m.MarkFailed(s.OpID)
 		default:
 			return nil, fmt.Errorf("step %d: unknown op %q — the machine's operation set never collapses into one generic call", i, s.Op)
+		}
+		// the WRITE path goes fail-loud too: a scratch-write failure is an
+		// I/O error, and treating it as a legal refusal would forge a
+		// divergence verdict over an under-produced stream (the read path's
+		// own doctrine, applied symmetrically)
+		if o.Status == "rejected" && strings.Contains(o.Detail, "ledger append failed") {
+			return nil, fmt.Errorf("step %d (%s): scratch write failed: %s", i, s.Op, o.Detail)
 		}
 	}
 	return m.Events()

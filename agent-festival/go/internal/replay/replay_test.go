@@ -22,6 +22,9 @@ func loadCase(t *testing.T, name string) *Case {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if fx.ParseError != "" {
+		t.Fatalf("fixture %s: %s (the hardened loader's contract: fail loud, never run unpinned)", name, fx.ParseError)
+	}
 	c, err := LoadCase(fx.Doc)
 	if err != nil {
 		t.Fatal(err)
@@ -492,6 +495,19 @@ func TestOperationSetLockstep(t *testing.T) {
 	m, err := adopt.Open(filepath.Join(t.TempDir(), "scratch.jsonl"))
 	if err != nil {
 		t.Fatal(err)
+	}
+	// the Go-side operation set, declared once — bidirectional: every enum
+	// member is known to drive AND every known op is an enum member (a
+	// schema-side deletion or drive-side addition both go red here)
+	goOps := map[string]bool{"adopt": true, "dispatch": true, "mark_unresolved": true, "mark_completed": true, "mark_failed": true}
+	enum := s.Properties.Steps.Items.Properties.Op.Enum
+	if len(enum) != len(goOps) {
+		t.Fatalf("op vocabulary drifted: schema enum has %d members, the Go-side set has %d", len(enum), len(goOps))
+	}
+	for _, op := range enum {
+		if !goOps[op] {
+			t.Fatalf("schema enum member %q is not in the Go-side op set — the copies drifted", op)
+		}
 	}
 	for _, op := range s.Properties.Steps.Items.Properties.Op.Enum {
 		_, derr := drive(m, []Step{{Op: op}}) // minimal step: param errors are fine, "unknown op" is not
