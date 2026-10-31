@@ -35,7 +35,7 @@ M = sibling('r3_final_metrics')
 G = T.G
 
 
-def run(args, scorer, evaluator, *, owner, validate_admission):
+def run(args, scorer, evaluator, *, owner, validate_admission, validate_publication=None):
     """Execute under both suite locks; never creates FINAL or review approval."""
     G.require(set(owner) == {'model_sha256', 'execution_sha256', 'final_sha256', 'run_dir'},
               'unexpected owner fields')
@@ -83,5 +83,6 @@ def run(args, scorer, evaluator, *, owner, validate_admission):
                 leases=state['leases'], owner=owner, completion_log=log)
 
     return T.run(args.round_dir, **owner, validate_admission=validate_admission,
+                 validate_publication=validate_publication,
                  bind_execution=bind, score=score, verify_result=verify,
                  read_completion=log.read, append_completion=log.append)

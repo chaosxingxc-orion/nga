@@ -16,7 +16,7 @@ SUITES=('decision-v7','transfer-v4')
 
 def run(round_dir, *, model_sha256, run_dir, execution_sha256, final_sha256,
         validate_admission, score, verify_result, read_completion, append_completion,
-        bind_execution=None):
+        bind_execution=None, validate_publication=None):
     """Both suite locks precede admission or scoring; interrupted commits resume.
 
     score(suites) must return a JSON object for each suite, including provenance.
@@ -57,6 +57,8 @@ def run(round_dir, *, model_sha256, run_dir, execution_sha256, final_sha256,
         # Verify BOTH suites before publishing either; a partial/corrupt result
         # is never silently regenerated using another scoring invocation.
         for suite in SUITES:verify_result(suite,results[suite])
+        if validate_publication is not None:
+            validate_publication()
         for suite in SUITES:
             result_pin=G.digest(results[suite]);lease=leases[suite]
             expected={'suite':suite,'model_sha256':model_sha256,

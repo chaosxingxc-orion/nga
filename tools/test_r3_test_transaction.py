@@ -105,5 +105,13 @@ class TransactionTests(unittest.TestCase):
         self.assertFalse(self.log)
         self.assertFalse((self.root/'run/TEST-STAGED-RESULTS.json').exists())
 
+    def test_changed_admission_at_commit_blocks_logs_and_recovers_without_score(self):
+        with self.assertRaisesRegex(ValueError,'base changed'):
+            self.run_case(validate_publication=Mock(side_effect=ValueError('base changed')))
+        self.assertFalse(self.log)
+        self.assertTrue((self.root/'run/TEST-STAGED-RESULTS.json').exists())
+        self.run_case(validate_publication=Mock())
+        self.score.assert_called_once()
+
 
 if __name__=='__main__':unittest.main()
