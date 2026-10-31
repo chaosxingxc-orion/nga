@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agent-festival.local/schema/judgment/0.1.0",
   "title": "Business Judgment Specification — draft 0.1.0",
-  "description": "Piece 3 of the growth layer: what a fact means under a rule (NGA overall-design §6, 'The business judgment specification says what a fact means under a rule'). Every field below traces to a named §6 requirement — nothing is invented here. A semantic classification is not proof of authority (§6): this schema says nothing about permissions. Provenance: NGA overall-design §6/§6.1 — 'proposed', this schema is an evidence-track probe answer.",
+  "description": "Piece 3 of the growth layer: what a fact means under a rule (the judgment specification defines business meaning — terms, units, evidence sources, time windows, boundaries, precedence, coverage and exception behavior; unknown/unresolved is distinct from refusal unless an authorized specification defines otherwise — overall-design §2; fixture conventions — proposal §10; P4: neither may grant itself permission). Every field below carries its own provenance anchor — nothing is invented here. A semantic classification is not proof of authority: this schema says nothing about permissions (the principle sentence lives in the legacy overall-design §6; the current proposal does not re-state it — see the drift register in schema/README.md). Provenance (dual anchor): semantics per the current overall-design §2/P4/P5 and proposal §5/§10; formerly NGA overall-design §6/§6.1 (superseded by the 2026-10-31 consolidation). 'Proposed' — this schema is an evidence-track probe answer.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -237,7 +237,7 @@
       }
     },
     "ownership": {
-      "description": "§6 'owner and effective scope'; §6.1 'ownership, review authority, version, effective scope, change rationale'.",
+      "description": "Ownership and effective scope. Drift register: owner/review_authority/effective_scope/change_rationale/impacted_links trace to the legacy overall-design §6.1 ('ownership, review authority, version, effective scope, change rationale, and links to impacted tasks, datasets, and decisions'); the current proposal has no landing sentence for this family (knowledge-engineering boundary §2 names the responsibility but not the fields). Semantics load-bearing — retained per legacy provenance, awaiting upstream restoration (issue #1 collision response L2).",
       "type": "object",
       "additionalProperties": false,
       "required": [

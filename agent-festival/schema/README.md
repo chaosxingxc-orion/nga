@@ -51,3 +51,34 @@ Go 侧同套件与状态机：`cd go && go run ./cmd/ledger && go run ./cmd/adop
 签名内容 = `JCS(contract)`，不含信封其他字段。`contract_hash = "sha256:" + hex(SHA-256(JCS(contract)))`，Agent Card 在 `capabilities.extensions[].params.contract_hash` 里引用它。多个签名 = 多个背书方，**全部必须通过**（与 A2A 名片"多签名 = 密钥轮换"语义不同）。
 
 `compose.py` 的 selector 覆盖判定在 0.1.0 是**精确匹配**（健全但不完备：绝不放行父没有的，但会拒绝语义上被覆盖的前缀 / 子域）；0.2.0 按 D32 的按类文法扩展为前缀 / 主机后缀匹配。子集判定与预算切分经 mutation-RED 证非恒真（见 `docs/02-build-log.md` 第 15 轮）。
+
+
+## 漂移登记（canonical 唯一点）
+
+NGA 2026-10-31 文档合并（旧 12/13/14/15 号+旧总体设计 §6/§7.2 → 现行唯一提案+总体设计新文）造成的语义漂移，全仓在此登记一处；schema description 只放短版+指向。上游恢复后逐行销账。
+
+| # | 语义 | 旧出处 | 现行文档状态 | festival 立场 | 状态 |
+|---|---|---|---|---|---|
+| L1 | 语义分类非权限证明（"A semantic classification must not be treated as proof of authority"） | 旧总体设计 §6 原句 | 未落位（最近义句为 §5 "No invented business conventions"，不同命题） | 机器已固化（judgment 全线零授权字段、authority_hint 拒收）；生态滑坡实证：codex 生产代码消费 MCP readOnlyHint 免批（requires_mcp_tool_approval） | awaiting-upstream（issue #1 碰撞回应 L1） |
+| L2 | 判断规格 owner 责任族（owner/review_authority/effective_scope/change_rationale/impacted_links） | 旧总体设计 §6.1 具名 | 无落位句（§2 名责任不名字段） | 语义承重（无 owner 的规格=无问责），按旧出处保留，judgment.ownership description 已注 | awaiting-upstream（L2） |
+| L3 | evidence 是否版本维度 | 旧 P5 五维 | 总体设计新文 P5 五维 vs 提案 §6 J1/D1 四维，两文并存未决 | 按五维实现（件4 versions 全必填），event-ledger $defs.versions 已注 | awaiting-upstream（L3） |
+| L4 | in-flight 处置词汇 | 旧 v0.2 §5 三枚举 | 提案 §6 四词散文（多 reevaluation） | 保三值封闭枚举+拒绝杜撰第四模式（负例夹具钉），release.rollout 已注 | awaiting-upstream（L4） |
+| L5 | 重放按记录序重演、不重新仲裁 | 旧 12号 §3 步骤6 | §8 四模式表仅 "compare transitions and intents" | 按旧语义实现（件4 arbitration_seq 严格递增+件6 将按序重放），event-ledger description 已注 | awaiting-upstream（L5） |
+| E3 | 提供者回执归属 | —（festival 先验裁定） | 提案 §6 B1/§8 retention 把 receipts 列入保留清单 | 账本精瘦（S1 岔路裁决）：回执归件6 记录族夹具，不入账本 schema；按 §3 "observations distinct from commands" 分流 | festival-ruling（明示分层非沉默分歧） |
+
+出处锚定形态：本仓用双锚——语义复述为主锚（原则句随锚走，节号断了语义不断）+ 现行节号辅锚 + 旧编号 superseded 溯源（不静默删除）。节号级「旧节→新节」映射表属上游文档的职权，本仓不维护镜像（单一真源）。
+
+## 状态词汇分层映射
+
+festival 事件**事实态**（账本持久层，机器写）与 NGA 命令**结果报告态**（API 返回层）是两个层次的词汇——同形处含义不同，逐对声明一次，代码/夹具不重复定义：
+
+| festival 事件事实态（入账本） | NGA 命令结果报告态（API 返回） | 同异说明 |
+|---|---|---|
+| adopted | committed | 同义异名：采纳已落账 ↔ 命令已提交 |
+| reused | duplicate | 同义异名：同键同载复用原回执 ↔ 重复命令返还原 receipt |
+| conflict | conflict | 同形同层：同键异载冲突（两侧语义一致） |
+| dispatched / completed / failed | accepted / pending | 层差：festival 记效果生命周期事实；NGA 的 accepted/pending 是命令受理层报告，不入事实账本 |
+| unresolved | unresolved | 同形同层：结果未知一等态（两侧语义一致） |
+| —（永不入账本） | rejected | 分层铁律：rejected 是机器答案词汇，不是事实——账本只记已发生的事；07 若持久化 rejected 则与本分层冲突（待 NGA 明示 rejected 是否落盘） |
+
+分离理由：两套词汇的文法不相交——事实态由状态机守卫与八族跨事件规则校验（只含已发生的事），报告态含未发生的可能（pending/rejected）；若混入同一层，账本规则将无法区分「机器想过什么」与「世界发生了什么」。
