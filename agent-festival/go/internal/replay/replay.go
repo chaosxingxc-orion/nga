@@ -33,8 +33,9 @@
 // could sort must not enter arbitration records. Family (e) note: the
 // priors' original wording ("the same steps sequence, two outcomes") is
 // unrealizable under a sequential driver — the realized form is the pair
-// race-outcome-{a,b} (SAME step order, different step INPUTS: the two
-// adopts' digest order swaps, one recorded outcome each), which pins the
+// race-outcome-{a,b} (SAME step order, different step INPUTS: the first
+// adopt's digest differs across the pair, flipping the second adopt's
+// outcome — reused vs conflict), which pins the
 // same property: the recorded arbitration order is consumed, never
 // re-derived.
 //
@@ -391,7 +392,10 @@ func Recover(path string) (*RecoverReport, error) {
 // drive runs the steps against a fresh machine, collecting emitted events
 // from the machine's scratch output. An I/O failure reading the scratch
 // form is an ERROR, never a silent empty stream (a silent nil would forge a
-// divergence@0 verdict — fail loud). An unknown op is an error too: the
+// divergence@0 verdict — fail loud). (declared-only: the scratch path is
+// package-private and machine-written, so no fixture can induce an Events()
+// failure — pinning this would need an injectable failure face, which is
+// out of scope; the write-path twin IS pinned, TestScratchWriteFailureIsLoud.) An unknown op is an error too: the
 // machine's operation set never collapses into one generic call.
 func drive(m *adopt.Machine, steps []Step) ([]ledger.Event, error) {
 	for i, s := range steps {
@@ -558,7 +562,7 @@ func deepCopyCase(c *Case) (*Case, error) {
 			return nil, err
 		}
 		dec := json.NewDecoder(bytes.NewReader(b))
-		dec.UseNumber()
+		dec.UseNumber() // declared-only twin of the RecordedRawDoc copy note above — same discipline, same untestable-on-corpus status
 		if err := dec.Decode(&cp.rawCaseDoc); err != nil {
 			return nil, err
 		}
