@@ -79,10 +79,10 @@
     }
   ],
   "expected": {
-    "fidelity": "match",
+    "fidelity": "divergence",
     "conformance": "pass",
     "divergence_at": -1
   },
-  "_expect": "REJECT: divergence_at is a 0-based event index — negative values are authoring noise",
+  "_expect": "REJECT: divergence_at is a 0-based event index — negative values are authoring noise (single violation: the required location is present, only the minimum is tread)",
   "_expect_match": "divergence_at"
 }

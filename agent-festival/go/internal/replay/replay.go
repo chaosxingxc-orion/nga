@@ -71,7 +71,7 @@ const (
 type InspectReport struct {
 	Path        string
 	Events      []ledger.Event
-	States      map[string]string // operation id -> final state in the record
+	States      map[string]string // operation id -> the STATUS-TAIL projection of its last event (includes the fact words reused/conflict — not the machine state; Recover reports that)
 	Gaps        []string          // ledger.Errors over the record
 	ByOperation map[string][]ledger.Event
 }
@@ -264,8 +264,8 @@ func Reevaluate(c *Case, substitution func(*Case)) (*SubstitutionReport, error) 
 	// A closure that rewrites the RECORD leaves the documented contract —
 	// refused loudly rather than reported as an intended difference (the
 	// report would silently carry a conformance it claims cannot change).
-	if !eventsEqual(sub.RecordedEvents, c.RecordedEvents) {
-		return nil, fmt.Errorf("substitution left the steps domain: the case %q's recorded events were rewritten — mode 3 substitutes declared inputs, never the record", c.CaseID)
+	if !eventsEqual(sub.RecordedEvents, c.RecordedEvents) || !rawViewsEqual(sub, c) {
+		return nil, fmt.Errorf("substitution left the steps domain: the case %q's record was rewritten (typed or raw view) — mode 3 substitutes declared inputs, never the record", c.CaseID)
 	}
 	base, err := Replay(c)
 	if err != nil {
@@ -361,6 +361,20 @@ func drive(m *adopt.Machine, steps []Step) ([]ledger.Event, error) {
 // machineEvents reads the machine's scratch output.
 func machineEvents(m *adopt.Machine) ([]ledger.Event, error) {
 	return m.Events()
+}
+
+// rawViewsEqual compares both raw views of two cases at the byte level —
+// the record's JUDGED form is the raw view (the conformance arm reads it),
+// so the mode-3 domain guard must cover this layer, not only the typed one.
+func rawViewsEqual(a, b *Case) bool {
+	ab, aerr := json.Marshal(a.RecordedRawDoc)
+	bb, berr := json.Marshal(b.RecordedRawDoc)
+	if aerr != nil || berr != nil || string(ab) != string(bb) {
+		return false
+	}
+	ab, aerr = json.Marshal(a.rawCaseDoc)
+	bb, berr = json.Marshal(b.rawCaseDoc)
+	return aerr == nil && berr == nil && string(ab) == string(bb)
 }
 
 // eventsEqual compares two event streams on the FULL field set the record

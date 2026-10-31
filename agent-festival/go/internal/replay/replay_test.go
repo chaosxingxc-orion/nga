@@ -436,3 +436,61 @@ func TestReevaluateRefusesRecordRewrites(t *testing.T) {
 		t.Fatalf("record-rewriting substitution: err = %v, want the loud domain refusal", err)
 	}
 }
+
+// TestRawChannelRewriteRefused pins the R6 finding: a substitution closure
+// rewriting the substitute's RAW views (leaving the typed events intact)
+// must hit the domain refusal — the guard covers the record's judged form,
+// not only its typed projection.
+func TestRawChannelRewriteRefused(t *testing.T) {
+	c := loadCase(t, "unknown-field-in-record.json")
+	_, err := Reevaluate(c, func(sub *Case) {
+		if len(sub.RecordedRawDoc) > 0 {
+			if last, ok := sub.RecordedRawDoc[len(sub.RecordedRawDoc)-1].(map[string]any); ok {
+				delete(last, "smuggled") // raw rewrite, typed events untouched
+			}
+		}
+	})
+	if err == nil || !strings.Contains(err.Error(), "steps domain") {
+		t.Fatalf("raw-channel rewrite: err = %v, want the loud domain refusal", err)
+	}
+}
+
+// TestInspectStatesTailProjection pins the States semantics AND the ledger
+// vocabulary derivation (R6: both had zero pins — a drifted inline table
+// stayed green). A record ending in conflict projects the fact word, and
+// the vocabulary is the ledger's, not a fifth copy.
+func TestInspectStatesTailProjection(t *testing.T) {
+	c := loadCase(t, "race-outcome-b-first.json") // ends in a conflict event
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m, err := adopt.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// drive the same steps to produce the durable record
+	for _, s := range c.Steps {
+		switch s.Op {
+		case "adopt":
+			var req adopt.Request
+			if err := json.Unmarshal(s.Request, &req); err != nil {
+				t.Fatal(err)
+			}
+			m.Adopt(&req)
+		}
+	}
+	rep, err := Inspect(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// the record's last event for op-a is the conflict FACT — the tail
+	// projection names it; the machine state (Recover's view) stays adopted
+	if rep.States["op-a"] != "conflict" {
+		t.Fatalf("tail projection = %q, want the conflict fact word", rep.States["op-a"])
+	}
+	rec, err := Recover(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.States["op-a"] != "adopted" {
+		t.Fatalf("machine state = %q, want adopted — States semantics fork between Inspect (tail fact) and Recover (machine state) must be visible", rec.States["op-a"])
+	}
+}

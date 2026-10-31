@@ -146,5 +146,5 @@
     "conformance": "pass",
     "divergence_at": 1
   },
-  "_expect": "family (b): the second step's digest differs from what the record shows (reused) — the recomputed conflict diverges at step 1, and the diff LOCATES it, not just detects"
+  "_expect": "family (b): the second step's digest differs from what the record shows (reused) — the recomputed conflict diverges at event 1, and the diff LOCATES it, not just detects"
 }
