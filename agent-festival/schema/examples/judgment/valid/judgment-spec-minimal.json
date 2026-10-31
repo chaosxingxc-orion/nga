@@ -12,21 +12,25 @@
       }
     ],
     "reference_time": "evaluation instant",
-    "time_window": "no window — point evaluation"
+    "time_window": "no window — point evaluation",
+    "evidence_sources": [
+      "the flag service's declaration"
+    ]
   },
   "levels": [
     {
-      "name": "pass",
-      "definition": "the flag is true",
-      "type": "boolean"
+      "name": "verdict",
+      "definition": "the categorical gate outcome",
+      "type": "nominal"
+    },
+    {
+      "name": "priority",
+      "definition": "queue priority for follow-up",
+      "type": "ordinal"
     }
   ],
-  "candidate_set": {
-    "semantics": "stackable"
-  },
   "rules": [
     {
-      "rule_id": "r-pass",
       "precedence": 0,
       "coverage": "flag true passes"
     }
@@ -48,7 +52,9 @@
   "ownership": {
     "owner": "team-a",
     "review_authority": "review-board",
-    "effective_scope": "team-a services"
+    "effective_scope": "team-a services",
+    "change_rationale": "initial publication"
   },
-  "_expect": "ACCEPT: minimal form — term unit, rule exceptions, and change_rationale are optional (spec_version is not — identity and version are inseparable per §6)"
+  "_expect": "ACCEPT: minimal form — term unit, rule exceptions, ownership impacted_links, and the optional vocabularies exercised (nominal + ordinal levels, change_rationale); spec_version is not optional — identity and version are inseparable per §6",
+  "candidate_set": "stackable"
 }

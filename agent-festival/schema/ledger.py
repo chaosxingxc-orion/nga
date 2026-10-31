@@ -288,7 +288,7 @@ def main() -> int:
     n_valid = len(list((ex / "valid").glob("*.json")))
     n_invalid = len(list((ex / "invalid").glob("*.json")))
     if (n_valid, n_invalid) != (9, 26):
-        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 9+26 (corpus shrank?)")
+        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 9+26 (corpus count changed?)")
         bad += 1
     for e in check_status_lockstep() + check_lockstep():
         print(f"[ledger] FAIL {e}")

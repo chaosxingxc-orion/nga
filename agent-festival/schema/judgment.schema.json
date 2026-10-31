@@ -5,7 +5,18 @@
   "description": "Piece 3 of the growth layer: what a fact means under a rule (NGA overall-design §6, 'The business judgment specification says what a fact means under a rule'). Every field below traces to a named §6 requirement — nothing is invented here. A semantic classification is not proof of authority (§6): this schema says nothing about permissions. Provenance: NGA overall-design §6/§6.1 — 'proposed', this schema is an evidence-track probe answer.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["judgment_version", "question", "conventions", "levels", "candidate_set", "rules", "resolution", "examples", "scope", "ownership"],
+  "required": [
+    "judgment_version",
+    "question",
+    "conventions",
+    "levels",
+    "candidate_set",
+    "rules",
+    "resolution",
+    "examples",
+    "scope",
+    "ownership"
+  ],
   "properties": {
     "judgment_version": {
       "type": "string",
@@ -15,17 +26,31 @@
       "description": "§6 'question identity and version' — a new question definition or changed decision semantics enters an explicit specification-version process (§6).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["question_id", "spec_version"],
+      "required": [
+        "question_id",
+        "spec_version"
+      ],
       "properties": {
-        "question_id": { "type": "string", "minLength": 1 },
-        "spec_version": { "type": "string", "minLength": 1 }
+        "question_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "spec_version": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "conventions": {
-      "description": "§6 'terms, units and temporal conventions' — explicit asset units and valuation, reference time, time-window boundaries (the credit example's named gaps).",
+      "description": "§6 'terms, units and temporal conventions'; §6.1 'terms, measurement units, EVIDENCE SOURCES, reference time, and time-window conventions' — explicit asset units and valuation, reference time, time-window boundaries (the credit example's named gaps).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["terms", "reference_time", "time_window"],
+      "required": [
+        "terms",
+        "evidence_sources",
+        "reference_time",
+        "time_window"
+      ],
       "properties": {
         "terms": {
           "type": "array",
@@ -33,11 +58,23 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["name", "definition"],
+            "required": [
+              "name",
+              "definition"
+            ],
             "properties": {
-              "name": { "type": "string", "minLength": 1 },
-              "definition": { "type": "string", "minLength": 1 },
-              "unit": { "type": "string", "minLength": 1 }
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "definition": {
+                "type": "string",
+                "minLength": 1
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         },
@@ -50,6 +87,15 @@
           "description": "The boundary convention of any window (e.g. inclusive/exclusive ends) — the 'past six months' gap the credit example names.",
           "type": "string",
           "minLength": 1
+        },
+        "evidence_sources": {
+          "description": "§6.1 'terms, measurement units, evidence sources, reference time, and time-window conventions' — the sources a rule's facts come from, stated explicitly.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
@@ -60,22 +106,38 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "definition", "type"],
+        "required": [
+          "name",
+          "definition",
+          "type"
+        ],
         "properties": {
-          "name": { "type": "string", "minLength": 1 },
-          "definition": { "type": "string", "minLength": 1 },
-          "type": { "type": "string", "enum": ["boolean", "nominal", "ordinal"] }
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "definition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "boolean",
+              "nominal",
+              "ordinal"
+            ]
+          }
         }
       }
     },
     "candidate_set": {
       "description": "§6 'candidate-set semantics' — exclusive | stackable.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["semantics"],
-      "properties": {
-        "semantics": { "type": "string", "enum": ["exclusive", "stackable"] }
-      }
+      "type": "string",
+      "enum": [
+        "exclusive",
+        "stackable"
+      ]
     },
     "rules": {
       "description": "§6 'precedence, coverage and exception rules' — §6.1 'predicate boundaries, rule precedence, exclusions, and the scope of each condition'; the credit example's override rule is the precedence case.",
@@ -84,18 +146,25 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["rule_id", "precedence", "coverage"],
+        "required": [
+          "precedence",
+          "coverage"
+        ],
         "properties": {
-          "rule_id": { "type": "string", "minLength": 1 },
           "precedence": {
             "description": "Lower number wins — the explicit override order; equal precedence is a conflict the resolution section must name.",
-            "type": "integer",
-            "minimum": 0
+            "type": "integer"
           },
-          "coverage": { "type": "string", "minLength": 1 },
+          "coverage": {
+            "type": "string",
+            "minLength": 1
+          },
           "exceptions": {
             "type": "array",
-            "items": { "type": "string", "minLength": 1 }
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         }
       }
@@ -104,10 +173,19 @@
       "description": "§6.1 'output states and the permitted action for each; missing evidence or an undefined rule is not automatically a negative business answer' — the actions must be stated, never defaulted to a denial.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["on_missing_evidence", "on_undefined_rule"],
+      "required": [
+        "on_missing_evidence",
+        "on_undefined_rule"
+      ],
       "properties": {
-        "on_missing_evidence": { "type": "string", "minLength": 1 },
-        "on_undefined_rule": { "type": "string", "minLength": 1 }
+        "on_missing_evidence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "on_undefined_rule": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "examples": {
@@ -117,11 +195,29 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["kind", "case", "expected"],
+        "required": [
+          "kind",
+          "case",
+          "expected"
+        ],
         "properties": {
-          "kind": { "type": "string", "enum": ["boundary", "equivalent", "competing", "unresolved"] },
-          "case": { "type": "string", "minLength": 1 },
-          "expected": { "type": "string", "minLength": 1 }
+          "kind": {
+            "type": "string",
+            "enum": [
+              "boundary",
+              "equivalent",
+              "competing",
+              "unresolved"
+            ]
+          },
+          "case": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
@@ -129,21 +225,50 @@
       "description": "§6 'supported scope' — what this specification claims to cover.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["supported"],
+      "required": [
+        "supported"
+      ],
       "properties": {
-        "supported": { "type": "string", "minLength": 1 }
+        "supported": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "ownership": {
       "description": "§6 'owner and effective scope'; §6.1 'ownership, review authority, version, effective scope, change rationale'.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["owner", "review_authority", "effective_scope"],
+      "required": [
+        "owner",
+        "review_authority",
+        "effective_scope"
+      ],
       "properties": {
-        "owner": { "type": "string", "minLength": 1 },
-        "review_authority": { "type": "string", "minLength": 1 },
-        "effective_scope": { "type": "string", "minLength": 1 },
-        "change_rationale": { "type": "string", "minLength": 1 }
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_authority": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effective_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "change_rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "impacted_links": {
+          "description": "§6.1 'links to impacted tasks, datasets, and decisions' — what this specification's changes touch; accrues over revisions, so optional (a fresh v1 may impact nothing yet).",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       }
     }
   }

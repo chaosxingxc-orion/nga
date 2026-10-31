@@ -41,7 +41,7 @@ def main() -> int:
     n_valid = len(list((ex / "valid").glob("*.json")))
     n_invalid = len(list((ex / "invalid").glob("*.json")))
     if (n_valid, n_invalid) != (2, 5):
-        print(f"[adoption] FAIL corpus count {n_valid}+{n_invalid} != pinned 2+5 (corpus shrank?)")
+        print(f"[adoption] FAIL corpus count {n_valid}+{n_invalid} != pinned 2+5 (corpus count changed?)")
         bad += 1
     return 1 if bad else 0
 
