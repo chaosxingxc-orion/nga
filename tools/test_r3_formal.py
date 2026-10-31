@@ -14,6 +14,12 @@ spec.loader.exec_module(L)
 
 
 class Formal(unittest.TestCase):
+    def test_unit_test_source_is_not_test_dataset(self):
+        for p in ('/code/test_k2_shared.py','/code/test_train_r3.py','/data/dev.jsonl'):
+            self.assertFalse(L.is_test_data(p))
+        for p in ('/data/test.jsonl','/data/test.variants.jsonl','/data/test/shard.parquet'):
+            self.assertTrue(L.is_test_data(p))
+
     def test_missing_container_case_variants_and_daemon_failure(self):
         for message in ('Error: No such object: absent', 'error: no such object: absent'):
             with patch.object(L.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, '', message)):

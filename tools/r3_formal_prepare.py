@@ -26,7 +26,7 @@ def write(path, value):
     Path(path).write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 
-def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False):
+def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False):
     if arm not in ('k1', 'k2'):
         raise ValueError('unsupported loss arm')
     if not engineering and (model != MODEL or stop_after or arm != 'k1' or shared):
@@ -38,6 +38,11 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
     names = ('train_r3.py', 'build_kev_sft.py', 'kev_aug.py', 'gdn_fast_ref.py', 'k2_shared.py') if shared else ('train_r3.py', 'build_kev_sft.py', 'kev_aug.py')
     for name in names:
         shutil.copy2(source / name, code / name)
+    if validate_shared:
+        if not shared:
+            raise ValueError('shared validation needs modern shared code')
+        for name in ('test_k2_shared.py', 'test_train_r3.py'):
+            shutil.copy2(source / name, code / name)
     (code / 'r0_code').mkdir()
     shutil.copy2(ROOT / 'experiments/r0_baseline/prompt.py', code / 'r0_code/prompt.py')
     shutil.copy2(ROOT / 'tools/r3_formal_driver.py', code / 'r3_formal_driver.py')
@@ -90,6 +95,9 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
                     evaluation={'candidate_test_forbidden': True, 'formal_acceptance_requires_new_review': True})
     if shared:
         plan['k2_impl'] = 'shared'
+    if validate_shared:
+        plan['validation_kind'] = 'shared_k2_reference_contract'
+        plan['command'] = ['python3', '-P', '/workspace/test_k2_shared.py', '--device', 'npu:0', '--impls', 'ref']
     pin = hashlib.sha256((json.dumps(plan, indent=2, sort_keys=True) + '\n').encode()).hexdigest()
     write(out / 'plan.json', plan)
     (out / 'CANONICAL_PLAN_SHA256').write_text(pin + '\n')

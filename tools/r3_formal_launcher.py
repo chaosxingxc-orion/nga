@@ -44,6 +44,12 @@ def require(ok, message):
         raise RuntimeError(message)
 
 
+def is_test_data(filename):
+    path = Path(filename)
+    return path.name in ('test.jsonl', 'test.variants.jsonl') or (
+        'test' in path.parts and path.suffix in ('.jsonl', '.parquet'))
+
+
 def verify(path, pin, reviewed=True):
     p = load(path)
     require(identity(p) == pin, 'plan identity changed')
@@ -67,6 +73,9 @@ def verify(path, pin, reviewed=True):
         expected.remove('--grad-ckpt')
         expected[expected.index('--micro-tokens')+1] = '3000'
         expected += ['--k2-impl', 'shared', '--gdn-impl', 'ref', '--k2-rows', '48']
+    if engineering and p.get('validation_kind') == 'shared_k2_reference_contract':
+        require(p.get('k2_impl') == 'shared', 'shared validation closure required')
+        expected = ['python3', '-P', '/workspace/test_k2_shared.py', '--device', 'npu:0', '--impls', 'ref']
     require(p['command'] == expected, 'training recipe mismatch')
     for filename, digest in p['files'].items():
         q = Path(filename)
@@ -76,7 +85,7 @@ def verify(path, pin, reviewed=True):
         require(p[name] in p['files'], 'unbound tool: ' + name)
     require(Path(p['launcher']).resolve() == Path(__file__).resolve(), 'different executable launcher')
     require(p['train_file'] in p['files'], 'unbound train')
-    require(not any('/test' in f for f in p['files']), 'test dependency forbidden')
+    require(not any(is_test_data(f) for f in p['files']), 'test dataset dependency forbidden')
     source_files = {str(f) for f in Path(p['code']).rglob('*') if f.is_file()}
     require(source_files == {f for f in p['files'] if f.startswith(p['code'] + '/')}, 'code closure inventory mismatch')
     if p['schema'] == 'r3-engineering-k1-plan-v1':
@@ -136,6 +145,8 @@ def docker_command(p, plan_path, attempt_no):
            '--mount', 'type=bind,src=/usr/local/Ascend/driver,dst=/usr/local/Ascend/driver,readonly']
     if p.get('k2_impl') == 'shared':
         cmd += ['--mount', f"type=bind,src={p['code']}/r0_code,dst=/mnt/cephfs/xingchao/experiments/jev/r0_code,readonly"]
+    if p.get('validation_kind'):
+        cmd += ['--mount', f"type=bind,src={p['code']},dst=/mnt/cephfs/xingchao/experiments/jev/r3_code,readonly"]
     for dev in ('davinci_manager', 'devmm_svm', 'hisi_hdc', f"davinci{p['chip']}"):
         cmd += ['--device', '/dev/' + dev]
     for key, value in p['environment'].items():
