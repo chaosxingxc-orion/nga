@@ -73,6 +73,15 @@ class CompareTests(unittest.TestCase):
         self.b['selection_evidence']['seed']=2
         with self.assertRaisesRegex(ValueError,'impersonate'):D.compare(self.a,self.b,E,S)
 
+    def test_k_align_is_not_applied_to_larger_model_sizes(self):
+        result=D.compare(self.a,self.b,E,S)
+        self.assertEqual(result['k_align']['status'],'not_applicable')
+        base='/models/Qwen__Qwen3.5-0.8B-Base'
+        self.b['header']['model']['path']=base
+        for report in self.a+[self.b]:report['header']['model']['base_path']=base
+        result=D.compare(self.a,self.b,E,S)
+        self.assertEqual(result['k_align']['clause'],'sec 9.1')
+
     def test_saved_metric_tampering_and_changed_source_refused(self):
         with tempfile.TemporaryDirectory() as tmp:
             p=Path(tmp)/'selection_report.json';original=report();p.write_text(json.dumps(original))

@@ -92,8 +92,11 @@ def compare(candidate, baseline, E, S, incumbent=None, r0_gating=None):
               'against_k0': paired(a, k0), 'k_floor': S.k_floor(candidate),
               'blockers': ['exact-plan independent acceptance and formal run eligibility not established',
                            'candidate not locked; final same-test gain has not been evaluated']}
-    if candidate[0]['header']['arm'] == 'K1':
+    if candidate[0]['header']['arm'] == 'K1' and Path(base['path']).name == 'Qwen__Qwen3.5-0.8B-Base':
         result['k_align'] = S.k_align(candidate)
+    elif candidate[0]['header']['arm'] == 'K1':
+        result['k_align'] = {'status': 'not_applicable',
+                             'reason': 'registered K-align decision line is for 0.8B only'}
     if incumbent:
         b = [r['selection_evidence']['correct'] for r in incumbent]
         result['against_incumbent'] = paired(a, b)
