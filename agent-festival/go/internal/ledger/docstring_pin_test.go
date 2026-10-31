@@ -25,15 +25,35 @@ func TestDocstringFamilyEnumerationPinned(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	phrases := []string{
-		"never enters the registry", // conflict-禁带 bidirectional clause
-		"attribution triple",        // effect attribution family
-		"strictly increasing",       // seq family
+	// per-file phrase lists: the two docstrings are hand-synced prose, not
+	// literal copies — each is pinned to its own actual wording, covering
+	// all eight families (R15 m-1: the first version covered 3/8)
+	goPhrases := []string{
+		"strictly increasing",                 // seq family
+		"one payload digest per operation",    // digest stability
+		"never enters the registry",           // idempotency presence, bidirectional
+		"idempotency.operation_id equals",     // key coupling
+		"never cross the event-type boundary", // status families
+		"rides the adopted event only",        // grant pin placement
+		"attribution triple",                  // effect attribution
+		"exactly one adopted adoption event",  // single-writer grammar
 	}
-	for _, phrase := range phrases {
+	pyPhrases := []string{
+		"strictly increasing",                // seq family
+		"one payload digest",                 // digest stability
+		"never enters the registry",          // idempotency presence, bidirectional
+		"idem-identity key",                  // key coupling
+		"crossing the event-type boundary",   // status families
+		"grant pin riding the adopted event", // grant pin placement
+		"attribution triple",                 // effect attribution
+		"one adopted event",                  // grammar (the docstring wraps the line)
+	}
+	for _, phrase := range goPhrases {
 		if !strings.Contains(string(goSrc), phrase) {
 			t.Fatalf("ledger.go docstring lost the phrase %q", phrase)
 		}
+	}
+	for _, phrase := range pyPhrases {
 		if !strings.Contains(string(pySrc), phrase) {
 			t.Fatalf("ledger.py docstring lost the phrase %q", phrase)
 		}

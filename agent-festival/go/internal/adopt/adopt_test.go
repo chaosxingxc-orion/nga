@@ -1502,3 +1502,58 @@ func fieldByPath(root reflect.Value, path string) reflect.Value {
 	}
 	return v
 }
+
+// TestOpenRejectsSeqDomainShapes pins the machine path for the seq family's
+// two rejection facets that had only fixture-side pins (R15 m-2): an
+// integer-syntax seq beyond int64, and float syntax beyond ±2^53 — each a
+// unique-rejector shape with its own error text.
+func TestOpenRejectsSeqDomainShapes(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-sq", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	events, _ := m.Events()
+	writePair := func(second string) error {
+		first, err := json.Marshal(events[0])
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(string(first)+"\n"+second+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		_, err = Open(path)
+		return err
+	}
+	// int64 overflow: raw JSON line, integer syntax one past the domain
+	idem := `"idempotency":{"operation_id":"op-sq","payload_digest":"` + digestA + `"}`
+	overflow := `{"event_type":"effect","arbitration_seq":9223372036854775808,` +
+		`"identity":{"business_request_id":"br-t","operation_id":"op-sq"},` +
+		`"versions":{"evidence":"e","rule":"r","model":"m","readout":"ro","policy":"p"},` +
+		`"outcome":{"status":"dispatched"},` + idem + `}`
+	err := writePair(overflow)
+	if err == nil {
+		t.Fatal("int64-overflow seq line was absorbed at load")
+	}
+	// this facet rejects at the typed-parse boundary (an EARLIER gate than
+	// the checker's int64-domain rule, whose message the fixture pins);
+	// either way the machine path refuses the shape
+	if !strings.Contains(err.Error(), "int64") && !strings.Contains(err.Error(), "not an event") {
+		t.Fatalf("int64-overflow rejection came from an unexpected rule (error: %v)", err)
+	}
+	// float syntax beyond ±2^53
+	floatBeyond := `{"event_type":"effect","arbitration_seq":9007199254740994.0,` +
+		`"identity":{"business_request_id":"br-t","operation_id":"op-sq"},` +
+		`"versions":{"evidence":"e","rule":"r","model":"m","readout":"ro","policy":"p"},` +
+		`"outcome":{"status":"dispatched"},` + idem + `}`
+	err = writePair(floatBeyond)
+	if err == nil {
+		t.Fatal("float-syntax-beyond-2^53 seq line was absorbed at load")
+	}
+	// same as the int64 facet: the typed-parse boundary refuses the shape
+	// before the checker's float-syntax rule sees it (that message the
+	// fixture pins) — either gate means the machine path refuses
+	if !strings.Contains(err.Error(), "float syntax") && !strings.Contains(err.Error(), "not an event") {
+		t.Fatalf("float-syntax rejection came from an unexpected rule (error: %v)", err)
+	}
+}
