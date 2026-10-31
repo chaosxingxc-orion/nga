@@ -35,7 +35,7 @@
       ],
       "properties": {
         "event_type": {
-          "description": "adoption = the control gate committed a decision; effect = an external operation was dispatched or its outcome recorded. Four operation types (inspect/replay/reevaluate/recover, NGA 12 §1) enter as structured callers of the state machine, not as event types.",
+          "description": "adoption = the control gate committed a decision; effect = an external operation was dispatched or its outcome recorded. Four operation types (inspect/replay/reevaluate/recover — proposal §8's four modes) enter as structured callers of the state machine, not as event types.",
           "type": "string",
           "enum": [
             "adoption",
@@ -43,7 +43,7 @@
           ]
         },
         "arbitration_seq": {
-          "description": "Monotonic per-ledger sequence recording which concurrent competitor won (12 §2 'recorded arbitration order'). Replay re-uses the recorded order, never re-arbitrates.",
+          "description": "Monotonic per-ledger sequence recording which concurrent competitor won (proposal §8 retention: 'arbitration order'). Replay re-uses the recorded order, never re-arbitrates (legacy 12 §2 semantics — not re-stated in the current proposal; see the drift register L5 in schema/README.md).",
           "type": "integer",
           "minimum": 0
         },
@@ -57,7 +57,7 @@
           "$ref": "#/$defs/idempotency"
         },
         "grants_at_decision": {
-          "description": "Grant set pinned at the decision point (adoption events only). It rides the event because the event file is the adopt machine's only durable state — without it, a crash would make the 14-A4 dispatch-time revocation check vacuous.",
+          "description": "Grant set pinned at the decision point (adoption events only). It rides the event because the event file is the adopt machine's only durable state — without it, a crash would make the dispatch-time revocation check vacuous (pin content while rechecking applicable live authority — proposal §7 commit boundary, M05).",
           "type": "array",
           "minItems": 1,
           "items": {
@@ -65,7 +65,7 @@
           }
         },
         "outcome": {
-          "description": "The event's verdict. A 'conflict' outcome records a lost race, not an error. An 'unresolved' state on the effect path records dispatch-with-unknown-outcome (14-A5 counterexample three).",
+          "description": "The event's verdict. A 'conflict' outcome records a lost race, not an error (same-key/different-material-content is a conflict — proposal §3). An 'unresolved' state on the effect path records dispatch-with-unknown-outcome (M07/M08).",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -197,7 +197,7 @@
       }
     },
     "idempotency": {
-      "description": "The replay matcher's key: operation identity + payload digest + dependency versions (12 §3 step 4). Same key + same digest = reuse; same key + different digest = reject (15 §B4, 14-A5 counterexample four).",
+      "description": "The replay matcher's key: operation identity + payload digest + dependency versions. Same key + same digest = reuse; same key + different digest = reject (proposal §3 command paragraph: 'Same command identity with unchanged material content resolves the original receipt; changed content does not silently replace it'; §7: a client key alone gives no server guarantee).",
       "type": "object",
       "additionalProperties": false,
       "required": [
