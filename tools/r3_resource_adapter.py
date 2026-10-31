@@ -275,7 +275,8 @@ def reclaim_legacy(args):
     marker_raw = read_bytes(marker)
     if sha_bytes(marker_raw) != args.marker_sha256 or not marker_raw.decode().startswith('rc=0 '):
         raise RuntimeError('legacy terminal marker differs')
-    if str(marker.parent) not in container['Config'].get('Cmd', []):
+    if not any(arg == str(marker.parent) or arg.startswith(str(marker.parent) + '/')
+               for arg in container['Config'].get('Cmd', [])):
         raise RuntimeError('marker not bound to container command')
     if live_chip_conflict(args.chip, args.container):
         raise RuntimeError('another nonterminal container maps chip')

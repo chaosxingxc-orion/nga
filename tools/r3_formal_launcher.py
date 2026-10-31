@@ -49,7 +49,7 @@ def verify(path, pin, reviewed=True):
     require(identity(p) == pin, 'plan identity changed')
     require(p['schema'] in ('r3-formal-k1-plan-v1', 'r3-engineering-k1-plan-v1') and p['image_sha256'] == IMAGE, 'plan schema/image mismatch')
     engineering = p['schema'] == 'r3-engineering-k1-plan-v1'
-    require(p['seed'] in (2, 3) and p['chip'] in ((1, 4, 6, 7) if engineering else (1, 4)), 'unregistered seed/chip')
+    require(p['seed'] in (2, 3) and p['chip'] in ((0, 1, 4, 6, 7) if engineering else (1, 4)), 'unregistered seed/chip')
     model_name = Path(p['model']).name
     require(model_name in (('Qwen__Qwen3.5-0.8B-Base', 'Qwen__Qwen3.5-2B-Base', 'Qwen__Qwen3.5-4B-Base') if engineering
                           else ('Qwen__Qwen3.5-0.8B-Base',)), 'model outside registered execution scope')
@@ -62,6 +62,10 @@ def verify(path, pin, reviewed=True):
     if engineering and p.get('stop_after', 0):
         require(type(p['stop_after']) is int and 10 <= p['stop_after'] <= 3116, 'invalid engineering step bound')
         expected += ['--stop-after', str(p['stop_after'])]
+    if engineering and p.get('k2_impl') == 'shared':
+        require(arm == 'k2' and p.get('stop_after') == 45, 'shared path requires bounded engineering validation')
+        expected.remove('--grad-ckpt')
+        expected += ['--k2-impl', 'shared', '--gdn-impl', 'ref', '--k2-rows', '96']
     require(p['command'] == expected, 'training recipe mismatch')
     for filename, digest in p['files'].items():
         q = Path(filename)
@@ -129,6 +133,8 @@ def docker_command(p, plan_path, attempt_no):
            '--mount', f"type=bind,src={p['train_file']},dst={p['train_file']},readonly",
            '--mount', f"type=bind,src={p['out']},dst={p['out']}",
            '--mount', 'type=bind,src=/usr/local/Ascend/driver,dst=/usr/local/Ascend/driver,readonly']
+    if p.get('k2_impl') == 'shared':
+        cmd += ['--mount', f"type=bind,src={p['code']}/r0_code,dst=/mnt/cephfs/xingchao/experiments/jev/r0_code,readonly"]
     for dev in ('davinci_manager', 'devmm_svm', 'hisi_hdc', f"davinci{p['chip']}"):
         cmd += ['--device', '/dev/' + dev]
     for key, value in p['environment'].items():

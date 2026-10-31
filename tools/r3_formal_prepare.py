@@ -26,16 +26,18 @@ def write(path, value):
     Path(path).write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 
-def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1'):
+def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False):
     if arm not in ('k1', 'k2'):
         raise ValueError('unsupported loss arm')
-    if not engineering and (model != MODEL or stop_after or arm != 'k1'):
+    if not engineering and (model != MODEL or stop_after or arm != 'k1' or shared):
         raise ValueError('formal recipe cannot be overridden')
     out.mkdir(parents=True, exist_ok=False)
     code = out / 'code'
     code.mkdir()
-    for name in ('train_r3.py', 'build_kev_sft.py', 'kev_aug.py'):
-        shutil.copy2(ROOT / 'experiments/r3_sft/r3_code' / name, code / name)
+    source = BASE / 'r3_code' if shared else ROOT / 'experiments/r3_sft/r3_code'
+    names = ('train_r3.py', 'build_kev_sft.py', 'kev_aug.py', 'gdn_fast_ref.py', 'k2_shared.py') if shared else ('train_r3.py', 'build_kev_sft.py', 'kev_aug.py')
+    for name in names:
+        shutil.copy2(source / name, code / name)
     (code / 'r0_code').mkdir()
     shutil.copy2(ROOT / 'experiments/r0_baseline/prompt.py', code / 'r0_code/prompt.py')
     shutil.copy2(ROOT / 'tools/r3_formal_driver.py', code / 'r3_formal_driver.py')
@@ -60,6 +62,11 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
                '--save-every', '200', '--no-merge', '--epochs', '2', '--total-steps', '3116', '--expect-pairs', '186' if model == MODEL else '0']
     if stop_after:
         command += ['--stop-after', str(stop_after)]
+    if shared:
+        if not engineering or arm != 'k2' or stop_after != 45:
+            raise ValueError('shared path is a 45-step K2 engineering validation')
+        command.remove('--grad-ckpt')
+        command += ['--k2-impl', 'shared', '--gdn-impl', 'ref', '--k2-rows', '96']
     plan = {'schema': 'r3-formal-k1-plan-v1', 'seed': seed, 'chip': chip, 'run': str(out.relative_to(BASE)),
             'out': str(out), 'code': str(code), 'model': str(model), 'train_file': str(TRAIN),
             'allocation': str(BASE / 'CHIP-ALLOCATION.json'), 'image_sha256': IMAGE,
@@ -80,6 +87,8 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
                     authorization='user_execute_engineering_when_ready_20261031',
                     container=f'nga-r3-eng-{out.parent.name}-s{seed}', stop_after=stop_after, arm=arm,
                     evaluation={'candidate_test_forbidden': True, 'formal_acceptance_requires_new_review': True})
+    if shared:
+        plan['k2_impl'] = 'shared'
     pin = hashlib.sha256((json.dumps(plan, indent=2, sort_keys=True) + '\n').encode()).hexdigest()
     write(out / 'plan.json', plan)
     (out / 'CANONICAL_PLAN_SHA256').write_text(pin + '\n')
