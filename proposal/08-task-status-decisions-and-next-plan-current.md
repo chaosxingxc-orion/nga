@@ -13,7 +13,7 @@
 - E39 已完成 28 个历史 Kev 面板的当前 CPU 独立重算和有界 Astra 审查，最大数值差约 `1.11e-16`。这证明保存证据可重建，但没有补造历史 finisher，也没有证明 cache/restart 的无人值守安全性。
 - E38 v7 固定镜像 CPU 套件 **100/100 通过、无 skip**；两份 v7 exact plan 已通过实际 Astra 的指定范围审查。
 - Open-Jev-2B 已完成 8/8 NPU 诊断 forward，Docker 和独立 CPU verifier 均 exit 0，`trace_valid=true`，但这只是路径诊断，不是 JEVal 结果或训练收益。
-- 2B 资源已由通过审查的工具实际释放；9B v7 已启动并完成 8/8 NPU 诊断，NPU 与独立 CPU verifier 均实际 exited/0。9B 数值差异仍存在，完整 JEVal 准入保持 false；资源释放已完成并独立核验；有界 Astra 结果审查继续收尾。
+- 2B 资源已由通过审查的工具实际释放；9B v7 已启动并完成 8/8 NPU 诊断，NPU 与独立 CPU verifier 均实际 exited/0。9B 数值差异仍存在，完整 JEVal 准入保持 false；资源释放已完成并独立核验；有界 Astra 结果审查已 PASS，范围仅为诊断与冻结资源证据。
 - 正式 Jev 训练、训练后评测和训练收益尚未发生；真实业务、生产接入和业务标注按 D3/D4/D7 暂不纳入。
 
 当前最准确的阶段描述是：**先收口并汇报参考指标，同时完成剩余推理实验的自动执行和工程准入；E38/JEVal 收口后再讨论并预注册 Jev 训练。**
@@ -61,11 +61,11 @@ D1 是阶段顺序，不是暂停推理。为取得参考指标而进行的推�
 此前 release 的代次绑定、可信 before-state、发布中断恢复和顶层 helper 身份问题已修复。实际 Astra v4 对精确 v6 候选给出代码 PASS、拟议证据一致性 PASS；主会话已独立核验 COMPLETE 的 6 个输出哈希及 child/runner/EXIT 的 rc=0。审查原文见 [v4 归档](../experiments/ASTRA-E38-RELEASE-V4-2026-10-31.md)。审查检查了 58/58 测试记录及源码对应关系，本轮未重跑测试，不应表述为 Astra 亲自重跑 58 项。
 
 1. **2B 实际交接已完成**：新建 approved review 和调用方固定的外部 anchor，经现场核验和 guarded release 释放 chip 4；主会话核验 journal 哈希与其他 owner 未改变，旧 approved=false 提案未覆盖。
-2. **9B E38 已执行并独立验证**：UTC 03:40:15 启动、03:44:24 NPU exited/0，8/8 完成；03:45:29 独立 CPU verifier exited/0。两个重复的首个不同事件均为第一层 in_proj_qkv 输出，candidate_batch_admission=false。资源释放已完成，free=[1,4]，后续完成有界 Astra 结果审查。
-3. **完整 JEVal 数值/内存准入仍未完成**：E38 诊断通过不能替代 full-test 准入。E40 生命周期候选的固定镜像 CPU 检查已完成 32 cells/256 forwards，输出字节 exact；NPU 显存与数值效果尚未证明。
+2. **9B E38 已执行并独立验证**：UTC 03:40:15 启动、03:44:24 NPU exited/0，8/8 完成；03:45:29 独立 CPU verifier exited/0。两个重复的首个不同事件均为第一层 in_proj_qkv 输出，candidate_batch_admission=false。资源释放已完成，free=[1,4]，有界 Astra 结果审查也已 PASS。
+3. **完整 JEVal 数值/内存准入仍未完成**：E38 诊断通过不能替代 full-test 准入。E40 生命周期候选的固定镜像 CPU 检查已完成 32 cells/256 forwards，输出字节 exact；NPU 显存与数值效果尚未证明。E40 v1 已被实际 Astra BLOCK：原生 cu_seqlens=None 兼容、启动路径可信性、各模式 guard 开销一致性、失败观测保存、启动恢复五项问题正在修复。
 4. **满载尚未实现**：03:37 UTC 的现场八卡均无 NPU 进程，只有 chip 1 登记为 free。除 chip 4 交接外，其他历史 owner 的退出、验收和释放证据需逐一核验，不能把空闲读数直接改写为资源授权。
 
-下一顺序是：完成 9B 有界结果审查 → 完成并审查 E40 NPU 计划 → 实测全形状数值/内存效果 → 逐级完整 JEVal 准入。现有参考指标不变，没有新增训练收益。
+下一顺序是：修复 E40 v1 的五项 Astra 阻塞 → 完成固定镜像接口/恢复测试并审查新 E40 NPU 计划 → 实测全形状数值/内存效果 → 逐级完整 JEVal 准入。现有参考指标不变，没有新增训练收益。
 
 ## 4. 推理实验的自动执行闭环
 
@@ -129,7 +129,7 @@ REGISTERED
 
 出口已达到：实际 Astra v4 对精确 v6 候选代码与拟议证据给出 PASS。该阶段不涵盖现场释放；实际交接和新 anchor 属于 P2。历史 BLOCK 及修复过程保留归档。
 
-### P2：释放 2B 并串行完成 9B E38（执行、独立 CPU 验证与释放完成，结果审查收尾）
+### P2：释放 2B 并串行完成 9B E38（执行、独立 CPU 验证、释放与有界结果审查均完成）
 
 - 重新核验 175 上 allocation、Docker、`npu-smi` 和 chip 4 实际状态。
 - 只由审查通过的 release 事务释放 2B；独立确认 allocation 变为 free。

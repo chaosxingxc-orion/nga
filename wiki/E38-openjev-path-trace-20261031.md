@@ -421,3 +421,11 @@ only chip 4 became free. Allocation SHA after release is
 `c8c94a2f63844df50b1fc72e6d9a0575aecb5cdd0e4a3db2d8819cca81ac60e8`,
 with free chips [1, 4]. Machine evidence summary:
 `experiments/E38-OPENJEV9-DIAGNOSTIC-RESULT-2026-10-31.json`. No test metric changed.
+
+## 2026-10-31 actual Astra bounded 9B results review
+
+Actual `gpt-6-astra` returned **PASS for bounded 9B diagnostic-result claims and frozen resource-evidence consistency**, with no blocking inconsistency. Runner, actual child wait and EXIT are all rc 0; all six COMPLETE output hashes were independently checked. The review reconstructed all eight items/attempts, all eleven controls, the 928-event trace contract and release bindings, including the caller-pinned external anchor and chip-4-only transition. It did not query live Docker. Only 21/213 NPU plan-file dependencies were bundled; 192 external dependencies were not revalidated, and token fingerprints were not regenerated from external data.
+
+The source-defined wire maximum includes confidence: the 0.01485981395698921 maximum is the change from 0.1815781925790345 to 0.16671837862204528, not an additional probability-only metric. The approximately 0.0502 questions/s/chip and 17.5703125 GiB cited above describe the final traced item, not an aggregate performance benchmark. `candidate_batch_admission=false` and the failed E36 admission are unchanged. This verdict supports no full JEVal score, speedup, training benefit or kernel-cause claim.
+
+Review archive: `experiments/ASTRA-E38-RESULTS-REVIEW-2026-10-31.{md,json}`. Actual review SHA256 `585041194dfb17193fa679165431c0f4e1db18e693ff593893f2dd17480cce27`; bundle manifest SHA256 `0523422b981c115f619693cfe320bac7770cacf7d1293f2d671b891944fe0bc2`; runner COMPLETE SHA256 `bad5ea8a2010db87f3b57f1739f8603c5ce43e6cdcf1ab0fb20470533afb3651`. Runtime directory: `reference_inference/astra_reviews/e38_results_astra_20261031_v1`.
