@@ -97,6 +97,50 @@ def publish_measurement(out, key, value, plan, durable, proto, prediction_check)
     durable.publish_new(out/'items'/(key+'.json'), dict(payload=value, sha256=proto.stamp(value)))
 
 
+def predict_with_failure_record(model, req, eligible, torch, start, out, key,
+                                identity, observed, calls, baseline, durable):
+    """Retain native local logits on validation failure without changing its math.
+
+    Native.predict is authenticated by the plan closure before this call. Its
+    traceback retains `z` after the completed tensor forward even when native
+    token/probability/wire validation raises before returning a prediction.
+    Success does not install a hook or replace native code.
+    """
+    try:
+        return model.predict(req, eligible)
+    except Exception as exc:
+        code = model.predict.__func__.__code__
+        trace = exc.__traceback__
+        logits = None
+        while trace is not None:
+            if trace.tb_frame.f_code is code:
+                value = trace.tb_frame.f_locals.get('z')
+                if isinstance(value, list):
+                    logits = list(value)
+            trace = trace.tb_next
+        measurements = dict(baseline)
+        measurement_errors = {}
+        try:
+            torch.npu.synchronize()
+        except Exception as measurement_error:
+            measurement_errors['synchronize'] = repr(measurement_error)
+        measurements['seconds'] = time.monotonic() - start
+        for name, getter in [('peak_allocated_gib', torch.npu.max_memory_allocated),
+                             ('peak_reserved_gib', torch.npu.max_memory_reserved)]:
+            try:
+                measurements[name] = getter() / 2**30
+            except Exception as measurement_error:
+                measurement_errors[name] = repr(measurement_error)
+        durable.publish_new(out/'rejected'/(key+'.json'), dict(
+            status='REJECTED_NATIVE_PREDICT', successful_prefix_eligible=False,
+            candidate_batch_admission=False, reason=type(exc).__name__+': '+str(exc),
+            observed_payload=rejected_value(dict(**identity, raw_logits=logits,
+                raw_logits_available=logits is not None, observed_input=observed,
+                core_calls=list(calls), chips=1, **measurements,
+                measurement_errors=measurement_errors))))
+        raise
+
+
 def generation(q, e, p, ph, running=True):
     out = Path(p['out']); receipt = e.load(out/'LAUNCH_RECEIPT.json')
     spec = e.load(p['container_spec']); actual = q.inspect(p['container'])
@@ -181,7 +225,11 @@ def run(path, ph):
                             p['expected_core_names'], candidate, calls):
                         start = time.monotonic()
                         with previous.input_guard(model.model.backbone, p['input'], observed):
-                            prediction = model.predict(req, eligible)
+                            prediction = predict_with_failure_record(model, req, eligible, torch,
+                                start, out, key, dict(**ident, generation=gen,
+                                    attempt_sha256=bound.sha(attempt),
+                                    candidate_source_sha256=p['candidate_sources'][task['mode']]),
+                                observed, calls, baseline, durable)
                         torch.npu.synchronize(); seconds = time.monotonic()-start
                     value = dict(**ident, generation=gen, attempt_sha256=bound.sha(attempt), prediction=prediction,
                         observed_input=observed, core_calls=calls, candidate_source_sha256=p['candidate_sources'][task['mode']],

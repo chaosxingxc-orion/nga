@@ -96,3 +96,19 @@ Launch recovery authenticates an already-running owned generation without demand
 that its own device be empty, and reuses validated pending receipt/claim bytes.
 Crash fixtures use synthetic Docker transport; they do not prove live crash recovery.
 The new exact plan and independent CPU verification support require actual review.
+
+## 2026-10-31 v3 native prediction rejection amendment
+
+The v2 candidate remains unlaunched after actual Astra identified that native
+softmax can reject NaN/Inf before `Native.predict` returns. v3 preserves the
+authenticated native function and all success-path arithmetic. On exception, the
+driver reads the completed local logits from that exact function's traceback
+frame, collects available elapsed/peak measurements, and durably records them
+with attempt/generation identity and token/core observations as rejected evidence.
+Nonfinite values are explicitly tagged in strict JSON; rejection is re-raised
+and never enters the successful prefix. The existing terminal commits rejected
+record hashes. No extra hook, replacement softmax, or mathematical operation is
+introduced on successful forwards. Eight fixed-image CPU tests include the actual
+Native.predict AST with mocked completed tensor output (NaN/+Inf/-Inf and success),
+and the full-shape native GDN arithmetic/wrapper. This is not checkpoint or NPU
+execution. v3 requires a new exact-plan review before launch.

@@ -1,0 +1,42 @@
+{
+  "scope": "Final driver CPU native-call AST/fullshape plus actual Native.predict AST nonfinite failure; no NPU/checkpoint",
+  "tests": 8,
+  "skips": 0,
+  "rc": 0,
+  "run": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e40_native_runtime_cpu_20261031_v2",
+  "container_id": "eb61e98df21fbe635db5bc62708439a06ea554e9f27febd3fbee49e7851827e7",
+  "started_at": "2026-10-31T04:12:03.86239893Z",
+  "finished_at": "2026-10-31T04:12:10.90846683Z",
+  "devices": [],
+  "native_call": {
+    "native_call_full_shape": [
+      15,
+      186,
+      16,
+      128
+    ],
+    "outputs": {
+      "original": "2ac102ed163f1dcf3f6fc5ffda203f14c4dbbee5c153d30566d54cd38747c8a9",
+      "L1": "2ac102ed163f1dcf3f6fc5ffda203f14c4dbbee5c153d30566d54cd38747c8a9",
+      "L2": "2ac102ed163f1dcf3f6fc5ffda203f14c4dbbee5c153d30566d54cd38747c8a9",
+      "L1L2": "2ac102ed163f1dcf3f6fc5ffda203f14c4dbbee5c153d30566d54cd38747c8a9"
+    },
+    "guard_calls_per_mode": 1
+  },
+  "files": {
+    "PLAN.json": "fe819df0f750cb1e7e74f2813a8c8d00f492b8e2ce862e84d39361c69b38dcdc",
+    "COMPLETE.json": "7603ca868ffc44cd99cec35a38fe7dff2209379cbea72d874f4981efd1ea66c7",
+    "EXIT": "46d6f87e4db8b299803e7a6df1e98932b384e6f89116025679d89a97dcd9036d",
+    "run.log": "831cfbfd7fceb46524b4c11b37be537ef6502910db12c55d66eda44bac4fe7e4",
+    "openjev_lifetime_candidate.py": "13954cd93c7f4529bee9ee8af7b7fc24d2beb9c855b0084a26e29f3eea59280f",
+    "openjev_lifetime_npu.py": "3287f8aed2150cd6c3f088609154e8605efd9adc224a91c98f0bfcd25eb3878d",
+    "test_openjev_lifetime_runtime.py": "d876d961c4ef07efc86f396f3811327805238027a58caf32526dcfe117a02777",
+    "e38_evidence.py": "12a5e895d6fa16df0506418dfbad0affe584cd06e62993a40bee0b4d86ee5b77",
+    "run.sh": "82d727c7ae34b3be2c9ccfea3a4b5d8c20a73aeee2df1d09762729c0d5694d15"
+  },
+  "limitations": [
+    "actual Native.predict AST with mocked completed tensor forward; no checkpoint/model forward",
+    "fullshape CPU GDN arithmetic and runtime wrapper; no NPU memory/throughput claim",
+    "final driver source includes terminal rejected_manifest"
+  ]
+}

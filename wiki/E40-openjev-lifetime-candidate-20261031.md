@@ -125,3 +125,14 @@ The retained outer fixture container `88df273068210bf399f741d54985777ef7f9702f14
 Before launch, register `e40_native_runtime_cpu_20261031_v1`: fixed image, retained no-device CPU container, 2 cores/4 GiB, seed4071, full15×186×16×128 bf16 tensors. Extract authenticated native GDN call AST and arithmetic, apply actual runtime wrapper to all4 modes, compare output bytes and single guard invocation; check non-None packed argument rejection/restoration and rejected-measurement retention. No full transformer/checkpoint/NPU or performance claim. Exact commands and plan in run directory.
 
 Native-call CPU regression completed: 6/6 tests, no skip, all four full15×186×16×128 bf16 outputs byte exact, exactly one common guard per call, invalid packed argument restores original function. Actual retained Docker exited/0 at 04:00:56.92107561Z. Failed completed-forward metrics and nonfinite observations retain explicit rejected records outside success receipts. Evidence: `experiments/E40-NATIVE-RUNTIME-CPU-2026-10-31.json`. This does not establish NPU parity, peak memory improvement or throughput.
+
+## 2026-10-31 v3 prelaunch native rejection repair
+
+Actual Astra v2 retained BLOCK for Native.predict rejecting nonfinite raw logits
+before the completed prediction reached the evidence publisher. v3 retains those
+raw locals and available measurements on the exception path, preserving numerical
+rejection and attempt/generation bindings. Frozen v1/v2 remain unchanged.
+Retained fixed-image CPU `nga-e40-native-runtime-cpu-20261031-v2` completed 8/8
+tests without skips and exited 0 at 04:12:10.90846683Z, no devices. Final driver
+source including rejected terminal manifest was tested. Evidence is
+`experiments/E40-NATIVE-RUNTIME-CPU-V2-2026-10-31.json`; no NPU was launched.

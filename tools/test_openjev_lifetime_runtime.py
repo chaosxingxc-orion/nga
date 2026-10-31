@@ -4,6 +4,9 @@ The CPU tensor check uses one real full-shape GDN arithmetic call per mode,
 not a full transformer, checkpoint, NPU or memory/throughput benchmark.
 """
 import ast
+import contextlib
+import math
+import time
 import hashlib
 import importlib.util
 import json
@@ -49,6 +52,59 @@ class RejectedTests(unittest.TestCase):
             driver.publish_measurement(root,'cell',value,{},durable,proto,lambda a,b:None)
             self.assertEqual(json.loads((root/'items'/'cell.json').read_text()),{'payload':value,'sha256':'hash'})
             self.assertFalse((root/'rejected').exists())
+
+class NativePredictFailureTests(unittest.TestCase):
+    def native(self, logits):
+        # Execute the actual frozen predict AST and its finite/softmax functions,
+        # mocking only the completed tensor forward and surrounding model setup.
+        source=Path('/mnt/cephfs/xingchao/experiments/jev/reference_inference/jeval_openjev2_probe_20261030/jeval_reference_inference.py')
+        plan=json.loads(Path('/mnt/cephfs/xingchao/experiments/jev/reference_inference/e40_lifetime_npu_openjev2_20261031_v2/plan.json').read_text())
+        raw=source.read_bytes();self.assertEqual(hashlib.sha256(raw).hexdigest(),plan['files'][str(source)])
+        tree=ast.parse(raw);klass=next(x for x in tree.body if isinstance(x,ast.ClassDef) and x.name=='Native')
+        method=next(x for x in klass.body if isinstance(x,ast.FunctionDef) and x.name=='predict')
+        def require(ok,msg):
+            if not ok:raise ValueError(msg)
+        ns={'math':math,'require':require,'keys':lambda q:list(q['criteria'])}
+        functions=[x for x in tree.body if isinstance(x,ast.FunctionDef) and x.name in ('finite','softmax')]
+        exec(compile(ast.Module(body=functions+[method],type_ignores=[]),str(source),'exec'),ns)
+        obj=types.SimpleNamespace(family='openjev',c={'temperature':1.},consumed=None,
+            native=(lambda state,questions:[{'record':1}],),format=lambda records,probs:{'answers':{'q':{'choice':'A'}}})
+        class Tensor:
+            def float(self):return self
+            def cpu(self):return self
+            def tolist(self):return list(logits)
+        class Model:
+            tokenizer=object()
+            def __call__(self,records):obj.consumed=['tokens'];return [Tensor()]
+        obj.model=Model();obj.predict=types.MethodType(ns['predict'],obj)
+        obj.torch=types.SimpleNamespace(inference_mode=contextlib.nullcontext,
+            npu=types.SimpleNamespace(synchronize=lambda:None,max_memory_allocated=lambda:7*2**30,
+                max_memory_reserved=lambda:9*2**30))
+        return obj
+    def call(self,obj,root):
+        return driver.predict_with_failure_record(obj,{'state':'state','questions':{'q':{'criteria':{'A':'a','B':'b'}}}},
+            {'token_sha256':['tokens']},obj.torch,time.monotonic(),root,'4200_original_0',
+            {'plan_sha256':'pin','generation':{'container_id':'test'},'attempt_sha256':'attempt'},
+            {'shape':[15,186]},['core'],{'baseline_allocated_gib':4.},durable)
+    def test_actual_native_nonfinite_predict_retains_logits_and_measurements(self):
+        for bad,label in [(float('nan'),'nan'),(float('inf'),'inf'),(-float('inf'),'-inf')]:
+            with self.subTest(bad=label),tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp);obj=self.native([bad,1.]);tokenizer=obj.model.tokenizer
+                with self.assertRaisesRegex(ValueError,'Invalid logits'):
+                    self.call(obj,root)
+                value=json.loads((root/'rejected'/'4200_original_0.json').read_text())
+                self.assertEqual(value['status'],'REJECTED_NATIVE_PREDICT')
+                self.assertFalse(value['successful_prefix_eligible']);v=value['observed_payload']
+                self.assertEqual(v['raw_logits'],[{'nonfinite_float':label},1.])
+                self.assertTrue(v['raw_logits_available']);self.assertEqual(v['peak_reserved_gib'],9.)
+                self.assertEqual(v['attempt_sha256'],'attempt');self.assertEqual(v['generation'],{'container_id':'test'})
+                self.assertGreaterEqual(v['seconds'],0);self.assertFalse((root/'items').exists())
+                self.assertIs(obj.model.tokenizer,tokenizer)
+    def test_actual_native_success_unchanged_no_rejected_record(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);obj=self.native([1.,2.]);expected=obj.predict(
+                {'state':'state','questions':{'q':{'criteria':{'A':'a','B':'b'}}}}, {'token_sha256':['tokens']})
+            self.assertEqual(self.call(obj,root),expected);self.assertFalse((root/'rejected').exists())
 
 @unittest.skipUnless(os.environ.get('E40_TENSOR_TEST')=='1','fixed-image CPU tensor integration only')
 class NativeRuntimeTests(unittest.TestCase):
