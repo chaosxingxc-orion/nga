@@ -95,8 +95,17 @@ def main():
                                else ('INVALID' if train_exit.is_file() else 'WAITING_TRAIN_EXIT'),
                                'train_exit': str(train_exit)}
     rec = load(a.resume_reconstruction) if a.resume_reconstruction.is_file() else {}
+    # PREPARATION.json is only a waiting hand-off. A reconstruction PASS must
+    # be an actual bounded report with numerical and immutable-input bindings.
+    rec_pass = (a.resume_reconstruction.name not in ('PREPARATION.json', 'SUCCESSOR_LAUNCH.json')
+                and rec.get('pass') is True and rec.get('resume_pass') is True
+                and rec.get('scientific_acceptance') is False and rec.get('test_read') is False
+                and isinstance(rec.get('inputs'), dict) and bool(rec['inputs'])
+                and isinstance(rec.get('plan_sha256'), str) and len(rec['plan_sha256']) == 64
+                and isinstance(rec.get('target_sha256'), str) and len(rec['target_sha256']) == 64)
     checks['resume_reconstruction'] = {'path': str(a.resume_reconstruction), 'status':
-                                      'PASS' if rec.get('status') == 'PASS' else rec.get('status', 'WAITING')}
+                                      'PASS' if rec_pass else (rec.get('status', 'WAITING')
+                                      if a.resume_reconstruction.is_file() else 'WAITING')}
     review = load(a.review) if a.review and a.review.is_file() else {}
     checks['independent_astra_review'] = {'status': 'PASS' if (
         review.get('verdict') == 'PASS'
