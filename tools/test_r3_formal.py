@@ -14,6 +14,14 @@ spec.loader.exec_module(L)
 
 
 class Formal(unittest.TestCase):
+    def test_missing_container_case_variants_and_daemon_failure(self):
+        for message in ('Error: No such object: absent', 'error: no such object: absent'):
+            with patch.object(L.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, '', message)):
+                self.assertIsNone(L.inspect('absent'))
+        with patch.object(L.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, '', 'daemon unreachable')):
+            with self.assertRaises(RuntimeError):
+                L.inspect('absent')
+
     def test_uncertain_observation_retries_same_generation(self):
         with tempfile.TemporaryDirectory() as td:
             heartbeat = Path(td) / 'heartbeat.json'

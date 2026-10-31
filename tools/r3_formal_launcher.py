@@ -47,7 +47,7 @@ def require(ok, message):
 def verify(path, pin, reviewed=True):
     p = load(path)
     require(identity(p) == pin, 'plan identity changed')
-    require(p['schema'] == 'r3-formal-k1-plan-v1' and p['image_sha256'] == IMAGE, 'plan schema/image mismatch')
+    require(p['schema'] in ('r3-formal-k1-plan-v1', 'r3-engineering-k1-plan-v1') and p['image_sha256'] == IMAGE, 'plan schema/image mismatch')
     require(p['seed'] in (2, 3) and p['chip'] in (1, 4), 'unregistered seed/chip')
     expected = ['python3', '-P', '/workspace/train_r3.py', '--out', p['out'], '--arm', 'k1', '--seed', str(p['seed']),
                 '--model-path', p['model'], '--kernel', 'ref', '--grad-ckpt', '--micro-tokens', '12000', '--max-len', '4096',
@@ -64,7 +64,11 @@ def verify(path, pin, reviewed=True):
     require(not any('/test' in f for f in p['files']), 'test dependency forbidden')
     source_files = {str(f) for f in Path(p['code']).rglob('*') if f.is_file()}
     require(source_files == {f for f in p['files'] if f.startswith(p['code'] + '/')}, 'code closure inventory mismatch')
-    if reviewed:
+    if p['schema'] == 'r3-engineering-k1-plan-v1':
+        require(p.get('execution_scope') == 'engineering_only' and p.get('scientific_acceptance') is False
+                and p.get('test_read') is False, 'engineering scope must exclude scientific acceptance/test')
+        require(p.get('authorization') == 'user_execute_engineering_when_ready_20261031', 'engineering authorization missing')
+    elif reviewed:
         review = load(p['review_path'])
         require(sha(p['review_path']) == p['review_sha256'], 'review hash mismatch')
         require(review.get('approved_plan_sha256') == pin and review.get('verdict') == 'PASS'
@@ -76,7 +80,7 @@ def verify(path, pin, reviewed=True):
 def inspect(name):
     proc = subprocess.run(['docker', 'inspect', name], capture_output=True, text=True, timeout=30)
     if proc.returncode:
-        require('No such' in proc.stderr, 'Docker observation failed: ' + proc.stderr[:200])
+        require('no such' in proc.stderr.lower(), 'Docker observation failed: ' + proc.stderr[:200])
         return None
     return json.loads(proc.stdout)[0]
 
@@ -99,7 +103,8 @@ def observe_retained(name, container_id, heartbeat, sleep=time.sleep):
 def adapter(p, op, attempt, container):
     cmd = [sys.executable, '-P', p['adapter'], op, '--alloc', p['allocation'], '--run', p['run'], '--chip', str(p['chip'])]
     if op == 'claim':
-        cmd += ['--owner', 'R3 formal K1', '--purpose', f"K1 seed {p['seed']}; train only", '--proof', str(attempt / 'CLAIM.json')]
+        owner = 'R3 engineering K1' if p['schema'] == 'r3-engineering-k1-plan-v1' else 'R3 formal K1'
+        cmd += ['--owner', owner, '--purpose', f"K1 seed {p['seed']}; train only", '--proof', str(attempt / 'CLAIM.json')]
     else:
         cmd += ['--container', container, '--claim', str(attempt / 'CLAIM.json'), '--proof', str(attempt / (op.upper() + '.json'))]
     subprocess.run(cmd, check=True)
@@ -194,7 +199,7 @@ def main():
     require(not a.unreviewed or a.op == 'verify', 'unreviewed allowed only for CPU verification')
     p = verify(a.plan, a.sha256, reviewed=not a.unreviewed)
     if a.op == 'verify':
-        print(json.dumps({'status': 'PLAN_VERIFIED', 'reviewed': not a.unreviewed, 'sha256': a.sha256}))
+        print(json.dumps({'status': 'PLAN_VERIFIED', 'reviewed': not a.unreviewed and p['schema'] == 'r3-formal-k1-plan-v1', 'scope': p.get('execution_scope', 'formal'), 'sha256': a.sha256}))
     elif a.op == 'supervise':
         supervisor(a.plan, a.sha256, a.attempt)
     else:
