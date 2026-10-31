@@ -404,4 +404,54 @@ def free_now(q,chip):
    with self.assertRaises(FileExistsError):r.attest_cpu_exit(self.planpath,self.request)
   self.assertEqual(self.allocation.read_bytes(),before)
 
+class BootstrapTests(unittest.TestCase):
+ def setUp(self):
+  self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
+  self.root=Path(self.tmp.name);self.path=self.root/'e38_evidence.py'
+  self.good=b'authenticated = True\n';self.bad=b"raise AssertionError('UNVERIFIED_HELPER_EXECUTED')\n"
+  self.path.write_bytes(self.good);self.digest=r.digest(self.good)
+
+ def test_tampered_helper_is_rejected_before_any_execution(self):
+  self.path.write_bytes(self.bad)
+  with self.assertRaisesRegex(ValueError,'Bootstrap helper SHA256'):
+   r.bootstrap_module(self.path,'bootstrap_bad',self.digest)
+
+ def test_real_release_import_refuses_replaced_global_helper(self):
+  target=self.root/'release_openjev_path_trace.py'
+  shutil.copy2(Path(r.__file__),target);self.path.write_bytes(self.bad)
+  spec=importlib.util.spec_from_file_location('bootstrap_release_bad',target)
+  value=importlib.util.module_from_spec(spec)
+  with self.assertRaisesRegex(ValueError,'Bootstrap helper SHA256'):
+   spec.loader.exec_module(value)
+
+ def test_path_replacement_after_hash_is_rejected(self):
+  real=r.hashlib.sha256;replaced=[]
+  def racing_hash(raw):
+   result=real(raw)
+   if raw==self.good and not replaced:
+    other=self.root/'replacement';other.write_bytes(self.bad);other.replace(self.path);replaced.append(True)
+   return result
+  with patch.object(r.hashlib,'sha256',side_effect=racing_hash):
+   with self.assertRaisesRegex(ValueError,'Bootstrap helper (path )?changed'):
+    r.bootstrap_module(self.path,'bootstrap_race',self.digest)
+  self.assertEqual(replaced,[True])
+
+ def test_after_validation_path_replacement_executes_only_snapshot(self):
+  import builtins
+  original=builtins.compile;replaced=[]
+  def racing_compile(raw,filename,*args,**kwargs):
+   if filename==str(self.path) and not replaced:
+    self.path.write_bytes(self.bad);replaced.append(True)
+   return original(raw,filename,*args,**kwargs)
+  with patch.object(builtins,'compile',side_effect=racing_compile):
+   value=r.bootstrap_module(self.path,'bootstrap_snapshot',self.digest)
+  self.assertTrue(value.authenticated);self.assertEqual(replaced,[True])
+
+ def test_symlink_helper_and_parent_are_rejected(self):
+  actual=self.root/'actual.py';self.path.rename(actual);self.path.symlink_to(actual)
+  with self.assertRaises(OSError):r.bootstrap_module(self.path,'bootstrap_link',self.digest)
+  directory=self.root/'directory';directory.mkdir();(directory/'helper.py').write_bytes(self.good)
+  link=self.root/'alias';link.symlink_to(directory,target_is_directory=True)
+  with self.assertRaises(OSError):r.bootstrap_module(link/'helper.py','bootstrap_parent',self.digest)
+
 if __name__=='__main__':unittest.main()

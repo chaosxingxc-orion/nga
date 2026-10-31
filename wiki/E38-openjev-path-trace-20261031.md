@@ -339,3 +339,31 @@ execution only, not a verdict. The source change is commit `af6df98`. Release
 tool SHA256 is `df285d1f7555ad7e4fd4af3abddc1a3214439f1fd26496c07bec8872df751591`;
 evidence helper SHA256 is `12a5e895d6fa16df0506418dfbad0affe584cd06e62993a40bee0b4d86ee5b77`.
 Chip 4 has not been released; 9B has not launched.
+
+### 2026-10-31 — v3 BLOCK closed out; v4 code/evidence review launched
+
+Actual v3 child wait, runner COMPLETE and EXIT all returned 0. Its substantive
+verdict was BLOCK, archived in `experiments/ASTRA-E38-RELEASE-V3-2026-10-31.json`
+and `.md` (review SHA `4dd547423866d5cf6a2a25ecb172bf36acaf0afc66f3de6fd2411abe8983c343`).
+It acknowledged the prior generation/anchor/publication fixes and independently
+reran 23 release tests successfully. Remaining findings were the top-level helper
+path import before authentication and absence of concrete post-exit/anchor
+artifacts. No release occurred.
+
+The next candidate authenticates the helper with a digest embedded in the reviewed
+tool, uses no-follow descriptor reads and executes those exact verified bytes.
+Five additional bootstrap tests cover pre-import tampering, path replacement
+before/after validation, and symlinks. Actual host `--attest-cpu-exit` completed
+without allocation mutation and published `CPU_EXIT_BINDING.json` SHA
+`e5ec3304f707dc14a183101d099eb6945528f35aed190d9384530bd75b7775e9` in the existing
+v8 verification directory; old reports remain unchanged. A prospective release
+review remains explicitly `approved=false`; its proposed anchor is pinned as
+`84b2bcb87c146440dfb19ceac4abaa75635f21b07e3f95c2a801a11dc130ed1f`.
+
+New bundle v6 manifest `ce4383313d313d92b3c7f582aa05dda0cf4be326d713dbeb51a862a5f49c2620`
+contains 58/58 passing isolated tests, concrete attestation/proposal and prior
+review. Actual Astra runner `e38_release_astra_20261031_v4` was launched detached,
+PID 1756162. Its brief separates code readiness and proposed evidence from live
+operational authorization; an actual release journal cannot exist before release.
+Tool SHA is `9219c7feaaeaefb58f5d9d44ff146b06a88ffae4d8f85b4c854c37902d62be24`.
+Verdict pending; chip 4 and the 9B no-launch state remain unchanged.

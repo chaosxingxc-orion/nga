@@ -25,12 +25,45 @@ PLAN_HASHES = {
 }
 
 
-def module(path, name):
- spec=importlib.util.spec_from_file_location(name,path)
- value=importlib.util.module_from_spec(spec);spec.loader.exec_module(value);return value
+EVIDENCE_HELPER_SHA256 = '12a5e895d6fa16df0506418dfbad0affe584cd06e62993a40bee0b4d86ee5b77'
 
 
-evidence=module(Path(__file__).with_name('e38_evidence.py'),'e38_release_evidence')
+def bootstrap_module(path, name, expected_sha256):
+ """Authenticate helper bytes before execution, without importing that helper.
+
+ The reviewed release executable pins this digest. The helper may not supply
+ its own expected digest. Execute the bytes read from the authenticated file
+ descriptor, never a subsequent path import (including Python bytecode caches).
+ """
+ path=Path(os.path.abspath(path))
+ directory=os.open('/',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+ try:
+  for part in path.parts[1:-1]:
+   child=os.open(part,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=directory)
+   os.close(directory);directory=child
+  fd=os.open(path.name,os.O_RDONLY|os.O_NOFOLLOW,dir_fd=directory)
+  def identity(st):return (st.st_dev,st.st_ino,st.st_size,st.st_mtime_ns,st.st_ctime_ns)
+  with os.fdopen(fd,'rb') as stream:
+   before=os.fstat(stream.fileno())
+   if not stat.S_ISREG(before.st_mode) or before.st_size>8*2**20:
+    raise ValueError('Invalid bootstrap helper file')
+   raw=stream.read()
+   if hashlib.sha256(raw).hexdigest()!=expected_sha256:
+    raise ValueError('Bootstrap helper SHA256 differs')
+   if identity(os.fstat(stream.fileno()))!=identity(before):
+    raise ValueError('Bootstrap helper changed during read')
+   current=os.stat(path.name,dir_fd=directory,follow_symlinks=False)
+   if not stat.S_ISREG(current.st_mode) or identity(current)!=identity(before):
+    raise ValueError('Bootstrap helper path changed during read')
+ finally:os.close(directory)
+ value=importlib.util.module_from_spec(importlib.util.spec_from_loader(name,loader=None))
+ value.__file__=str(path)
+ exec(compile(raw,str(path),'exec'),value.__dict__)
+ return value
+
+
+evidence=bootstrap_module(Path(__file__).with_name('e38_evidence.py'),
+                          'e38_release_evidence',EVIDENCE_HELPER_SHA256)
 require=evidence.require
 
 
