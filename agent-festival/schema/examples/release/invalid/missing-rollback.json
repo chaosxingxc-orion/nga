@@ -1,0 +1,38 @@
+{
+  "release_version": "0.1.0",
+  "release_id": "rel-x-1",
+  "agent_identity": "agent://team-x/agent-x",
+  "references": {
+    "model_versions": [
+      "model:m@1.0.0"
+    ],
+    "readout_versions": [
+      "readout:r@1.0.0"
+    ],
+    "semantic_specifications": [
+      "judgment:q@1.0.0"
+    ],
+    "adoption_specifications": [
+      "adoption:p@0.1.0"
+    ],
+    "capability_definitions": [],
+    "workflow_definitions": [],
+    "graph_definitions": [],
+    "context_policies": [],
+    "controller_contracts": [],
+    "enforcement_contracts": []
+  },
+  "evidence": {
+    "version_compatibility": [
+      "compat:1"
+    ],
+    "policy_conformance": [
+      "conf:1"
+    ],
+    "business_improvement": [
+      "metric:1"
+    ]
+  },
+  "_expect": "REJECT: every release must state its rollback channels (new-work routing / active-work handling / external-effect correction) — a release that cannot roll back is an irreversible bet",
+  "_expect_match": "rollback"
+}

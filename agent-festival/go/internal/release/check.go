@@ -17,7 +17,9 @@ var schema = schemalib.NewLazy(
 	"https://agent-festival.local/schema/release/0.1.0", SchemaPath)
 
 // CheckManifest validates a release manifest document against
-// release.schema.json. Every field traces to NGA v0.2 §5 — the checker
+// release.schema.json. Every field traces to the schema's provenance
+// anchors (current proposal §6/§9/M05 + the legacy v0.2 §5, superseded by
+// the 2026-10-31 consolidation — see the schema description). The checker
 // adds nothing the schema does not say.
 func CheckManifest(doc map[string]any) []string {
 	if err := schema.Validate(doc); err != nil {

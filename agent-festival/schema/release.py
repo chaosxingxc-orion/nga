@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Validate release-manifest fixtures (piece 5 oracle, Python side).
 
+Provenance note: the schema description carries the dual anchor (current
+proposal §6/§9/M05 + the legacy v0.2 §5, superseded by the 2026-10-31
+consolidation); the anchor truth lives in the schema file.
+
 A release manifest is a standalone document validated against
 release.schema.json — every field traces to NGA v0.2 §5 (no cross-document
 rules: the linking chain's other links — task recording, promotion,
@@ -38,8 +42,8 @@ def main() -> int:
     # D93 count-floor (the Go twin lives in cmd/release/main_test.go)
     n_valid = len(list((ex / "valid").glob("*.json")))
     n_invalid = len(list((ex / "invalid").glob("*.json")))
-    if (n_valid, n_invalid) != (2, 9):
-        print(f"[release] FAIL corpus count {n_valid}+{n_invalid} != pinned 2+9 (corpus count changed?)")
+    if (n_valid, n_invalid) != (2, 14):
+        print(f"[release] FAIL corpus count {n_valid}+{n_invalid} != pinned 2+14 (corpus count changed?)")
         bad += 1
     return 1 if bad else 0
 

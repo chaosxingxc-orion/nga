@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Validate judgment-specification fixtures (piece 3 oracle, Python side).
 
+Provenance note: the schema description carries the dual anchor (current
+documents + superseded legacy §6/§6.1); this oracle's checks are pure
+schema iteration — the anchor truth lives in the schema file.
+
 A judgment specification is a standalone document validated against
 judgment.schema.json — every field traces to NGA overall-design §6/§6.1
 (no cross-document rules: ownership of semantics belongs to the knowledge

@@ -1,0 +1,42 @@
+{
+  "release_version": "0.1.0",
+  "agent_identity": "agent://team-x/agent-x",
+  "references": {
+    "model_versions": [
+      "model:m@1.0.0"
+    ],
+    "readout_versions": [
+      "readout:r@1.0.0"
+    ],
+    "semantic_specifications": [
+      "judgment:q@1.0.0"
+    ],
+    "adoption_specifications": [
+      "adoption:p@0.1.0"
+    ],
+    "capability_definitions": [],
+    "workflow_definitions": [],
+    "graph_definitions": [],
+    "context_policies": [],
+    "controller_contracts": [],
+    "enforcement_contracts": []
+  },
+  "rollback": {
+    "new_work_routing": "route back",
+    "active_work_handling": "complete under pinned",
+    "external_effect_correction": "contract://x/correction"
+  },
+  "evidence": {
+    "version_compatibility": [
+      "compat:1"
+    ],
+    "policy_conformance": [
+      "conf:1"
+    ],
+    "business_improvement": [
+      "metric:1"
+    ]
+  },
+  "_expect": "REJECT: the release id is the linking chain's own link (candidate and subsequent release are distinct links) — an empty id makes every later reference dangle",
+  "_expect_match": "release_id"
+}

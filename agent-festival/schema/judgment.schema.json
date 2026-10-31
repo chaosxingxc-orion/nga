@@ -101,7 +101,7 @@
       }
     },
     "levels": {
-      "description": "§6 'level names, definitions and type' — the current model proposal uses boolean | nominal | ordinal.",
+      "description": "§6 'level names, definitions and type'; current anchor: overall-design §5 — \"The existing typed-readout research vocabulary includes boolean, nominal and ordinal levels\".",
       "type": "array",
       "minItems": 1,
       "items": {
@@ -133,7 +133,7 @@
       }
     },
     "candidate_set": {
-      "description": "§6 'candidate-set semantics' — exclusive | stackable.",
+      "description": "§6 'candidate-set semantics'; current anchor: overall-design §5 — \"…exclusive or stackable candidate sets\".",
       "type": "string",
       "enum": [
         "exclusive",

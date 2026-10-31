@@ -17,8 +17,11 @@ var schema = schemalib.NewLazy(
 	"https://agent-festival.local/schema/judgment/0.1.0", SchemaPath)
 
 // CheckSpec validates a judgment specification document against
-// judgment.schema.json. Every field traces to NGA overall-design §6/§6.1 —
-// the checker adds nothing the schema does not say.
+// judgment.schema.json. Every field traces to the schema's provenance
+// anchors (current documents + the legacy overall-design §6/§6.1,
+// superseded by the 2026-10-31 consolidation — see the schema description
+// for the dual-anchor form). The checker adds nothing the schema does not
+// say.
 func CheckSpec(doc map[string]any) []string {
 	if err := schema.Validate(doc); err != nil {
 		return []string{"schema: " + err.Error()}

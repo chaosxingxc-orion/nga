@@ -130,3 +130,14 @@ def _capture(f) -> str:
     with contextlib.redirect_stdout(buf):
         f()
     return buf.getvalue()
+
+
+if __name__ == "__main__":
+    # the hardening self-test: python3 schema/_suite.py --self-test
+    import sys
+    if "--self-test" in sys.argv:
+        ok = _self_test()
+        print("[_suite] self-test", "PASS" if ok else "FAIL")
+        sys.exit(0 if ok else 1)
+    print("usage: python3 schema/_suite.py --self-test  (the hardening arms' self-check)")
+    sys.exit(2)
