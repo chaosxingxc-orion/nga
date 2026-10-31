@@ -3,6 +3,7 @@
 > Date: 2026-10-30.
 > Companion: [architecture V0.2](13-nga-architecture-v0.2.md), with the [V0 adversarial review](14-v0-adversarial-review.md). Earlier decision-contract detail remains in [V0.1](08-nga-architecture-v0.1.md).
 > These diagrams show proposed logical responsibilities and transitions, not deployment topology or implemented guarantees. The original [V0 diagrams](06-architecture-diagrams-md.md) remain available for comparison.
+> Integration refinement: [document 22](22-integrated-lifecycle-and-plane-review.md) connects these views to configurable/imported primitives, API waiting/recovery, maintained releases and operational improvement. Section 7 below visualizes the shared lineage and its two change paths.
 
 For a concrete credit application, see the [complete walkthrough](10-credit-decision-walkthrough.md), including S2's change permissions before and after adoption and the race between new evidence and dispatch.
 
@@ -15,7 +16,7 @@ flowchart TB
             UI["Intent, authoring, interaction, review and feedback"]
         end
         subgraph M["Management plane"]
-            DEF["Versioned semantics, models, capabilities and workflows"]
+            DEF["Versioned semantics, models, default/customer primitives, APIs and workflows"]
             REL["Candidate/release lineage and reviewed evaluation evidence"]
         end
         subgraph C["Control plane"]
@@ -24,7 +25,7 @@ flowchart TB
             ADM --> ST
         end
         subgraph R["Runtime plane"]
-            RUN["Admitted S1/S2, graphs, loops, workflows, evaluations and replays"]
+            RUN["Admitted S1/S2, custom primitives, graphs, workflows, evaluations and replays"]
             IO["Admitted tool/resource execution and observations"]
         end
 
@@ -39,9 +40,12 @@ flowchart TB
         ST -->|"Authorized registration, promotion or withdrawal"| REL
         ST -->|"Authorized artifact publication"| DEF
     end
+    IT["Existing business IT: domain data, internal rules and authoritative execution"]
+    IO -->|"Qualified business API request"| IT
+    IT -->|"Provider status / receipt"| IO
 ```
 
-The enclosure represents the integrating whole, not a fifth plane or a privileged evolution service. The planes cooperate in all three lifecycle states. User inputs and management declarations gain effect through their control contracts; runtime workers execute admitted work. The drawing does not prescribe services, storage ownership, or physical topology.
+The enclosure represents the integrating whole, not a fifth plane or a privileged evolution service. The planes cooperate in all three lifecycle states. User inputs and management declarations gain effect through their control contracts; runtime workers execute admitted work. The external IT boundary retains provider business authority. Logical control does not require a central round trip for every computation; this drawing does not prescribe services or physical topology.
 
 | Plane | Development | Runtime | Operations |
 | --- | --- | --- | --- |
@@ -73,7 +77,8 @@ flowchart TD
     O -->|"No"| C["Record completed business outcome"]
     O -->|"Yes"| D["Current authorization and action-precondition check"]
     D --> T["Dispatch stable business operation"]
-    T --> H["Record receipt or reconcile unknown completion"]
+    T --> W["Await the contract-defined API result; preserve identity and versions"]
+    W --> H["Record result; qualified recovery on explicit exception / interruption"]
 ```
 
 An unresolved convention does not automatically become a fresh S2 prompt or a negative business answer. A new specification or material evidence leads to an explicit frame revision. Both paths must preserve the same business semantics.
@@ -105,6 +110,11 @@ sequenceDiagram
         alt Confirmed completion
             R-->>F: Receipt bound to operation and parameters
             F->>H: Record confirmed outcome
+        else Accepted or pending
+            R-->>F: Correlated acceptance / provider reference
+            F->>H: Preserve wait, completion predicate and actual versions
+            R-->>F: Later authoritative result via supported event/status route
+            F->>H: Consume result and resume admitted continuation
         else Unknown completion
             F->>H: Record unresolved attempt
             F->>R: Reconcile using supported operation lookup
@@ -152,10 +162,11 @@ These structures relate through recorded identities. They need not be the same t
 
 ```mermaid
 flowchart TB
-    G["Framework: versioned execution graph and transition control"] --> J["S1 judgment / semantic guard"]
+    G["Framework: admitted Graph / Workflow / Loop execution and transitions"] --> J["S1 judgment / semantic guard"]
     G --> T["Deterministic tool or evidence node"]
     G --> L["Bounded S2 agent-loop node"]
     G --> W["Published workflow subgraph"]
+    G --> X["Bound default or customer primitive: state, events, wait and recovery"]
     L -->|"Declared semantic questions"| J
     L -->|"Admitted workflow invocation"| W
     W -->|"Declared open investigation step"| L
@@ -163,8 +174,27 @@ flowchart TB
     T -->|"Observation / receipt"| G
     L -->|"Proposed result / plan revision"| G
     W -->|"Typed result / exception"| G
+    X -->|"Declared observations / continuation"| G
     G --> H["Captured inputs, committed transitions and operation history"]
     H --> R["Isolated control replay and audit views"]
 ```
 
 This is a responsibility diagram, not an unbounded recursive call graph. Parent/child scope, depth, budgets, identities, and admitted transitions constrain all nesting. Model observations do not directly commit state. The [orchestration analysis](11-jev-agentic-orchestration.md) includes the detailed credit graph; the [replay/audit contract](12-replay-and-audit-contract.md) defines capture, executable replay, and divergence handling. The organization remains a proposal.
+
+## 7. The integrating whole: maintained agent and two change paths
+
+```mermaid
+flowchart LR
+    GO["Business objective and owning scope"] --> DEF["Agent definition: semantics, models, primitives, workflows and APIs"]
+    DEF --> CAN["Development: candidate and bound dependencies"]
+    CAN --> EV["Admitted isolated evaluation and comparison"]
+    EV --> PUB["Control: scoped activation and active-task policy"]
+    PUB --> REL["Management: effective release view"]
+    REL --> TASK["Runtime: T1 / D1 / B1, waits and provider outcomes"]
+    TASK --> CASE["Operations: reviewed case and attribution"]
+    CASE -->|"Reusable improvement"| CAN
+    CASE -->|"Existing qualified capability"| REC["Authorized task recovery"]
+    REC -->|"Record actual outcome; no implicit release"| TASK
+```
+
+All three states use all four planes; the node labels emphasize each handoff rather than assigning a state to only one plane. User-plane interactions express goals, review evidence, initiate tasks and request operational action throughout. Management preserves definitions/cases, runtime performs the work, and control admits effective changes. Runtime recovery need not await a new release; a reusable change does not silently become a task-local patch. The manifest can reference independently deployed components. Customer package versions and active waits remain bound unless an explicit migration is admitted.
