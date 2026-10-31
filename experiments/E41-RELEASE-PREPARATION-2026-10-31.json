@@ -1,0 +1,43 @@
+{
+  "scope": "E41 release source preparation only; no approval or release",
+  "tests": 39,
+  "kind": "5 finite derivation tests plus 17 actual binding/transaction fixture tests per chip; Docker/scientific reconstruction synthetic",
+  "tools": [
+    {
+      "schema": "e41-release-derivation-v1",
+      "case": "openjev9_short",
+      "chip": 4,
+      "source": "/home/xingchao/workspace/nga/tools/release_openjev_lifetime.py",
+      "source_sha256": "431bbe0c85c23f001c0705169b37bb4ddcb523216a792ba069336c2f408e6ced",
+      "helper_sha256": "12a5e895d6fa16df0506418dfbad0affe584cd06e62993a40bee0b4d86ee5b77",
+      "generator_sha256": "4406cea797f911bacb286f0e43be99923ac4991aa0175bc2b220998e73f1c974",
+      "plan": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e41_lifetime_openjev9_short_20261031_v2/plan.json",
+      "plan_sha256": "a241206d6d9560589b64bed5cfe348a43ffc7fcfacff8e013dcc6f00b18a93d5",
+      "output_sha256": "4a6df1df4790085de14d23c2ce3cfdcdd3ca7654d8d9ad9cc35007959d2f6c73",
+      "approved": false,
+      "released": false,
+      "scope": "Code derivation only; exact generated code requires review; future live evidence and caller-pinned anchor required",
+      "directory": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e41_release_tools_openjev9_short_20261031_v1"
+    },
+    {
+      "schema": "e41-release-derivation-v1",
+      "case": "openjev2_long",
+      "chip": 1,
+      "source": "/home/xingchao/workspace/nga/tools/release_openjev_lifetime.py",
+      "source_sha256": "431bbe0c85c23f001c0705169b37bb4ddcb523216a792ba069336c2f408e6ced",
+      "helper_sha256": "12a5e895d6fa16df0506418dfbad0affe584cd06e62993a40bee0b4d86ee5b77",
+      "generator_sha256": "4406cea797f911bacb286f0e43be99923ac4991aa0175bc2b220998e73f1c974",
+      "plan": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e41_lifetime_openjev2_long_20261031_v2/plan.json",
+      "plan_sha256": "3f30cd920af1c2957975600f6f8f6e4e5b5a80782c0455af282123c3ed006741",
+      "output_sha256": "7a19ef228fbca4983250ab4cffe0553e2a3ed78f16259d63cf19601fa4fb167a",
+      "approved": false,
+      "released": false,
+      "scope": "Code derivation only; exact generated code requires review; future live evidence and caller-pinned anchor required",
+      "directory": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e41_release_tools_openjev2_long_20261031_v1"
+    }
+  ],
+  "test_source_sha256": "7e01d5844bbbebd0d45193b3ec40d697432dc97b091ea1fb72c9dd5b32184dec",
+  "base_fixture_sha256": "3044ef81f03f7c66a26832f6924a586af19c047f2d738365254134fa7099f15d",
+  "test_output": ".......................................\n----------------------------------------------------------------------\nRan 39 tests in 1.638s\n\nOK\n",
+  "rc": 0
+}

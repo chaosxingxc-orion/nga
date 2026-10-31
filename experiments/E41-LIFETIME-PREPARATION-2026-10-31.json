@@ -1,0 +1,67 @@
+{
+  "scope": "E41 preparation only; no NPU/approval/allocation",
+  "plans": [
+    {
+      "case": "openjev9_short",
+      "plan": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e41_lifetime_openjev9_short_20261031_v2/plan.json",
+      "sha256": "a241206d6d9560589b64bed5cfe348a43ffc7fcfacff8e013dcc6f00b18a93d5",
+      "physical_chip": 4,
+      "shape": [
+        15,
+        186,
+        32,
+        128
+      ],
+      "forwards": 8,
+      "approved": false,
+      "launched": false
+    },
+    {
+      "case": "openjev2_long",
+      "plan": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e41_lifetime_openjev2_long_20261031_v2/plan.json",
+      "sha256": "3f30cd920af1c2957975600f6f8f6e4e5b5a80782c0455af282123c3ed006741",
+      "physical_chip": 1,
+      "shape": [
+        24,
+        3480,
+        16,
+        128
+      ],
+      "forwards": 8,
+      "approved": false,
+      "launched": false
+    }
+  ],
+  "tests": 11,
+  "cpu_input_preparation": {
+    "run": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e41_input_openjev2_long_20261031_v1",
+    "container_id": "5afa7a60d1ef326bc5df68e35912c0c152390a29fb5e9e45aeb7a03c8abeeaeb",
+    "actual_exit": 0,
+    "started_at": "2026-10-31T06:21:26.1528993Z",
+    "finished_at": "2026-10-31T06:22:11.54672181Z",
+    "devices": [],
+    "input_sha256": "78f4b943789eb5bc2bf71f4fb1efb261aeac19a26929613f7a1891bf0aa2b067",
+    "shape": [
+      24,
+      3480
+    ],
+    "id": "jeval:longbench-lsht:000152",
+    "files": {
+      "PLAN.json": "16014080dbc0fe2ea949cbbdb7f17892b23e46e61b895b37e412bf605c1281ec",
+      "COMPLETE.json": "4e7d88c61028e96b87337fff121b02abb9ca8bb4fab1b814332d2152dfe94149",
+      "EXIT": "93ff7811a209e2a8479230bbb9b6bc19f7f311d3af383ec350c1db2a7e7d5494",
+      "prepare.py": "af9d44e4f452449e321b8860d3e24e08b0ec10f3c8d19e5fd8a0bfed02740969",
+      "run.sh": "f8f398c89458b6e785c3c0ebd58c41efa71771ad2723dd486a46486497e7e39f",
+      "input.json": "78f4b943789eb5bc2bf71f4fb1efb261aeac19a26929613f7a1891bf0aa2b067"
+    }
+  },
+  "generator_sha256": "6504d8ce9fc43a965a57c56ecb1439e8c658716a6e69dd8979261f57368f05e0",
+  "test_sha256": "6d13b59c4f13f122dc8461dab6a18c3f236b60372e803f9bb347c1542d883937",
+  "limitations": [
+    "No full checkpoint/NPU runtime test of E41 source",
+    "Generated source substitutions need independent exact-code review",
+    "Separate E41 resource release pins/transaction required before release",
+    "Historical memory peaks are not full JEVal admission",
+    "Older unlaunched preparation generations retained"
+  ]
+}

@@ -148,3 +148,19 @@ The retained NPU container completed 8/8 and actually exited/0 at `06:14:21.5842
 Detached no-device CPU verifier `eb053292fc401dd772846ca1d2457fd8f15047fb3d2b6f93e31f28f58062e554` completed and actually exited/0 at `06:15:34.94236611Z`; report SHA `de50f86c79adffef2ffa3ed4e89c7c6ef0e8ded21b1ee7478d6058e700885d58`. Its post-exit attestation was generated from the real retained Docker generation.
 
 The approved release tool then reconstructed all item/control evidence, checked both real exits and current device occupancy, and released chip 1 using an external caller pin `7c6c56383d845b2549da2bfdfc46ce388aff50d31e5a9df63e0677fdbaa5fb64`. Journal `e40_release_openjev2_20261031_v1`, RELEASED SHA `e0834bb6e259cf2333e253bfe2ff828ba17526f6eefdebe8f7af482ed324bd45`; allocation after SHA `7a7fd6803c4e9e543b9727dd30ea27c7ac63480b1ae359bcfb9e9bae9d108783`, free=[4,1]. Independent post-transaction check confirmed only chip 1 ownership changed and other owners remain unchanged. Both containers stay inspectable. The new bounded actual-results Astra review remains pending. Full evidence and per-chip measurements: `experiments/E40-LIFETIME-NPU-RESULT-2026-10-31.json`.
+
+## 2026-10-31 bounded actual Astra results review
+
+The actual `gpt-6-astra` results review completed with bounded **PASS**. The child,
+runner terminal and EXIT are rc 0; all six committed output hashes were independently
+checked. Review SHA256: `c8b437f317ca502def449b2795115ddad5d5aea8553501d2a5df3de6efa5f68c`.
+The review reconstructed all eight item/attempt bindings and ten exact controls,
+validated the single-input allocated-memory reduction of 56.251953125 MiB
+(1.4225311729720558%) for L1/L1L2, unchanged reserved memory, and the exact chip-1
+release transition. It does not claim speedup, larger-shape safety, stage liveness,
+full JEVal admission, or independently observed live Docker facts. The original
+small-sample flag and `candidate_batch_admission=false` remain unchanged.
+
+Evidence: `experiments/ASTRA-E40-RESULTS-V1-2026-10-31.{md,json}` and frozen bundle
+`reference_inference/astra_reviews/e40_results_candidate_20261031_v1`, MANIFEST SHA
+`7726e8b272d309096a29921cc6035350d5d2ecb2521eca26af31c4b6803e75a3`.
