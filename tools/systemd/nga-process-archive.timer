@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily NGA three-day retention maintenance
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=300
+Unit=nga-process-archive.service
+
+[Install]
+WantedBy=timers.target

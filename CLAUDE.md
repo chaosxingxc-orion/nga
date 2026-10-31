@@ -162,6 +162,17 @@ milestone, move process documents older than three days from the root of `wiki/`
 briefs read the current conclusion and machine indexes first. The `tools/archive_process_docs.py`
 helper implements the move and supports `--dry-run`.
 
+Owner-requested automation deployed 2026-10-31: the management-host user timer
+`nga-process-archive.timer` runs daily with a three-day minimum age and persistent
+catch-up; user lingering is enabled. Unit definitions live in `tools/systemd/`.
+Eligible untracked Markdown/text process documents are considered only at the root
+of `wiki/`, `experiments/`, and `.local/reports/`; only dated training/NPU monitoring
+JSON snapshots in `.local/reports/` are automatically eligible. Current/latest
+reports, pre-registration, tracked files, symlinks, code and arbitrary JSON inputs
+are protected. Collisions are retained for inspection, never overwritten. No
+CephFS run directories are traversed. Current execution status and deployment
+proof are in `.local/archive-service/`; archives remain lookup-only.
+
 Purpose, hypothesis and setup are still written **before** a run launches; results and verdicts
 come from the run's own report files. The pre-registration files remain normative for metrics,
 splits and thresholds, even when their historical copies are archived. Every subagent brief that

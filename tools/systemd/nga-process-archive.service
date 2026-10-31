@@ -1,0 +1,9 @@
+[Unit]
+Description=Archive NGA local process documents older than three days
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/xingchao/workspace/nga
+ExecStart=/usr/bin/python3 -B -I /home/xingchao/workspace/nga/tools/archive_process_docs.py --root /home/xingchao/workspace/nga --status /home/xingchao/workspace/nga/.local/archive-service/LATEST.json
+StandardOutput=append:/home/xingchao/workspace/nga/.local/archive-service/service.log
+StandardError=append:/home/xingchao/workspace/nga/.local/archive-service/service.log
