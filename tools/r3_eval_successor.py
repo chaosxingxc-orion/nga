@@ -14,6 +14,14 @@ import time
 
 def load(p): return json.loads(Path(p).read_text())
 def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def next_pin(job):
+    plan = load(job['next_execution'])
+    if job.get('next_kind', 'evaluation') == 'training':
+        require(plan.get('schema') == 'r3-engineering-k1-plan-v1', 'engineering training successor required')
+        value = dict(plan, review_sha256='PENDING')
+        return hashlib.sha256((json.dumps(value, indent=2, sort_keys=True) + '\n').encode()).hexdigest()
+    require(job.get('next_kind', 'evaluation') == 'evaluation', 'unknown successor kind')
+    return sha(job['next_execution'])
 def require(ok, why):
     if not ok: raise RuntimeError(why)
 
@@ -43,10 +51,11 @@ def verify(path, pin):
     require(len({j['next_execution'] for j in jobs}) == len(jobs), 'duplicate successors')
     for j in jobs:
         require(type(j['chip']) is int and 0 <= j['chip'] < 8, 'invalid chip')
-        require(sha(j['next_execution']) == j['next_sha256'], 'next plan changed')
+        require(next_pin(j) == j['next_sha256'], 'next plan changed')
         p = load(j['next_execution'])
         require(p['chip'] == j['chip'] and p['scientific_acceptance'] is False and p['test_read'] is False, 'next scope/chip differs')
-        require(sha(p['launcher']) == p['tools'][p['launcher']], 'next launcher changed')
+        files = p['files'] if j.get('next_kind') == 'training' else p['tools']
+        require(sha(p['launcher']) == files[p['launcher']], 'next launcher changed')
     return d
 
 def predecessor(job):
@@ -72,7 +81,7 @@ def predecessor(job):
     return {'attempt': number, 'exit_code': end['exit_code'], 'container_id': actual['Id'], 'release_sha256': sha(attempt / 'RELEASE.json')}
 
 def tick(job):
-    require(sha(job['next_execution']) == job['next_sha256'], 'next plan changed')
+    require(next_pin(job) == job['next_sha256'], 'next plan changed')
     p = load(job['next_execution']); out = Path(p['out'])
     receipt_path = out / 'SUPERVISOR_RECEIPT.json'
     intent_path = out / 'SUCCESSOR_START_INTENT.json'

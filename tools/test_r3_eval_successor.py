@@ -65,4 +65,15 @@ class Successors(unittest.TestCase):
         self.write(self.out/'execution.json',dict(self.plan,chip=2))
         with self.assertRaisesRegex(RuntimeError,'next plan changed'):S.tick(self.job)
 
+    def test_engineering_training_successor_uses_canonical_pin_and_same_handoff(self):
+        self.plan.update(schema='r3-engineering-k1-plan-v1',review_sha256='PENDING')
+        self.write(self.out/'execution.json',self.plan);self.job['next_kind']='training'
+        self.job['next_sha256']=S.next_pin(self.job)
+        actual=self.previous()
+        with patch.object(S,'inspect',return_value=actual),patch.object(S.subprocess,'run') as run:
+            self.assertEqual(S.tick(self.job)['status'],'launch_requested')
+            self.assertEqual(run.call_args.args[0][-1],self.job['next_sha256'])
+        self.plan['schema']='r3-formal-k1-plan-v1';self.write(self.out/'execution.json',self.plan)
+        with self.assertRaisesRegex(RuntimeError,'engineering training'):S.next_pin(self.job)
+
 if __name__=='__main__':unittest.main()

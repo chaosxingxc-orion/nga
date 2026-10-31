@@ -28,6 +28,8 @@ def sha(path):
 
 
 def modules(code_dir):
+    # CPU verification must never add bytecode files to an immutable closure.
+    sys.dont_write_bytecode = True
     root = Path(code_dir).resolve()
     r0 = root.parent / 'r0_code'
     require(root.name == 'r3_code' and r0.is_dir(), 'frozen r3_code and sibling r0_code required')
