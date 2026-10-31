@@ -67,8 +67,9 @@ English only, as everywhere in this repository (CLAUDE.md §1).
 | [E36](E36-openjev-candidate-batch-20261030.md) | Open-Jev candidate batch memory | engineering admission | both 20-forward probes complete; memory improved but numerical admission failed; chip 1 released |
 
 | [E37](E37-openjev-batch-diagnostic-20261030.md) | Open-Jev no-op and layer-memory diagnostic | engineering diagnosis | 2026-10-31: 2B/9B completed 16 NPU forwards each and independent verification; candidate_batch_admission remains false |
-| [E38](E38-openjev-path-trace-20261031.md) | Open-Jev intermediate path trace | engineering diagnosis | v4 plans BLOCKED by actual Astra re-review; 85/85 CPU tests retained; no NPU/admission result |
+| [E38](E38-openjev-path-trace-20261031.md) | Open-Jev intermediate path trace | engineering diagnosis | v7 exact plans reviewed; 2B 8/8 NPU diagnosis and CPU verification complete; 9B awaits release; new release-only Astra v3 running after 53/53 isolated CPU tests; admission remains false |
 | [E39](E39-legacy-kev-current-reaudit-20261031.md) | current-date CPU re-audit of 28 legacy Kev panels | evidence audit | v2 CPU audit complete: 28 panels/8,462 receipts; actual Astra bounded pass with dated clarifications; historical bindings unchanged |
+| [E40](E40-openjev-lifetime-candidate-20261031.md) | Open-Jev full-shape GDN lifetime candidates | engineering preparation | Delete-only AST candidates and 7/7 structural tests; tensor validation pending; no NPU or full-test admission |
 | [R3-PREFLIGHT](R3-training-engineering-preflight-20261031.md) | Qwen3.5-0.8B three-step training-engineering preflight | engineering | detached NPU smoke passed on chip 1; terminal and guarded release verified; no test-set or training-benefit claim |
 
 ## Where the artifacts live
