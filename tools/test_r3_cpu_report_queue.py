@@ -46,6 +46,18 @@ class CPUQueueTests(unittest.TestCase):
         self.write(root/'attempts/2/EXIT.json',{'attempt':1,'exit_code':0})
         with self.assertRaisesRegex(RuntimeError,'terminal mismatch'):Q.ready(self.job)
 
+    def test_r0_job_uses_same_release_gate_and_serial_lane(self):
+        self.job.update(kind='r0_report',output=str(Path(self.job['eval_out'])/'R0RESCORE_COMPLETE.json'))
+        self.doc['r0_report']={'tool':'/frozen/r0.py','preparation':'/frozen/PREPARATION.json',
+                              'preparation_sha256':'prep-pin','execution_sha256':'exec-pin'}
+        self.assertEqual(Q.job_ready(self.path,self.doc,self.job),'waiting_inference')
+        self.inference_ready();self.assertEqual(Q.job_ready(self.path,self.doc,self.job),'ready')
+        command=Q.report_command(self.doc,self.job)
+        self.assertEqual(command[command.index('--run')+1],self.job['eval_out'])
+        self.assertEqual(command[command.index('--execution-sha256')+1],'exec-pin')
+        with patch.object(Q,'observe',return_value={'status':'reporting','pid':9}),patch.object(Q.subprocess,'Popen') as spawn:
+            Q.tick(self.path,self.pin,self.doc);spawn.assert_not_called()
+
     def test_previous_failure_during_new_attempt_waits_then_accepts_success(self):
         self.inference_ready();root=Path(self.job['eval_out'])
         self.write(root/'ENGINEERING_EVAL_EXIT.json',{'attempt':1,'exit_code':7})
@@ -139,6 +151,20 @@ class CPUQueueTests(unittest.TestCase):
         self.assertEqual(Q.job_ready(self.path,doc,job),'comparison_blocked')
         end.write_bytes(original);Path(reports[0]['output']).write_text('{}')
         with self.assertRaisesRegex(RuntimeError,'report changed'):Q.job_ready(self.path,doc,job)
+
+    def test_gated_comparison_waits_for_r0_and_passes_exact_run(self):
+        doc,job,_=self.comparison_fixture()
+        r0={'id':'r0','kind':'r0_report','eval_out':str(self.root/'r0'),
+            'output':str(self.root/'r0/R0RESCORE_COMPLETE.json')}
+        doc['jobs'].append(r0);job['r0_report']='r0'
+        self.assertEqual(Q.job_ready(self.path,doc,job),'waiting_reports')
+        self.write(Path(r0['output']),{'exit_code':0})
+        self.write(Q.workdir(self.path,r0)/'EXIT.json',{'exit_code':0,'output_sha256':Q.sha(r0['output'])})
+        self.assertEqual(Q.job_ready(self.path,doc,job),'ready')
+        command=Q.report_command(doc,job)
+        self.assertEqual(command[command.index('--r0-run')+1],r0['eval_out'])
+        Path(r0['output']).write_text('{}')
+        with self.assertRaisesRegex(RuntimeError,'dependency report changed'):Q.job_ready(self.path,doc,job)
 
     def test_real_comparison_worker_uses_common_serial_cpu_lane(self):
         doc,job,reports=self.comparison_fixture();root=Q.workdir(self.path,job);root.mkdir(parents=True)

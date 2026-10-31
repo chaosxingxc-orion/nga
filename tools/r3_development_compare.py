@@ -141,6 +141,10 @@ def main():
     result = compare(candidates, baseline, deps[1], S, incumbents, gate)
     result['inputs'] = {str(Path(path).resolve()): R.sha(path)
         for path in args.candidate + [args.baseline] + (args.incumbent or [])}
+    if args.r0_run:
+        for name in ('R0RESCORE_COMPLETE.json', 'R0RESCORE_VERIFIED.json', 'instruct/report.json', 'SHA1SUMS'):
+            path = Path(args.r0_run) / name
+            result['inputs'][str(path.resolve())] = R.sha(path)
     result['code'] = {'selector_sha256': args.selector_sha256, 'report_tool_sha256': args.report_tool_sha256,
                       'closure_manifest_sha256': R.sha(Path(args.frozen_code_dir).parent / 'manifest.json')}
     out = Path(args.output)

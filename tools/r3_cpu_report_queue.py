@@ -67,7 +67,20 @@ def verify(path, pin):
     require(jobs and len({j['id'] for j in jobs}) == len(jobs), 'empty or duplicate jobs')
     reports = [j for j in jobs if j.get('kind', 'report') == 'report']
     comparisons = [j for j in jobs if j.get('kind') == 'comparison']
-    require(len(reports) + len(comparisons) == len(jobs), 'unknown CPU job kind')
+    r0_reports = [j for j in jobs if j.get('kind') == 'r0_report']
+    require(len(reports) + len(comparisons) + len(r0_reports) == len(jobs), 'unknown CPU job kind')
+    if r0_reports:
+        require(len(r0_reports) == 1, 'one full R0 report required')
+        config = doc['r0_report']
+        for filename, digest in config['files'].items():
+            require(Path(filename).is_absolute() and sha(filename) == digest, 'R0 CPU dependency changed')
+        require(config['tool'] in config['files'] and
+                str(Path(config['tool']).with_name('r3_r0_prepare.py')) in config['files'], 'R0 tools not pinned')
+        require(sha(config['preparation']) == config['preparation_sha256'], 'R0 preparation changed')
+        for job in r0_reports:
+            require(Path(job['eval_out']).is_absolute() and
+                    Path(job['output']) == Path(job['eval_out']) / 'R0RESCORE_COMPLETE.json', 'R0 output differs')
+            require(sha(Path(job['eval_out']) / 'execution.json') == config['execution_sha256'], 'R0 execution changed')
     for key in ('eval_out',):
         require(len({j[key] for j in reports}) == len(reports), 'duplicate ' + key)
     for key in ('output',):
@@ -84,11 +97,14 @@ def verify(path, pin):
             require(Path(config[key]).is_absolute() and sha(config[key]) == config[key + '_sha256'],
                     'comparison code changed')
         report_ids = {j['id'] for j in reports}
+        r0_ids = {j['id'] for j in r0_reports}
         for job in comparisons:
             require(len(job['candidate']) == 2 and len(set(job['candidate'])) == 2, 'two candidate reports required')
             require(not job.get('incumbent') or len(job['incumbent']) == 2 and len(set(job['incumbent'])) == 2,
                     'two incumbent reports required')
-            require(set(comparison_dependencies(job)) <= report_ids, 'comparison dependency is not a report job')
+            require(set(job['candidate'] + [job['baseline']] + job.get('incumbent', [])) <= report_ids,
+                    'comparison dependency is not a report job')
+            require(not job.get('r0_report') or job['r0_report'] in r0_ids, 'invalid R0 dependency')
             require(Path(job['output']).name == 'development_comparison.json', 'comparison output filename required')
     return doc
 
@@ -141,11 +157,11 @@ def ready(job):
 
 
 def comparison_dependencies(job):
-    return job['candidate'] + [job['baseline']] + job.get('incumbent', [])
+    return job['candidate'] + [job['baseline']] + job.get('incumbent', []) + ([job['r0_report']] if job.get('r0_report') else [])
 
 
 def job_ready(path, doc, job):
-    if job.get('kind', 'report') == 'report':
+    if job.get('kind', 'report') in ('report', 'r0_report'):
         return ready(job)
     by_id = {j['id']: j for j in doc['jobs']}
     for name in comparison_dependencies(job):
@@ -161,6 +177,11 @@ def job_ready(path, doc, job):
 
 
 def report_command(doc, job):
+    if job.get('kind') == 'r0_report':
+        config = doc['r0_report']
+        return [sys.executable, '-P', config['tool'], '--run', job['eval_out'],
+                '--preparation', config['preparation'], '--sha256', config['preparation_sha256'],
+                '--execution-sha256', config['execution_sha256']]
     if job.get('kind') == 'comparison':
         config = doc['comparison']; by_id = {j['id']: j for j in doc['jobs']}
         command = [sys.executable, '-P', config['tool'], '--candidate',
@@ -171,6 +192,8 @@ def report_command(doc, job):
                    '--output', job['output']]
         if job.get('incumbent'):
             command += ['--incumbent', *[by_id[x]['output'] for x in job['incumbent']]]
+        if job.get('r0_report'):
+            command += ['--r0-run', by_id[job['r0_report']]['eval_out']]
         return command
     return [sys.executable, '-P', doc['report_tool'], '--run', str(Path(job['eval_out']) / 'results'),
             '--frozen-code-dir', str(Path(doc['closure']) / 'r3_code'), '--output', job['output']]
@@ -208,9 +231,18 @@ def worker(path, pin, job_id):
                 rc = 128 - rc
             if rc == 0:
                 report = load(job['output'])
-                schema = 'r3-development-comparison-v1' if job.get('kind') == 'comparison' else 'r3-selection-report-v1'
-                require(report.get('schema') == schema and
-                        report.get('scientific_acceptance') is False, 'report output scope differs')
+                if job.get('kind') == 'r0_report':
+                    require(type(report.get('exit_code')) is int and report['exit_code'] == 0
+                            and report.get('run_of_record') is True and report.get('limit_groups') == 0
+                            and report.get('scientific_acceptance') is False
+                            and report.get('candidate_test_read') is False, 'R0 completion scope differs')
+                    require(sha(report['verified']) == report['verified_sha256'] and
+                            sha(Path(job['eval_out'])/'instruct/report.json') == report['report_sha256'],
+                            'R0 verified output identity differs')
+                else:
+                    schema = 'r3-development-comparison-v1' if job.get('kind') == 'comparison' else 'r3-selection-report-v1'
+                    require(report.get('schema') == schema and
+                            report.get('scientific_acceptance') is False, 'report output scope differs')
                 if job.get('kind') == 'comparison':
                     require(report.get('test_read') is False, 'comparison read test')
     except BaseException:
