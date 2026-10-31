@@ -43,6 +43,30 @@ class Readiness(unittest.TestCase):
             doc = json.loads((Path(d) / 'out.json').read_text())
             self.assertEqual(doc['checks']['independent_astra_review']['status'], 'INVALID')
 
+    def test_bare_k0_pass_and_exit_zero_cannot_be_ready(self):
+        """Queue hand-offs and forged terminal markers remain fail-closed."""
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            prep = root / 'PREPARED.json'
+            prep.write_text(json.dumps({'status': 'PASS'}))
+            evidence = root / 'evidence'; evidence.mkdir()
+            (evidence / 'K0_PRECHECKS.json').write_text(json.dumps({
+                'schema': 'r3-fresh-k0-prechecks-v1', 'status': 'PASS',
+                'scientific_acceptance': False, 'test_read': False}))
+            resume = root / 'resume'; resume.mkdir()
+            (resume / 'TRAIN_EXIT.json').write_text(json.dumps({
+                'exit_code': 0, 'attempt': 1, 'scientific_acceptance': False,
+                'test_read': False}))
+            self.assertFalse(R.resume_source_ready(resume / 'plan.json'))
+
+            # The K0 helper rejects the incomplete bundle; only its status
+            # field must never be enough to establish a PASS.
+            helper, _ = R.fresh_precheck_validator(prep)
+            with self.assertRaises(Exception):
+                helper.validate_bundle(evidence / 'K0_PRECHECKS.json',
+                                       R.sha(evidence / 'K0_PRECHECKS.json'),
+                                       str(R.MODEL))
+
 
 if __name__ == '__main__':
     unittest.main()
