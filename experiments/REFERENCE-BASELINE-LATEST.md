@@ -1,8 +1,8 @@
 # 当前参考基线报告入口（最新）
 
-更新时间：20261031T032919Z
+更新时间：20261031T033450Z
 
-最新累计报告：[REFERENCE-BASELINE-REPORT-20261031T032919Z.md](REFERENCE-BASELINE-REPORT-20261031T032919Z.md)。
+最新累计报告：[REFERENCE-BASELINE-REPORT-20261031T033450Z.md](REFERENCE-BASELINE-REPORT-20261031T033450Z.md)。
 
 这是当前参考基线阶段的最新报告入口。以后每个 milestone 完成后，新建带时间戳的报告并更新本文件；旧报告保留在归档目录或旧文件名中，只用于追溯，不作为当前事实权威。指标不得因刷新而改变；若指标、分母、公式或审查范围改变，必须新建代次并明确变更。
 
