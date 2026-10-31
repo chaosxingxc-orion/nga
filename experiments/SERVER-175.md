@@ -1,5 +1,24 @@
 # Server 175 (k8s-node1) — probe on 2026-10-28
 
+## Connection correction, 2026-10-31
+
+Use SSH alias **`npu`**, which resolves to `100.100.135.175`, and verify
+`hostname` is `k8s-node1`. The literal command `ssh 175` resolved to `0.0.0.175`
+in the current environment and timed out; that failure is not evidence that the
+actual server is unavailable. A fresh `ssh npu` observation succeeded on
+2026-10-31. Current allocation and container identity must still be checked
+before launching; the older occupancy notes below are dated observations.
+
+Read-only observation saved at
+`/mnt/cephfs/xingchao/experiments/jev/reference_inference/e38_live_observation_20261031T030502Z/OBSERVATION.json`
+(SHA256 `3af993b83c57ce668932d9152838b1d80b39de3d410b2ed5c5bc7c852ef65bef`).
+All eight NPUs had no running process at this observation; chip 4 remained
+allocated to E38 2B and chip 1 was the only entry in `free[]`. The E38 2B NPU and
+CPU verifier containers were both actually exited/0 with their recorded
+StartedAt/FinishedAt. This observation is not a release approval.
+
+## Historical probe, 2026-10-28
+
 - 256 CPU cores, ~2 TB RAM, Python 3.10.12, `pyarrow` 21 present; `torch` is the CPU build; **no `torch_npu`, no `transformers`** in the system Python.
 - 8 Ascend NPUs; at probe time **all 8 were held by a vLLM deployment** (`VLLMWorker_DP`, ~59 GB HBM each). Do not schedule on them without coordination.
 - `/mnt/cephfs` mounted (66 TB, 91% used, 6 TB free); the dataset and model mirrors are visible. `/home` has 70 GB free.

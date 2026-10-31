@@ -137,6 +137,7 @@ REGISTERED
 
 ### P3：完成 Open-Jev JEVal 并更新参考矩阵
 
+- E38 完成后先做独立的数值与内存准入。2B 的首个观测差异在第一层 `in_proj_qkv` 输出，早于 GDN core；chunk8 仍不等价。保持完整运算形状的生命周期优化及必要的字节搬运需另立实验，不能从 E38 成功直接跳到全量 JEVal。详见 [后续准入路线](../experiments/OPENJEV-JEVAL-NEXT-ADMISSION-2026-10-31.md)。
 - 只使用准入通过的原生结果；严格分开 hard、expected、valid、overlength 和 score 分母。
 - 按已登记公式并列输出不同文献口径，执行独立计分和限定审查。
 - 更新增量索引，不覆盖旧矩阵。
@@ -165,7 +166,7 @@ REGISTERED
 1. 复用已登记且已审查的 NPU 工作；chip 4 的 2B 诊断已完成但仍由该代次持有，不能把瞬时 `npu-smi` 空闲当成可重新分配。
 2. release 审查期间并行做 CPU 修复、纯 CPU 回归、审查包制作、报告整理和 watchdog 准备；不使用未经审查的占位任务填卡。
 3. Astra PASS 后重新核验 Docker、`npu-smi`、allocation 和 owner；由 release 工具完成 2B 释放，独立确认 chip 4 为 free 后立即串行启动 9B。
-4. 9B E38 完成并验收后，立即进入两个 Open-Jev JEVal 的原生 test 推理、独立计分和报告刷新；每项均用 detached、可恢复、带 heartbeat 的自动任务。
+4. 9B E38 完成并验收后，继续数值/内存准入实验；原生完整 test 路径通过后立即进入两个 Open-Jev JEVal 推理、独立计分和报告刷新。所有长任务均用 detached、可恢复、带 heartbeat 的自动执行。
 5. 每芯片记录吞吐、芯片数、reserved/allocated/peak 显存、heartbeat、终态和释放时间。没有安全且已登记的 NPU 工作时，受控空闲优于污染正式实验。
 
 ## 8. 当前明确不能做的事
