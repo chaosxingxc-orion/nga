@@ -1,7 +1,7 @@
 # Current Jev experiment conclusions
 
 Updated: 2026-10-31  
-Authority: this file is the current remote collaboration entry. Detailed run procedures, receipts, container logs and intermediate reviews remain local under `experiments/` and CephFS. The remote wiki keeps only conclusions and the information needed for coordination.
+Authority: this file is the current remote collaboration entry. Detailed run procedures, receipts, container logs and intermediate reviews remain in the local dated archive and CephFS. The remote wiki keeps only conclusions and the information needed for coordination.
 
 ## Current position
 
@@ -24,7 +24,7 @@ The most stable evidence is that frozen readout and post-processing can yield en
 
 ## Dimension 2 — tasks, published metrics and reference results
 
-The numbers below come from the frozen test matrix [`REFERENCE-BASELINE-MATRIX-2026-10-31.json`](../experiments/REFERENCE-BASELINE-MATRIX-2026-10-31.json), SHA256 `03459facf6f86a919e10d9a0acef413b89c5a5d4ffd232352260722b05d0266e`. Percentages are accuracy; other values retain their native scale.
+The numbers below come from the frozen test matrix `experiments/REFERENCE-BASELINE-MATRIX-2026-10-31.json`, SHA256 `03459facf6f86a919e10d9a0acef413b89c5a5d4ffd232352260722b05d0266e`. Percentages are accuracy; other values retain their native scale.
 
 ### Kev native test sets
 
@@ -110,7 +110,7 @@ The main missing artifacts are business-authored rules, equivalence classes, unk
 
 D1 remains the current 38-cell reference scope; it is not expanded. Internal experiments will build a separate NxM product: N model sizes (first Qwen3.5-0.8B, then 2B, 4B and 9B) × M frozen tasks (Kev decision/transfer, Typed, JEVal and later gap datasets). Every cell uses the same harness, test lock, paired decision-level metrics and resource evidence; missing cells are `blocked`, never zero.
 
-Start with Qwen3.5-0.8B K0 untuned readout, then K1 LoRA. Seeds 2 and 3 are registered before any result is read. K1 dev gates and test lock are in [`R3-TRAINING-WAVE-PREREG-2026-10-31.md`](../experiments/R3-TRAINING-WAVE-PREREG-2026-10-31.md). K2 option-restricted loss is the fixed challenger. K4/RL and real-business integration are not started early.
+Start with Qwen3.5-0.8B K0 untuned readout, then K1 LoRA. Seeds 2 and 3 are registered before any result is read. K1 dev gates and test lock are in `R3 training preregistration (local archive)`. K2 option-restricted loss is the fixed challenger. K4/RL and real-business integration are not started early.
 
 ### Open learning/optimization methods and engineering base
 
@@ -136,4 +136,4 @@ Every RL result uses the same test split, decision-level paired protocol and cos
 - **Open:** Open-Jev×JEVal numeric/memory admission; production FIFO adapter, ready manifest and watchdog deployment; formal K1 seed 2/3 training; post-training test-lock evaluation; business-gap datasets; RL baseline.
 - **Next order:** freeze the training code snapshot → complete the efficiency-window validation while the NPU queue keeps consuming work → launch K1 seeds 2/3 → score dev asynchronously and select → write `FINAL.json` → read test once → refresh this file and a new cumulative report.
 
-Remote collaboration should use this file and the current pointer in `experiments/REFERENCE-BASELINE-LATEST.md`. Historical experiment entries and raw review material are archival lookup only.
+Remote collaboration should use this file. Historical experiment entries, raw reviews and milestone reports are local archival lookup only; they are intentionally absent from the remote wiki.

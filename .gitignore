@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 survey/.tr/
 /.local/architecture-history/
+
+# Local process archive; excluded from the Astra-facing repository surface.
+.local/archive/

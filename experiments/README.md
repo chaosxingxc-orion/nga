@@ -13,7 +13,7 @@ Decisions this set implements (2026-10-28, survey §2.2.1 "the fixed structure")
 - Levels (states) are expert-defined: name, definition, and type (`boolean | nominal | ordinal`) are all required.
 - Model output: a level distribution per question. Harness: cumulative-mass thresholds, residual → C (unknown / deny); margin + explicit `abstain` for exclusive sets.
 - Smallest pair first: `Qwen3-0.6B` (attention-only) vs `Qwen3.5-0.8B` (hybrid) — this pair *is* the defect-11 control. There is no 0.3B Qwen locally.
-- Server: `175` (k8s-node1) has cephfs mounted; its 8 NPUs are currently fully occupied by a vLLM deployment (see `SERVER-175.md`). **Update 2026-10-30**: the vLLM deployment was gone on 2026-10-29 and the user authorised NPU use on host 175 for the first SFT round on 2026-10-30, so the 8 chips of `npu` (175) are in use for this project. Host `npu2` is off-limits; only `npu` is used (`ENV-VERL.md`).
+- Server: `175` (k8s-node1) has cephfs mounted; its 8 NPUs are currently fully occupied by a vLLM deployment. The host and container details are maintained in the local archive; the tracked task set keeps only the portable task definition.
 
 ## Tasks
 
@@ -32,7 +32,6 @@ T1–T3 need no new labels and can run on CPU for the 0.6B/0.8B pair (slow but f
 ## Files
 
 - `build_tasks.py` — builds T1–T3 jsonl files + `manifest.json` from the local mirrors (run with `python3 -I`, needs `pyarrow`).
-- `SERVER-175.md` — what was found on the server and what is still needed there.
 - Record format (all tasks): `{"task": ..., "variant": ..., "group_id": ..., "input": str, "task_definition": str, "question": str, "levels": [{"id","name","definition"}], "level_type": "ordinal|nominal|boolean", "candidate_set": "exclusive|stackable", "gold": optional}`.
 
 ## Correspondence to the research proposal

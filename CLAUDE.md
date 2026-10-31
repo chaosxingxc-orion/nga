@@ -2,21 +2,7 @@
 
 Project guidance for Claude Code in the `nga` repository.
 
-## 1. Language rule (first and overriding)
-
-**Everything is written in English.** This applies to every request sent to a model API, every
-internally processed document (plans, proposals, experiment notes, manifests, logs, code comments,
-docstrings, commit messages, PR descriptions) and every memory file.
-
-- If the user converses in another language, first translate the input into English, then carry out
-  the work in English. Replies to the user may use the user's language; artifacts never do.
-- Any non-English text found in the engineering plan (`proposal/`, `experiments/`, this file) must be
-  translated into English when encountered. Do not add new non-English text anywhere in the repo.
-- Status 2026-10-29: the whole repository is English, including the survey report (chapters 1–9,
-  translated from the Chinese original on 2026-10-29; the Chinese original is in git history up to
-  commit 82d2a49). Do not add non-English text anywhere.
-
-## 2. Multi-agent work allocation (second rule)
+## 2. Multi-agent work allocation
 
 Day-to-day tasks are carried out as multi-agent collaboration. The main session (Fable 5.1) is the
 orchestrator; it delegates execution to subagents via the Agent tool with an explicit `model`
@@ -32,7 +18,7 @@ Rules of engagement:
 
 - Fable plans and splits the task first, writes a brief per subtask (goal, inputs, files, what is
   already ruled out, acceptance checks), then spawns the subagents, in parallel where subtasks are
-  independent. Briefs and all subagent I/O are in English (rule 1).
+  independent.
 - Sonnet and Opus agents report results, not conclusions about the plan; Fable verifies their output
   against the acceptance checks (re-running tests, diffing, spot-reading) before accepting it, and
   sends corrections back to the same agent rather than redoing the work itself.
@@ -99,8 +85,7 @@ These were established by the survey and are admission conditions for any task:
   the 10 KB/s per connection recorded earlier. Large downloads are cheap now; re-measure before
   assuming either figure. Parallel downloader: `/mnt/cephfs/xingchao/omni/manifests/jev/pdl.py`.
 - GitHub: remote `origin` = `git@github.com:chaosxingxc-orion/nga.git`, SSH through the proxy via the
-  repo's `core.sshCommand`. `gh` is not installed. Commit messages in English; push to `main` after
-  committing finished work.
+  repo's `core.sshCommand`. `gh` is not installed. Push to `main` after committing finished work.
 - Local mirrors of datasets and models are under `/mnt/cephfs/xingchao/` (see memory). Grep cephfs
   for a checkpoint before downloading anything, and search **both** `/mnt/cephfs/xingchao/models/jev/`
   and `/mnt/cephfs/xingchao/omni/models/jev/` (datasets likewise under `omni/datasets/jev/`): a model
@@ -153,15 +138,22 @@ Rules:
   twice produced a perfect number that came from the measurement being broken rather than the model
   being good, so a clean zero is a reason to look harder, not to celebrate.
 
-## 8. Experiment records (wiki)
+## 8. Experiment records and archive policy
 
-Every experiment is recorded in `wiki/`, one file per experiment, and pushed to `origin/main`
-(`wiki/README.md` holds the rule and the index, `wiki/TEMPLATE.md` the sections).
+The remote GitHub Wiki is a collaboration surface for current conclusions only. Keep
+`wiki/CURRENT-CONCLUSIONS.md` self-contained and refresh it after each milestone. Do not publish
+raw logs, dated process pages, intermediate reviews or old milestone reports to the remote wiki.
 
-- Purpose, hypothesis and setup are written **before** the run launches; results and verdict after,
-  from the run's own report files. Corrections are dated notes, never silent edits.
-- The pre-registration files under `experiments/` stay normative for metrics, splits and thresholds.
-- Every subagent brief that launches a run includes the wiki-entry requirement.
+Process records remain locally for bounded lookup under `.local/archive/YYYY-MM-DD/`. At each
+milestone, move process documents older than three days from the root of `wiki/` and
+`experiments/` into the dated archive. The archive is not current-fact authority; Astra-facing
+briefs read the current conclusion and machine indexes first. The `tools/archive_process_docs.py`
+helper implements the move and supports `--dry-run`.
+
+Purpose, hypothesis and setup are still written **before** a run launches; results and verdicts
+come from the run's own report files. The pre-registration files remain normative for metrics,
+splits and thresholds, even when their historical copies are archived. Every subagent brief that
+launches a run names the current conclusion entry and the local archive path for bounded evidence.
 
 ## 9. Training performance
 
@@ -189,6 +181,5 @@ repository and pushes to the same `origin/main`. Treat the repo as shared:
   does not amend them, and neither does a commit by either agent.
 - The owner's 2026-10-30 architecture task extends the documentation work to `achitecture design/`.
   Preserve its supplied `05-architecture-brief-and-decisions.md` and `06-architecture-diagrams-md.md`
-  as source snapshots in their original language; this source-preservation exception does not change
-  the English requirement for new NGA artifacts. Keep subsequent analysis, architecture revisions,
+  as source snapshots in their original language. Keep subsequent analysis, architecture revisions,
   diagrams, and the reading index in that same directory, with their decision status explicit.
