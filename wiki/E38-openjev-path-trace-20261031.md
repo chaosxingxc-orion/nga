@@ -278,3 +278,12 @@ equivalence claim or a training-benefit claim. Chip 4 remains allocated to the
 2B generation because the old release-only tool was blocked by Astra; 9B remains
 unlaunched pending a newly reviewed release transaction and the required serial
 resource handoff.
+
+The 2B structured report gives exact repeat and hook controls for every path:
+all within-path repeats and traced/untraced hook comparisons have zero maximum
+logit/probability/wire delta and unchanged decisions. The original-versus-chunk8
+comparison is reproducible in both repetitions, with maximum logit delta
+`0.05192685127258301`, probability delta `0.00351450921098978` and wire delta
+`0.003765545583203328`; the decision did not change, but serialized predictions
+are not exact. This localizes a repeatable descriptive difference for E38 only;
+it does not identify kernel causality and does not admit the chunked path.
