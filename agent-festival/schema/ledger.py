@@ -57,6 +57,9 @@ def ledger_errors(doc: dict) -> list[str]:
             for e in v.iter_errors(doc)]
     if errs:
         return errs
+    # sequence ORDER is checked, density is not: the machine writes gap-free
+    # consecutive seqs, but a gap forges no order and crosses no state — no
+    # falsifiable surface, so no rule (deliberate, not an omission).
     # cross-event rule: arbitration_seq must be strictly increasing, and within
     # the int64 domain (the machine's counter domain — Python's bignum would
     # otherwise accept a document the Go typed view rejects, forking the
@@ -154,6 +157,10 @@ def ledger_errors(doc: dict) -> list[str]:
     # durable form (R10 BLOCKER, mirrors the Go checker)
     for i, e in enumerate(doc["events"]):
         status = e.get("outcome", {}).get("status", "")
+        if e["event_type"] == "adoption" and status == "conflict" and e.get("idempotency"):
+            errs.append(f"events/{i}: conflict event carries idempotency — the loser's digest "
+                        f"never enters the registry; carrying it is a bypass write, not a "
+                        f"machine transition")
         needs_idem = e["event_type"] == "effect" or status in ("adopted", "reused")
         if needs_idem and not e.get("idempotency"):
             errs.append(f"events/{i}: {e['event_type']} event (status {status!r}) must carry "
@@ -275,8 +282,8 @@ def main() -> int:
     # corpus that shrank without its pin rebased must fail here too
     n_valid = len(list((ex / "valid").glob("*.json")))
     n_invalid = len(list((ex / "invalid").glob("*.json")))
-    if (n_valid, n_invalid) != (9, 25):
-        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 9+25 (corpus shrank?)")
+    if (n_valid, n_invalid) != (9, 26):
+        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 9+26 (corpus shrank?)")
         bad += 1
     for e in check_status_lockstep() + check_lockstep():
         print(f"[ledger] FAIL {e}")

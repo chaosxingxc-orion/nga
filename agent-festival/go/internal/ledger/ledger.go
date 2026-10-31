@@ -279,6 +279,10 @@ func Errors(doc map[string]any) []string {
 		return []string{"ledger: document does not fit the typed ledger view (an integer field beyond the int64 domain, or a type mismatch — the machine never writes such values): " + err.Error()}
 	}
 	var errs []string
+	// sequence ORDER is checked, density is not: the machine writes
+	// gap-free consecutive seqs, but a gap forges no order (the arbitration
+	// order is the ordering relation, not the density) and crosses no state
+	// — no falsifiable surface, so no rule (deliberate, not an omission).
 	prevSeq := int64(-1)
 	for i, e := range d.Events {
 		if e.ArbitrationSeq <= prevSeq {
@@ -356,14 +360,19 @@ func Errors(doc map[string]any) []string {
 			state[op] = e.Outcome.Status
 		}
 	}
-	// idempotency presence: the machine writes idempotency on EVERY event
-	// except conflict (the loser's digest never enters the registry) — an
-	// adopted/reused/effect event without it is a bypass write, and
-	// absorbing one forks the replay state away from the durable form: the
-	// loader skips nil-idempotency events entirely, so the machine resumes
-	// from a state the file contradicts and its next write bricks the
-	// ledger (R10 BLOCKER).
+	// idempotency presence, bidirectional: the machine writes idempotency on
+	// EVERY event except conflict (the loser's digest never enters the
+	// registry) — an adopted/reused/effect event without it is a bypass
+	// write, and absorbing one forks the replay state away from the durable
+	// form: the loader skips nil-idempotency events entirely, so the machine
+	// resumes from a state the file contradicts and its next write bricks
+	// the ledger (R10 BLOCKER). The reverse holds too: a conflict event
+	// CARRYING idempotency launders the loser's digest into the registry the
+	// replay matcher reads — a bypass write (R12 M-1).
 	for i, e := range d.Events {
+		if e.EventType == "adoption" && e.Outcome.Status == "conflict" && e.Idempotency != nil {
+			errs = append(errs, fmt.Sprintf("events/%d: conflict event carries idempotency — the loser's digest never enters the registry; carrying it is a bypass write, not a machine transition", i))
+		}
 		needsIdem := e.EventType == "effect" || e.Outcome.Status == "adopted" || e.Outcome.Status == "reused"
 		if needsIdem && e.Idempotency == nil {
 			errs = append(errs, fmt.Sprintf("events/%d: %s event (status %q) must carry idempotency — the machine writes it on every non-conflict event; its absence is a bypass write, not a machine transition", i, e.EventType, e.Outcome.Status))

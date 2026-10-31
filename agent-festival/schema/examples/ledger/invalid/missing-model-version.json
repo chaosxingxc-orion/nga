@@ -58,7 +58,6 @@
       "versions": {
         "evidence": "ev-1",
         "rule": "rule-credit-v3",
-        "model": "kev-9b",
         "readout": "readout-v2",
         "policy": "policy-adopt-v1"
       },
@@ -87,7 +86,6 @@
       "versions": {
         "evidence": "ev-1",
         "rule": "rule-credit-v3",
-        "model": "kev-9b",
         "readout": "readout-v2",
         "policy": "policy-adopt-v1"
       },
