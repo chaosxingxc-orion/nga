@@ -188,9 +188,9 @@ flowchart LR
     GO["Business objective and owning scope"] --> DEF["Agent definition: semantics, models, primitives, workflows and APIs"]
     DEF --> CAN["Development: candidate and bound dependencies"]
     CAN --> EV["Admitted isolated evaluation and comparison"]
-    EV --> PUB["Control: scoped activation and active-task policy"]
-    PUB --> REL["Management: effective release view"]
-    REL --> TASK["Runtime: T1 / D1 / B1, waits and provider outcomes"]
+    EV --> PUB["Control: ACT1 scoped activation and active-task policy"]
+    PUB --> REL["Management: view of effective binding and release"]
+    REL --> TASK["Runtime: ACT1 / T1 / D1 / B1, waits and provider outcomes"]
     TASK --> CASE["Operations: reviewed case and attribution"]
     CASE -->|"Reusable improvement"| CAN
     CASE -->|"Existing qualified capability"| REC["Authorized task recovery"]
@@ -198,3 +198,5 @@ flowchart LR
 ```
 
 All three states use all four planes; the node labels emphasize each handoff rather than assigning a state to only one plane. User-plane interactions express goals, review evidence, initiate tasks and request operational action throughout. Management preserves definitions/cases, runtime performs the work, and control admits effective changes. Runtime recovery need not await a new release; a reusable change does not silently become a task-local patch. The manifest can reference independently deployed components. Customer package versions and active waits remain bound unless an explicit migration is admitted.
+
+The [core object and handoff contract](23-core-objects-and-plane-handoffs.md) makes ACT1 an explicit scoped binding separate from immutable release content. Its object diagram and command/receipt examples distinguish catalog registration, completed evaluation and effective publication.

@@ -29,6 +29,8 @@ Current cross-cutting proposal: [document 21](21-runtime-primitives-and-capabili
 
 Current integrated review: [document 22](22-integrated-lifecycle-and-plane-review.md) rechecks those proposals across the whole, three states and four planes. It proposes shared agent/release/task/case lineage and seven cross-plane handoffs, distinguishes immediate task recovery from reusable evolution, and adds twelve acceptance cases. This develops AQ-08/AQ-11/AQ-14–AQ-18 without declaring them closed.
 
+Current object-contract proposal: [document 23](23-core-objects-and-plane-handoffs.md) specifies AgentDefinition, immutable ReleaseManifest, scoped ActivationBinding, Task and OperationalCase; their authority/mutation boundaries; seven handoff envelopes; and sixteen adversarial cases. The illustrative credit trace covers development through evolution. AQ-02/AQ-11/AQ-14–AQ-18 remain OPEN pending agreement and qualification of these details.
+
 ## 2. The 18 questions and suggested discussion order
 
 | ID | Decision to discuss | Kind | Proposed participants |
@@ -159,7 +161,7 @@ Current focused discussion: [document 20](20-task-decision-request-identity.md) 
 - **Failure case:** the UI, graph worker and operations console each maintain a different effective decision; a hold and a dispatch both claim to have won.
 - **Options and tradeoff:** one centralized controller is easy to reason about but may create unnecessary coupling; authority per governed object permits distribution but needs explicit cross-object and external-effect contracts. Independent engine-local truth cannot establish a shared guarantee.
 - **Starting recommendation:** one authoritative transition contract per governed object, expected-revision checks and durable correlation between effective state and audit evidence. Management maintains definitions/proposals; control admits scoped activation and state changes; catalog, routing and user views reflect that same record. Runtime executes within admitted scopes without requiring a global round trip for every calculation. Distinguish NGA state from provider-owned business commits; see [documents 19](19-business-system-capability-boundary.md) and [22](22-integrated-lifecycle-and-plane-review.md).
-- **To close:** a state/command/result table, consistency-boundary diagram and race traces for duplicate adoption, stale frame, hold/dispatch and child completion. Depends on AQ-02/AQ-06/AQ-07/AQ-09 and co-designs the operation boundary with AQ-12.
+- **To close:** agree and qualify the [document 23 object/command/receipt proposal](23-core-objects-and-plane-handoffs.md), including scoped activation generation, publication authority, lost/duplicate receipts and stale projections, alongside decision/dispatch/child races. Depends on AQ-02/AQ-06/AQ-07/AQ-09 and co-designs the operation boundary with AQ-12.
 
 <a id="aq-12"></a>
 ### AQ-12 — External effects, recovery and correction
@@ -204,7 +206,7 @@ Current focused discussion: [document 20](20-task-decision-request-identity.md) 
 - **Failure case:** a running task combines a new rule with an old adoption operator and an untested model; deployment rollback is treated as reversal of a confirmed business effect.
 - **Options and tradeoff:** pinning versions simplifies continuity but needs explicit handling of urgent changes; task migration permits updates but requires state/dependency compatibility. Independently selecting every component's latest version is not an evaluated release.
 - **Starting recommendation:** a dependency manifest with compatibility and business-acceptance evidence, including imported primitive packages, implementation/configuration versions and checkpoint dependencies. Select definitions explicitly for new tasks and pin/migrate/hold active ones; installing a package cannot silently replace a suspended control's semantics. Enforce current revocation where required. Preserve original decision/effect records and evaluate cache invalidation against actual semantic dependencies.
-- **To close:** a change-impact matrix and rollout/withdrawal traces including urgent rule change, model upgrade, workflow patch and active OP1. Depends on AQ-02/AQ-03/AQ-11/AQ-14; supports AQ-17.
+- **To close:** a change-impact matrix and rollout/withdrawal traces for immutable manifests plus scoped activation bindings, including policy authority, readiness, package/model/workflow changes and active B1. [Document 23](23-core-objects-and-plane-handoffs.md) provides the concrete starting contract. Depends on AQ-02/AQ-03/AQ-11/AQ-14; supports AQ-17.
 
 <a id="aq-17"></a>
 ### AQ-17 — Evidence for agent evolution
