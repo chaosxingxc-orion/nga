@@ -127,6 +127,12 @@ Script-only watchdog sampling and resource-safe successor scheduling may continu
 at their operational cadence without involving a model or consuming model tokens;
 do not delay NPU handoffs for the model's 10-minute inspection interval. While
 waiting, perform independent CPU engineering work or wait for an explicit signal.
+The shared local policy is `.local/NPU-MONITORING.json`; routine inspections use
+`.local/operations/inspect-once.py`, whose file lock prevents simultaneous agents
+from consuming separate inspection slots. Reaching the deadline permits a check;
+it does not require a model wake-up. Never use model sleep/check loops solely to
+reach that deadline. Early event checks cover only the affected tasks. This policy
+does not itself provide an external notification service.
 
 Log reading is tiered, so routine status costs no model tokens. Do not spend the orchestrator on
 raw output.
