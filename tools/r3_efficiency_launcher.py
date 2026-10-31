@@ -32,8 +32,10 @@ def verify(plan_path, pin):
     if p["schema"] not in ("r3-efficiency-plan-v1", "r3-efficiency-plan-v2") or p["image"] != IMAGE or p["image_sha256"] != IMAGE_SHA: raise RuntimeError("plan identity")
     if sha(ADAPTER) != p["adapter_sha256"]: raise RuntimeError("adapter changed")
     if sha(Path(p["launcher"])) != p["launcher_sha256"]: raise RuntimeError("launcher changed")
+    if sha(Path(p["verifier"])) != p["verifier_sha256"]: raise RuntimeError("verifier changed")
     if sha(Path(p["launch_script"])) != p["launch_script_sha256"]: raise RuntimeError("launch script changed")
     if sha(Path(p["cell_driver"])) != p["cell_driver_sha256"]: raise RuntimeError("cell driver changed")
+    if not Path(p["code_dir"]).is_dir() or Path(p["code_dir"]).is_symlink(): raise RuntimeError("code directory is not a regular frozen directory")
     for f, h in p["files"].items():
         if sha(f) != h: raise RuntimeError("frozen dependency changed: " + f)
     review = load(p["review_path"])
