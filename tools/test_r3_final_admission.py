@@ -71,6 +71,22 @@ class Admission(unittest.TestCase):
         path.write_bytes(raw);(self.model/'model.safetensors').write_bytes(b'changed')
         with self.assertRaisesRegex(ValueError,'model byte inventory'):self.verify()
 
+    def test_trained_plan_binds_manifest_bytes_and_owner(self):
+        run=self.root/'training';run.mkdir();adapter=run/'adapter';adapter.mkdir()
+        (adapter/'adapter_model.safetensors').write_bytes(b'synthetic adapter')
+        inv=self.A.M.capture(adapter)
+        self.plan.update(arm='K1',adapter=str(adapter),
+            adapter_inventory=self.write('adapter-inventory',{'inventory':inv,'inventory_sha256':self.A.M.identity(inv)}),
+            training_manifest=self.write('training/manifest',{'args':{'seed':2},'total_steps':3116,'summary':{'final_step':3116}}))
+        self.eligible['selected_models']=[{'path':str(adapter),'sha256':'a'*64,'arm':'K1'}]
+        self.plan['eligibility']=self.write('eligibility',self.eligible)
+        self.plan['final']=self.write('round/FINAL',{'eligibility_sha256':self.plan['eligibility']['sha256'],'models':self.eligible['selected_models']})
+        self.pin=self.A.identity(self.plan);self.review.update(approved_plan_sha256=self.pin,eligibility_sha256=self.plan['eligibility']['sha256'])
+        self.review_entry=self.write('review',self.review)
+        self.assertTrue(self.verify()['artifact_bindings_verified'])
+        with Path(self.plan['training_manifest']['path']).open('a') as f:f.write(' ')
+        with self.assertRaisesRegex(ValueError,'artifact changed'):self.verify()
+
     def test_ineligible_model_is_rejected_even_with_rebound_review(self):
         self.eligible['selected_models'][0]['sha256']='f'*64
         self.plan['eligibility']=self.write('eligibility',self.eligible)

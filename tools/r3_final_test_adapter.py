@@ -42,7 +42,7 @@ def run(args, scorer, evaluator, *, owner, validate_admission, validate_publicat
     G.require(str(G.safe_path(args.out)) == owner['run_dir'], 'output differs')
     model_path = args.adapter or args.model_path
     log = L.CompletionLog(args.round_dir, model_path=model_path, **owner)
-    state = {}
+    state = {'verified_suites':{}}
     report_path = G.safe_path(args.out) / 'TEST-PRODUCER-REPORT.json'
     G.safe_path(report_path)
 
@@ -73,16 +73,21 @@ def run(args, scorer, evaluator, *, owner, validate_admission, validate_publicat
         if 'tickets' in state:
             evaluator.TL.verify_test_result(state['tickets'][(suite, 'test')], result['n'],
                 result['headline_accuracy'], args.out)
-            M.verify(state['tickets'][(suite, 'test')], args.out,
+            metrics = M.verify(state['tickets'][(suite, 'test')], args.out,
                      kev_dir=evaluator.TL.C.KEV_DIR, report=report)
         else:
             # A public verification-only entry in the NEW testlock source. It
             # validates durable staged/owner/log identity before opening data,
             # returns only verified scalars and never exposes a scoring ticket.
-            evaluator.TL.verify_reserved_test_result(args, suite=suite, result=result,
+            recovered = evaluator.TL.verify_reserved_test_result(args, suite=suite, result=result,
                 leases=state['leases'], owner=owner, completion_log=log)
+            metrics = recovered.get('metrics',{})
+        if 'paired_vector' in metrics:
+            state['verified_suites'][suite]=metrics['paired_vector']
 
-    return T.run(args.round_dir, **owner, validate_admission=validate_admission,
+    outcome = T.run(args.round_dir, **owner, validate_admission=validate_admission,
                  validate_publication=validate_publication,
                  bind_execution=bind, score=score, verify_result=verify,
                  read_completion=log.read, append_completion=log.append)
+
+    return {**outcome,'verified_suites':state['verified_suites']}

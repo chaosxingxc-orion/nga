@@ -65,6 +65,14 @@ class Publication(unittest.TestCase):
         self.execute();self.producer.assert_called_once()
         self.assertEqual(len(self.TL.read_log(str(self.round))),2)
 
+    def test_verified_vectors_identical_after_completed_recovery(self):
+        first=self.execute();second=self.execute()
+        self.assertEqual(first['verified_suites'],second['verified_suites'])
+        self.assertEqual(set(first['verified_suites']),{'decision-v7','transfer-v4'})
+        self.assertEqual(first['verified_suites']['decision-v7']['n'],1200)
+        self.assertEqual(first['verified_suites']['transfer-v4']['n'],656)
+        self.producer.assert_called_once()
+
     def test_wrong_secondary_blocks_all_publication(self):
         self.producer.return_value['track_k']['partitions']['transfer-v4/test']['secondary']['operator']['accuracy']=.123
         with self.assertRaisesRegex(ValueError,'reconstructed metric differs'):self.execute()

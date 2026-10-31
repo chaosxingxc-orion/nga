@@ -15,7 +15,7 @@ import sys
 SOURCE_MANIFEST = '1c2f7d59dc365cbe52dcffe3fd9b734a8c09dc0612d35fe192703649710261df'
 COMPONENTS = ('r3_test_execution_guard', 'r3_test_transaction', 'r3_test_log_adapter',
               'r3_final_test_adapter', 'r3_final_metrics', 'r3_model_inventory', 'r3_final_admission', 'r3_final_driver',
-              'r3_final_container', 'r3_final_supervisor', 'r3_resource_adapter', 'r3_final_closure')
+              'r3_final_gain_compare', 'r3_final_container', 'r3_final_supervisor', 'r3_resource_adapter', 'r3_final_closure')
 RUNTIME = ('core_r3', 'full_eval_r3', 'testlock_r3', 'scorer_r3', 'admissible_store_r3',
            'selection_evidence_r3', 'degenerate_r3', 'prechecks_r3', 'variants_r3',
            'track_t_r3', 'provenance_r3', 'clauses_r3', 'common', 'split', 'thresholds',

@@ -92,6 +92,11 @@ class Metrics(unittest.TestCase):
 
     def test_original_producer_matches_every_rebuilt_field(self):
         self.verify()
+        verified=self.M.verify(self.tickets[('decision-v7','test')],str(self.run),kev_dir=str(self.data),report=self.report)
+        vector=verified['paired_vector']
+        self.assertEqual(vector['n'],1200);self.assertEqual(vector['tie_count'],1)
+        self.assertEqual(sum(vector['correct'])/1200,self.report['track_k']['partitions']['decision-v7/test']['headline']['kev_rule_accuracy'])
+        self.assertEqual(vector['keys'],[self.C.kev_key(r) for r in self.rows[('decision-v7','test')]])
         self.assertEqual(self.report['track_k']['partitions']['decision-v7/test']['headline']['tie_count'],1)
 
     def test_secondary_calibration_and_degenerate_changes_refused(self):

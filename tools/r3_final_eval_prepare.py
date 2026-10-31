@@ -69,8 +69,8 @@ def verify_reserved_test_result(args, *, suite, result, leases, owner, completio
     ticket = TestTicket(identity, suite, 'test', _TOKEN)
     verified = verify_test_result(ticket, result['n'], result['headline_accuracy'], args.out)
     import r3_final_metrics as FM
-    FM.verify(ticket, args.out, kev_dir=C.KEV_DIR)
-    return verified
+    metrics = FM.verify(ticket, args.out, kev_dir=C.KEV_DIR)
+    return {'source':verified,'metrics':metrics}
 '''
 
 AUTH = '''    tickets = {}

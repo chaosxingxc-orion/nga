@@ -92,5 +92,13 @@ def verify(ticket, run_dir, *, kev_dir, report=None):
         require(set(actual)-set(values) <= {'secondary_note'}, 'unverified partition fields: '+label)
         for key,value in values.items():
             require(actual.get(key)==value, 'reconstructed metric differs: '+label+'/'+key)
-    return {'suite':ticket.suite,'verified_fields':sorted(rebuilt['test']),
+    clean_ordered=E.validate_population(readouts['clean'],populations['clean'],C.kev_key)
+    correct=[int(C.argmax_first(row['s'])==C.gold_index(source))
+             for row,source in zip(clean_ordered,populations['clean'])]
+    vector={'dataset_sha256':header['data_files'][C.partition_path(ticket.suite,'test',False,str(kev_dir))],
+            'keys':[C.kev_key(row) for row in populations['clean']], 'correct':correct,
+            'n':len(correct),'tie_count':sum(C.is_tie(row['s']) for row in clean_ordered)}
+    require(sum(correct)/len(correct)==rebuilt['test']['headline']['kev_rule_accuracy'],
+            'paired vector headline differs')
+    return {'suite':ticket.suite,'paired_vector':vector,'verified_fields':sorted(rebuilt['test']),
             'scope':'full Track K numerical fields; metric primitives shared with producer'}

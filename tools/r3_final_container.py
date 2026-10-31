@@ -39,6 +39,7 @@ def contract(plan,plan_path,pin,review,attempt):
     entries=[plan['final'],plan['dataset_manifest'],plan['base_inventory'],plan['eligibility'],review,
              *plan['evidence'].values()]
     if plan['adapter_inventory']:entries.append(plan['adapter_inventory'])
+    if plan.get('training_manifest'):entries.append(plan['training_manifest'])
     for entry in entries:mounts[path(entry['path'])]=False
     mounts[path(plan_path)]=False
     data=Path(plan['dataset_manifest']['path']).parent

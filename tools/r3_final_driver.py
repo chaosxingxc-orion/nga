@@ -8,6 +8,7 @@ import argparse
 from contextlib import redirect_stdout, redirect_stderr
 import datetime
 import fcntl
+import hashlib
 import importlib.util
 import json
 import os
@@ -47,6 +48,35 @@ def atomic(path,value):
         if os.path.exists(tmp):os.unlink(tmp)
 
 
+def export_vector(plan, pin, result, report, training=None):
+    """Persist only vectors returned by the completed source/metric transaction."""
+    G=local('r3_final_gain_compare')
+    C.require(result.get('state')=='completed','publication not completed')
+    suites=result.get('verified_suites',{})
+    C.require(set(suites)==set(G.SUITES),'complete verified test vectors required')
+    identity=report['header']['model']
+    C.require(identity['sha256']==plan['model_sha256'] and report['header']['arm']==plan['arm'],
+              'vector model/arm differs')
+    inventory=json.loads(Path(plan['base_inventory']['path']).read_text())
+    evidence_binding={'plan_sha256':pin,'result':result,'report':report,'training':training}
+    vector={'schema':'r3-verified-test-vector-v1','partition':'test','protocol':dict(G.PROTOCOL),
+        'arm':plan['arm'],'suites':suites,'model':{**identity,
+            'base_inventory_sha256':inventory['inventory_sha256']},
+        'scoring_protocol_sha256':hashlib.sha256(G.canonical({'closure':plan['closure']['sha256'],
+            'scoring':plan['scoring'],'protocol':G.PROTOCOL}).encode()).hexdigest(),
+        'verified_evidence_sha256':hashlib.sha256(G.canonical(evidence_binding).encode()).hexdigest(),
+        'scientific_acceptance':False,'execution_plan_sha256':pin}
+    if plan['arm']!='K0':
+        C.require(training is not None and training['arm']==plan['arm'] and training['seed'] in (2,3),
+                  'verified training seed/arm required')
+        vector.update(seed=training['seed'],training_variant=training['training_variant'])
+    G.validate(vector)
+    path=Path(plan['out'])/'TEST-VERIFIED-VECTOR.json'
+    if path.exists():C.require(json.loads(path.read_text())==vector,'published vector changed')
+    else:atomic(path,vector)
+    return {'path':str(path),'sha256':C.sha(path)}
+
+
 def evaluate(plan,pin,review):
     """All checks precede construction of a lazy real scorer and every commit."""
     root=C.safe(plan['closure']['root'])
@@ -57,10 +87,19 @@ def evaluate(plan,pin,review):
     import eval_r3
     import r3_final_test_adapter as adapter
     C.require(Path(eval_r3.__file__).resolve()==root/'r3_code/eval_r3.py','scorer factory outside closure')
+    training_state={}
     def validate():
         admission.verify(plan,pin,review)
         C.require(Path(plan['dataset_manifest']['path'])==Path(evaluator.C.KEV_DIR)/'manifest.json',
                   'runtime dataset root differs from plan manifest')
+        if plan['arm']!='K0':
+            import selection_evidence_r3 as evidence
+            identity=evaluator.TL.model_identity(plan['model'],plan['adapter'],plan['round_dir'])
+            training=evidence.train_identity({'header':{'arm':plan['arm'],'model':identity}})
+            C.require(training['training_manifest']==plan['training_manifest']['path']
+                      and training['training_manifest_sha256']==plan['training_manifest']['sha256'],
+                      'training manifest binding differs')
+            training_state['verified']=training
     validate()
     args=evaluator.parse_full_args(['--model-path',plan['model'],'--out',plan['out'],
         '--arm',plan['arm'],'--partitions','calibration,test','--stages','k','--round-dir',plan['round_dir'],
@@ -78,6 +117,9 @@ def evaluate(plan,pin,review):
     result=adapter.run(args,scorer,evaluator,owner=owner,validate_admission=validate,
                        validate_publication=validate)
     C.require(result.get('state')=='completed','publication transaction incomplete')
+    report=json.loads((Path(plan['out'])/'TEST-PRODUCER-REPORT.json').read_text())
+    validate()
+    export_vector(plan,pin,result,report,training_state.get('verified'))
     return result
 
 

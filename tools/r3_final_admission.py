@@ -107,8 +107,16 @@ def verify(plan, expected_pin, review_entry):
                                       'Qwen__Qwen3.5-4B-Base','Qwen__Qwen3.5-9B-Base'},'base outside scope')
     adapter=None
     if plan['adapter'] is not None:
+        training=artifact(plan['training_manifest'])
+        require(Path(plan['training_manifest']['path'])==Path(plan['adapter']).parent/'manifest.json',
+                'training manifest does not own adapter')
+        require(training.get('args',{}).get('seed') in (2,3)
+                and training.get('summary',{}).get('final_step')==training.get('total_steps')
+                and training.get('total_steps',0)>0,'completed training seed required')
         inv=artifact(plan['adapter_inventory']);adapter=M.verify(plan['adapter'],inv['inventory'],inv['inventory_sha256'])
-    else:require(plan.get('adapter_inventory') is None and plan['arm']=='K0','trained arm needs adapter binding')
+    else:
+        require(plan.get('adapter_inventory') is None and plan['arm']=='K0','trained arm needs adapter binding')
+        require(plan.get('training_manifest') is None,'K0 must not carry a training manifest')
     return {'plan_sha256':expected_pin,'base':base,'adapter':adapter,
             'artifact_bindings_verified':True,'scientific_acceptance':False,
             'scope':'binding preflight only; review authorship, eligibility semantics and container execution remain external'}

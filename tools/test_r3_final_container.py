@@ -34,6 +34,13 @@ class Container(unittest.TestCase):
         self.assertTrue(all(not rw for p,rw in self.spec['mounts'].items() if p.endswith('.jsonl')))
         C.verify_observation(self.spec,self.observed,'actual-container-id')
 
+    def test_training_manifest_is_individually_readonly(self):
+        root=Path(self.tmp.name);manifest=root/'training/manifest.json'
+        self.plan['training_manifest']={'path':str(manifest),'sha256':'b'*64}
+        spec=C.contract(self.plan,str(root/'plan.json'),'c'*64,{'path':str(root/'review.json'),'sha256':'b'*64},1)
+        self.assertIs(spec['mounts'][str(manifest)],False)
+        self.assertNotIn(str(manifest.parent),spec['mounts'])
+
     def test_wrong_generation_device_command_or_mount_rejected(self):
         for kind in ('id','device','command','mount','privileged'):
             d=copy.deepcopy(self.observed)
