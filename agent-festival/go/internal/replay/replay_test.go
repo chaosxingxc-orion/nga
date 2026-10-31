@@ -257,7 +257,7 @@ func TestInspectExposesGapsInViolatingRecord(t *testing.T) {
 // production machine through the same steps — hand-written records that
 // drift from machine behavior fail here.
 func TestMachineProducedFixtures(t *testing.T) {
-	for _, name := range []string{"race-outcome-a-first.json", "race-outcome-b-first.json", "happy-chain.json"} {
+	for _, name := range []string{"race-outcome-a-first.json", "race-outcome-b-first.json", "happy-chain.json", "unknown-field-in-record.json"} {
 		c := loadCase(t, name)
 		rep, err := Replay(c)
 		if err != nil {
@@ -327,7 +327,9 @@ func TestIsolationCoversRawViews(t *testing.T) {
 		sub.RecordedRawDoc = sub.RecordedRawDoc[:0]
 		delete(sub.rawCaseDoc, "expected") // IN-PLACE mutation — a rebound map would never reach the original
 	})
-	_ = err // the hostile closure breaking the substitute is expected; the assertion is about the ORIGINAL
+	if err == nil || !strings.Contains(err.Error(), "steps domain") {
+		t.Fatalf("hostile closure: err = %v, want the domain refusal (the guard fires before any report)", err)
+	}
 	rawRecAfter, _ := json.Marshal(c.RecordedRawDoc)
 	rawCaseAfter, _ := json.Marshal(c.rawCaseDoc)
 	if string(rawRecBefore) != string(rawRecAfter) {
@@ -455,6 +457,20 @@ func TestRawChannelRewriteRefused(t *testing.T) {
 	}
 }
 
+// TestRawCaseDocRewriteRefused pins the rawCaseDoc arm of the mode-3 guard
+// (R7: the arm had zero pins — deleting it stayed green). A closure that
+// rewrites ONLY the document view (record untouched) hits the frozen-view
+// refusal.
+func TestRawCaseDocRewriteRefused(t *testing.T) {
+	c := loadCase(t, "happy-chain.json")
+	_, err := Reevaluate(c, func(sub *Case) {
+		delete(sub.rawCaseDoc, "expected") // document view only; record untouched
+	})
+	if err == nil || !strings.Contains(err.Error(), "raw document view") {
+		t.Fatalf("document-view rewrite: err = %v, want the frozen-view refusal", err)
+	}
+}
+
 // TestInspectStatesTailProjection pins the States semantics AND the ledger
 // vocabulary derivation (R6: both had zero pins — a drifted inline table
 // stayed green). A record ending in conflict projects the fact word, and
@@ -467,15 +483,8 @@ func TestInspectStatesTailProjection(t *testing.T) {
 		t.Fatal(err)
 	}
 	// drive the same steps to produce the durable record
-	for _, s := range c.Steps {
-		switch s.Op {
-		case "adopt":
-			var req adopt.Request
-			if err := json.Unmarshal(s.Request, &req); err != nil {
-				t.Fatal(err)
-			}
-			m.Adopt(&req)
-		}
+	if _, err := drive(m, c.Steps); err != nil { // the package's own driver — no second switch copy
+		t.Fatal(err)
 	}
 	rep, err := Inspect(path)
 	if err != nil {
@@ -492,5 +501,30 @@ func TestInspectStatesTailProjection(t *testing.T) {
 	}
 	if rec.States["op-a"] != "adopted" {
 		t.Fatalf("machine state = %q, want adopted — States semantics fork between Inspect (tail fact) and Recover (machine state) must be visible", rec.States["op-a"])
+	}
+	// and the OTHER fact word: a record ending in reused projects reused
+	// (R7: conflict was pinned, reused was not — a drifted vocabulary
+	// missing it stayed green)
+	c2 := loadCase(t, "race-outcome-a-first.json")
+	path2 := filepath.Join(t.TempDir(), "adopt-a.jsonl")
+	m2, err := adopt.Open(path2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range c2.Steps {
+		if s.Op == "adopt" {
+			var req adopt.Request
+			if err := json.Unmarshal(s.Request, &req); err != nil {
+				t.Fatal(err)
+			}
+			m2.Adopt(&req)
+		}
+	}
+	rep2, err := Inspect(path2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep2.States["op-a"] != "reused" {
+		t.Fatalf("reused tail projection = %q, want the reused fact word", rep2.States["op-a"])
 	}
 }

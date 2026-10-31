@@ -131,6 +131,13 @@ type Case struct {
 }
 
 // LoadCase decodes a case document from its RAW map form, preserving BOTH
+// raw views. Boundary: the typed decode requires recorded_events to fit the
+// Event types — a record whose integers leave the int64-typed form (e.g.
+// float syntax like 5.0, which the ledger checker itself accepts under the
+// double charter) fails HERE with a decode error. That is the declared edge
+// between the format layer (Python accepts it) and the Go behavior layer
+// (refuses loudly) — a case fixture carrying such a record is out of the
+// Go corpus.
 // raw views: the recorded events' (for the conformance arm) and the case
 // document's own map (for schema validation — validating a typed
 // re-projection would launder unknown fields away, the same R2 lesson one
@@ -264,8 +271,20 @@ func Reevaluate(c *Case, substitution func(*Case)) (*SubstitutionReport, error) 
 	// A closure that rewrites the RECORD leaves the documented contract —
 	// refused loudly rather than reported as an intended difference (the
 	// report would silently carry a conformance it claims cannot change).
-	if !eventsEqual(sub.RecordedEvents, c.RecordedEvents) || !rawViewsEqual(sub, c) {
+	// Two frozen surfaces, two different reasons (deliberately separate
+	// arms — conflating them misreports violations):
+	// - the RECORD (typed events + its raw view): the conformance arm
+	//   judges this form, so a rewrite here is a record rewrite.
+	// - the CASE DOCUMENT's raw view: frozen so the substitute's schema
+	//   validation input cannot drift from its typed steps. Substituted
+	//   steps are NOT revalidated against the case schema (Replay validates
+	//   the pre-substitution view); the machine gate and drive's own guards
+	//   carry the behavioral check for whatever the substitution produces.
+	if !eventsEqual(sub.RecordedEvents, c.RecordedEvents) || !recordedRawEqual(sub, c) {
 		return nil, fmt.Errorf("substitution left the steps domain: the case %q's record was rewritten (typed or raw view) — mode 3 substitutes declared inputs, never the record", c.CaseID)
+	}
+	if !rawCaseDocEqual(sub, c) {
+		return nil, fmt.Errorf("substitution left the steps domain: the case %q's raw document view was rewritten — the document view is frozen; substitute the typed steps", c.CaseID)
 	}
 	base, err := Replay(c)
 	if err != nil {
@@ -333,7 +352,7 @@ func Recover(path string) (*RecoverReport, error) {
 // from the machine's scratch output. An I/O failure reading the scratch
 // form is an ERROR, never a silent empty stream (a silent nil would forge a
 // divergence@0 verdict — fail loud). An unknown op is an error too: the
-// four operations never collapse into one generic call.
+// the machine's operation set never collapses into one generic call.
 func drive(m *adopt.Machine, steps []Step) ([]ledger.Event, error) {
 	for i, s := range steps {
 		switch s.Op {
@@ -352,7 +371,7 @@ func drive(m *adopt.Machine, steps []Step) ([]ledger.Event, error) {
 		case "mark_failed":
 			m.MarkFailed(s.OpID)
 		default:
-			return nil, fmt.Errorf("step %d: unknown op %q — the four operations never collapse into one generic call", i, s.Op)
+			return nil, fmt.Errorf("step %d: unknown op %q — the machine's operation set never collapses into one generic call", i, s.Op)
 		}
 	}
 	return machineEvents(m)
@@ -363,17 +382,20 @@ func machineEvents(m *adopt.Machine) ([]ledger.Event, error) {
 	return m.Events()
 }
 
-// rawViewsEqual compares both raw views of two cases at the byte level —
-// the record's JUDGED form is the raw view (the conformance arm reads it),
-// so the mode-3 domain guard must cover this layer, not only the typed one.
-func rawViewsEqual(a, b *Case) bool {
+// recordedRawEqual compares the recorded events' raw views — the record's
+// JUDGED form (the conformance arm reads it), so the mode-3 domain guard
+// must cover this layer, not only the typed one.
+func recordedRawEqual(a, b *Case) bool {
 	ab, aerr := json.Marshal(a.RecordedRawDoc)
 	bb, berr := json.Marshal(b.RecordedRawDoc)
-	if aerr != nil || berr != nil || string(ab) != string(bb) {
-		return false
-	}
-	ab, aerr = json.Marshal(a.rawCaseDoc)
-	bb, berr = json.Marshal(b.rawCaseDoc)
+	return aerr == nil && berr == nil && string(ab) == string(bb)
+}
+
+// rawCaseDocEqual compares the case document's raw views — frozen so the
+// substitute's schema-validation input cannot drift from its typed steps.
+func rawCaseDocEqual(a, b *Case) bool {
+	ab, aerr := json.Marshal(a.rawCaseDoc)
+	bb, berr := json.Marshal(b.rawCaseDoc)
 	return aerr == nil && berr == nil && string(ab) == string(bb)
 }
 
