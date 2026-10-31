@@ -1,7 +1,6 @@
 package replay
 
 import (
-	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -10,6 +9,7 @@ import (
 
 	"festival-dev/go/internal/adopt"
 	"festival-dev/go/internal/ledger"
+	"festival-dev/go/internal/suite"
 )
 
 func loadCase(t *testing.T, name string) *Case {
@@ -17,19 +17,12 @@ func loadCase(t *testing.T, name string) *Case {
 	if SchemaPath == "" {
 		t.Fatal("replay-case schema not found")
 	}
-	raw, err := os.ReadFile(filepath.Join(filepath.Dir(SchemaPath), "examples", "replay", "valid", name))
+	full := filepath.Join(filepath.Dir(SchemaPath), "examples", "replay", "valid", name)
+	fx, err := suite.Load(full) // the shared loader: UseNumber + pin-popping, single-sourced
 	if err != nil {
 		t.Fatal(err)
 	}
-	var doc map[string]any
-	dec := json.NewDecoder(bytes.NewReader(raw))
-	dec.UseNumber() // ledger.Errors input discipline: integers must survive the map domain
-	if err := dec.Decode(&doc); err != nil {
-		t.Fatal(err)
-	}
-	delete(doc, "_expect") // fixture pins pop before validation (suite.Load discipline)
-	delete(doc, "_expect_match")
-	c, err := LoadCase(doc)
+	c, err := LoadCase(fx.Doc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -390,12 +383,8 @@ func TestInspectByOperationProjection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var req adopt.Request
-	if err := json.Unmarshal(c.Steps[0].Request, &req); err != nil {
+	if _, err := drive(m, c.Steps[:1]); err != nil { // the package's driver — no hand-rolled adopt arm
 		t.Fatal(err)
-	}
-	if o := m.Adopt(&req); o.Status != "adopted" {
-		t.Fatalf("adopt = %q", o.Status)
 	}
 	rep, err := Inspect(path)
 	if err != nil {
@@ -468,6 +457,51 @@ func TestRawCaseDocRewriteRefused(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "raw document view") {
 		t.Fatalf("document-view rewrite: err = %v, want the frozen-view refusal", err)
+	}
+}
+
+// TestOperationSetLockstep pins the op vocabulary's two machine copies
+// (schema enum ↔ drive's switch) against drift (R9: only one-sided edits
+// stayed green). Every schema-enum member must be KNOWN to drive (no
+// "unknown op" refusal); every non-member must be refused — the invented-op
+// fixture pins that direction at the suite layer.
+func TestOperationSetLockstep(t *testing.T) {
+	raw, err := os.ReadFile(SchemaPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var s struct {
+		Properties struct {
+			Steps struct {
+				Items struct {
+					Properties struct {
+						Op struct {
+							Enum []string `json:"enum"`
+						} `json:"op"`
+					} `json:"properties"`
+				} `json:"items"`
+			} `json:"steps"`
+		} `json:"properties"`
+	}
+	if err := json.Unmarshal(raw, &s); err != nil {
+		t.Fatal(err)
+	}
+	if len(s.Properties.Steps.Items.Properties.Op.Enum) == 0 {
+		t.Fatal("schema op enum not found — the lockstep test itself is broken")
+	}
+	m, err := adopt.Open(filepath.Join(t.TempDir(), "scratch.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, op := range s.Properties.Steps.Items.Properties.Op.Enum {
+		_, derr := drive(m, []Step{{Op: op}}) // minimal step: param errors are fine, "unknown op" is not
+		if derr != nil && strings.Contains(derr.Error(), "unknown op") {
+			t.Fatalf("schema enum member %q refused by drive as unknown — the vocabulary copies drifted", op)
+		}
+	}
+	_, derr := drive(m, []Step{{Op: "definitely-not-an-op"}})
+	if derr == nil || !strings.Contains(derr.Error(), "unknown op") {
+		t.Fatal("a non-member passed drive's switch — the refusal direction drifted")
 	}
 }
 

@@ -352,7 +352,7 @@ func Recover(path string) (*RecoverReport, error) {
 // from the machine's scratch output. An I/O failure reading the scratch
 // form is an ERROR, never a silent empty stream (a silent nil would forge a
 // divergence@0 verdict — fail loud). An unknown op is an error too: the
-// the machine's operation set never collapses into one generic call.
+// machine's operation set never collapses into one generic call.
 func drive(m *adopt.Machine, steps []Step) ([]ledger.Event, error) {
 	for i, s := range steps {
 		switch s.Op {
@@ -374,11 +374,6 @@ func drive(m *adopt.Machine, steps []Step) ([]ledger.Event, error) {
 			return nil, fmt.Errorf("step %d: unknown op %q — the machine's operation set never collapses into one generic call", i, s.Op)
 		}
 	}
-	return machineEvents(m)
-}
-
-// machineEvents reads the machine's scratch output.
-func machineEvents(m *adopt.Machine) ([]ledger.Event, error) {
 	return m.Events()
 }
 
