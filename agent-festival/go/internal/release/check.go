@@ -18,7 +18,7 @@ var schema = schemalib.NewLazy(
 
 // CheckManifest validates a release manifest document against
 // release.schema.json. Every field traces to the schema's provenance
-// anchors (current proposal §6/§9/M05 + the legacy v0.2 §5, superseded by
+// anchors (current proposal §6/§7/§9/M05 + the legacy v0.2 §5, superseded by
 // the 2026-10-31 consolidation — see the schema description). The checker
 // adds nothing the schema does not say.
 func CheckManifest(doc map[string]any) []string {

@@ -2,7 +2,7 @@
 """Validate release-manifest fixtures (piece 5 oracle, Python side).
 
 Provenance note: the schema description carries the dual anchor (current
-proposal §6/§9/M05 + the legacy v0.2 §5, superseded by the 2026-10-31
+proposal §6/§7/§9/M05 + the legacy v0.2 §5, superseded by the 2026-10-31
 consolidation); the anchor truth lives in the schema file.
 
 A release manifest is a standalone document validated against
