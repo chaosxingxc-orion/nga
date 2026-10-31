@@ -59,17 +59,25 @@ def verify(path, pin):
     return d
 
 def predecessor(job):
-    root = Path(job['previous_eval']); terminal = root / 'ENGINEERING_EVAL_EXIT.json'
+    kind = job.get('previous_kind', 'evaluation')
+    require(kind in ('evaluation', 'training'), 'unknown predecessor kind')
+    root = Path(job['previous_eval'])
+    terminal = root / ('TRAIN_EXIT.json' if kind == 'training' else 'ENGINEERING_EVAL_EXIT.json')
     if not terminal.exists(): return None
     end = load(terminal); number = end.get('attempt')
     require(type(number) is int and number > 0, 'invalid previous attempt')
     attempt = root / 'attempts' / str(number)
     if not (attempt / 'RELEASE.json').exists(): return None
-    plan_path = root / 'execution.json'; plan = load(plan_path)
+    plan_path = root / ('plan.json' if kind == 'training' else 'execution.json'); plan = load(plan_path)
     require(plan['chip'] == job['chip'] and plan['out'] == str(root), 'previous plan ownership differs')
     supervisor = load(root / 'SUPERVISOR_RECEIPT.json')
+    if kind == 'training':
+        require(plan.get('schema') == 'r3-engineering-k1-plan-v1', 'engineering predecessor required')
+        pin = hashlib.sha256((json.dumps(dict(plan, review_sha256='PENDING'), indent=2, sort_keys=True) + '\n').encode()).hexdigest()
+    else:
+        pin = sha(plan_path)
     require(supervisor['command'] == [sys.executable, '-P', plan['launcher'], 'supervise', '--plan', str(plan_path),
-            '--sha256', sha(plan_path), '--attempt', str(number)], 'previous supervisor identity differs')
+            '--sha256', pin, '--attempt', str(number)], 'previous supervisor identity differs')
     # A later live retry supersedes the global marker. Never hand off mid-retry.
     require(load(attempt / 'EXIT.json') == end, 'previous markers disagree')
     proof = load(attempt / 'RELEASE.json'); receipt = load(attempt / 'LAUNCH_RECEIPT.json')

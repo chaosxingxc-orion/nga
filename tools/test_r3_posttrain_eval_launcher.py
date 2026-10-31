@@ -13,6 +13,31 @@ L = importlib.util.module_from_spec(loader); loader.loader.exec_module(L)
 
 
 class ExecutionTests(unittest.TestCase):
+    def test_r0_profile_is_full_instruct_scoring_only(self):
+        self.baseline()
+        self.spec['evaluation_profile'] = 'track_t_r0'
+        with patch.object(L, 'R0_MODEL', self.spec['model']):
+            self.spec['readonly_data_mounts'] = sorted(L.allowed_data_files(self.spec))
+            folder = self.base / 'closure/r1_code'; folder.mkdir()
+            code = folder / 'convert_kev.py'; code.write_text('X=1')
+            self.files[str(code)] = L.sha(code)
+            self.spec['code_mounts'].append({'source':str(folder), 'destination':str(self.base/'r1_code'), 'readonly':True})
+            self.spec['command'] = L.expected_command(self.spec, self.out)
+            L.verify_spec(self.spec, self.out)
+            self.assertEqual(len(self.spec['readonly_data_mounts']), 8)
+            self.assertEqual(L.result_directory(self.spec,self.out),self.out/'instruct')
+            cmd=self.spec['command']
+            self.assertEqual(cmd[cmd.index('--stages')+1], 't_score')
+            self.assertEqual(cmd[cmd.index('--track-t-config')+1], 'r0')
+            self.assertNotIn('--limit-groups', cmd)
+            for changed in (cmd+['--limit-groups','1'], [x if x!='r0' else 'r3' for x in cmd]):
+                self.spec['command']=changed
+                with self.assertRaisesRegex(RuntimeError,'command differs'): L.verify_spec(self.spec,self.out)
+            self.spec['command']=cmd
+            self.spec['readonly_data_mounts'].pop()
+            with self.assertRaisesRegex(RuntimeError,'inventory'): L.verify_spec(self.spec,self.out)
+        with self.assertRaisesRegex(RuntimeError,'fixed instruct'): L.expected_command(self.spec,self.out)
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
         self.base = Path(self.tmp.name)

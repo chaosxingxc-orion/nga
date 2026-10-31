@@ -22,6 +22,7 @@ import traceback
 
 BASE = Path('/mnt/cephfs/xingchao/experiments/jev')
 IMAGE = 'sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7'
+R0_MODEL = '/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B'
 ENTRY = str(BASE / 'r3_code/r3_scoring_entry.py')
 GROUPS = ','.join(f'{suite}/{split}/{kind}'
     for suite, split in [('decision-v7', 'dev'), ('decision-v7', 'calibration'), ('transfer-v4', 'dev')]
@@ -62,8 +63,12 @@ def safe_file(path):
 
 def profile(spec):
     value = spec.get('evaluation_profile', 'track_k')
-    require(value in ('track_k', 'track_kt'), 'unsupported evaluation profile')
+    require(value in ('track_k', 'track_kt', 'track_t_r0'), 'unsupported evaluation profile')
     return value
+
+
+def result_directory(spec, out):
+    return Path(out) / ('instruct' if profile(spec) == 'track_t_r0' else 'results')
 
 
 def is_baseline(spec):
@@ -73,6 +78,15 @@ def is_baseline(spec):
 def expected_command(spec, out):
     kind = profile(spec)
     baseline = is_baseline(spec)
+    if kind == 'track_t_r0':
+        require(baseline and spec['model'] == R0_MODEL, 'R0 requires the fixed instruct baseline')
+        return ['python3', '-P', ENTRY, '--full', '--model-path', spec['model'], '--arm', 'K0',
+                '--out', str(result_directory(spec, out)), '--round-dir', str(out / 'identity'),
+                '--partitions', 'dev,calibration', '--stages', 't_score', '--scorer', 'rightpad',
+                '--dtype', 'float32', '--no-hf32', '--token-budget', '16384', '--require-record-grade',
+                '--device', 'npu:0', '--unit-tag', 'track_t_r0', '--track-t-config', 'r0',
+                '--data-root', str(BASE), '--track-t-sources', 'typed-decisions,openjev-synth,akhilaaa3',
+                '--shard', '0', '--num-shards', '1']
     arm = 'K0' if baseline else spec['training_variant']['arm'].upper()
     require(arm in (('K0',) if baseline else ('K1', 'K2')), 'unsupported training arm')
     command = ['python3', '-P', ENTRY, '--full', '--model-path', spec['model']]
@@ -92,6 +106,12 @@ def expected_command(spec, out):
 
 
 def allowed_data_files(spec):
+    if profile(spec) == 'track_t_r0':
+        return {str(BASE / 'manifest.json')} | {
+            str(BASE / directory / (source + '.jsonl'))
+            for directory in ('T1_level_names', 'T2_definition_swap', 'T3_question_set')
+            for source in (('typed-decisions',) if directory == 'T3_question_set'
+                           else ('typed-decisions', 'openjev-synth', 'akhilaaa3'))}
     files = {str(BASE / 'KEV/manifest.json'), str(BASE / 'KEV/decision-v7/train.jsonl')}
     for suite, split in [('decision-v7', 'dev'), ('decision-v7', 'calibration'), ('transfer-v4', 'dev')]:
         files.add(str(BASE / 'KEV' / suite / (split + '.jsonl')))
@@ -123,7 +143,9 @@ def verify_spec(spec, out):
         require(sha(safe_file(filename)) == digest, 'frozen dependency changed: ' + filename)
     require(allowed_data <= set(spec['files']), 'unbound data input')
     expected_dest = {str(BASE / 'r3_code'), str(BASE / 'r0_code')}
-    require(len(spec['code_mounts']) == 2 and {m['destination'] for m in spec['code_mounts']} == expected_dest,
+    if profile(spec) == 'track_t_r0':
+        expected_dest.add(str(BASE / 'r1_code'))
+    require(len(spec['code_mounts']) == len(expected_dest) and {m['destination'] for m in spec['code_mounts']} == expected_dest,
             'code mount destinations differ')
     for mount in spec['code_mounts']:
         require(mount['readonly'] is True, 'writable code')
@@ -151,7 +173,7 @@ def bind(spec_path, chip, container):
     verify_spec(spec, out)
     require(type(chip) is int and 0 <= chip < 8, 'invalid chip')
     require(container.startswith('nga-r3-eng-eval-') and all(c.isalnum() or c in '-_' for c in container), 'invalid container name')
-    require(not (out / 'results').exists() and not (out / 'identity').exists(), 'fresh output required')
+    require(not result_directory(spec, out).exists() and not (out / 'identity').exists(), 'fresh output required')
     frozen = out / 'execution-tools'
     frozen.mkdir(exist_ok=False)
     for name in ('r3_posttrain_eval_launcher.py', 'r3_resource_adapter.py'):
@@ -244,7 +266,7 @@ def drive(path, pin, number):
                 except ProcessLookupError: pass
             signal.signal(signal.SIGTERM, stop); signal.signal(signal.SIGINT, stop)
             while process.poll() is None:
-                readouts = list((Path(p['out']) / 'results').rglob('*.jsonl'))
+                readouts = list(result_directory(spec, p['out']).rglob('*.jsonl'))
                 count = len(readouts)
                 size = sum(f.stat().st_size for f in readouts)
                 atomic(attempt / 'heartbeat.json', {'utc_seconds': time.time(), 'pid': process.pid,
@@ -255,7 +277,7 @@ def drive(path, pin, number):
             if rc < 0:
                 rc = 128 - rc  # subprocess signals are negative; container exit codes are not.
             if rc == 0:
-                marker = Path(p['out']) / 'results' / ('EVAL_COMPLETE.' + profile(spec) + '.json')
+                marker = result_directory(spec, p['out']) / ('EVAL_COMPLETE.' + profile(spec) + '.json')
                 require(marker.exists() and load(marker).get('exit_code') == 0, 'evaluator terminal marker missing or failed')
     except BaseException:
         rc = 125
@@ -300,7 +322,7 @@ def supervise(path, pin, number):
                 require(prior['exit_code'] != 0 and prior['attempt'] < number, 'cannot repeat completed attempt')
                 require((out / 'attempts' / str(prior['attempt']) / 'RELEASE.json').exists(), 'prior attempt not released')
             else:
-                require(number == 1 and not (out / 'results').exists() and not (out / 'identity').exists(), 'first attempt output is not fresh')
+                require(number == 1 and not result_directory(spec, out).exists() and not (out / 'identity').exists(), 'first attempt output is not fresh')
             require(not (attempt / 'EXIT.json').exists() and not (attempt / 'ABORT.json').exists(), 'attempt already terminal/aborted')
             while not (attempt / 'CLAIM.json').exists():
                 allocation = resource.load(p['allocation']); resource.validate_doc(allocation)

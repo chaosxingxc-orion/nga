@@ -65,6 +65,23 @@ class Successors(unittest.TestCase):
         self.write(self.out/'execution.json',dict(self.plan,chip=2))
         with self.assertRaisesRegex(RuntimeError,'next plan changed'):S.tick(self.job)
 
+    def test_engineering_training_predecessor_requires_exact_terminal_and_release(self):
+        actual=self.previous()
+        original=self.prev/'execution.json'; p=S.load(original)
+        p.update(schema='r3-engineering-k1-plan-v1',review_sha256='PENDING')
+        path=self.prev/'plan.json';self.write(path,p)
+        (self.prev/'ENGINEERING_EVAL_EXIT.json').rename(self.prev/'TRAIN_EXIT.json')
+        pin=S.hashlib.sha256((json.dumps(dict(p,review_sha256='PENDING'),indent=2,sort_keys=True)+'\n').encode()).hexdigest()
+        r=S.load(self.prev/'SUPERVISOR_RECEIPT.json');r['command'][5]=str(path);r['command'][7]=pin
+        self.write(self.prev/'SUPERVISOR_RECEIPT.json',r)
+        self.job['previous_kind']='training'
+        with patch.object(S,'inspect',return_value=actual):
+            self.assertEqual(S.predecessor(self.job)['exit_code'],0)
+            actual['State']['Status']='running'
+            with self.assertRaisesRegex(RuntimeError,'not terminal'):S.predecessor(self.job)
+        (self.prev/'attempts/1/RELEASE.json').unlink()
+        self.assertIsNone(S.predecessor(self.job))
+
     def test_engineering_training_successor_uses_canonical_pin_and_same_handoff(self):
         self.plan.update(schema='r3-engineering-k1-plan-v1',review_sha256='PENDING')
         self.write(self.out/'execution.json',self.plan);self.job['next_kind']='training'

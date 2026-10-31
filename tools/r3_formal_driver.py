@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import stat
 import subprocess
 import sys
 import time
@@ -50,7 +51,15 @@ def main():
                     hb.write(f'{utc()} alive pid={process.pid} attempt={a.attempt}\n')
                 time.sleep(15)
             rc = process.returncode
+            if rc == 0 and (out / 'adapter').is_dir():
+                # safetensors may export root-owned mode 0600 even with umask 0.
+                # The host CPU queue must be able to hash the completed adapter.
+                for artifact in (out / 'adapter').iterdir():
+                    if artifact.is_symlink() or not artifact.is_file():
+                        raise RuntimeError('unexpected exported adapter entry')
+                    artifact.chmod(stat.S_IMODE(artifact.stat().st_mode) | 0o044)
     except BaseException:
+        rc = 125
         with (attempt / 'run.log').open('a') as log:
             traceback.print_exc(file=log)
     finally:
