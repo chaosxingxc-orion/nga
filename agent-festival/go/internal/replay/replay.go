@@ -6,8 +6,8 @@
 // Inspect is a PROJECTION reducer — a second implementation that rebuilds a
 // view from the record without recomputing decisions (codex rollout-trace
 // precedent: projections stay outside the core); Replay and Reevaluate are
-// RE-EXECUTION — they drive the production state machine (a fresh in-memory
-// adopt.Machine) through the recorded steps and only the recorded-family
+// RE-EXECUTION — they drive the production state machine (a fresh
+// scratch-isolated adopt.Machine) through the recorded steps and only the recorded-family
 // boundary is supplied from the case (langgraph time-travel / dsh-llm-replay
 // "booting the real agent" precedent). The machine grows no replay-only
 // branch (the no-hidden-entrypoint rule).
@@ -222,11 +222,11 @@ type ReplayReport struct {
 }
 
 // Replay is mode 2: executable control replay — recompute the controller's
-// rulings by driving a FRESH in-memory machine through the case's steps
+// rulings by driving a FRESH scratch-isolated machine through the case's steps
 // (recorded-family inputs come from the case; the machine is the production
 // one, never a second implementation), then compare the recomputed event
 // stream against the record. Live effects are structurally disabled: the
-// machine is in-memory and dispatch never leaves it.
+// machine is scratch-isolated and dispatch never leaves it.
 func Replay(c *Case) (*ReplayReport, error) {
 	if c.rawCaseDoc == nil {
 		return nil, fmt.Errorf("case %q carries no raw case view — schema validation refuses a laundered projection (load via LoadCase)", c.CaseID)

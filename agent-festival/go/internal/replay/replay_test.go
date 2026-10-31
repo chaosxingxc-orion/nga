@@ -759,3 +759,44 @@ func TestGrantSubdimensions(t *testing.T) {
 	tamper("effect", func(ev []ledger.Event) { ev[0].GrantsAtDecision[0].Effect = "irreversible" })
 	tamper("actions", func(ev []ledger.Event) { ev[0].GrantsAtDecision[0].Actions = []string{"write"} })
 }
+
+// TestReportSelfDescription pins the report fields that describe their own
+// subject (R16: five lazy fields had no reader — Path/CaseID get their
+// one-line assertions here; Recorded rides Recomputed's comparison and is
+// covered by every fidelity test).
+func TestReportSelfDescription(t *testing.T) {
+	c := loadCase(t, "happy-chain.json")
+	dir := t.TempDir()
+	path := filepath.Join(dir, "desc.jsonl")
+	m, err := adopt.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := drive(m, c.Steps); err != nil {
+		t.Fatal(err)
+	}
+	insp, err := Inspect(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if insp.Path != path {
+		t.Fatalf("InspectReport.Path = %q, want the inspected path (self-description broke)", insp.Path)
+	}
+	rec, err := Recover(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Path != path {
+		t.Fatalf("RecoverReport.Path = %q, want the recovered path", rec.Path)
+	}
+	rep, err := Replay(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.CaseID != "happy" {
+		t.Fatalf("ReplayReport.CaseID = %q, want the case's own id", rep.CaseID)
+	}
+	if len(rep.Recorded) != len(c.RecordedEvents) {
+		t.Fatalf("ReplayReport.Recorded = %d events, want the record carried for audit", len(rep.Recorded))
+	}
+}
