@@ -20,9 +20,9 @@ L3 capability contract 的机器形态。设计依据见 [ADR-0001](../docs/adr/
 | `judgment.py` | 判断规格 oracle：schema 校验，与 Go 侧（go run ./cmd/judgment）交叉 + D93 计数钉；件3 无机器无跨文档规则——语义所有权归知识工作流（先验边界） |
 | `adoption.schema.json` | 采纳契约 0.1.0（增长层件2，NGA 供件）：请求=三层身份+P5 版本+payload_digest（JCS-sha256 同基座形制）+grants_at_decision（14-A4 派发时复核的授权钉照）；闭环契约 additionalProperties:false |
 | `adoption.py` | 采纳请求 oracle：schema 校验，与 Go 侧（go run ./cmd/adopt）交叉；状态机语义（单写者/14-A5 四反例/崩溃耐久）在 go/internal/adopt 测试所有权 |
-| `_suite.py` | Python 侧共享夹具 harness（非 oracle）：镜像 go/internal/suite 的两相套件纪律与 V28 F-1/V32 M-1 pin 硬化，ledger/adoption 两 oracle 复用；checker 各自独立实现以保交叉验证 |
+| `_suite.py` | Python 侧共享夹具 harness（非 oracle）：镜像 go/internal/suite 的两相套件纪律与 V28 F-1/V32 M-1 pin 硬化，ledger/adoption/judgment 三 oracle 复用；checker 各自独立实现以保交叉验证 |
 | `examples/ledger/valid`, `examples/ledger/invalid` | 账本样例：9 必须通过 / 26 必须拒绝（合法侧：高 seq 跨 2^53 合法链 + DAG 三条链 + 浮点语法整值 seq；拒绝侧：旁路直写两形态 / 孤儿 reused / 双 adopted / status 家族越界 / effect 携 grant 钉照 / adopted 无钉照 / 事件侧 grant 形状违规 / digest 形状 / 缺版本 / 缺 outcome / seq 逆序 / 2^53 相邻 seq 折损钉 / int64 溢出钉 / 浮点语法超 2^53 精确域 / idem-identity 键错位 / 转移序三形态：completed 无 dispatched 前驱 + 终态后再生 + unresolved 后再 dispatched / 终态复活 / re-unresolved / reused 携钉照 / idem 缺席两形态（adopted/effect）/ conflict 反向携 idem / effect 归因偏离钉照） |
-| `examples/judgment/valid`, `examples/judgment/invalid` | 判断规格样例：2 必须通过（NGA §6 credit 示例全字段+§6.1 全部点名缺口含双截断与带间区间/最小形态含 nominal+ordinal+change_rationale 词汇正例）+ 7 必须拒绝（缺 resolution/杜撰 level 类型/第三种候选集语义/空术语表/authority_hint 旁路字段/杜撰示例类别/缺 evidence_sources） |
+| `examples/judgment/valid`, `examples/judgment/invalid` | 判断规格样例：2 必须通过（NGA §6 credit 示例全字段+§6.1 全部点名缺口含双截断与带间区间/最小形态含 nominal+ordinal+change_rationale 词汇正例）+ 11 必须拒绝（五段缺席负钉：resolution/question/rules/scope/ownership——§6 具名信息段逐段有钉/杜撰 level 类型/第三种候选集语义/空术语表/authority_hint 旁路字段/杜撰示例类别/缺 evidence_sources） |
 | `examples/adoption/valid`, `examples/adoption/invalid` | 采纳请求样例：2 必须通过 / 5 必须拒绝（缺版本 / 坏 digest / 空授权 / 未知旁路字段 / 杜撰效果烈度） |
 | `examples/keys/trusted.jwks.json` | 样例用可信公钥库：JWKS（publisher、tester、enc-only、ops-enc、alg-rs、other-publisher）+ `subject_of` 绑定；私钥不落盘 |
 | `examples/keys/invalid/*.jwks.json` | 必须拒绝加载的密钥库（重复 kid / 无 kid / 绑定指向不存在的 kid） |
@@ -40,7 +40,7 @@ python3 schema/adoption.py            # 采纳请求样例（件2），双向断
 python3 schema/judgment.py            # 判断规格样例（件3），双向断言
 ```
 
-Go 侧同套件与状态机：`cd go && go run ./cmd/ledger && go run ./cmd/adopt && go test ./...`（夹具套件纪律在 go/internal/suite；引擎与懒编译在 go/internal/schemalib）。
+Go 侧同套件与状态机：`cd go && go run ./cmd/ledger && go run ./cmd/adopt && go run ./cmd/judgment && go test ./...`（夹具套件纪律在 go/internal/suite；引擎与懒编译在 go/internal/schemalib）。
 
 依赖：`jsonschema`（含 `referencing`）；信封验签另需 `pyjwt[crypto]`。
 
