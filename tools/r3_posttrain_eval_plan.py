@@ -22,6 +22,30 @@ def sha(path):
     return h.hexdigest()
 
 
+BASE_MODEL='/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base'
+PT_MODEL='/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B'
+
+
+def semantic_arm(plan, manifest):
+    """Control identity comes from completed training, never an output label."""
+    args=manifest.get('args',{});control=plan.get('control_arm')
+    is_control=control is not None or args.get('drop_state') or plan['model']==PT_MODEL
+    if not is_control:return plan.get('arm','k1').upper()
+    if control not in ('K1-QO','K1-PT') or plan.get('arm')!='k1' or manifest.get('arm')!='k1' or args.get('arm')!='k1':
+        raise RuntimeError('control training objective or explicit identity differs')
+    if args.get('model_path')!=plan['model'] or manifest.get('model_path')!=plan['model']:
+        raise RuntimeError('control training model differs')
+    if type(args.get('seed')) is not int or args['seed']!=plan.get('seed'):
+        raise RuntimeError('control training seed differs')
+    command=plan.get('command',[])
+    if control=='K1-QO':
+        if plan['model']!=BASE_MODEL or args['seed']!=2 or args.get('drop_state') is not True or command.count('--drop-state')!=1:
+            raise RuntimeError('QO requires Base seed 2 and dropped training state')
+    elif plan['model']!=PT_MODEL or args['seed'] not in (2,3) or args.get('drop_state') is not False or '--drop-state' in command:
+        raise RuntimeError('PT requires instruct seeds 2/3 with full training state')
+    return control
+
+
 def prepare(training, closure, out):
     terminal=training/'TRAIN_EXIT.json'
     if not terminal.exists():return {'status':'waiting_training'}
@@ -30,6 +54,7 @@ def prepare(training, closure, out):
     plan=load(training/'plan.json');manifest=load(training/'manifest.json')
     if plan.get('stop_after') or manifest.get('summary',{}).get('final_step')!=3116:
         return {'status':'not_complete_training','reason':'probe or missing final 3116-step summary'}
+    evaluation_arm=semantic_arm(plan,manifest)
     adapter=training/'adapter'
     required=[adapter/'adapter_config.json',adapter/'adapter_model.safetensors']
     if not all(p.is_file() for p in required):raise RuntimeError('successful training lacks complete adapter')
@@ -52,9 +77,11 @@ def prepare(training, closure, out):
     replacements={'<FROZEN_BASE_MODEL>':plan['model'],'<COMPLETED_ADAPTER>':str(adapter),
                   '<FRESH_EVAL_OUTPUT>':str(out/'results'),'<FRESH_IDENTITY_CACHE>':str(out/'identity')}
     command=[replacements.get(x,x) for x in command]
-    command[command.index('--arm')+1]=plan.get('arm','k1').upper()
+    command[command.index('--arm')+1]=evaluation_arm
+    if evaluation_arm in ('K1-QO','K1-PT'):
+        files[str(training/'plan.json')]=sha(training/'plan.json')
     spec={'schema':'r3-posttrain-dev-spec-v1','training':str(training),'training_exit':end,
-          'training_variant': {'arm':plan.get('arm','k1'), 'k2_impl':plan.get('k2_impl','rows'),
+          'training_variant': {'arm':evaluation_arm.lower(), 'k2_impl':plan.get('k2_impl','rows'),
                                'seed':manifest.get('args',{}).get('seed'),
                                'training_plan_sha256':sha(training/'plan.json'),
                                'pooling_policy':'never pool shared and rows implementations as seeds of one candidate'},

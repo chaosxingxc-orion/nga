@@ -11,6 +11,7 @@ import sys
 ROOT = Path('/home/xingchao/workspace/nga')
 BASE = Path('/mnt/cephfs/xingchao/experiments/jev')
 MODEL = Path('/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base')
+PT_MODEL = Path('/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B')
 TRAIN = BASE / 'KEV/decision-v7/train.jsonl'
 IMAGE = 'sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7'
 
@@ -27,7 +28,25 @@ def write(path, value):
     Path(path).write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 
-def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False, fresh_prechecks=None, fresh_prechecks_sha256=None, training_evidence=None, training_evidence_sha256=None, resume_plan=None, resume_plan_sha256=None):
+def control_settings(control_arm, *, engineering, model, seed, arm, shared, validate_shared):
+    if control_arm is None:
+        if Path(model) == PT_MODEL:
+            raise ValueError('instruct checkpoint requires explicit K1-PT control')
+        return None
+    if control_arm not in ('K1-QO', 'K1-PT') or not engineering or arm != 'k1' or shared or validate_shared:
+        raise ValueError('controls require engineering K1 reference recipe')
+    expected_model = MODEL if control_arm == 'K1-QO' else PT_MODEL
+    seeds = (2,) if control_arm == 'K1-QO' else (2, 3)
+    if Path(model) != expected_model or type(seed) is not int or seed not in seeds:
+        raise ValueError('control model or seed differs from registered scope')
+    return {'control_arm':control_arm, 'candidate_for_adoption':False,
+            'primary_input_mode':'drop' if control_arm == 'K1-QO' else 'full',
+            'registered_seeds':list(seeds)}
+
+
+def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False, fresh_prechecks=None, fresh_prechecks_sha256=None, training_evidence=None, training_evidence_sha256=None, resume_plan=None, resume_plan_sha256=None, control_arm=None):
+    control = control_settings(control_arm, engineering=engineering, model=model, seed=seed,
+                               arm=arm, shared=shared, validate_shared=validate_shared)
     if arm not in ('k1', 'k2'):
         raise ValueError('unsupported loss arm')
     if not engineering and (model != MODEL or stop_after or arm != 'k1' or shared):
@@ -91,9 +110,11 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
             files[str(p)] = sha(p)
     command = ['python3', '-P', '/workspace/train_r3.py', '--out', str(out), '--arm', arm, '--seed', str(seed),
                '--model-path', str(model), '--kernel', 'ref', '--grad-ckpt', '--micro-tokens', '12000', '--max-len', '4096',
-               '--save-every', '200', '--no-merge', '--epochs', '2', '--total-steps', '3116', '--expect-pairs', '186' if model == MODEL else '0']
+               '--save-every', '200', '--no-merge', '--epochs', '2', '--total-steps', '3116', '--expect-pairs', '186' if model in (MODEL, PT_MODEL) else '0']
     if stop_after:
         command += ['--stop-after', str(stop_after)]
+    if control_arm == 'K1-QO':
+        command += ['--drop-state']
     if shared:
         if not engineering or arm != 'k2' or stop_after not in (0, 45):
             raise ValueError('shared path must be engineering K2, full or 45-step validation')
@@ -133,6 +154,10 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
                     authorization='user_execute_engineering_when_ready_20261031',
                     container=f'nga-r3-eng-{out.parent.name}-s{seed}', stop_after=stop_after, arm=arm,
                     evaluation={'candidate_test_forbidden': True, 'formal_acceptance_requires_new_review': True})
+    if control:
+        plan.update(control_arm=control_arm, control=control)
+        plan['evaluation'].update(control_arm=control_arm, primary_input_mode=control['primary_input_mode'],
+                                  candidate_for_adoption=False, registered_seeds=control['registered_seeds'])
     if shared:
         plan['k2_impl'] = 'shared'
         if not stop_after:
@@ -161,6 +186,10 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
     if engineering:
         with (out / 'PREREGISTRATION.md').open('a') as f:
             f.write('\nUser authorized engineering execution when ready on 2026-10-31. This generation tests sustained training, checkpoint writing and supervised resource release. It cannot establish a scientific baseline; independent review remains outstanding. No test access. Nonblocking findings go to the next generation.\n')
+    if control:
+        with (out / 'PREREGISTRATION.md').open('a') as f:
+            f.write('\nControl '+control_arm+': no adoption; registered seeds '+str(control['registered_seeds'])+
+                    '; training/evaluation primary input mode '+control['primary_input_mode']+'.\n')
     return {'out': str(out), 'sha256': pin, 'launch': line.strip()}
 
 

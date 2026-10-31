@@ -67,12 +67,19 @@ def rebuild(run, kev_dir, data_root, deps):
     require(set(h.get('stages', '').split(',')) == {'k_score', 't_score'}, 'complete scoring stages required')
     require(set(h.get('partitions', [])) == {'dev', 'calibration'}, 'dev/calibration only required')
     require(h.get('track_t_config') == 'r3', 'r3 selection split required')
-    require(h.get('arm') in ('K0', 'K1', 'K2'), 'unsupported arm')
+    require(h.get('arm') in ('K0', 'K1', 'K2', 'K1-QO', 'K1-PT'), 'unsupported arm')
     marker = load(run / 'EVAL_COMPLETE.track_kt.json')
     require(marker.get('exit_code') == 0, 'scoring did not complete successfully')
     evidence = E.verify_run(str(run), receipt)
     identity = E.train_identity(receipt) if h['arm'] != 'K0' else {
         'arm': 'K0', 'model_path': h['model']['path'], 'model_sha256': h['model']['sha256']}
+    if h['arm'] in ('K1-QO','K1-PT'):
+        control=h['arm'];base=Path(h['model']['base_path']).name
+        require(h.get('primary_input_mode')==('drop' if control=='K1-QO' else 'full'),
+                'control primary input mode differs')
+        require(base==('Qwen__Qwen3.5-0.8B-Base' if control=='K1-QO' else 'Qwen__Qwen3.5-0.8B'),
+                'control base checkpoint differs')
+        require(identity['seed'] in ((2,) if control=='K1-QO' else (2,3)), 'control seed differs')
     if h['arm'] == 'K0':
         require(h['model']['kind'] == 'checkpoint', 'K0 must be an untuned checkpoint')
     train, train_path = C.load_partition('decision-v7', 'train', kev_dir=str(kev_dir))
@@ -145,6 +152,9 @@ def rebuild(run, kev_dir, data_root, deps):
               'selection_evidence': {**identity, 'provenance': evidence, 'keys': keys, 'correct': correct},
               'producer_receipt_sha256': sha(receipt_path), 'scientific_acceptance': False,
               'scope': 'development and selection-half evidence only; formal review remains separate'}
+    if h['arm'] in ('K1-QO','K1-PT'):
+        result['control']={'arm':h['arm'],'adoption_candidate':False,
+            'scope':'development control only; PT B-4 versus R0 requires separate R0-configuration scoring'}
     return result
 
 

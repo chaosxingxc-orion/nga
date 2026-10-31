@@ -88,7 +88,7 @@ def expected_command(spec, out):
                 '--data-root', str(BASE), '--track-t-sources', 'typed-decisions,openjev-synth,akhilaaa3',
                 '--shard', '0', '--num-shards', '1']
     arm = 'K0' if baseline else spec['training_variant']['arm'].upper()
-    require(arm in (('K0',) if baseline else ('K1', 'K2')), 'unsupported training arm')
+    require(arm in (('K0',) if baseline else ('K1', 'K2', 'K1-QO', 'K1-PT')), 'unsupported training arm')
     command = ['python3', '-P', ENTRY, '--full', '--model-path', spec['model']]
     if not baseline:
         command += ['--adapter', spec['adapter']]
@@ -125,6 +125,30 @@ def allowed_data_files(spec):
     return files
 
 
+def verify_control_manifest(spec):
+    if is_baseline(spec):return
+    arm=spec['training_variant']['arm'].upper()
+    training=Path(spec['training']);manifest=load(training/'manifest.json');args=manifest.get('args',{})
+    looks_control=arm in ('K1-QO','K1-PT') or args.get('drop_state') or spec['model']==R0_MODEL
+    if not looks_control:return
+    require(arm in ('K1-QO','K1-PT'),'control cannot be relabeled generic training')
+    path=training/'plan.json';require(str(path) in spec['files'] and sha(path)==spec['training_variant']['training_plan_sha256'],
+                                     'control training plan unbound')
+    plan=load(path)
+    require(plan.get('control_arm')==arm and plan.get('arm')=='k1' and manifest.get('arm')=='k1' and args.get('arm')=='k1',
+            'control training objective or identity differs')
+    require(spec['model']==plan['model']==manifest.get('model_path')==args.get('model_path'), 'control model differs')
+    require(type(args.get('seed')) is int and args['seed']==plan.get('seed')==spec['training_variant'].get('seed'),
+            'control seed differs')
+    command=plan.get('command',[])
+    if arm=='K1-QO':
+        require(spec['model']==R0_MODEL+'-Base' and args['seed']==2 and args.get('drop_state') is True
+                and command.count('--drop-state')==1,'QO requires Base seed2 and dropped training state')
+    else:
+        require(spec['model']==R0_MODEL and args['seed'] in (2,3) and args.get('drop_state') is False
+                and '--drop-state' not in command,'PT requires instruct seeds2/3 and full training state')
+
+
 def verify_spec(spec, out):
     require(spec['schema'] in ('r3-posttrain-dev-spec-v1', 'r3-baseline-dev-spec-v1'), 'unexpected specification')
     baseline = is_baseline(spec)
@@ -135,6 +159,7 @@ def verify_spec(spec, out):
     require(spec['test_read'] is False and spec['scientific_acceptance'] is False, 'scope differs')
     if not baseline:
         require(spec['training_exit']['exit_code'] == 0, 'training did not succeed')
+        verify_control_manifest(spec)
     require(spec['command'] == expected_command(spec, out), 'command differs from engineering Track K recipe')
     allowed_data = allowed_data_files(spec)
     require(len(spec['readonly_data_mounts']) == len(allowed_data) and

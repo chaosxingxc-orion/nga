@@ -82,17 +82,31 @@ def verify(path, pin, reviewed=True):
     engineering = p['schema'] == 'r3-engineering-k1-plan-v1'
     require(p['seed'] in (2, 3) and p['chip'] in (tuple(range(8)) if engineering else (1, 4)), 'unregistered seed/chip')
     model_name = Path(p['model']).name
-    require(model_name in (('Qwen__Qwen3.5-0.8B-Base', 'Qwen__Qwen3.5-2B-Base', 'Qwen__Qwen3.5-4B-Base', 'Qwen__Qwen3.5-9B-Base') if engineering
+    require(model_name in (('Qwen__Qwen3.5-0.8B-Base', 'Qwen__Qwen3.5-2B-Base', 'Qwen__Qwen3.5-4B-Base', 'Qwen__Qwen3.5-9B-Base', 'Qwen__Qwen3.5-0.8B') if engineering
                           else ('Qwen__Qwen3.5-0.8B-Base',)), 'model outside registered execution scope')
-    pairs = '186' if model_name == 'Qwen__Qwen3.5-0.8B-Base' else '0'
+    pairs = '186' if model_name in ('Qwen__Qwen3.5-0.8B-Base','Qwen__Qwen3.5-0.8B') else '0'
     arm = p.get('arm', 'k1') if engineering else 'k1'
     require(arm in ('k1', 'k2'), 'unregistered loss arm')
+    control_arm=p.get('control_arm')
+    if control_arm is not None:
+        require(engineering and control_arm in ('K1-QO','K1-PT') and arm=='k1'
+                and not p.get('k2_impl') and not p.get('validation_kind'), 'invalid engineering control recipe')
+        model='/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B'+('-Base' if control_arm=='K1-QO' else '')
+        seeds=[2] if control_arm=='K1-QO' else [2,3]
+        mode='drop' if control_arm=='K1-QO' else 'full'
+        require(p['model']==model and type(p['seed']) is int and p['seed'] in seeds,'control model/seed differs')
+        require(p.get('control')=={'control_arm':control_arm,'candidate_for_adoption':False,
+                'primary_input_mode':mode,'registered_seeds':seeds},'control identity differs')
+        require(all(p.get('evaluation',{}).get(k)==v for k,v in p['control'].items()),'control evaluation differs')
+    else:
+        require(model_name!='Qwen__Qwen3.5-0.8B' and not p.get('control'),'instruct checkpoint requires explicit K1-PT control')
     expected = ['python3', '-P', '/workspace/train_r3.py', '--out', p['out'], '--arm', arm, '--seed', str(p['seed']),
                 '--model-path', p['model'], '--kernel', 'ref', '--grad-ckpt', '--micro-tokens', '12000', '--max-len', '4096',
                 '--save-every', '200', '--no-merge', '--epochs', '2', '--total-steps', '3116', '--expect-pairs', pairs]
     if engineering and p.get('stop_after', 0):
         require(type(p['stop_after']) is int and 10 <= p['stop_after'] <= 3116, 'invalid engineering step bound')
         expected += ['--stop-after', str(p['stop_after'])]
+    if control_arm=='K1-QO':expected += ['--drop-state']
     if engineering and p.get('k2_impl') == 'shared':
         require(arm == 'k2' and p.get('stop_after') in (0, 45), 'invalid shared engineering schedule')
         if not p.get('stop_after'):

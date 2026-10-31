@@ -96,6 +96,33 @@ class ReportTests(Evidence):
         self.assertEqual(result['selection_evidence']['arm'], 'K0')
         self.assertNotIn('seed', result['selection_evidence'])
 
+    def control_fixture(self, arm):
+        target=self.root/('Qwen__Qwen3.5-0.8B-Base' if arm=='K1-QO' else 'Qwen__Qwen3.5-0.8B')
+        self.base.rename(target);self.base=target
+        self.training['model_path']=str(target);self.training['args']['drop_state']=arm=='K1-QO'
+        write(self.train/'manifest.json',self.training)
+        self.identity=TL.model_identity(str(target),str(self.adapter),str(self.root/'controlcache'))
+        self.receipt['header'].update(arm=arm,model=self.identity,primary_input_mode='drop' if arm=='K1-QO' else 'full')
+        self.save_receipt()
+        write(self.run/'RUN_IDENTITY.json',{'model_sha256':self.identity['sha256'],'arm':arm,'track_t_config':'r3'})
+        for path in self.paths:
+            C.write_jsonl(path,[PV.stamp(r,self.identity['sha256']) for r in C.read_jsonl(path)])
+        self.manifest()
+
+    def test_qo_is_drop_control_and_not_adoption_candidate(self):
+        self.control_fixture('K1-QO');result=self.rebuild()
+        self.assertFalse(result['control']['adoption_candidate'])
+        self.assertEqual(result['selection_evidence']['seed'],2)
+        self.receipt['header']['primary_input_mode']='full';self.save_receipt()
+        with self.assertRaisesRegex(ValueError,'primary input mode'):self.rebuild()
+
+    def test_pt_requires_instruct_base_and_preserves_control_limit(self):
+        self.control_fixture('K1-PT');result=self.rebuild()
+        self.assertIn('separate R0-configuration',result['control']['scope'])
+        self.assertFalse(result['control']['adoption_candidate'])
+        self.training['args']['drop_state']=True;write(self.train/'manifest.json',self.training)
+        with self.assertRaisesRegex(ValueError,'question-only'):self.rebuild()
+
     def test_incomplete_scoring_or_test_partition_refused_before_metrics(self):
         for key, value in [('stages', 'k_score'), ('partitions', ['dev', 'test'])]:
             original = self.receipt['header'][key]
