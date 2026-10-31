@@ -214,6 +214,12 @@ The owner's illustrative credit rules show why this matters: assets above 30 mil
 
 ## 7. Proposed adoption, execution, and recovery behavior
 
+### 7.0 Business-system integration boundary
+
+The proposed default is to invoke authorized business operations exposed by the owning enterprise IT system. That system retains its domain data, internal business/risk constraints and transaction commit authority. NGA governs its own task state, bound semantic judgments, local/delegated adoption and capability requests; an NGA adoption does not by itself establish external business approval or effect completion. A model-generated field update or generic CRUD interface is not a substitute for the business operation's enforcement contract.
+
+An existing system may own the whole decision or explicitly delegate a qualified semantic question to NGA/Jev. Either arrangement requires a clear capability contract. NGA can replay its request/response control path; internal provider replay and audit remain a separate scope. See the [business-system capability boundary](../achitecture%20design/19-business-system-capability-boundary.md) for the proposal and its counterexamples.
+
 ### 7.1 Logical lifecycle
 
 A typical path is **propose → observe/verify → assess → adopt → dispatch → confirm and record**. It may include further evidence gathering, rejection, escalation, or a revised plan. These are logical milestones rather than a selected state-machine implementation.
@@ -338,7 +344,7 @@ Recording an answer requires its rationale, evidence, affected principles/interf
 
 ## 11. Next design artifact
 
-Following the owner's clarification, first define a small general framework contract for case identity, bound decisions, plans, effective transitions, external operations and applicable shared constraints. Then challenge it with a small portfolio of explicitly scoped business fixtures. Do not require detailed banking semantics to be settled before continuing the architecture. See [framework logic and case coverage](../achitecture%20design/18-framework-core-and-case-coverage.md).
+Following the owner's clarification, first define a small general framework contract for case identity, bound decisions, plans, NGA-effective transitions and invocation of business capabilities. The owning business system remains responsible for its internal shared constraints and authoritative commits. Then challenge the integration with a small portfolio of explicitly scoped business fixtures. Do not require detailed banking semantics to be settled before continuing the architecture. See [framework logic and case coverage](../achitecture%20design/18-framework-core-and-case-coverage.md) and the proposed [business-system boundary](../achitecture%20design/19-business-system-capability-boundary.md).
 
 For each selected fixture, describe the supplied judgment specification, capability contract, evidence, S2 plan, S1 observations, adoption conditions and intended operation. The credit example is one fixture; independent cases with shared constraints and a non-credit counterpart test whether the core is general. Use these to produce connected project 1 task/evaluation definitions, project 2 control traces, and project 3 workbench flows. A real deployment still needs approved domain semantics and integration evidence; hypothetical fixtures do not supply that approval.
 

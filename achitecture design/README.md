@@ -10,6 +10,8 @@ This directory holds the owner-supplied enterprise architecture baseline and NGA
 
 **Current design direction:** [Framework logic first, case coverage second](18-framework-core-and-case-coverage.md) records the owner's correction: define NGA's general invariants and configurable contracts, then test different cases. Independent cases may share constraints. The [credit review](17-credit-scope-identity-and-revision-review.md) remains an illustrative analysis; its earlier single-relationship starting scope is not a framework prerequisite.
 
+**Current integration proposal:** [NGA and enterprise IT capability boundaries](19-business-system-capability-boundary.md) places NGA over authorized business operations while the owning IT system retains its domain rules, data and commit authority. It distinguishes delegated semantic judgment, request continuity and agent replay from provider-internal execution.
+
 ## Reading order and document status
 
 | Document | Role | Status |
@@ -28,6 +30,7 @@ This directory holds the owner-supplied enterprise architecture baseline and NGA
 | [16 — Architecture discussion register](16-architecture-discussion-register.md) | Eighteen open architecture questions, discussion sequence, decision evidence, three-state/four-plane coverage and deferred technical choices. | All items OPEN; recommendations are not approved decisions. |
 | [17 — AQ-01 / AQ-02 credit scope and identity review](17-credit-scope-identity-and-revision-review.md) | Credit-fixture boundary, application and decision identity, material changes, rule applicability, replanning, retries and fourteen adversarial cases. | Corrected after owner feedback; business-specific scope is not a prerequisite for framework design. AQ-01 and AQ-02 remain OPEN. |
 | [18 — Framework logic and case coverage](18-framework-core-and-case-coverage.md) | Stable core versus business contracts, independent cases with shared constraints, S1/S2/control roles and eight coverage patterns. | Framework-first method is owner-established; mechanisms and coverage expectations remain proposed. |
+| [19 — Business-system capability boundary](19-business-system-capability-boundary.md) | Business-operation interfaces, delegated decisions, authoritative IT-system state, idempotent invocation and bounded replay visibility. | Proposed integration boundary; no particular protocol or provider implementation is selected. |
 
 The [NGA overall design](../design/nga-overall-design.md) remains the program-level source for the three projects and established principles. This directory develops the architecture for project 2 and its integration into project 3.
 
