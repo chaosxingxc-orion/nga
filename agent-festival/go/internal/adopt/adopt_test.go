@@ -7,6 +7,8 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -1286,9 +1288,13 @@ func TestOpenRejectsConflictCarryingIdem(t *testing.T) {
 	if len(events) != 2 || events[1].Outcome.Status != "conflict" {
 		t.Fatalf("expected adopted+conflict, got %d events", len(events))
 	}
-	// the bypass shape: a conflict event with idempotency added by hand
+	// the bypass shape: a conflict event with idempotency added by hand —
+	// carrying the REGISTERED digest, so the digest-stability rule does not
+	// fire and this guard is the unique rejector (R14 M-1: the first
+	// version's digestB arm was redundantly covered by the digest rule and
+	// the pin did not bear load)
 	conflict := events[1]
-	conflict.Idempotency = &ledger.Idempotency{OperationID: "op-cf", PayloadDigest: digestB}
+	conflict.Idempotency = &ledger.Idempotency{OperationID: "op-cf", PayloadDigest: digestA}
 	first, err := json.Marshal(events[0])
 	if err != nil {
 		t.Fatal(err)
@@ -1300,8 +1306,12 @@ func TestOpenRejectsConflictCarryingIdem(t *testing.T) {
 	if err := os.WriteFile(path, []byte(string(first)+"\n"+string(second)+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Open(path); err == nil {
+	_, err = Open(path)
+	if err == nil {
 		t.Fatal("conflict event carrying idempotency was absorbed at load — the loser's digest entered the registry")
+	}
+	if !strings.Contains(err.Error(), "conflict event carries idempotency") {
+		t.Fatalf("rejection came from another rule (error: %v) — the pin is on the wrong guard", err)
 	}
 	// control: the machine's own conflict event (no idempotency) loads
 	machineConflict, err := json.Marshal(events[1])
@@ -1314,4 +1324,181 @@ func TestOpenRejectsConflictCarryingIdem(t *testing.T) {
 	if _, err := Open(path); err != nil {
 		t.Fatalf("machine-written conflict rejected: %v", err)
 	}
+}
+
+// TestOpenRejectsSingleViolationShapes pins the machine path (Open refuses)
+// for the five families whose rejection had only fixture-side pins (R14 M-2
+// — the double-pin discipline swept same-class). Each bypass arm is built
+// to be the UNIQUE rejector: only the family under test fires, and the
+// assertion names that family's own error text.
+func TestOpenRejectsSingleViolationShapes(t *testing.T) {
+	build := func(t *testing.T) (path string, first string, effect string) {
+		t.Helper()
+		path = filepath.Join(t.TempDir(), "adopt.jsonl")
+		m := mustOpen(t, path)
+		if o := m.Adopt(testRequest("op-sv", digestA, pinGrants())); o.Status != "adopted" {
+			t.Fatalf("adopt = %q", o.Status)
+		}
+		if o := m.Dispatch("op-sv", pinGrants()); o.Status != "dispatched" {
+			t.Fatalf("dispatch = %q: %s", o.Status, o.Detail)
+		}
+		events, _ := m.Events()
+		var lines []string
+		for _, e := range events {
+			line, err := json.Marshal(e)
+			if err != nil {
+				t.Fatal(err)
+			}
+			lines = append(lines, string(line))
+		}
+		return path, lines[0], lines[1]
+	}
+	reopen := func(t *testing.T, path string, lines ...string) error {
+		t.Helper()
+		if err := os.WriteFile(path, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		_, err := Open(path)
+		return err
+	}
+	mustRejectWith := func(t *testing.T, err error, want string) {
+		t.Helper()
+		if err == nil {
+			t.Fatalf("bypass shape was absorbed at load (want %q)", want)
+		}
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("rejection came from another rule (error: %v) — the pin is on the wrong guard, want %q", err, want)
+		}
+	}
+
+	t.Run("idem-key-coupling", func(t *testing.T) {
+		path, first, effect := build(t)
+		var ev ledger.Event
+		if err := json.Unmarshal([]byte(effect), &ev); err != nil {
+			t.Fatal(err)
+		}
+		ev.Idempotency = &ledger.Idempotency{OperationID: "op-phantom", PayloadDigest: digestA}
+		line, _ := json.Marshal(ev)
+		mustRejectWith(t, reopen(t, path, first, string(line)), "does not match")
+	})
+	t.Run("status-family", func(t *testing.T) {
+		path, first, _ := build(t)
+		var ev ledger.Event
+		if err := json.Unmarshal([]byte(first), &ev); err != nil {
+			t.Fatal(err)
+		}
+		ev.ArbitrationSeq = 1
+		ev.Outcome = ledger.Outcome{Status: "dispatched"} // effect-family status on an adoption event
+		ev.GrantsAtDecision = nil
+		line, _ := json.Marshal(ev)
+		mustRejectWith(t, reopen(t, path, first, string(line)), "effect-family status")
+	})
+	t.Run("grants-on-effect", func(t *testing.T) {
+		path, first, effect := build(t)
+		var ev ledger.Event
+		if err := json.Unmarshal([]byte(effect), &ev); err != nil {
+			t.Fatal(err)
+		}
+		ev.GrantsAtDecision = pinGrants()
+		line, _ := json.Marshal(ev)
+		mustRejectWith(t, reopen(t, path, first, string(line)), "grants_at_decision")
+	})
+	t.Run("grants-on-reused", func(t *testing.T) {
+		path, first, _ := build(t)
+		var ev ledger.Event
+		if err := json.Unmarshal([]byte(first), &ev); err != nil {
+			t.Fatal(err)
+		}
+		ev.ArbitrationSeq = 1
+		ev.Outcome = ledger.Outcome{Status: "reused"}
+		ev.GrantsAtDecision = pinGrants()
+		line, _ := json.Marshal(ev)
+		mustRejectWith(t, reopen(t, path, first, string(line)), "grants_at_decision")
+	})
+	t.Run("orphan-reused", func(t *testing.T) {
+		path, _, _ := build(t)
+		var ev ledger.Event
+		// a lone reused event with no adopted predecessor
+		if err := json.Unmarshal([]byte(`{"event_type":"adoption","arbitration_seq":0,"identity":{"business_request_id":"br-x","operation_id":"op-orp"},"versions":{"evidence":"e","rule":"r","model":"m","readout":"ro","policy":"p"},"outcome":{"status":"reused"},"idempotency":{"operation_id":"op-orp","payload_digest":"sha256:`+strings.Repeat("a", 64)+`"}}`), &ev); err != nil {
+			t.Fatal(err)
+		}
+		line, _ := json.Marshal(ev)
+		mustRejectWith(t, reopen(t, path, string(line)), "precedes its adopted event")
+	})
+	t.Run("double-adopted", func(t *testing.T) {
+		path, first, _ := build(t)
+		var ev ledger.Event
+		if err := json.Unmarshal([]byte(first), &ev); err != nil {
+			t.Fatal(err)
+		}
+		ev.ArbitrationSeq = 1 // a second adopted event for the same op
+		line, _ := json.Marshal(ev)
+		mustRejectWith(t, reopen(t, path, first, string(line)), "second adopted event")
+	})
+}
+
+// TestRequestUTF8ScanIsComplete pins the field-list completeness of
+// requestUTF8Errors with reflection (R14 m-2): every string field of the
+// Request graph — including ones added later — is seeded with an invalid
+// byte one at a time, and the gate must reject each. A missed field means
+// the laundered-payload BLOCKER (R5) reopens through it.
+func TestRequestUTF8ScanIsComplete(t *testing.T) {
+	var walk func(prefix string, v reflect.Value) []string
+	walk = func(prefix string, v reflect.Value) []string {
+		var fields []string
+		switch v.Kind() {
+		case reflect.Struct:
+			for i := 0; i < v.NumField(); i++ {
+				fields = append(fields, walk(prefix+"."+v.Type().Field(i).Name, v.Field(i))...)
+			}
+		case reflect.Ptr:
+			if !v.IsNil() {
+				fields = append(fields, walk(prefix, v.Elem())...)
+			}
+		case reflect.Slice:
+			for i := 0; i < v.Len(); i++ {
+				fields = append(fields, walk(fmt.Sprintf("%s[%d]", prefix, i), v.Index(i))...)
+			}
+		case reflect.String:
+			if v.CanSet() {
+				fields = append(fields, prefix)
+			}
+		}
+		return fields
+	}
+	req := testRequest("op-utf", digestA, pinGrants())
+	rv := reflect.ValueOf(req).Elem()
+	fields := walk("req", rv)
+	if len(fields) < 15 {
+		t.Fatalf("reflection found only %d string fields — the walk itself is broken", len(fields))
+	}
+	for _, f := range fields {
+		sv := fieldByPath(rv, f)
+		orig := sv.String()
+		sv.SetString("x\xff")
+		m := mustOpen(t, filepath.Join(t.TempDir(), "adopt.jsonl"))
+		if o := m.Adopt(req); o.Status != "rejected" {
+			t.Fatalf("field %s: invalid UTF-8 passed the gate (%q) — requestUTF8Errors misses it", f, o.Status)
+		}
+		sv.SetString(orig)
+	}
+}
+
+// fieldByPath resolves a dotted "req.a.b[0].c" path from the struct root.
+func fieldByPath(root reflect.Value, path string) reflect.Value {
+	parts := strings.Split(strings.TrimPrefix(path, "req."), ".")
+	v := root
+	for _, part := range parts {
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+		if i := strings.IndexByte(part, '['); i >= 0 {
+			v = v.FieldByName(part[:i])
+			idx, _ := strconv.Atoi(strings.TrimSuffix(part[i+1:], "]"))
+			v = v.Index(idx)
+			continue
+		}
+		v = v.FieldByName(part)
+	}
+	return v
 }
