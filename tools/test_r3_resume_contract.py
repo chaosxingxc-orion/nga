@@ -7,6 +7,18 @@ R=importlib.util.module_from_spec(s);s.loader.exec_module(R)
 
 
 class ResumeContract(unittest.TestCase):
+    def test_legacy_source_command_arm_and_conflicting_metadata(self):
+        plan = {'seed': 2, 'command': ['python3', '-P', '/workspace/train_r3.py',
+                '--arm', 'k1', '--grad-ckpt', '--micro-tokens', '12000']}
+        R.validate_source_plan(plan)
+        R.validate_source_plan(dict(plan, arm='k1'))
+        with self.assertRaisesRegex(ValueError, 'consistent K1'):
+            R.validate_source_plan(dict(plan, arm='k2'))
+        for command in (plan['command'] + ['--arm', 'k1'], ['--arm'],
+                        [x if x != 'k1' else 'k2' for x in plan['command']]):
+            with self.assertRaises(ValueError):
+                R.validate_source_plan(dict(plan, command=command))
+
     def test_invalid_measurements_and_incomplete_controls_cannot_pass(self):
         controls={name:{'loss':1.,'weight_relative_l2':1.}
                   for name in ('zero_moments','no_update')}

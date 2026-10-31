@@ -33,6 +33,20 @@ def command(plan, out, count):
     return cmd
 
 
+def validate_source_plan(plan):
+    """Legacy K1 plans encoded their arm only in the exact training command."""
+    cmd = plan['command']
+    if cmd.count('--arm') != 1 or cmd.index('--arm') + 1 >= len(cmd):
+        raise ValueError('source must declare one training arm')
+    arm = cmd[cmd.index('--arm') + 1]
+    if arm != 'k1' or plan.get('arm', arm) != arm:
+        raise ValueError('source must be consistent K1')
+    if plan.get('seed') != 2 or '--grad-ckpt' not in cmd:
+        raise ValueError('source seed/checkpointing differs')
+    if cmd.count('--micro-tokens') != 1 or cmd[cmd.index('--micro-tokens') + 1] != '12000':
+        raise ValueError('source micro-token budget differs')
+
+
 def judge(loss_floor, weight_floor, resume_loss, resume_weight, controls):
     # Frozen numerical slack plus a replicate-derived tolerance, never fitted
     # to the resumed result. Controls test that the bar can reject corruption.
@@ -67,8 +81,7 @@ def main():
     start=state['step'];steps=20;split=10
     assert start==config['source_step'] and start+steps<3116
     plan=load(out/'SOURCE_PLAN.json')
-    assert plan['arm']=='k1' and plan['seed']==2 and '--grad-ckpt' in plan['command']
-    assert plan['command'][plan['command'].index('--micro-tokens')+1]=='12000'
+    validate_source_plan(plan)
     directories={name:out/name for name in ['replica_a','replica_b','replica_c','resumed','zero_moments','no_update']}
     stages=[]
     for name,root in directories.items():
