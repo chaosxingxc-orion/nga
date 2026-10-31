@@ -10,8 +10,10 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 import time
 import uuid
+from contextlib import contextmanager
 
 ROOT = Path('/mnt/cephfs/xingchao/experiments/jev/reference_inference')
 ALLOCATION = ROOT.parent / 'CHIP-ALLOCATION.json'
@@ -28,6 +30,21 @@ def module(path, name):
 
 evidence=module(Path(__file__).with_name('e38_evidence.py'),'e38_release_evidence')
 require=evidence.require
+
+
+@contextmanager
+def exclusive_lock(path):
+    """Open a lock without truncating or following a symlink."""
+    path = Path(path)
+    fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o644)
+    try:
+        st = os.fstat(fd)
+        require(stat.S_ISREG(st.st_mode) and st.st_nlink >= 1, 'Release lock is not a regular file')
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield fd
+    finally:
+        try: fcntl.flock(fd, fcntl.LOCK_UN)
+        finally: os.close(fd)
 
 
 def encoded(value):
@@ -64,6 +81,8 @@ def bind(plan_path, verification_request, review_path, q, prep):
  q.binding(d,q.load(p['container_spec']),launch)
  require(d['State']['Status']=='exited' and d['State']['ExitCode']==0
          and d['Id']==vr['container_id'] and launch['plan_sha256']==ph
+        and d['State']['StartedAt']==vr['npu_started_at']
+        and d['State']['FinishedAt']==vr['npu_finished_at']
          and launch['wrapper_sha256']==q.sha(p['wrapper']), 'Actual NPU exit/identity differs')
  require(not any((out/n).exists() for n in ['FAILED_GENERATION.json','FAILURE.json']), 'Failed NPU generation cannot use normal release')
  terminal=q.load(out/'COMPLETE.json');report=q.load(out/'report.json')
@@ -166,10 +185,8 @@ def intent_commit(q,journal,intent_path):
 def transaction(q,prep,plan,bindings,journal):
  require(journal.parent==ROOT and journal.name.startswith('e38_release_') and not journal.is_symlink(), 'Release journal location differs')
  journal.mkdir(exist_ok=True)
- with (journal/'release.lock').open('w') as lock:
-  fcntl.flock(lock,fcntl.LOCK_EX)
-  with Path(str(ALLOCATION)+'.lock').open('w') as allocation_lock:
-   fcntl.flock(allocation_lock,fcntl.LOCK_EX)
+ with exclusive_lock(journal/'release.lock'):
+  with exclusive_lock(Path(str(ALLOCATION)+'.lock')):
    intent_path=journal/'RELEASE_INTENT.json';done=journal/'RELEASED.json'
    run='reference_inference/'+Path(plan['out']).name
    if done.exists():
@@ -220,8 +237,22 @@ def release(plan_path,verification_request,review_path,journal):
  plan=initial.load(plan_path)
  for name in ['prepare_openjev_path_trace.py','e38_evidence.py','jeval_reference_queue.py']:
   path=plan_path.parent/name;require(initial.sha(path)==plan['files'][str(path)],'Frozen release dependency changed')
+ # Snapshot every Python dependency before executing any of it.  The frozen
+ # preparer uses path-based imports; replace that loader with an in-memory
+ # compiler so a later path replacement cannot change the code being run.
+ source_bytes={}
+ for path in plan['files']:
+  if path.endswith('.py'):
+   snap=initial.snapshot(path); require(snap.data is not None,'Python dependency exceeds bounded snapshot')
+   source_bytes[os.path.abspath(path)]=snap.data
  initial.verify()
- prep=module(plan_path.parent/'prepare_openjev_path_trace.py','e38_release_frozen_preparer')
+ def frozen_module(path,name):
+  key=os.path.abspath(path); require(key in source_bytes,'Unlisted dynamic dependency: '+key)
+  value=importlib.util.module_from_spec(importlib.util.spec_from_loader(name, loader=None))
+  value.__file__=key; exec(compile(source_bytes[key],key,'exec'),value.__dict__)
+  return value
+ prep=frozen_module(plan_path.parent/'prepare_openjev_path_trace.py','e38_release_frozen_preparer')
+ prep.module=frozen_module
  q=evidence.Evidence(prep.helper(plan_path.parent).delegate);prep.host(q)
  p,bindings=bind(plan_path,verification_request,review_path,q,prep)
  try:return transaction(q,prep,p,bindings,journal)

@@ -34,7 +34,7 @@ class ReleaseFixture(unittest.TestCase):
     review_path=str(actual_review),review_sha256=helpers.sha(actual_review)))
   self.save(self.out/'LAUNCH_RECEIPT.json',dict(container_id='npu-id',plan_sha256=self.ph,
     wrapper_sha256=helpers.sha(self.out/'wrapper.sh')))
-  self.npu=dict(Id='npu-id',State=dict(Status='exited',ExitCode=0,FinishedAt='npu-finish'))
+  self.npu=dict(Id='npu-id',State=dict(Status='exited',ExitCode=0,StartedAt='npu-start',FinishedAt='npu-finish'))
   self.cpu=dict(Id='cpu-id',State=dict(Status='exited',ExitCode=0,FinishedAt='cpu-finish'))
   self.containers={'npu':self.npu,'npu-id':self.npu,'cpu-id':self.cpu}
   self.active=[];self.queries=[]
@@ -50,6 +50,7 @@ class ReleaseFixture(unittest.TestCase):
   self.save(self.out/'COMPLETE.json',self.terminal);(self.out/'EXIT').write_text('rc=0 utc=fixture\n')
   self.req=dict(task='verify',target_plan=str(self.planpath));self.save(self.request,self.req)
   self.vreport=dict(plan_sha256=self.ph,actual_exit=0,candidate_batch_admission=False,container_id='npu-id',trace_valid=False,
+    npu_started_at='npu-start',npu_finished_at='npu-finish',
     terminal_sha256=helpers.sha(self.out/'COMPLETE.json'),report_sha256=helpers.sha(self.out/'report.json'),
     receipt_manifest=manifests['items'],attempt_manifest=manifests['attempts'])
   self.save(self.vout/'report.json',self.vreport)
@@ -187,5 +188,14 @@ class ReleaseFixture(unittest.TestCase):
   intent['allocation_before_sha256']=r.digest(raw);self.save(path,intent)
   with self.assertRaises(ValueError):self.run_release()
   self.assertEqual(helpers.load(self.allocation),self.before)
+
+ def test_lock_symlinks_are_rejected_without_truncating_target(self):
+  outside=self.root/'outside';outside.write_text('sentinel')
+  self.journal.mkdir()
+  (self.journal/'release.lock').symlink_to(outside)
+  q,p,b=self.bound()
+  with self.assertRaises((ValueError,OSError)):
+   r.transaction(q,self.prep,p,b,self.journal)
+  self.assertEqual(outside.read_text(),'sentinel')
 
 if __name__=='__main__':unittest.main()

@@ -166,15 +166,42 @@ def durable_move(source, target):
 
 
 def publish_new(path, value):
-    """Durably publish without replacing any existing artifact or stale temp."""
+    """Durably publish without replacing an existing artifact.
+
+    A process can die after the pending file is fsynced but before the hard
+    link.  The old implementation treated that name as an unrecoverable
+    collision.  Recovery is safe only when the retained pending bytes are
+    exactly the bytes requested by this call; a different pending value is a
+    hard failure and is never overwritten.
+    """
     path = Path(path)
     durable_mkdir(path.parent)
     raw = (json.dumps(value, ensure_ascii=False, allow_nan=False, indent=2) + '\n').encode()
     tmp = path.with_name(path.name + '.pending')
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644)
-    with os.fdopen(fd, 'wb') as f:
-        f.write(raw); f.flush(); os.fsync(f.fileno())
-    os.link(tmp, path, follow_symlinks=False)
+    if tmp.exists() or tmp.is_symlink():
+        # Read the already durable object through the same no-symlink path
+        # contract used for all evidence.  Never truncate or replace it.
+        with os.fdopen(open_regular(tmp), 'rb') as f:
+            pending = f.read()
+        if pending != raw:
+            raise FileExistsError('A different pending publication is present')
+        if path.exists() or path.is_symlink():
+            with os.fdopen(open_regular(path), 'rb') as f:
+                if f.read() != raw:
+                    raise FileExistsError('Pending and published bytes differ')
+            tmp.unlink()
+            sync_directory(path.parent)
+            return
+    else:
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644)
+        with os.fdopen(fd, 'wb') as f:
+            f.write(raw); f.flush(); os.fsync(f.fileno())
+    if not path.exists():
+        os.link(tmp, path, follow_symlinks=False)
+    else:
+        with os.fdopen(open_regular(path), 'rb') as f:
+            if f.read() != raw:
+                raise FileExistsError('Published bytes differ')
     tmp.unlink()
     fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try: os.fsync(fd)
