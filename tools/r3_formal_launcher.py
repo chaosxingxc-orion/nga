@@ -54,7 +54,9 @@ def verify(path, pin, reviewed=True):
     require(model_name in (('Qwen__Qwen3.5-0.8B-Base', 'Qwen__Qwen3.5-2B-Base', 'Qwen__Qwen3.5-4B-Base') if engineering
                           else ('Qwen__Qwen3.5-0.8B-Base',)), 'model outside registered execution scope')
     pairs = '186' if model_name == 'Qwen__Qwen3.5-0.8B-Base' else '0'
-    expected = ['python3', '-P', '/workspace/train_r3.py', '--out', p['out'], '--arm', 'k1', '--seed', str(p['seed']),
+    arm = p.get('arm', 'k1') if engineering else 'k1'
+    require(arm in ('k1', 'k2'), 'unregistered loss arm')
+    expected = ['python3', '-P', '/workspace/train_r3.py', '--out', p['out'], '--arm', arm, '--seed', str(p['seed']),
                 '--model-path', p['model'], '--kernel', 'ref', '--grad-ckpt', '--micro-tokens', '12000', '--max-len', '4096',
                 '--save-every', '200', '--no-merge', '--epochs', '2', '--total-steps', '3116', '--expect-pairs', pairs]
     if engineering and p.get('stop_after', 0):
@@ -111,8 +113,8 @@ def observe_retained(name, container_id, heartbeat, sleep=time.sleep):
 def adapter(p, op, attempt, container):
     cmd = [sys.executable, '-P', p['adapter'], op, '--alloc', p['allocation'], '--run', p['run'], '--chip', str(p['chip'])]
     if op == 'claim':
-        owner = 'R3 engineering K1' if p['schema'] == 'r3-engineering-k1-plan-v1' else 'R3 formal K1'
-        cmd += ['--owner', owner, '--purpose', f"K1 seed {p['seed']}; train only", '--proof', str(attempt / 'CLAIM.json')]
+        owner = 'R3 engineering ' + p.get('arm', 'k1').upper() if p['schema'] == 'r3-engineering-k1-plan-v1' else 'R3 formal K1'
+        cmd += ['--owner', owner, '--purpose', f"{p.get('arm', 'k1')} seed {p['seed']}; train only", '--proof', str(attempt / 'CLAIM.json')]
     else:
         cmd += ['--container', container, '--claim', str(attempt / 'CLAIM.json'), '--proof', str(attempt / (op.upper() + '.json'))]
     subprocess.run(cmd, check=True)

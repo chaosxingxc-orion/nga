@@ -26,8 +26,10 @@ def write(path, value):
     Path(path).write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 
-def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0):
-    if not engineering and (model != MODEL or stop_after):
+def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1'):
+    if arm not in ('k1', 'k2'):
+        raise ValueError('unsupported loss arm')
+    if not engineering and (model != MODEL or stop_after or arm != 'k1'):
         raise ValueError('formal recipe cannot be overridden')
     out.mkdir(parents=True, exist_ok=False)
     code = out / 'code'
@@ -53,7 +55,7 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0):
     for p in model.iterdir():
         if p.is_file():
             files[str(p)] = sha(p)
-    command = ['python3', '-P', '/workspace/train_r3.py', '--out', str(out), '--arm', 'k1', '--seed', str(seed),
+    command = ['python3', '-P', '/workspace/train_r3.py', '--out', str(out), '--arm', arm, '--seed', str(seed),
                '--model-path', str(model), '--kernel', 'ref', '--grad-ckpt', '--micro-tokens', '12000', '--max-len', '4096',
                '--save-every', '200', '--no-merge', '--epochs', '2', '--total-steps', '3116', '--expect-pairs', '186' if model == MODEL else '0']
     if stop_after:
@@ -76,7 +78,7 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0):
     if engineering:
         plan.update(schema='r3-engineering-k1-plan-v1', execution_scope='engineering_only',
                     authorization='user_execute_engineering_when_ready_20261031',
-                    container=f'nga-r3-eng-{out.parent.name}-s{seed}', stop_after=stop_after,
+                    container=f'nga-r3-eng-{out.parent.name}-s{seed}', stop_after=stop_after, arm=arm,
                     evaluation={'candidate_test_forbidden': True, 'formal_acceptance_requires_new_review': True})
     pin = hashlib.sha256((json.dumps(plan, indent=2, sort_keys=True) + '\n').encode()).hexdigest()
     write(out / 'plan.json', plan)
