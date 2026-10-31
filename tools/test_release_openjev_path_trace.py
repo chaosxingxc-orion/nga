@@ -62,9 +62,10 @@ class ReleaseFixture(unittest.TestCase):
     verification_terminal_sha256=helpers.sha(self.vout/'COMPLETE.json'),accepted_trace_valid=False,
     accepted_review_flags=self.terminal['review_flags'],candidate_batch_admission=False,
     release_tool_sha256=helpers.sha(Path(r.__file__)),evidence_helper_sha256=helpers.sha(Path(r.__file__).with_name('e38_evidence.py')))
-  self.save(self.review,self.approval)
   self.before=dict(allocation=[dict(chip=4,run='reference_inference/run'),dict(chip=6,run='unrelated')],free=[dict(chip=0)])
   self.save(self.allocation,self.before)
+  self.approval['allocation_before_sha256']=helpers.sha(self.allocation)
+  self.save(self.review,self.approval)
   self.prep=types.SimpleNamespace(preparation_binding=lambda *a:None,
     cpu_binding=lambda q,request,status:(q.load(request),self.cpu),free_now=self.free_now)
   self.delegate=types.SimpleNamespace(atomic=helpers.atomic,utc=lambda:'release-time',inspect=lambda name:self.containers.get(name),

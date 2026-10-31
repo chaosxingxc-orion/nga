@@ -20,6 +20,8 @@ ALLOCATION = ROOT.parent / 'CHIP-ALLOCATION.json'
 PLAN_HASHES = {
  'openjev_path_trace_openjev2_20261031_v4': '882b686ba62c75f1bb41c670b18fb4785f439273bbd32b4c5de29ff9a512a8df',
  'openjev_path_trace_openjev9_20261031_v4': 'b1afb0e81a5c3c77f6bb5892e8dfdb7da750220d6d44f17dc2a7e52b6d9afce3',
+ 'openjev_path_trace_openjev2_20261031_v7': '2a859fe2ba77ac431e2e5c62408c964bb15a5794e07c8981be625bf626a0e66d',
+ 'openjev_path_trace_openjev9_20261031_v7': 'fae8ac8368b7a98fad32e07acc1b54b1dded55c1812f95ec4cdb136b92ef3593',
 }
 
 
@@ -106,7 +108,8 @@ def bind(plan_path, verification_request, review_path, q, prep):
          and review['accepted_review_flags']==terminal['review_flags']
          and review['candidate_batch_admission'] is False
          and review['release_tool_sha256']==q.sha(Path(__file__))
-         and review['evidence_helper_sha256']==q.sha(Path(__file__).with_name('e38_evidence.py')),
+         and review['evidence_helper_sha256']==q.sha(Path(__file__).with_name('e38_evidence.py'))
+         and isinstance(review.get('allocation_before_sha256'),str),
          'Parent release review differs or omits scientific flags/tool identity')
  return p,dict(plan_sha256=ph,verification_request_sha256=q.sha(verification_request),
   verification_report_sha256=q.sha(vout/'report.json'),verification_terminal_sha256=q.sha(vout/'COMPLETE.json'),
@@ -115,7 +118,8 @@ def bind(plan_path, verification_request, review_path, q, prep):
   npu_container_id=d['Id'],npu_finished_at=d['State']['FinishedAt'],cpu_container_id=cpu['Id'],
   cpu_finished_at=cpu['State']['FinishedAt'],npu_terminal_sha256=vr['terminal_sha256'],
   npu_report_sha256=vr['report_sha256'],npu_exit_sha256=q.sha(out/'EXIT'),
-  accepted_trace_valid=vr['trace_valid'],accepted_review_flags=terminal['review_flags'],candidate_batch_admission=False)
+  accepted_trace_valid=vr['trace_valid'],accepted_review_flags=terminal['review_flags'],candidate_batch_admission=False,
+  approved_allocation_before_sha256=review['allocation_before_sha256'])
 
 
 def empty_now(q,prep):
@@ -138,7 +142,9 @@ def recheck_actual(q,plan,bindings):
 
 def check_intent(intent,bindings,run,journal):
  require(intent['schema']=='e38-resource-release-intent-v1' and intent['bindings']==bindings
-         and intent['run']==run and intent['chip']==4, 'Pending release identity differs')
+         and intent['run']==run and intent['chip']==4
+         and intent['allocation_before_sha256']==bindings['approved_allocation_before_sha256'],
+         'Pending release identity differs')
  before=intent['allocation_before'];after=intent['allocation_after']
  try:before_bytes=base64.b64decode(intent['allocation_before_bytes_b64'],validate=True)
  except Exception as exc:raise ValueError('Invalid original allocation bytes') from exc
@@ -202,6 +208,8 @@ def transaction(q,prep,plan,bindings,journal):
     intent=q.load(intent_path)
     check_intent(intent,bindings,run,journal)
    else:
+    require(current_hash == bindings['approved_allocation_before_sha256'],
+            'Current allocation is not the parent-reviewed before state')
     owners=[x for x in current['allocation'] if x['chip']==4];free=[x for x in current['free'] if x['chip']==4]
     require(len(owners)==1 and owners[0]['run']==run and not free,'Release does not own exact chip-4 run')
     after=copy.deepcopy(current);after['allocation']=[x for x in after['allocation'] if x['chip']!=4]
