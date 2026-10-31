@@ -5,7 +5,7 @@ Scans run roots, classifies each run from its terminal marker and heartbeat, sum
 clusters warning/error lines into signatures, flags suspicious (perfect-by-construction) metrics in
 report.json, and writes a small, bounded digest.json + digest.md. See tools/README.md.
 
-Run with:  python3 -P tools/watchdog.py [--root DIR ...] [--out-dir DIR] [--watch --interval 60]
+Run with:  python3 -P tools/watchdog.py [--root DIR ...] [--out-dir DIR] [--watch --interval 600]
 """
 import argparse
 import calendar

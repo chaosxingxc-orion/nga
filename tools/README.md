@@ -562,7 +562,7 @@ pass's code on SIGTERM; usage errors exit 2; a second `--watch` on the same out-
 
 ### Running it detached (rule 7)
 
-    nohup setsid python3 -P tools/watchdog.py --watch \
+    nohup setsid python3 -P tools/watchdog.py --watch --interval 600 \
         >> /mnt/cephfs/xingchao/experiments/jev/_watchdog/watchdog.log 2>&1 < /dev/null &
 
 One watcher per out-dir (enforced with a lock; a restarted watcher takes over). A stale digest shows in `generated_utc`.
@@ -622,7 +622,7 @@ This host (Python 3.11, `-P`):
 may differ, so give the script's absolute path):
 
     mkdir -p /mnt/cephfs/xingchao/experiments/jev/_watchdog
-    cd / && nohup setsid python3 /path/to/nga/tools/watchdog.py --watch \
+    cd / && nohup setsid python3 /path/to/nga/tools/watchdog.py --watch --interval 600 \
         >> /mnt/cephfs/xingchao/experiments/jev/_watchdog/watchdog.log 2>&1 < /dev/null &
 
 Run one watcher per out-dir (a second exits with code 3). Both hosts write the same out-dir, so run it on only one of them. Check
