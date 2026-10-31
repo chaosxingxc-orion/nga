@@ -118,6 +118,8 @@ The reference time of "past six months" is bound in D1. A technical retry on ano
 
 ### 4.1 Wait is the normal continuation boundary
 
+For the proposed primitive families, API contract fields and Graph/Workflow expression of this boundary, see [document 21](21-runtime-primitives-and-capability-contracts.md). It develops the mechanisms below without closing AQ-01/AQ-02 or selecting an engine.
+
 The baseline is **adopt D1 → dispatch fixed B1 → wait for the contract-defined result → record that result → resume dependent work**. A pending call does not require an S2 planning loop or a new Jev judgment on each clock tick.
 
 `wait_for_api_response` is a proposed framework event/time primitive. Its logical contract includes:

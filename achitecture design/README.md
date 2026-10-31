@@ -14,6 +14,8 @@ This directory holds the owner-supplied enterprise architecture baseline and NGA
 
 **Current AQ-01/AQ-02 discussion:** [Task, decision and business-request identity](20-task-decision-request-identity.md) applies the accepted integration boundary to task completion, question/revision identity, fixed requests and changes. Following owner feedback, normal execution waits for the API result; concurrent revision is an explicit branch, and cancellation/reversal requires native capabilities or qualified composition. Its eighteen adversarial cases keep provider internals outside NGA's design; detailed mechanisms remain proposals.
 
+**Current runtime contract proposal:** [Framework primitives and API capability contracts](21-runtime-primitives-and-capability-contracts.md) separates execution primitives from provider guarantees and model judgments. It defines Graph/Workflow expressions for waiting, timeout, retry, cancellation and compensation, with twenty proposed adversarial cases and no engine selection.
+
 ## Reading order and document status
 
 | Document | Role | Status |
@@ -34,6 +36,7 @@ This directory holds the owner-supplied enterprise architecture baseline and NGA
 | [18 — Framework logic and case coverage](18-framework-core-and-case-coverage.md) | Stable core versus business contracts, independent cases with shared constraints, S1/S2/control roles and eight coverage patterns. | Framework-first method is owner-established; mechanisms and coverage expectations remain proposed. |
 | [19 — Business-system capability boundary](19-business-system-capability-boundary.md) | Business-operation interfaces, delegated decisions, authoritative IT-system state, idempotent invocation and bounded replay visibility. | General boundary is the owner-accepted working premise; detailed guarantees, protocols and provider implementations remain open. |
 | [20 — Task, decision and business-request identity](20-task-decision-request-identity.md) | Current AQ-01/AQ-02 proposals: task completion, decision questions/revisions, provider-request continuity, phase-specific changes and eighteen adversarial cases. | Working business-system boundary accepted; detailed identity/lifecycle policies remain OPEN and unimplemented. |
+| [21 — Runtime primitives and API capability contracts](21-runtime-primitives-and-capability-contracts.md) | Primitive families, capability fields, Graph/Workflow operators, model participation, race/recovery semantics and twenty adversarial cases. | Proposed contracts; technologies and implementation guarantees remain open. |
 
 The [NGA overall design](../design/nga-overall-design.md) remains the program-level source for the three projects and established principles. This directory develops the architecture for project 2 and its integration into project 3.
 

@@ -144,6 +144,8 @@ These cells are responsibilities, not twelve mandatory services. All four planes
 
 The names below describe contracts, not selected RPCs, schemas or storage tables.
 
+The subsequent [runtime primitive and API capability proposal](21-runtime-primitives-and-capability-contracts.md) develops the execution side of these interfaces: correlated waiting, timers, observations, nested scopes, and qualified retry/cancellation/compensation. It preserves the distinction between semantic judgment, proposed work and authoritative framework transitions.
+
 | Interface | Material binding | Result and authority |
 | --- | --- | --- |
 | **Judge** | Decision/question identity; specification and candidate meanings; admitted evidence and reference time; model/readout identity; consumption-policy version. | Typed observation and declared unresolved status, with source references where supported. It is neither an adopted decision nor a tool grant. |

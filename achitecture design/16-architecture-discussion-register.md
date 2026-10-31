@@ -24,6 +24,8 @@ What remains open is the precise scope of each promise, its enforcement and comp
 
 Role labels below identify proposed participants, not named assignees. A recommendation becomes a decision only through the recording procedure in section 7. No numerical service target, risk threshold, storage technology or model topology is selected here.
 
+Current cross-cutting proposal: [document 21](21-runtime-primitives-and-capability-contracts.md) specifies runtime primitive families, API capability contracts and Graph/Workflow recovery expression, with twenty adversarial cases. It primarily advances AQ-05/AQ-07/AQ-08/AQ-10/AQ-11/AQ-12/AQ-14/AQ-15; their proposed mechanisms remain OPEN.
+
 ## 2. The 18 questions and suggested discussion order
 
 | ID | Decision to discuss | Kind | Proposed participants |
@@ -126,7 +128,7 @@ Current focused discussion: [document 20](20-task-decision-request-identity.md) 
 - **Question:** must every executable procedure use one graph representation, or may several engines expose compatible control, event and recovery contracts? What is the minimum visibility required from an integrated engine?
 - **Failure case:** one engine treats child completion as decision adoption while another treats it as a proposal; an opaque agent-loop node performs unaudited tool calls. A common diagram format does not remove these disagreements.
 - **Options and tradeoff:** one representation simplifies inspection and compilation but can restrict existing capabilities; adapters reduce migration work but must demonstrate compatible semantics. One implementation does not itself prove one authoritative state model.
-- **Starting recommendation:** first define common identities, invocation/result semantics, transition authority, effect admission and replay coverage. Evaluate a typed graph as the reference representation without making it mandatory yet. Keep execution graph, question graph, delegation and provenance distinct.
+- **Starting recommendation:** first define common identities, invocation/result semantics, transition authority, effect admission and replay coverage. Use [document 21](21-runtime-primitives-and-capability-contracts.md) to compare typed Graph nodes/edges with Workflow steps, await clauses and recovery handlers under the same contracts. A graph is not an enforcement boundary, and every edge need not call Jev. Keep representation/engine choices open and execution, question, delegation and provenance graphs distinct.
 - **To close:** a conformance contract and comparison using the same credit task through a workflow and a bounded loop, including recovery and hidden-action attempts. Depends on AQ-10/AQ-11/AQ-14; informed by AQ-18. Concrete engine selection is deferred.
 
 <a id="aq-09"></a>
@@ -144,7 +146,7 @@ Current focused discussion: [document 20](20-task-decision-request-identity.md) 
 - **Question:** what identities, rights, context, budgets, cancellation obligations and results must a child loop/workflow/agent preserve? When is a child result usable by its parent?
 - **Failure case:** a parent retry creates a new child, repeating a confirmed operation; each child assumes it owns the full remaining budget; parent cancellation is reported as proof that an external write stopped.
 - **Options and tradeoff:** opaque calls are easy to integrate but cannot support detailed guarantees; native subgraphs expose fine-grained events but increase coupling; adapters can expose a declared intermediate contract with explicit limits.
-- **Starting recommendation:** stable child-call identity, root business correlation, bounded delegation, material-parameter binding, typed statuses and one-time result consumption. Add consumable costs; model concurrency and deadlines separately. Share evidence only with independently admitted access, without merging the consumers' authority.
+- **Starting recommendation:** stable child-call identity, root business correlation, bounded delegation, material-parameter binding, typed statuses and one-time result consumption. Declare join/sibling handling, outstanding effects and recovery ownership: a local first-success result or parent exit cannot erase a child's external work. Add consumable costs; model concurrency and deadlines separately. Share evidence only with independently admitted access, without merging the consumers' authority.
 - **To close:** a child-invocation contract and tests specified for duplicate delivery, suspend/resume, budget exhaustion, recursion limits and cancellation races. Requires AQ-02/AQ-07/AQ-11/AQ-13. Allocation algorithms and physical schedulers remain open.
 
 <a id="aq-11"></a>
@@ -163,7 +165,7 @@ Current focused discussion: [document 20](20-task-decision-request-identity.md) 
 - **Failure case:** the resource registers credit, loses the acknowledgement and cannot answer a status query. Repeating a non-idempotent request may duplicate the effect; refusing to retry may leave progress unresolved.
 - **Options and tradeoff:** require a strong integration contract for automatic execution, accept a documented weaker guarantee with explicit reconciliation, or keep the resource outside automated effect execution. A framework label cannot remove the tradeoff.
 - **Starting recommendation:** invoke semantically defined business capabilities and wait for their declared result. The owning IT system enforces its internal rules and commits its data. Separate normal waiting, local deadline expiry and explicit interruption. Qualify native cancellation/reversal or compose a recovery capability from supported operations with a defined outcome, preconditions and recovery for partial failure. Compensation is not automatically atomic rollback; absent a qualified path, declare reversal unsupported. Preserve original/request-recovery lineage and never substitute arbitrary field writes. See [document 20, section 4](20-task-decision-request-identity.md#4-normal-waiting-explicit-interruption-and-qualified-recovery).
-- **To close:** a capability matrix for wait/status, retry, cancellation and native/composed reversal; allowed guarantees per operation; traces for normal completion, duplicate/early responses, deadline expiry, cancellation versus completion, and partial compensation failure. Depends on AQ-01/AQ-02/AQ-11; determines AQ-15 recovery behavior.
+- **To close:** qualify the [document 21 capability matrix and operators](21-runtime-primitives-and-capability-contracts.md) against synchronous/asynchronous, native-cancel, composite-compensation and unsupported-reversal fixtures. Verify normal completion, early/late/duplicate responses, deadline and retry-budget continuity, cancellation races and partial compensation failure. Depends on AQ-01/AQ-02/AQ-11; determines AQ-15 recovery behavior.
 
 <a id="aq-13"></a>
 ### AQ-13 — Trust, permission and context sharing

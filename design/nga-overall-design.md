@@ -265,6 +265,14 @@ The reference design suggests authority attenuation, bounded delegation, isolate
 
 Generated assertions remain marked as such. Replacing evidence, sharing previously isolated context, or consuming another model's conclusion creates a traceable dependency and may require a new evaluation.
 
+### 7.5 Runtime primitives and API capability contracts
+
+The [runtime contract proposal](../achitecture%20design/21-runtime-primitives-and-capability-contracts.md) separates framework execution primitives, provider capability guarantees, reusable recovery operators and model ports. Proposed primitive families cover admitted transitions, invocation/observation, waiting, timers and child/join scopes. Retry, cancellation and compensation compose those mechanisms under an operation-specific contract; exposing an operator does not create a missing provider guarantee.
+
+Graph nodes/edges and Workflow steps/handlers must preserve the same identities, completion predicates, deadlines, authority and recovery ownership. Normal typed events drive deterministic transitions. Jev supplies explicitly delegated semantic judgments; S2 proposes investigation, workflow selection or composition within its admitted scope. Neither model certifies an unobserved external effect. A parent stop, timeout or first-result join must account for outstanding child operations; replay uses recorded events and cannot perform live effects.
+
+The proposal includes twenty adversarial cases and a three-state/four-plane responsibility matrix. These are design and future acceptance artifacts, not executed tests or a choice of runtime engine, storage, scheduling or protocol.
+
 ## 8. Traceability and feedback
 
 The trace should answer:
