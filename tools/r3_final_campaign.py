@@ -38,7 +38,7 @@ def canonical(value):
 
 
 def verify(campaign):
-    """Validate six members, without establishing the caller's factual claims.
+    """Validate seven members, without establishing the caller's factual claims.
 
     Input schema ``r3-final-campaign-v1`` has ``size='0.8B'``, ``selected_arm``
     (K1 or K2), and ``members``. Each member has role (candidate/baseline/control),
@@ -49,11 +49,11 @@ def verify(campaign):
     """
     require(isinstance(campaign, dict) and campaign.get('schema') == 'r3-final-campaign-v1',
             'campaign schema differs')
-    require(campaign.get('size') == '0.8B', 'only reviewed 0.8B membership shape supported')
+    require(campaign.get('size') == '0.8B', 'only 0.8B protocol membership shape supported')
     selected = campaign.get('selected_arm')
     require(selected in ('K1', 'K2'), 'selected arm must be K1 or K2, never a control')
     members = campaign.get('members')
-    require(isinstance(members, list) and len(members) == 6, 'complete six-member campaign required')
+    require(isinstance(members, list) and len(members) == 7, 'complete seven-member campaign required')
     seen_paths, seen_sha, seen_manifests = set(), set(), set()
     cells = {}
     for member in members:
@@ -68,13 +68,14 @@ def verify(campaign):
         model_path, model_sha = path(model.get('path')), pin(model.get('sha256'))
         require(model_path not in seen_paths and model_sha not in seen_sha, 'duplicate model path or identity')
         seen_paths.add(model_path); seen_sha.add(model_sha)
-        base = INSTRUCT if arm == 'K1-PT' else BASE
+        base = model.get('base_path') if arm == 'K0' else INSTRUCT if arm == 'K1-PT' else BASE
+        require(base in (BASE, INSTRUCT), 'wrong base checkpoint')
         require(path(model.get('base_path')) == base, 'wrong base checkpoint')
         pin(model.get('base_inventory_sha256'))
         if arm == 'K0':
             require('training' not in member and 'seed' not in member,
                     'K0 is one checkpoint without training or synthetic seeds')
-            require(model.get('kind') == 'checkpoint' and model_path == BASE, 'K0 checkpoint identity differs')
+            require(model.get('kind') == 'checkpoint' and model_path == base, 'K0 checkpoint identity differs')
             seed = None
         else:
             require(model.get('kind') == 'lora-adapter-unmerged', 'trained member must be unmerged adapter')
@@ -97,23 +98,23 @@ def verify(campaign):
             args = recipe.get('args')
             require(isinstance(args, dict) and args.get('arm') == ('k2' if arm == 'K2' else 'k1')
                     and args.get('drop_state') is (arm == 'K1-QO'), 'training recipe objective/input differs')
-        key = (arm, seed)
+        key = (arm, base) if arm == 'K0' else (arm, seed)
         require(key not in cells, 'duplicate arm/seed')
         cells[key] = member
-    expected = {(selected, 2), (selected, 3), ('K0', None), ('K1-QO', 2), ('K1-PT', 2), ('K1-PT', 3)}
+    expected = {(selected, 2), (selected, 3), ('K0', BASE), ('K0', INSTRUCT), ('K1-QO', 2), ('K1-PT', 2), ('K1-PT', 3)}
     require(set(cells) == expected, 'missing required arm/seed')
-    base_pin = cells['K0', None]['model']['base_inventory_sha256']
+    base_pin = cells['K0', BASE]['model']['base_inventory_sha256']
     for key in ((selected, 2), (selected, 3), ('K1-QO', 2)):
         require(cells[key]['model']['base_inventory_sha256'] == base_pin, 'Base checkpoint bytes differ')
-    pt_pin = cells['K1-PT', 2]['model']['base_inventory_sha256']
-    require(pt_pin != base_pin and cells['K1-PT', 3]['model']['base_inventory_sha256'] == pt_pin,
+    pt_pin = cells['K0', INSTRUCT]['model']['base_inventory_sha256']
+    require(pt_pin != base_pin and all(cells['K1-PT', seed]['model']['base_inventory_sha256'] == pt_pin for seed in (2, 3)),
             'PT instruct checkpoint bytes differ or alias Base')
     for arm in (selected, 'K1-PT'):
         require(canonical(cells[arm, 2]['training']['training_variant']) ==
                 canonical(cells[arm, 3]['training']['training_variant']), 'paired seeds use different recipes')
     return {'schema': 'r3-final-campaign-structure-v1', 'membership_complete': True,
             'campaign_sha256': hashlib.sha256(canonical(campaign).encode()).hexdigest(),
-            'size': '0.8B', 'selected_arm': selected, 'member_count': 6,
+            'size': '0.8B', 'selected_arm': selected, 'member_count': 7, 'baseline_checkpoints': [BASE, INSTRUCT],
             'candidate_seeds': [2, 3], 'controls': {'K1-QO': [2], 'K1-PT': [2, 3]},
             'scientific_acceptance': False, 'publication_authorized': False,
             'scope': 'caller-supplied identity structure only; no files or test data read',

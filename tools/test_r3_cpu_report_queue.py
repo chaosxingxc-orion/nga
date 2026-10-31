@@ -227,4 +227,88 @@ sha=lambda f:hashlib.sha256(f.read_bytes()).hexdigest()
         popen.assert_not_called()
 
 
+    def pt_fixture(self, completed=True):
+        self.inference_ready()
+        self.job.update(kind='pt_r0_report', output=str(Path(self.job['eval_out'])/'results/PT_R0_REPORT.json'))
+        Path(self.job['output']).parent.mkdir(parents=True,exist_ok=True)
+        pt = Path(self.job['eval_out'])
+        self.write(pt/'QUEUE_EXECUTION_PIN.json', {'sha256':Q.sha(pt/'execution.json')})
+        original = self.job
+        self.job = dict(original, eval_out=str(self.root/'r0'))
+        self.inference_ready(); r0 = Path(self.job['eval_out']); self.job = original
+        self.doc['pt_r0_report'] = {'tool':str(self.root/'r3_pt_r0_consumer.py'),
+            'config':str(self.root/'config.json'), 'config_sha256':'c'*64, 'r0_run':str(r0)}
+        self.write(r0/'R0RESCORE_VERIFIED.json', {'source':'synthetic'})
+        self.write(r0/'instruct/report.json', {'source':'synthetic'})
+        if completed:
+            self.write(r0/'R0RESCORE_COMPLETE.json', {'exit_code':0,'run_of_record':True,'limit_groups':0,
+                'scientific_acceptance':False,'candidate_test_read':False,
+                'execution_sha256':Q.sha(r0/'execution.json'), 'verified':str(r0/'R0RESCORE_VERIFIED.json'),
+                'verified_sha256':Q.sha(r0/'R0RESCORE_VERIFIED.json'),'report_sha256':Q.sha(r0/'instruct/report.json')})
+        return pt,r0
+
+    def test_pt_waits_for_both_releases_and_bound_r0_report(self):
+        pt,r0=self.pt_fixture(completed=False)
+        self.assertEqual(Q.job_ready(self.path,self.doc,self.job),'waiting_r0_report')
+        (pt/'attempts/2/RELEASE.json').unlink()
+        self.assertEqual(Q.job_ready(self.path,self.doc,self.job),'waiting_release')
+        pt,r0=self.pt_fixture()
+        (r0/'attempts/2/RELEASE.json').unlink()
+        self.assertEqual(Q.job_ready(self.path,self.doc,self.job),'r0_waiting_release')
+        pt,r0=self.pt_fixture()
+        self.assertEqual(Q.job_ready(self.path,self.doc,self.job),'ready')
+        (r0/'instruct/report.json').write_text('{}')
+        with self.assertRaisesRegex(RuntimeError,'report changed'):Q.job_ready(self.path,self.doc,self.job)
+
+    def test_pt_explicit_execution_pin_and_command(self):
+        pt,r0=self.pt_fixture()
+        command=Q.report_command(self.doc,self.job)
+        self.assertEqual(command[command.index('--execution-sha256')+1],Q.sha(pt/'execution.json'))
+        self.assertEqual(command[command.index('--config-sha256')+1],'c'*64)
+        self.write(pt/'QUEUE_EXECUTION_PIN.json',{'sha256':'0'*64})
+        with self.assertRaisesRegex(RuntimeError,'queued execution'):Q.job_ready(self.path,self.doc,self.job)
+
+    def test_pt_consumer_config_pins_helpers_and_refuses_changed_code(self):
+        self.pt_fixture(); c=self.doc['pt_r0_report']; files={}
+        for name in ('r3_pt_r0_consumer.py','r3_pt_r0_report.py','r3_model_inventory.py',
+                     'r3_r0_report.py','r3_r0_prepare.py','r0rescore_verify.py'):
+            p=self.root/name;p.write_text('# fixture\n');files[str(p)]=Q.sha(p)
+        self.write(Path(c['config']),{'schema':'r3-pt-r0-consumer-config-v1','tools':files,
+            'r0_execution':{'path':str(Path(c['r0_run'])/'execution.json'),'sha256':Q.sha(Path(c['r0_run'])/'execution.json')}})
+        c.update(files=files,config_sha256=Q.sha(c['config']))
+        Q.verify_pt_config(c)
+        helper=self.root/'r3_pt_r0_report.py';helper.write_text('# changed\n')
+        with self.assertRaisesRegex(RuntimeError,'dependency changed'):Q.verify_pt_config(c)
+        files[str(helper)]=Q.sha(helper);files.pop(str(helper))
+        with self.assertRaisesRegex(RuntimeError,'helper not pinned'):Q.verify_pt_config(c)
+
+    def test_real_pt_worker_validates_success_bindings_and_failed_child(self):
+        self.pt_fixture();root=Q.workdir(self.path,self.job);root.mkdir(parents=True)
+        tool=Path(self.doc['pt_r0_report']['tool'])
+        tool.write_text("""import sys,json
+from pathlib import Path
+get=lambda k:sys.argv[sys.argv.index(k)+1]
+d={'schema':'r3-pt-r0-diagnostics-v1','scientific_acceptance':False,'publication_authorized':False,'candidate_test_read':False,
+'consumer_verification':{'run':get('--run'),'pt_execution_sha256':get('--execution-sha256'),
+'config_sha256':get('--config-sha256'),'r0_source_reconstructed':True}}
+Path(get('--output')).write_text(json.dumps(d))
+""")
+        with patch.object(Q,'verify',return_value=self.doc):self.assertEqual(Q.worker(self.path,self.pin,'one'),0)
+        self.assertEqual(Q.observe(self.path,self.pin,self.job,self.doc)['status'],'done')
+        result=Q.load(self.job['output']);result['consumer_verification']['config_sha256']='wrong'
+        with self.assertRaisesRegex(RuntimeError,'binding differs'):Q.validate_pt_output(result,self.doc,self.job)
+        (root/'EXIT.json').unlink();Path(self.job['output']).unlink()
+        tool.write_text('raise SystemExit(7)\n')
+        with patch.object(Q,'verify',return_value=self.doc):self.assertEqual(Q.worker(self.path,self.pin,'one'),7)
+        self.assertEqual(Q.observe(self.path,self.pin,self.job,self.doc)['status'],'report_failed')
+        self.assertFalse(Path(self.job['output']).exists())
+
+    def test_pt_invalid_output_from_exit_zero_never_success(self):
+        self.pt_fixture();root=Q.workdir(self.path,self.job);root.mkdir(parents=True)
+        Path(self.doc['pt_r0_report']['tool']).write_text("import sys\nfrom pathlib import Path\nPath(sys.argv[sys.argv.index('--output')+1]).write_text('{}')\n")
+        with patch.object(Q,'verify',return_value=self.doc):self.assertEqual(Q.worker(self.path,self.pin,'one'),125)
+        terminal=Q.load(root/'EXIT.json');self.assertIsNone(terminal['output_sha256'])
+        self.assertEqual(Q.observe(self.path,self.pin,self.job,self.doc)['status'],'report_failed')
+
+
 if __name__=='__main__':unittest.main()

@@ -128,6 +128,21 @@ def training_checks(receipt, contract, E):
     return identity
 
 
+def scorer_protocol(header):
+    """Validate each producer identity, then retain every nonidentity field."""
+    scorer, model = header.get('scorer'), header.get('model', {})
+    require(isinstance(scorer, dict) and 'model_path' in scorer and 'adapter' in scorer,
+            'scorer protocol differs: missing producer identity')
+    require(model.get('kind') in ('checkpoint', 'lora-adapter-unmerged'),
+            'scorer protocol differs: unsupported model kind')
+    require(scorer['model_path'] == model.get('base_path'),
+            'scorer protocol differs: model identity')
+    expected_adapter = model.get('path') if model['kind'] == 'lora-adapter-unmerged' else None
+    require(scorer['adapter'] == expected_adapter,
+            'scorer protocol differs: adapter identity')
+    return {key: value for key, value in scorer.items() if key not in ('model_path', 'adapter')}
+
+
 def compare_baseline(header, block, baseline, baseline_pin, T):
     """Caller must source-verify baseline separately; SHA alone is not proof."""
     require(canonical_sha(baseline) == baseline_pin, 'baseline report binding differs')
@@ -137,9 +152,10 @@ def compare_baseline(header, block, baseline, baseline_pin, T):
             'same instruct K0 baseline required')
     require(b['model'].get('base_revision') == header['model'].get('base_revision'),
             'base revision differs')
-    for field in ('track_t_config', 'prompt_version', 'prompt_format', 'data_files', 'scorer',
+    for field in ('track_t_config', 'prompt_version', 'prompt_format', 'data_files',
                   'primary_input_mode', 'render', 'dtype'):
         require(b.get(field) == header.get(field), 'baseline protocol differs: ' + field)
+    require(scorer_protocol(header) == scorer_protocol(b), 'baseline protocol differs: scorer')
     base = baseline['track_t']
     require(base.get('config') == 'r0' and not base.get('missing_roles')
             and base.get('tie_rule') == block.get('tie_rule')

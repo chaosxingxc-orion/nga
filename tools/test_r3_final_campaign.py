@@ -11,14 +11,14 @@ C = importlib.util.module_from_spec(spec); spec.loader.exec_module(C)
 def fixture(selected='K1'):
     members = []
     for index, (arm, seed) in enumerate(((selected, 2), (selected, 3), ('K0', None),
-                                        ('K1-QO', 2), ('K1-PT', 2), ('K1-PT', 3))):
-        base = C.INSTRUCT if arm == 'K1-PT' else C.BASE
+                                        ('K1-QO', 2), ('K1-PT', 2), ('K1-PT', 3), ('K0', None))):
+        base = C.INSTRUCT if arm == 'K1-PT' or index == 6 else C.BASE
         root = '/runs/' + arm + '-' + str(seed)
-        model_path = C.BASE if arm == 'K0' else root + '/adapter'
+        model_path = base if arm == 'K0' else root + '/adapter'
         member = {'role': 'candidate' if arm == selected else 'baseline' if arm == 'K0' else 'control',
                   'arm': arm, 'verified_evidence_sha256': 'a' * 64,
                   'model': {'path': model_path, 'sha256': str(index + 1) * 64,
-                            'base_path': base, 'base_inventory_sha256': ('e' if arm == 'K1-PT' else 'f') * 64,
+                            'base_path': base, 'base_inventory_sha256': ('e' if base == C.INSTRUCT else 'f') * 64,
                             'kind': 'checkpoint' if arm == 'K0' else 'lora-adapter-unmerged'}}
         if arm != 'K0':
             member['training'] = {'seed': seed, 'arm': arm, 'adapter_path': model_path,
@@ -34,7 +34,7 @@ class Campaign(unittest.TestCase):
         for arm in ('K1', 'K2'):
             campaign = fixture(arm); before = copy.deepcopy(campaign)
             result = C.verify(campaign)
-            self.assertEqual(result['member_count'], 6)
+            self.assertEqual(result['member_count'], 7)
             self.assertFalse(result['scientific_acceptance'])
             self.assertFalse(result['publication_authorized'])
             self.assertEqual(campaign, before)
@@ -71,6 +71,18 @@ class Campaign(unittest.TestCase):
                              ('path', '/runs/./K1-3/adapter')):
             d = fixture(); d['members'][1]['model'][field] = value
             with self.subTest(field=field, value=value), self.assertRaises(ValueError): C.verify(d)
+
+    def test_instruct_k0_is_required_and_pins_pt_bytes(self):
+        d = fixture(); d['members'].pop()
+        with self.assertRaisesRegex(ValueError, 'seven-member'): C.verify(d)
+        d = fixture(); d['members'][6] = copy.deepcopy(d['members'][2])
+        with self.assertRaisesRegex(ValueError, 'duplicate'): C.verify(d)
+        d = fixture(); d['members'][6]['model']['base_inventory_sha256'] = '0' * 64
+        with self.assertRaisesRegex(ValueError, 'PT instruct checkpoint bytes'): C.verify(d)
+        d = fixture(); d['members'][6]['seed'] = 2
+        with self.assertRaisesRegex(ValueError, 'synthetic seeds'): C.verify(d)
+        d = fixture(); d['members'][6]['role'] = 'candidate'
+        with self.assertRaisesRegex(ValueError, 'role confusion'): C.verify(d)
 
     def test_training_binding_and_baseline_seed_rejected(self):
         d = fixture(); d['members'][0]['training']['adapter_path'] = '/other/adapter'

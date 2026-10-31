@@ -35,7 +35,8 @@ class Report(unittest.TestCase):
                 row={'key':task+source};p.write_text(json.dumps(row)+'\n');self.rows[str(p)]=[row];files[str(p)]=R.sha(p)
         self.write(self.data/'manifest.json',manifest);files[str(self.data/'manifest.json')]=R.sha(self.data/'manifest.json')
         self.model={'path':str(self.training/'adapter'),'kind':'lora-adapter-unmerged','sha256':'a'*64,'base_path':R.PT_MODEL,'base_revision':'rev'}
-        self.scorer={'record_grade':True,'mode':'rightpad','dtype':'float32','hf32':{'hf32':False},'token_budget':16384}
+        self.scorer={'record_grade':True,'mode':'rightpad','dtype':'float32','hf32':{'hf32':False},'token_budget':16384, 'model_path':R.PT_MODEL, 'adapter':self.model['path'],
+                     'layout':'right padded', 'dedup':True, 'score_chunk_questions':32}
         self.h={'arm':'K1-PT','stages':'t_score','track_t_config':'r0','partitions':['dev','calibration'],'limit':0,'limit_groups':0,
             'dry_run_warnings':[],'primary_input_mode':'full','render':'record_name','dtype':'float32','scorer':self.scorer,
             'prompt_version':'v','prompt_format':'f','track_t_sources':','.join(sources),'model':self.model,
@@ -66,6 +67,7 @@ class Report(unittest.TestCase):
                 constant_and_uniform_rows=lambda *a:{'constant':[],'uniform':[]},build_track_t=lambda *a:dict(self.block),b4_lines=b4)}
         self.baseline={'header':copy.deepcopy(self.h),'track_t':dict(self.block)}
         self.baseline['header'].update(arm='K0',model={'path':R.PT_MODEL,'base_path':R.PT_MODEL,'kind':'checkpoint','base_revision':'rev','sha256':'b'*64})
+        self.baseline['header']['scorer']['adapter']=None
         self.contract['base_model']=copy.deepcopy(self.baseline['header']['model'])
         ms=importlib.util.spec_from_file_location('inventory',Path(__file__).with_name('r3_model_inventory.py'))
         M=importlib.util.module_from_spec(ms);ms.loader.exec_module(M)
@@ -109,6 +111,22 @@ class Report(unittest.TestCase):
                 R.compare_baseline(self.h,self.block,wrong,R.canonical_sha(wrong),self.deps['track_t_r3'])
         with self.assertRaisesRegex(ValueError,'binding differs'):
             R.compare_baseline(self.h,self.block,self.baseline,'0'*64,self.deps['track_t_r3'])
+    def test_distinct_adapter_identities_and_complete_protocol(self):
+        self.assertNotEqual(self.h['scorer']['adapter'], self.baseline['header']['scorer']['adapter'])
+        R.compare_baseline(self.h,self.block,self.baseline,R.canonical_sha(self.baseline),self.deps['track_t_r3'])
+        for field,value in [('mode','exact'),('token_budget',1),('layout','different'),('dedup',False),('new_option',True),
+                            ('adapter','/wrong'),('model_path','/wrong')]:
+            wrong=copy.deepcopy(self.baseline);wrong['header']['scorer'][field]=value
+            with self.subTest(field=field),self.assertRaisesRegex(ValueError,'protocol differs'):
+                R.compare_baseline(self.h,self.block,wrong,R.canonical_sha(wrong),self.deps['track_t_r3'])
+        for field in ('adapter','model_path'):
+            wrong=copy.deepcopy(self.baseline);wrong['header']['scorer'].pop(field)
+            with self.assertRaisesRegex(ValueError,'missing producer identity'):
+                R.compare_baseline(self.h,self.block,wrong,R.canonical_sha(wrong),self.deps['track_t_r3'])
+        wrong=copy.deepcopy(self.h);wrong['scorer']['adapter']=None
+        with self.assertRaisesRegex(ValueError,'adapter identity'):
+            R.compare_baseline(wrong,self.block,self.baseline,R.canonical_sha(self.baseline),self.deps['track_t_r3'])
+
     def test_provenance_failure_and_separate_denominators(self):
         self.deps['selection_evidence_r3'].verify_run=lambda *a:{'manifests':{}}
         with self.assertRaisesRegex(ValueError,'descriptors'):self.run_rebuild()

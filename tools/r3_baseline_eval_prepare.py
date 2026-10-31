@@ -14,13 +14,18 @@ def sha(path):
     return h.hexdigest()
 
 
-def prepare(closure, model, out):
+def launcher_module():
     loader=importlib.util.spec_from_file_location('launcher',Path(__file__).with_name('r3_posttrain_eval_launcher.py'))
     launcher=importlib.util.module_from_spec(loader);loader.loader.exec_module(launcher)
+    return launcher
+
+
+def prepare(closure, model, out):
+    launcher=launcher_module()
     doc=json.loads((closure/'manifest.json').read_text())
     if doc.get('evaluation_profile')!='track_kt':raise ValueError('full combined closure required')
-    if model.name not in ('Qwen__Qwen3.5-0.8B-Base','Qwen__Qwen3.5-2B-Base','Qwen__Qwen3.5-4B-Base','Qwen__Qwen3.5-9B-Base'):
-        raise ValueError('model outside sub-10B base family')
+    if str(model) != launcher.R0_MODEL and model.name not in ('Qwen__Qwen3.5-0.8B-Base','Qwen__Qwen3.5-2B-Base','Qwen__Qwen3.5-4B-Base','Qwen__Qwen3.5-9B-Base'):
+        raise ValueError('model outside sub-10B base family or registered instruct checkpoint')
     files={}
     for filename,digest in doc['data'].items():
         p=Path(filename)
@@ -39,6 +44,7 @@ def prepare(closure, model, out):
           'readonly_data_mounts':list(doc['data']),'image_sha256':launcher.IMAGE,
           'network':'none','test_read':False,'scientific_acceptance':False,
           'scope':'fresh K0 raw dev/calibration and Track T readouts; CPU selection-half only',
+          'baseline_role': 'instruct_control' if str(model) == launcher.R0_MODEL else 'base',
           'baseline_identity':{'arm':'K0','model':str(model),'closure_manifest_sha256':sha(closure/'manifest.json')}}
     spec['command']=launcher.expected_command(spec,out)
     launcher.verify_spec(spec,out)

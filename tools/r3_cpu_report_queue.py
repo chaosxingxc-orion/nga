@@ -69,7 +69,14 @@ def verify(path, pin):
     comparisons = [j for j in jobs if j.get('kind') == 'comparison']
     r0_reports = [j for j in jobs if j.get('kind') == 'r0_report']
     prechecks = [j for j in jobs if j.get('kind') == 'k0_prechecks']
-    require(len(reports) + len(comparisons) + len(r0_reports) + len(prechecks) == len(jobs), 'unknown CPU job kind')
+    pt_reports = [j for j in jobs if j.get('kind') == 'pt_r0_report']
+    require(len(reports) + len(comparisons) + len(r0_reports) + len(prechecks) + len(pt_reports) == len(jobs), 'unknown CPU job kind')
+    if pt_reports:
+        verify_pt_config(doc['pt_r0_report'])
+        require(len({j['eval_out'] for j in pt_reports}) == len(pt_reports), 'duplicate PT evaluation')
+        for job in pt_reports:
+            safe_absolute(job['eval_out']); safe_absolute(job['output'])
+            require(Path(job['output']) == Path(job['eval_out']) / 'results/PT_R0_REPORT.json', 'PT output path differs')
     if prechecks:
         config = doc['k0_prechecks']
         require(Path(config['tool']).is_absolute() and sha(config['tool']) == config['tool_sha256'], 'precheck tool changed')
@@ -117,6 +124,81 @@ def verify(path, pin):
             require(not job.get('r0_report') or job['r0_report'] in r0_ids, 'invalid R0 dependency')
             require(Path(job['output']).name == 'development_comparison.json', 'comparison output filename required')
     return doc
+
+
+def safe_absolute(value):
+    require(isinstance(value, str), 'absolute evidence path required')
+    path = Path(value)
+    require(path.is_absolute() and str(path) == value and '..' not in path.parts
+            and not value.startswith('//') and not any(p.is_symlink() for p in (path, *path.parents)),
+            'absolute nonsymlink evidence path required')
+    return path
+
+
+def verify_pt_config(config):
+    for filename, digest in config['files'].items():
+        require(sha(safe_absolute(filename)) == digest, 'PT CPU dependency changed')
+    require(config['tool'] in config['files']
+            and Path(config['tool']).name == 'r3_pt_r0_consumer.py', 'PT consumer not pinned')
+    required = ('r3_pt_r0_report.py', 'r3_model_inventory.py', 'r3_r0_report.py', 'r3_r0_prepare.py', 'r0rescore_verify.py')
+    require(all(str(Path(config['tool']).with_name(name)) in config['files'] for name in required),
+            'PT consumer helper not pinned')
+    require(sha(safe_absolute(config['config'])) == config['config_sha256'], 'PT consumer config changed')
+    root = safe_absolute(config['r0_run'])
+    consumer = load(config['config'])
+    require(consumer.get('schema') == 'r3-pt-r0-consumer-config-v1'
+            and consumer.get('tools') == config['files'], 'PT consumer tool binding differs')
+    execution = consumer.get('r0_execution', {})
+    require(execution.get('path') == str(root / 'execution.json')
+            and sha(root / 'execution.json') == execution.get('sha256'), 'PT R0 execution binding differs')
+
+
+def pt_execution_pin(job):
+    root = safe_absolute(job['eval_out'])
+    entry = load(root / 'QUEUE_EXECUTION_PIN.json')
+    value = entry.get('sha256')
+    require(isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value)
+            and sha(root / 'execution.json') == value, 'PT queued execution pin differs')
+    return value
+
+
+def pt_r0_ready(doc, job):
+    state = ready(job)
+    if state != 'ready':
+        return state
+    pt_execution_pin(job)
+    root = safe_absolute(doc['pt_r0_report']['r0_run'])
+    baseline_state = ready({'eval_out': str(root)})
+    if baseline_state != 'ready':
+        return 'r0_' + baseline_state
+    marker = root / 'R0RESCORE_COMPLETE.json'
+    if not marker.exists():
+        return 'waiting_r0_report'
+    value = load(marker)
+    require(type(value.get('exit_code')) is int and value['exit_code'] == 0
+            and value.get('run_of_record') is True and value.get('limit_groups') == 0
+            and value.get('scientific_acceptance') is False
+            and value.get('candidate_test_read') is False, 'R0 completion scope differs')
+    require(value.get('execution_sha256') == sha(root / 'execution.json'), 'R0 completed execution differs')
+    require(value.get('verified') == str(root / 'R0RESCORE_VERIFIED.json')
+            and sha(root / 'R0RESCORE_VERIFIED.json') == value.get('verified_sha256')
+            and sha(root / 'instruct/report.json') == value.get('report_sha256'), 'R0 completed report changed')
+    # This is readiness only. The consumer independently rebuilds R0 sources;
+    # marker hashes never stand in for scientific verification.
+    return 'ready'
+
+
+def validate_pt_output(report, doc, job):
+    require(report.get('schema') == 'r3-pt-r0-diagnostics-v1'
+            and report.get('scientific_acceptance') is False
+            and report.get('publication_authorized') is False
+            and report.get('candidate_test_read') is False, 'PT diagnostics scope differs')
+    proof = report.get('consumer_verification', {})
+    require(proof.get('run') == job['eval_out']
+            and proof.get('pt_execution_sha256') == pt_execution_pin(job)
+            and proof.get('config_sha256') == doc['pt_r0_report']['config_sha256']
+            and proof.get('r0_source_reconstructed') is True, 'PT output scope or binding differs')
+
 
 
 def ready(job):
@@ -173,6 +255,8 @@ def comparison_dependencies(job):
 
 
 def job_ready(path, doc, job):
+    if job.get('kind') == 'pt_r0_report':
+        return pt_r0_ready(doc, job)
     if job.get('kind', 'report') in ('report', 'r0_report'):
         return ready(job)
     by_id = {j['id']: j for j in doc['jobs']}
@@ -189,6 +273,11 @@ def job_ready(path, doc, job):
 
 
 def report_command(doc, job):
+    if job.get('kind') == 'pt_r0_report':
+        config = doc['pt_r0_report']
+        return [sys.executable, '-P', config['tool'], '--run', job['eval_out'],
+                '--execution-sha256', pt_execution_pin(job), '--config', config['config'],
+                '--config-sha256', config['config_sha256'], '--output', job['output']]
     if job.get('kind') == 'k0_prechecks':
         baseline = next(j for j in doc['jobs'] if j['id'] == job['baseline'])
         return [sys.executable, '-P', doc['k0_prechecks']['tool'],
@@ -252,7 +341,9 @@ def worker(path, pin, job_id):
                 rc = 128 - rc
             if rc == 0:
                 report = load(job['output'])
-                if job.get('kind') == 'r0_report':
+                if job.get('kind') == 'pt_r0_report':
+                    validate_pt_output(report, doc, job)
+                elif job.get('kind') == 'r0_report':
                     require(type(report.get('exit_code')) is int and report['exit_code'] == 0
                             and report.get('run_of_record') is True and report.get('limit_groups') == 0
                             and report.get('scientific_acceptance') is False
