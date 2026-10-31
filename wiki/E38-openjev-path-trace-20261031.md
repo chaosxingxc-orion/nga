@@ -287,3 +287,36 @@ comparison is reproducible in both repetitions, with maximum logit delta
 `0.003765545583203328`; the decision did not change, but serialized predictions
 are not exact. This localizes a repeatable descriptive difference for E38 only;
 it does not identify kernel causality and does not admit the chunked path.
+
+## 2026-10-31 — new release-only review preparation after v2 BLOCK
+
+Purpose: close the v2 release-tool findings without modifying either frozen v7
+plan or original result. Before launch, the next actual Astra review will receive
+a new immutable bundle containing complete local tool/test dependencies (including
+`jeval_reference_queue.py`), both v7 plan snapshots, 2B NPU and verifier evidence,
+the prior BLOCK text, updated operation sheet, per-test CPU records, and a manifest.
+The candidate binds NPU EXIT/receipt hashes, independently observes the CPU after
+exit, and pins release review plus original allocation bytes through a digest
+supplied by the trusted caller outside mutable journal files. The hypothesis is
+that forged generations, coordinated review/journal edits and interrupted
+publication cannot change resource ownership without valid anchored evidence.
+
+Acceptance requires a substantive release-only Astra verdict on the exact bundle,
+actual child wait status and runner terminal, unchanged sources/manifest, and
+parent verification. CPU fixture success alone is not acceptance. The reviewer
+must examine real `release()` import/entry coverage, all publication windows,
+negative scientific flags and the stated trust boundary. No NPU, SSH, Docker,
+allocation mutation or approval generation is authorized for the reviewer.
+
+The prior v2 directory contains substantive `review.md` with BLOCK, but its
+recorded runner PID 1696972 and child PID 1696974 were absent when rechecked,
+and no `CHILD_EXIT.json`, `COMPLETE.json` or `EXIT` was present. The original
+files remain untouched. Disappearance cause and exit codes are unknown; no
+successful runner completion is inferred or backfilled. New preparation uses a
+separate runner with actual `Popen.wait`, periodic digest and independent terminal
+publication even if digest writing fails. Tests use short real local child
+processes for success, nonzero exit and timeout, plus heartbeat/terminal publication
+failure fixtures; none invokes a model or touches experimental resources.
+
+This entry preregisters the review preparation only. There is no new Astra PASS,
+resource release, 9B launch, full JEVal score or training result at this entry.

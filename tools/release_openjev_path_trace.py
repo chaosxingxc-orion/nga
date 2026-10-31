@@ -57,7 +57,44 @@ def encoded(value):
 def digest(raw):return hashlib.sha256(raw).hexdigest()
 
 
-def bind(plan_path, verification_request, review_path, q, prep):
+def cpu_exit_binding(q, prep, verification_request):
+ """Host attestation after CPU exit; the running verifier cannot know FinishedAt."""
+ r,cpu=prep.cpu_binding(q,verification_request,'exited');out=verification_request.parent
+ require(r['task']=='verify' and cpu['State']['ExitCode']==0 and not q.devices(cpu),
+         'CPU verifier must have exited successfully without devices')
+ terminal=q.load(out/'COMPLETE.json')
+ q.load(out/'report.json')
+ require(terminal['rc']==0 and terminal['stage']=='completed' and terminal['progress']==terminal['total']==1
+         and terminal['request_sha256']==q.sha(verification_request)
+         and terminal['outputs']=={'report.json':q.sha(out/'report.json')}
+         and re.fullmatch(r'rc=0 utc=\S+\n?',q.snapshot(out/'EXIT').data.decode()),'CPU terminal differs')
+ value=dict(schema='e38-cpu-exit-binding-v1',request_sha256=q.sha(verification_request),
+   report_sha256=q.sha(out/'report.json'),terminal_sha256=q.sha(out/'COMPLETE.json'),
+   cpu_container_id=cpu['Id'],cpu_started_at=cpu['State']['StartedAt'],cpu_finished_at=cpu['State']['FinishedAt'],
+   cpu_launch_receipt_sha256=q.sha(out/'LAUNCH_RECEIPT.json'),cpu_exit_sha256=q.sha(out/'EXIT'))
+ q.verify()
+ current=q.inspect(r['container'])
+ require(current['Id']==cpu['Id'] and current['State']==cpu['State'],'CPU exit changed while attesting')
+ return value
+
+
+def trusted_anchor(q, path, expected_sha256, review_path):
+ # The digest is supplied by the trusted caller, outside mutable review/journal.
+ require(type(expected_sha256) is str and re.fullmatch(r'[0-9a-f]{64}',expected_sha256),
+         'A caller-pinned release anchor SHA256 is required')
+ require(q.sha(path)==expected_sha256,'Trusted release anchor changed')
+ anchor=q.load(path)
+ require(anchor['schema']=='e38-resource-release-anchor-v1'
+         and anchor['release_review_sha256']==q.sha(review_path),'Anchored release review changed')
+ try:raw=base64.b64decode(anchor['allocation_before_bytes_b64'],validate=True)
+ except Exception as exc:raise ValueError('Invalid anchored allocation bytes') from exc
+ require(digest(raw)==anchor['allocation_before_sha256'],'Anchored allocation hash differs')
+ json.loads(raw)
+ return anchor,raw
+
+
+def bind(plan_path, verification_request, review_path, q, prep, anchor_path, anchor_sha256):
+ anchor,before_bytes=trusted_anchor(q,anchor_path,anchor_sha256,review_path)
  p=q.load(plan_path);ph=q.sha(plan_path);out=plan_path.parent
  require(out.parent==ROOT and out.name in PLAN_HASHES and ph==PLAN_HASHES[out.name], 'Unreviewed release target plan')
  require(p['out']==str(out) and p['physical_chip']==4 and p['allocation']==str(ALLOCATION)
@@ -79,12 +116,18 @@ def bind(plan_path, verification_request, review_path, q, prep):
          and re.fullmatch(r'rc=0 utc=\S+\n?',q.snapshot(vout/'EXIT').data.decode()),'CPU verifier terminal/EXIT differs')
  require(vr['plan_sha256']==ph and vr['actual_exit']==0 and vr['candidate_batch_admission'] is False,
          'CPU verifier result differs')
+ cpu_attestation=verification_request.parent/'CPU_EXIT_BINDING.json'
+ require(q.sha(cpu_attestation)==anchor['cpu_exit_binding_sha256']
+         and q.load(cpu_attestation)==cpu_exit_binding(q,prep,verification_request),
+         'CPU verifier exit generation/receipt/EXIT differs from trusted attestation')
  d=q.inspect(p['container']);launch=q.load(out/'LAUNCH_RECEIPT.json')
  q.binding(d,q.load(p['container_spec']),launch)
  require(d['State']['Status']=='exited' and d['State']['ExitCode']==0
          and d['Id']==vr['container_id'] and launch['plan_sha256']==ph
         and d['State']['StartedAt']==vr['npu_started_at']
         and d['State']['FinishedAt']==vr['npu_finished_at']
+         and q.sha(out/'LAUNCH_RECEIPT.json')==vr['npu_launch_receipt_sha256']
+         and q.sha(out/'EXIT')==vr['npu_exit_sha256']
          and launch['wrapper_sha256']==q.sha(p['wrapper']), 'Actual NPU exit/identity differs')
  require(not any((out/n).exists() for n in ['FAILED_GENERATION.json','FAILURE.json']), 'Failed NPU generation cannot use normal release')
  terminal=q.load(out/'COMPLETE.json');report=q.load(out/'report.json')
@@ -109,14 +152,18 @@ def bind(plan_path, verification_request, review_path, q, prep):
          and review['candidate_batch_admission'] is False
          and review['release_tool_sha256']==q.sha(Path(__file__))
          and review['evidence_helper_sha256']==q.sha(Path(__file__).with_name('e38_evidence.py'))
-         and isinstance(review.get('allocation_before_sha256'),str),
+         and review['cpu_exit_binding_sha256']==q.sha(cpu_attestation)
+         and review['allocation_before_sha256']==anchor['allocation_before_sha256'],
          'Parent release review differs or omits scientific flags/tool identity')
  return p,dict(plan_sha256=ph,verification_request_sha256=q.sha(verification_request),
   verification_report_sha256=q.sha(vout/'report.json'),verification_terminal_sha256=q.sha(vout/'COMPLETE.json'),
   verification_exit_sha256=q.sha(vout/'EXIT'),release_review_sha256=q.sha(review_path),
   release_tool_sha256=review['release_tool_sha256'],evidence_helper_sha256=review['evidence_helper_sha256'],
   npu_container_id=d['Id'],npu_finished_at=d['State']['FinishedAt'],cpu_container_id=cpu['Id'],
-  cpu_finished_at=cpu['State']['FinishedAt'],npu_terminal_sha256=vr['terminal_sha256'],
+  cpu_finished_at=cpu['State']['FinishedAt'],cpu_started_at=cpu['State']['StartedAt'],
+  npu_started_at=d['State']['StartedAt'],npu_terminal_sha256=vr['terminal_sha256'],
+  cpu_exit_binding_sha256=q.sha(cpu_attestation),trusted_anchor_sha256=anchor_sha256,
+  approved_allocation_before_bytes_b64=base64.b64encode(before_bytes).decode(),
   npu_report_sha256=vr['report_sha256'],npu_exit_sha256=q.sha(out/'EXIT'),
   accepted_trace_valid=vr['trace_valid'],accepted_review_flags=terminal['review_flags'],candidate_batch_admission=False,
   approved_allocation_before_sha256=review['allocation_before_sha256'])
@@ -137,6 +184,7 @@ def recheck_actual(q,plan,bindings):
   actual=q.inspect(name)
   require(actual and actual['Id']==bindings[key+'_container_id']
     and actual['State']['Status']=='exited' and actual['State']['ExitCode']==0
+    and actual['State']['StartedAt']==bindings[key+'_started_at']
     and actual['State']['FinishedAt']==bindings[key+'_finished_at'], 'Container exit changed during release')
 
 
@@ -150,6 +198,8 @@ def check_intent(intent,bindings,run,journal):
  except Exception as exc:raise ValueError('Invalid original allocation bytes') from exc
  require(digest(before_bytes)==intent['allocation_before_sha256'] and json.loads(before_bytes)==before,
          'Intent original allocation bytes/hash/object differ')
+ require(intent['allocation_before_bytes_b64']==bindings['approved_allocation_before_bytes_b64'],
+         'Intent original allocation differs from independently pinned bytes')
  owners=[x for x in before['allocation'] if x['chip']==4]
  require(len(owners)==1 and owners[0]['run']==run and not any(x['chip']==4 for x in before['free']),
          'Intent before allocation has wrong owner')
@@ -185,7 +235,17 @@ def intent_commit(q,journal,intent_path):
  path=journal/'INTENT_COMMITTED.json'
  expected=dict(intent_sha256=q.sha(intent_path))
  require(q.load(path)==expected,'Release intent changed after durable commitment')
+ settle_publication(q,path,expected)
  return q.sha(path)
+
+
+def settle_publication(q,path,value):
+ pending=path.with_name(path.name+'.pending')
+ if pending.exists() or pending.is_symlink():
+  q.verify();evidence.publish_new(path,value)
+  q.snapshots.pop(os.path.abspath(pending),None)
+  q.snapshots.pop(os.path.abspath(path),None)
+  require(q.load(path)==value,'Recovered publication differs')
 
 
 def transaction(q,prep,plan,bindings,journal):
@@ -198,15 +258,19 @@ def transaction(q,prep,plan,bindings,journal):
    if done.exists():
     intent=q.load(intent_path);terminal=q.load(done)
     check_intent(intent,bindings,run,journal)
+    settle_publication(q,intent_path,intent)
     commitment=intent_commit(q,journal,intent_path)
     require(intent['bindings']==bindings and terminal==dict(rc=0,status='RELEASED',intent_sha256=q.sha(intent_path),intent_commit_sha256=commitment,
       allocation_before_sha256=intent['allocation_before_sha256'],allocation_after_sha256=intent['allocation_after_sha256']),
       'Completed release identity differs')
+    settle_publication(q,done,terminal)
     q.verify();return dict(terminal,status='ALREADY_RELEASED')
    current=q.load(ALLOCATION);current_hash=q.sha(ALLOCATION);run='reference_inference/'+Path(plan['out']).name
-   if intent_path.exists():
-    intent=q.load(intent_path)
+   pending_intent=intent_path.with_name(intent_path.name+'.pending')
+   if intent_path.exists() or pending_intent.exists() or pending_intent.is_symlink():
+    intent=q.load(intent_path if intent_path.exists() else pending_intent)
     check_intent(intent,bindings,run,journal)
+    settle_publication(q,intent_path,intent)
    else:
     require(current_hash == bindings['approved_allocation_before_sha256'],
             'Current allocation is not the parent-reviewed before state')
@@ -238,8 +302,8 @@ def transaction(q,prep,plan,bindings,journal):
    return terminal
 
 
-def release(plan_path,verification_request,review_path,journal):
- # Import only from the previously reviewed frozen v4 executable closure.
+def frozen_context(plan_path):
+ # Import only the exact allowlisted plan's frozen executable closure.
  require(plan_path.parent.name in PLAN_HASHES,'Unknown E38 plan')
  initial=evidence.Evidence();require(initial.sha(plan_path)==PLAN_HASHES[plan_path.parent.name],'Frozen plan changed')
  plan=initial.load(plan_path)
@@ -252,6 +316,7 @@ def release(plan_path,verification_request,review_path,journal):
  for path in plan['files']:
   if path.endswith('.py'):
    snap=initial.snapshot(path); require(snap.data is not None,'Python dependency exceeds bounded snapshot')
+   require(snap.sha256==plan['files'][path],'Frozen Python dependency changed: '+path)
    source_bytes[os.path.abspath(path)]=snap.data
  initial.verify()
  def frozen_module(path,name):
@@ -262,7 +327,22 @@ def release(plan_path,verification_request,review_path,journal):
  prep=frozen_module(plan_path.parent/'prepare_openjev_path_trace.py','e38_release_frozen_preparer')
  prep.module=frozen_module
  q=evidence.Evidence(prep.helper(plan_path.parent).delegate);prep.host(q)
- p,bindings=bind(plan_path,verification_request,review_path,q,prep)
+ return q,prep
+
+
+def attest_cpu_exit(plan_path,verification_request):
+ q,prep=frozen_context(plan_path)
+ r,_=prep.cpu_binding(q,verification_request,'exited')
+ require(r['target_plan']==str(plan_path),'CPU attestation target differs')
+ value=cpu_exit_binding(q,prep,verification_request)
+ target=verification_request.parent/'CPU_EXIT_BINDING.json'
+ evidence.publish_new(target,value)
+ return dict(path=str(target),sha256=evidence.Snapshot(target).sha256)
+
+
+def release(plan_path,verification_request,review_path,journal,anchor_path,anchor_sha256):
+ q,prep=frozen_context(plan_path)
+ p,bindings=bind(plan_path,verification_request,review_path,q,prep,anchor_path,anchor_sha256)
  try:return transaction(q,prep,p,bindings,journal)
  except Exception as exc:
   if journal.parent==ROOT and journal.name.startswith('e38_release_') and journal.is_dir() and not journal.is_symlink():
@@ -274,6 +354,15 @@ def release(plan_path,verification_request,review_path,journal):
 
 if __name__=='__main__':
  parser=argparse.ArgumentParser()
- for flag in ['plan','verification-request','review','journal']:parser.add_argument('--'+flag,type=Path,required=True)
+ for flag in ['plan','verification-request']:parser.add_argument('--'+flag,type=Path,required=True)
+ for flag in ['review','journal','anchor']:parser.add_argument('--'+flag,type=Path)
+ parser.add_argument('--anchor-sha256')
+ parser.add_argument('--attest-cpu-exit',action='store_true')
  args=parser.parse_args()
- print(json.dumps(release(args.plan,args.verification_request,args.review,args.journal)))
+ if args.attest_cpu_exit:
+  require(not any([args.review,args.journal,args.anchor,args.anchor_sha256]),'CPU attestation does not release resources')
+  result=attest_cpu_exit(args.plan,args.verification_request)
+ else:
+  require(all([args.review,args.journal,args.anchor,args.anchor_sha256]),'Release review, journal and pinned anchor required')
+  result=release(args.plan,args.verification_request,args.review,args.journal,args.anchor,args.anchor_sha256)
+ print(json.dumps(result))

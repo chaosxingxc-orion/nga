@@ -189,6 +189,7 @@ def publish_new(path, value):
             with os.fdopen(open_regular(path), 'rb') as f:
                 if f.read() != raw:
                     raise FileExistsError('Pending and published bytes differ')
+            sync_directory(path.parent)
             tmp.unlink()
             sync_directory(path.parent)
             return
@@ -196,12 +197,14 @@ def publish_new(path, value):
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644)
         with os.fdopen(fd, 'wb') as f:
             f.write(raw); f.flush(); os.fsync(f.fileno())
+        sync_directory(path.parent)
     if not path.exists():
         os.link(tmp, path, follow_symlinks=False)
     else:
         with os.fdopen(open_regular(path), 'rb') as f:
             if f.read() != raw:
                 raise FileExistsError('Published bytes differ')
+    sync_directory(path.parent)
     tmp.unlink()
     fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try: os.fsync(fd)
