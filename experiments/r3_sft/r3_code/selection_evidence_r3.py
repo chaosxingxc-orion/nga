@@ -50,6 +50,40 @@ def validate_population(rows, expected, key_fn):
     return [have[key_fn(r)] for r in expected]
 
 
+def training_variant(manifest):
+    """Seed-independent recipe identity; old manifests use the trainer's defaults.
+
+    Keep unknown arguments conservatively, so a future training option cannot
+    silently disappear from the seed-pooling boundary. Operational locations,
+    monitoring and interruption controls do not define the training recipe.
+    """
+    recipe = {
+        "epochs": 2, "lr": 1e-4, "lora_r": 16, "lora_alpha": 32,
+        "lora_dropout": 0.05, "gdn_impl": "ref", "gdn_ckpt": False,
+        "grad_ckpt": False, "micro_tokens": 12000, "k2_impl": "rows",
+        "k2_rows": 96, "chunk_overhead": 2000, "full_logits": False,
+        "max_len": 4096, "drop_state": False, "symbol_file": None,
+        "symbol_n": 6675, "limit_rows": 0, "full_ft": False,
+    }
+    recipe.update(manifest["args"])
+    for field in ("seed", "out", "model_path", "total_steps", "kernel",
+                  "device", "save_every", "stop_after", "no_merge",
+                  "perf_window", "perf_every", "procs_on_chip", "expect_pairs",
+                  "allow_any_lr"):
+        recipe.pop(field, None)
+    return {
+        "schema": 1, "args": recipe,
+        "model_path": os.path.realpath(manifest["model_path"]),
+        "kernel": manifest["kernel"], "total_steps": manifest["total_steps"],
+        "model_revision_file": manifest.get("model_revision_file"),
+        "train_sha256": manifest.get("train_file", {}).get("sha256"),
+        "code_sha256": manifest.get("code_sha256"),
+        "prompt_py_sha256": manifest.get("prompt_py_sha256"),
+        "param_dtype": manifest.get("param_dtype"),
+        "torch": manifest.get("torch"), "transformers": manifest.get("transformers"),
+    }
+
+
 def train_identity(report):
     """Read seed/arm from the trainer's completed manifest, not an evaluation-directory name."""
     h = report["header"]
@@ -76,7 +110,8 @@ def train_identity(report):
     require(manifest.get("total_steps", 0) > 0
             and manifest.get("summary", {}).get("final_step") == manifest["total_steps"], "training is not complete")
     return {"seed": seed, "arm": arm, "training_manifest": manifest_path,
-            "training_manifest_sha256": C.sha256_file(manifest_path), "adapter_path": path}
+            "training_manifest_sha256": C.sha256_file(manifest_path), "adapter_path": path,
+            "training_variant": training_variant(manifest)}
 
 
 def readout_directories(run_dir):
@@ -194,6 +229,11 @@ def validate_seed_reports(reports, required_seeds=(2, 3), required_arm=None):
     require(len({e.get("adapter_path") for e in evidence}) == len(evidence), "same adapter supplied more than once")
     arms = {e.get("arm") for e in evidence}
     require(len(arms) == 1 and None not in arms, "reports must belong to one arm")
+    variants = [e.get("training_variant") for e in evidence]
+    require(all(isinstance(v, dict) and v.get("schema") == 1 and v.get("args") for v in variants),
+            "verified training variant identity is required; reload legacy reports")
+    require(all(v == variants[0] for v in variants[1:]),
+            "seed reports use different training variants (model, implementation, recipe or provenance)")
     if required_arm:
         require(arms == {required_arm}, f"decision line requires {required_arm}")
 

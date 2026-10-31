@@ -25,7 +25,8 @@ def _arithmetic_report(d, **kwargs):
             "constant": {"kev_rule_accuracy": .4}, "question_only": {"kev_rule_accuracy": .4}}}
         for suite in C.SUITES}}
     report["selection_evidence"] = {"seed": 2 + int(os.path.basename(d)[-1]), "arm": "K1",
-                                     "adapter_path": d, "keys": keys, "correct": correct}
+                                     "adapter_path": d, "keys": keys, "correct": correct,
+                                     "training_variant": {"schema": 1, "args": {"arm": "k1"}}}
     return report
 
 def compare_math(a, b):
@@ -37,7 +38,8 @@ def condition_math(a, b):
 
 def align_math(reports):
     for seed, report in zip((2, 3), reports):
-        report["selection_evidence"] = {"seed": seed, "arm": "K1", "adapter_path": str(seed)}
+        report["selection_evidence"] = {"seed": seed, "arm": "K1", "adapter_path": str(seed),
+                                        "training_variant": {"schema": 1, "args": {"arm": "k1"}}}
     return SEL.k_align(reports)
 
 N_DEC, N_TRA = 1264, 656

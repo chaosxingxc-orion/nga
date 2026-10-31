@@ -210,6 +210,46 @@ class Evidence(unittest.TestCase):
         with self.assertRaises(PV.ProvenanceRefusal):
             S.main(["kalign", "--runs", str(self.run), str(self.run)])
 
+    def seed_pair(self, second_args=None, second_manifest=None):
+        first = E.train_identity(self.report)
+        other = copy.deepcopy(self.training)
+        other["args"].update(seed=3, out=str(self.root / "train3"))
+        other["args"].update(second_args or {})
+        other.update(second_manifest or {})
+        write(self.root / "train3" / "manifest.json", other)
+        report = copy.deepcopy(self.report)
+        report["header"]["model"]["path"] = str(self.root / "train3" / "adapter")
+        return [{"selection_evidence": first}, {"selection_evidence": E.train_identity(report)}]
+
+    def test_same_recipe_independent_seeds_and_runtime_settings_accepted(self):
+        pair = self.seed_pair({"save_every": 100, "perf_every": 20, "device": "npu:1"})
+        E.validate_seed_reports(pair)
+        self.assertEqual(pair[0]["selection_evidence"]["training_variant"],
+                         pair[1]["selection_evidence"]["training_variant"])
+
+    def test_k2_rows_and_shared_cannot_pool(self):
+        self.training["arm"] = self.training["args"]["arm"] = "k2"
+        self.report["header"]["arm"] = "K2"
+        write(self.train / "manifest.json", self.training)
+        with self.assertRaisesRegex(E.SelectionRefusal, "different training variants"):
+            E.validate_seed_reports(self.seed_pair({"k2_impl": "shared"}))
+        E.validate_seed_reports(self.seed_pair({"k2_impl": "rows"}))
+
+    def test_recipe_and_code_changes_cannot_pool(self):
+        for delta in ({"micro_tokens": 3000}, {"lora_dropout": 0.}, {"gdn_impl": "fast_ref"},
+                      {"k2_rows": 48}, {"lr": 2e-4}, {"future_training_option": True}):
+            with self.subTest(delta=delta), self.assertRaisesRegex(E.SelectionRefusal, "different training variants"):
+                E.validate_seed_reports(self.seed_pair(delta))
+        with self.assertRaisesRegex(E.SelectionRefusal, "different training variants"):
+            E.validate_seed_reports(self.seed_pair(second_manifest={"code_sha256": {"train_r3.py": "changed"}}))
+
+    def test_missing_variant_requires_revalidation(self):
+        pair = self.seed_pair()
+        for r in pair:
+            r["selection_evidence"].pop("training_variant")
+        with self.assertRaisesRegex(E.SelectionRefusal, "variant identity"):
+            E.validate_seed_reports(pair)
+
     def test_compare_cannot_bypass_loader_with_summaries(self):
         (self.run / "manifests" / "fixture.json").unlink()
         with self.assertRaises(PV.ProvenanceRefusal):
@@ -235,7 +275,8 @@ class Gating(unittest.TestCase):
 
     def test_first_adoption_has_positive_and_negative_paths(self):
         def report(seed):
-            return {"selection_evidence": {"seed": seed, "arm": "K1", "adapter_path": str(seed)},
+            return {"selection_evidence": {"seed": seed, "arm": "K1", "adapter_path": str(seed),
+                                           "training_variant": {"schema": 1, "args": {"arm": "k1"}}},
                     "track_k": {"partitions": {suite + "/dev": {
                         "headline": {"kev_rule_accuracy": .9}, "arms": {
                             "constant": {"kev_rule_accuracy": .4}, "question_only": {"kev_rule_accuracy": .4}}}
