@@ -1,0 +1,54 @@
+{
+  "judgment_version": "0.1.0",
+  "question": {
+    "question_id": "q-boolean-gate",
+    "spec_version": "1.0.0"
+  },
+  "conventions": {
+    "terms": [
+      {
+        "name": "flag",
+        "definition": "a boolean input signal"
+      }
+    ],
+    "reference_time": "evaluation instant",
+    "time_window": "no window — point evaluation"
+  },
+  "levels": [
+    {
+      "name": "pass",
+      "definition": "the flag is true",
+      "type": "boolean"
+    }
+  ],
+  "candidate_set": {
+    "semantics": "stackable"
+  },
+  "rules": [
+    {
+      "rule_id": "r-pass",
+      "precedence": 0,
+      "coverage": "flag true passes"
+    }
+  ],
+  "resolution": {
+    "on_missing_evidence": "record a semantic issue for the owner",
+    "on_undefined_rule": "apply no rule; record a semantic issue"
+  },
+  "examples": [
+    {
+      "kind": "boundary",
+      "case": "flag absent",
+      "expected": "on_missing_evidence — not a failure"
+    }
+  ],
+  "scope": {
+    "supported": "a single boolean gate"
+  },
+  "ownership": {
+    "owner": "team-a",
+    "review_authority": "review-board",
+    "effective_scope": "team-a services"
+  },
+  "_expect": "ACCEPT: minimal form — term unit, rule exceptions, and change_rationale are optional (spec_version is not — identity and version are inseparable per §6)"
+}

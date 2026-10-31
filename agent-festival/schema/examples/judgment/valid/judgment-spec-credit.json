@@ -1,0 +1,76 @@
+{
+  "judgment_version": "0.1.0",
+  "question": {
+    "question_id": "q-credit-eligibility",
+    "spec_version": "1.0.0"
+  },
+  "conventions": {
+    "terms": [
+      { "name": "asset", "definition": "the declared net asset value of the applicant", "unit": "USD-millions" },
+      { "name": "overdue", "definition": "an unpaid obligation past its due date for more than the window", "unit": "months" }
+    ],
+    "reference_time": "application-submission timestamp",
+    "time_window": "six calendar months before the application timestamp, both ends inclusive"
+  },
+  "levels": [
+    { "name": "grant-50000", "definition": "eligible for the 50,000 USD line", "type": "boolean" },
+    { "name": "grant-10000", "definition": "eligible for the 10,000 USD line", "type": "boolean" },
+    { "name": "deny", "definition": "credit denied under the override rule", "type": "boolean" }
+  ],
+  "candidate_set": { "semantics": "exclusive" },
+  "rules": [
+    {
+      "rule_id": "r-override-overdue",
+      "precedence": 0,
+      "coverage": "any overdue longer than three months in the window denies credit regardless of assets",
+      "exceptions": []
+    },
+    {
+      "rule_id": "r-upper-band",
+      "precedence": 1,
+      "coverage": "assets above 30 (USD-millions) with no overdue in the window grant the 50,000 line",
+      "exceptions": ["assets exactly at the 30 cutoff belong to the lower rule pending owner convention"]
+    },
+    {
+      "rule_id": "r-lower-band",
+      "precedence": 2,
+      "coverage": "assets below 1 (USD-millions) grant the 10,000 line; the six-month condition attaches to the upper band only",
+      "exceptions": []
+    }
+  ],
+  "resolution": {
+    "on_missing_evidence": "request admissible asset valuation; record a semantic issue for the owner — not an automatic denial",
+    "on_undefined_rule": "apply no rule; record a semantic issue for the authorized business owner"
+  },
+  "examples": [
+    {
+      "kind": "boundary",
+      "case": "assets exactly 30, no overdue",
+      "expected": "the cutoff is an open specification question — the upper rule's exception names it, so the outcome is on_undefined_rule until the owner settles it"
+    },
+    {
+      "kind": "competing",
+      "case": "assets 35 with a four-month overdue",
+      "expected": "deny — the override rule's precedence 0 beats both band rules"
+    },
+    {
+      "kind": "equivalent",
+      "case": "assets 0.5 with a clean window versus assets 0.9 with a clean window",
+      "expected": "both take the lower band — the rule scopes by band, not by exact value"
+    },
+    {
+      "kind": "unresolved",
+      "case": "asset valuation cannot be retrieved",
+      "expected": "on_missing_evidence — request evidence, record the issue, no automatic negative business answer"
+    }
+  ],
+  "scope": {
+    "supported": "the illustrative three-rule credit eligibility question for natural-person applicants in the owner's pilot region"
+  },
+  "ownership": {
+    "owner": "business-owner-credit",
+    "review_authority": "credit-review-board",
+    "effective_scope": "pilot region, v1.0.0, effective from publication"
+  },
+  "_expect": "ACCEPT: the NGA §6 credit example as a full specification — every §6 required-information field present, the §6.1 gaps (units, window convention, cutoff treatment) stated as open questions instead of model-authored defaults"
+}
