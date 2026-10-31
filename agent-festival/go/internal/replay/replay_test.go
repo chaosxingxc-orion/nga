@@ -2,6 +2,7 @@ package replay
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,16 +19,9 @@ func loadCase(t *testing.T, name string) *Case {
 		t.Fatal("replay-case schema not found")
 	}
 	full := filepath.Join(filepath.Dir(SchemaPath), "examples", "replay", "valid", name)
-	fx, err := suite.Load(full) // the shared loader: UseNumber + pin-popping, single-sourced
-	if err != nil {
-		t.Fatal(err)
-	}
-	if fx.ParseError != "" {
-		t.Fatalf("fixture %s: %s (the hardened loader's contract: fail loud, never run unpinned)", name, fx.ParseError)
-	}
-	c, err := LoadCase(fx.Doc)
-	if err != nil {
-		t.Fatal(err)
+	c, fatalf := loadCasePath(t, full)
+	if fatalf != "" {
+		t.Fatal(fatalf)
 	}
 	return c
 }
@@ -519,15 +513,13 @@ func TestOperationSetLockstep(t *testing.T) {
 	if derr == nil || !strings.Contains(derr.Error(), "unknown op") {
 		t.Fatal("a non-member passed drive's switch — the refusal direction drifted")
 	}
-	// the goOps→drive direction: every member of the DECLARED Go-side set
-	// must be drivable (a drive switch that grew or shrank silently would
-	// leave the declared set lying)
-	for op := range goOps {
-		_, derr := drive(m, []Step{{Op: op}})
-		if derr != nil && strings.Contains(derr.Error(), "unknown op") {
-			t.Fatalf("declared Go-side op %q refused by drive — the set and the switch drifted", op)
-		}
-	}
+	// Coverage statement (honest form, R12): the checks above prove
+	// enum↔goOps SET EQUALITY and the enum→drive direction (every enum
+	// member is known to drive) plus the non-member refusal. The growth
+	// direction (drive's switch growing an arm that NEITHER set has) is
+	// structurally unprovable from outside the switch — deleting an arm is
+	// caught (the enum loop hits it), growing one is not; the set-equality
+	// check is the declared boundary of this lockstep.
 }
 
 // TestReplayPropagatesDriveErrors pins the propagation leg (R8: the drive
@@ -626,12 +618,9 @@ func TestInspectStatesTailProjection(t *testing.T) {
 // carries the cross-package string lockstep: adopt's refusal detail must
 // keep carrying "ledger append failed" for replay to see it.
 func TestScratchWriteFailureIsLoud(t *testing.T) {
-	dir := t.TempDir()
-	scratchPath := filepath.Join(dir, "scratch.jsonl")
-	if err := os.WriteFile(scratchPath, nil, 0o444); err != nil { // read-only file in a writable dir? no — need dir-level
-		t.Fatal(err)
+	if os.Geteuid() == 0 {
+		t.Skip("root ignores directory write permissions — the read-only scratch setup cannot bite here")
 	}
-	_ = scratchPath
 	roDir := filepath.Join(t.TempDir(), "ro")
 	if err := os.Mkdir(roDir, 0o500); err != nil { // write-denied directory
 		t.Fatal(err)
@@ -681,24 +670,70 @@ func TestLoadCaseRefusesFoldedNumbers(t *testing.T) {
 	}
 }
 
-// TestLoadCaseRefusesBadPinnedFixture pins the ParseError contract wiring
-// (R11: the guard was unreachable dead code in today's test set).
+// TestLoadCaseRefusesBadPinnedFixture pins loadCase's ParseError
+// consumption arm (R12: R11's version called suite.Load directly — the
+// arm stayed dead; deleting it stayed green). The poison fixture goes
+// through loadCase itself.
 func TestLoadCaseRefusesBadPinnedFixture(t *testing.T) {
 	dir := t.TempDir()
 	poison := filepath.Join(dir, "poison.json")
 	if err := os.WriteFile(poison, []byte(`{"case_version":"0.1.0","case_id":"p","_expect_match":5}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, err := suite.Load(poison)
+	loaded, died := loadCasePath(t, poison)
+	if loaded != nil {
+		t.Fatal("a wrong-typed pin loaded silently — the hardened contract is bypassed")
+	}
+	if !strings.Contains(died, "fail loud") {
+		t.Fatalf("refusal text = %q, want the hardened-contract refusal", died)
+	}
+}
+
+// loadCasePath is loadCase for an arbitrary path — the shared loader plus
+// the ParseError consumption arm, factored so the arm is testable.
+func loadCasePath(t *testing.T, path string) (c *Case, fatalf string) {
+	t.Helper()
+	fx, err := suite.Load(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// loadCase-shaped path must fail loudly on the malformed pin
-	fx, err := suite.Load(poison)
+	if fx.ParseError != "" {
+		return nil, fmt.Sprintf("fixture %s: %s (the hardened loader's contract: fail loud, never run unpinned)", filepath.Base(path), fx.ParseError)
+	}
+	c, err = LoadCase(fx.Doc)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if fx.ParseError == "" {
-		t.Fatal("the shared loader did not flag the wrong-typed pin")
+	return c, ""
+}
+
+// TestRecoverDoesNotDispatchAdoptedWork pins the never-dispatch boundary on
+// the DISPATCHABLE shape (R12: the existing pin's record ended unresolved,
+// where Dispatch is refused anyway — the boundary was untested where it
+// actually bites).
+func TestRecoverDoesNotDispatchAdoptedWork(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m, err := adopt.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := "sha256:" + strings.Repeat("a", 64)
+	grants := []ledger.Grant{{Kind: "data", Selector: "s", Actions: []string{"read"}, Effect: "none"}}
+	m.Adopt(&adopt.Request{
+		AdoptionVersion: "0.1.0",
+		Identity:        ledger.Identity{BusinessRequestID: "br-d", OperationID: "op-d"},
+		Versions:        ledger.Versions{Evidence: "e", Rule: "r", Model: "m", Readout: "ro", Policy: "p"},
+		PayloadDigest:   digest, GrantsAtDecision: grants,
+	})
+	rep, err := Recover(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.States["op-d"] != "adopted" {
+		t.Fatalf("recovered state = %q, want adopted (dispatchable)", rep.States["op-d"])
+	}
+	events, _ := m.Events()
+	if len(events) != 1 {
+		t.Fatalf("Recover moved a dispatchable operation: %d events, want 1 — the never-dispatch boundary regressed", len(events))
 	}
 }
