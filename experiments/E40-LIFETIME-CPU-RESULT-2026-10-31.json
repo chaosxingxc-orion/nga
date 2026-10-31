@@ -1,0 +1,27 @@
+{
+  "scope": "CPU tensor preflight only; no NPU parity, throughput, memory or JEVal admission",
+  "run": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e40_lifetime_cpu_20261031_v3",
+  "cells": 32,
+  "forwards": 256,
+  "all_outputs_exact": true,
+  "verified_utc": "2026-10-31T03:28:27.644793+00:00",
+  "live_container_id": "a410d7e428357bfe8d3376c6293e528b507615bf8644b0b23b36a97002b051dc",
+  "live_exit_code": 0,
+  "live_finished_at": "2026-10-31T03:24:25.54675867Z",
+  "artifacts": {
+    "PLAN.json": "792fa12860cb07171bc93268732b1220dc201944fdc6fcb1e2778f17adc02406",
+    "report.json": "c9ea4eb1229422785d6c29755a61bc1f1e2e9375e2dda1396c542e7022114396",
+    "COMPLETE.json": "8541d59598612dd466e3a6601c8d0b85703c9127d848f3d003f1d78b3cf5549b",
+    "EXIT": "93ff7811a209e2a8479230bbb9b6bc19f7f311d3af383ec350c1db2a7e7d5494",
+    "ACTUAL_CONTAINER_EXIT.json": "4933788e8213bc12634c860fbc75ca26baa13af73b604660e3b40dc0e17e1e43",
+    "openjev_lifetime_cpu_check.py": "7a9d29f0064236d9ec56eb8b327f0012c051b128caa1b8444dacbf7f04c7feaa",
+    "openjev_lifetime_candidate.py": "a26a94bc9c5fba045e7ff69c82a483a0c160283855979cefb48445c8419dd9b4"
+  },
+  "validation": "Parent rehashed sources, all 32 item identities/shape tuples/output hashes and terminal/report binding; independently queried retained Docker exit. No independent tensor rerun by parent.",
+  "limitations": [
+    "v1/v2 failed imports with zero tensor cells; retained",
+    "Native source functions extracted by AST, not full transformers model module import",
+    "No interrupted run/cache/resume safety validation",
+    "B=1 CPU tensors only; full model and larger batch memory unmeasured"
+  ]
+}
