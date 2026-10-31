@@ -338,9 +338,9 @@ Recording an answer requires its rationale, evidence, affected principles/interf
 
 ## 11. Next design artifact
 
-Select one bounded business case and describe its judgment specification, capability contract, evidence snapshot, S2 plan, S1 observations, adoption conditions, and external operation. The credit-rule example in section 6.1 is a candidate once its unresolved conventions are settled by the business owner.
+Following the owner's clarification, first define a small general framework contract for case identity, bound decisions, plans, effective transitions, external operations and applicable shared constraints. Then challenge it with a small portfolio of explicitly scoped business fixtures. Do not require detailed banking semantics to be settled before continuing the architecture. See [framework logic and case coverage](../achitecture%20design/18-framework-core-and-case-coverage.md).
 
-Use this case to produce three connected artifacts: a project 1 task/data/evaluation definition, a project 2 collaboration trace and control contract, and a project 3 V0 workbench flow with semantic authoring and exception resolution. Keep proposed mechanisms distinct from the principles already agreed.
+For each selected fixture, describe the supplied judgment specification, capability contract, evidence, S2 plan, S1 observations, adoption conditions and intended operation. The credit example is one fixture; independent cases with shared constraints and a non-credit counterpart test whether the core is general. Use these to produce connected project 1 task/evaluation definitions, project 2 control traces, and project 3 workbench flows. A real deployment still needs approved domain semantics and integration evidence; hypothetical fixtures do not supply that approval.
 
-Walk it through unchanged repetition, changed evidence, changed rule, concurrent submission, interrupted execution, revoked authority, and reconstruction. Use the resulting conflicts to refine the logical interfaces before freezing schemas or choosing technologies.
+Walk these fixtures through unchanged repetition, legitimate new cases, shared constraints, changed evidence, changed rule, concurrent submission, interrupted execution, revoked authority and reconstruction. Use the resulting conflicts to refine the logical interfaces before freezing schemas or choosing technologies.
 

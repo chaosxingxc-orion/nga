@@ -5,9 +5,11 @@
 > Sources: [discussion register](16-architecture-discussion-register.md), [credit walkthrough](10-credit-decision-walkthrough.md), [control review](15-graph-loop-workflow-control-review.md), and [replay contract](12-replay-and-audit-contract.md).
 > Premise: Jev meets its declared semantic judgment contract. This review concerns business identity, changes of basis, and execution correctness around that model.
 
-## 1. Proposed first business boundary
+> Owner correction: the preceding discussion treated credit-relationship details as a prerequisite too early. Design the general framework first, then use business cases to challenge coverage. The user-supplied shared-preapproval example permits independent cases subject to a common limit. See [document 18](18-framework-core-and-case-coverage.md). The former single-relationship starting recommendation is withdrawn as a framework prerequisite; the traces below remain illustrative fixtures.
 
-The proposed first slice is:
+## 1. Illustrative credit-fixture boundary
+
+One credit fixture used to exercise the general execution contract is:
 
 **Receive an identified unsecured-credit application → obtain the required evidence → judge eligibility and the approved limit → adopt the decision → register the initial limit for the intended credit relationship → confirm the external result and expose the decision and execution status.**
 
@@ -15,16 +17,17 @@ This exercises both decision idempotence and external-effect handling. Eligibili
 
 The original three rules remain unchanged. Use the illustrative R1 conventions and A001 fixture in document 10: assets of 40 million in the approved unit, no overdue condition in the required recent window, adequate historical coverage and no historical veto. The expected initial judgment is USD 50,000. Currency conventions, exact duration definitions and uncovered asset bands still belong to the governed specification.
 
-### 1.1 The target of the grant must be decided
+### 1.1 Business object meaning is supplied by the case contract
 
-There are two different business interpretations:
+The earlier binary choice between one relationship and independent facilities was too narrow as the starting point for framework design. Keep three independent dimensions:
 
-| Interpretation | Consequence for two applications |
+| Dimension | Architectural implication |
 | --- | --- |
-| One credit relationship for the customer under the relevant product/business scope | A new application does not automatically entitle the caller to create a second relationship or add another USD 50,000. Existing credit and concurrent applications need an explicit eligibility/uniqueness rule. |
-| Each independently authorized application can establish a separate credit relationship | Multiple facilities may legitimately coexist. They still need application-level deduplication and any applicable aggregate exposure controls. |
+| Case identity | Distinguish a repeated request from a genuinely new business case. |
+| Intended effect and business target | Bind what one admitted operation is meant to do, without making a universal banking-object assumption. |
+| Shared business constraints | Different cases can remain independent while drawing against a common allowance or another constraint. |
 
-**Proposed starting scope:** one intended credit relationship in an explicitly identified institution/tenant, customer and product scope, initially demonstrating creation when no conflicting relationship exists. The exact business uniqueness scope remains to be agreed; customer/product fields alone are not declared universally sufficient.
+The owner supplied an example in which several new credit cases are permitted within an overall preapproved allowance; their combined use can cause a problem when it exceeds that allowance. The general lesson is cross-case constraint enforcement, not a requirement to model that bank's accounting now. A one-relationship fixture and an independent-cases/shared-limit fixture can both be used to test the framework.
 
 The operation must say whether it **creates an initial limit**, **sets an existing limit to a target**, or **adds an amount**. These are not interchangeable. In particular, "grant USD 50,000" must not silently become "increase available credit by USD 50,000 on every successful run." For this draft, the operation is initial registration of the intended relationship with a USD 50,000 limit. Changing an existing limit needs a separate amendment contract.
 
@@ -213,19 +216,19 @@ These are proposed acceptance cases, not executed tests.
 
 The same division supports the three lifecycle states: development defines these contracts and adversarial cases; runtime applies them to A001; operations investigates late evidence, reconciles uncertain effects and proposes improvements. The user plane expresses intent and challenges, management maintains definitions/versions, runtime executes admitted work and control governs effectiveness. Evolution cannot erase an earlier basis or replay a real effect while testing an improved model or workflow.
 
-## 9. Proposed resolutions and remaining owner choices
+## 9. General takeaways and deferred fixture details
 
 The following are **recommended answers for discussion**, not a closure of AQ-01/AQ-02:
 
-1. Use eligibility plus initial registration of an identified credit relationship as the first complete slice, with refusal as a valid completed outcome and unknown execution kept explicit.
+1. Define the general case-to-decision-to-effect lifecycle first. Use the initial-registration trace as one coverage fixture, not as a universal business boundary; add independent cases with a shared constraint as a distinct fixture.
 2. Identify the application by authoritative business intent and lineage, not by wording, channel, model run, graph node or arbitrary request UUID.
 3. Distinguish one decision purpose from its frames, observations and adopted revisions. New material basis may require reevaluation even when the amount remains unchanged.
 4. Treat new evidence and applicable rule changes as explicit basis/revision events; keep pure replanning and technical retries within the existing business identities.
-5. A new decision revision does not automatically create a new external effect. Protect the initial-registration purpose and use phase-specific supersession or correction.
+5. A new decision revision does not automatically create a new external effect. Protect the declared effect purpose and use phase-specific supersession or correction; initial registration is one example, not a universal business operation.
 
-To settle these questions, the owner still needs to choose:
+When binding a concrete production business contract later, its owners will need to specify the following. These details are **not prerequisites for continuing the framework design now**:
 
-- **Credit relationship scope:** one relationship under the relevant customer/product scope, or independently permitted facilities per application; specify existing-credit and concurrent-application treatment.
+- **Business target and shared constraints:** what an operation changes, which cases can coexist, and which constraints apply across those cases; the core does not assume one case per customer/product.
 - **Application continuity:** what creates a new intent, what resumes/reopens an old one, and how cross-channel submissions without an authoritative link are resolved.
 - **Rule/validity migration:** which publication changes affect pending, adopted-unexecuted and completed work, and when the initial decision expires.
 - **Post-completion correction:** who may review and correct an existing facility and what business operations are allowed. The original three eligibility rules do not define these permissions.

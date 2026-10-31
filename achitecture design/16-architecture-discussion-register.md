@@ -16,6 +16,7 @@ The discussion does not reopen these owner requirements:
 - Business-configurable behavior and governed semantic specifications; semantic gray areas require explicit resolution paths rather than silent model invention.
 - Three related projects: decision-model research and engineering, S1 + S2 framework design, and an enterprise agent workbench.
 - For this architecture exercise, assume a Jev-like model satisfies the required capabilities within its declared scope. That premise does not assert that current repository models have passed those gates.
+- Owner correction after the AQ-01/AQ-02 discussion: design the framework's general logic first, then challenge it with varied cases. Detailed banking semantics are not prerequisites to that design. Independent cases can remain distinct while sharing a business constraint; see [document 18](18-framework-core-and-case-coverage.md).
 
 What remains open is the precise scope of each promise, its enforcement and composition contracts, and the evidence needed to adopt an implementation. Requiring replay, for example, does not yet settle replay granularity, retention or access.
 
@@ -25,7 +26,7 @@ Role labels below identify proposed participants, not named assignees. A recomme
 
 | ID | Decision to discuss | Kind | Proposed participants |
 | --- | --- | --- | --- |
-| [AQ-01](#aq-01) | What is the first business slice and exactly what does NGA promise for it? | Business / product contract | Business owner, framework and workbench leads |
+| [AQ-01](#aq-01) | Which initial case patterns should test the general core, and what does each fixture promise? | Coverage / product contract | Business owner, framework and workbench leads |
 | [AQ-02](#aq-02) | What counts as the same application, equivalent decision basis, decision revision and operation? | Business / identity contract | Business/knowledge owner, framework lead |
 | [AQ-03](#aq-03) | What is the minimum publishable semantic specification and who may change it? | Semantic governance | Knowledge owner, model and framework leads |
 | [AQ-04](#aq-04) | Who constructs the effective evidence basis, and when must it be refreshed? | Evidence / temporal contract | Data owner, knowledge owner, framework lead |
@@ -44,33 +45,33 @@ Role labels below identify proposed participants, not named assignees. A recomme
 | [AQ-17](#aq-17) | What evidence qualifies a model, rule or workflow change as agent improvement? | Evolution / evaluation contract | Business owner and all three project leads |
 | [AQ-18](#aq-18) | What is the smallest workbench slice and the end-to-end acceptance package? | Product / validation contract | Business owner and all three project leads |
 
-**Suggested first conversation:** AQ-01 → AQ-02 → AQ-04 → AQ-06 → AQ-07. These establish the unit of work, its basis, unresolved behavior and permissible adaptation. AQ-03 supplies the semantic contract alongside that conversation; the first fixture must not invent its unresolved business conventions.
+**Revised discussion order after owner feedback:** first define general case/decision/operation identity and effective-state contracts (AQ-02/AQ-11), then plan composition, effects and shared-constraint boundaries (AQ-07/AQ-10/AQ-12). Use AQ-01/AQ-18 to select small, explicit coverage fixtures rather than requiring a detailed credit-product design. [Document 18](18-framework-core-and-case-coverage.md) provides the proposed core and eight case patterns. This replaces the earlier banking-scope-first interpretation of the agenda.
 
 Then close the execution boundaries in AQ-10–AQ-13; compare model placement and execution organization in AQ-05/AQ-08/AQ-09; define the lifecycle and operational acceptance in AQ-14–AQ-18. This is a discussion agenda, not a waterfall delivery plan. Retention, operator needs and release behavior must inform interfaces early, and AQ-18's evaluation design precedes comparative experiments.
 
 ## 3. Question cards
 
 <a id="aq-01"></a>
-### AQ-01 — First business slice and promise
+### AQ-01 — Initial coverage portfolio and promises
 
-Focused discussion: [document 17](17-credit-scope-identity-and-revision-review.md) makes initial registration versus later correction and the intended credit-relationship scope explicit. Status remains OPEN.
+Focused discussion: [document 17](17-credit-scope-identity-and-revision-review.md) provides a credit fixture; [document 18](18-framework-core-and-case-coverage.md) records the owner's correction to design the general framework first and test varied case coverage. Status remains OPEN; the design method is clarified without selecting a production banking scope.
 
-- **Question:** is the first complete slice an eligibility judgment, registration of a credit limit, or a broader application process? What constitutes completion, refusal, waiting and correction?
-- **Why it matters:** a correct recommendation does not establish an idempotent business effect; a completed credit registration is not cash disbursement.
-- **Options and tradeoff:** judgment-only makes model/control evaluation simpler but leaves external-effect claims untested; limit registration exposes adoption and reconciliation; a full lending process introduces additional contracts before the core boundary is understood.
-- **Starting recommendation:** retain the illustrative eligibility-plus-limit-registration slice from document 10, initially against an isolated adapter. Declare later disbursement and credit amendments as separate operations. This is still a proposal, not a real lending policy or integration commitment.
-- **To close:** a one-page scope, accountable business role, business states, effect inventory and acceptance examples, including valid refusal and unresolved completion. Establish the operation scope before AQ-02/AQ-12; develop acceptance with AQ-18.
+- **Question:** which small case portfolio tests the general intent, judgment, adoption, effect and recovery contract? What constitutes completion, refusal, waiting and correction in each explicitly scoped fixture?
+- **Why it matters:** a judgment-only demo does not establish effect idempotence, recovery or cross-case constraint enforcement; one domain-specific success does not prove the core is general.
+- **Options and tradeoff:** one happy-path example is easy to demonstrate but hides architectural gaps; complete products across many domains demand too much detail at this stage. A small portfolio of distinct case patterns tests the core without first specifying every business process.
+- **Starting recommendation:** define the general framework contract first, then use the credit trace alongside duplicate/new-case, shared-constraint, change-of-basis and recovery fixtures. Keep their assumptions explicit and avoid hardcoding banking semantics into the core.
+- **To close:** a small coverage portfolio, each with declared intent, effect, constraints, expected states and positive/counterexample outcomes. Develop it with AQ-02/AQ-12/AQ-18; detailed production domain semantics are a later binding requirement.
 
 <a id="aq-02"></a>
 ### AQ-02 — Identity, equivalence and revision
 
-Focused discussion: [document 17](17-credit-scope-identity-and-revision-review.md) distinguishes submission, application, decision purpose/frame/revision, plan, operation and attempt; it tests material changes against execution phase. Status remains OPEN.
+Focused discussion: [document 17](17-credit-scope-identity-and-revision-review.md) distinguishes submission, case, decision, plan, operation and attempt; [document 18](18-framework-core-and-case-coverage.md) separates case identity from cross-case constraints. Status remains OPEN; do not infer duplicate cases solely from a shared customer/product or constraint scope.
 
 - **Question:** when are two submissions the same business application? Which evidence/rule/time changes create a new decision revision, and which changes merely revise the execution plan or retry an operation?
 - **Failure case:** a new graph node or user-channel request creates a fresh operation key and repeats a grant; the opposite mistake caches an obsolete decision and prevents a legitimate new application.
 - **Options and tradeoff:** upstream application identity is precise when available but needs conflict handling; governed business keys can join channels but need domain-specific definitions. Text similarity or a payload hash alone cannot establish business equivalence.
 - **Starting recommendation:** separate application, decision frame/revision, plan revision, operation and attempt identities. Let the business contract define cross-channel identity and equivalent material inputs; keep graph structure out of the identity of a repeated business effect. Same key with changed material parameters produces an explicit conflict/amendment path.
-- **To close:** an identity table and paired examples for duplicate submission, irrelevant paraphrase, changed evidence, new reference time, intentional new application and later amendment. Depends on AQ-01 and the semantics/evidence work in AQ-03/AQ-04.
+- **To close:** a general identity/lineage contract, then paired fixtures for duplicate submission, legitimate new cases, shared constraints, changed evidence, new reference time and later amendment. Bind the AQ-03/AQ-04 semantics/evidence assumptions needed by each fixture without making a full production business model a prerequisite.
 
 <a id="aq-03"></a>
 ### AQ-03 — Publishable business semantics
