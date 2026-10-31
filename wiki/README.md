@@ -1,80 +1,13 @@
 # Experiment wiki
 
-Every experiment in this program is recorded here, one file per experiment, and pushed to
-`origin/main`. A run that is not recorded here did not happen as far as the program is concerned.
+The remote wiki is a collaboration surface for current conclusions. The latest four-dimension report is [`CURRENT-CONCLUSIONS.md`](CURRENT-CONCLUSIONS.md).
 
-## The rule
+Detailed experiment procedures, receipts, raw logs, container records, intermediate reviews and dated process notes are maintained locally under `experiments/` and on CephFS. They are not the remote source of current facts. A milestone refresh updates `CURRENT-CONCLUSIONS.md` and the current pointer in [`experiments/REFERENCE-BASELINE-LATEST.md`](../experiments/REFERENCE-BASELINE-LATEST.md); older snapshots remain local/archive material for traceability.
 
-1. Copy [`TEMPLATE.md`](TEMPLATE.md) to `wiki/<id>.md` and fill sections 1-3 (**purpose,
-   hypothesis, setup**) *before* launching the run. The hypothesis is worthless written afterwards.
-2. Fill section 4 (**results**) from the run's own report files, and section 5 (**verdict**) against
-   the pre-registered decision lines only.
-3. Add the file to the index below, and commit and push. Results are appended; a wrong number is
-   corrected by a dated note, not by a silent edit.
-4. The pre-registration files under `experiments/` stay the normative source for metrics, thresholds
-   and splits. The wiki records what was run and what came out; where the two disagree, the
-   pre-registration governs and the wiki entry says so.
+The normative sources are:
 
-English only, as everywhere in this repository (CLAUDE.md §1).
+- frozen metrics, splits, thresholds and formulas: `experiments/` preregistrations and the referenced machine-readable matrix;
+- current conclusions for collaborators: [`CURRENT-CONCLUSIONS.md`](CURRENT-CONCLUSIONS.md);
+- current reference-baseline pointer: [`experiments/REFERENCE-BASELINE-LATEST.md`](../experiments/REFERENCE-BASELINE-LATEST.md).
 
-## Index
-
-| id | title | round | status |
-| --- | --- | --- | --- |
-| [F1](F1-fetch-qwen3-0.6b.md) | fetch `Qwen3-0.6B`, the attention-only control | R0 | done |
-| [K0](K0-untuned-readout.md) | untuned readout of the Qwen3.5 checkpoints on Kev's suites and our task set | R3 round 1 | planned |
-| [E1](E1-gdn-fast-ref-gate.md) | admissibility gate for `gdn_fast_ref`, a third gated-delta-rule kernel | R3 round 1 | done — (G2) failed, not admitted |
-| [W1](W1-wave1-first-weight-updates.md) | wave 1: the first weight updates (K1, K2, K1-PT, K1-QO, K1-FLA) | R3 round 1 | planned |
-| [E2](E2-scorer-admissibility-fp32.md) | scorer admissibility: the bf16 table that failed and the fp32 verdict that replaced it | R3 round 1 | done |
-| [R0S](R0S-r0-side-fp32-rescore.md) | the R0 side of record: fp32 re-score of `Qwen3.5-0.8B` under the R0 configuration (adoption gate) | R3 round 1 | planned |
-| [E3](E3-k0-readout-precondition.md) | the precondition for reading K0: c32 composition control, realized-call replay, provenance re-score with counterpart | R3 round 1 | completed CLEAN; independent Astra review not claimed |
-| [E6](E6-reference-inference-20261030.md) | native Kev-0.8B inference compatibility on Ascend | reference evaluation | two development records completed; full test evaluation pending |
-| [E7](E7-reference-kev-test-20261030.md) | automatic native Kev-0.8B inference on decision-v7 and transfer-v4 test | reference evaluation | complete; main metrics independently recomputed; Astra review pending |
-| [E8](E8-reference-kev-scale-probe-20261030.md) | native Kev-4B development compatibility and efficiency probe | reference evaluation | four development records completed; 9B not run |
-| [E9](E9-reference-kev4-test-20261030.md) | native Kev-4B on the same official test suites | reference evaluation | complete; detached independent audit and comparison completed |
-| [E10](E10-reference-recovery-20261030.md) | real process interruption and prefix-preserving inference recovery | engineering | bounded eight-record recovery verified; broader fault modes not claimed |
-| [E11](E11-reference-kev9-probe-20261030.md) | native Kev-9B development compatibility and efficiency | reference evaluation | four records completed after preserving a failed premature launch |
-| [E12](E12-reference-kev9-test-20261030.md) | native Kev-9B on decision-v7 and transfer-v4 test | reference evaluation | complete; 2,204 questions and scoped independent audit verified |
-| [E13](E13-openjev2-native-probe-20261030.md) | native Open-Jev-2B typed synthetic compatibility | reference evaluation | three synthetic requests completed; public test not yet run |
-| [E14](E14-openjev2-public-test-20261030.md) | native Open-Jev-2B on 10,356 public test rows | reference evaluation | complete inference and scoped audit; perfect hard subset and four-row subset retain review flags |
-| [E15](E15-openjev-independent-finish-20261030.md) | independent Open-Jev metric audit and automatic finish | engineering | CPU waiter launched; whole-test audit awaits inference completion |
-| [E16](E16-nimble-native-probe-20261030.md) | restored initial Nimble native candidate-token readout | engineering | eight synthetic outputs completed; exact public-test restoration completed in E19 |
-| [E17](E17-openjev9-native-probe-20261030.md) | native Open-Jev-9B typed compatibility | engineering | three synthetic fixtures completed and verified |
-| [E18](E18-openjev9-public-test-20261030.md) | native Open-Jev-9B on the same 10,356 public test rows | reference evaluation | public inference and independent audit complete; eight review flags; E24 supplement running |
-| [E19](E19-nimble-public-test-20261030.md) | original Nimble on seven exact public test subsets | reference evaluation | 1,884-row inference complete; E21 audit failed and diagnosis pending |
-| [E20](E20-kev-extended-test-20261030.md) | Kev 0.8B/4B/9B on hard-v1 and documents-v1 | reference evaluation | all three sizes complete with scoped audits at 16:36 UTC |
-| [E21](E21-nimble-independent-finish-20261030.md) | independent Nimble scoring audit and automatic finish | engineering | independent audit failed at 16:33:52 UTC; diagnosis pending |
-| [E22](E22-kev-devtools-reference-20261030.md) | Kev devtools full/release dual-population inference | reference evaluation | all three sizes completed scoped audits; 9B release differs by one correct question |
-| [E23](E23-openjev-original-data-restoration-20261030.md) | exact original Open-Jev split restoration | data restoration | completed; five original split hashes match; inference not implied |
-| [E24](E24-openjev-original-test-supplement-20261030.md) | original Open-Jev test supplement and exact join | reference evaluation | both sizes full original10532 test complete; automatic supplement/join chain verified; flags retained |
-| [E25](E25-nimble-reference-rerun-20261030.md) | Nimble rerun with complete dependency freeze | reference evaluation | 1,884 rows and independent audit complete; 152 frozen / 150 required dependencies; no review flags |
-| [E26](E26-typed-common-reference-20261030.md) | Typed Decisions common reference interface | engineering / reference evaluation | three Kev full 2,000-question runs and independent audits complete; zero review flags |
-| [E27](E27-kev-checkpoint-binding-audit-20261030.md) | independent checkpoint temperature and publication binding | engineering audit | nine completed Kev runs verified within stated scope |
-| [E28](E28-typed-nimble-reference-20261030.md) | initial Nimble on Typed Decisions | engineering / reference evaluation | full 2,000-question inference and independent retokenization/scoring audit complete; accuracy 65.10%, zero review flags |
-| [E29](E29-typed-openjev-reference-20261030.md) | Open-Jev on Typed Decisions | engineering / reference evaluation | both full common tests/audits complete; 2B/9B accuracy 58.25%/67.80%, zero flags |
-
-| [E30](E30-typed-recovery-controller-20261030.md) | deterministic recovery controller | engineering | real CPU worker and audit SIGKILL recovery passed; 24 items, 3 prefix receipts preserved |
-| [E31](E31-jeval-native-preflight-20261030.md) | full JEVal native eligibility | engineering | all six full eligibility and artifact audits complete; no inference scores |
-
-| [E32](E32-openjev-original-ood-20261030.md) | original complete Open-Jev OOD | reference evaluation | both full length preflights accepted; 2B/9B actual NPU inference and CPU finishers running on chips 4/2 |
-
-| [E33](E33-jeval-reference-inference-20261030.md) | native JEVal reference inference | reference evaluation | 2026-10-31: Kev-0.8B and Nimble inference/audits complete, 22,514 receipts rehashed; 6/30 flags retain REVIEW_REQUIRED; Kev-4B/9B running; Open-Jev held for numerical admission |
-
-| [E34](E34-jeval-serial-queue-20261030.md) | immutable JEVal inference queue | engineering / reference execution | Nimble production queue and three Kev read-only audit waiters running; CPU seam fixture passed |
-
-| [E35](E35-jeval-hardened-artifact-audit-20261030.md) | supplemental JEVal schema, token and artifact audit | engineering audit | six real probe-only audits complete; 16 tests pass; full-inference supplement pending |
-
-| [E36](E36-openjev-candidate-batch-20261030.md) | Open-Jev candidate batch memory | engineering admission | both 20-forward probes complete; memory improved but numerical admission failed; chip 1 released |
-
-| [E37](E37-openjev-batch-diagnostic-20261030.md) | Open-Jev no-op and layer-memory diagnostic | engineering diagnosis | 2026-10-31: 2B/9B completed 16 NPU forwards each and independent verification; candidate_batch_admission remains false |
-| [E38](E38-openjev-path-trace-20261031.md) | Open-Jev intermediate path trace | engineering diagnosis | v7 exact plans reviewed; 2B 8/8 NPU diagnosis and CPU verification complete; 9B awaits release; new release-only Astra v3 running after 53/53 isolated CPU tests; admission remains false |
-| [E39](E39-legacy-kev-current-reaudit-20261031.md) | current-date CPU re-audit of 28 legacy Kev panels | evidence audit | v2 CPU audit complete: 28 panels/8,462 receipts; actual Astra bounded pass with dated clarifications; historical bindings unchanged |
-| [E40](E40-openjev-lifetime-candidate-20261031.md) | Open-Jev full-shape GDN lifetime candidates | engineering preparation | 7/7 structural tests and fixed-image CPU v3 32 cells/256 forwards exact; retained exited/0; NPU validation and full-test admission pending |
-| [R3-PREFLIGHT](R3-training-engineering-preflight-20261031.md) | Qwen3.5-0.8B three-step training-engineering preflight | engineering | detached NPU smoke passed on chip 1; terminal and guarded release verified; no test-set or training-benefit claim |
-
-## Where the artifacts live
-
-- Pre-registrations, protocol notes and results documents: `experiments/`
-- Code snapshot behind committed results: `experiments/r3_sft/` (working copy on cephfs)
-- Run directories, logs, readouts and reports: `/mnt/cephfs/xingchao/experiments/jev/` (not committed)
-- Watchdog digest, the only status source the orchestrator reads: `/mnt/cephfs/xingchao/experiments/jev/_watchdog/digest.md`
+A result is not accepted merely because a container exited zero. It needs the registered test split, the registered formula and denominator, independent scoring, terminal/recovery evidence and guarded resource release. Dev and calibration values are diagnostic; test split values are the external comparison metrics.
