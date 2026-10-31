@@ -22,6 +22,10 @@
     "controller_contracts": [],
     "enforcement_contracts": []
   },
+  "rollout": {
+    "new_tasks": "all new tasks in the pilot region",
+    "in_flight": "complete-under-pinned-definitions"
+  },
   "evidence": {
     "version_compatibility": [
       "compat:1"

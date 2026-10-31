@@ -21,6 +21,10 @@
     "controller_contracts": [],
     "enforcement_contracts": []
   },
+  "rollout": {
+    "new_tasks": "all new tasks in the pilot region",
+    "in_flight": "complete-under-pinned-definitions"
+  },
   "rollback": {
     "new_work_routing": "route back",
     "active_work_handling": "complete under pinned",
