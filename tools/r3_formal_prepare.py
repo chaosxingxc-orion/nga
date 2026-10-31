@@ -2,6 +2,7 @@
 """Prepare fresh train-only K1 plans, never launches and never creates review approval."""
 import argparse
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import shutil
@@ -26,11 +27,18 @@ def write(path, value):
     Path(path).write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 
-def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False):
+def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False, fresh_prechecks=None, fresh_prechecks_sha256=None):
     if arm not in ('k1', 'k2'):
         raise ValueError('unsupported loss arm')
     if not engineering and (model != MODEL or stop_after or arm != 'k1' or shared):
         raise ValueError('formal recipe cannot be overridden')
+    fresh = None
+    if not engineering:
+        if not fresh_prechecks or not fresh_prechecks_sha256:
+            raise ValueError('formal preparation requires externally pinned fresh K0 prechecks')
+        spec = importlib.util.spec_from_file_location('fresh_prechecks', ROOT/'tools/r3_fresh_prechecks.py')
+        helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+        fresh = helper.validate_bundle(fresh_prechecks, fresh_prechecks_sha256, model)
     out.mkdir(parents=True, exist_ok=False)
     code = out / 'code'
     code.mkdir()
@@ -54,6 +62,12 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
     for p in (out / 'prechecks').glob('*.json'):
         if json.loads(p.read_text()).get('ok') is not True:
             raise RuntimeError('failed precheck: ' + str(p))
+    if fresh:
+        # Replace the six K0 checks, preserving separate augmentation evidence.
+        # Exact train-code/LoRA/restart review is still required before launch.
+        for filename in fresh['checks']:
+            shutil.copy2(filename, out/'prechecks'/Path(filename).name)
+        shutil.copy2(ROOT/'tools/r3_fresh_prechecks.py', tool_dir/'r3_fresh_prechecks.py')
     prereg = ROOT / '.local/archive/2026-10-31/experiments'
     for name in ('R3-SFT-PREREG.md', 'R3-TRAINING-WAVE-PREREG-2026-10-31.md'):
         shutil.copy2(prereg / name, out / name)
@@ -88,6 +102,11 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
             'evaluation': {'seeds': [2, 3], 'decision_dev_min': .80, 'transfer_dev_min': .60,
                            'max_k0_regression_pp': 1.0, 'test_requires_separate_final_ticket': True},
             'engineering_evidence': str(BASE / 'r3_runs/formal_k1_prechecks_20261031/V12_REVERIFICATION.json'), 'engineering_evidence_scope': 'retrospective CPU recomputation; not independent Astra acceptance'}
+    if fresh:
+        plan.update(fresh_k0_prechecks=str(Path(fresh_prechecks).resolve()),
+                    fresh_k0_prechecks_sha256=fresh_prechecks_sha256)
+        plan['files'][plan['fresh_k0_prechecks']] = fresh_prechecks_sha256
+        plan['files'].update(fresh['inputs']); plan['files'].update(fresh['checks'])
     if engineering:
         plan.update(schema='r3-engineering-k1-plan-v1', execution_scope='engineering_only',
                     authorization='user_execute_engineering_when_ready_20261031',
@@ -128,9 +147,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--parent', required=True)
     ap.add_argument('--engineering', action='store_true', help='Separate user-authorized engineering generation; never formal acceptance')
+    ap.add_argument('--fresh-prechecks')
+    ap.add_argument('--fresh-prechecks-sha256')
     args = ap.parse_args()
     parent = Path(args.parent)
-    print(json.dumps([prepare(parent / f'seed{seed}', seed, chip, args.engineering) for seed, chip in ((2, 1), (3, 4))], indent=2))
+    print(json.dumps([prepare(parent / f'seed{seed}', seed, chip, args.engineering, fresh_prechecks=args.fresh_prechecks, fresh_prechecks_sha256=args.fresh_prechecks_sha256) for seed, chip in ((2, 1), (3, 4))], indent=2))
 
 
 if __name__ == '__main__':

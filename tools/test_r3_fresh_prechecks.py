@@ -1,4 +1,5 @@
 import copy
+import json
 import importlib.util
 from pathlib import Path
 from types import SimpleNamespace
@@ -26,6 +27,36 @@ class Fresh(unittest.TestCase):
                        lambda x:x['header']['model'].update(path='other')]:
             bad=copy.deepcopy(good);mutate(bad)
             with self.assertRaises(ValueError):F.validate_baseline(bad,'model')
+
+    def test_bundle_requires_complete_unchanged_evidence_and_model(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);report=root/'selection_report.json';report.write_text(json.dumps(baseline()))
+            checks={}
+            for name in ['a_constant_uniform_gold_position','d_kev_files_vs_manifest',
+                         'b_decision-v7_dev','b_transfer-v4_dev',
+                         'c_decision-v7_k0_dev','c_transfer-v4_k0_dev']:
+                p=root/(name+'.json');p.write_text('{"ok":true}');checks[str(p)]=F.sha(p)
+            bundle=root/'K0_PRECHECKS.json'
+            d={'schema':'r3-fresh-k0-prechecks-v1','status':'PASS','scientific_acceptance':False,
+               'test_read':False,'model':'model','k0_report':str(report),
+               'inputs':{str(report):F.sha(report)},'checks':checks}
+            bundle.write_text(json.dumps(d));pin=F.sha(bundle)
+            self.assertEqual(F.validate_bundle(bundle,pin,'model')['status'],'PASS')
+            with self.assertRaisesRegex(ValueError,'pin differs'):F.validate_bundle(bundle,'bad','model')
+            with self.assertRaisesRegex(ValueError,'scope differs'):F.validate_bundle(bundle,pin,'other')
+            report.write_text('{}')
+            with self.assertRaisesRegex(ValueError,'dependency changed'):F.validate_bundle(bundle,pin,'model')
+            d['checks'].pop(next(iter(checks)));bundle.write_text(json.dumps(d))
+            with self.assertRaisesRegex(ValueError,'incomplete'):F.validate_bundle(bundle,F.sha(bundle),'model')
+
+    def test_formal_prepare_refuses_legacy_default_before_writing(self):
+        spec=importlib.util.spec_from_file_location('prepare',Path(__file__).with_name('r3_formal_prepare.py'))
+        P=importlib.util.module_from_spec(spec);spec.loader.exec_module(P)
+        with tempfile.TemporaryDirectory() as td:
+            out=Path(td)/'run'
+            with self.assertRaisesRegex(ValueError,'fresh K0'):
+                P.prepare(out,2,1)
+            self.assertFalse(out.exists())
 
     def test_reconstruction_failure_never_publishes_prechecks(self):
         with tempfile.TemporaryDirectory() as td:

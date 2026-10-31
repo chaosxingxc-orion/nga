@@ -41,6 +41,30 @@ def validate_baseline(report, expected_model):
     require('seed' not in report['selection_evidence'], 'baseline impersonates training seed')
 
 
+def validate_bundle(path, pin, model):
+    path = Path(path)
+    require(path.is_absolute() and not any(p.is_symlink() for p in (path, *path.parents)), 'unsafe precheck bundle path')
+    require(sha(path) == pin, 'precheck bundle pin differs')
+    doc = json.loads(path.read_text())
+    require(doc.get('schema') == 'r3-fresh-k0-prechecks-v1' and doc.get('status') == 'PASS'
+            and doc.get('scientific_acceptance') is False and doc.get('test_read') is False
+            and doc.get('model') == str(model), 'precheck bundle scope differs')
+    expected = {'a_constant_uniform_gold_position.json', 'd_kev_files_vs_manifest.json',
+                'b_decision-v7_dev.json', 'b_transfer-v4_dev.json',
+                'c_decision-v7_k0_dev.json', 'c_transfer-v4_k0_dev.json'}
+    require(len(doc.get('checks', {})) == 6 and {Path(p).name for p in doc['checks']} == expected,
+            'precheck bundle incomplete')
+    require(doc.get('k0_report') in doc.get('inputs', {}), 'unbound K0 report')
+    for filename, digest in {**doc['inputs'], **doc['checks']}.items():
+        file = Path(filename)
+        require(file.is_absolute() and not any(p.is_symlink() for p in (file, *file.parents)), 'unsafe precheck dependency')
+        require(sha(file) == digest, 'precheck dependency changed: '+filename)
+    for filename in doc['checks']:
+        require(json.loads(Path(filename).read_text()).get('ok') is True, 'failed precheck')
+    validate_baseline(json.loads(Path(doc['k0_report']).read_text()), str(model))
+    return doc
+
+
 def run(a):
     report_path = Path(a.k0_report).resolve()
     require(report_path.name == 'selection_report.json' and report_path.is_file(), 'completed K0 report required')
