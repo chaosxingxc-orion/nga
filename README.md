@@ -14,6 +14,8 @@ Start with the [NGA overall design](design/nga-overall-design.md) for the progra
 
 NGA is organized across **three lifecycle states — development, runtime, and operations — and four responsibility planes — user, runtime, management, and control**. **Agent evolution is the integrating whole across the planes and states**: business experience informs versioned improvements to models, semantics, capabilities, workflows, and their controls. Each plane participates in all three states; operations includes business performance and improvement, not only infrastructure maintenance. The three repository projects below are a separate work organization.
 
+**openJiuwen remains NGA's engineering foundation.** The current integration review starts from public Java Core and Java Runtime, reuses existing execution and workbench capabilities, and identifies the componentized extensions needed for NGA's decision and control contracts. Read the [openJiuwen reuse and evolution review](achitecture%20design/24-openjiuwen-reuse-and-evolution.md) for pinned source evidence, Studio integration differences, extension boundaries and a staged compatibility path.
+
 ## Three projects and how they connect
 
 | Project | Objective | Main outputs |
@@ -57,7 +59,7 @@ The workbench turns enterprise requirements into maintained business contracts a
 
 The objective is that decision execution never silently invents a missing convention. Ambiguous rules, uncovered cases, missing evidence, and model uncertainty must lead to declared handling rather than an improvised business answer. An unresolved state is distinct from a business rejection unless the published policy explicitly equates them. Model detection and framework handling of these states still require work in projects 1 and 2; specification governance belongs to project 3.
 
-**The supplied enterprise architecture remains the V0 source baseline.** NGA's current V0.2 organizes the workbench by three states and four planes, with agent evolution connecting them. Capability contracts, bounded authority, context provenance, and adoption/accountability remain useful foundations; inherited assumptions are corrected where counterexamples invalidate them. S1 + S2, Graph, Loop, and Workflow designs operate within this broader structure. Concrete technologies and unvalidated mechanisms remain open.
+**The supplied enterprise architecture remains the V0 source baseline.** NGA's current V0.2 organizes the workbench by three states and four planes, with agent evolution connecting them. Capability contracts, bounded authority, context provenance, and adoption/accountability remain useful foundations; inherited assumptions are corrected where counterexamples invalidate them. S1 + S2, Graph, Loop, and Workflow designs evolve on openJiuwen. Prefer reuse, configuration and adapters before custom implementation; necessary NGA components must remain replaceable through explicit contracts. Specific compatible versions, supporting technologies and unvalidated mechanisms remain open.
 
 ## Decision idempotence and traceability
 
@@ -90,7 +92,7 @@ The [architecture workspace](achitecture%20design/README.md) preserves the two s
 | **Authorization and enforcement** | How should delegated authority and budgets be constrained, and where should those constraints be enforced? |
 | **Accountability and feedback** | How are proposals, verification, adoption, execution, and outcomes linked? Which feedback can validly improve the model or controller? |
 
-These questions leave the runtime, implementation language, control topology, authorization mechanisms, and integration platform open. The overall design introduces no frozen API or replacement experiment protocol. Existing proposal defaults remain hypotheses or recommendations to test.
+openJiuwen is the established engineering base, with the public Java line as the current analysis reference. Compatible version selection, supporting storage and authorization mechanisms, control topology and integration details remain open. Existing graph/loop/workflow facilities are the starting point; a new execution engine is not the default. The overall design introduces no frozen API or replacement experiment protocol. Existing proposal defaults remain hypotheses or recommendations to test.
 
 ## What is in the repository today
 

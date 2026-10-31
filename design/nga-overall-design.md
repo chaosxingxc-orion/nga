@@ -28,7 +28,7 @@ These projects exchange requirements and evidence rather than form strict sequen
 
 The supplied enterprise design is NGA's V0 source baseline. Its capability contracts, bounded delegation, context provenance, and adoption/accountability ideas remain useful foundations. Their suitability is subject to adversarial review; preserving the source does not require retaining invalid assumptions.
 
-The owner's three-state/four-plane framing supersedes the earlier three-view organization. The [V0.2 architecture](../achitecture%20design/13-nga-architecture-v0.2.md) develops that structure, and the [adversarial review](../achitecture%20design/14-v0-adversarial-review.md) identifies defects, missing contracts, and unvalidated hypotheses in V0 and our subsequent drafts. Concrete technologies remain open.
+The owner's three-state/four-plane framing supersedes the earlier three-view organization. The [V0.2 architecture](../achitecture%20design/13-nga-architecture-v0.2.md) develops that structure, and the [adversarial review](../achitecture%20design/14-v0-adversarial-review.md) identifies defects, missing contracts, and unvalidated hypotheses in V0 and our subsequent drafts. openJiuwen remains the engineering foundation. The [public Java reuse and evolution review](../achitecture%20design/24-openjiuwen-reuse-and-evolution.md) maps these contracts onto the current base and records compatibility gaps; supporting technology choices remain open.
 
 ### 1.3 Three states, four planes, and agent evolution
 
@@ -71,11 +71,12 @@ These are the agreed direction and logical boundaries, not claims that the corre
 | P6 | Adaptation must be explicit. | Changes of evidence, rules, plans, or adopted decisions are represented as revisions with a recorded relationship to earlier versions. |
 | P7 | The framework must distinguish semantic consistency, request idempotence, and action idempotence. | A cache, fixed threshold, or repeated model answer does not prove all three. |
 | P8 | Evaluation must exclude degenerate solutions and measure useful behavior. | Every invariance target has a discrimination counterpart and an accuracy floor. |
-| P9 | Concrete technology choices remain open. | Logical interfaces and acceptance requirements precede platform and implementation choices. |
+| P9 | openJiuwen is the engineering foundation; public Java Core/Runtime are the current integration analysis reference. | Preserve the base and evolve through compatible extensions. Specific artifact versions, supporting infrastructure and integration details require evidence; do not assume Java/Python/Studio parity. |
 | P10 | Semantic gray areas must not become implicit model discretion. Project 3 owns semantic-specification management through knowledge engineering. | Undefined conventions, conflicts, and coverage gaps require explicit treatment; S1/S2 cannot silently complete business policy. |
 | P11 | The prior enterprise design is the V0 source baseline; its assumptions remain subject to adversarial review as NGA evolves. | Preserve source history and useful contracts, correct invalid assumptions, and version subsequent architectural changes. |
 | P12 | Decision chains must be replayable and auditable, including consequential work inside loops and workflows. | Preserve executable definitions and consumed external/model observations as required; distinguish historical inspection, control replay, reevaluation, and live recovery. |
 | P13 | NGA has development, runtime, and operations states; user, runtime, management, and control planes; agent evolution integrates and coordinates the four planes. | Do not equate a plane with a lifecycle time or reduce evolution to model tuning, monitoring, or an additional privileged plane. |
+| P14 | Reuse existing components and capabilities first; necessary custom components must be modular and pluggable. | Prefer direct reuse, configuration, adapters/composition and narrow upstream extensions. Define NGA's semantic/control contracts without rebuilding all engines, catalogs, storage and workbench services. Replacement must preserve authority, identity, effects, replay and active-task compatibility. |
 
 “Business-configurable” is a capability to validate, not a promise that every natural-language rule is immediately supported without engineering or training.
 
@@ -355,7 +356,7 @@ For their architectural refinement and a concrete discussion agenda, see the [ar
 | O7 | What execution structure and enforcement boundaries meet these contracts? | Failure and bypass cases for candidate loop/graph/workflow organizations, delegation, and resource admission. |
 | O8 | What context can be shared, when, and with which provenance? | Cases comparing isolation, independent verification, controlled publication, and cooperative sharing. |
 | O9 | What reconstruction period and artifact retention are required? | Availability, access, accountability, and reconstruction acceptance requirements. |
-| O10 | Which implementation language, runtime, storage, model architecture, authorization mechanism, or protocol fits? | Business and interface decisions, integration constraints, and measured prototypes; choices remain open. |
+| O10 | Which compatible openJiuwen Java artifacts, extension placement, storage, model architecture, authorization mechanism and integration protocols fit? | The openJiuwen foundation is established. Use document 24's source mapping and contract fixtures to qualify versions and extensions; supporting choices and model architecture remain open. |
 | O11 | How should project 3 author, check, approve, publish, and revise semantic specifications? | Business-owner workflow, conventions and coverage examples, unresolved-case handling, change impact, and release/consumption contracts with projects 1 and 2. |
 | O12 | Which V0 capability and S1 insertion point should anchor the first integrated iteration? | A bounded workbench workflow, available Jev capability evidence, explicit S1/S2/framework boundaries, and a comparison against the existing agent loop. |
 

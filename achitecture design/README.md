@@ -20,6 +20,8 @@ This directory holds the owner-supplied enterprise architecture baseline and NGA
 
 **Current core object contracts:** [Agent definitions, releases, tasks, cases and handoffs](23-core-objects-and-plane-handoffs.md) separates immutable release content from scoped activation authority. It specifies fields, lifecycle/mutation rules, seven handoff families, publication command/receipt examples and the credit lifecycle through operational attribution and a new release, with sixteen proposed counterexamples.
 
+**Engineering foundation and reuse:** [openJiuwen reuse and incremental evolution](24-openjiuwen-reuse-and-evolution.md) reviews pinned public Java Core/Runtime sources and Studio architecture against V0. openJiuwen remains the base; reuse and componentized, pluggable extension are established constraints. The document maps existing components to NGA contracts, identifies eight adversarial findings, proposes extension ports and five evolution stages, and defines twelve unexecuted integration cases. Supporting technology and compatible version selection remain open.
+
 ## Reading order and document status
 
 | Document | Role | Status |
@@ -43,6 +45,7 @@ This directory holds the owner-supplied enterprise architecture baseline and NGA
 | [21 — Runtime primitives and API capability contracts](21-runtime-primitives-and-capability-contracts.md) | Default primitive library, customer configuration/import/custom implementations, API contracts, Graph/Workflow operators, twenty execution cases and eight extension cases. | Customer extensibility is required; package/runtime mechanisms, technologies and implementation guarantees remain proposed. |
 | [22 — Integrated lifecycle and plane review](22-integrated-lifecycle-and-plane-review.md) | Business objective/agent/release/task/case lineage, twelve responsibility cells, authority handoffs, recovery versus improvement and eight adversarial findings. | Organizing dimensions remain established; handoffs and twelve acceptance cases are proposals, not executed tests. |
 | [23 — Core objects and plane handoffs](23-core-objects-and-plane-handoffs.md) | AgentDefinition, ReleaseManifest, ActivationBinding, Task and OperationalCase fields; management/control authority; commands/receipts; credit development-to-evolution trace and sixteen adversarial cases. | Concrete logical-contract proposal; no final schema, protocol, implementation or executed acceptance claim. |
+| [24 — openJiuwen reuse and incremental evolution](24-openjiuwen-reuse-and-evolution.md) | Current engineering mapping: fixed openJiuwen foundation, reuse inventory, source-backed gaps, extension/control boundaries and compatible evolution path. | Foundation/reuse constraints are established; public Java analysis only, integration mechanisms and OJ01–OJ12 cases remain proposed. Read with V0.2 and source V0. |
 
 The [NGA overall design](../design/nga-overall-design.md) remains the program-level source for the three projects and established principles. This directory develops the architecture for project 2 and its integration into project 3.
 
@@ -60,4 +63,4 @@ S1 and S2 in the new NGA documents mean decision and reasoning capabilities. Do 
 - Keep new NGA artifacts in English. The two owner-supplied Chinese snapshots are a source-preservation exception.
 - Separate established principles, assumptions, proposed mechanisms, and unresolved decisions. An architecture draft does not amend experiment protocols.
 - Keep the explanation and diagrams aligned. Use an explicit revision when a change affects decision meaning, authority, adoption, execution, or reconstruction.
-- Keep technologies open until requirements and integration evidence justify a choice. No host, model-serving topology, language, storage engine, authorization protocol, or token lifetime is selected here.
+- Preserve the established openJiuwen foundation and reuse-first, pluggable extension constraints. Qualify compatible public Java artifacts and integration mappings before implementation; supporting storage, hosting, model serving, authorization and packaging choices remain open. Do not treat the public Studio/Python and Java execution lines as interchangeable without evidence.

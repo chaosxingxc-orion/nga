@@ -8,7 +8,7 @@
 
 ## 1. Separate execution mechanism, capability promise and semantic judgment
 
-NGA should supply a common execution contract that a Graph, a reusable Workflow and a bounded Agent Loop can all use. A workflow engine or graph representation is not selected here.
+NGA should supply a common execution contract that a Graph, a reusable Workflow and a bounded Agent Loop can all use. Following the owner's foundation constraint, [document 24](24-openjiuwen-reuse-and-evolution.md) maps these primitives onto openJiuwen Java's existing Workflow/Graph, Rails, tools, checkpoints and Runtime adapters. These are logical contracts, not instructions to build another execution engine. Specific versions, extension implementations and supporting mechanisms remain open.
 
 - **Default primitive library** supplies transition admission, capability invocation, observation handling, waiting, timers and child scopes. Customers can configure these definitions, import reusable packages, compose new operators or supply qualified custom implementations.
 - **Runtime kernel contracts** preserve identity, admitted authority, effective-state transitions, recovery and attributable history across built-in and imported implementations. Industry-specific control meaning belongs in extensible definitions rather than a closed list of kernel node types.

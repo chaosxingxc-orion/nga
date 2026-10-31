@@ -200,3 +200,27 @@ flowchart LR
 All three states use all four planes; the node labels emphasize each handoff rather than assigning a state to only one plane. User-plane interactions express goals, review evidence, initiate tasks and request operational action throughout. Management preserves definitions/cases, runtime performs the work, and control admits effective changes. Runtime recovery need not await a new release; a reusable change does not silently become a task-local patch. The manifest can reference independently deployed components. Customer package versions and active waits remain bound unless an explicit migration is admitted.
 
 The [core object and handoff contract](23-core-objects-and-plane-handoffs.md) makes ACT1 an explicit scoped binding separate from immutable release content. Its object diagram and command/receipt examples distinguish catalog registration, completed evaluation and effective publication.
+
+## 8. Evolve on openJiuwen through qualified extensions
+
+```mermaid
+flowchart TB
+    ENTRY["Existing workbench and enterprise entry points"] --> BIND["NGA release and task binding"]
+    BIND --> HOST["Java Runtime orchestrator and AgentHandler"]
+    HOST --> CORE["Core Runner - Workflow and Graph"]
+    CORE --> JEV["Typed Jev component"]
+    CORE --> LOOP["Bounded ReAct work"]
+    CORE --> WF["Existing components and child workflows"]
+    JEV --> CTRL["NGA adoption and transition contracts"]
+    LOOP -->|"Proposals and observations"| CTRL
+    CTRL -->|"Admitted operation"| EFFECT["Qualified tool and business API adapter"]
+    CORE --> EFFECT
+    EFFECT --> IT["Business provider owns external commit"]
+    IT -->|"Receipt and outcome"| RECORD["Authoritative history plus runtime checkpoints"]
+    RECORD --> OPS["Replay, cases and evaluation"]
+    OPS -->|"Candidate improvement"| ENTRY
+```
+
+The [source-backed reuse review](24-openjiuwen-reuse-and-evolution.md) defines the extension boundaries and staged compatibility path. Existing openJiuwen components execute work; NGA contract components govern decision and effect meaning. This does not prescribe separate services or a second graph scheduler. Checkpoints and authoritative records need an explicit reconciliation protocol, not an assumed atomic write.
+
+Current Studio documents a Java manager with Python runtime/builder. Its connection to the selected Java execution line requires qualification; the shared project name does not prove an existing end-to-end bridge. Likewise, existing best-effort step telemetry does not replace mandatory decision/effect evidence. No integration or runtime validation is claimed by this diagram.

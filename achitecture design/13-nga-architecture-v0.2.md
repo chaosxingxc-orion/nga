@@ -5,6 +5,7 @@
 > Status: the organizing dimensions are owner-defined. The responsibilities, contracts, and evolution lifecycle below are proposed for review, not implemented guarantees.
 > Supersedes the three-view organization in [V0.1](08-nga-architecture-v0.1.md). The [V0 adversarial review](14-v0-adversarial-review.md) explains corrections rather than treating all inherited mechanisms as commitments.
 > Current integration review: [document 22](22-integrated-lifecycle-and-plane-review.md) applies these dimensions to extensible primitives, API waiting/recovery and the full customer lifecycle. It adds concrete object lineage, cross-plane handoffs and twelve acceptance cases without claiming the detailed architecture is complete.
+> Engineering foundation: [document 24](24-openjiuwen-reuse-and-evolution.md) maps this design onto public openJiuwen Java Core/Runtime and existing workbench capabilities. openJiuwen and reuse-first, pluggable extension are established requirements; the mappings and migration stages remain proposals requiring qualification.
 
 ## 1. The dimensions have different meanings
 
@@ -31,7 +32,7 @@ Tie this whole to an accountable business objective and maintained agent definit
 | **Management** | Maintain versioned definitions, semantic specifications, models, datasets, capabilities, workflows, and candidate release manifests. | Resolve the published versions and applicable configuration for a task; expose inventory and provenance. | Maintain ownership, issue/case collections, release history, rollout/retirement declarations, and reviewed evaluation evidence. |
 | **Control** | Admit build/evaluation jobs; enforce data/effect boundaries; validate publication and compatibility conditions. | Enforce task and transition admission, decision adoption, authority, budgets, live preconditions, holds, and idempotent execution contracts. | Enforce operational interventions, rollout/revocation/rollback policy, recovery authority, and audit/replay isolation. |
 
-A cell describes responsibility, not a required separate application or service. UI, API, model serving, graph execution, and policy/storage technologies remain open.
+A cell describes responsibility, not a required separate application or service. Start from openJiuwen's existing execution, extension and workbench capabilities. Compatible component versions, UI/API integration, model serving and policy/storage mechanisms remain to be qualified; these choices do not reopen the engineering foundation.
 
 ## 3. Four planes and their control boundaries
 

@@ -133,8 +133,8 @@ Current focused discussion: [document 20](20-task-decision-request-identity.md) 
 - **Question:** must every executable procedure use one graph representation, or may several engines expose compatible control, event and recovery contracts? What is the minimum visibility required from an integrated engine?
 - **Failure case:** one engine treats child completion as decision adoption while another treats it as a proposal; an opaque agent-loop node performs unaudited tool calls. A common diagram format does not remove these disagreements.
 - **Options and tradeoff:** one representation simplifies inspection and compilation but can restrict existing capabilities; adapters reduce migration work but must demonstrate compatible semantics. One implementation does not itself prove one authoritative state model.
-- **Starting recommendation:** first define common identities, invocation/result semantics, transition authority, effect admission and replay coverage. Use [document 21](21-runtime-primitives-and-capability-contracts.md) to compare typed Graph nodes/edges with Workflow steps and recovery handlers. Both must resolve configurable/imported/custom primitive types without a closed built-in vocabulary. A graph is not an enforcement boundary, and every edge need not call Jev. Keep representation, package and engine choices open.
-- **To close:** a conformance contract and comparison using the same credit task through a workflow and a bounded loop, including recovery and hidden-action attempts. Depends on AQ-10/AQ-11/AQ-14; informed by AQ-18. Concrete engine selection is deferred.
+- **Starting recommendation:** first define common identities, invocation/result semantics, transition authority, effect admission and replay coverage. Use [document 21](21-runtime-primitives-and-capability-contracts.md) to compare typed Graph nodes/edges with Workflow steps and recovery handlers. Both must resolve configurable/imported/custom primitive types without a closed built-in vocabulary. A graph is not an enforcement boundary, and every edge need not call Jev. Following the owner's foundation decision, start from existing openJiuwen Java execution facilities; [document 24](24-openjiuwen-reuse-and-evolution.md) maps the relevant source and extension points. Representation mapping, package details and qualified interoperability remain open.
+- **To close:** a conformance contract and comparison using the same credit task through an openJiuwen workflow and a bounded loop, including recovery and hidden-action attempts. Depends on AQ-10/AQ-11/AQ-14; informed by AQ-18. The base is settled; compatible version and integration guarantees remain to be demonstrated.
 
 <a id="aq-09"></a>
 ### AQ-09 — Composition of judgments and branches
@@ -263,10 +263,12 @@ New emphasis in this register includes explicit operator-command semantics and s
 
 ## 6. Technical choices intentionally deferred
 
+**Settled constraint:** openJiuwen remains the engineering base; the owner has selected the public Java line for this analysis. Reuse existing components first and keep necessary custom work pluggable. [Document 24](24-openjiuwen-reuse-and-evolution.md) provides pinned source evidence, eight review findings and twelve proposed integration cases. This narrows implementation choices without closing the eighteen AQ contracts or claiming integration validation.
+
 | Choice | Evidence needed first |
 | --- | --- |
-| Graph/workflow engine, representation and adapter framework | AQ-07–AQ-11 execution/composition contracts and AQ-18 comparison. |
-| Language, service decomposition and deployment topology | Workload, authority boundaries, isolation and service targets from AQ-11/AQ-13/AQ-15. |
+| Compatible openJiuwen Graph/Workflow version, representation mapping and extension points | AQ-07–AQ-11 execution/composition contracts, document 24's source mapping and AQ-18 comparison on the existing base. |
+| Extension placement/language, service decomposition and deployment topology around the Java base | Workload, authority boundaries, isolation and service targets from AQ-11/AQ-13/AQ-15; no requirement for a service per logical object. |
 | State store, event transport and consistency mechanism | AQ-02 identities, AQ-11 arbitration, AQ-12 external effects and AQ-14 replay requirements. |
 | Authorization protocol, credential mechanism and isolation technology | AQ-13 trust model, resources and revocation semantics. |
 | Model serving, caching, batching and routing implementation | AQ-04/AQ-05 contracts, AQ-15 targets, AQ-16 invalidation and measured workload. |

@@ -272,6 +272,8 @@ These are proposed acceptance cases, not executed checks:
 
 ## 8. Decisions still open and next verification boundary
 
+**Implementation constraint:** [document 24](24-openjiuwen-reuse-and-evolution.md) maps these logical objects and handoffs onto the established openJiuwen foundation. Reuse existing asset/version, runtime, persistence and case capabilities with additive metadata or adapters where possible. Each logical object does not require a new database, service or workbench. Existing publication/session records must be checked against the activation/task contracts before being treated as equivalent.
+
 The main proposed refinement is **immutable definition/release content plus separately scoped activation**, with controlled task history and evidence-based cases. The owner has requested these contracts be made concrete; that request is not a claim that every field, state name or mechanism above is already approved.
 
 To close the related AQ items, settle:
@@ -282,4 +284,4 @@ To close the related AQ items, settle:
 4. Compatible active-task/view migration, withdrawal and outstanding recovery ownership.
 5. Case attribution/resolution and evaluation evidence needed for the first end-to-end fixture.
 
-The next verification step is a contract fixture exercising commands, observations and expected state/receipt changes, with the positive and adversarial branches above. It can be designed independently of a particular storage engine, queue, network API, package format, workflow runtime or model-serving technology. No such implementation is claimed in this document.
+The next verification step is a contract fixture exercising commands, observations and expected state/receipt changes, with the positive and adversarial branches above. Map it to the selected openJiuwen Java integration while keeping supporting storage, queue, network API, package format and model-serving choices evidence-driven. No such implementation is claimed in this document.
