@@ -1,8 +1,7 @@
 """Prepare a QO/PT trained-state restart package; never launch or approve it.
 
-The frozen contract keeps its original thresholds. Current general launcher
-cannot launch control recovery plans, so the generated draft remains explicitly
-nondeployable until a dedicated reviewed launcher contract is implemented.
+The frozen contract keeps its original thresholds. Preparation emits an immutable
+draft; finalize binds a separate engineering launch plan without granting review.
 """
 import argparse
 import importlib.util
@@ -14,6 +13,11 @@ HERE=Path(__file__).resolve().parent
 BASE='/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base'
 INSTRUCT='/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B'
 IMAGE='sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7'
+RUN_ROOT=Path('/mnt/cephfs/xingchao/experiments/jev')
+ALLOCATION=str(RUN_ROOT/'CHIP-ALLOCATION.json')
+ENVIRONMENT={'ASCEND_RT_VISIBLE_DEVICES':'0','HF_HUB_OFFLINE':'1','NGA_R0_CODE':'/workspace/r0_code',
+ 'PYTHONDONTWRITEBYTECODE':'1','PYTORCH_NPU_ALLOC_CONF':'expandable_segments:True',
+ 'TASK_QUEUE_ENABLE':'2','TOKENIZERS_PARALLELISM':'false','TRANSFORMERS_OFFLINE':'1'}
 def module(name):
     s=importlib.util.spec_from_file_location(name,HERE/(name+'.py'))
     m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
@@ -119,8 +123,102 @@ def prepare(source_plan,source_pin,checkpoint,checkpoint_pin,source_step,out,chi
     return result
 
 
+def verify_launch(plan):
+    """Validate a complete engineering control restart package before launch."""
+    out=safe(plan['out']);code=safe(plan['code'])
+    require(code==out/'code' and plan.get('deployable') is True,'control restart not finalized')
+    require(plan.get('validation_kind')=='current_k1_resume_contract' and plan.get('seed')==2
+            and plan.get('arm')=='k1' and plan.get('control_arm') in ('K1-QO','K1-PT'), 'control restart scope differs')
+    prep_path=safe(plan['preparation']);require(prep_path==out/'PREPARATION.json','preparation location differs')
+    require(plan['files'].get(str(prep_path))==R.sha(prep_path),'preparation not bound')
+    prep=R.load(prep_path)
+    require(prep.get('schema')=='r3-control-resume-preparation-v1' and prep.get('deployable') is False
+            and prep.get('test_read') is False and prep.get('scientific_acceptance') is False,'preparation scope differs')
+    draft_path=out/'DRAFT.json'
+    require(prep['draft']==str(draft_path) and prep['draft_sha256']==R.sha(draft_path)
+            and plan['files'].get(str(draft_path))==R.sha(draft_path),'draft binding differs')
+    draft=R.load(draft_path)
+    for field in ('out','code','model','train_file','image_sha256','environment','command','seed','chip',
+                  'control_arm','validation_kind','schema','authorization','execution_scope','test_read','scientific_acceptance'):
+        require(plan.get(field)==draft.get(field),'draft execution differs: '+field)
+    require(all(plan['files'].get(p)==h for p,h in draft['files'].items()),'draft dependency binding differs')
+    original=source(prep['source_plan'],prep['source_plan_pin'])
+    require(R.load(out/'SOURCE_PLAN.json')==original,'source plan snapshot differs')
+    require(plan['files'].get(prep['source_plan'])==R.sha(prep['source_plan']),'original source plan unbound')
+    for key in ('model','train_file','image_sha256','environment','control_arm'):
+        require(plan[key]==original[key],'source configuration differs: '+key)
+    require(plan['environment']==ENVIRONMENT,'control restart environment differs')
+    origin=R.load(out/'SOURCE.json');cfg=R.load(out/'CONTRACT.json')
+    expected={'steps':20,'replicas':3,'split':10,'factor':1.5,'loss_slack':2.4e-7,
+              'weight_relative_l2_slack':1e-7,'test_read':False,'scientific_acceptance':False}
+    require(set(cfg)==set(expected)|{'source_step','source_sha256'} and
+            all(type(cfg.get(k)) is type(v) and cfg[k]==v for k,v in expected.items()),'control restart contract differs')
+    step=cfg['source_step'];require(type(step) is int and 20<=step<3096,'control restart source step differs')
+    checkpoint=safe(origin['checkpoint'])
+    require(origin=={'training':original['out'],'checkpoint':str(checkpoint),'sha256':cfg['source_sha256'],'step':step}
+            and checkpoint==Path(original['out'])/'ckpt'/f'step_{step:06d}.pt','control restart checkpoint owner differs')
+    require(R.sha(checkpoint)==cfg['source_sha256']==R.sha(out/'SOURCE.pt')
+            and plan['files'].get(str(checkpoint))==cfg['source_sha256'],'control restart checkpoint changed')
+    require(plan['files'].get(str(code/'r3_resume_contract.py')) in R.CONTRACT_SHA256,'unrecognized restart contract')
+    for rel in ('train_r3.py','build_kev_sft.py','kev_aug.py','r0_code/prompt.py'):
+        require(plan['files'].get(str(code/rel))==original['files'].get(str(Path(original['code'])/rel)),
+                'control restart training code differs')
+    require(plan.get('run')==str(out.relative_to(RUN_ROOT)) and plan.get('allocation')==ALLOCATION,
+            'control restart resource identity differs')
+    require(plan.get('container')==container_name(out,plan['control_arm']),'control restart container identity differs')
+    require(plan.get('launcher')==str(out/'tools/r3_formal_launcher.py')
+            and plan.get('adapter')==str(out/'tools/r3_resource_adapter.py')
+            and plan.get('driver')==str(code/'r3_formal_driver.py'),'control restart tool paths differ')
+    for path,pin in plan['files'].items():require(R.sha(path)==pin,'control restart dependency changed')
+    return plan
+
+
+def container_name(out,arm):
+    import hashlib
+    return 'nga-r3-resume-'+arm.lower()+'-'+hashlib.sha256(str(out).encode()).hexdigest()[:16]
+
+
+def finalize(preparation_path,preparation_pin):
+    path=safe(preparation_path);require(R.sha(path)==preparation_pin,'preparation pin differs')
+    prep=R.load(path);out=path.parent
+    require(path.name=='PREPARATION.json' and out.is_relative_to(RUN_ROOT),'preparation root differs')
+    require(not (out/'plan.json').exists() and not (out/'tools').exists(),'new finalization required')
+    require(R.sha(prep['draft'])==prep['draft_sha256'],'draft pin differs')
+    draft=R.load(prep['draft']);original=source(prep['source_plan'],prep['source_plan_pin'])
+    require(original['environment']==ENVIRONMENT,'control restart environment differs')
+    tools=out/'tools';tools.mkdir()
+    for name in ('r3_formal_launcher.py','r3_resource_adapter.py','r3_control_resume_prepare.py',
+                 'r3_resume_evidence.py','r3_resume_contract.py'):
+        shutil.copyfile(HERE/name,tools/name)
+    plan=dict(draft);plan['files']=dict(draft['files'])
+    for file in (path,out/'DRAFT.json',*tools.iterdir(),Path(prep['source_plan']),Path(R.load(out/'SOURCE.json')['checkpoint'])):
+        plan['files'][str(file)]=R.sha(file)
+    seeds=[2] if plan['control_arm']=='K1-QO' else [2,3]
+    plan.update(deployable=True,preparation=str(path),run=str(out.relative_to(RUN_ROOT)),allocation=ALLOCATION,
+                container=container_name(out,plan['control_arm']),launcher=str(tools/'r3_formal_launcher.py'),
+                adapter=str(tools/'r3_resource_adapter.py'),driver=str(out/'code/r3_formal_driver.py'),
+                control={'control_arm':plan['control_arm'],'candidate_for_adoption':False,
+                         'primary_input_mode':'drop' if plan['control_arm']=='K1-QO' else 'full','registered_seeds':seeds})
+    plan['evaluation']=dict(plan['control'],candidate_test_forbidden=True)
+    plan['remaining']=['actual bounded NPU restart execution','independent CPU tensor reconstruction','formal eligibility and review']
+    verify_launch(plan)
+    write(out/'plan.json',plan)
+    command=['python3','-B','-P',plan['launcher'],'start','--plan',str(out/'plan.json'),'--sha256',R.identity(plan)]
+    import shlex
+    (out/'RELAUNCH.sh').write_text(shlex.join(command)+'\n')
+    result={'schema':'r3-control-resume-launch-preparation-v1','plan':str(out/'plan.json'),
+            'plan_sha256':R.identity(plan),'deployable':True,'scientific_acceptance':False,
+            'test_read':False,'command':command,'checkpoint_state_verified':False}
+    write(out/'LAUNCH_PREPARATION.json',result)
+    return result
+
+
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__)
-    for name in ('source-plan','source-pin','checkpoint','checkpoint-pin','out'):p.add_argument('--'+name,required=True)
-    p.add_argument('--source-step',type=int,required=True);p.add_argument('--chip',type=int,required=True)
-    a=p.parse_args();print(json.dumps(prepare(a.source_plan,a.source_pin,a.checkpoint,a.checkpoint_pin,a.source_step,a.out,a.chip),indent=2))
+    p=argparse.ArgumentParser(description=__doc__);sub=p.add_subparsers(dest='operation',required=True)
+    prep=sub.add_parser('prepare')
+    for name in ('source-plan','source-pin','checkpoint','checkpoint-pin','out'):prep.add_argument('--'+name,required=True)
+    prep.add_argument('--source-step',type=int,required=True);prep.add_argument('--chip',type=int,required=True)
+    final=sub.add_parser('finalize');final.add_argument('--preparation',required=True);final.add_argument('--sha256',required=True)
+    a=p.parse_args()
+    result=finalize(a.preparation,a.sha256) if a.operation=='finalize' else prepare(a.source_plan,a.source_pin,a.checkpoint,a.checkpoint_pin,a.source_step,a.out,a.chip)
+    print(json.dumps(result,indent=2))

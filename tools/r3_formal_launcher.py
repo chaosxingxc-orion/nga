@@ -13,6 +13,8 @@ import sys
 import time
 
 IMAGE = 'sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7'
+CONTROL_MODELS = {'K1-QO':'/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base',
+                  'K1-PT':'/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B'}
 
 
 def sha(path):
@@ -104,10 +106,11 @@ def verify(path, pin, reviewed=True):
     arm = p.get('arm', 'k1') if engineering else 'k1'
     require(arm in ('k1', 'k2'), 'unregistered loss arm')
     control_arm=p.get('control_arm')
+    control_resume = engineering and p.get('validation_kind') == 'current_k1_resume_contract' and control_arm is not None
     if control_arm is not None:
         require(engineering and control_arm in ('K1-QO','K1-PT') and arm=='k1'
-                and not p.get('k2_impl') and not p.get('validation_kind'), 'invalid engineering control recipe')
-        model='/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B'+('-Base' if control_arm=='K1-QO' else '')
+                and not p.get('k2_impl') and (not p.get('validation_kind') or control_resume), 'invalid engineering control recipe')
+        model=CONTROL_MODELS[control_arm]
         seeds=[2] if control_arm=='K1-QO' else [2,3]
         mode='drop' if control_arm=='K1-QO' else 'full'
         require(p['model']==model and type(p['seed']) is int and p['seed'] in seeds,'control model/seed differs')
@@ -137,6 +140,9 @@ def verify(path, pin, reviewed=True):
     if engineering and p.get('validation_kind') == 'shared_k2_reference_contract':
         require(p.get('k2_impl') == 'shared', 'shared validation closure required')
         expected = ['python3', '-P', '/workspace/test_k2_shared.py', '--device', 'npu:0', '--impls', 'ref']
+    if control_resume:
+        require(type(p['seed']) is int and p['seed']==2 and not p.get('stop_after'), 'control restart seed/schedule differs')
+        expected = ['python3', '-P', '/workspace/r3_resume_contract.py', '--out', p['out']]
     require(p['command'] == expected, 'training recipe mismatch')
     for filename, digest in p['files'].items():
         q = Path(filename)
@@ -149,6 +155,13 @@ def verify(path, pin, reviewed=True):
     require(not any(is_test_data(f) for f in p['files']), 'test dataset dependency forbidden')
     source_files = {str(f) for f in Path(p['code']).rglob('*') if f.is_file()}
     require(source_files == {f for f in p['files'] if f.startswith(p['code'] + '/')}, 'code closure inventory mismatch')
+    if control_resume:
+        import importlib.util
+        helper_path=Path(__file__).with_name('r3_control_resume_prepare.py')
+        require(p['files'].get(str(helper_path))==sha(helper_path),'control restart verifier not bound')
+        spec=importlib.util.spec_from_file_location('control_restart_admission',helper_path)
+        helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+        helper.verify_launch(p)
     if not engineering:
         verify_resume_evidence(p)
         verify_resume_reconstruction(p)
@@ -231,6 +244,29 @@ def docker_command(p, plan_path, attempt_no):
     return cmd
 
 
+def verify_control_resume_container(p, plan_path, attempt_no, observed):
+    """A retained restart container must match the prepared mount/environment contract."""
+    command=docker_command(p,plan_path,attempt_no)
+    expected=[]
+    for index,value in enumerate(command):
+        if value!='--mount':continue
+        parts=dict((item.split('=',1) if '=' in item else (item,True))
+                   for item in command[index+1].split(','))
+        expected.append((parts['src'],parts['dst'],'readonly' not in parts))
+    mounts=observed.get('Mounts',[])
+    actual=[(m.get('Source'),m.get('Destination'),m.get('RW')) for m in mounts]
+    require(len(actual)==len(expected) and sorted(actual)==sorted(expected)
+            and all(m.get('Type')=='bind' for m in mounts),'control restart retained mounts differ')
+    require(observed.get('Config',{}).get('Entrypoint')==['python3']
+            and observed.get('HostConfig',{}).get('NetworkMode')=='none'
+            and not observed.get('HostConfig',{}).get('Privileged',False),
+            'control restart retained isolation differs')
+    env=observed['Config'].get('Env',[])
+    for key,value in p['environment'].items():
+        require([item for item in env if item.startswith(key+'=')]==[key+'='+value],
+                'control restart retained environment differs')
+
+
 def supervisor(path, pin, attempt_no):
     p = verify(path, pin)
     require(socket.gethostname() == 'k8s-node1', 'must run on host npu / 175')
@@ -273,6 +309,8 @@ def supervisor(path, pin, attempt_no):
         require(d['Config']['Cmd'] == ['-P', '/workspace/r3_formal_driver.py', '--plan', path, '--attempt', str(attempt_no)], 'container command mismatch')
         devices = {x['PathOnHost'] for x in d['HostConfig']['Devices']}
         require(devices == {'/dev/davinci_manager', '/dev/devmm_svm', '/dev/hisi_hdc', f"/dev/davinci{p['chip']}"}, 'container devices mismatch')
+        if p.get('control_arm') and p.get('validation_kind')=='current_k1_resume_contract':
+            verify_control_resume_container(p,path,attempt_no,d)
         while d['State']['Status'] not in ('exited', 'dead'):
             atomic(attempt / 'supervisor_heartbeat.json', {'utc_seconds': time.time(), 'container': container, 'status': d['State']['Status']})
             time.sleep(15)
