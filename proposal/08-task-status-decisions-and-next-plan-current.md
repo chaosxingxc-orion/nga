@@ -13,7 +13,7 @@
 - E39 已完成 28 个历史 Kev 面板的当前 CPU 独立重算和有界 Astra 审查，最大数值差约 `1.11e-16`。这证明保存证据可重建，但没有补造历史 finisher，也没有证明 cache/restart 的无人值守安全性。
 - E38 v7 固定镜像 CPU 套件 **100/100 通过、无 skip**；两份 v7 exact plan 已通过实际 Astra 的指定范围审查。
 - Open-Jev-2B 已完成 8/8 NPU 诊断 forward，Docker 和独立 CPU verifier 均 exit 0，`trace_valid=true`，但这只是路径诊断，不是 JEVal 结果或训练收益。
-- chip 4 仍由 2B 任务占用。v7 release 工具的纯 CPU 回归已通过，但新的 release-only Astra 审查仍未通过，因此不能释放 chip 4，也不能启动 9B。
+- 2B 资源已由通过审查的工具实际释放；9B v7 已启动并完成 8/8 NPU 诊断，NPU 与独立 CPU verifier 均实际 exited/0。9B 数值差异仍存在，完整 JEVal 准入保持 false；有界结果审查和资源释放继续收尾。
 - 正式 Jev 训练、训练后评测和训练收益尚未发生；真实业务、生产接入和业务标注按 D3/D4/D7 暂不纳入。
 
 当前最准确的阶段描述是：**先收口并汇报参考指标，同时完成剩余推理实验的自动执行和工程准入；E38/JEVal 收口后再讨论并预注册 Jev 训练。**
@@ -56,14 +56,16 @@ D1 是阶段顺序，不是暂停推理。为取得参考指标而进行的推�
 - E38 v7 exact-plan Astra 审查：结论为 **PASS for exact v7 plans only**。该结论不授权 NPU、JEVal、训练或资源释放。
 - Open-Jev-2B：8/8 预注册 forward、NPU 容器 exit 0、独立 CPU verifier exit 0。within-path repeats 和 hook controls exact；original/chunk8 差异可重复，最大 logit/probability/wire delta 分别为 `0.05192685127258301`、`0.00351450921098978`、`0.003765545583203328`，decision 未变化但 serialized prediction 非 exact。
 
-### 当前阻塞
+### 当前交接与剩余阻塞（2026-10-31 更新）
 
-1. **release-only Astra 尚未放行**：当前纯 CPU 回归为 38/38 通过，但审查要求继续补齐 NPU/CPU verifier 与实际 `LAUNCH_RECEIPT.json`、`EXIT`、`FinishedAt` 的代次绑定。
-2. **allocation before-state 的可信锚仍不足**：不能只依赖可改写的 parent review/journal 自洽声明，必须绑定可信原始 before-state。
-3. **审查包覆盖不足**：需要把 `jeval_reference_queue.py`、真实 release 入口和 `publish_new()` 的 pending/link/unlink 崩溃窗口纯 CPU 测试纳入新 bundle。
-4. **资源尚未释放**：chip 4 仍属于 2B 任务；在新 release-only Astra PASS、实际设备为空闲且 allocation 独立核对前，不得手工修改 `CHIP-ALLOCATION.json`。
+此前 release 的代次绑定、可信 before-state、发布中断恢复和顶层 helper 身份问题已修复。实际 Astra v4 对精确 v6 候选给出代码 PASS、拟议证据一致性 PASS；主会话已独立核验 COMPLETE 的 6 个输出哈希及 child/runner/EXIT 的 rc=0。审查原文见 [v4 归档](../experiments/ASTRA-E38-RELEASE-V4-2026-10-31.md)。审查检查了 58/58 测试记录及源码对应关系，本轮未重跑测试，不应表述为 Astra 亲自重跑 58 项。
 
-因此 9B 不能并行启动。正确顺序是：修 release 工具 → 纯 CPU 回归 → 新 release-only Astra 审查 → 实际释放 2B → 独立核对 chip 4 空闲 → 串行启动 9B。
+1. **2B 实际交接已完成**：新建 approved review 和调用方固定的外部 anchor，经现场核验和 guarded release 释放 chip 4；主会话核验 journal 哈希与其他 owner 未改变，旧 approved=false 提案未覆盖。
+2. **9B E38 已执行并独立验证**：UTC 03:40:15 启动、03:44:24 NPU exited/0，8/8 完成；03:45:29 独立 CPU verifier exited/0。两个重复的首个不同事件均为第一层 in_proj_qkv 输出，candidate_batch_admission=false。后续完成有界结果审查和资源释放。
+3. **完整 JEVal 数值/内存准入仍未完成**：E38 诊断通过不能替代 full-test 准入。E40 生命周期候选的固定镜像 CPU 检查已完成 32 cells/256 forwards，输出字节 exact；NPU 显存与数值效果尚未证明。
+4. **满载尚未实现**：03:37 UTC 的现场八卡均无 NPU 进程，只有 chip 1 登记为 free。除 chip 4 交接外，其他历史 owner 的退出、验收和释放证据需逐一核验，不能把空闲读数直接改写为资源授权。
+
+下一顺序是：完成 9B 有界结果审查和释放 → 完成并审查 E40 NPU 计划 → 实测全形状数值/内存效果 → 逐级完整 JEVal 准入。现有参考指标不变，没有新增训练收益。
 
 ## 4. 推理实验的自动执行闭环
 
@@ -117,7 +119,7 @@ REGISTERED
 
 出口：读者可以从报告中知道每个登记组合的指标来源、计算口径和证据限制；所有主指标均来自冻结 test split，并能与业内结果按同一公式或明确的并列公式对照。
 
-### P1：修复并重新审查 E38 release
+### P1：修复并重新审查 E38 release（已完成代码与拟议证据审查）
 
 - 补齐 CPU/NPU verifier 对 `LAUNCH_RECEIPT`、`EXIT`、`FinishedAt` 的绑定。
 - 建立可信 allocation before-state 锚。
@@ -125,9 +127,9 @@ REGISTERED
 - 运行纯 CPU 回归，生成新的 bundle/request，不修改旧审查文件。
 - 审查期间并行完成 CPU 修复、回归、bundle 构建、报告整理和 watchdog 准备，缩短获批后的 NPU 启动间隔。
 
-出口：实际 Astra 对新 release 工具给出明确 PASS；若 BLOCK，保留证据并按新代次修复。
+出口已达到：实际 Astra v4 对精确 v6 候选代码与拟议证据给出 PASS。该阶段不涵盖现场释放；实际交接和新 anchor 属于 P2。历史 BLOCK 及修复过程保留归档。
 
-### P2：释放 2B 并串行完成 9B E38
+### P2：释放 2B 并串行完成 9B E38（执行与独立 CPU 验证完成，结果审查及释放收尾）
 
 - 重新核验 175 上 allocation、Docker、`npu-smi` 和 chip 4 实际状态。
 - 只由审查通过的 release 事务释放 2B；独立确认 allocation 变为 free。
@@ -163,8 +165,8 @@ REGISTERED
 
 “持续保持 NPU 满载”是调度原则，但必须服从实验准入和证据链。当前执行顺序如下：
 
-1. 复用已登记且已审查的 NPU 工作；chip 4 的 2B 诊断已完成但仍由该代次持有，不能把瞬时 `npu-smi` 空闲当成可重新分配。
-2. release 审查期间并行做 CPU 修复、纯 CPU 回归、审查包制作、报告整理和 watchdog 准备；不使用未经审查的占位任务填卡。
+1. 复用已登记且已审查的 NPU 工作；chip 4 的 9B 诊断已完成但仍由该代次持有，不能把瞬时 `npu-smi` 空闲当成可重新分配。
+2. 当前并行推进 chip 4 交接、chip 1 的 E40 驱动与计划、其他历史 owner 的只读释放证据核验。CPU 工作不能计作 NPU 利用率；记录实际空闲和造成空闲的缺口。
 3. Astra PASS 后重新核验 Docker、`npu-smi`、allocation 和 owner；由 release 工具完成 2B 释放，独立确认 chip 4 为 free 后立即串行启动 9B。
 4. 9B E38 完成并验收后，继续数值/内存准入实验；原生完整 test 路径通过后立即进入两个 Open-Jev JEVal 推理、独立计分和报告刷新。所有长任务均用 detached、可恢复、带 heartbeat 的自动执行。
 5. 每芯片记录吞吐、芯片数、reserved/allocated/peak 显存、heartbeat、终态和释放时间。没有安全且已登记的 NPU 工作时，受控空闲优于污染正式实验。

@@ -1,8 +1,8 @@
 # 当前参考基线报告入口（最新）
 
-更新时间：20261031T033450Z
+更新时间：20261031T035011Z
 
-最新累计报告：[REFERENCE-BASELINE-REPORT-20261031T033450Z.md](REFERENCE-BASELINE-REPORT-20261031T033450Z.md)。
+最新累计报告：[REFERENCE-BASELINE-REPORT-20261031T035011Z.md](REFERENCE-BASELINE-REPORT-20261031T035011Z.md)。
 
 这是当前参考基线阶段的最新报告入口。以后每个 milestone 完成后，新建带时间戳的报告并更新本文件；旧报告保留在归档目录或旧文件名中，只用于追溯，不作为当前事实权威。指标不得因刷新而改变；若指标、分母、公式或审查范围改变，必须新建代次并明确变更。
 
@@ -17,11 +17,13 @@
 
 ## 当前阻塞和下一步
 
-Open-Jev 两个 JEVal 单元仍受 E38 数值准入阻塞。2B E38 v7 诊断已完成，但 chip 4 尚未释放；9B 必须串行等待 release-only Astra 复审通过、实际容器退出、空设备查询和 allocation 独立核验后启动。该工程门禁不改变已有参考读数。
+Open-Jev 两个 JEVal 单元仍受完整路径数值与内存准入阻塞。实际 Astra release v4 已对精确 v6 工具代码及拟议证据给出 PASS。2B 资源已通过 guarded release 释放，9B v7 已于 UTC 03:40:15 实际启动并完成 8/8 项诊断，NPU 于 03:44:24 exited/0；独立 CPU verifier 于 03:45:29 exited/0。
 
-2026-10-31 补充：E38 完成后仍须独立证明完整 JEVal 路径的数值与内存准入，不能直接从诊断成功跳到 full-test。2B 首个差异位于第一层 `in_proj_qkv` 输出；9B 最大实际输入在生命周期清理后仍有约 59.4 GiB 的某阶段 core-only 估算，未计权重和其他分配。后续按 [准入路线](OPENJEV-JEVAL-NEXT-ADMISSION-2026-10-31.md) 准备保持完整计算形状的候选实验，原始 `candidate_batch_admission=false` 不变。当前没有新测试分数。
+两尺寸首个不同观测事件均为第一层 `in_proj_qkv` 输出；9B 最大 logits/probability/wire 差为 0.13169223070144653 / 0.013869159693189886 / 0.01485981395698921，decision 未变，`candidate_batch_admission=false` 不变。9B 的有界结果审查和资源释放仍需独立收尾。没有新增 JEVal 分数或训练收益。
 
-为满足持续保持 NPU 满载的工程原则，在等待 chip 4 release 审查时，CPU 准备、审查包制作、纯 CPU 回归和报告整理并行推进；不使用未经审查的 NPU 任务占用设备，也不把瞬时 `npu-smi` 空闲误判为可分配。chip 1 的空闲记录已通过真实 detached smoke、容器退出和 guarded release 形成可复核证据；其余 owner 仍不能由瞬时空闲状态推断为 free。
+E40 的固定镜像 CPU 检查完成 32 cells/256 forwards，输出字节 exact；NPU 驱动、计划、恢复验证与审查正在准备。9B 最大实际输入的某阶段清理后仍约 59.4 GiB core-only，不能从 E38 成功跳到 full-test。详见 [准入路线](OPENJEV-JEVAL-NEXT-ADMISSION-2026-10-31.md)。
+
+本轮实际使用了 chip 4，持续八卡满载尚未实现。chip 1 已登记 free，其他历史 owner 的释放条件另行核验。CPU 准备不计入 NPU 利用率。最新累计报告已直接收录参考指标表及口径、flags 和限制，旧读数不变。
 
 ## 测试集优先规则
 
