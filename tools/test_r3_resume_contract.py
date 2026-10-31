@@ -7,6 +7,18 @@ R=importlib.util.module_from_spec(s);s.loader.exec_module(R)
 
 
 class ResumeContract(unittest.TestCase):
+    def test_invalid_measurements_and_incomplete_controls_cannot_pass(self):
+        controls={name:{'loss':1.,'weight_relative_l2':1.}
+                  for name in ('zero_moments','no_update')}
+        for value in (float('nan'),float('inf'),-1.,True,1.7e308):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                R.judge(value,0.,0.,0.,controls)
+        with self.assertRaisesRegex(ValueError,'both registered'):
+            R.judge(0.,0.,0.,0.,{'zero_moments':controls['zero_moments']})
+        controls['no_update']['loss']=float('inf')
+        with self.assertRaisesRegex(ValueError,'finite'):
+            R.judge(0.,0.,0.,0.,controls)
+
     def test_floor_is_independent_of_resume_and_controls_must_discriminate(self):
         controls={'zero_moments':{'loss':.04,'weight_relative_l2':.001},
                   'no_update':{'loss':.001,'weight_relative_l2':.04}}

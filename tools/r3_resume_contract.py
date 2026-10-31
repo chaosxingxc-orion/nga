@@ -8,6 +8,7 @@ This bounded test is not a claim of arbitrary-horizon trajectory equivalence.
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import shutil
 import subprocess
@@ -35,7 +36,16 @@ def command(plan, out, count):
 def judge(loss_floor, weight_floor, resume_loss, resume_weight, controls):
     # Frozen numerical slack plus a replicate-derived tolerance, never fitted
     # to the resumed result. Controls test that the bar can reject corruption.
+    if set(controls) != {'zero_moments', 'no_update'}:
+        raise ValueError('both registered corruption controls are required')
+    values = [loss_floor, weight_floor, resume_loss, resume_weight]
+    for row in controls.values():
+        values.extend((row['loss'], row['weight_relative_l2']))
+    if not all(type(x) in (int, float) and math.isfinite(x) and x >= 0 for x in values):
+        raise ValueError('contract distances must be finite and nonnegative')
     bars = {'loss': 1.5*loss_floor + 2.4e-7, 'weight_relative_l2':1.5*weight_floor + 1e-7}
+    if not all(math.isfinite(x) for x in bars.values()):
+        raise ValueError('contract tolerance overflow')
     resume_ok = resume_loss <= bars['loss'] and resume_weight <= bars['weight_relative_l2']
     rejected = {name: row['loss'] > bars['loss'] or row['weight_relative_l2'] > bars['weight_relative_l2']
                 for name,row in controls.items()}
@@ -46,6 +56,11 @@ def judge(loss_floor, weight_floor, resume_loss, resume_weight, controls):
 def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--out',required=True);args=ap.parse_args()
     out=Path(args.out);config=load(out/'CONTRACT.json');source=out/'SOURCE.pt'
+    expected = {'steps':20, 'replicas':3, 'split':10, 'factor':1.5,
+                'loss_slack':2.4e-7, 'weight_relative_l2_slack':1e-7,
+                'test_read':False, 'scientific_acceptance':False}
+    if any(config.get(k) != v or type(config.get(k)) is not type(v) for k,v in expected.items()):
+        raise ValueError('frozen contract differs from implemented protocol')
     assert sha(source)==config['source_sha256']
     import torch
     state=torch.load(source,map_location='cpu',weights_only=False)
@@ -94,6 +109,9 @@ def main():
     for name,root in directories.items():
         checkpoints[name]=torch.load(root/'ckpt'/f'step_{start+steps:06d}.pt',map_location='cpu',weights_only=False)
         records[name]=[json.loads(x) for x in (root/'losses.jsonl').read_text().splitlines()]
+        if not all(type(r.get(k)) in (int,float) and math.isfinite(r[k])
+                   for r in records[name] for k in ('loss','grad_norm','lr')):
+            raise ValueError(f'nonfinite training measurement in {name}')
         assert [r['step'] for r in records[name]]==list(range(start+1,start+steps+1))
         assert checkpoints[name]['step']==start+steps
     reference=records['replica_a']
