@@ -176,8 +176,11 @@ def abort_claim(args):
     print(json.dumps({"status":"CLAIM_ABORTED","chip":args.chip,"run":args.run,"proof":args.proof}))
 
 def docker_inspect(name):
-    p = subprocess.run(["docker", "inspect", name], capture_output=True, text=True, check=False)
-    if p.returncode: return None
+    p = subprocess.run(["docker", "inspect", name], capture_output=True, text=True, check=False, timeout=30)
+    if p.returncode:
+        if 'no such' in p.stderr.lower():
+            return None
+        raise RuntimeError('Docker observation uncertain: ' + p.stderr[:200])
     rows = json.loads(p.stdout); return rows[0] if rows else None
 
 def live_chip_conflict(chip, own_name):
@@ -185,7 +188,9 @@ def live_chip_conflict(chip, own_name):
     if p.returncode: raise RuntimeError("docker ps failed")
     for cid in p.stdout.split():
         d = docker_inspect(cid)
-        if not d or d.get("Name", "").lstrip("/") == own_name or d.get("State", {}).get("Status") in ("exited", "dead"): continue
+        if d is None:
+            raise RuntimeError('Container disappeared during device inventory; retry observation')
+        if d.get("Name", "").lstrip("/") == own_name or d.get("State", {}).get("Status") in ("exited", "dead"): continue
         if any(x.get("PathOnHost") == f"/dev/davinci{chip}" for x in d.get("HostConfig", {}).get("Devices") or []): return True
     return False
 

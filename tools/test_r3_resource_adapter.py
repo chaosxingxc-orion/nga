@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import importlib.util
 import json
+import subprocess
 from pathlib import Path
 import tempfile
 import unittest
@@ -11,6 +12,20 @@ m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
 
 class AdapterTests(unittest.TestCase):
+    def test_docker_uncertainty_is_not_absence(self):
+        for message in ('Error: No such object: c', 'error: no such object: c'):
+            with mock.patch.object(m.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, '', message)):
+                self.assertIsNone(m.docker_inspect('c'))
+        with mock.patch.object(m.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, '', 'Cannot connect to Docker daemon')):
+            with self.assertRaises(RuntimeError):
+                m.docker_inspect('c')
+
+    def test_inventory_disappearance_blocks_release(self):
+        with mock.patch.object(m.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, 'container-id', '')):
+            with mock.patch.object(m, 'docker_inspect', return_value=None):
+                with self.assertRaises(RuntimeError):
+                    m.live_chip_conflict(1, 'ours')
+
     def setUp(self):
         self.t = tempfile.TemporaryDirectory(); self.addCleanup(self.t.cleanup)
         self.root = Path(self.t.name); self.alloc = self.root / "CHIP-ALLOCATION.json"
