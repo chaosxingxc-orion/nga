@@ -22,7 +22,7 @@
       "minLength": 1
     },
     "steps": {
-      "description": "The inputs: the call sequence that drove the machine. Each step is one structured entry — the machine's five operations never collapse into one generic call.",
+      "description": "The inputs: the call sequence that drove the machine. Each step is one structured entry — the machine's operation set never collapses into one generic call.",
       "type": "array",
       "minItems": 1,
       "items": {

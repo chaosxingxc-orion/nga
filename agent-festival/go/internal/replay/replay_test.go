@@ -471,6 +471,43 @@ func TestRawCaseDocRewriteRefused(t *testing.T) {
 	}
 }
 
+// TestReplayPropagatesDriveErrors pins the propagation leg (R8: the drive
+// guards had pins, but swallowing the error INSIDE Replay stayed green):
+// hostile steps reaching Replay through LoadCase return the drive error —
+// never a forged divergence report over a silent empty stream.
+func TestReplayPropagatesDriveErrors(t *testing.T) {
+	digest := "sha256:" + strings.Repeat("a", 64)
+	// a fully VALID raw doc (passes the raw-view schema), with the hostility
+	// injected into the TYPED steps after LoadCase — only the typed steps
+	// carry the unknown op to drive
+	doc := map[string]any{
+		"case_version": "0.1.0", "case_id": "hostile",
+		"steps": []any{map[string]any{"op": "adopt", "request": map[string]any{
+			"adoption_version": "0.1.0",
+			"identity":         map[string]any{"business_request_id": "b", "operation_id": "o"},
+			"versions":         map[string]any{"evidence": "e", "rule": "r", "model": "m", "readout": "ro", "policy": "p"},
+			"payload_digest":   digest,
+			"grants_at_decision": []any{map[string]any{"kind": "data", "selector": "s",
+				"actions": []any{"read"}, "effect": "none"}},
+		}}},
+		"recorded_events": []any{map[string]any{"event_type": "adoption", "arbitration_seq": 0,
+			"identity":    map[string]any{"business_request_id": "b", "operation_id": "o"},
+			"versions":    map[string]any{"evidence": "e", "rule": "r", "model": "m", "readout": "ro", "policy": "p"},
+			"outcome":     map[string]any{"status": "adopted"},
+			"idempotency": map[string]any{"operation_id": "o", "payload_digest": digest}}},
+		"expected": map[string]any{"fidelity": "match", "conformance": "pass"},
+	}
+	c, err := LoadCase(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.Steps = []Step{{Op: "re-execute-everything"}}
+	_, err = Replay(c)
+	if err == nil || !strings.Contains(err.Error(), "unknown op") {
+		t.Fatalf("hostile steps through Replay: err = %v, want the propagated drive refusal — a forged divergence@0 report means the propagation leg regressed", err)
+	}
+}
+
 // TestInspectStatesTailProjection pins the States semantics AND the ledger
 // vocabulary derivation (R6: both had zero pins — a drifted inline table
 // stayed green). A record ending in conflict projects the fact word, and
@@ -511,14 +548,8 @@ func TestInspectStatesTailProjection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, s := range c2.Steps {
-		if s.Op == "adopt" {
-			var req adopt.Request
-			if err := json.Unmarshal(s.Request, &req); err != nil {
-				t.Fatal(err)
-			}
-			m2.Adopt(&req)
-		}
+	if _, err := drive(m2, c2.Steps); err != nil { // the package's own driver — no second copy
+		t.Fatal(err)
 	}
 	rep2, err := Inspect(path2)
 	if err != nil {

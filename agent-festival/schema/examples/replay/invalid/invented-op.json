@@ -82,6 +82,6 @@
     "fidelity": "match",
     "conformance": "pass"
   },
-  "_expect": "REJECT: the machine's five operations never collapse into one generic call — an invented op is a second engine trying to enter through the fixture door",
+  "_expect": "REJECT: the machine's operation set never collapses into one generic call — an invented op is a second engine trying to enter through the fixture door",
   "_expect_match": "/op"
 }
