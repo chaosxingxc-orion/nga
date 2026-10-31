@@ -240,3 +240,41 @@ The local pure-CPU regression set now passes **38/38**: 23 E38 evidence/path reg
 The old v4 release allowlist intentionally does not accept these changed source bytes. A new E38 generation must be prepared on 175, with new request/plan/source hashes and a fresh actual Astra review before any NPU launch. During this update the control connection to host alias `175` timed out; no claim is made that a new plan or host-side terminal exists. The previous v4 BLOCK and all no-launch constraints remain in force.
 
 Follow-up requires new independently reviewed tool generation: safe descriptor locks, execution from validated source bytes including nested imports, two-phase before/intent commitment accepted by parent before mutation, explicit pending-publication preservation/recovery, and persisted NPU/CPU exit-generation/EXIT/launch commitments. The execution verifier will emit NPU exit-generation bindings in its next plan generation, while release remains a separate engineering review. Negative scientific flags remain fully preserved.
+
+## 2026-10-31 — v7 exact-plan review and 2B diagnostic execution
+
+The repaired v7 generation was reviewed by the actual detached Astra runner
+`e38_execution_astra_20261031_v8`. The runner produced `CHILD_EXIT.json`,
+`COMPLETE.json`, `EXIT` and substantive `review.md`; child wait return code was
+0. Astra returned **PASS for the two named v7 exact plans only**, while explicitly
+withholding NPU launch authorization and live-resource or external-weight claims.
+The review SHA is
+`873e72b7ac52026d2cb584aae20baf5df744b9e899316e0d9104cdbcade3302f`; the bundle
+manifest SHA is
+`ec62d3e0fc37891b05f6f167b953a133deed202ebe8d4e7ed08e85a7c2dc6129`.
+
+The parent review separately bound both plans to that Astra review and a live
+resource snapshot. On `k8s-node1`, physical chip 4 was listed free in the
+allocation file, `npu-smi` reported `No process in device`, and existing Docker
+containers exposed no accelerator device. The exact plan hashes are
+`2a859fe2ba77ac431e2e5c62408c964bb15a5794e07c8981be625bf626a0e66d` (2B) and
+`fae8ac8368b7a98fad32e07acc1b54b1dded55c1812f95ec4cdb136b92ef3593` (9B).
+
+Only 2B was then launched with the exact detached launcher on physical chip 4.
+Its retained container was
+`e0248ac6a8cf10145585282fe08c0d07225db421f951118da99fc7146c8cc719`. All eight
+pre-registered forwards completed, Docker exited 0, and the terminal recorded
+`trace_valid=true`, an empty review-flag list and
+`candidate_batch_admission=false`. Heartbeats recorded one-chip throughput and
+reserved memory as diagnostic observations; these are not training-efficiency
+claims.
+
+An independent detached CPU verifier completed with exit 0 in container
+`2a18044296e53b9823d52d8a303d1c28d30df454cbba3ce2c369d174475c372c`. It
+reconstructed the eight receipt/attempt identities, checked the NPU exit
+generation, launch receipt, terminal and report hashes, and preserved the
+negative admission flag. This does not produce a JEVal score, a full-test
+equivalence claim or a training-benefit claim. Chip 4 remains allocated to the
+2B generation because the old release-only tool was blocked by Astra; 9B remains
+unlaunched pending a newly reviewed release transaction and the required serial
+resource handoff.

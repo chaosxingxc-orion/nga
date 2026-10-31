@@ -12,8 +12,8 @@
 - 仍有 **2 个 blocked/null 组合**：Open-Jev-2B × JEVal、Open-Jev-9B × JEVal。
 - 新增 6 个组合都完成了实际 Astra 的限定范围结果审查；指标、分母和 flags 保留，不能写成无条件通过。
 - E39 的 28 个历史 Kev 面板已完成当前 CPU 独立重算和有界 Astra 审查，最大差异约 `1.11e-16`；这证明当前保存证据可重建，不补造历史 finisher，也不证明无人值守恢复安全。
-- E38 的固定镜像 CPU 工程套件 v7 已完成 **100/100、无 skip**，但 v4 两份 Open-Jev 路径计划仍被实际 Astra **BLOCK**。没有启动 NPU，也没有完成 Open-Jev JEVal。
-- 独立资源释放工具也被实际 Astra **BLOCK**；没有释放真实资源，没有修改 `CHIP-ALLOCATION.json`。
+- E38 的固定镜像 CPU 工程套件 v7 已完成 **100/100、无 skip**；v7 exact plans 已获实际 Astra 指定范围 PASS。Open-Jev-2B 已完成 8/8 NPU 诊断 forward 和独立 CPU verifier；Open-Jev-9B 尚未启动，且两者都尚未完成 Open-Jev JEVal。
+- 独立资源释放工具的旧 v4 版本被实际 Astra **BLOCK**；2B 的 chip 4 仍保持 allocation，未手工修改 `CHIP-ALLOCATION.json`。需要新 v7 绑定的 release 工具和独立审查后才能释放并串行启动 9B。
 - 正式 Jev 训练尚未开始，训练收益尚未测量，真实业务和生产接入暂不属于当前范围。
 
 因此，当前最正确的描述是：**推理实验的执行和审计正在进行，参考指标报告可以先形成增量版本；训练方案讨论必须排在参考结果汇报之后，正式训练必须排在训练方案预注册之后。**
@@ -216,7 +216,7 @@ flowchart TD
 
 因此，D2 只移除了“算力预算”这一资源限制，不会移除第 2、3、4 步的质量门禁；D3/D4/D7 只缩小收益声明的范围，不会移除推理和训练的自动执行要求；D5/D6 分别约束训练统计设计和后续架构假设，也不会改变 D1 的先后次序。
 
-当前 E38 的状态位于第 3 步：v7 CPU preparation 已完成，但实际 Astra exact-plan review `e38_execution_astra_20261031_v8` 尚未出现 `CHILD_EXIT.json`、`COMPLETE.json`、`EXIT` 或 `review.md`。所以现在只能继续等待或处理 review 指向的工程问题，不能写 launch approval，也不能启动 NPU。
+当前 E38 已通过 exact-plan review 并完成 2B 的一次诊断执行，但仍位于资源释放门禁：`e38_execution_astra_20261031_v8` 已有真实 `CHILD_EXIT.json`、`COMPLETE.json`、`EXIT` 和 `review.md`，2B 的 8/8 forward 与独立 CPU verifier 均 exit 0；旧 release 工具仍被 Astra BLOCK，因此不能直接释放 chip 4 或启动 9B。
 
 ### 4.5 推理实验的自动状态转移
 
@@ -297,19 +297,19 @@ REGISTERED
 - 把 parent review SHA、request SHA、plan SHA、preparation terminal/EXIT、chip 4/no-device/network-none/原始 entrypoint 绑定到同一份 launch evidence。
 - 用实际 `codex exec --model gpt-6-astra --sandbox read-only` 审查 exact plans；审查过程不能写 approval，不能启动 NPU。
 
-出口：实际 Astra 对两份 exact plan 明确放行，或给出新的 BLOCK 和证据。只有 PASS 才能进入 P2。
+出口：已完成。实际 Astra 对两份 v7 exact plan 给出指定范围 PASS；其 review 不包含实时资源、外部权重、JEVal 或训练收益授权。
 
 ### P2：按顺序完成 Open-Jev NPU 路径实验
 
 **依赖：P1 exact-plan PASS、chip 4 owner/空闲实时核验。**
 
-- 重新核对 allocation、Docker 容器、`npu-smi` 和 physical chip 4；不能只看分配文件里的 free。
-- detached 启动 2B，保存 NPU heartbeat、逐 forward receipt、trace、report、terminal、EXIT 和实际容器退出。
-- 独立 CPU verifier 读取 NPU 结果，验收 trace、分母、概率、flags、publication gap 和 generation binding。
-- 结果关闭后再执行经过新审查的 release；若 release 工具尚未修复和放行，不得自动释放或修改 allocation。
+- 重新核对 allocation、Docker 容器、`npu-smi` 和 physical chip 4；不能只看分配文件里的 free。已完成 2B 的实时核验。
+- detached 启动 2B，保存 NPU heartbeat、逐 forward receipt、trace、report、terminal、EXIT 和实际容器退出。已完成 8/8 forward，容器 exit 0。
+- 独立 CPU verifier 读取 NPU 结果，验收 trace、分母、概率、flags、publication gap 和 generation binding。已完成，verifier exit 0。
+- 结果关闭后再执行经过新审查的 release；旧 release 工具仍被 Astra BLOCK，当前不得自动释放或修改 allocation。
 - 2B 完成并释放后，再串行启动 9B；不同时占用同一物理卡，也不把 2B 的结果身份复用于 9B。
 
-出口：两项 NPU 推理各有独立终态、独立计分、资源释放证据和 wiki 记录；科学 flags 原样保留。
+出口：2B 已有独立终态、诊断 receipt/trace、独立 verifier 和 wiki 记录；资源释放证据尚未闭合。9B 必须等待新 release 工具审查和 2B 释放后再启动。
 
 ### P3：完成 Open-Jev JEVal 并更新参考矩阵
 
