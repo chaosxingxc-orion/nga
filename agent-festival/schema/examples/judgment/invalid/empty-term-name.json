@@ -50,6 +50,6 @@
     "review_authority": "r",
     "effective_scope": "e"
   },
-  "_expect": "REJECT: a term with an empty name defines nothing — the minLength class is pinned once by this representative",
+  "_expect": "REJECT: a term with an empty name defines nothing — the minLength class carries this representative",
   "_expect_match": "terms/0/name"
 }

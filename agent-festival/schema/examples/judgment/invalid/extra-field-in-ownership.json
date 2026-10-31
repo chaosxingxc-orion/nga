@@ -51,6 +51,6 @@
     "effective_scope": "e",
     "authority_hint": "self-approved"
   },
-  "_expect": "REJECT: the closed-contract guard applies at EVERY object node — a smuggled authority field inside ownership is the nested-additionalProperties class, pinned once by this representative",
+  "_expect": "REJECT: the closed-contract guard applies at EVERY object node — a smuggled authority field inside ownership is the nested-additionalProperties class representative",
   "_expect_match": "authority_hint"
 }

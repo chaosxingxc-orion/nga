@@ -49,6 +49,6 @@
     "review_authority": "r",
     "effective_scope": "e"
   },
-  "_expect": "REJECT: §6 question identity — a specification versioned but unnamed is unpublishable; the nested-required class is pinned once by this representative",
+  "_expect": "REJECT: §6 question identity — a specification versioned but unnamed is unpublishable; the nested-required class carries this representative",
   "_expect_match": "question_id"
 }

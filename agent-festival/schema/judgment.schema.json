@@ -19,6 +19,7 @@
   ],
   "properties": {
     "judgment_version": {
+      "description": "§6.1 ownership bullet's 'version' (the format version); the specification's own version is question.spec_version — the two are distinct, and §6's specification-version process governs the latter.",
       "type": "string",
       "const": "0.1.0"
     },

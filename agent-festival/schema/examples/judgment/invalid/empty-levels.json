@@ -44,6 +44,6 @@
     "review_authority": "r",
     "effective_scope": "e"
   },
-  "_expect": "REJECT: no levels means no readout — the minItems class is pinned once by this representative",
+  "_expect": "REJECT: no levels means no readout — the minItems class carries this representative",
   "_expect_match": "levels"
 }
