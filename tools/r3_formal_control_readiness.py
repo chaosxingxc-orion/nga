@@ -38,6 +38,16 @@ def validator():
     return mod
 
 
+def fresh_precheck_validator(path):
+    """Load the frozen K0 precheck helper beside the prepared queue record."""
+    helper = Path(path).parent / 'r3_fresh_prechecks.py'
+    if not helper.is_file():
+        helper = ROOT / 'tools/r3_fresh_prechecks.py'
+    spec = importlib.util.spec_from_file_location('r3_fresh_prechecks_readiness', helper)
+    mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+    return mod, helper
+
+
 def evidence(path, arm, model):
     result = {'path': str(path), 'arm': arm, 'status': 'MISSING'}
     pin_file = path / 'EVIDENCE_SHA256'
@@ -77,11 +87,12 @@ def main():
     # K0_PRECHECKS.json produced by the worker can establish PASS.
     k0_bundle = a.k0_preparation.parent / 'evidence' / 'K0_PRECHECKS.json'
     if k0_bundle.is_file():
-        bundle = load(k0_bundle)
-        k0_status = 'PASS' if (bundle.get('schema') == 'r3-fresh-k0-prechecks-v1'
-                               and bundle.get('status') == 'PASS'
-                               and bundle.get('scientific_acceptance') is False
-                               and bundle.get('test_read') is False) else 'INVALID'
+        try:
+            helper, _ = fresh_precheck_validator(a.k0_preparation)
+            helper.validate_bundle(k0_bundle, sha(k0_bundle), str(MODEL))
+            k0_status = 'PASS'
+        except Exception:
+            k0_status = 'INVALID'
     else:
         k0_status = k0.get('status', 'MISSING')
     checks['fresh_k0'] = {'path': str(k0_bundle), 'status': k0_status}
