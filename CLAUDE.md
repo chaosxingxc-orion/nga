@@ -116,6 +116,18 @@ link must never be able to interrupt or orphan a run.
 
 ### 7.1 Monitoring: never read raw logs with the orchestrator
 
+Owner amendment, 2026-10-31: routine model-driven NPU status inspection is limited
+to approximately once per 10 minutes across the main session and subagents.
+Prefer explicit completion/failure notifications. A concrete new failure, alarm,
+handoff needing repair, or direct user status request permits an earlier targeted
+check; ordinary progress does not. Persist the last/next routine inspection time
+locally so continuation turns do not reset the interval. Batch all due run checks
+into one bounded digest read and do not repeatedly report unchanged waiting states.
+Script-only watchdog sampling and resource-safe successor scheduling may continue
+at their operational cadence without involving a model or consuming model tokens;
+do not delay NPU handoffs for the model's 10-minute inspection interval. While
+waiting, perform independent CPU engineering work or wait for an explicit signal.
+
 Log reading is tiered, so routine status costs no model tokens. Do not spend the orchestrator on
 raw output.
 
