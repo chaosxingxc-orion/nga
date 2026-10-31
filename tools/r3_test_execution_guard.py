@@ -64,7 +64,8 @@ class Reservation:
 
 
 @contextmanager
-def execution(round_dir, *, model_sha256, suite, run_dir, execution_sha256, final_sha256):
+def execution(round_dir, *, model_sha256, suite, run_dir, execution_sha256, final_sha256,
+              recover_completed=False):
     """Reserve before issuing any test ticket; keep this context for the whole run.
 
     Pins bind the final selection, exact executable plan and output directory.
@@ -88,8 +89,10 @@ def execution(round_dir, *, model_sha256, suite, run_dir, execution_sha256, fina
             value=json.loads(record.read_text())
             require(value.get('schema') == 'r3-test-execution-reservation-v1' and value.get('key') == key,
                     'invalid test reservation')
-            require(value.get('state') == 'reserved', 'test execution already completed or invalid state')
             require(value.get('owner') == owner, 'test partition reserved for another execution; no new run allowed')
+            allowed = ('reserved','completed') if recover_completed else ('reserved',)
+            require(value.get('state') in allowed, 'test execution already completed or invalid state')
+            if value['state'] == 'completed':pin(value.get('verified_result_sha256'))
         else:
             value={'schema':'r3-test-execution-reservation-v1','key':key,'owner':owner,'state':'reserved'}
             atomic(record,value)
