@@ -42,6 +42,17 @@ class Fresh(unittest.TestCase):
                'inputs':{str(report):F.sha(report)},'checks':checks}
             bundle.write_text(json.dumps(d));pin=F.sha(bundle)
             self.assertEqual(F.validate_bundle(bundle,pin,'model')['status'],'PASS')
+            ls=importlib.util.spec_from_file_location('launcher',Path(__file__).with_name('r3_formal_launcher.py'))
+            L=importlib.util.module_from_spec(ls);ls.loader.exec_module(L)
+            helper=Path(__file__).with_name('r3_fresh_prechecks.py').resolve()
+            plan={'fresh_k0_prechecks':str(bundle),'fresh_k0_prechecks_sha256':pin,
+                  'model':'model','files':{str(bundle):pin,str(helper):F.sha(helper),**d['inputs'],**checks}}
+            L.verify_fresh_prechecks(plan)
+            removed=plan['files'].pop(str(report))
+            with self.assertRaisesRegex(RuntimeError,'dependencies not bound'):L.verify_fresh_prechecks(plan)
+            plan['files'][str(report)]=removed
+            plan['files'].pop(str(helper))
+            with self.assertRaisesRegex(RuntimeError,'verifier not pinned'):L.verify_fresh_prechecks(plan)
             with self.assertRaisesRegex(ValueError,'pin differs'):F.validate_bundle(bundle,'bad','model')
             with self.assertRaisesRegex(ValueError,'scope differs'):F.validate_bundle(bundle,pin,'other')
             report.write_text('{}')

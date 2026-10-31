@@ -50,6 +50,20 @@ def is_test_data(filename):
         'test' in path.parts and path.suffix in ('.jsonl', '.parquet'))
 
 
+def verify_fresh_prechecks(p):
+    import importlib.util
+    helper_path = Path(__file__).with_name('r3_fresh_prechecks.py')
+    require(str(helper_path) in p['files'], 'fresh precheck verifier not pinned')
+    require(p.get('fresh_k0_prechecks') in p['files'] and
+            p['files'][p['fresh_k0_prechecks']] == p.get('fresh_k0_prechecks_sha256'),
+            'fresh K0 prechecks not bound')
+    spec = importlib.util.spec_from_file_location('formal_fresh_prechecks', helper_path)
+    helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+    bundle = helper.validate_bundle(p['fresh_k0_prechecks'], p['fresh_k0_prechecks_sha256'], p['model'])
+    require(all(p['files'].get(f) == h for f,h in {**bundle['inputs'], **bundle['checks']}.items()),
+            'fresh precheck dependencies not bound')
+
+
 def verify(path, pin, reviewed=True):
     p = load(path)
     require(identity(p) == pin, 'plan identity changed')
@@ -95,17 +109,7 @@ def verify(path, pin, reviewed=True):
     source_files = {str(f) for f in Path(p['code']).rglob('*') if f.is_file()}
     require(source_files == {f for f in p['files'] if f.startswith(p['code'] + '/')}, 'code closure inventory mismatch')
     if not engineering:
-        import importlib.util
-        helper_path = Path(__file__).with_name('r3_fresh_prechecks.py')
-        require(str(helper_path) in p['files'], 'fresh precheck verifier not pinned')
-        require(p.get('fresh_k0_prechecks') in p['files'] and
-                p['files'][p['fresh_k0_prechecks']] == p.get('fresh_k0_prechecks_sha256'),
-                'fresh K0 prechecks not bound')
-        spec = importlib.util.spec_from_file_location('formal_fresh_prechecks', helper_path)
-        helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
-        bundle = helper.validate_bundle(p['fresh_k0_prechecks'], p['fresh_k0_prechecks_sha256'], p['model'])
-        require(all(p['files'].get(f) == h for f,h in {**bundle['inputs'], **bundle['checks']}.items()),
-                'fresh precheck dependencies not bound')
+        verify_fresh_prechecks(p)
     if p['schema'] == 'r3-engineering-k1-plan-v1':
         require(p.get('execution_scope') == 'engineering_only' and p.get('scientific_acceptance') is False
                 and p.get('test_read') is False, 'engineering scope must exclude scientific acceptance/test')
