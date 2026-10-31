@@ -31,11 +31,14 @@ import (
 // JSON does not parse (the base's discipline).
 var expectMatchRe = regexp.MustCompile(`"_expect_match"\s*:\s*"([^"]*)"`)
 
-// Fixture is a loaded fixture document with its pins popped.
+// Fixture is a loaded fixture document with its pins popped. Extra carries
+// loader-supplied piece-specific pins (e.g. compose's _expect_composed) —
+// the shared discipline owns the common pins, pieces own their extras.
 type Fixture struct {
 	Doc         map[string]any
 	ExpectMatch string
 	ParseError  string
+	Extra       any
 }
 
 // Load reads a fixture and pops its _expect* pins. A document whose JSON
@@ -87,12 +90,38 @@ func Load(path string) (*Fixture, error) {
 // Checker validates one popped fixture document; nil/empty = accepted.
 type Checker func(doc map[string]any) []string
 
+// Option parameterizes Run for pieces whose fixtures need more than the
+// shared discipline (compose: the base's rich loader + composed-output
+// pins). The four default consumers are untouched.
+type Option func(*config)
+
+type config struct {
+	loader     func(path string) (*Fixture, error)
+	validExtra func(fx *Fixture) []string
+}
+
+// WithLoader replaces the default Load (compose rides the frozen base's
+// rich loader: bare-NaN scan, surrogate scoping, regex pin extraction).
+func WithLoader(l func(path string) (*Fixture, error)) Option {
+	return func(c *config) { c.loader = l }
+}
+
+// WithValidExtra runs after a valid-phase fixture passes the checker —
+// piece-specific output pins (compose's composed-map comparison) live here.
+func WithValidExtra(h func(fx *Fixture) []string) Option {
+	return func(c *config) { c.validExtra = h }
+}
+
 // Run executes the two-phase suite over the example directories and returns
 // the failure count (0 = green). It prints one line per fixture plus the
 // summary; the caller maps failures to the exit code. An empty phase fails
 // the suite: a corpus that lost its valid or its invalid half must not pass
 // silently.
-func Run(label, validDir, invalidDir string, check Checker) int {
+func Run(label, validDir, invalidDir string, check Checker, opts ...Option) int {
+	cfg := &config{loader: Load}
+	for _, opt := range opts {
+		opt(cfg)
+	}
 	valid := glob(filepath.Join(validDir, "*.json"))
 	invalid := glob(filepath.Join(invalidDir, "*.json"))
 	if len(valid) == 0 || len(invalid) == 0 {
@@ -101,7 +130,7 @@ func Run(label, validDir, invalidDir string, check Checker) int {
 	}
 	bad := 0
 	for _, f := range valid {
-		fx, err := Load(f)
+		fx, err := cfg.loader(f)
 		name := filepath.Base(f)
 		if err != nil || (fx.ParseError != "" && fx.Doc == nil) {
 			fmt.Printf("[%s] FAIL must-accept %s  (load error: %v)\n", label, name, errOrParse(fx, err))
@@ -115,6 +144,9 @@ func Run(label, validDir, invalidDir string, check Checker) int {
 			continue
 		}
 		errs := check(fx.Doc)
+		if len(errs) == 0 && cfg.validExtra != nil {
+			errs = cfg.validExtra(fx)
+		}
 		if len(errs) == 0 {
 			fmt.Printf("[%s] PASS must-accept %s\n", label, name)
 		} else {
@@ -126,7 +158,7 @@ func Run(label, validDir, invalidDir string, check Checker) int {
 		}
 	}
 	for _, f := range invalid {
-		fx, err := Load(f)
+		fx, err := cfg.loader(f)
 		name := filepath.Base(f)
 		if err != nil {
 			fmt.Printf("[%s] FAIL must-reject %s  (unreadable: %v)\n", label, name, err)

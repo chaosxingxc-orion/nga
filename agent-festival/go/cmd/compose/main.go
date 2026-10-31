@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"festival-dev/go/internal/compose"
+	"festival-dev/go/internal/suite"
 	"festival-dev/go/internal/validate"
 )
 
@@ -19,86 +20,57 @@ func main() { os.Exit(run()) }
 // run is the full CLI decision chain as a testable function (V23 S1).
 func run() int {
 	compose.RegisterGraph()
-	valid, _ := filepath.Glob(filepath.Join(compose.ExamplesDir, "compose", "valid", "*.json"))
-	invalid, _ := filepath.Glob(filepath.Join(compose.ExamplesDir, "compose", "invalid", "*.json"))
-	sort.Strings(valid)
-	sort.Strings(invalid)
-	if len(valid) == 0 || len(invalid) == 0 {
-		fmt.Println("[compose] suite incomplete: need at least one valid and one invalid example")
-		return 1 // return, not os.Exit: run() is a testable decision chain (V24 F5, re-landed V25)
-	}
-	bad := 0
-
-	for _, f := range valid {
-		fx, err := validate.LoadFixture(f)
-		if err != nil {
-			fmt.Printf("[compose] FAIL must-accept %s (%v)\n", filepath.Base(f), err)
-			bad++
-			continue
-		}
-		var errs []string
-		var composed map[string]any
-		if fx.ParseError != "" {
-			errs = []string{fx.ParseError}
-		} else {
-			res := compose.ComposeErrors(fx.Doc)
-			errs = res.Errors
-			composed = res.Composed
-		}
-		if len(errs) == 0 && fx.Pin != nil {
-			expected, ok := fx.Pin.(map[string]any)
-			if !ok {
-				// a kids-shaped pin on a compose fixture: the oracle's dict-lookup
-				// silently skips it (composed_mismatches ignores non-map pins);
-				// our loud FAIL is the strict-side reading (V30 F-4, FORCED
-				// DIVERGENCE — pinned by TestComposeKidsPinLoud)
-				errs = append(errs, fmt.Sprintf("_expect_composed pin is not an object: %v", fx.Pin))
-			} else {
-				errs = append(errs, composedMismatches(composed, expected)...)
+	base := filepath.Join(compose.ExamplesDir, "compose")
+	// the frozen base's rich loader (bare-NaN scan, surrogate scoping, regex
+	// pin extraction) bridged into the shared suite discipline; the composed
+	// pins ride Extra/WithValidExtra (R2-A4: the last inline phase harness
+	// joins internal/suite — the discipline is single-sourced now).
+	pins := map[string]any{}
+	bad := suite.Run("compose",
+		filepath.Join(base, "valid"), filepath.Join(base, "invalid"),
+		func(doc map[string]any) []string {
+			return compose.ComposeErrors(doc).Errors
+		},
+		suite.WithLoader(func(path string) (*suite.Fixture, error) {
+			fx, err := validate.LoadFixture(path)
+			if err != nil {
+				return nil, err
 			}
+			pins[path] = fx.Pin
+			return &suite.Fixture{Doc: fx.Doc, ExpectMatch: fx.ExpectMatch, ParseError: fx.ParseError}, nil
+		}),
+	)
+	// composed-output pins: the base's _expect_composed comparison, kept here
+	// because it consumes the checker's structured output
+	files, _ := filepath.Glob(filepath.Join(base, "valid", "*.json"))
+	sort.Strings(files)
+	for _, f := range files {
+		pin, has := pins[f]
+		if !has || pin == nil {
+			continue
 		}
-		status := "PASS"
-		if len(errs) > 0 {
-			status = "FAIL"
-			bad++
-		}
-		fmt.Printf("[compose] %s must-accept %s\n", status, filepath.Base(f))
-		for _, e := range errs {
-			fmt.Printf("      %s\n", e)
-		}
-	}
-	for _, f := range invalid {
 		fx, err := validate.LoadFixture(f)
-		if err != nil {
-			fmt.Printf("[compose] FAIL must-reject %s  (unreadable: %v)\n", filepath.Base(f), err)
+		if err != nil || fx.ParseError != "" {
+			continue // already reported by the phase loop
+		}
+		expected, ok := pin.(map[string]any)
+		if !ok {
+			fmt.Printf("[compose] FAIL must-accept %s (_expect_composed pin is not an object: %v)\n", filepath.Base(f), pin)
 			bad++
 			continue
 		}
-		if fx.ParseError != "" && fx.Doc != nil {
-			// malformed pin: must not mask the was-accepted verdict (V32 M-1)
-			fmt.Printf("[compose] FAIL must-reject %s  (%s — an unreadable pin cannot verify the rejection)\n", filepath.Base(f), firstLine(fx.ParseError))
+		res := compose.ComposeErrors(fx.Doc)
+		if m := composedMismatches(res.Composed, expected); len(m) > 0 {
+			fmt.Printf("[compose] FAIL must-accept %s\n", filepath.Base(f))
+			for _, e := range m {
+				fmt.Printf("      %s\n", e)
+			}
 			bad++
-			continue
-		}
-		var errs []string
-		if fx.ParseError != "" {
-			errs = []string{fx.ParseError}
-		} else {
-			errs = compose.ComposeErrors(fx.Doc).Errors
-		}
-		base := filepath.Base(f)
-		if len(errs) == 0 {
-			fmt.Printf("[compose] FAIL must-reject %s  (was accepted!)\n", base)
-			bad++
-		} else if fx.ExpectMatch != "" && !anyContains(errs, fx.ExpectMatch) {
-			fmt.Printf("[compose] FAIL must-reject %s  (rejected for the wrong reason: %q lacks %q)\n", base, errs[0], fx.ExpectMatch)
-			bad++
-		} else {
-			fmt.Printf("[compose] PASS must-reject %s  (%s)\n", base, firstLine(errs[0]))
 		}
 	}
-	fmt.Printf("[compose] %d must-accept + %d must-reject, %d failures\n", len(valid), len(invalid), bad)
-	bad += guardSuite(valid[0])
+	if len(files) > 0 {
+		bad += guardSuite(files[0])
+	}
 	return boolExit(bad == 0)
 }
 
