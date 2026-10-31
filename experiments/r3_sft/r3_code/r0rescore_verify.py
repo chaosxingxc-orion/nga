@@ -10,6 +10,7 @@ import argparse
 import json
 import os
 import sys
+from pathlib import Path
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
@@ -28,10 +29,86 @@ def utc():
     return C.utc_now()
 
 
-def check_executed_code(run):
-    """The code that executes must be the code that was hashed: every line of <run>/SHA1SUMS is recomputed. Entries are the snapshot files <run>/code/<f> and the live
-    r0_code / r1_code files the snapshot imports (core_r3 puts r0_code on sys.path, so those run LIVE; this is how a mid-run edit of them is caught)."""
+def _check_frozen_code(run, expected_execution_sha256):
+    """Resolve source identities from a caller-pinned execution, never live paths."""
     import hashlib
+    root = Path(run).absolute()
+
+    def require(ok, why):
+        if not ok:
+            raise ValueError(why)
+
+    def regular(path):
+        require(path.is_absolute() and path.is_file() and
+                not any(p.is_symlink() for p in (path, *path.parents)), "unsafe source path: " + str(path))
+        return path
+
+    def digest(path, algorithm="sha256"):
+        return hashlib.new(algorithm, regular(path).read_bytes()).hexdigest()
+
+    execution_path = root / "execution.json"
+    require(isinstance(expected_execution_sha256, str) and len(expected_execution_sha256) == 64,
+            "caller-pinned execution SHA256 required")
+    require(digest(execution_path) == expected_execution_sha256, "execution pin differs")
+    execution = json.loads(execution_path.read_text())
+    require(execution.get("schema") == "r3-engineering-posttrain-execution-v1" and
+            execution.get("out") == str(root), "execution scope/output differs")
+    spec_path = Path(execution["spec"])
+    require(digest(spec_path) == execution["spec_sha256"], "execution specification differs")
+    spec = json.loads(spec_path.read_text())
+    require(spec.get("evaluation_profile") == "track_t_r0" and spec.get("test_read") is False,
+            "not a full R0 scoring specification")
+    base = "/mnt/cephfs/xingchao/experiments/jev/"
+    mounts = spec["code_mounts"]
+    require(len(mounts) == 3 and {m["destination"] for m in mounts} ==
+            {base + n for n in ("r3_code", "r0_code", "r1_code")}, "code mount inventory differs")
+    roots = {}
+    inventory = set()
+    for mount in mounts:
+        source = Path(mount["source"])
+        require(mount.get("readonly") is True and source.is_absolute() and source.is_dir() and
+                not any(p.is_symlink() for p in (source, *source.parents, *source.rglob("*"))),
+                "unsafe/writable code mount")
+        roots[Path(mount["destination"]).name] = source
+        for path in source.rglob("*"):
+            if path.is_file():
+                require(spec["files"].get(str(path)) == digest(path), "unbound/changed source: " + str(path))
+                inventory.add(path)
+    record = root / "SHA1SUMS"
+    require(spec["files"].get(str(record)) == digest(record), "unbound/changed SHA1SUMS")
+    seen, covered = set(), set()
+    for line in record.read_text().splitlines():
+        if not line.strip():
+            continue
+        want, name = line.split(None, 1)
+        name = name.strip(); rel = Path(name)
+        require(name not in seen and not rel.is_absolute() and ".." not in rel.parts,
+                "duplicate/unsafe code record path")
+        seen.add(name)
+        if rel.parts[0] in ("r0_code", "r1_code"):
+            require(len(rel.parts) > 1, "empty source-relative path")
+            path = roots[rel.parts[0]] / Path(*rel.parts[1:])
+        else:
+            path = roots["r3_code"] / rel
+        require(path in inventory and path not in covered, "unbound/duplicate code record source")
+        require(digest(path, "sha1") == want, "code record SHA1 differs: " + name)
+        covered.add(path)
+    require(covered == inventory and bool(covered), "code record omits frozen sources")
+    require(any(p.is_relative_to(roots["r0_code"]) for p in covered), "no frozen r0 source")
+    return []
+
+
+def check_executed_code(run, expected_execution_sha256=None):
+    """Recompute every source identity. Frozen executions require an external
+    execution pin and resolve mounted snapshots. Legacy runs without execution
+    metadata retain their original live r0/r1 source checks.
+    """
+    import hashlib
+    if os.path.lexists(os.path.join(run, "execution.json")) or expected_execution_sha256 is not None:
+        try:
+            return _check_frozen_code(run, expected_execution_sha256)
+        except (OSError, ValueError, KeyError, TypeError, IndexError) as error:
+            return ["frozen execution: " + str(error)]
     probs = []
     path = os.path.join(run, "SHA1SUMS")
     if not os.path.exists(path):
@@ -60,7 +137,7 @@ def check_executed_code(run):
     return probs
 
 
-def check(run, model_dir="instruct", model_path=R0_MODEL, limit_groups=0, expected_sha=None, require_scorer=True, check_report=True, data_root=C.DATA_ROOT, check_code=True):
+def check(run, model_dir="instruct", model_path=R0_MODEL, limit_groups=0, expected_sha=None, require_scorer=True, check_report=True, data_root=C.DATA_ROOT, check_code=True, report_override=None, expected_execution_sha256=None):
     out = os.path.join(run, model_dir)
     problems = []
     records = []
@@ -94,10 +171,12 @@ def check(run, model_dir="instruct", model_path=R0_MODEL, limit_groups=0, expect
     rep = {}
     if check_report:
         rp = os.path.join(out, "report.json")
-        if not os.path.exists(rp):
+        if report_override is not None and not isinstance(report_override, dict):
+            problems.append("report_override must be a report dictionary")
+        elif report_override is None and not os.path.exists(rp):
             problems.append("no report.json: the report stage did not run")
         else:
-            rep = json.load(open(rp, encoding="utf-8"))
+            rep = report_override if report_override is not None else json.load(open(rp, encoding="utf-8"))
             tt = rep.get("track_t") or {}
             h = rep.get("header", {})
             sc = h.get("scorer", {}) if isinstance(h.get("scorer"), dict) else {}
@@ -110,7 +189,7 @@ def check(run, model_dir="instruct", model_path=R0_MODEL, limit_groups=0, expect
             if tt.get("missing_roles"):
                 problems.append(f"report.json missing roles {tt['missing_roles']}")
     if check_code:        # tests with a throw-away run dir have no SHA1SUMS and pass check_code=False
-        problems += [f"executed code: {x}" for x in check_executed_code(run)]
+        problems += [f"executed code: {x}" for x in check_executed_code(run, expected_execution_sha256)]
     doc = {"utc": utc(), "run": run, "records_needed_R0": len(need), "per_role": counts, "provenance": prov, "problems": problems}
     return doc
 
@@ -124,8 +203,9 @@ def main():
     ap.add_argument("--no-code-check", action="store_true", help="tests only (no SHA1SUMS)")
     ap.add_argument("--model-dir", default="instruct")
     ap.add_argument("--model-path", default=R0_MODEL)
+    ap.add_argument("--execution-sha256", help="caller-pinned execution identity for frozen scoring runs")
     a = ap.parse_args()
-    doc = check(a.run, a.model_dir, a.model_path, a.limit_groups, a.expected_model_sha256, not a.no_scorer_check, check_code=not a.no_code_check)
+    doc = check(a.run, a.model_dir, a.model_path, a.limit_groups, a.expected_model_sha256, not a.no_scorer_check, check_code=not a.no_code_check, expected_execution_sha256=a.execution_sha256)
     ok = not doc["problems"]
     for stale in ("R0RESCORE_VERIFIED.json", "R0RESCORE_REFUSED.json"):
         if os.path.exists(os.path.join(a.run, stale)):

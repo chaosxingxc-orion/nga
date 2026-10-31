@@ -251,13 +251,20 @@ def validate_seed_reports(reports, required_seeds=(2, 3), required_arm=None):
         require(arms == {required_arm}, f"decision line requires {required_arm}")
 
 
-def load_r0_gating(run):
+def load_r0_gating(run, expected_execution_sha256=None):
     import r0rescore_verify as RV
     marker = load_json(os.path.join(run, "R0RESCORE_COMPLETE.json"))
     require(type(marker.get("exit_code")) is int and marker["exit_code"] == 0
             and marker.get("run_of_record") is True and not marker.get("limit_groups"),
             "R0 re-score must be complete and of record; smoke is not admissible")
-    checked = RV.check(run)
+    if os.path.exists(os.path.join(run, 'execution.json')):
+        require(expected_execution_sha256 is not None, 'externally pinned R0 execution required')
+        require(marker.get('execution_sha256') == expected_execution_sha256, 'R0 marker execution differs')
+        require(C.sha256_file(os.path.join(run, 'instruct', 'report.json')) == marker.get('report_sha256'),
+                'R0 report differs from completion marker')
+        require(C.sha256_file(os.path.join(run, 'R0RESCORE_VERIFIED.json')) == marker.get('verified_sha256'),
+                'R0 verification differs from completion marker')
+    checked = RV.check(run, expected_execution_sha256=expected_execution_sha256)
     require(not checked["problems"], "R0 re-score verification failed: " + str(checked["problems"]))
     out = os.path.join(run, "instruct")
     block = rebuild_track_t(out, "r0")

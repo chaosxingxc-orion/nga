@@ -208,11 +208,18 @@ def execute(a):
             if rel.parts[0] in ('code', 'r0_code', 'r1_code'):
                 require(sha(run / rel) == digest, 'execution snapshot differs: ' + str(rel))
         deps = frozen_modules(preparation)
+        # The verifier is a separately pinned CPU tool, not a replacement for
+        # any source that produced the scores. Its imports use the frozen math.
+        verifier_path = Path(__file__).with_name('r0rescore_verify.py')
+        verifier_spec = importlib.util.spec_from_file_location('frozen_r0_cpu_verifier', verifier_path)
+        verifier = importlib.util.module_from_spec(verifier_spec)
+        verifier_spec.loader.exec_module(verifier)
         report, statuses = rebuild(run, preparation, deps)
-        save(run / 'instruct/report.json', report)
-        checked = deps['r0rescore_verify'].check(str(run))
+        checked = verifier.check(str(run), report_override=report,
+                                 expected_execution_sha256=a.execution_sha256)
         require(not checked['problems'] and checked['records_needed_R0'] == EXPECTED_COUNT, 'legacy full verifier refused: ' + str(checked['problems']))
         P.validate(preparation_path, a.sha256)
+        save(run / 'instruct/report.json', report)
         checked['cpu_report_sha256'] = sha(run / 'instruct/report.json'); checked['statuses'] = statuses
         save(run / 'R0RESCORE_VERIFIED.json', checked)
         complete = {'exit_code': 0, 'run_of_record': True, 'limit_groups': 0, 'utc': deps['core_r3'].utc_now(),

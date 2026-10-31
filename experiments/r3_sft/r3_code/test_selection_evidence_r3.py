@@ -280,6 +280,19 @@ class Gating(unittest.TestCase):
             with self.assertRaisesRegex(E.SelectionRefusal, "smoke"):
                 E.load_r0_gating(td)
 
+    def test_frozen_r0_requires_external_pin_and_unchanged_report(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);write(root/'execution.json',{})
+            write(root/'R0RESCORE_COMPLETE.json',{'exit_code':0,'run_of_record':True,'limit_groups':0,
+                  'execution_sha256':'pin','report_sha256':'wrong'})
+            with self.assertRaisesRegex(E.SelectionRefusal,'externally pinned'):
+                E.load_r0_gating(td)
+            with self.assertRaisesRegex(E.SelectionRefusal,'marker execution'):
+                E.load_r0_gating(td,expected_execution_sha256='other')
+            (root/'instruct').mkdir();write(root/'instruct/report.json',{})
+            with self.assertRaisesRegex(E.SelectionRefusal,'report differs'):
+                E.load_r0_gating(td,expected_execution_sha256='pin')
+
     def test_first_adoption_cannot_trust_pass_flag(self):
         with self.assertRaisesRegex(E.SelectionRefusal, "verified seed reports"):
             S.adopt_first({"passes": True}, r0_run="unused")

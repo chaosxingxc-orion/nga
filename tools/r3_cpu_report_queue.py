@@ -75,7 +75,8 @@ def verify(path, pin):
         for filename, digest in config['files'].items():
             require(Path(filename).is_absolute() and sha(filename) == digest, 'R0 CPU dependency changed')
         require(config['tool'] in config['files'] and
-                str(Path(config['tool']).with_name('r3_r0_prepare.py')) in config['files'], 'R0 tools not pinned')
+                str(Path(config['tool']).with_name('r3_r0_prepare.py')) in config['files'] and
+                str(Path(config['tool']).with_name('r0rescore_verify.py')) in config['files'], 'R0 tools not pinned')
         require(sha(config['preparation']) == config['preparation_sha256'], 'R0 preparation changed')
         for job in r0_reports:
             require(Path(job['eval_out']).is_absolute() and
@@ -193,7 +194,8 @@ def report_command(doc, job):
         if job.get('incumbent'):
             command += ['--incumbent', *[by_id[x]['output'] for x in job['incumbent']]]
         if job.get('r0_report'):
-            command += ['--r0-run', by_id[job['r0_report']]['eval_out']]
+            command += ['--r0-run', by_id[job['r0_report']]['eval_out'],
+                        '--r0-execution-sha256', doc['r0_report']['execution_sha256']]
         return command
     return [sys.executable, '-P', doc['report_tool'], '--run', str(Path(job['eval_out']) / 'results'),
             '--frozen-code-dir', str(Path(doc['closure']) / 'r3_code'), '--output', job['output']]

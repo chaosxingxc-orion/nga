@@ -174,12 +174,14 @@ sha=lambda f:hashlib.sha256(f.read_bytes()).hexdigest()
         r0={'id':'r0','kind':'r0_report','eval_out':str(self.root/'r0'),
             'output':str(self.root/'r0/R0RESCORE_COMPLETE.json')}
         doc['jobs'].append(r0);job['r0_report']='r0'
+        doc['r0_report']={'execution_sha256':'external-pin'}
         self.assertEqual(Q.job_ready(self.path,doc,job),'waiting_reports')
         self.write(Path(r0['output']),{'exit_code':0})
         self.write(Q.workdir(self.path,r0)/'EXIT.json',{'exit_code':0,'output_sha256':Q.sha(r0['output'])})
         self.assertEqual(Q.job_ready(self.path,doc,job),'ready')
         command=Q.report_command(doc,job)
         self.assertEqual(command[command.index('--r0-run')+1],r0['eval_out'])
+        self.assertEqual(command[command.index('--r0-execution-sha256')+1],'external-pin')
         Path(r0['output']).write_text('{}')
         with self.assertRaisesRegex(RuntimeError,'dependency report changed'):Q.job_ready(self.path,doc,job)
 

@@ -122,6 +122,7 @@ def main():
     p.add_argument('--report-tool', required=True)
     p.add_argument('--report-tool-sha256', required=True)
     p.add_argument('--r0-run')
+    p.add_argument('--r0-execution-sha256')
     p.add_argument('--kev-dir', default='/mnt/cephfs/xingchao/experiments/jev/KEV')
     p.add_argument('--data-root', default='/mnt/cephfs/xingchao/experiments/jev')
     p.add_argument('--output', required=True)
@@ -137,7 +138,8 @@ def main():
     candidates = [load(path) for path in args.candidate]
     baseline = load(args.baseline)
     incumbents = [load(path) for path in args.incumbent] if args.incumbent else None
-    gate = deps[1].load_r0_gating(args.r0_run) if args.r0_run else None
+    require(bool(args.r0_run) == bool(args.r0_execution_sha256), 'R0 run and external execution pin required together')
+    gate = deps[1].load_r0_gating(args.r0_run, expected_execution_sha256=args.r0_execution_sha256) if args.r0_run else None
     result = compare(candidates, baseline, deps[1], S, incumbents, gate)
     result['inputs'] = {str(Path(path).resolve()): R.sha(path)
         for path in args.candidate + [args.baseline] + (args.incumbent or [])}
