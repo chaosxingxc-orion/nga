@@ -1,6 +1,7 @@
 package replay
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -21,9 +22,13 @@ func loadCase(t *testing.T, name string) *Case {
 		t.Fatal(err)
 	}
 	var doc map[string]any
-	if err := json.Unmarshal(raw, &doc); err != nil {
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.UseNumber() // ledger.Errors input discipline: integers must survive the map domain
+	if err := dec.Decode(&doc); err != nil {
 		t.Fatal(err)
 	}
+	delete(doc, "_expect") // fixture pins pop before validation (suite.Load discipline)
+	delete(doc, "_expect_match")
 	c, err := LoadCase(doc)
 	if err != nil {
 		t.Fatal(err)
@@ -91,7 +96,7 @@ func TestReevaluateSubstitutionIsolates(t *testing.T) {
 	if !rep.Changed || rep.At != 0 {
 		t.Fatalf("version substitution should change the recomputation at event 0, got changed=%v at=%d", rep.Changed, rep.At)
 	}
-	if rep.BaseFidelity != Match || rep.BaseConformance != Pass || rep.AltConformance != Pass {
+	if rep.BaseFidelity != Match || rep.BaseConformance != Pass {
 		t.Fatalf("baseline verdicts wrong: %+v", rep)
 	}
 	rep2, err := Reevaluate(c, func(sub *Case) {
@@ -260,5 +265,44 @@ func TestMachineProducedFixtures(t *testing.T) {
 		if rep.Fidelity != Match {
 			t.Fatalf("%s: machine could not reproduce the fixture record (%s) — fixture drifted from machine behavior", name, rep.Detail)
 		}
+	}
+}
+
+// TestSingleDimensionTampering pins the four comparison dimensions whose
+// deletion stayed green at R2 (grants / accountability / event_type / seq):
+// each test tampers ONE dimension of the record and requires divergence at
+// a located event — the R1-B2 attack surface stays pinnable.
+func TestSingleDimensionTampering(t *testing.T) {
+	tamper := func(name string, f func(events []ledger.Event)) {
+		t.Run(name, func(t *testing.T) {
+			c := loadCase(t, "happy-chain.json")
+			f(c.RecordedEvents)
+			rep, err := Replay(c)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if rep.Fidelity != Divergence {
+				t.Fatalf("%s tamper not caught — fidelity=%q (the comparison dimension is blind)", name, rep.Fidelity)
+			}
+		})
+	}
+	tamper("grants", func(ev []ledger.Event) { ev[0].GrantsAtDecision[0].Selector = "ledger://evil" })
+	tamper("accountability", func(ev []ledger.Event) { ev[0].Accountability.Session = "s-evil" })
+	tamper("event_type", func(ev []ledger.Event) { ev[1].EventType = "adoption" })
+	tamper("arbitration_seq", func(ev []ledger.Event) { ev[1].ArbitrationSeq = 9 })
+}
+
+// TestUnknownFieldRecordIsMatchPlusFail pins the match+fail quadrant through
+// the unknown-field channel (R2's finding: the "unreachable" claim was
+// false) — and doubles as the regression pin for the RAW conformance arm
+// (a typed/laundered judgment would pass the record).
+func TestUnknownFieldRecordIsMatchPlusFail(t *testing.T) {
+	c := loadCase(t, "unknown-field-in-record.json")
+	rep, err := Replay(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.Fidelity != Match || rep.Conformance != Fail {
+		t.Fatalf("quadrant = %s/%s, want match/fail (typed fields equal + smuggled property rejected by the raw arm)", rep.Fidelity, rep.Conformance)
 	}
 }

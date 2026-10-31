@@ -24,7 +24,7 @@
 // are legal outcomes; a replay of a recorded violation is fidelity-match +
 // conformance-fail. No ecosystem precedent defines the double-verdict
 // runner output contract — this package is that contract's first machine
-// form, and the fixture corpus pins the three reachable quadrants (the match+fail quadrant needs a historical machine version — see the Known Limitation).
+// form, and the fixture corpus pins all four quadrants — match+fail is reachable through an unknown-field record (the fidelity comparison sees typed fields only; the raw conformance arm rejects the smuggled property).
 //
 // Arbitration (collision ruling B, narrowed): re-execution consumes the
 // RECORDED arbitration order — it never re-arbitrates (legacy semantics,
@@ -127,11 +127,16 @@ type Case struct {
 	Steps          []Step         `json:"steps"`
 	RecordedEvents []ledger.Event `json:"recorded_events"`
 	RecordedRawDoc []any          `json:"-"`
+	rawCaseDoc     map[string]any `json:"-"` // the case document's own raw view (schema validation input)
 	Expected       Expected       `json:"expected"`
 }
 
-// LoadCase decodes a case document from its RAW map form, preserving the
-// recorded events' raw view for the conformance arm.
+// LoadCase decodes a case document from its RAW map form, preserving BOTH
+// raw views: the recorded events' (for the conformance arm) and the case
+// document's own map (for schema validation — validating a typed
+// re-projection would launder unknown fields away, the same R2 lesson one
+// layer up). Callers must decode with json.Decoder.UseNumber (the
+// ledger.Errors input discipline).
 func LoadCase(doc map[string]any) (*Case, error) {
 	raw, err := json.Marshal(doc)
 	if err != nil {
@@ -144,6 +149,7 @@ func LoadCase(doc map[string]any) (*Case, error) {
 	if rec, ok := doc["recorded_events"].([]any); ok {
 		c.RecordedRawDoc = rec
 	}
+	c.rawCaseDoc = doc
 	return &c, nil
 }
 
@@ -173,11 +179,10 @@ type ReplayReport struct {
 // stream against the record. Live effects are structurally disabled: the
 // machine is in-memory and dispatch never leaves it.
 func Replay(c *Case) (*ReplayReport, error) {
-	doc, err := caseAsDoc(c)
-	if err != nil {
-		return nil, err
+	if c.rawCaseDoc == nil {
+		return nil, fmt.Errorf("case %q carries no raw case view — schema validation refuses a laundered projection (load via LoadCase)", c.CaseID)
 	}
-	if err := caseSchema.Validate(doc); err != nil {
+	if err := caseSchema.Validate(c.rawCaseDoc); err != nil {
 		return nil, fmt.Errorf("case rejected by replay-case schema: %v", err)
 	}
 	// the recomputation machine runs on a scratch durable form, not the
@@ -238,7 +243,6 @@ type SubstitutionReport struct {
 	At              int  // first diverging event index (-1 = unchanged)
 	BaseFidelity    Verdict
 	BaseConformance Verdict
-	AltConformance  Verdict
 	Detail          string
 }
 
@@ -264,7 +268,6 @@ func Reevaluate(c *Case, substitution func(*Case)) (*SubstitutionReport, error) 
 		CaseID:          c.CaseID + "→" + sub.CaseID,
 		BaseFidelity:    base.Fidelity,
 		BaseConformance: base.Conformance,
-		AltConformance:  alt.Conformance,
 		At:              -1,
 	}
 	if !eventsEqual(base.Recomputed, alt.Recomputed) {
@@ -436,20 +439,6 @@ func locateDivergence(recomputed, recorded []ledger.Event) int {
 	return -1
 }
 
-func caseAsDoc(c *Case) (map[string]any, error) {
-	raw, err := json.Marshal(c)
-	if err != nil {
-		return nil, err
-	}
-	var doc map[string]any
-	dec := json.NewDecoder(bytes.NewReader(raw))
-	dec.UseNumber()
-	if err := dec.Decode(&doc); err != nil {
-		return nil, err
-	}
-	return doc, nil
-}
-
 func deepCopyCase(c *Case) (*Case, error) {
 	raw, err := json.Marshal(c)
 	if err != nil {
@@ -459,6 +448,28 @@ func deepCopyCase(c *Case) (*Case, error) {
 	if err := json.Unmarshal(raw, &cp); err != nil {
 		return nil, err
 	}
-	cp.RecordedRawDoc = c.RecordedRawDoc
+	// deep copies of BOTH raw views — a shallow alias would let a
+	// substitution closure reach into the original case's conformance
+	// inputs (the isolation contract covers the raw layer too)
+	if c.RecordedRawDoc != nil {
+		b, err := json.Marshal(c.RecordedRawDoc)
+		if err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(b, &cp.RecordedRawDoc); err != nil {
+			return nil, err
+		}
+	}
+	if c.rawCaseDoc != nil {
+		b, err := json.Marshal(c.rawCaseDoc)
+		if err != nil {
+			return nil, err
+		}
+		dec := json.NewDecoder(bytes.NewReader(b))
+		dec.UseNumber()
+		if err := dec.Decode(&cp.rawCaseDoc); err != nil {
+			return nil, err
+		}
+	}
 	return &cp, nil
 }

@@ -83,6 +83,6 @@
     "conformance": "pass",
     "divergence_at": -1
   },
-  "_expect": "REJECT: divergence_at is a 0-based step index — negative values are authoring noise",
+  "_expect": "REJECT: divergence_at is a 0-based event index — negative values are authoring noise",
   "_expect_match": "divergence_at"
 }
