@@ -4,8 +4,10 @@
 Ledger documents: JSON Schema + the cross-event rules JSON Schema cannot
 express — eight families: arbitration_seq strictly increasing (+int64
 domain, +float syntax beyond ±2^53 rejected by rule), one payload digest
-per operation (15 B4), idempotency presence (every non-conflict event
-carries it), the idem-identity key coupling, status families never
+per operation (15 B4), idempotency presence (bidirectional: every
+non-conflict event carries it, and a conflict carrying it is rejected —
+the loser's digest never enters the registry), the idem-identity key
+coupling, status families never
 crossing the event-type boundary, the grant pin riding the adopted event
 only, effect events carrying the adopted pin's attribution triple, and the
 single-writer event-sequence grammar (each operation opens with exactly

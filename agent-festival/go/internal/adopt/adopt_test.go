@@ -1267,3 +1267,51 @@ func TestOpenRejectsAttributionDivergence(t *testing.T) {
 		t.Fatalf("state = %q, want dispatched", m2.State("op-at"))
 	}
 }
+
+// TestOpenRejectsConflictCarryingIdem is the R12 M-1 machine-path pin
+// (delivered in R13 after the R12 batch's `grep && cat` short-circuit
+// silently dropped it while the commit message claimed otherwise): a
+// conflict event carrying idempotency launders the loser's digest into the
+// registry the replay matcher reads — the loader refuses it.
+func TestOpenRejectsConflictCarryingIdem(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-cf", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	if o := m.Adopt(testRequest("op-cf", digestB, pinGrants())); o.Status != "rejected" {
+		t.Fatalf("conflict = %q, want rejected", o.Status)
+	}
+	events, _ := m.Events()
+	if len(events) != 2 || events[1].Outcome.Status != "conflict" {
+		t.Fatalf("expected adopted+conflict, got %d events", len(events))
+	}
+	// the bypass shape: a conflict event with idempotency added by hand
+	conflict := events[1]
+	conflict.Idempotency = &ledger.Idempotency{OperationID: "op-cf", PayloadDigest: digestB}
+	first, err := json.Marshal(events[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := json.Marshal(conflict)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(string(first)+"\n"+string(second)+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err == nil {
+		t.Fatal("conflict event carrying idempotency was absorbed at load — the loser's digest entered the registry")
+	}
+	// control: the machine's own conflict event (no idempotency) loads
+	machineConflict, err := json.Marshal(events[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(string(first)+"\n"+string(machineConflict)+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err != nil {
+		t.Fatalf("machine-written conflict rejected: %v", err)
+	}
+}

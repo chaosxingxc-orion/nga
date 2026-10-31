@@ -227,8 +227,9 @@ type Document struct {
 // only); idempotency.operation_id equals identity.operation_id on every
 // event carrying idempotency; and each operation's effect events follow the
 // machine's own transition DAG in file order; idempotency rides every
-// event except conflict; and every effect event carries the adopted pin's
-// attribution triple. Aggregation contract: the
+// event except conflict (and a conflict carrying it is rejected — the
+// loser's digest never enters the registry); and every effect event
+// carries the adopted pin's attribution triple. Aggregation contract: the
 // code-rule families aggregate in the same order on both sides; both
 // checkers short-circuit at the schema, and this checker additionally
 // short-circuits at the float-syntax and typed-view-parse points where the
