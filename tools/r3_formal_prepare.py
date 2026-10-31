@@ -44,7 +44,7 @@ def control_settings(control_arm, *, engineering, model, seed, arm, shared, vali
             'registered_seeds':list(seeds)}
 
 
-def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False, fresh_prechecks=None, fresh_prechecks_sha256=None, training_evidence=None, training_evidence_sha256=None, resume_plan=None, resume_plan_sha256=None, control_arm=None):
+def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False, fresh_prechecks=None, fresh_prechecks_sha256=None, training_evidence=None, training_evidence_sha256=None, resume_plan=None, resume_plan_sha256=None, control_arm=None, resume_reconstruction=None, resume_reconstruction_sha256=None, reconstruction_target=None, reconstruction_target_sha256=None):
     control = control_settings(control_arm, engineering=engineering, model=model, seed=seed,
                                arm=arm, shared=shared, validate_shared=validate_shared)
     if arm not in ('k1', 'k2'):
@@ -62,6 +62,9 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
             raise ValueError('formal preparation requires pinned augmentation/LoRA evidence')
         if not resume_plan or not resume_plan_sha256:
             raise ValueError('formal preparation requires a pinned completed NPU resume plan')
+        if not all((resume_reconstruction, resume_reconstruction_sha256,
+                    reconstruction_target, reconstruction_target_sha256)):
+            raise ValueError('formal preparation requires pinned CPU resume reconstruction and target')
     out.mkdir(parents=True, exist_ok=False)
     code = out / 'code'
     code.mkdir()
@@ -98,7 +101,7 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
         training_files = helper.validate(training_evidence, training_evidence_sha256, code, model, TRAIN, IMAGE)
         shutil.copy2(ROOT/'tools/r3_training_evidence.py', tool_dir/'r3_training_evidence.py')
     if not engineering:
-        for name in ('r3_resume_evidence.py',):
+        for name in ('r3_resume_evidence.py', 'r3_resume_reconstruction_evidence.py'):
             shutil.copy2(ROOT/'tools'/name, tool_dir/name)
     prereg = ROOT / '.local/archive/2026-10-31/experiments'
     for name in ('R3-SFT-PREREG.md', 'R3-TRAINING-WAVE-PREREG-2026-10-31.md'):
@@ -141,6 +144,16 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
         helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
         plan.update(resume_plan=str(Path(resume_plan).absolute()), resume_plan_sha256=resume_plan_sha256)
         plan['files'].update(helper.validate(plan['resume_plan'], resume_plan_sha256, plan))
+        spec = importlib.util.spec_from_file_location('resume_reconstruction', ROOT/'tools/r3_resume_reconstruction_evidence.py')
+        helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+        plan.update(resume_reconstruction=str(Path(resume_reconstruction).absolute()),
+                    resume_reconstruction_sha256=resume_reconstruction_sha256,
+                    reconstruction_target=str(Path(reconstruction_target).absolute()),
+                    reconstruction_target_sha256=reconstruction_target_sha256)
+        plan['files'].update(helper.validate(plan['resume_reconstruction'], resume_reconstruction_sha256,
+            resume_plan=plan['resume_plan'], resume_pin=resume_plan_sha256, target=plan,
+            reconstruction_target=plan['reconstruction_target'],
+            reconstruction_target_sha256=reconstruction_target_sha256))
     if training_files:
         plan.update(training_evidence=str(Path(training_evidence).resolve()), training_evidence_sha256=training_evidence_sha256)
         plan['files'].update(training_files)
@@ -203,9 +216,15 @@ def main():
     ap.add_argument('--training-evidence-sha256')
     ap.add_argument('--resume-plan')
     ap.add_argument('--resume-plan-sha256')
+    ap.add_argument('--resume-reconstruction')
+    ap.add_argument('--resume-reconstruction-sha256')
+    ap.add_argument('--reconstruction-target')
+    ap.add_argument('--reconstruction-target-sha256')
     args = ap.parse_args()
     parent = Path(args.parent)
-    print(json.dumps([prepare(parent / f'seed{seed}', seed, chip, args.engineering, fresh_prechecks=args.fresh_prechecks, fresh_prechecks_sha256=args.fresh_prechecks_sha256, training_evidence=args.training_evidence, training_evidence_sha256=args.training_evidence_sha256, resume_plan=args.resume_plan, resume_plan_sha256=args.resume_plan_sha256) for seed, chip in ((2, 1), (3, 4))], indent=2))
+    print(json.dumps([prepare(parent / f'seed{seed}', seed, chip, args.engineering, fresh_prechecks=args.fresh_prechecks, fresh_prechecks_sha256=args.fresh_prechecks_sha256, training_evidence=args.training_evidence, training_evidence_sha256=args.training_evidence_sha256, resume_plan=args.resume_plan, resume_plan_sha256=args.resume_plan_sha256,
+        resume_reconstruction=args.resume_reconstruction, resume_reconstruction_sha256=args.resume_reconstruction_sha256,
+        reconstruction_target=args.reconstruction_target, reconstruction_target_sha256=args.reconstruction_target_sha256) for seed, chip in ((2, 1), (3, 4))], indent=2))
 
 
 if __name__ == '__main__':

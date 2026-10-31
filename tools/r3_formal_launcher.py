@@ -75,6 +75,22 @@ def verify_resume_evidence(p):
     require(all(p['files'].get(f) == h for f,h in evidence.items()), 'resume evidence dependencies not bound')
 
 
+def verify_resume_reconstruction(p):
+    import importlib.util
+    helper_path = Path(__file__).with_name('r3_resume_reconstruction_evidence.py')
+    require(p['files'].get(str(helper_path)) == sha(helper_path), 'reconstruction verifier not pinned')
+    for field in ('resume_reconstruction', 'reconstruction_target'):
+        require(p.get(field) in p['files'] and p.get(field+'_sha256')
+                and p['files'][p[field]] == p[field+'_sha256'], 'reconstruction artifact not bound')
+    spec = importlib.util.spec_from_file_location('formal_resume_reconstruction', helper_path)
+    helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+    files = helper.validate(p['resume_reconstruction'], p['resume_reconstruction_sha256'],
+        resume_plan=p['resume_plan'], resume_pin=p['resume_plan_sha256'], target=p,
+        reconstruction_target=p['reconstruction_target'],
+        reconstruction_target_sha256=p['reconstruction_target_sha256'])
+    require(all(p['files'].get(f) == h for f,h in files.items()), 'reconstruction dependencies not bound')
+
+
 def verify(path, pin, reviewed=True):
     p = load(path)
     require(identity(p) == pin, 'plan identity changed')
@@ -135,6 +151,7 @@ def verify(path, pin, reviewed=True):
     require(source_files == {f for f in p['files'] if f.startswith(p['code'] + '/')}, 'code closure inventory mismatch')
     if not engineering:
         verify_resume_evidence(p)
+        verify_resume_reconstruction(p)
         verify_fresh_prechecks(p)
         import importlib.util
         helper_path = Path(__file__).with_name('r3_training_evidence.py')

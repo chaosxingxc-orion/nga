@@ -121,6 +121,28 @@ class Metrics(unittest.TestCase):
             self.report={'header':{**header(self.identity,arm,self.prompt),'data_files':self.files},'track_k':block}
             self.verify()
 
+    def test_frozen_header_builder_matches_validation(self):
+        source=ast.parse(PRODUCER.read_text())
+        node=next(n for n in source.body if isinstance(n,ast.FunctionDef) and n.name=='build_header')
+        env=dict(C=self.C,P=self.prompt,sys=sys,DECLARED_DIFFERENCES=[],
+                 V=self.V,T=__import__('track_t_r3'),
+                 CL=SimpleNamespace(clause_status=lambda:{}),RC=SimpleNamespace(SOURCE_FILES=['synthetic']))
+        exec(compile(ast.Module(body=[node],type_ignores=[]),str(PRODUCER),'exec'),env)
+        for arm in ('K0','K1','K2','K1-QO','K1-PT'):
+            base=self.root/('Qwen__Qwen3.5-0.8B' if arm=='K1-PT' else 'Qwen__Qwen3.5-0.8B-Base')
+            identity=dict(self.identity,base_path=str(base),path=str(base if arm=='K0' else self.root/'adapter'),
+                          kind='checkpoint' if arm=='K0' else 'lora-adapter-unmerged')
+            expected=header(identity,arm,self.prompt)
+            args=SimpleNamespace(arm=arm,device='npu',stages='k',limit=0,limit_groups=0,
+                                 primary_mode=expected['primary_input_mode'],track_t_config='r3',
+                                 partitions=['calibration','test'],dtype='float32',
+                                 track_t_sources='synthetic',model_path=str(base))
+            actual=env['build_header'](args,identity,expected['scorer'],{})
+            protocol=self.M.validate_header(actual,prompt=self.prompt,expected_arm=arm,
+                expected_model=str(base),expected_adapter=None if arm=='K0' else identity['path'],
+                expected_sha256=identity['sha256'])
+            self.assertEqual(protocol['input_mode'],expected['primary_input_mode'])
+
     def test_bad_header_refused_before_dataset_load(self):
         for field,value in [('primary_input_mode','drop'),('arm','K1-QO'),('stages','k_score'),
                             ('partitions',['dev']),('limit',1),('prompt_version','wrong')]:
