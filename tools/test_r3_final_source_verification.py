@@ -39,6 +39,10 @@ class SourceVerification(unittest.TestCase):
         load('prechecks_r3',SOURCE/'prechecks_r3.py')
         load('selection_evidence_r3',SOURCE/'selection_evidence_r3.py')
         self.A=load('final_source_adapter',HERE/'r3_final_test_adapter.py')
+        # This suite isolates original provenance checks. Full metric and source
+        # integration is covered separately by test_r3_final_publication.py.
+        metric_check=patch.object(self.A.M,'verify',return_value={'scope':'source-only fixture'})
+        metric_check.start();self.addCleanup(metric_check.stop)
         self.model=self.root/'model';self.model.mkdir()
         (self.model/'weights.safetensors').write_bytes(b'synthetic bytes, never loaded as a model')
         (self.model/'.complete').write_text('synthetic-revision\n')

@@ -34,6 +34,10 @@ class Integration(unittest.TestCase):
         self.tl=SimpleNamespace(model_identity=Mock(return_value=self.identity),
             authorize_test_read=Mock(side_effect=lambda identity,suite,split,rd:SimpleNamespace(identity=identity,suite=suite,split=split)),
             verify_test_result=self.verifier)
+        self.core.KEV_DIR=str(self.root/'synthetic-data')
+        self.tl.C=self.core
+        metric_check=patch.object(A.M,'verify',return_value={'scope':'control-flow fixture'})
+        metric_check.start();self.addCleanup(metric_check.stop)
         self.report={'test_publication':{'state':'unpublished'},'track_k':{'operator_fit':{'n':100},'partitions':{
             'decision-v7/calibration':{'n':100},
             'decision-v7/test':{'headline':{'n':1200,'kev_rule_accuracy':.75}},

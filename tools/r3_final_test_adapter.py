@@ -3,7 +3,7 @@
 Not a CLI/launcher. Exact-plan admission is supplied by the final launcher.
 Only generated evaluator/testlock modules from a pinned closure may be used.
 Recovery verifies retained evidence and cannot call the scorer or issue tickets
-to this adapter. This layer does not certify secondary metric recomputation.
+to this adapter. Both paths require full numerical reconstruction before logging.
 """
 import importlib.util
 import json
@@ -31,6 +31,7 @@ def sibling(name):
 
 T = sibling('r3_test_transaction')
 L = sibling('r3_test_log_adapter')
+M = sibling('r3_final_metrics')
 G = T.G
 
 
@@ -72,6 +73,8 @@ def run(args, scorer, evaluator, *, owner, validate_admission):
         if 'tickets' in state:
             evaluator.TL.verify_test_result(state['tickets'][(suite, 'test')], result['n'],
                 result['headline_accuracy'], args.out)
+            M.verify(state['tickets'][(suite, 'test')], args.out,
+                     kev_dir=evaluator.TL.C.KEV_DIR, report=report)
         else:
             # A public verification-only entry in the NEW testlock source. It
             # validates durable staged/owner/log identity before opening data,

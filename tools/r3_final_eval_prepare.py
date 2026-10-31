@@ -67,7 +67,10 @@ def verify_reserved_test_result(args, *, suite, result, leases, owner, completio
               and is_named(read_final(args.round_dir), identity), 'recovery model is not the selected model')
     # Internal verification capability: no ticket escapes, no scorer is called.
     ticket = TestTicket(identity, suite, 'test', _TOKEN)
-    return verify_test_result(ticket, result['n'], result['headline_accuracy'], args.out)
+    verified = verify_test_result(ticket, result['n'], result['headline_accuracy'], args.out)
+    import r3_final_metrics as FM
+    FM.verify(ticket, args.out, kev_dir=C.KEV_DIR)
+    return verified
 '''
 
 AUTH = '''    tickets = {}
