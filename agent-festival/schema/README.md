@@ -18,13 +18,16 @@ L3 capability contract 的机器形态。设计依据见 [ADR-0001](../docs/adr/
 | `ledger.py` | 账本 oracle：schema + 跨事件规则八族双侧镜像（同 ledger.Errors docstring 枚举，含 idempotency 在场性双向与 effect 归因一致），与 Go 侧（go run ./cmd/ledger）双验证器交叉；附 status+五共享原子 lockstep 直比（剥 description 递归比语义子树）+ D93 计数钉 |
 | `release.schema.json` | 发布清单 0.1.0（增长层件5，NGA 供件）：NGA v0.2 §5 版本连续性链接的机器形态——release_id/agent_identity（链接链两端）/references 十类具名引用（模型·读出·语义·采纳四核心钉 minItems 1 + 能力·工作流·图·上下文·控制器·执行六类 relevant-only 可空——仅引用非部署单元，字段形状即声明）/rollout 双决策（新任务策略+in-flight 三选一枚举：pinned-definitions·state-migration·hold-and-revise）/rollback 三通道（新工作路由+活跃工作处置+外效果纠正契约——确认的登记不可撤销）/evidence 三分离（版本兼容·策略符合·业务改善——技术兼容≠业务验收）；§5 系统不变量（撤销优先于钉版等）记 description、机制落在件2 闸与件6 replay |
 | `release.py` | 发布清单 oracle：schema 校验，与 Go 侧（go run ./cmd/release）交叉 + D93 计数钉 + 版本 lockstep 三方钉；件5 无机器无跨文档规则——任务记录/晋升/replay 属消费方（件6 只读） |
+| `replay-case.schema.json` | 重放用例 0.1.0（增长层件6，NGA 供件）：输入/记录分离——steps（驱动生产状态机的调用序列，记录族输入内嵌）与 recorded_events（账本事件流）两栏；expected 钉 fidelity×conformance 双裁决组合（四象限皆合法，0.1.0 可达三象限：match+pass/divergence+pass/divergence+fail——match+fail 需历史版本机器重现已修复违规，记 Known Limitation）+divergence_at 定位钉；四操作枚举封闭（不可坍缩为一个泛化调用）；Python oracle 只做格式面（schema-as-source，行为判断在 Python 侧出现即第二实现走私——Go 单侧诚实边界） |
+| `replay.py` | 重放用例 oracle：格式面校验（replay-case.schema.json 驱动）+ D93 计数钉；行为面=go run ./cmd/replay（internal/replay 四入口：Inspect 投影族/Replay·Reevaluate 生产机重执行族/Recover 恢复到可派发不派发） |
 | `judgment.schema.json` | 判断规格 0.1.0（增长层件3，NGA 供件）：§6/§6.1 具名信息逐字段映射——问题身份+版本（不可分）/术语+单位+证据源+参考时+窗口约定（§6.1 五项全）/等级名+定义+类型（boolean·nominal·ordinal）/候选集语义（exclusive·stackable，裸枚举）/优先序（良序整数无下界）+覆盖+例外/输出态与许可动作（缺证据/未定义规则不自动否定——§6.1）/示例四类（边界·等价·竞争·未解）/适用范围/owner+评审权+生效范围+变更理由+受影响链接+规格版本（§6.1 尾项含 version——schema 的 judgment_version 与 question.spec_version 分承）；无 rule_id（无 NGA 出处零消费——第一性原理删除）；语义分类非权限证明——schema 不含任何授权字段；闭环契约 additionalProperties:false 封死 authority_hint 类旁路 |
 | `judgment.py` | 判断规格 oracle：schema 校验，与 Go 侧（go run ./cmd/judgment）交叉 + D93 计数钉；件3 无机器无跨文档规则——语义所有权归知识工作流（先验边界） |
 | `adoption.schema.json` | 采纳契约 0.1.0（增长层件2，NGA 供件）：请求=三层身份+P5 版本+payload_digest（JCS-sha256 同基座形制）+grants_at_decision（14-A4 派发时复核的授权钉照）；闭环契约 additionalProperties:false |
 | `adoption.py` | 采纳请求 oracle：schema 校验，与 Go 侧（go run ./cmd/adopt）交叉；状态机语义（单写者/14-A5 四反例/崩溃耐久）在 go/internal/adopt 测试所有权 |
-| `_suite.py` | Python 侧共享夹具 harness（非 oracle）：镜像 go/internal/suite 的两相套件纪律与 V28 F-1/V32 M-1 pin 硬化，ledger/adoption/judgment/release 四 oracle 复用；checker 各自独立实现以保交叉验证 |
+| `_suite.py` | Python 侧共享夹具 harness（非 oracle）：镜像 go/internal/suite 的两相套件纪律与 V28 F-1/V32 M-1 pin 硬化，ledger/adoption/judgment/release/replay 五 oracle 复用；checker 各自独立实现以保交叉验证 |
 | `examples/ledger/valid`, `examples/ledger/invalid` | 账本样例：9 必须通过 / 26 必须拒绝（合法侧：高 seq 跨 2^53 合法链 + DAG 三条链 + 浮点语法整值 seq；拒绝侧：旁路直写两形态 / 孤儿 reused / 双 adopted / status 家族越界 / effect 携 grant 钉照 / adopted 无钉照 / 事件侧 grant 形状违规 / digest 形状 / 缺版本 / 缺 outcome / seq 逆序 / 2^53 相邻 seq 折损钉 / int64 溢出钉 / 浮点语法超 2^53 精确域 / idem-identity 键错位 / 转移序三形态：completed 无 dispatched 前驱 + 终态后再生 + unresolved 后再 dispatched / 终态复活 / re-unresolved / reused 携钉照 / idem 缺席两形态（adopted/effect）/ conflict 反向携 idem / effect 归因偏离钉照） |
 | `examples/release/valid`, `examples/release/invalid` | 发布清单样例：2 必须通过（credit 试点第二发布全字段/最小形态——六类 relevant-only 合法空+首次发布的业务改善证据声明）/ 9 必须拒绝（缺 rollout/缺 in-flight 决策/杜撰第四种 in-flight 模式/缺外效果纠正契约/空核心钉/缺证据分离维度/auto_approve 旁路字段/缺 references/空 release_id） |
+| `examples/replay/valid`, `examples/replay/invalid` | 重放用例样例：6 必须通过（五族可证伪：篡改结论→重算分歧且 conformance 过（防退化成回放的钉）/输入变异→分歧定位在正确步骤/意外参数→digest 不匹配拒绝匹配/竞速两仲裁结局各一 case/正常链 control）+ 3 必须拒绝（杜撰 op/负 divergence_at/缺 conformance 钉） |
 | `examples/judgment/valid`, `examples/judgment/invalid` | 判断规格样例：2 必须通过（NGA §6 credit 示例全字段+§6.1 全部点名缺口含双截断与带间区间/最小形态含 nominal+ordinal+change_rationale 词汇正例）+ 19 必须拒绝（九段缺席负钉：§6 具名信息段+judgment_version 外全部 root 段逐段有钉——resolution/question/rules/scope/ownership/conventions/levels/candidate_set/examples；四类代表钉（每类至少一枚，嵌套 required 与 minItems 各实为两钉——类内第二钉为 R1 期旧夹具归位）：嵌套 required（question_id+evidence_sources 缺席）/minLength（terms/0/name）/minItems（levels+terms 空数组）/嵌套 additionalProperties（ownership 内 authority_hint）；值域与旁路：杜撰 level 类型/第三种候选集语义/authority_hint 根旁路/杜撰示例类别。类代表制豁免裁定：嵌套 required·minLength·minItems·嵌套旁路四类各至少一枚代表即类级承重——无机器件上逐键 exhaustive 钉违反反过度设计先验；judgment_version 的 const 由版本 lockstep 钉、required 豁免（家族形制）） |
 | `examples/adoption/valid`, `examples/adoption/invalid` | 采纳请求样例：2 必须通过 / 5 必须拒绝（缺版本 / 坏 digest / 空授权 / 未知旁路字段 / 杜撰效果烈度） |
 | `examples/keys/trusted.jwks.json` | 样例用可信公钥库：JWKS（publisher、tester、enc-only、ops-enc、alg-rs、other-publisher）+ `subject_of` 绑定；私钥不落盘 |
@@ -42,9 +45,10 @@ python3 schema/ledger.py              # 账本事件样例（件4），双向断
 python3 schema/adoption.py            # 采纳请求样例（件2），双向断言
 python3 schema/judgment.py            # 判断规格样例（件3），双向断言
 python3 schema/release.py             # 发布清单样例（件5），双向断言
+python3 schema/replay.py              # 重放用例样例（件6，格式面），双向断言
 ```
 
-Go 侧同套件与状态机：`cd go && go run ./cmd/ledger && go run ./cmd/adopt && go run ./cmd/judgment && go run ./cmd/release && go test ./...`（夹具套件纪律在 go/internal/suite；引擎与懒编译在 go/internal/schemalib）。
+Go 侧同套件与状态机：`cd go && go run ./cmd/ledger && go run ./cmd/adopt && go run ./cmd/judgment && go run ./cmd/release && go run ./cmd/replay && go test ./...`（夹具套件纪律在 go/internal/suite；引擎与懒编译在 go/internal/schemalib）。
 
 依赖：`jsonschema`（含 `referencing`）；信封验签另需 `pyjwt[crypto]`。
 

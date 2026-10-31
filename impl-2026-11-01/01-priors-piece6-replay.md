@@ -62,3 +62,13 @@ cmd/replay → replay + suite
 4. 四入口不可互换：入口签名不同（path vs case vs case+substitution），无公共泛化入口——「Do not collapse into one generic call」（07 §6 同律）
 5. 差异定位的精度承重（夹具 b）：diff 报告必须指明 step/事件序号，不是布尔「有分歧」
 6. expected 钉的是双裁决组合（fidelity×conformance 四象限都是合法 outcome——不是「全过才算过」）
+
+## 碰撞裁决修正（frame-bench，2026-11-01 追加）
+
+1. **A 二分（最重要）**：Inspect 属投影族——独立投影 reducer 合法（codex rollout-trace 先例：reducer 隔离在 core 外只重建视图不重算决策）；Replay/Reevaluate 属重执行族——只许生产状态机重执行（langgraph time-travel "Re-executes nodes"/dsh "booting the real agent" 先例）。配套「无隐藏入口」规则：状态机不得长 replay-only 分支（dsh AGENTS.md 立法）。
+2. **B 收窄**：只对真裁决结果（adopt 竞争 first-wins）记序消费；纯事件序（可稳定键排序的）禁入仲裁记录——否则给机器非确定性发执照。并发绑定危险写 Known Limitations（dsh deferred 先例：显式挂账不假装解决）。
+3. **C 照抄三机制**：边界假件（replay-only adapter 实现 provider 契约，不 mock 整机）/全消费断言（未匹配查找与未消费记录双向 fail）/fail-loud。
+4. **D 形状确认**：codex 瘦脊+外挂载荷（payloads 先于事件写、写入端分配 id）——账本已是瘦脊，夹具 steps=外挂，方向一致。
+5. **E 刚性约束**：Python oracle 只从 replay-case.schema.json 驱动（schema-as-source）；Python 侧一旦出现行为判断即杀（防第二实现从格式层走私）。
+6. **新颖面唯一**：双 verdict（fidelity×conformance）交互的 runner 输出契约——生态无先例（dsh expected-refusal inventory 是最近似物：conformance 钉成数据+其消失即失败），新投入集中处。
+7. **防腐机制采纳**：夹具经生产路径生成（内存 Machine 驱动产出 recorded_events，不手写）；场景序列内联；全消费断言。
