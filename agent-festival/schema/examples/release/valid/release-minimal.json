@@ -1,0 +1,32 @@
+{
+  "release_version": "0.1.0",
+  "release_id": "rel-flag-gate-1",
+  "agent_identity": "agent://team-a/flag-gate",
+  "references": {
+    "model_versions": ["model:m-baseline@1.0.0"],
+    "readout_versions": ["readout:r-baseline@1.0.0"],
+    "semantic_specifications": ["judgment:q-boolean-gate@1.0.0"],
+    "adoption_specifications": ["adoption:policy-adopt-v1@0.3.0"],
+    "capability_definitions": [],
+    "workflow_definitions": [],
+    "graph_definitions": [],
+    "context_policies": [],
+    "controller_contracts": [],
+    "enforcement_contracts": []
+  },
+  "rollout": {
+    "new_tasks": "all new team-a tasks",
+    "in_flight": "hold-and-revise"
+  },
+  "rollback": {
+    "new_work_routing": "fall back to the previous pinned release",
+    "active_work_handling": "held tasks are revised against the previous definitions before resuming",
+    "external_effect_correction": "contract://team-a/no-external-effects — declaration that this release produces no external effects"
+  },
+  "evidence": {
+    "version_compatibility": ["compat:self-declared-baseline"],
+    "policy_conformance": ["conformance:policy-adopt-v1"],
+    "business_improvement": ["metric:none-yet — first release, improvement evidence accrues in operation"]
+  },
+  "_expect": "ACCEPT: minimal form — the six 'relevant only' reference categories are legitimately empty (presence of the key is the declaration); the core four version/spec pins are non-empty"
+}

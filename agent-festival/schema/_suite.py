@@ -8,8 +8,8 @@ pin" would bypass the wrong-reason checks; the Go twin enforces the same),
 and a fixture whose JSON failed to parse is rejected-at-parse with its pin
 still matchable against the parse error (V32 M-1's two-path split).
 
-The oracles (ledger.py, adoption.py, judgment.py) stay deliberately
-independent in their CHECKERS — that is the dual-validator cross-check —
+The oracles (ledger.py, adoption.py, judgment.py, release.py) stay
+deliberately independent in their CHECKERS — that is the dual-validator cross-check —
 but the harness around them is not a checked semantic, so it is shared
 (R2 m-3: the two inline runners had to be edited in lockstep).
 """
