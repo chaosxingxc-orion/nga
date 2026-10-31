@@ -58,6 +58,23 @@ class CPUQueueTests(unittest.TestCase):
         with patch.object(Q,'observe',return_value={'status':'reporting','pid':9}),patch.object(Q.subprocess,'Popen') as spawn:
             Q.tick(self.path,self.pin,self.doc);spawn.assert_not_called()
 
+    def test_real_r0_worker_requires_hashed_complete_evidence(self):
+        self.inference_ready()
+        self.job.update(kind='r0_report',output=str(Path(self.job['eval_out'])/'R0RESCORE_COMPLETE.json'))
+        tool=self.root/'r0.py'
+        tool.write_text('''import sys,json,hashlib
+from pathlib import Path
+r=Path(sys.argv[sys.argv.index('--run')+1]);(r/'instruct').mkdir(exist_ok=True)
+v=r/'R0RESCORE_VERIFIED.json';v.write_text('{}')
+p=r/'instruct/report.json';p.write_text('{}')
+sha=lambda f:hashlib.sha256(f.read_bytes()).hexdigest()
+(r/'R0RESCORE_COMPLETE.json').write_text(json.dumps({'exit_code':0,'run_of_record':True,'limit_groups':0,'scientific_acceptance':False,'candidate_test_read':False,'verified':str(v),'verified_sha256':sha(v),'report_sha256':sha(p)}))
+''')
+        self.doc['r0_report']={'tool':str(tool),'preparation':'/frozen/prep','preparation_sha256':'pin','execution_sha256':'pin'}
+        Q.workdir(self.path,self.job).mkdir(parents=True)
+        with patch.object(Q,'verify',return_value=self.doc):self.assertEqual(Q.worker(self.path,self.pin,'one'),0)
+        self.assertEqual(Q.observe(self.path,self.pin,self.job,self.doc)['status'],'done')
+
     def test_previous_failure_during_new_attempt_waits_then_accepts_success(self):
         self.inference_ready();root=Path(self.job['eval_out'])
         self.write(root/'ENGINEERING_EVAL_EXIT.json',{'attempt':1,'exit_code':7})
