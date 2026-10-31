@@ -1,6 +1,6 @@
 # 当前任务状态、推理实验闭环、决策事项与下一阶段计划
 
-更新时间：2026-10-31。本文是给项目负责人的中文交接说明。它解释当前结果、各条指令之间的先后关系、推理实验的自动执行边界、需要决策的内容和下一阶段计划。本文不修改任何预注册的指标、数据分区、阈值或 test lock；它也不把尚未放行的结果写成科学结论。
+更新时间：2026-10-31（E38 v7/2B 执行后快照）。本文是给项目负责人的中文交接说明。它解释当前结果、各条指令之间的先后关系、推理实验的自动执行边界、需要决策的内容和下一阶段计划。本文不修改任何预注册的指标、数据分区、阈值或 test lock；它也不把尚未放行的结果写成科学结论。历史状态和旧代次保留在后文，当前事实以本次快照和日期追加记录为准。
 
 本文把“推理也是实验”作为硬约束处理：一次推理只有在预注册、自动执行、可恢复、独立计分、终态验收和 wiki 记录全部完成后，才算正式实验。单独存在的 logits、report 或一个成功退出的容器，只能算中间产物。
 
@@ -12,8 +12,8 @@
 - 仍有 **2 个 blocked/null 组合**：Open-Jev-2B × JEVal、Open-Jev-9B × JEVal。
 - 新增 6 个组合都完成了实际 Astra 的限定范围结果审查；指标、分母和 flags 保留，不能写成无条件通过。
 - E39 的 28 个历史 Kev 面板已完成当前 CPU 独立重算和有界 Astra 审查，最大差异约 `1.11e-16`；这证明当前保存证据可重建，不补造历史 finisher，也不证明无人值守恢复安全。
-- E38 的固定镜像 CPU 工程套件 v7 已完成 **100/100、无 skip**；v7 exact plans 已获实际 Astra 指定范围 PASS。Open-Jev-2B 已完成 8/8 NPU 诊断 forward 和独立 CPU verifier；Open-Jev-9B 尚未启动，且两者都尚未完成 Open-Jev JEVal。
-- 独立资源释放工具的旧 v4 版本被实际 Astra **BLOCK**；2B 的 chip 4 仍保持 allocation，未手工修改 `CHIP-ALLOCATION.json`。需要新 v7 绑定的 release 工具和独立审查后才能释放并串行启动 9B。
+- E38 的固定镜像 CPU 工程套件 v7 已完成 **100/100、无 skip**；v7 exact plans 已获实际 Astra 指定范围 PASS。Open-Jev-2B 已完成 8/8 NPU 诊断 forward 和独立 CPU verifier；Open-Jev-9B 尚未启动，且两者尚未完成 Open-Jev JEVal。
+- 资源释放工具已经加入 v7 plan hash 和 parent-reviewed allocation before-state 绑定，15 项纯 CPU 回归通过；但该新版本尚未完成新的 Astra release-only 审查。2B 的 chip 4 仍保持 allocation，未手工修改 `CHIP-ALLOCATION.json`，所以 9B 不能启动。
 - 正式 Jev 训练尚未开始，训练收益尚未测量，真实业务和生产接入暂不属于当前范围。
 
 因此，当前最正确的描述是：**推理实验的执行和审计正在进行，参考指标报告可以先形成增量版本；训练方案讨论必须排在参考结果汇报之后，正式训练必须排在训练方案预注册之后。**
@@ -154,8 +154,8 @@ JEVal 的分类有效分母为 9,911/10,938；每模型另有 1,027 条 overleng
 | 参考矩阵 | 36 个有结果组合、58 个旧面板、6 个新增组合已审查 | 可形成 D1 增量汇报；2 个组合仍缺结果 | 不能称所有兼容模型×数据集笛卡尔积已完成 |
 | E39 历史 Kev 复核 | 8,462 receipts、11,495 questions、28 面板独立重算；最大差约 `1.11e-16` | 有界通过 | 不补造旧 finisher；不证明 cache/restart 安全 |
 | E38 CPU 工程验证 | 固定镜像 v7：100/100、无 skip；真实 Qwen3.5/GDN 源码已导出 | 工程证据完成，不能放行 NPU | CPU fixture 不是参考 checkpoint，也不是 JEVal 数值结果 |
-| E38 NPU 计划 | v4 两份计划已准备，芯片 4 未占用 | 实际 Astra BLOCK；新 generation 计划尚未生成 | 不得启动 v4；不得写 approval |
-| E38 资源释放 | 独立 release 工具已做实际 Astra 审查 | BLOCK；没有真实 release | 不得修改分配表，不得释放芯片 4 |
+| E38 NPU 计划 | v7 两份 exact plan 已准备并通过指定范围 Astra 审查；2B 已执行 | 2B 8/8 forward + 独立 verifier 通过；9B 未启动 | 不能把诊断当作 JEVal；不能启动 9B 直到 chip 4 释放 |
+| E38 资源释放 | v7 绑定修复完成，15 项纯 CPU 回归通过 | 新版本尚未实际 Astra release-only 审查；2B chip 4 仍占用 | 不得手工修改分配表或释放 chip 4 |
 | Jev 训练 | 训练方案草案和旧工程材料存在 | 正式训练未启动 | 尚无训练前后收益结论 |
 | 真实业务 | 按 D3/D4/D7 暂不纳入 | 不作为前置条件 | 公开任务收益不能写成业务收益 |
 
@@ -216,7 +216,7 @@ flowchart TD
 
 因此，D2 只移除了“算力预算”这一资源限制，不会移除第 2、3、4 步的质量门禁；D3/D4/D7 只缩小收益声明的范围，不会移除推理和训练的自动执行要求；D5/D6 分别约束训练统计设计和后续架构假设，也不会改变 D1 的先后次序。
 
-当前 E38 已通过 exact-plan review 并完成 2B 的一次诊断执行，但仍位于资源释放门禁：`e38_execution_astra_20261031_v8` 已有真实 `CHILD_EXIT.json`、`COMPLETE.json`、`EXIT` 和 `review.md`，2B 的 8/8 forward 与独立 CPU verifier 均 exit 0；旧 release 工具仍被 Astra BLOCK，因此不能直接释放 chip 4 或启动 9B。
+当前 E38 已通过 exact-plan review 并完成 2B 的一次诊断执行，但仍位于资源释放门禁：`e38_execution_astra_20261031_v8` 已有真实 `CHILD_EXIT.json`、`COMPLETE.json`、`EXIT` 和 `review.md`，2B 的 8/8 forward 与独立 CPU verifier 均 exit 0；新的 release-only review 尚未完成，因此不能直接释放 chip 4 或启动 9B。
 
 ### 4.5 推理实验的自动状态转移
 
@@ -276,6 +276,16 @@ REGISTERED
 
 如果你希望采用不同边界，只需回复“扩展笛卡尔积”或“等待两个 JEVal 后再发 D1”；在收到明确改动前，执行按上述建议继续，不会把缺失项伪造成零分。
 
+## 6.4 本次状态快照后的决策清单
+
+当前真正需要你确认的内容只有报告边界，不包括已经由你明确的预算和自动执行要求：
+
+1. **D1 第一批范围**：建议继续按当前登记的 38 个组合收口（36 个已有结果 + 2 个 Open-Jev×JEVal 缺失项），不临时扩展完整笛卡尔积。
+2. **D1 发布时点**：建议先发布已有 36 个组合，并把两个 Open-Jev×JEVal 保留为 `blocked/null`；E38 JEVal 完成后追加，不覆盖旧快照。
+3. **训练进入条件**：不需要再次确认。按你的 D1 指令，必须先完成参考结果汇报，再讨论并预注册 Jev 训练；D2 不设算力预算上限，D3/D4/D7 不纳入真实业务。
+
+在你回复前，我会继续执行不改变上述边界的工程工作：完成 v7 release-only 对抗审查；若通过，按 2B 释放后再串行启动 9B；若被 BLOCK，保留 2B 结果和 chip 4 allocation，修复后重新生成审查代次。任何分配表修改都只由经过审查的 release 事务完成。
+
 ## 7. 下一阶段任务计划
 
 ### P0：冻结当前状态并交付 D1 增量说明
@@ -283,14 +293,14 @@ REGISTERED
 **现在进行。**
 
 - 使用本文件和参考矩阵作为入口；保留 36/2 的计数、公式、分母、flags 和限制。
-- 把 E39 的有界通过、E38 的 BLOCK、release 的 BLOCK 分开写，不用一个“完成率”概括。
+- 把 E39 的有界通过、E38 v7 诊断通过、release 尚未完成 Astra 复审分开写，不用一个“完成率”概括。
 - 不启动训练，不读取未准入的 Open-Jev JEVal，不改变旧快照。
 
-出口：用户确认 D1 范围按当前登记矩阵收口，或明确要求扩展。
+出口：按当前登记矩阵形成可发布的 D1 增量说明；若用户明确要求扩展，再另立登记。
 
 ### P1：生成并审查新的 E38 target generation
 
-**依赖：当前 v7 CPU 证据和修复源码。**
+**状态：已完成。**
 
 - 工程侧生成 Open-Jev-2B 和 Open-Jev-9B 两份新 plan/request；不能继续使用被 BLOCK 的 v4 计划。
 - 生成新的 source manifest，包含固定镜像内实际 `modeling_qwen3_5.py`、`configuration_qwen3_5.py` 和 GDN 源码，以及全部 CPU 测试和逐项日志。
@@ -306,7 +316,7 @@ REGISTERED
 - 重新核对 allocation、Docker 容器、`npu-smi` 和 physical chip 4；不能只看分配文件里的 free。已完成 2B 的实时核验。
 - detached 启动 2B，保存 NPU heartbeat、逐 forward receipt、trace、report、terminal、EXIT 和实际容器退出。已完成 8/8 forward，容器 exit 0。
 - 独立 CPU verifier 读取 NPU 结果，验收 trace、分母、概率、flags、publication gap 和 generation binding。已完成，verifier exit 0。
-- 结果关闭后再执行经过新审查的 release；旧 release 工具仍被 Astra BLOCK，当前不得自动释放或修改 allocation。
+- 结果关闭后再执行经过新审查的 release；v7 release 工具已完成 before-state 绑定修复和 15 项纯 CPU 回归，但新的 Astra release-only 审查尚未完成，当前不得自动释放或修改 allocation。
 - 2B 完成并释放后，再串行启动 9B；不同时占用同一物理卡，也不把 2B 的结果身份复用于 9B。
 
 出口：2B 已有独立终态、诊断 receipt/trace、独立 verifier 和 wiki 记录；资源释放证据尚未闭合。9B 必须等待新 release 工具审查和 2B 释放后再启动。
@@ -317,7 +327,7 @@ REGISTERED
 - 使用 JEVal 已登记公式，若需要不同文献公式则并列输出，不事后改公式。
 - 做独立计分和实际 Astra 限定审查；更新 `REFERENCE-BASELINE-INCREMENT`，不覆盖旧矩阵。
 
-出口：原登记的 38 个组合都有“结果、blocked、not applicable 或未执行”的明确状态，D1 汇报可以完整解释。
+出口：先完成 2B/9B 的 JEVal 原生推理和独立验收；原登记的 38 个组合都有“结果、blocked、not applicable 或未执行”的明确状态，D1 汇报可以完整解释。
 
 ### P4：正式完成 D1 参考结果汇报
 
@@ -359,4 +369,12 @@ D3/D4/D7 下，收益目标限定为公开任务上的目标相关收益；不�
 - [E38 实际 Astra 执行审查](../experiments/ASTRA-E38-EXECUTION-V3-REVIEW-2026-10-31.md)
 - [E38 release-only 实际 Astra 审查](../experiments/ASTRA-E38-RELEASE-REVIEW-2026-10-31.md)
 - [E39 当前 Kev 复核](../experiments/LEGACY-KEV-DATED-REAUDIT-RESULTS-2026-10-31.md)
+
+## 10. 2026-10-31 E38 v7/2B 当前快照（追加）
+
+- Astra v8 实际审查已完成：`CHILD_EXIT.json`、`COMPLETE.json`、`EXIT` 和实质 `review.md` 均存在，child wait return code 为 0。结论是 **PASS for exact v7 plans only**，不包含实时资源、外部权重、JEVal 或训练收益授权。
+- 2B v7 已自动 detached 执行 8/8 预注册 forward，Docker exit 0；独立 CPU verifier detached exit 0，重建了 8 份 receipt/attempt，并核对 NPU exit generation、launch receipt、terminal 和 report 哈希。
+- 2B 诊断报告中 within-path repeat/hook controls 全部 exact；original 与 chunk8 跨路径差异可重复，最大 logit/probability/wire delta 分别为 `0.05192685127258301`、`0.00351450921098978`、`0.003765545583203328`，decision 未改变但 serialized prediction 非 exact。该结果只属于 E38 诊断，不能写成 JEVal 或训练收益。
+- 2B 的 chip 4 当前仍由 `CHIP-ALLOCATION.json` 分配给 `reference_inference/openjev_path_trace_openjev2_20261031_v7`；未执行手工 release。9B 未启动。
+- v7 release 工具已经加入 plan hash 与 parent-reviewed allocation before-state 绑定，纯 CPU 15 项回归通过；新的 Astra release-only review 尚未完成，故资源释放和 9B 启动仍是下一阶段门禁。
 
