@@ -100,20 +100,26 @@ def verify(path, pin, reviewed=True):
     engineering = p['schema'] == 'r3-engineering-k1-plan-v1'
     require(p['seed'] in (2, 3) and p['chip'] in (tuple(range(8)) if engineering else (1, 4)), 'unregistered seed/chip')
     model_name = Path(p['model']).name
+    formal_models = ('Qwen__Qwen3.5-0.8B-Base', 'Qwen__Qwen3.5-0.8B')
     require(model_name in (('Qwen__Qwen3.5-0.8B-Base', 'Qwen__Qwen3.5-2B-Base', 'Qwen__Qwen3.5-4B-Base', 'Qwen__Qwen3.5-9B-Base', 'Qwen__Qwen3.5-0.8B') if engineering
-                          else ('Qwen__Qwen3.5-0.8B-Base',)), 'model outside registered execution scope')
+                          else formal_models), 'model outside registered execution scope')
     pairs = '186' if model_name in ('Qwen__Qwen3.5-0.8B-Base','Qwen__Qwen3.5-0.8B') else '0'
     arm = p.get('arm', 'k1') if engineering else 'k1'
     require(arm in ('k1', 'k2'), 'unregistered loss arm')
     control_arm=p.get('control_arm')
     control_resume = engineering and p.get('validation_kind') == 'current_k1_resume_contract' and control_arm is not None
     if control_arm is not None:
-        require(engineering and control_arm in ('K1-QO','K1-PT') and arm=='k1'
+        require(control_arm in ('K1-QO','K1-PT') and arm=='k1'
                 and not p.get('k2_impl') and (not p.get('validation_kind') or control_resume), 'invalid engineering control recipe')
         model=CONTROL_MODELS[control_arm]
         seeds=[2] if control_arm=='K1-QO' else [2,3]
         mode='drop' if control_arm=='K1-QO' else 'full'
         require(p['model']==model and type(p['seed']) is int and p['seed'] in seeds,'control model/seed differs')
+        if not engineering:
+            require(p['schema'] == 'r3-formal-k1-plan-v1' and p.get('control', {}).get('candidate_for_adoption') is False,
+                    'formal control provenance differs')
+            require(isinstance(p.get('container'), str) and f'formal-{control_arm.lower()}-s{p["seed"]}-' in p['container'],
+                    'formal control container identity differs')
         require(p.get('control')=={'control_arm':control_arm,'candidate_for_adoption':False,
                 'primary_input_mode':mode,'registered_seeds':seeds},'control identity differs')
         require(all(p.get('evaluation',{}).get(k)==v for k,v in p['control'].items()),'control evaluation differs')
@@ -174,7 +180,9 @@ def verify(path, pin, reviewed=True):
         spec = importlib.util.spec_from_file_location('formal_training_evidence', helper_path)
         helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
         evidence = helper.validate(p['training_evidence'], p['training_evidence_sha256'],
-                                   p['code'], p['model'], p['train_file'], p['image_sha256'])
+                                   p['code'], p['model'], p['train_file'], p['image_sha256'],
+                                   control_arm=control_arm,
+                                   input_mode=(p.get('control') or {}).get('primary_input_mode', 'full'))
         require(all(p['files'].get(f) == h for f,h in evidence.items()), 'training evidence dependencies not bound')
     if p['schema'] == 'r3-engineering-k1-plan-v1':
         require(p.get('execution_scope') == 'engineering_only' and p.get('scientific_acceptance') is False

@@ -28,13 +28,13 @@ def write(path, value):
     Path(path).write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 
-def control_settings(control_arm, *, engineering, model, seed, arm, shared, validate_shared):
+def control_settings(control_arm, *, engineering, model, seed, arm, shared, validate_shared, formal=False):
     if control_arm is None:
         if Path(model) == PT_MODEL:
             raise ValueError('instruct checkpoint requires explicit K1-PT control')
         return None
-    if control_arm not in ('K1-QO', 'K1-PT') or not engineering or arm != 'k1' or shared or validate_shared:
-        raise ValueError('controls require engineering K1 reference recipe')
+    if control_arm not in ('K1-QO', 'K1-PT') or (not engineering and not formal) or arm != 'k1' or shared or validate_shared:
+        raise ValueError('controls require K1 reference recipe')
     expected_model = MODEL if control_arm == 'K1-QO' else PT_MODEL
     seeds = (2,) if control_arm == 'K1-QO' else (2, 3)
     if Path(model) != expected_model or type(seed) is not int or seed not in seeds:
@@ -44,13 +44,23 @@ def control_settings(control_arm, *, engineering, model, seed, arm, shared, vali
             'registered_seeds':list(seeds)}
 
 
+def formal_control_container(out, control_arm, seed):
+    """Bind a distinct retained container namespace to each fresh control generation."""
+    suffix = hashlib.sha256(str(Path(out).absolute()).encode()).hexdigest()[:16]
+    return f'nga-r3-formal-{control_arm.lower()}-s{seed}-{suffix}'
+
+
 def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False, fresh_prechecks=None, fresh_prechecks_sha256=None, training_evidence=None, training_evidence_sha256=None, resume_plan=None, resume_plan_sha256=None, control_arm=None, resume_reconstruction=None, resume_reconstruction_sha256=None, reconstruction_target=None, reconstruction_target_sha256=None):
     control = control_settings(control_arm, engineering=engineering, model=model, seed=seed,
-                               arm=arm, shared=shared, validate_shared=validate_shared)
+                               arm=arm, shared=shared, validate_shared=validate_shared, formal=not engineering)
     if arm not in ('k1', 'k2'):
         raise ValueError('unsupported loss arm')
-    if not engineering and (model != MODEL or stop_after or arm != 'k1' or shared):
+    if not engineering and (Path(model) != (PT_MODEL if control_arm == 'K1-PT' else MODEL)
+                            or stop_after or arm != 'k1' or shared or validate_shared):
         raise ValueError('formal recipe cannot be overridden')
+    if not engineering and (type(chip) is not int or chip not in (1, 4)
+                            or type(seed) is not int or seed not in (2, 3)):
+        raise ValueError('unregistered formal seed/chip')
     fresh = None
     if not engineering:
         if not fresh_prechecks or not fresh_prechecks_sha256:
@@ -98,7 +108,9 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
     if not engineering:
         spec = importlib.util.spec_from_file_location('training_evidence', ROOT/'tools/r3_training_evidence.py')
         helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
-        training_files = helper.validate(training_evidence, training_evidence_sha256, code, model, TRAIN, IMAGE)
+        training_files = helper.validate(training_evidence, training_evidence_sha256, code, model, TRAIN, IMAGE,
+                                        control_arm=control_arm,
+                                        input_mode=control['primary_input_mode'] if control else 'full')
         shutil.copy2(ROOT/'tools/r3_training_evidence.py', tool_dir/'r3_training_evidence.py')
     if not engineering:
         for name in ('r3_resume_evidence.py', 'r3_resume_reconstruction_evidence.py'):
@@ -139,6 +151,13 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
             'evaluation': {'seeds': [2, 3], 'decision_dev_min': .80, 'transfer_dev_min': .60,
                            'max_k0_regression_pp': 1.0, 'test_requires_separate_final_ticket': True},
             'engineering_evidence': str(BASE / 'r3_runs/formal_k1_prechecks_20261031/V12_REVERIFICATION.json'), 'engineering_evidence_scope': 'retrospective CPU recomputation; not independent Astra acceptance'}
+    if control:
+        plan.update(control_arm=control_arm, control=control)
+        plan['evaluation'].update(control_arm=control_arm, primary_input_mode=control['primary_input_mode'],
+                                  candidate_for_adoption=False, registered_seeds=control['registered_seeds'],
+                                  seeds=control['registered_seeds'])
+        if not engineering:
+            plan['container'] = formal_control_container(out, control_arm, seed)
     if not engineering:
         spec = importlib.util.spec_from_file_location('resume_evidence', ROOT/'tools/r3_resume_evidence.py')
         helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
@@ -168,7 +187,7 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
                     container=f'nga-r3-eng-{out.parent.name}-s{seed}', stop_after=stop_after, arm=arm,
                     evaluation={'candidate_test_forbidden': True, 'formal_acceptance_requires_new_review': True})
     if control:
-        plan.update(control_arm=control_arm, control=control)
+        # Engineering scope replacement above needs the same explicit control metadata.
         plan['evaluation'].update(control_arm=control_arm, primary_input_mode=control['primary_input_mode'],
                                   candidate_for_adoption=False, registered_seeds=control['registered_seeds'])
     if shared:
@@ -220,11 +239,15 @@ def main():
     ap.add_argument('--resume-reconstruction-sha256')
     ap.add_argument('--reconstruction-target')
     ap.add_argument('--reconstruction-target-sha256')
+    ap.add_argument('--control-arm', choices=('K1-QO','K1-PT'))
+    ap.add_argument('--model')
     args = ap.parse_args()
     parent = Path(args.parent)
-    print(json.dumps([prepare(parent / f'seed{seed}', seed, chip, args.engineering, fresh_prechecks=args.fresh_prechecks, fresh_prechecks_sha256=args.fresh_prechecks_sha256, training_evidence=args.training_evidence, training_evidence_sha256=args.training_evidence_sha256, resume_plan=args.resume_plan, resume_plan_sha256=args.resume_plan_sha256,
+    model = Path(args.model) if args.model else (PT_MODEL if args.control_arm == 'K1-PT' else MODEL)
+    seeds = (2,) if args.control_arm == 'K1-QO' else (2,3)
+    print(json.dumps([prepare(parent / f'seed{seed}', seed, chip, args.engineering, model=model, control_arm=args.control_arm, fresh_prechecks=args.fresh_prechecks, fresh_prechecks_sha256=args.fresh_prechecks_sha256, training_evidence=args.training_evidence, training_evidence_sha256=args.training_evidence_sha256, resume_plan=args.resume_plan, resume_plan_sha256=args.resume_plan_sha256,
         resume_reconstruction=args.resume_reconstruction, resume_reconstruction_sha256=args.resume_reconstruction_sha256,
-        reconstruction_target=args.reconstruction_target, reconstruction_target_sha256=args.reconstruction_target_sha256) for seed, chip in ((2, 1), (3, 4))], indent=2))
+        reconstruction_target=args.reconstruction_target, reconstruction_target_sha256=args.reconstruction_target_sha256) for seed, chip in zip(seeds, (1, 4))], indent=2))
 
 
 if __name__ == '__main__':
