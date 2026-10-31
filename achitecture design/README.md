@@ -12,7 +12,7 @@ This directory holds the owner-supplied enterprise architecture baseline and NGA
 
 **Current integration proposal:** [NGA and enterprise IT capability boundaries](19-business-system-capability-boundary.md) places NGA over authorized business operations while the owning IT system retains its domain rules, data and commit authority. It distinguishes delegated semantic judgment, request continuity and agent replay from provider-internal execution.
 
-**Current AQ-01/AQ-02 discussion:** [Task, decision and business-request identity](20-task-decision-request-identity.md) applies the accepted integration boundary to task completion, question/revision identity, fixed operation requests, new evidence, applicable rules, replanning and retries. Its eighteen adversarial cases keep the provider's internals outside NGA's design; detailed answers remain proposals.
+**Current AQ-01/AQ-02 discussion:** [Task, decision and business-request identity](20-task-decision-request-identity.md) applies the accepted integration boundary to task completion, question/revision identity, fixed requests and changes. Following owner feedback, normal execution waits for the API result; concurrent revision is an explicit branch, and cancellation/reversal requires native capabilities or qualified composition. Its eighteen adversarial cases keep provider internals outside NGA's design; detailed mechanisms remain proposals.
 
 ## Reading order and document status
 

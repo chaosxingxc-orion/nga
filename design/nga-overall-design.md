@@ -230,9 +230,11 @@ A typical path is **propose → observe/verify → assess → adopt → dispatch
 4. Obtain S1 observations and any required independent checks.
 5. Apply the registered decision policy and record the adoption or exception.
 6. Admit and dispatch actions only when dependencies, current authorization, and execution conditions hold.
-7. Record confirmed or unresolved outcomes; resume, reconcile, or compensate under the contract.
+7. Wait for the declared API result using a correlated framework event/time primitive, then record and resume. A synchronous terminal response can satisfy the wait immediately; an asynchronous receipt can establish a longer wait. Preserve waiting across restarts without resubmission. Record incoming evidence for the next decision boundary unless an explicit interruption policy applies; timer expiry is not external failure or cancellation.
 
 A high S1 score cannot relax permission, approval, or budget constraints. S2 explanations are recorded proposals, not replacements for missing evidence.
+
+Cancellation or reversal is a separate requested/policy-authorized branch. Use the provider's native capability or an admitted composition of supported operations with explicit recovery outcomes, preconditions and partial-failure handling. Compensation need not restore the original state or be atomic. If no qualified path exists, declare reversal unsupported rather than writing business fields directly. See [waiting and recovery contracts](../achitecture%20design/20-task-decision-request-identity.md#4-normal-waiting-explicit-interruption-and-qualified-recovery).
 
 ### 7.2 Identity and duplicate handling
 
