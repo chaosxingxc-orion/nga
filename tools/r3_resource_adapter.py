@@ -148,6 +148,33 @@ def claim(args):
     except FileNotFoundError: pass
     print(json.dumps({"status": "CLAIMED", "chip": args.chip, "run": args.run, "proof": args.proof}))
 
+def abort_claim(args):
+    """Undo a claim when no container was created; never infer from npu-smi."""
+    alloc = validated_path(args.alloc); claim = load(args.claim)
+    if claim.get("schema") != "r3-resource-claim-v1" or claim.get("chip") != args.chip or claim.get("run") != args.run:
+        raise RuntimeError("claim identity differs")
+    if docker_inspect(args.container) is not None:
+        raise RuntimeError("container exists; use guarded release")
+    if live_chip_conflict(args.chip, args.container):
+        raise RuntimeError("live container still owns device")
+    with locked(alloc):
+        before_raw = read_bytes(alloc); before = json.loads(before_raw); validate_doc(before)
+        owners = [e for e in before["allocation"] if e.get("chip") == args.chip and e.get("run") == args.run]
+        if len(owners) != 1 or any(e.get("chip") == args.chip for e in before["free"]):
+            raise RuntimeError("claim ownership differs")
+        after = dict(before)
+        after["allocation"] = [e for e in before["allocation"] if e is not owners[0]]
+        after["free"] = sorted(before["free"] + [{"chip": args.chip, "previous_run": args.run, "release_evidence": str(Path(args.proof).resolve()), "released_utc": utc()}], key=lambda e: e["chip"])
+        after["updated_utc"], after["updated_by"] = utc(), "r3_resource_adapter abort_claim"
+        intent = {"schema":"r3-resource-abort-intent-v1","run":args.run,"chip":args.chip,"allocation_before":before,"allocation_before_sha256":sha_bytes(before_raw),"allocation_after":after,"allocation_after_sha256":sha_bytes((json.dumps(after,indent=2,sort_keys=True,allow_nan=False)+"\n").encode()),"proof":str(Path(args.proof).resolve())}
+        write_atomic(Path(args.proof).with_suffix(Path(args.proof).suffix+".intent"), intent)
+        after_hash = write_atomic(alloc, after)
+        proof={"schema":"r3-resource-abort-v1","run":args.run,"chip":args.chip,"scientific_acceptance":False,"allocation_before_sha256":sha_bytes(before_raw),"allocation_after_sha256":after_hash,"allocation_before":before,"allocation_after":after,"aborted_utc":utc()}
+    write_atomic(args.proof, proof)
+    try: Path(args.proof).with_suffix(Path(args.proof).suffix+".intent").unlink()
+    except FileNotFoundError: pass
+    print(json.dumps({"status":"CLAIM_ABORTED","chip":args.chip,"run":args.run,"proof":args.proof}))
+
 def docker_inspect(name):
     p = subprocess.run(["docker", "inspect", name], capture_output=True, text=True, check=False)
     if p.returncode: return None
@@ -226,7 +253,8 @@ def release(args):
 def main(argv=None):
     p = argparse.ArgumentParser(); sub = p.add_subparsers(dest="op", required=True)
     c = sub.add_parser("claim"); c.add_argument("--alloc", default=ALLOC_DEFAULT); c.add_argument("--run", required=True); c.add_argument("--chip", type=int, required=True); c.add_argument("--owner", required=True); c.add_argument("--purpose", required=True); c.add_argument("--proof", required=True)
+    a = sub.add_parser("abort"); a.add_argument("--alloc", default=ALLOC_DEFAULT); a.add_argument("--run", required=True); a.add_argument("--chip", type=int, required=True); a.add_argument("--container", required=True); a.add_argument("--claim", required=True); a.add_argument("--proof", required=True)
     r = sub.add_parser("release"); r.add_argument("--alloc", default=ALLOC_DEFAULT); r.add_argument("--run", required=True); r.add_argument("--chip", type=int, required=True); r.add_argument("--container", required=True); r.add_argument("--claim", required=True); r.add_argument("--proof", required=True)
-    a = p.parse_args(argv); return claim(a) if a.op == "claim" else release(a)
+    a = p.parse_args(argv); return claim(a) if a.op == "claim" else abort_claim(a) if a.op == "abort" else release(a)
 
 if __name__ == "__main__": raise SystemExit(main())
