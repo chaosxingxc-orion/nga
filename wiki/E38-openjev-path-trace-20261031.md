@@ -320,3 +320,22 @@ failure fixtures; none invokes a model or touches experimental resources.
 
 This entry preregisters the review preparation only. There is no new Astra PASS,
 resource release, 9B launch, full JEVal score or training result at this entry.
+
+### 2026-10-31T03:22Z — actual release-only Astra v3 launched
+
+New bundle `e38_release_candidate_20261031_v5` has manifest SHA256
+`2d42456545fbe8dffee0f1261d130340c5ededc82e3786531ff89ed310a7a685`.
+The parent independently verified full membership/hashes, 53/53 separate CPU
+test records and equality of the release/helper/test/runner bytes with the
+working tree. Earlier bundle v3 failed four isolated tests because its copied
+layout omitted the preregistration file used by the fixture; failed snapshots
+v3/v4 were retained, and v5 includes the relative-path dependency. Assertions
+were not relaxed.
+
+Actual `codex exec --model gpt-6-astra --sandbox read-only` is running under
+`e38_release_astra_20261031_v3`, runner PID 1747245, child PID 1747246. Both were
+observed alive after detached launch; the digest was updating. This records
+execution only, not a verdict. The source change is commit `af6df98`. Release
+tool SHA256 is `df285d1f7555ad7e4fd4af3abddc1a3214439f1fd26496c07bec8872df751591`;
+evidence helper SHA256 is `12a5e895d6fa16df0506418dfbad0affe584cd06e62993a40bee0b4d86ee5b77`.
+Chip 4 has not been released; 9B has not launched.
