@@ -1505,8 +1505,10 @@ func fieldByPath(root reflect.Value, path string) reflect.Value {
 
 // TestOpenRejectsSeqDomainShapes pins the machine path for the seq family's
 // two rejection facets that had only fixture-side pins (R15 m-2): an
-// integer-syntax seq beyond int64, and float syntax beyond ±2^53 — each a
-// unique-rejector shape with its own error text.
+// integer-syntax seq beyond int64, and float syntax beyond ±2^53. Both
+// shapes reject at the typed-parse boundary with one shared message; the
+// per-facet texts live on the fixture/checker path (ledger.Errors's int64
+// and float-syntax rules).
 func TestOpenRejectsSeqDomainShapes(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "adopt.jsonl")
 	m := mustOpen(t, path)
@@ -1536,9 +1538,8 @@ func TestOpenRejectsSeqDomainShapes(t *testing.T) {
 		t.Fatal("int64-overflow seq line was absorbed at load")
 	}
 	// this facet rejects at the typed-parse boundary (an EARLIER gate than
-	// the checker's int64-domain rule, whose message the fixture pins);
-	// either way the machine path refuses the shape
-	if !strings.Contains(err.Error(), "int64") && !strings.Contains(err.Error(), "not an event") {
+	// the checker's int64-domain rule, whose message the fixture pins)
+	if !strings.Contains(err.Error(), "not an event") {
 		t.Fatalf("int64-overflow rejection came from an unexpected rule (error: %v)", err)
 	}
 	// float syntax beyond ±2^53
@@ -1552,8 +1553,8 @@ func TestOpenRejectsSeqDomainShapes(t *testing.T) {
 	}
 	// same as the int64 facet: the typed-parse boundary refuses the shape
 	// before the checker's float-syntax rule sees it (that message the
-	// fixture pins) — either gate means the machine path refuses
-	if !strings.Contains(err.Error(), "float syntax") && !strings.Contains(err.Error(), "not an event") {
+	// fixture pins)
+	if !strings.Contains(err.Error(), "not an event") {
 		t.Fatalf("float-syntax rejection came from an unexpected rule (error: %v)", err)
 	}
 }
