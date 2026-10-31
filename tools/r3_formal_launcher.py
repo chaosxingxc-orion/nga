@@ -64,6 +64,17 @@ def verify_fresh_prechecks(p):
             'fresh precheck dependencies not bound')
 
 
+def verify_resume_evidence(p):
+    import importlib.util
+    helper_path = Path(__file__).with_name('r3_resume_evidence.py')
+    require(str(helper_path) in p['files'], 'resume evidence verifier not pinned')
+    require(p.get('resume_plan') in p['files'] and p.get('resume_plan_sha256'), 'resume plan not bound')
+    spec = importlib.util.spec_from_file_location('formal_resume_evidence', helper_path)
+    helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+    evidence = helper.validate(p['resume_plan'], p['resume_plan_sha256'], p)
+    require(all(p['files'].get(f) == h for f,h in evidence.items()), 'resume evidence dependencies not bound')
+
+
 def verify(path, pin, reviewed=True):
     p = load(path)
     require(identity(p) == pin, 'plan identity changed')
@@ -109,6 +120,7 @@ def verify(path, pin, reviewed=True):
     source_files = {str(f) for f in Path(p['code']).rglob('*') if f.is_file()}
     require(source_files == {f for f in p['files'] if f.startswith(p['code'] + '/')}, 'code closure inventory mismatch')
     if not engineering:
+        verify_resume_evidence(p)
         verify_fresh_prechecks(p)
         import importlib.util
         helper_path = Path(__file__).with_name('r3_training_evidence.py')

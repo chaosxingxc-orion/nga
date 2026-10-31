@@ -27,7 +27,7 @@ def write(path, value):
     Path(path).write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 
-def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False, fresh_prechecks=None, fresh_prechecks_sha256=None, training_evidence=None, training_evidence_sha256=None):
+def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False, fresh_prechecks=None, fresh_prechecks_sha256=None, training_evidence=None, training_evidence_sha256=None, resume_plan=None, resume_plan_sha256=None):
     if arm not in ('k1', 'k2'):
         raise ValueError('unsupported loss arm')
     if not engineering and (model != MODEL or stop_after or arm != 'k1' or shared):
@@ -41,6 +41,8 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
         fresh = helper.validate_bundle(fresh_prechecks, fresh_prechecks_sha256, model)
         if not training_evidence or not training_evidence_sha256:
             raise ValueError('formal preparation requires pinned augmentation/LoRA evidence')
+        if not resume_plan or not resume_plan_sha256:
+            raise ValueError('formal preparation requires a pinned completed NPU resume plan')
     out.mkdir(parents=True, exist_ok=False)
     code = out / 'code'
     code.mkdir()
@@ -76,6 +78,9 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
         helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
         training_files = helper.validate(training_evidence, training_evidence_sha256, code, model, TRAIN, IMAGE)
         shutil.copy2(ROOT/'tools/r3_training_evidence.py', tool_dir/'r3_training_evidence.py')
+    if not engineering:
+        for name in ('r3_resume_evidence.py',):
+            shutil.copy2(ROOT/'tools'/name, tool_dir/name)
     prereg = ROOT / '.local/archive/2026-10-31/experiments'
     for name in ('R3-SFT-PREREG.md', 'R3-TRAINING-WAVE-PREREG-2026-10-31.md'):
         shutil.copy2(prereg / name, out / name)
@@ -110,6 +115,11 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
             'evaluation': {'seeds': [2, 3], 'decision_dev_min': .80, 'transfer_dev_min': .60,
                            'max_k0_regression_pp': 1.0, 'test_requires_separate_final_ticket': True},
             'engineering_evidence': str(BASE / 'r3_runs/formal_k1_prechecks_20261031/V12_REVERIFICATION.json'), 'engineering_evidence_scope': 'retrospective CPU recomputation; not independent Astra acceptance'}
+    if not engineering:
+        spec = importlib.util.spec_from_file_location('resume_evidence', ROOT/'tools/r3_resume_evidence.py')
+        helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+        plan.update(resume_plan=str(Path(resume_plan).absolute()), resume_plan_sha256=resume_plan_sha256)
+        plan['files'].update(helper.validate(plan['resume_plan'], resume_plan_sha256, plan))
     if training_files:
         plan.update(training_evidence=str(Path(training_evidence).resolve()), training_evidence_sha256=training_evidence_sha256)
         plan['files'].update(training_files)
@@ -162,9 +172,11 @@ def main():
     ap.add_argument('--fresh-prechecks-sha256')
     ap.add_argument('--training-evidence')
     ap.add_argument('--training-evidence-sha256')
+    ap.add_argument('--resume-plan')
+    ap.add_argument('--resume-plan-sha256')
     args = ap.parse_args()
     parent = Path(args.parent)
-    print(json.dumps([prepare(parent / f'seed{seed}', seed, chip, args.engineering, fresh_prechecks=args.fresh_prechecks, fresh_prechecks_sha256=args.fresh_prechecks_sha256, training_evidence=args.training_evidence, training_evidence_sha256=args.training_evidence_sha256) for seed, chip in ((2, 1), (3, 4))], indent=2))
+    print(json.dumps([prepare(parent / f'seed{seed}', seed, chip, args.engineering, fresh_prechecks=args.fresh_prechecks, fresh_prechecks_sha256=args.fresh_prechecks_sha256, training_evidence=args.training_evidence, training_evidence_sha256=args.training_evidence_sha256, resume_plan=args.resume_plan, resume_plan_sha256=args.resume_plan_sha256) for seed, chip in ((2, 1), (3, 4))], indent=2))
 
 
 if __name__ == '__main__':
