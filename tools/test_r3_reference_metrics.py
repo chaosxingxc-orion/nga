@@ -4,6 +4,7 @@ import json
 import math
 from pathlib import Path
 import random
+import sys
 import unittest
 
 HERE = Path(__file__).parent
@@ -49,6 +50,8 @@ class Metrics(unittest.TestCase):
         d = M.summarize([[0., -10000.]], [1])
         self.assertEqual((d['nll'],d['brier_sum'],d['ece10']), (10000.,2.,1.))
         self.assertEqual(M.summarize([[0., -1e308]]*2, [1,1])['nll'], 1e308)
+        row=[-1., -sys.float_info.max]
+        self.assertEqual(M.summarize([row]*3,[1]*3)['nll'], M.summarize([row],[1])['nll'])
         a = M.summarize([[0., -4., -3.]], [2]); b = M.summarize([[1e12, 1e12-4, 1e12-3]], [2])
         self.assertEqual(a,b)
         d = M.summarize([[0., 1e-20]], [1])

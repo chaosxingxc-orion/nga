@@ -4,6 +4,7 @@ Specification: experiments/R3-REFERENCE-METRICS-SUPPLEMENT-2026-11-01.md.
 The caller must independently verify population and source provenance.
 """
 import math
+from fractions import Fraction
 
 SPECIFICATION_SHA256 = 'd400164a5dd2a75e62150eb46d02c7aeaeb164b011a82912f025949b82f99fed'
 EDGES = tuple(i * .1 for i in range(10)) + (1.,)
@@ -67,11 +68,12 @@ def summarize(scores, gold):
         briers.append(math.fsum((p - int(i == y)) ** 2 for i, p in enumerate(probabilities)))
         losses.append(loss)
     n = len(scores)
-    # Divide first to avoid overflowing a sum whose mean is representable.
+    # Fast path; division rounding can still overflow at binary64's maximum.
+    # Exact rational fallback preserves any representable finite mean.
     try:
         nll = math.fsum(x / n for x in losses)
-    except OverflowError as error:
-        raise ValueError('unrepresentable mean NLL') from error
+    except OverflowError:
+        nll = float(sum((Fraction.from_float(x) for x in losses), Fraction()) / n)
     require(math.isfinite(nll), 'unrepresentable mean NLL')
     ece, bins = ece10(correct, confidence)
     return {'schema': 'r3-reference-probability-metrics-v1', 'n': n, 'temperature': 1,
