@@ -157,7 +157,10 @@ func CheckCoverage(log *Log, decl Declaration) CoverageReport {
 			rep.Unaccounted = append(rep.Unaccounted, e.Tool+"|"+e.Selector)
 		}
 	}
-	rep.OK = len(rep.Missing) == 0
+	// OK requires BOTH directions clean: no claimed-but-absent query (Missing)
+	// and no queried-but-unlisted selector on the declared tool (a hidden
+	// exclusion — "沉默的零 vs 声明的零" are different audit facts)
+	rep.OK = len(rep.Missing) == 0 && len(rep.Unaccounted) == 0
 	return rep
 }
 

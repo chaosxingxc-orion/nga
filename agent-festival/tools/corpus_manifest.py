@@ -11,7 +11,7 @@ between the comment and the next section header.
 import json
 from pathlib import Path
 
-FAMILIES = ["ledger", "adoption", "judgment", "release", "replay", "compose"]
+FAMILIES = ["ledger", "adoption", "judgment", "release", "replay", "compose", "evidlog"]
 
 def _count(pattern: str) -> int:
     return len(list(Path("schema/examples").glob(pattern)))

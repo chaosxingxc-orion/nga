@@ -1,6 +1,6 @@
 # Conformance 夹具格式与跨语言消费指南
 
-> 目的：本仓 195 件 JSON 夹具（全仓含密钥库；六增长族 141 件——三种口径见机生成清单）是**可执行行为规格**（executable behavior spec），不是静态测试数据。本文定义夹具格式、钉子纪律、双 oracle lockstep 模式，以及任何语言（包括 NGA Java SDK）如何消费同一批夹具做 conformance 验证。这是 issue #1 碰撞回应提议 1（"95 夹具升格跨语言 conformance 基准"）的落地说明。
+> 目的：本仓 200 件 JSON 夹具（全仓含密钥库；增长族 142 件——三种口径见机生成清单）是**可执行行为规格**（executable behavior spec），不是静态测试数据。本文定义夹具格式、钉子纪律、双 oracle lockstep 模式，以及任何语言（包括 NGA Java SDK）如何消费同一批夹具做 conformance 验证。这是 issue #1 碰撞回应提议 1（"95 夹具升格跨语言 conformance 基准"）的落地说明。
 >
 > 先例：langgraph 的 checkpoint-conformance 套件、本仓 Python/Go 双 oracle（17+5 轮空白审查验证）——"夹具即规范"已被三方独立到达。
 
@@ -8,11 +8,12 @@
 
 | 目录 | 内容 | 计数（D93 双侧钉） |
 |---|---|---|
-| `schema/examples/ledger/{valid,invalid}` | 事件账本文档 | 9 + 26 |
+| `schema/examples/ledger/{valid,invalid}` | 事件账本文档 | 10 + 26 |
 | `schema/examples/adoption/{valid,invalid}` | 采纳请求文档 | 2 + 5 |
 | `schema/examples/judgment/{valid,invalid}` | 判断规格文档 | 2 + 19 |
 | `schema/examples/release/{valid,invalid}` | 发布清单文档 | 3 + 14 |
 | `schema/examples/replay/{valid,invalid}` | 重放用例文档（件6） | 8 + 7 |
+| `schema/examples/evidlog/{valid,invalid}` | 取证日志文档（件7 spike） | 1 + 3 |
 | `schema/examples/compose/{valid,invalid}` | 执行图（基座件1） | 10 + 36 |
 | `schema/examples/{valid,invalid,envelopes,keys}` | 基座契约/信封/密钥库 | 其余 |
 
@@ -23,15 +24,16 @@
      python3 tools/corpus_manifest.py (do not hand-edit counts below) -->
 | 族 | valid + invalid |
 |---|---|
-| `ledger` | 9 + 26 |
+| `ledger` | 10 + 26 |
 | `adoption` | 2 + 5 |
 | `judgment` | 2 + 19 |
 | `release` | 3 + 14 |
 | `replay` | 8 + 7 |
 | `compose` | 10 + 36 |
-| 增长族合计 | 141 |
+| `evidlog` | 1 + 3 |
+| 增长族合计 | 146 |
 | 基座契约/信封 | 50 |
-| 全仓合计（含密钥库） | 195 |
+| 全仓合计（含密钥库） | 200 |
 
 ## 二、夹具的钉子语法
 
@@ -61,7 +63,7 @@
 | 侧 | 验证器 | 运行方式 |
 |---|---|---|
 | Python | `schema/{ledger,adoption,judgment,release}.py`（jsonschema）+ 共享 harness `_suite.py` | `python3 schema/<name>.py` |
-**判定域声明（0.2.0 合同文本，RFC 8785 规范级先例）**：浮点语法的 arbitration_seq 以 **float64 判定域**判定（RFC 8785 把数域钉为 ES double），不以精确十进制判定——奇数孪生夹具 seq-odd-float-twin 钉住此语义（9007199254740993.0 折损为 ..992 仍严格递增=双侧 ACCEPT；精确十进制读者会判 ..993.0 > ..994 而 REJECT）。
+**判定域声明（0.2.0 合同文本，RFC 8785 规范级先例）**：浮点语法的 arbitration_seq 以 **float64 判定域**判定（RFC 8785 把数域钉为 ES double），不以精确十进制判定。奇数孪生夹具 seq-odd-float-twin 钉住折损语义：字面量 9007199254740993.0（2^53+1，float64 不可精确表示）被判定域读取为偶数孪生 ..992——序列 [..991, ..993.0(读作 ..992), ..994] 在两域均严格递增但**经不同路径**；两域的判决分叉面由 float-beyond-2^53（float64 域拒、精确域不拒此规则）与 int64-overflow（typed 域拒）两个拒绝侧夹具各自钉住。
 
 | Go | `cmd/{ledger,adopt,judgment,release}`（santhosh+regexp2 经 internal/schemalib）+ 共享 runner `internal/suite` | `go run ./cmd/<name>` |
 

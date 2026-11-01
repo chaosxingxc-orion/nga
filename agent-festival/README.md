@@ -64,5 +64,5 @@ agent-festival/
 |   |-- internal/validate/  # 契约/信封/密钥库校验（双引擎 fail-closed）
 |   |-- internal/compose/   # 图合成+⊆准入+预算切分
 |   `-- cmd/{validate,compose,sign}/
-`-- schema/                 # 三 schema + 95 夹具 + Python 冻结 oracle
+`-- schema/                 # 三 schema + 200 夹具 + Python 冻结 oracle
 ```

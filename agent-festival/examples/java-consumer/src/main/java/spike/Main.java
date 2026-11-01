@@ -34,7 +34,7 @@ public final class Main {
         FORMAT_DOC_CLAIMS.put("ledger", new int[] {10, 26});
         FORMAT_DOC_CLAIMS.put("adoption", new int[] {2, 5});
         FORMAT_DOC_CLAIMS.put("judgment", new int[] {2, 19});
-        FORMAT_DOC_CLAIMS.put("release", new int[] {2, 9});
+        FORMAT_DOC_CLAIMS.put("release", new int[] {2, 9}); // the PRE-E1 header claim, kept as the stale-detection probe (E1 fixed the doc to 3+14)
     }
 
     public static void main(String[] args) throws Exception {
@@ -125,7 +125,7 @@ public final class Main {
         // file plus an invalid/ subdir — both are machine-discovered here,
         // which is the point of a generated manifest)
         List<String> splitDirs = List.of("ledger", "adoption", "judgment", "release",
-                "compose", "replay", "envelopes");
+                "compose", "replay", "evidlog", "envelopes");
         int total = 0;
         for (String fam : splitDirs) {
             int v = countJson(ex.resolve(fam + "/valid"));
@@ -150,9 +150,9 @@ public final class Main {
             System.out.printf("%-28s %12d %15s %18s%n", d, n, "-", "-");
         }
         System.out.println("total actual = " + total
-                + "   (format-doc header claims 170; collision-response era claim was 95)");
-        if (total != 196) {
-            System.out.println("COUNT-FAIL: total drifted from the 196 pinned by this spike");
+                + "   (format-doc machine manifest now carries the live counts; the 2+9 probe column above is the pre-E1 historical claim kept deliberately to prove this detector can see staleness — E1 already healed the doc)");
+        if (total != 200) {
+            System.out.println("COUNT-FAIL: total drifted from the 200 pinned by this spike");
             bad++;
         }
         return bad;

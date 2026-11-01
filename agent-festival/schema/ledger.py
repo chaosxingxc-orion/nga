@@ -86,8 +86,8 @@ def ledger_errors(doc: dict) -> list[str]:
             continue
         op, dig = idem["operation_id"], idem["payload_digest"]
         if op in seen and seen[op] != dig:
-            errs.append(f"events: operation_id {op!r} carries payload_digest {dig!r} "
-                        f"[LEDGER.DIGEST_CHANGED_UNDER_KEY] but an earlier event recorded {seen[op]!r} — changed payload under the same key")
+            errs.append(f"[LEDGER.DIGEST_CHANGED_UNDER_KEY] events: operation_id {op!r} carries payload_digest {dig!r} "
+                        f"but an earlier event recorded {seen[op]!r} — changed payload under the same key")
         seen[op] = dig
     # cross-event rule: arbitration_seq in float syntax beyond ±2^53 — the
     # value a parser recovers depends on its float rounding (Python's
@@ -130,8 +130,8 @@ def ledger_errors(doc: dict) -> list[str]:
     # completed-before-dispatched and the machine resumes from a state it
     # can never be in (R3 M-1, mirrors the Go checker).
     def not_a_transition(i: int, op: str, status: str, from_state: str) -> str:
-        return (f"events/{i}: operation {op!r}: status {status!r} after "
-                f"[LEDGER.ILLEGAL_TRANSITION] {from_state or 'nothing'!r} is not a legal state-machine transition — "
+        return (f"[LEDGER.ILLEGAL_TRANSITION] events/{i}: operation {op!r}: status {status!r} after "
+                f"{from_state or 'nothing'!r} is not a legal state-machine transition — "
                 f"a bypass write into the ledger, not a machine transition")
 
     state: dict[str, str] = {}
@@ -218,8 +218,8 @@ def ledger_errors(doc: dict) -> list[str]:
                                 f"(a bypass write, not a machine transition)")
                 adopted.add(op)
             elif op not in adopted:
-                errs.append(f"events/{i}: {e['event_type']} event for operation {op!r} "
-                            f"[LEDGER.EVENT_BEFORE_ADOPTION] precedes its adopted event — a bypass write into the ledger, "
+                errs.append(f"[LEDGER.EVENT_BEFORE_ADOPTION] events/{i}: {e['event_type']} event for operation {op!r} "
+                            f"precedes its adopted event — a bypass write into the ledger, "
                             f"not a machine transition")
         elif op not in adopted:
             errs.append(f"events/{i}: effect event for operation {op!r} precedes its adopted "
