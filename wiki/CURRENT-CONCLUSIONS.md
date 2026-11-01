@@ -21,6 +21,8 @@ DecisionRobust image and other multimodal collections will use a separate matrix
 
 The detailed scope and execution order are in [`proposal/16-dataset-coverage-expansion-v4-status-2026-11-02.md`](../proposal/16-dataset-coverage-expansion-v4-status-2026-11-02.md). The frozen D1 values in this page and `experiments/REFERENCE-BASELINE-LATEST.md` are unchanged.
 
+Resource correction — 2026-11-02: a local Docker inspection briefly reported the six allocated receipt IDs as missing. That observation was against the wrong Docker daemon. A direct inspection on host 175 resolves all six immutable receipt IDs to running containers; chips 0, 1, 4, 5, 6 and 7 remain allocated, and chips 2 and 3 are the only free chips. No release or allocation edit was made. Formal preparation must use a fresh allocation snapshot and the resource adapter claim transaction.
+
 ## Dimension 1 — how Jev-class gains are obtained
 
 This is our literature grouping, not a claim that each paper established a causal mechanism. A work can belong to more than one group.
