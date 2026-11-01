@@ -185,3 +185,11 @@ Watchdog digest `2026-11-01T21:29:17Z` 显示 formal K1 v15 仍在运行：seed2
 最新 watchdog 轮巡 `2026-11-01T22:29:17Z`：seed2 `1860/3116`（59.7%），seed3 `1740/3116`（55.8%），heartbeat 分别为 `22:27:30Z` 和 `22:27:38Z`，仍无终端 marker；后处理 watcher heartbeat 为 `22:28:51Z`。结构化副本为 `.local/reports/formal-k1-progress-20261101T2229.json`。
 
 最新 watchdog 轮巡 `2026-11-01T22:39:17Z`：seed2 `2080/3116`（66.8%），seed3 `1930/3116`（61.9%），heartbeat 分别为 `22:37:30Z` 和 `22:37:38Z`，仍无终端 marker；后处理 watcher heartbeat 为 `22:38:51Z`。结构化副本为 `.local/reports/formal-k1-progress-20261101T2239.json`。
+
+## 覆盖再修订 — v8（2026-11-01）
+
+用户再次指出数据集仍偏少。复核后确认，v7 的约 25–30 个来源族、70+ 面板仍主要集中于 Jev 专用静态任务，概率真值、选择性拒答、对抗/选项通道、普通路由、闭环动作和人类/业务边界没有形成完整的选择层。范围规划因此提升为约 **35–45 个独立来源/任务族、100+ 个原生面板**，仍是待审计上限，绝不是已完成实验量。
+
+v8 将任务分成四层：A 共同文本 NxM（choice/score/noul、普通路由、ordinal、概率真值、fallback、改写一致性、排序、对抗、多语言和内部业务规则）；B Agent/网页闭环；C 视觉/视频/空间；D 人类与业务边界诊断。A 层可在合同通过后进入文本 FIFO，B/C/D 必须使用独立 adapter、环境或资产快照与指标 schema。Sys1Cal、Probability Contracts、TypedBench、PFR、JevAdvBench、option-channel、TUPLE、System1-Arena 和 AgentDecisionBench 等新增能力轴先做 CPU 元数据/来源审计，不读取候选 TEST。
+
+详细登记和执行顺序见 [`proposal/22-dataset-coverage-expansion-v8-2026-11-01.md`](22-dataset-coverage-expansion-v8-2026-11-01.md)。当前新增候选仍为 `needs_review`，`ready_for_inference=0`；D1 的 38 个模型×数据集单元及其历史读数保持不变。
