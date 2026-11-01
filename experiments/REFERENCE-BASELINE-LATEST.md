@@ -14,6 +14,8 @@ Coverage note — 2026-11-02 v7 review: the first common-text admission wave is 
 
 Coverage note — 2026-11-02 P0 metadata milestone: six additional common-text source families were audited from documentation/manifests only: AppliedMachineLearning-Lab Jev benchmarking, Intern-Decision, Jevals, Hanno-Labs DecisionBench, Praveenrajus JevBench and akhilaaa3 DecisionBench. All remain `needs_review` with zero `ready_for_inference`; no candidate TEST row, model output or Qwen3.5 metric is added. The per-panel contract and lineage work must close before any of these sources enters the FIFO. Evidence is local in `.local/reports/p0-common-text-metadata-audit-20261102.{md,json}`.
 
+Execution note — 2026-11-02: formal K1 v15 train-only seed2/seed3 is now running on host 175, bound to chip2/chip3 after reviewed `PLAN_VERIFIED` outputs and atomic resource claims. This does not add a reference or Qwen3.5 test metric; `test_read=false` and scientific acceptance remains false. The watchdog currently has fewer than three utilization passes, so the initial AICore means are not a sustained full-load verdict. Launch receipts and claims are recorded in local `.local/reports/formal-k1-launch-milestone-20261102.json`.
+
 ## Evidence and reading conventions
 
 - [REFERENCE-BASELINE-MATRIX-2026-10-31.json](REFERENCE-BASELINE-MATRIX-2026-10-31.json) — SHA256 `03459facf6f86a919e10d9a0acef413b89c5a5d4ffd232352260722b05d0266e`.
