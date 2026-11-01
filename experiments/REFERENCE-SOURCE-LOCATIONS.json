@@ -1,0 +1,51 @@
+{
+  "schema": "reference-source-relocations-v1",
+  "date_utc": "2026-11-01",
+  "scope": "Location repair only; original snapshot hashes, metrics, review status and missing historical audit-terminal bindings unchanged. Local archives are historical evidence, not current conclusion authority.",
+  "entries": [
+    {
+      "path": "/home/xingchao/workspace/nga/experiments/JEVAL-REFERENCE-RESULTS-2026-10-31.json",
+      "expected_sha256": "1177ef4e66414274565d00d8d7cd50138e6a18f22365a8bf51ea7278b60e3bb8",
+      "archive_path": ".local/archive/2026-10-31/experiments/JEVAL-REFERENCE-RESULTS-2026-10-31.json",
+      "archive_sha256": "1177ef4e66414274565d00d8d7cd50138e6a18f22365a8bf51ea7278b60e3bb8",
+      "status": "matched_archive"
+    },
+    {
+      "path": "/home/xingchao/workspace/nga/experiments/ASTRA-JEVAL-RESULTS-REVIEW-2026-10-31.json",
+      "expected_sha256": "f1e0050ba663ee544c392414a0a7d3b684e50ecf5fef956e0ec87ccab2fcf553",
+      "archive_path": ".local/archive/2026-10-31/experiments/ASTRA-JEVAL-RESULTS-REVIEW-2026-10-31.json",
+      "archive_sha256": "f1e0050ba663ee544c392414a0a7d3b684e50ecf5fef956e0ec87ccab2fcf553",
+      "status": "matched_archive"
+    },
+    {
+      "path": "/home/xingchao/workspace/nga/experiments/ASTRA-OPENJEV-OOD-RESULTS-REVIEW-2026-10-31.json",
+      "expected_sha256": "44f16a9f20a01aa8b1aa394cee3c8465d0b8394b50607776179f3368cf7ee23a",
+      "archive_path": ".local/archive/2026-10-31/experiments/ASTRA-OPENJEV-OOD-RESULTS-REVIEW-2026-10-31.json",
+      "archive_sha256": "44f16a9f20a01aa8b1aa394cee3c8465d0b8394b50607776179f3368cf7ee23a",
+      "status": "matched_archive"
+    },
+    {
+      "path": "/home/xingchao/workspace/nga/experiments/JEVAL-KEV4-KEV9-RESULTS-2026-10-31.json",
+      "expected_sha256": "b74ed97b654065f5219c46b7de0ef0aa20f10b812e31f489407970f96411a62e",
+      "archive_path": ".local/archive/2026-10-31/experiments/JEVAL-KEV4-KEV9-RESULTS-2026-10-31.json",
+      "archive_sha256": "b74ed97b654065f5219c46b7de0ef0aa20f10b812e31f489407970f96411a62e",
+      "status": "matched_archive"
+    },
+    {
+      "path": "/home/xingchao/workspace/nga/experiments/ASTRA-JEVAL-KEV4-KEV9-REVIEW-2026-10-31.json",
+      "expected_sha256": "a488af6ad67eae3cbdce082c74a81e554e7061ebd4f8e6704d2248a9ef4dbb9e",
+      "archive_path": ".local/archive/2026-10-31/experiments/ASTRA-JEVAL-KEV4-KEV9-REVIEW-2026-10-31.json",
+      "archive_sha256": "a488af6ad67eae3cbdce082c74a81e554e7061ebd4f8e6704d2248a9ef4dbb9e",
+      "status": "matched_archive"
+    },
+    {
+      "path": "/home/xingchao/workspace/nga/experiments/JEVAL-KEV4-KEV9-RESULTS-2026-10-31.json",
+      "expected_sha256": "5192a06884d4879d29feadfad193fb1e820b0e1bb8ae5ed23be609b453f76c3d",
+      "archive_path": ".local/archive/2026-10-31/reference-source-history/5192a06884d4879d29feadfad193fb1e820b0e1bb8ae5ed23be609b453f76c3d/JEVAL-KEV4-KEV9-RESULTS-2026-10-31.json",
+      "archive_sha256": "5192a06884d4879d29feadfad193fb1e820b0e1bb8ae5ed23be609b453f76c3d",
+      "status": "matched_git_history",
+      "git_revision": "a344bb9d3ce63e9240bcc028671eca893134e8d6",
+      "git_path": "experiments/JEVAL-KEV4-KEV9-RESULTS-2026-10-31.json"
+    }
+  ]
+}

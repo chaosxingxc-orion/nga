@@ -11,6 +11,8 @@ These are reference inference results. They do not establish an NGA training gai
 - [REFERENCE-BASELINE-MATRIX-2026-10-31.json](REFERENCE-BASELINE-MATRIX-2026-10-31.json) — SHA256 `03459facf6f86a919e10d9a0acef413b89c5a5d4ffd232352260722b05d0266e`.
 - [REFERENCE-BASELINE-INCREMENT-2026-10-31.json](REFERENCE-BASELINE-INCREMENT-2026-10-31.json) — SHA256 `fd5fc213295de50d8ffe4a38fd5c8b4fbc81517474bbd378341412286e3ab74b`.
 
+Source-location correction, 2026-11-01: [REFERENCE-SOURCE-LOCATIONS.json](REFERENCE-SOURCE-LOCATIONS.json) maps six archived path/hash versions without rewriting either snapshot. A CPU byte-identity check matched all 96 unique path/hash references: 90 at their original locations, five in the local archive, and one historical version recovered byte-for-byte from Git. This is artifact identity verification only; it does not independently recompute predictions or repair the missing historical audit-terminal bindings described below.
+
 The JSON records preserve exact values, dataset identities, report hashes, source paths, audit scope and evidence pointers. The increment supersedes six pending entries in the immutable base snapshot; the two remaining blocked entries below are current. Base snapshot date: 2026-10-31; increment last update: `2026-10-30T23:03:37.980383+00:00`. Snapshot timestamps are reproduced as stored and are not new-run timestamps.
 
 Accuracy columns use percent; all other metrics retain native units. Display rounding is 3 decimals for percentages and 6 for other metrics; exact JSON values remain authoritative. `—` means unavailable/not applicable, never zero. There are no cross-dataset averages. Native/serving temperatures are inherited from the references, not fitted on these tests.

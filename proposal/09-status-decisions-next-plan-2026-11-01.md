@@ -110,3 +110,6 @@ Astra K2 第三轮 **PASS_WITH_SCOPE**：独立实际函数探针拒绝同名运
 | 本地运行/开发/依赖 | `.local/reports/inspection-20261101T032515.json`、`dev-findings-current.md`、`formal-preparation-dependencies-current.json` |
 
 截至本次整理前的完整过程文本已按原字节保存在 `.local/archive/2026-11-01/conclusions-before-consolidation-0326/` 并记录 SHA；旧测量值不被改写。当前服务、计划和审查的详细收据仍留在本地/CephFS，远程只保留协作所需结论。
+
+
+2026-11-01 参考证据路径核对：固定矩阵与增量中的 96 个唯一“路径/哈希”引用均找到同字节文件，90 个仍在原处、五个在本地 archive、一个旧版本从 Git 历史恢复。新增 `experiments/REFERENCE-SOURCE-LOCATIONS.json` 仅修复归档查询入口；不改写原始快照或指标，也不将缺失的历史 audit-SHA 终态绑定改为通过。
