@@ -12,13 +12,13 @@
 
 ## 当前结论
 
-项目仍处在“参考推理与工程准入收口、正式训练尚未开始”的阶段。当前没有可发布的训练收益，也没有正式测试集训练前后对比。D1 的 38 个参考单元仍是固定范围；已形成的参考矩阵可以继续作为指标汇报入口，Open-Jev×JEVal 的两个单元仍不能填零，必须保持 blocked/null，直到真实准入和独立计分完成。
+项目仍处在“参考推理与工程准入收口、正式控制训练尚未开始”的阶段。工程基座训练和推理已经产生进度，但当前没有可发布的训练收益，也没有正式测试集训练前后对比。D1 的 38 个参考单元仍是固定范围；已形成的参考矩阵可以继续作为指标汇报入口，Open-Jev×JEVal 的两个单元仍不能填零，必须保持 blocked/null，直到真实准入和独立计分完成。
 
-NPU 任务正在 detached 队列中运行：最近一次有界巡检（2026-11-01 00:36 UTC）记录 6 个训练容器和 2 个推理容器，无失败或停滞告警。已完成的四路 K1 推理各为 148,542/148,542；0.8B K0 为 144,618/148,542（97.4%，仍有 incomplete receipt 标记），2B K0 为 23,008/148,542（15.5%，仍在运行）；共享 K2 两个 seed 为 1,140/3,116 和 1,099/3,116；4B K1 两个 seed 为 2,970/3,116 和 939/3,116。以上是进度计数，不是测试指标或训练收益。
+NPU 任务正在 detached 队列中运行：最近一次有界巡检（2026-11-01 00:58 UTC）记录 5 个训练容器和 2 个推理容器，无失败或停滞告警。4B K1 seed2 已以 exit code 0 完成，seed3 为 1,153/3,116；共享 K2 两个 seed 为 1,169/3,116 和 1,131/3,116。四路 K1 推理和 0.8B K0 均为 148,542/148,542；2B K0 为 26,432/148,542（17.8%，仍带 incomplete receipt 标记）。以上是进度计数，不是测试指标或训练收益。
 
 正式控制 readiness 仍为 `WAITING`：QO 与 PT 证据通过，K0 报告虽已完成部分 CPU 后处理但尚未形成可消费的完整正式 bundle，真实训练终止收据、CPU reconstruction 和新的独立 Astra 审查尚未齐全；`scientific_acceptance=false`、`test_read=false`。不存在手工伪造的 TRAIN_EXIT、CONTRACT_RESULT 或恢复收据。
 
-独立 Astra 已通过真实 CLI detached 启动，审查 bundle 固定为 10 个文件，manifest SHA256 为 `56fdd8faf97bc449695e2a347213b340be158f0480e84932f5a119dc9846a052`。截至本快照只有 `PROCESS.json` 和 `events.jsonl`，尚无 `review.md`、`COMPLETE.json` 或 `EXIT.json`，因此不能把这次审查写成通过。
+独立 Astra 已通过真实 CLI detached 启动并返回 `CHANGES_REQUIRED`。审查 bundle 固定为 10 个文件，manifest SHA256 为 `56fdd8faf97bc449695e2a347213b340be158f0480e84932f5a119dc9846a052`；报告验证了全部 manifest 哈希，并列出 F1–F8 具体反例。该审查不是批准文件，不能作为正式准入通过。
 
 ## 已落实的工程规则
 
@@ -36,12 +36,12 @@ NPU 任务正在 detached 队列中运行：最近一次有界巡检（2026-11-0
 2. 参考基线矩阵和增量报告已建立；测试集是主要汇报口径，开发集只用于选择、阈值和诊断。
 3. watchdog 和本地共享巡检锁已统一为约 10 分钟 cadence；运行中的 watchdog 无失败或停滞标记。
 4. 训练/推理 detached 运行、heartbeat、terminal marker、可恢复任务和 bounded digest 机制已在用。
-5. readiness 审计、恢复合同和闭包检查已完成近期修复；相关 CPU 回归通过。
+5. readiness 审计、恢复合同和闭包检查已完成近期修复；F1–F4 及 K0 provenance 消费闭包已加固，相关 CPU 回归通过；F5–F8 仍需完成或由新 Astra 审查确认。
 
 ### 进行中
 
-1. 等待真实 Astra CLI 对 formal readiness bundle 产生明确终态。
-2. 等待 K0 推理和当前训练容器真实退出，随后验证报告、终止收据和资源释放。
+1. 根据 `CHANGES_REQUIRED` 修复结果生成新的 formal readiness bundle，并等待新一轮真实 Astra CLI 终态。
+2. 等待 2B K0、4B seed3 和共享 K2 真实退出，随后验证报告、终止收据和资源释放。
 3. 对已完成的 NPU 输出执行独立 CPU reconstruction 和计分，再刷新最新参考/训练报告。
 4. 准备 formal K1 的精确计划、manifest 和审查材料；正式训练仍受 D1 阶段顺序与 readiness 约束。
 
