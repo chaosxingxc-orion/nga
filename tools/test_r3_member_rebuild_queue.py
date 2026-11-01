@@ -73,6 +73,12 @@ class QueueEvidenceTests(unittest.TestCase):
         Q.write(self.out/'evidence.json', dict(self.common, member=self.member, evidence=self.payload))
         self.result = dict(self.common, producer=bindings, outputs={'evidence.json': Q.sha(self.out/'evidence.json')})
         self.finish()
+        self.source_member = copy.deepcopy(self.member)
+        self.source_payload = copy.deepcopy(self.payload)
+        replay = patch.object(Q, 'reconstruct', side_effect=lambda req,q:
+                              (copy.deepcopy(self.source_member), copy.deepcopy(self.source_payload)))
+        self.replay = replay.start()
+        self.addCleanup(replay.stop)
 
     def finish(self, exit_code=0):
         Q.write(self.out/'RESULT.json', self.result)
@@ -83,6 +89,7 @@ class QueueEvidenceTests(unittest.TestCase):
 
     def test_valid_completion(self):
         self.assertEqual(self.check()['state'], 'producer_complete')
+        self.replay.assert_called_once()
 
     def test_bool_or_bare_terminal_rejected(self):
         self.finish(False)
@@ -174,6 +181,31 @@ class QueueEvidenceTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('controller bytes changed', result.stderr)
         self.assertNotIn('RuntimeError: must not execute', result.stderr)
+
+    def republish(self, doc):
+        Q.write(self.out/'evidence.json', doc)
+        self.result['outputs']['evidence.json'] = Q.sha(self.out/'evidence.json')
+        self.finish()
+
+    def test_foreign_envelope_rejected_after_rehash(self):
+        for key in ('job_id', 'queue_sha256'):
+            d = dict(self.common, member=self.member, evidence=self.payload)
+            d[key] = 'foreign'
+            self.republish(d)
+            with self.assertRaisesRegex(ValueError, 'envelope'): self.check()
+
+    def test_recovered_snapshot_and_member_forgery_rejected(self):
+        for change in ('model_hash', 'tree_root', 'model_kind', 'steps'):
+            member, evidence = copy.deepcopy(self.source_member), copy.deepcopy(self.source_payload)
+            if change == 'model_hash': evidence['source_snapshot']['models'] = {'model': {'wrong': 'hash'}}
+            if change == 'tree_root': evidence['source_snapshot']['trees'] = {'unrelated': []}
+            if change == 'model_kind': member['model']['kind'] = 'forged'
+            if change == 'steps':
+                member['training']['training_variant'] = {'total_steps': 1}
+                evidence['training'] = copy.deepcopy(member['training'])
+            member['verified_evidence_sha256'] = Q.canonical_pin(evidence)
+            self.republish(dict(self.common, member=member, evidence=evidence))
+            with self.assertRaisesRegex(ValueError, 'actual source reconstruction'): self.check()
 
 
 if __name__ == '__main__':

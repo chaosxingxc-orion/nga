@@ -120,7 +120,7 @@ def zero(doc):
 def verify_queue(path, pin):
     q, _ = snapshot(path, pin)
     scope(q)
-    require(q['schema'] == 'r3-member-rebuild-queue-v3', 'queue schema differs')
+    require(q['schema'] == 'r3-member-rebuild-queue-v4', 'queue schema differs')
     require(q['controller']['path'] == str(Path(__file__).resolve())
             and globals().get('_EXECUTED_SHA256') == q['controller']['sha256'],
             'controller must execute verified bytes via bootstrap')
@@ -276,6 +276,29 @@ def failure_state(failure, key, pin):
     return {'state': 'failed_no_retry', 'job_id': key, 'error': failure.get('error', '')}
 
 
+def reconstruct(req, q):
+    """Replay the real source verifier, including full reports and model bytes.
+
+Recovered completion has the same requirements as fresh completion; a collection
+of mutually consistent saved hashes cannot stand in for this computation.
+    """
+    C = sources(q)
+    C.artifact(q['closure_manifest'])
+    tool_path = next(p for p in q['code'] if p.endswith('/r3_selection_report.py'))
+    tool = C.module(tool_path, 'pinned_report')
+    deps = tool.modules(Path(q['closure_manifest']['path']).parent/'r3_code',
+                        manifest_pin=q['closure_manifest']['sha256'])
+    code = {'report_tool': {'path': tool_path, 'sha256': q['code'][tool_path]},
+            'closure_manifest': q['closure_manifest'],
+            'consumer_sha256': q['code'][C.__file__],
+            'structure_sha256': q['code'][str(C.HERE/'r3_final_campaign.py')],
+            'inventory_sha256': q['code'][str(C.HERE/'r3_model_inventory.py')]}
+    member, evidence = C.rebuild_member(req['entry'], tool, deps, q['kev_dir'], q['data_root'], code)
+    C.artifact(q['closure_manifest'])
+    identity(member, req['expected'])
+    return member, evidence
+
+
 def completed(root, job, queue_path, pin):
     require(not safe(root/'FAILURE.json').exists(), 'persisted failure forbids completion')
     req = validate_request(root, job, queue_path, pin)
@@ -293,10 +316,16 @@ def completed(root, job, queue_path, pin):
     require(set(result['outputs']) == {'evidence.json'}, 'exact singleton output required')
     evidence, _ = snapshot(root/'evidence.json', result['outputs']['evidence.json'])
     scope(evidence)
-    require(evidence['request_sha256'] == request_pin, 'evidence request differs')
+    require(evidence['request_sha256'] == request_pin and evidence.get('job_id') == job['id']
+            and evidence.get('queue_sha256') == pin, 'evidence envelope differs')
     identity(evidence['member'], job['expected'])
     q, _ = snapshot(queue_path, pin)
     reconstruction_payload(evidence, req, q)
+    member_now, evidence_now = reconstruct(req, q)
+    require(canonical_pin(member_now) == canonical_pin(evidence['member'])
+            and canonical_pin(evidence_now) == canonical_pin(evidence['evidence']),
+            'saved completion differs from actual source reconstruction')
+    require(validate_request(root, job, queue_path, pin) == req, 'request changed during completion rebuild')
     return {'state': 'producer_complete', 'root': str(root), 'result_sha256': result_pin,
             'independent_acceptance': False}
 
@@ -320,27 +349,14 @@ def worker(path, pin, key):
               'scientific_acceptance': False, 'test_read': False}
     rc = 1
     try:
-        C = sources(q)
-        C.artifact(q['closure_manifest'])
-        tool_path = next(p for p in q['code'] if p.endswith('/r3_selection_report.py'))
-        tool = C.module(tool_path, 'pinned_report')
-        deps = tool.modules(Path(q['closure_manifest']['path']).parent/'r3_code',
-                            manifest_pin=q['closure_manifest']['sha256'])
-        code = {'report_tool': {'path': tool_path, 'sha256': q['code'][tool_path]},
-                'closure_manifest': q['closure_manifest'],
-                'consumer_sha256': q['code'][C.__file__],
-                'structure_sha256': q['code'][str(C.HERE/'r3_final_campaign.py')],
-                'inventory_sha256': q['code'][str(C.HERE/'r3_model_inventory.py')]}
-        member, evidence = C.rebuild_member(req['entry'], tool, deps, q['kev_dir'], q['data_root'], code)
-        identity(member, req['expected'])
+        member, evidence = reconstruct(req, q)
         verify_queue(path, pin)
         require(validate_request(root, job, path, pin) == req, 'request changed during rebuild')
-        C.artifact(q['closure_manifest'])
         write(root/'evidence.json', dict(common, member=member, evidence=evidence), exclusive=True)
         write(root/'RESULT.json', dict(common, producer=req['producer'],
               outputs={'evidence.json': sha(root/'evidence.json')}), exclusive=True)
         write(root/'EXIT.json', dict(common, exit_code=0, result_sha256=sha(root/'RESULT.json')), exclusive=True)
-        completed(root, job, path, pin)
+        # The supervisor's completion path independently replays reconstruction.
         rc = 0
     except Exception as error:
         write(root/'FAILURE.json', dict(common, state='failed_no_retry',
@@ -362,6 +378,7 @@ def watch(path, pin):
         require(stat.S_ISREG(os.fstat(lock.fileno()).st_mode), 'regular lock required')
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         C = sources(q)
+        accepted = {}  # Process-local only: a restart must reconstruct again.
         while True:
             verify_queue(path, pin)
             states = {}
@@ -369,12 +386,19 @@ def watch(path, pin):
                 key = job['id']
                 out = safe(root/'members'/key)
                 try:
+                    if key in accepted:
+                        require(all(sha(out/name) == h for name,h in accepted[key]['pins'].items()),
+                                'completed receipt changed')
+                        states[key] = accepted[key]['state']
+                        continue
                     if (out/'FAILURE.json').exists():
                         failure = load(out/'FAILURE.json')
                         states[key] = failure_state(failure, key, pin)
                         continue
                     if (out/'EXIT.json').exists():
                         states[key] = completed(out, job, path, pin)
+                        accepted[key] = {'state': states[key], 'pins': {name: sha(out/name) for name in
+                            ('INTENT.json', 'request.json', 'RESULT.json', 'EXIT.json', 'evidence.json')}}
                         continue
                     require(not (out/'INTENT.json').exists(), 'uncertain intent; no automatic restart')
                     if not safe(job['terminal']).exists():
@@ -403,6 +427,8 @@ def watch(path, pin):
                         time.sleep(30)
                     require(child.wait() == 0, 'worker failed')
                     states[key] = completed(out, job, path, pin)
+                    accepted[key] = {'state': states[key], 'pins': {name: sha(out/name) for name in
+                        ('INTENT.json', 'request.json', 'RESULT.json', 'EXIT.json', 'evidence.json')}}
                 except Exception as error:
                     out.mkdir(parents=True, exist_ok=True)
                     failure = {'state': 'failed_no_retry', 'job_id': key, 'queue_sha256': pin,
