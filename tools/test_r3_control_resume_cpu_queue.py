@@ -38,18 +38,46 @@ class Queue(unittest.TestCase):
             self.assertEqual(Q.tick(self.job)['status'],'needs_repair');prepare.assert_not_called()
     def test_prepares_once_then_reuses_frozen_controller(self):
         self.ready();calls=[]
-        frozen=SimpleNamespace(start=lambda *a:{'status':'started'})
         def module(name,root=Q.HERE):
-            return SimpleNamespace(identity=lambda p:self.pin) if name=='r3_resume_evidence' else frozen
+            return SimpleNamespace(identity=lambda p:self.pin)
         def prepare(plan,pin,out,container):
-            calls.append(1);out.mkdir();(out/'code').mkdir()
-            self.put(out/'CONFIG.json',{'plan':str(plan),'container':container})
-            return {'config':str(out/'CONFIG.json'),'sha256':'b'*64}
+            calls.append(1)
+            with patch.object(Q.C,'released',return_value=({},self.target,{},{})):
+                return real_prepare(plan,pin,out,container)
+        source=self.root/'source';source.mkdir();code=source/'code';code.mkdir()
+        files={}
+        for rel in ('train_r3.py','build_kev_sft.py','kev_aug.py','r0_code/prompt.py'):
+            p=code/rel;p.parent.mkdir(exist_ok=True);p.write_text('# fixture\n');files[str(p)]=Q.C.sha(p)
+        self.target=source/'SOURCE_PLAN.json';self.put(self.target,{'code':str(code),'files':files})
+        real_prepare=Q.C.prepare
+        # Real frozen source executes; only its external Docker boundary is replaced.
+        actual={'Id':'b'*64,'State':{'Status':'running'}}
         with patch.object(Q,'module',side_effect=module),patch.object(Q.C,'released',return_value={}), \
-             patch.object(Q.C,'prepare',side_effect=prepare):
-            self.assertEqual(Q.tick(self.job)['status'],'started')
-            self.assertEqual(Q.tick(self.job)['status'],'started')
+             patch.object(Q.C,'prepare',side_effect=prepare), \
+             patch('subprocess.run') as run:
+            run.return_value=SimpleNamespace(returncode=1,stdout='',stderr='daemon unavailable')
+            for _ in range(2):
+                with self.assertRaises(RuntimeError):Q.tick(self.job)
         self.assertEqual(len(calls),1)
+
+    def test_self_consistent_untrusted_prepared_child_rejected_before_execution(self):
+        self.out.mkdir();code=self.out/'code';code.mkdir()
+        import shutil
+        for name in ('r3_control_resume_cpu.py','r3_resume_recompute.py','r3_resume_evidence.py','r3_formal_launcher.py'):
+            shutil.copyfile(Q.HERE/name,code/name)
+        child=code/'r3_control_resume_cpu.py'
+        child.write_text('raise AssertionError("UNTRUSTED_CHILD_EXECUTED")\n')
+        cfg={'schema':'r3-control-resume-cpu-v1','out':str(self.out),'container':self.job['container'],
+             'image':Q.C.IMAGE,'plan':str(self.restart/'plan.json'),'files':{},
+             'tools':{str(p):Q.C.sha(p) for p in code.iterdir()},
+             'scientific_acceptance':False,'test_read':False}
+        path=self.out/'CONFIG.json';self.put(path,cfg)
+        self.put(self.out.with_name('cpu.PREPARED.json'),{'job':self.job,
+                 'config':{'config':str(path),'sha256':Q.C.sha(path)}})
+        with patch.object(Q.C,'verify',wraps=Q.C.verify) as verify:
+            with self.assertRaisesRegex(ValueError,'obsolete prepared CPU implementation'):Q.tick(self.job)
+            verify.assert_called_once_with(str(path),Q.C.sha(path),prepared_by_current=True)
+
     def test_plan_identity_and_container_confusion_refused(self):
         self.ready()
         with patch.object(Q,'module',return_value=SimpleNamespace(identity=lambda p:'wrong')):

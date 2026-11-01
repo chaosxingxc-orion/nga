@@ -60,6 +60,7 @@ class CPU(unittest.TestCase):
     def test_wrong_devices_mounts_and_generation_refused(self):
         for mutate in (lambda a:a['HostConfig'].update(Devices=[{'PathOnHost':'/dev/davinci0'}]),
                        lambda a:a['Mounts'][0].update(RW=not a['Mounts'][0]['RW']),
+                       lambda a:a['Mounts'][0].update(Propagation='rshared'),
                        lambda a:a.update(Image='wrong'),
                        lambda a:a['Config']['Env'].append('PYTHONPATH=/synthetic/cpu'),
                        lambda a:a['HostConfig'].update(CapAdd=['SYS_ADMIN']),

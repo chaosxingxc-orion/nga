@@ -30,8 +30,16 @@ def source_module(path, name):
     return value
 
 
-def sha(path):
+def safe_content_path(path):
+    path=Path(path)
+    require(path.is_absolute() and '..' not in path.parts
+            and not any(p.is_symlink() for p in (path,*path.parents)), 'unsafe content path')
     require(not is_test_data(path), 'test dataset dependency forbidden')
+    return path
+
+
+def sha(path):
+    path=safe_content_path(path)
     h = hashlib.sha256()
     with Path(path).open('rb') as f:
         for b in iter(lambda: f.read(1 << 20), b''):
@@ -40,8 +48,7 @@ def sha(path):
 
 
 def load(path):
-    require(not is_test_data(path), 'test dataset dependency forbidden')
-    return json.loads(Path(path).read_text())
+    return json.loads(safe_content_path(path).read_text())
 
 
 def identity(plan):

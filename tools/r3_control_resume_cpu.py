@@ -24,7 +24,7 @@ VERIFIER='c9eb4c819bf5a15ec4231e5c0b89499aae10de9a9bb9566a022c7ccf1b23ac87'
 # Deployed frozen generations retain their original pins and require a new
 # reconstruction generation for acceptance under this implementation.
 VALIDATOR = '15abf671a50d6d5bd559e830e17b818e762701ec208ead55c220a939c93ccea9'
-POLICY = 'c5d20267594b12de2032c5d5ac709369e7e24ecdfd25bbd72d4d0e87484f4ce0'
+POLICY = 'e860553ee712348dd03437d713b199e89d70b0af81c160e5d226786e48fc59c3'
 
 def policy():
     path=HERE/'r3_formal_launcher.py'
@@ -145,7 +145,7 @@ def prepare(plan_path,pin,out,container):
         'start','--config',str(config_path),'--sha256',config_pin]})
     return {'config':str(config_path),'sha256':config_pin,'scientific_acceptance':False}
 
-def verify(path,pin):
+def verify(path,pin,*,prepared_by_current=False):
     require(sha(path)==pin,'CPU config changed');c=load(path)
     require(c.get('schema')=='r3-control-resume-cpu-v1' and c.get('image')==IMAGE
             and c.get('scientific_acceptance') is False and c.get('test_read') is False,'CPU scope differs')
@@ -155,7 +155,13 @@ def verify(path,pin):
             and c['tools'].get(str(Path(c['out'])/'code/r3_formal_launcher.py'))==POLICY,'CPU tools differ')
     require(set(c['tools'])=={str(Path(c['out'])/'code'/name) for name in
             ('r3_control_resume_cpu.py','r3_resume_recompute.py','r3_resume_evidence.py','r3_formal_launcher.py')},'CPU tool inventory differs')
-    require(str(Path(__file__).resolve()) in c['tools'], 'CPU controller outside frozen closure')
+    if prepared_by_current:
+        for filename,digest in c['tools'].items():
+            require(digest==sha(HERE/Path(filename).name),'obsolete prepared CPU implementation')
+    else:
+        require(str(Path(__file__).resolve()) in c['tools'], 'CPU controller outside frozen closure')
+    for filename in {**c['files'],**c['tools']}:
+        safe(filename)
     for filename,digest in {**c['files'],**c['tools']}.items():
         require(sha(filename)==digest,'CPU input changed: '+filename)
     return c
@@ -184,7 +190,8 @@ def check_container(c,path,pin,actual,image=None,daemon=None):
     seen=actual.get('Mounts',[])
     require(len(seen)==len(mounts) and len({m['Destination'] for m in seen})==len(mounts)
         and all(m.get('Type')=='bind' and m['Source']==m['Destination'] and m['Source'] in mounts
-                and m['RW'] is mounts[m['Source']] for m in seen),'CPU mounts differ')
+                and m['RW'] is mounts[m['Source']] and m.get('Propagation','rprivate')=='rprivate'
+                for m in seen),'CPU mounts differ')
 
 def observe(path,pin):
     c=verify(path,pin);out=Path(c['out']);actual=inspect(c['container'])

@@ -72,10 +72,16 @@ def tick(job):
     prepared=out.with_name(out.name+'.PREPARED.json');intent=out.with_name(out.name+'.PREPARE_INTENT.json')
     if prepared.exists():
         record=C.load(prepared);C.require(record['job']==job,'CPU prepared job changed')
-        config=record['config'];frozen=module('r3_control_resume_cpu',out/'code')
+        config=record['config']
         C.require(config['config']==str(out/'CONFIG.json'),'CPU config path differs')
-        cfg=C.load(config['config'])
+        cfg=C.verify(config['config'],config['sha256'],prepared_by_current=True)
         C.require(cfg['plan']==str(root/'plan.json') and cfg['container']==job['container'],'CPU prepared scope differs')
+        child=C.safe(out/'code/r3_control_resume_cpu.py');raw=child.read_bytes()
+        import hashlib,types
+        C.require(hashlib.sha256(raw).hexdigest()==cfg['tools'][str(child)]==C.sha(HERE/child.name),
+                  'prepared controller changed before execution')
+        frozen=types.ModuleType('prepared_current_cpu');frozen.__file__=str(child)
+        exec(compile(raw,str(child),'exec',dont_inherit=True),frozen.__dict__)
         return frozen.start(config['config'],config['sha256'])
     if intent.exists() or out.exists():
         return {'status':'needs_repair','reason':'partial CPU preparation; no automatic overwrite'}

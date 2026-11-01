@@ -14,6 +14,20 @@ spec.loader.exec_module(L)
 
 
 class Formal(unittest.TestCase):
+    def test_content_readers_reject_unsafe_paths_before_open(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);target=root/'test.jsonl';target.write_text('{}')
+            link=root/'review.json';link.symlink_to(target)
+            directory=root/'alias';directory.symlink_to(root,target_is_directory=True)
+            paths=(link,directory/'review.json',root/'sub/../review.json',Path('review.json'))
+            for path in paths:
+                for reader in (L.load,L.sha):
+                    with self.subTest(path=path,reader=reader.__name__), \
+                         patch.object(Path,'read_text',side_effect=AssertionError('CONTENT_READ')), \
+                         patch.object(Path,'read_bytes',side_effect=AssertionError('CONTENT_READ')), \
+                         patch.object(Path,'open',side_effect=AssertionError('CONTENT_READ')):
+                        with self.assertRaises(RuntimeError):reader(path)
+
     def test_formal_scope_flags_rejected_even_with_matching_identity(self):
         for field in ('scientific_acceptance', 'test_read'):
             for value in (True, None, 0):
