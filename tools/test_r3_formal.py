@@ -40,6 +40,25 @@ class Formal(unittest.TestCase):
                     with self.assertRaisesRegex(RuntimeError, 'training scope'):
                         L.verify(str(path), L.identity(plan), reviewed=False)
 
+    def test_formal_chip_must_be_a_real_device_and_is_not_limited_to_old_pair(self):
+        base = {
+            'schema': 'r3-formal-k1-plan-v1',
+            'scientific_acceptance': False,
+            'test_read': False,
+            'chip': 2,
+            'seed': 2,
+            'evaluation': {'test_requires_separate_final_ticket': True},
+        }
+        for chip in (2, 3, 7):
+            with self.subTest(chip=chip):
+                p = dict(base, chip=chip)
+                L.formal_target_identity(p)
+        for chip in (-1, 8, '2'):
+            with self.subTest(chip=chip):
+                p = dict(base, chip=chip)
+                with self.assertRaisesRegex(RuntimeError, 'formal chip'):
+                    L.formal_target_identity(p)
+
     def test_unit_test_source_is_not_test_dataset(self):
         for p in ('/code/test_k2_shared.py','/code/test_train_r3.py','/data/dev.jsonl'):
             self.assertFalse(L.is_test_data(p))

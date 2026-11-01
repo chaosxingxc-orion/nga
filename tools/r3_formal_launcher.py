@@ -127,7 +127,7 @@ def formal_target_identity(p):
     require(p.get('schema') == 'r3-formal-k1-plan-v1' and
             p.get('scientific_acceptance') is False and p.get('test_read') is False,
             'formal scope differs')
-    require(type(p.get('chip')) is int and p['chip'] in (1, 4), 'formal chip differs')
+    require(type(p.get('chip')) is int and 0 <= p['chip'] < 8, 'formal chip differs')
     require(type(p.get('seed')) is int and p['seed'] in (2, 3), 'formal seed differs')
     evaluation = p.get('evaluation', {})
     require(evaluation.get('test_requires_separate_final_ticket') is True,
@@ -158,7 +158,7 @@ def verify(path, pin, reviewed=True):
     engineering = p['schema'] == 'r3-engineering-k1-plan-v1'
     if not engineering:
         formal_target_identity(p)
-    require(p['seed'] in (2, 3) and p['chip'] in (tuple(range(8)) if engineering else (1, 4)), 'unregistered seed/chip')
+    require(p['seed'] in (2, 3) and 0 <= p['chip'] < 8, 'unregistered seed/chip')
     model_name = Path(p['model']).name
     formal_models = ('Qwen__Qwen3.5-0.8B-Base', 'Qwen__Qwen3.5-0.8B')
     require(model_name in (('Qwen__Qwen3.5-0.8B-Base', 'Qwen__Qwen3.5-2B-Base', 'Qwen__Qwen3.5-4B-Base', 'Qwen__Qwen3.5-9B-Base', 'Qwen__Qwen3.5-0.8B') if engineering

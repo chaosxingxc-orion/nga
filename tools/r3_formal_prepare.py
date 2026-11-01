@@ -63,7 +63,7 @@ def formal_control_container(out, control_arm, seed):
     return f'nga-r3-formal-{control_arm.lower()}-s{seed}-{suffix}'
 
 
-def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False, fresh_prechecks=None, fresh_prechecks_sha256=None, training_evidence=None, training_evidence_sha256=None, resume_plan=None, resume_plan_sha256=None, control_arm=None, resume_reconstruction=None, resume_reconstruction_sha256=None, reconstruction_target=None, reconstruction_target_sha256=None):
+def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False, fresh_prechecks=None, fresh_prechecks_sha256=None, training_evidence=None, training_evidence_sha256=None, resume_plan=None, resume_plan_sha256=None, control_arm=None, resume_reconstruction=None, resume_reconstruction_sha256=None, reconstruction_target=None, reconstruction_target_sha256=None, formal_chips=(1, 4)):
     control = control_settings(control_arm, engineering=engineering, model=model, seed=seed,
                                arm=arm, shared=shared, validate_shared=validate_shared, formal=not engineering)
     if arm not in ('k1', 'k2'):
@@ -71,7 +71,7 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
     if not engineering and (Path(model) != (PT_MODEL if control_arm == 'K1-PT' else MODEL)
                             or stop_after or arm != 'k1' or shared or validate_shared):
         raise ValueError('formal recipe cannot be overridden')
-    if not engineering and (type(chip) is not int or chip not in (1, 4)
+    if not engineering and (type(chip) is not int or chip not in tuple(formal_chips)
                             or type(seed) is not int or seed not in (2, 3)):
         raise ValueError('unregistered formal seed/chip')
     fresh = None
@@ -250,13 +250,15 @@ def main():
     ap.add_argument('--reconstruction-target-sha256')
     ap.add_argument('--control-arm', choices=('K1-QO','K1-PT'))
     ap.add_argument('--model')
+    ap.add_argument('--formal-chips', nargs=2, type=int, metavar=('CHIP_SEED2', 'CHIP_SEED3'), default=(1, 4),
+                    help='formal chip pair; must be supplied from a live allocation snapshot and adapter claim, never edited in the plan')
     args = ap.parse_args()
     parent = Path(args.parent)
     model = Path(args.model) if args.model else (PT_MODEL if args.control_arm == 'K1-PT' else MODEL)
     seeds = (2,) if args.control_arm == 'K1-QO' else (2,3)
     print(json.dumps([prepare(parent / f'seed{seed}', seed, chip, args.engineering, model=model, control_arm=args.control_arm, fresh_prechecks=args.fresh_prechecks, fresh_prechecks_sha256=args.fresh_prechecks_sha256, training_evidence=args.training_evidence, training_evidence_sha256=args.training_evidence_sha256, resume_plan=args.resume_plan, resume_plan_sha256=args.resume_plan_sha256,
         resume_reconstruction=args.resume_reconstruction, resume_reconstruction_sha256=args.resume_reconstruction_sha256,
-        reconstruction_target=args.reconstruction_target, reconstruction_target_sha256=args.reconstruction_target_sha256) for seed, chip in zip(seeds, (1, 4))], indent=2))
+        reconstruction_target=args.reconstruction_target, reconstruction_target_sha256=args.reconstruction_target_sha256) for seed, chip in zip(seeds, tuple(args.formal_chips))], indent=2))
 
 
 if __name__ == '__main__':
