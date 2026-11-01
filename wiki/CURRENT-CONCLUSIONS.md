@@ -25,6 +25,8 @@ Monitoring correction — 2026-11-01 22:11 UTC: the CPU post-training watcher wa
 
 Monitoring correction verified — 2026-11-01 22:19 UTC: the main watchdog now classifies the v15 post-training watcher as `running` from its fresh heartbeat. Formal K1 seed2 is `1660/3116` (53.3%) and seed3 is `1549/3116` (49.7%); both remain train-only with TEST locked and no terminal markers. Evidence is local at `.local/reports/formal-k1-progress-20261101T2219.json`.
 
+Formal K1 progress — 2026-11-01 22:29 UTC: seed2 is `1860/3116` (59.7%) and seed3 is `1740/3116` (55.8%), with fresh heartbeats and no terminal markers. The CPU post-training watcher is also `running` and waiting for training closure; TEST remains locked. Evidence is local at `.local/reports/formal-k1-progress-20261101T2229.json`.
+
 ## Coverage correction — 2026-11-02
 
 The current D1 matrix was too narrow for a broad Jev capability claim. Its 38 model-by-dataset units (36 scored and 2 blocked) remain frozen, but they are concentrated in a few source families. The repository inventory contains 24 directories, yet that count includes version projections, result packages, overlapping sources and different modalities.
