@@ -38,6 +38,28 @@ class Lifecycle(unittest.TestCase):
             result=L.supervise(self.plan,self.pin)
         self.assertEqual(result['exit_code'],125);self.assertFalse(result['benchmark_complete']);release.assert_called_once()
 
+    def test_trace_completion_never_claims_benchmark_acceptance(self):
+        self.p['schema']='r3-k2-reference-trace-execution-v1'
+        L.atomic(self.a/'LAUNCH_INTENT.json',{'command':['docker','run','-d'],'pin':self.pin})
+        out=Path(self.q['out']);out.mkdir()
+        L.atomic(out/'EXIT.json',{'exit_code':0,'plan_sha256':self.p['benchmark_sha256']})
+        report={'schema':'r3-k2-reference-trace-v1','complete':True,'truncated':False,
+                'reference_questions':1,'repeat_questions':1,'comparisons':[{'equal':False}],
+                'plan_sha256':self.p['benchmark_sha256'],'test_read':False,'scientific_acceptance':False}
+        for change in ({'complete':False},{'truncated':True},{'repeat_questions':2},{'comparisons':[]}):
+            L.atomic(out/'TRACE.json',{**report,**change})
+            with patch.object(L.subprocess,'run'),patch.object(self.R,'release'):
+                result=L.supervise(self.plan,self.pin)
+            self.assertEqual(result['exit_code'],125)
+            self.assertFalse(result['diagnostic_complete'])
+            (self.a/'SUPERVISOR_DONE.json').unlink()
+        L.atomic(out/'TRACE.json',report)
+        with patch.object(L.subprocess,'run'),patch.object(self.R,'release'):
+            result=L.supervise(self.plan,self.pin)
+        self.assertEqual(result['exit_code'],0)
+        self.assertTrue(result['diagnostic_complete'])
+        self.assertFalse(result['benchmark_complete'])
+
     def test_uncertain_launch_never_runs_docker_again(self):
         L.atomic(self.a/'LAUNCH_INTENT.json',{'command':['docker','run','-d'],'pin':self.pin})
         self.R.docker_inspect=lambda n:None

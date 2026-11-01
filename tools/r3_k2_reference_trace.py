@@ -17,7 +17,7 @@ def fingerprint(value):
                                     allow_nan=False).encode()).hexdigest()
 
 
-def instrument(trainer, observer):
+def instrument(trainer, observer, chunk_observer=None):
     tree = ast.parse(Path(trainer.__file__).read_text())
     function = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'step_loss')
     matches = [n for n in ast.walk(function) if isinstance(n, ast.For)
@@ -39,6 +39,22 @@ def instrument(trainer, observer):
     module = types.ModuleType('k2_observed_reference')
     module.__dict__.update(trainer.__dict__)
     module._trace_observer = observer
+    if chunk_observer is not None:
+        rows = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'row_logprob_sums')
+        boundaries = []
+        for node in ast.walk(rows):
+            for field, value in ast.iter_fields(node):
+                if isinstance(value, list):
+                    for index, item in enumerate(value):
+                        if isinstance(item, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'bi_t' for t in item.targets):
+                            boundaries.append((value, index))
+        if len(boundaries) != 1:
+            raise ValueError('scoring index boundary differs')
+        body, index = boundaries[0]
+        body.insert(index, ast.parse('_trace_chunk(chunk, ids, mask, bi, ti, tg, owner)').body[0])
+        module._trace_chunk = chunk_observer
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[rows], type_ignores=[])),
+                     trainer.__file__, 'exec'), module.__dict__)
     exec(compile(ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[])),
                  trainer.__file__, 'exec'), module.__dict__)
     return module.step_loss
@@ -65,6 +81,15 @@ class ReferenceTrace:
         self.first_difference = None
         self.comparisons = []
         self.truncated = False
+        self.chunks = []
+
+    def observe_chunk(self, chunk, ids, mask, bi, ti, tg, owner):
+        if len(self.chunks) >= 4096:
+            self.truncated = True
+            raise ValueError('trace chunk budget exceeded')
+        self.chunks.append(fingerprint({'chunk': chunk, 'ids': ids.detach().cpu().tolist(),
+                                       'mask': mask.detach().cpu().tolist(),
+                                       'bi': bi, 'ti': ti, 'tg': tg, 'owner': owner}))
 
     def begin_repeat(self):
         if self.phase != 0 or not self.reference:
@@ -89,11 +114,14 @@ class ReferenceTrace:
             'question': self.index,
             'input_sha256': fingerprint({'example': example, 'seqs': seqs, 'starts': starts}),
             'scores_sha256': fingerprint(score_values),
+            'chunks_sha256': fingerprint(self.chunks),
+            'chunks': len(self.chunks),
             'loss': float(loss.detach()), 'cumulative_loss': total,
             'gradient_metadata_sha256': fingerprint([
                 [n, str(g.dtype), list(g.shape)] for n, g in sorted(gradients.items())]),
             'rng': self.rng_snapshot(self.torch),
         }
+        self.chunks = []
         if self.phase == 0:
             size = sum(g.numel() * g.element_size() for g in gradients.values())
             if self.bytes_retained + size > self.max_bytes:
@@ -118,7 +146,7 @@ class ReferenceTrace:
         self.index += 1
 
     def summary(self):
-        complete = self.phase == 1 and self.index == len(self.reference) and self.index > 0 and not self.truncated
+        complete = self.phase == 1 and self.index == len(self.reference) and self.index > 0 and not self.truncated and not self.chunks
         return {'schema': 'r3-k2-reference-trace-v1', 'complete': complete,
                 'truncated': self.truncated, 'reference_questions': len(self.reference),
                 'repeat_questions': self.index if self.phase == 1 else 0,

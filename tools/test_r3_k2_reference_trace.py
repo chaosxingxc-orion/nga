@@ -71,6 +71,17 @@ class Trace(unittest.TestCase):
         self.assertIsNone(self.trace.summary()['first_difference'])
         self.assertFalse(self.trace.summary()['scientific_acceptance'])
 
+    def test_actual_chunk_mask_difference_is_localized(self):
+        ids=torch.tensor([[1,2]]);mask=torch.tensor([[1,1]])
+        self.trace.observe_chunk([0],ids,mask,[0],[0],[2],[0])
+        self.observe(1,[1.,2.]);self.trace.begin_repeat()
+        self.trace.observe_chunk([0],ids,torch.tensor([[1,0]]),[0],[0],[2],[0])
+        self.observe(1,[1.,2.])
+        result=self.trace.summary()
+        self.assertTrue(result['complete'])
+        self.assertFalse(result['first_difference']['components_equal']['chunks_sha256'])
+        self.assertTrue(result['first_difference']['gradient_diagnostic']['exact'])
+
     def test_limits_missing_questions_and_nonfinite_refuse_completion(self):
         self.trace.max_bytes=1
         with self.assertRaisesRegex(ValueError,'memory budget'):self.observe(1,[1.,2.])
