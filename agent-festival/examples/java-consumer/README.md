@@ -1,7 +1,7 @@
 # Java consumer spike — the "run it once" entry point
 
 A minimal Maven project (Java 21 + Jackson 2.17.2 + networknt 2.0.0) that consumes the
-growth-family fixture corpus (ledger / adoption / judgment / release — 80 fixtures) through
+growth-family fixture corpus (ledger / adoption / judgment / release — 81 fixtures) through
 the conformance interface defined in [docs/conformance-fixture-format.md](../../docs/conformance-fixture-format.md):
 
 - `load(path)` — shared loader semantics (UseNumber-equivalent via `BigDecimal` parsing, `_expect*` pin popping, loud wrong-typed-pin)

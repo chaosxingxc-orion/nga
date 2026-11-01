@@ -126,7 +126,7 @@ type Declaration struct {
 type CoverageReport struct {
 	OK          bool
 	Missing     []string // selectors the declaration claims but the log lacks
-	Unaccounted []string // log entries the declaration does not cover (informational)
+	Unaccounted []string // log entries the declaration does not cover — verdict-bearing: empties gate OK
 }
 
 // CheckCoverage verifies a declaration against the log: every claimed query
@@ -214,7 +214,7 @@ func loadLines(path string) ([]parsedLine, error) {
 		}
 		var e Entry
 		if json.Unmarshal(line, &e) != nil {
-			continue // torn tail, same tolerance as piece 2
+			continue // torn tail tolerance (mid-file unparseable lines are REJECTED by the caller's ParseLines — only this loader has the boundary)
 		}
 		doc := map[string]any{}
 		dec := json.NewDecoder(bytes.NewReader(line))
