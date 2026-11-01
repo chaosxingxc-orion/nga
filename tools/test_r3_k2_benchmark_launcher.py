@@ -45,6 +45,31 @@ class Lifecycle(unittest.TestCase):
             with self.assertRaises(StopObservation):L.supervise(self.plan,self.pin)
         run.assert_not_called();self.assertEqual(L.load(self.out/'digest.json')['state'],'observation_uncertain')
 
+    def test_real_release_rejects_replacement_after_supervisor_verified_exit(self):
+        import subprocess
+        s=importlib.util.spec_from_file_location('real_resource',HERE/'r3_resource_adapter.py')
+        resource=importlib.util.module_from_spec(s);s.loader.exec_module(resource)
+        self.R=resource
+        ledger=Path(self.p['allocation'])
+        L.atomic(ledger,{'allocation':[{'chip':3,'run':'synthetic'}],'free':[]})
+        before=ledger.read_bytes()
+        L.atomic(self.a/'CLAIM.json',{'schema':'r3-resource-claim-v1','run':'synthetic','chip':3})
+        L.atomic(self.a/'LAUNCH_INTENT.json',{'command':['docker','run','-d'],'pin':self.pin})
+        result_dir=Path(self.q['out']);result_dir.mkdir()
+        L.atomic(result_dir/'EXIT.json',{'exit_code':0,'plan_sha256':self.p['benchmark_sha256']})
+        L.atomic(result_dir/'RESULT.json',{'exact_loss_and_gradients':True,'plan_sha256':self.p['benchmark_sha256'],'test_read':False,'scientific_acceptance':False})
+        old=dict(self.observed,Name='/bench-a1',HostConfig={'AutoRemove':False})
+        replacement={'Id':'new','Name':'/bench-a1','State':{'Status':'running','ExitCode':0},
+                     'HostConfig':{'AutoRemove':False,'Devices':[{'PathOnHost':'/dev/davinci3'}]}}
+        def run(cmd,**kwargs):return subprocess.CompletedProcess(cmd,0,'new' if cmd[:3]==['docker','ps','-aq'] else '', '')
+        # Initial observation, supervisor verification, release entry, then the
+        # inventory sees a different live generation under the identical name.
+        with patch.object(resource,'docker_inspect',side_effect=[old,old,old,replacement]),patch.object(L.subprocess,'run',side_effect=run):
+            with self.assertRaisesRegex(RuntimeError,'live container still owns device'):L.supervise(self.plan,self.pin)
+        self.assertEqual(ledger.read_bytes(),before)
+        self.assertFalse((self.a/'RELEASE.json').exists())
+        self.assertFalse((self.a/'SUPERVISOR_DONE.json').exists())
+
     def test_released_attempt_only_finishes_durable_record(self):
         terminal={'exit_code':0,'container_exit_code':0,'plan_sha256':self.pin}
         L.atomic(self.a/'EXIT.json',terminal);L.atomic(self.a/'RELEASE.json',{'run':'synthetic','chip':3,'exit_code':0,'container_id':'c'*64})

@@ -111,7 +111,7 @@ class AdapterTests(unittest.TestCase):
         claim = self.root / "proof.json"; release = self.root / "release.json"
         d = {"Id": "cid", "Name": "/ctr", "HostConfig": {"AutoRemove": False, "Devices": [{"PathOnHost": "/dev/davinci1"}]}, "State": {"Status": "exited", "ExitCode": 0, "StartedAt": "s", "FinishedAt": "f"}}
         fake = type("P", (), {"returncode": 0, "stdout": ""})()
-        with mock.patch.object(m, "docker_inspect", side_effect=[d, None]), mock.patch.object(m.subprocess, "run", return_value=fake):
+        with mock.patch.object(m, "docker_inspect", return_value=d), mock.patch.object(m.subprocess, "run", return_value=fake):
             self.assertIsNone(m.release(self.args(container="ctr", claim=str(claim), proof=str(release))))
         now = json.loads(self.alloc.read_text())
         self.assertEqual([x["chip"] for x in now["free"]], [1, 4]); self.assertEqual([x["chip"] for x in now["allocation"]], [2])
@@ -122,6 +122,26 @@ class AdapterTests(unittest.TestCase):
         d = {"Id": "cid", "HostConfig": {"AutoRemove": False}, "State": {"Status": "running"}}
         with mock.patch.object(m, "docker_inspect", return_value=d), self.assertRaises(RuntimeError):
             m.release(self.args(container="ctr", claim=str(self.root / "proof.json"), proof=str(self.root / "release.json")))
+
+    def test_release_rejects_same_name_replacement_during_inventory(self):
+        m.claim(self.args())
+        before=self.alloc.read_bytes();proof=self.root/'release.json'
+        old={'Id':'old','Name':'/ctr','HostConfig':{'AutoRemove':False},'State':{'Status':'exited','ExitCode':0}}
+        new={'Id':'new','Name':'/ctr','HostConfig':{'AutoRemove':False,'Devices':[{'PathOnHost':'/dev/davinci1'}]},'State':{'Status':'running','ExitCode':0}}
+        args=self.args(container='ctr',container_id='old',claim=str(self.root/'proof.json'),proof=str(proof))
+        with mock.patch.object(m,'docker_inspect',side_effect=[old,new]),mock.patch.object(m.subprocess,'run',return_value=subprocess.CompletedProcess([],0,'new','')):
+            with self.assertRaisesRegex(RuntimeError,'live container still owns device'):m.release(args)
+        self.assertEqual(self.alloc.read_bytes(),before);self.assertFalse(proof.exists())
+
+    def test_release_rechecks_identity_after_intent_before_ledger_commit(self):
+        m.claim(self.args());before=self.alloc.read_bytes();proof=self.root/'release.json'
+        old={'Id':'old','HostConfig':{'AutoRemove':False},'State':{'Status':'exited','ExitCode':0}}
+        new=dict(old,Id='replacement')
+        args=self.args(container='ctr',container_id='old',claim=str(self.root/'proof.json'),proof=str(proof))
+        with mock.patch.object(m,'docker_inspect',side_effect=[old,old,old,new]),mock.patch.object(m,'live_chip_conflict',return_value=False):
+            with self.assertRaisesRegex(RuntimeError,'generation differs'):m.release(args)
+        self.assertEqual(self.alloc.read_bytes(),before);self.assertFalse(proof.exists())
+        self.assertTrue(proof.with_suffix('.json.intent').exists())
 
     def test_bound_release_recovers_each_write_boundary_and_rejects_wrong_generation(self):
         for crash_after_ledger in (False, True):

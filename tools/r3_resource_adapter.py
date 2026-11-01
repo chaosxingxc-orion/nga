@@ -190,7 +190,7 @@ def live_chip_conflict(chip, own_name):
         d = docker_inspect(cid)
         if d is None:
             raise RuntimeError('Container disappeared during device inventory; retry observation')
-        if d.get("Name", "").lstrip("/") == own_name or d.get("State", {}).get("Status") in ("exited", "dead"): continue
+        if (own_name and d.get("Name", "").lstrip("/") == own_name) or d.get("State", {}).get("Status") in ("exited", "dead"): continue
         if any(x.get("PathOnHost") == f"/dev/davinci{chip}" for x in d.get("HostConfig", {}).get("Devices") or []): return True
     return False
 
@@ -205,10 +205,24 @@ def release(args):
     if container is None or container.get("State", {}).get("Status") not in ("exited", "dead"):
         raise RuntimeError("retained container has not exited")
     if container.get("HostConfig", {}).get("AutoRemove"): raise RuntimeError("auto-remove container")
-    if live_chip_conflict(args.chip, args.container): raise RuntimeError("live container still owns device")
+    # Release never exempts a live holder by name: the same name may now refer
+    # to a replacement generation. Revalidate under the allocation lock at the
+    # commit boundary as well. All cooperating allocation writers use this lock.
+    def revalidate_release():
+        if live_chip_conflict(args.chip, None):
+            raise RuntimeError("live container still owns device")
+        current = docker_inspect(args.container)
+        if current is None or current.get('Id') != container['Id']:
+            raise RuntimeError('release container generation differs')
+        if current.get('State', {}).get('Status') not in ('exited', 'dead') or current.get('HostConfig', {}).get('AutoRemove'):
+            raise RuntimeError('retained container has not exited')
+        if current['State'].get('ExitCode') != container['State'].get('ExitCode'):
+            raise RuntimeError('release container exit differs')
+    revalidate_release()
     intent_path = Path(args.proof).with_suffix(Path(args.proof).suffix + ".intent")
     with locked(alloc):
         before_raw = read_bytes(alloc); before = json.loads(before_raw); validate_doc(before)
+        revalidate_release()
         existing = read_json_if(args.proof)
         if existing is not None:
             if existing.get("schema") != "r3-resource-release-v1" or existing.get("run") != args.run or existing.get("chip") != args.chip:
@@ -226,6 +240,7 @@ def release(args):
             current_hash = sha_bytes(read_bytes(alloc))
             if current_hash == intent.get("allocation_before_sha256"):
                 after = intent["allocation_after"]
+                revalidate_release()
                 after_hash = write_atomic(alloc, after)
                 before = intent["allocation_before"]
                 before_raw = json.dumps(before, indent=2, sort_keys=True, allow_nan=False).encode() + b"\n"
@@ -249,6 +264,7 @@ def release(args):
                       "allocation_after": after, "allocation_after_sha256": sha_bytes((json.dumps(after, indent=2, sort_keys=True, allow_nan=False) + "\n").encode()),
                       "proof": str(Path(args.proof).resolve())}
             write_atomic(intent_path, intent)
+            revalidate_release()
             after_hash = write_atomic(alloc, after)
         proof = {"schema": "r3-resource-release-v1", "run": args.run, "chip": args.chip,
                  "container": args.container, "container_id": container["Id"],
