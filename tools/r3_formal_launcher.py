@@ -148,7 +148,7 @@ def verify(path, pin, reviewed=True):
     arm = p.get('arm', 'k1') if engineering else 'k1'
     require(arm in ('k1', 'k2'), 'unregistered loss arm')
     control_arm=p.get('control_arm')
-    control_resume = engineering and p.get('validation_kind') == 'current_k1_resume_contract' and control_arm is not None
+    control_resume = engineering and p.get('validation_kind') == 'current_k1_resume_contract'
     if control_arm is not None:
         require(control_arm in ('K1-QO','K1-PT') and arm=='k1'
                 and not p.get('k2_impl') and (not p.get('validation_kind') or control_resume), 'invalid engineering control recipe')

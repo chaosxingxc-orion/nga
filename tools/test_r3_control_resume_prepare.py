@@ -31,7 +31,7 @@ class Preparation(unittest.TestCase):
                    'execution_scope':'engineering_only','test_read':False,'scientific_acceptance':False}
         self.configure('K1-QO')
     def configure(self,arm):
-        model=self.base if arm=='K1-QO' else self.pt
+        model=self.pt if arm=='K1-PT' else self.base
         self.plan.update(control_arm=arm,model=str(model))
         self.plan['command']=['python3','-P','/workspace/train_r3.py','--out',str(self.src),'--arm','k1','--seed','2',
             '--model-path',str(model),'--kernel','ref','--grad-ckpt','--micro-tokens','12000','--max-len','4096',
@@ -42,13 +42,24 @@ class Preparation(unittest.TestCase):
     def save(self):self.plan_path.write_text(json.dumps(self.plan));self.pin=P.R.identity(self.plan)
     def prepare(self):return P.prepare(self.plan_path,self.pin,self.checkpoint,P.R.sha(self.checkpoint),200,self.out,2)
     def test_qo_pt_package_preserves_recipe_and_frozen_contract(self):
-        for arm in ('K1-QO','K1-PT'):
-            self.configure(arm);self.out=self.root/arm;r=self.prepare()
+        for arm in (None,'K1-QO','K1-PT'):
+            self.configure(arm);self.out=self.root/(arm or 'base');r=self.prepare()
             d=json.loads((self.out/'DRAFT.json').read_text());cfg=json.loads((self.out/'CONTRACT.json').read_text())
             self.assertFalse(r['deployable']);self.assertFalse(r['checkpoint_state_verified'])
             self.assertNotIn('launcher',d);self.assertEqual(cfg['steps'],20);self.assertEqual(cfg['split'],10)
             self.assertEqual(P.R.sha(self.out/'code/r3_resume_contract.py'),P.R.sha(HERE/'r3_resume_contract.py'))
             self.assertEqual(json.loads((self.out/'SOURCE_PLAN.json').read_text())['command'],self.plan['command'])
+    def test_base_legacy_source_and_explicit_scope_are_checked(self):
+        self.configure(None);self.plan.pop('arm');self.plan.pop('control_arm');self.save()
+        r=self.finalized();plan=P.R.load(r['plan']);P.verify_launch(plan)
+        self.assertNotIn('control',plan)
+        self.assertEqual(plan['model'],str(self.base))
+        self.assertEqual(plan['run'],str(self.out.relative_to(self.root)))
+        for field,value in [('test_read',True),('scientific_acceptance',True),('arm','k2')]:
+            saved=self.plan.copy();self.plan[field]=value;self.save()
+            with self.subTest(field=field),self.assertRaises(ValueError):P.source(self.plan_path,self.pin)
+            self.plan=saved;self.save()
+
     def test_wrong_drop_model_seed_or_objective_refused(self):
         for key,value in [('seed',3),('model',str(self.pt)),('arm','k2')]:
             old=self.plan[key];self.plan[key]=value;self.save()
@@ -76,8 +87,8 @@ class Preparation(unittest.TestCase):
         return P.finalize(path,P.R.sha(path))
 
     def test_finalize_real_launcher_admission_and_mount_contract(self):
-        for arm in ('K1-QO','K1-PT'):
-            self.configure(arm);self.out=self.root/arm;r=self.finalized()
+        for arm in (None,'K1-QO','K1-PT'):
+            self.configure(arm);self.out=self.root/(arm or 'base');r=self.finalized()
             # Frozen test copy substitutes only registered filesystem roots.
             helper=self.out/'tools/r3_control_resume_prepare.py'
             text=helper.read_text().replace("BASE='/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base'",'BASE='+repr(str(self.base)))
