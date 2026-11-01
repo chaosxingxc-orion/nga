@@ -147,11 +147,18 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
         command.remove('--grad-ckpt')
         command[command.index('--micro-tokens')+1] = '3000'
         command += ['--k2-impl', 'shared', '--gdn-impl', 'ref', '--k2-rows', '48']
-    plan = {'schema': 'r3-formal-k1-plan-v1', 'seed': seed, 'chip': chip, 'run': str(out.relative_to(BASE)),
+    formal_chip_pair = tuple(int(x) for x in formal_chips)
+    if not engineering:
+        if len(formal_chip_pair) != 2 or len(set(formal_chip_pair)) != 2 or any(x < 0 or x >= 8 for x in formal_chip_pair):
+            raise ValueError('formal chip pair must contain two distinct Ascend chip ids')
+    plan = {'schema': 'r3-formal-k1-plan-v1', 'seed': seed, 'chip': chip,
+            'formal_chips': list(formal_chip_pair) if not engineering else None,
+            'run': str(out.relative_to(BASE)),
             'out': str(out), 'code': str(code), 'model': str(model), 'train_file': str(TRAIN),
             'allocation': str(BASE / 'CHIP-ALLOCATION.json'), 'image_sha256': IMAGE,
             'container': f'nga-r3-formal-k1-s{seed}-20261031', 'command': command,
             'environment': {'ASCEND_RT_VISIBLE_DEVICES': '0', 'TASK_QUEUE_ENABLE': '2',
+                            'TORCH_DEVICE_BACKEND_AUTOLOAD': '0',
                             'PYTORCH_NPU_ALLOC_CONF': 'expandable_segments:True',
                             'NGA_R0_CODE': '/workspace/r0_code', 'PYTHONDONTWRITEBYTECODE': '1',
                             'HF_HUB_OFFLINE': '1', 'TRANSFORMERS_OFFLINE': '1', 'TOKENIZERS_PARALLELISM': 'false'},
@@ -258,7 +265,8 @@ def main():
     seeds = (2,) if args.control_arm == 'K1-QO' else (2,3)
     print(json.dumps([prepare(parent / f'seed{seed}', seed, chip, args.engineering, model=model, control_arm=args.control_arm, fresh_prechecks=args.fresh_prechecks, fresh_prechecks_sha256=args.fresh_prechecks_sha256, training_evidence=args.training_evidence, training_evidence_sha256=args.training_evidence_sha256, resume_plan=args.resume_plan, resume_plan_sha256=args.resume_plan_sha256,
         resume_reconstruction=args.resume_reconstruction, resume_reconstruction_sha256=args.resume_reconstruction_sha256,
-        reconstruction_target=args.reconstruction_target, reconstruction_target_sha256=args.reconstruction_target_sha256) for seed, chip in zip(seeds, tuple(args.formal_chips))], indent=2))
+        reconstruction_target=args.reconstruction_target, reconstruction_target_sha256=args.reconstruction_target_sha256,
+        formal_chips=tuple(args.formal_chips)) for seed, chip in zip(seeds, tuple(args.formal_chips))], indent=2))
 
 
 if __name__ == '__main__':

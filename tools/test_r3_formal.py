@@ -47,17 +47,22 @@ class Formal(unittest.TestCase):
             'test_read': False,
             'chip': 2,
             'seed': 2,
+            'formal_chips': [2, 3],
             'evaluation': {'test_requires_separate_final_ticket': True},
         }
         for chip in (2, 3, 7):
             with self.subTest(chip=chip):
-                p = dict(base, chip=chip)
+                p = dict(base, chip=chip, formal_chips=[2, 3] if chip != 7 else [2, 7])
+                p['seed'] = 2 if chip == 2 else 3
                 L.formal_target_identity(p)
         for chip in (-1, 8, '2'):
             with self.subTest(chip=chip):
                 p = dict(base, chip=chip)
                 with self.assertRaisesRegex(RuntimeError, 'formal chip'):
                     L.formal_target_identity(p)
+        bad = dict(base, chip=3, seed=2)
+        with self.assertRaisesRegex(RuntimeError, 'seed/chip binding'):
+            L.formal_target_identity(bad)
 
     def test_unit_test_source_is_not_test_dataset(self):
         for p in ('/code/test_k2_shared.py','/code/test_train_r3.py','/data/dev.jsonl'):

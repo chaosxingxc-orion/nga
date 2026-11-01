@@ -129,6 +129,10 @@ def formal_target_identity(p):
             'formal scope differs')
     require(type(p.get('chip')) is int and 0 <= p['chip'] < 8, 'formal chip differs')
     require(type(p.get('seed')) is int and p['seed'] in (2, 3), 'formal seed differs')
+    chips = p.get('formal_chips')
+    require(isinstance(chips, list) and len(chips) == 2 and len(set(chips)) == 2
+            and all(type(x) is int and 0 <= x < 8 for x in chips), 'formal chip binding differs')
+    require(p['chip'] == chips[p['seed'] - 2], 'formal seed/chip binding differs')
     evaluation = p.get('evaluation', {})
     require(evaluation.get('test_requires_separate_final_ticket') is True,
             'separate final test ticket required')
