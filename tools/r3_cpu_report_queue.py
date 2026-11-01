@@ -352,7 +352,7 @@ def worker(path, pin, job_id):
                             sha(Path(job['eval_out'])/'instruct/report.json') == report['report_sha256'],
                             'R0 verified output identity differs')
                 elif job.get('kind') == 'k0_prechecks':
-                    require(report.get('schema') == 'r3-fresh-k0-prechecks-v1'
+                    require(report.get('schema') == 'r3-fresh-k0-prechecks-v2'
                             and report.get('status') == 'PASS'
                             and report.get('scientific_acceptance') is False
                             and report.get('test_read') is False

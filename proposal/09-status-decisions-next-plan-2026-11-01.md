@@ -10,7 +10,7 @@
 
 真实 Astra 审查已在 `jev_formal_readiness_20261101_v1/review.md` 返回 `CHANGES_REQUIRED`，核对了 10 个文件并提出 F1–F8。现有 `PROCESS.json` 记录请求模型和进程；进程已退出、报告存在，但该代次没有保留 `COMPLETE.json` / `EXIT.json`，因此不能宣称 runner 退出码链完整。
 
-修复状态更正：`efc3e70` 和 `a7f4a76` 只堵住部分反例，**并未完整解决 F1–F5**。恢复源仍需强校验，重建仍需数值与目标绑定，review 仍需验证具体计划，K0 provenance 不能仅靠文件名和额外字段。部分新增测试只是断言常量或重复实现，不能证明生产路径有效，正在替换。`51475db` 已补充完整恢复 Docker 命令匹配、所有保留训练容器的配置检查及正式训练 false scope flags；29 项定向测试通过，仍须独立复审。`dc9b9c9` 将 readiness 改为 QO seed2、PT seeds2/3 分别绑定模型、输入模式、实际计划、强恢复验证、CPU 重建及具体审查文件；14 项生产入口 fixture 测试通过。缺任何目标时保持 WAITING，不授权启动。`26ee084` 已将 K0 消费改为完整来源、分数、六项检查重建，6 项 fixture 测试通过；新的真实 K0 v2 CPU 证据仍待产出。托管子智能体 `/root/astra_repairs_v2` 已审查启动，冻结包 25 个文件，manifest `5702e521e94229b191a8ec01a973d81e970b93355f6e685f70c2ddba747bf334`；以上代码尚未取得新 Astra 通过。
+修复状态更正：`efc3e70` 和 `a7f4a76` 只堵住部分反例，**并未完整解决 F1–F5**。恢复源仍需强校验，重建仍需数值与目标绑定，review 仍需验证具体计划，K0 provenance 不能仅靠文件名和额外字段。部分新增测试只是断言常量或重复实现，不能证明生产路径有效，正在替换。`51475db` 已补充完整恢复 Docker 命令匹配、所有保留训练容器的配置检查及正式训练 false scope flags；29 项定向测试通过，仍须独立复审。`dc9b9c9` 将 readiness 改为 QO seed2、PT seeds2/3 分别绑定模型、输入模式、实际计划、强恢复验证、CPU 重建及具体审查文件；14 项生产入口 fixture 测试通过。缺任何目标时保持 WAITING，不授权启动。`26ee084` 已将 K0 消费改为完整来源、分数、六项检查重建，6 项 fixture 测试通过；真实 0.8B K0 v2 生成和消费重建已退出 0：6 项检查、95 项输入，bundle SHA `bf52cbe391b619f6ec5dc1f993ad89a5cf4feb3ebdb1338aa88ac1daf39571eb`，主会话已核对输入/检查哈希无差异。仅为 dev/calibration 工程证据。托管子智能体 `/root/astra_repairs_v2` 已发起审查；首次仅确认规则，记为 NOT_REVIEWED，已追发要求实际读包。冻结包 25 个文件，manifest `5702e521e94229b191a8ec01a973d81e970b93355f6e685f70c2ddba747bf334`；以上代码尚未取得新 Astra 通过。
 
 ## 当前结论
 
