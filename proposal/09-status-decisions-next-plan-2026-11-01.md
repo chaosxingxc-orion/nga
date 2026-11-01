@@ -4,6 +4,10 @@
 
 ## 当前结论
 
+PT 完整恢复消费校验已随后通过：实际执行训练代码/数据/模型身份检查及 CPU 张量验证，共绑定 64 项输入；RESULT SHA `a0de54975b3a1ed3689c5ee0341319ddc275551870c3e4fa39482eb58b7efc1c`。至此 Base、QO、PT 均具备有限独立保存张量复核与主会话完整消费者通过记录；仍需精确正式计划和相应准入，不代表原训练历史被独立重放。
+
+K2 q1 探针运行终态（2026-11-01 07:54:24 UTC）：保留容器与终态均 exit1，diagnostic_complete=false，未生成合格 TRACE。生产 partial 摘要显示两个重复阶段各缺八项 A/B 矩阵乘法 operands/output 观测；已有 dropout 等事件不能替代缺失的必需观测。该结果仅说明当前 Ascend 观测覆盖不足，不能用于证明训练根因或数值等价。原 v2 证据保持不变，下一代需同时处理冻结重启文件与实际 dispatch 覆盖。PT 生产 CPU 重建于 07:54:12 UTC 实际 exit0，结果 SHA `a6d46aec9836f8d02540181ee3a3dc0e80724f2fe29ff76c8470fc8aa20267d7`，其 replicas/resume/controls/bars 与独立张量计算一致；完整证据消费校验正在异步运行。PT seed2 成员源报告重建已完成生产输出，独立全量源复算已启动，尚未升级为七成员验收。
+
 K2 q1 探针独立实现审查随后返回 CHANGES_REQUIRED：实际启动路径将已列入冻结清单的 RELAUNCH.json 覆盖成 supervisor 命令，审查在内存重放生产 start() 并观察到真实文件哈希变化。其余 29 项冻结文件保持一致，配方保持和覆盖拒绝逻辑获有限支持，但不授予 v2 验收。运行任务与旧证据保留，新代次将把运行期重启命令分离为 SUPERVISOR_RELAUNCH.json，并补充冻结文件不变的生产启动路径回归；不追溯修改原清单或宣称审查通过。
 
 恢复与接续里程碑（2026-11-01 07:52 UTC）：PT 恢复于 07:44:03 UTC 实际 exit0；独立审查重算六份 checkpoint（每份 372 个 LoRA tensors）与 120 条保存 loss，并检查 source、zero-moments 和 step3010 split。三 replicas 与恢复的 loss/权重距离均为 0，逐张量完全相等；两项破坏对照均超过原门槛 2.4e-7/1e-7。主会话核验 91 项源文件及 16 项输出；REPORT SHA `41b1fb39adc528b64ea9cb01d6d2e02b676c143784a7ad71cc53ca239cf83257`。审查结束时 PT CPU 生产输出尚未完成，不声称生产 CPU 对比或原训练重放。Base/QO 已另外执行完整恢复消费验证器，每条路线校验 63 项绑定输入，包含训练代码、数据与模型字节身份及张量重算；RESULT SHA `90d216b90ba1ab48c8d794a020becea77f8da15a38c92563022dc159a83773f3`。这补齐主会话完整校验，独立审查范围不追溯扩大。K2 q1 探针已于 07:50:37 UTC 接续芯片 3，真实容器与 supervisor 已核验，独立实现审查并行，尚无探针结果。正式准备审计 49 项检查、34 项合成测试通过，发现 Base K0 旧绑定已有 v2 替代，Instruct K0 等待中的预检查生产器仍需兼容 v2；新的正式 K1 计划和 Instruct CPU 消费修复正在准备。未授予整体正式准入或 TEST 收益。
