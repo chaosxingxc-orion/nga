@@ -26,9 +26,29 @@ class Successors(unittest.TestCase):
         cmd=[S.sys.executable,'-P',plan['launcher'],'supervise','--plan',str(p),'--sha256',S.sha(p),'--attempt',str(attempt)]
         self.write(self.prev/'SUPERVISOR_RECEIPT.json',{'pid':99,'command':cmd})
         return {'Id':'old-id','State':{'Status':'exited','ExitCode':rc}}
+    def test_reconciled_failure_preserves_status_but_uses_container_exit(self):
+        actual=self.previous(0,1)
+        marker=self.prev/'ENGINEERING_EVAL_EXIT.json'
+        end=S.load(marker);end.update(exit_code=125,container_exit_code=0)
+        self.write(marker,end);self.write(self.prev/'attempts/1/EXIT.json',end)
+        with patch.object(S,'inspect',return_value=actual):
+            result=S.predecessor(self.job)
+        self.assertEqual(result['exit_code'],125);self.assertEqual(result['container_exit_code'],0)
+        actual['State']['ExitCode']=1
+        with patch.object(S,'inspect',return_value=actual):
+            with self.assertRaisesRegex(RuntimeError,'previous exit differs'):S.predecessor(self.job)
+
     def test_idle_chip_without_predecessor_release_never_launches(self):
         with patch.object(S.subprocess,'run') as run:
             self.assertEqual(S.tick(self.job)['status'],'waiting_previous_release');run.assert_not_called()
+    def test_success_marker_cannot_hide_failed_container(self):
+        actual=self.previous(7)
+        end={'attempt':1,'exit_code':0,'container_exit_code':7}
+        self.write(self.prev/'ENGINEERING_EVAL_EXIT.json',end)
+        self.write(self.prev/'attempts/1/EXIT.json',end)
+        with patch.object(S,'inspect',return_value=actual),patch.object(S.subprocess,'run') as run:
+            with self.assertRaisesRegex(RuntimeError,'successful status with failed container'):S.tick(self.job)
+            run.assert_not_called()
     def test_failure_release_can_handoff_and_intent_prevents_duplicate(self):
         actual=self.previous(7,2)
         with patch.object(S,'inspect',return_value=actual),patch.object(S.subprocess,'run') as run:

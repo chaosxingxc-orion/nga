@@ -26,6 +26,7 @@ class Lifecycle(unittest.TestCase):
             docker_inspect=lambda n:self.observed,live_chip_conflict=lambda *a:False,release=lambda a:None)
         self.K=SimpleNamespace(command=lambda s:['docker','run','-d'])
         L.atomic(self.a/'CLAIM.json',{'run':'synthetic','chip':3})
+        L.atomic(self.a/'LAUNCH_RECEIPT.json',{'id':'c'*64})
         def module(p):return self.R if Path(p).name=='r3_resource_adapter.py' else self.K
         for target,value in [('verify',lambda *a:(self.p,self.q)),('module',module),('spec',lambda *a:self.spec),
                              ('verify_container',lambda p,s,a,cid=None:a)]:
@@ -46,7 +47,7 @@ class Lifecycle(unittest.TestCase):
 
     def test_released_attempt_only_finishes_durable_record(self):
         terminal={'exit_code':0,'container_exit_code':0,'plan_sha256':self.pin}
-        L.atomic(self.a/'EXIT.json',terminal);L.atomic(self.a/'RELEASE.json',{'run':'synthetic','chip':3,'exit_code':0})
+        L.atomic(self.a/'EXIT.json',terminal);L.atomic(self.a/'RELEASE.json',{'run':'synthetic','chip':3,'exit_code':0,'container_id':'c'*64})
         with patch.object(self.R,'release') as release,patch.object(L.subprocess,'run') as run:
             self.assertEqual(L.supervise(self.plan,self.pin),terminal)
         release.assert_not_called();run.assert_not_called()
@@ -77,6 +78,26 @@ class Lifecycle(unittest.TestCase):
         with patch.object(self.R,'release') as release:
             with self.assertRaisesRegex(ValueError,'released evidence differs'):L.supervise(self.plan,self.pin)
         release.assert_not_called();self.assertFalse((self.a/'SUPERVISOR_DONE.json').exists())
+
+    def test_actual_container_verifier_rejects_effective_mutations(self):
+        import copy
+        ns={};exec(compile((HERE/'r3_k2_benchmark_launcher.py').read_bytes(),'<launcher>','exec'),ns)
+        k=SimpleNamespace(verify_observation=lambda *a:None)
+        policy=SimpleNamespace(verify_effective_policy=lambda *a:None)
+        ns['module']=lambda p:k if Path(p).name=='r3_final_container.py' else policy
+        spec={'environment':{},'devices':['/dev/davinci3','/dev/davinci_manager']}
+        actual={'Mounts':[{'Propagation':'rprivate'}],'HostConfig':{'ShmSize':64*1024**3,
+            'Ulimits':[{'Name':'memlock','Soft':-1,'Hard':-1},{'Name':'stack','Soft':67108864,'Hard':67108864}],
+            'Devices':[{'PathOnHost':p,'PathInContainer':p,'CgroupPermissions':'rwm'} for p in spec['devices']]}}
+        with patch.object(L.subprocess,'check_output',return_value='[{}]'):
+            ns['verify_container'](self.p,spec,actual)
+            for mutate in (lambda a:a['HostConfig'].update(ShmSize=64*1024**2),
+                           lambda a:a['HostConfig'].update(Ulimits=[]),
+                           lambda a:a['HostConfig']['Devices'][0].update(PathInContainer='/dev/else'),
+                           lambda a:a['HostConfig']['Devices'][0].update(CgroupPermissions='r'),
+                           lambda a:a['HostConfig']['Devices'].append(dict(a['HostConfig']['Devices'][0]))):
+                bad=copy.deepcopy(actual);mutate(bad)
+                with self.assertRaises(ValueError):ns['verify_container'](self.p,spec,bad)
 
     def test_contract_has_only_train_data_and_pinned_inputs(self):
         K=L.module

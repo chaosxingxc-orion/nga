@@ -35,6 +35,15 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual([x['chip'] for x in after['free']],[1,2,4])
         self.assertFalse(json.loads(Path(a.proof).read_text())['scientific_acceptance'])
 
+    def test_release_refuses_changed_container_before_ledger_mutation(self):
+        claim=self.root/'claim.json';claim.write_text(json.dumps({'schema':'r3-resource-claim-v1','run':'r3_runs/test','chip':1}))
+        args=self.args(container='run',container_id='expected-id',claim=str(claim))
+        actual={'Id':'other-id','State':{'Status':'exited','ExitCode':0},'HostConfig':{'AutoRemove':False}}
+        before=self.alloc.read_bytes()
+        with mock.patch.object(m,'docker_inspect',return_value=actual),mock.patch.object(m,'live_chip_conflict',return_value=False):
+            with self.assertRaisesRegex(RuntimeError,'container generation differs'):m.release(args)
+        self.assertEqual(self.alloc.read_bytes(),before);self.assertFalse(Path(args.proof).exists())
+
     def test_docker_uncertainty_is_not_absence(self):
         for message in ('Error: No such object: c', 'error: no such object: c'):
             with mock.patch.object(m.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, '', message)):
@@ -113,5 +122,37 @@ class AdapterTests(unittest.TestCase):
         d = {"Id": "cid", "HostConfig": {"AutoRemove": False}, "State": {"Status": "running"}}
         with mock.patch.object(m, "docker_inspect", return_value=d), self.assertRaises(RuntimeError):
             m.release(self.args(container="ctr", claim=str(self.root / "proof.json"), proof=str(self.root / "release.json")))
+
+    def test_bound_release_recovers_each_write_boundary_and_rejects_wrong_generation(self):
+        for crash_after_ledger in (False, True):
+            with self.subTest(crash_after_ledger=crash_after_ledger), tempfile.TemporaryDirectory() as tmp:
+                alloc=Path(tmp)/'allocation.json'
+                alloc.write_text(json.dumps({'allocation':[], 'free':[{'chip':1}]}))
+                claim=Path(tmp)/'claim.json';proof=Path(tmp)/'release.json'
+                m.claim(self.args(alloc=str(alloc),proof=str(claim)))
+                a=self.args(alloc=str(alloc),container='ctr',container_id='cid',claim=str(claim),proof=str(proof))
+                actual={'Id':'cid','HostConfig':{'AutoRemove':False},'State':{'Status':'exited','ExitCode':0}}
+                write=m.write_atomic
+                def interrupted(path,doc):
+                    if Path(path)==(proof if crash_after_ledger else alloc):
+                        raise OSError('simulated crash')
+                    return write(path,doc)
+                with mock.patch.object(m,'docker_inspect',return_value=actual), mock.patch.object(m,'live_chip_conflict',return_value=False):
+                    with mock.patch.object(m,'write_atomic',side_effect=interrupted):
+                        with self.assertRaisesRegex(OSError,'simulated crash'):m.release(a)
+                    intent=proof.with_suffix('.json.intent'); saved=intent.read_bytes()
+                    forged=json.loads(saved);forged['container_id']='wrong';intent.write_text(json.dumps(forged))
+                    ledger=alloc.read_bytes()
+                    with self.assertRaisesRegex(RuntimeError,'intent container generation'):m.release(a)
+                    self.assertEqual(alloc.read_bytes(),ledger);self.assertFalse(proof.exists())
+                    intent.write_bytes(saved);m.release(a)
+                    self.assertEqual(json.loads(proof.read_text())['container_id'],'cid')
+                    self.assertEqual(json.loads(alloc.read_text())['allocation'],[])
+                    self.assertFalse(intent.exists())
+                    m.release(a)  # idempotent proof recovery
+                    forged=json.loads(proof.read_text());forged['container_id']='wrong';proof.write_text(json.dumps(forged))
+                    ledger=alloc.read_bytes()
+                    with self.assertRaisesRegex(RuntimeError,'proof container generation'):m.release(a)
+                    self.assertEqual(alloc.read_bytes(),ledger)
 
 if __name__ == "__main__": unittest.main()

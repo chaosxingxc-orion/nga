@@ -84,9 +84,12 @@ def predecessor(job):
     actual = inspect(plan['container'] + '-a' + str(number))
     require(actual and actual['Id'] == receipt['id'] == proof['container_id'], 'previous retained identity differs')
     require(actual['State']['Status'] in ('exited', 'dead'), 'previous container not terminal')
-    require(actual['State']['ExitCode'] == end['exit_code'] == proof['exit_code'], 'previous exit differs')
+    container_exit=end.get('container_exit_code',end['exit_code'])
+    require(type(container_exit) is int and type(end['exit_code']) is int,'invalid previous exit type')
+    require(actual['State']['ExitCode'] == container_exit == proof['exit_code'], 'previous exit differs')
+    require(end['exit_code']!=0 or container_exit==0,'successful status with failed container')
     require(proof['chip'] == job['chip'] and proof['run'] == plan['run'] and proof['scientific_acceptance'] is False, 'previous release scope differs')
-    return {'attempt': number, 'exit_code': end['exit_code'], 'container_id': actual['Id'], 'release_sha256': sha(attempt / 'RELEASE.json')}
+    return {'attempt': number, 'exit_code': end['exit_code'], 'container_exit_code':container_exit, 'container_id': actual['Id'], 'release_sha256': sha(attempt / 'RELEASE.json')}
 
 def tick(job):
     require(next_pin(job) == job['next_sha256'], 'next plan changed')

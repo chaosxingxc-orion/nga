@@ -78,13 +78,22 @@ def verify_container(p,s,a,cid=None):
     image=json.loads(subprocess.check_output(['docker','image','inspect',IMAGE],text=True))[0]
     L.verify_effective_policy(a,image,s['environment'])
     require(all(m.get('Propagation')=='rprivate' for m in a['Mounts']),'nonprivate propagation')
+    host=a['HostConfig']
+    require(host.get('ShmSize')==64*1024**3,'shared memory differs')
+    limits=host.get('Ulimits') or []
+    require(len(limits)==2 and {(v.get('Name'),v.get('Soft'),v.get('Hard')) for v in limits}==
+        {('memlock',-1,-1),('stack',67108864,67108864)},'ulimits differ')
+    devices=host.get('Devices',[])
+    require(len(devices)==len(s['devices']) and {(v.get('PathOnHost'),v.get('PathInContainer'),v.get('CgroupPermissions')) for v in devices}==
+        {(p,p,'rwm') for p in s['devices']},'device mapping differs')
     return a
 
 def args(p,proof,name):
     root=Path(p['out'])/'attempts/1'
     return types.SimpleNamespace(alloc=p['allocation'],run=p['run'],chip=p['chip'],container=name,
         owner='K2 efficiency benchmark',purpose='Paired scalar-transfer correctness and throughput',
-        claim=str(root/'CLAIM.json'),proof=str(root/(proof+'.json')))
+        claim=str(root/'CLAIM.json'),proof=str(root/(proof+'.json')),
+        container_id=load(root/'LAUNCH_RECEIPT.json')['id'] if proof=='RELEASE' else None)
 
 def supervise(path,pin):
     p,q=verify(path,pin);out=Path(p['out']);attempt=out/'attempts/1';attempt.mkdir(parents=True,exist_ok=True)
@@ -95,10 +104,12 @@ def supervise(path,pin):
         s=spec(p,q,path,pin);intent=attempt/'LAUNCH_INTENT.json';receipt=attempt/'LAUNCH_RECEIPT.json'
         if (attempt/'RELEASE.json').exists():
             terminal=load(attempt/'EXIT.json');proof=load(attempt/'RELEASE.json')
-            require(terminal.get('plan_sha256')==pin and proof.get('run')==p['run'] and proof.get('chip')==p['chip'] and proof.get('exit_code')==terminal.get('container_exit_code'),'released evidence differs')
+            require(terminal.get('plan_sha256')==pin and proof.get('run')==p['run'] and proof.get('chip')==p['chip'] and proof.get('exit_code')==terminal.get('container_exit_code') and proof.get('container_id')==load(receipt)['id'],'released evidence differs')
             atomic(attempt/'SUPERVISOR_DONE.json',terminal);return terminal
         if (attempt/'RELEASE.json.intent').exists():
-            R.release(args(p,'RELEASE',s['name']));terminal=load(attempt/'EXIT.json')
+            terminal=load(attempt/'EXIT.json');require(terminal.get('plan_sha256')==pin,'release intent terminal differs')
+            R.release(args(p,'RELEASE',s['name']));proof=load(attempt/'RELEASE.json')
+            require(proof.get('container_id')==load(receipt)['id'] and proof.get('exit_code')==terminal.get('container_exit_code'),'release recovery differs')
             atomic(attempt/'SUPERVISOR_DONE.json',terminal);return terminal
         while not (attempt/'CLAIM.json').exists():
             ledger=R.load(p['allocation']);R.validate_doc(ledger)

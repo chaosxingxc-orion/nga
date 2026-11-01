@@ -199,6 +199,9 @@ def release(args):
     if claim.get("schema") != "r3-resource-claim-v1" or claim.get("chip") != args.chip or claim.get("run") != args.run:
         raise RuntimeError("claim identity differs")
     container = docker_inspect(args.container)
+    expected_id = getattr(args, 'container_id', None)
+    if expected_id is not None and (container is None or container.get('Id') != expected_id):
+        raise RuntimeError('release container generation differs')
     if container is None or container.get("State", {}).get("Status") not in ("exited", "dead"):
         raise RuntimeError("retained container has not exited")
     if container.get("HostConfig", {}).get("AutoRemove"): raise RuntimeError("auto-remove container")
@@ -210,12 +213,16 @@ def release(args):
         if existing is not None:
             if existing.get("schema") != "r3-resource-release-v1" or existing.get("run") != args.run or existing.get("chip") != args.chip:
                 raise RuntimeError("release proof identity differs")
+            if expected_id is not None and existing.get('container_id') != expected_id:
+                raise RuntimeError('release proof container generation differs')
             print(json.dumps({"status": "ALREADY_RELEASED", "chip": args.chip, "run": args.run, "proof": args.proof}))
             return
         intent = read_json_if(intent_path)
         if intent is not None:
             if intent.get("schema") != "r3-resource-release-intent-v1" or intent.get("run") != args.run or intent.get("chip") != args.chip:
                 raise RuntimeError("release intent identity differs")
+            if expected_id is not None and intent.get('container_id') != expected_id:
+                raise RuntimeError('release intent container generation differs')
             current_hash = sha_bytes(read_bytes(alloc))
             if current_hash == intent.get("allocation_before_sha256"):
                 after = intent["allocation_after"]
@@ -237,6 +244,7 @@ def release(args):
                 "release_evidence": str(Path(args.proof).resolve()), "released_utc": utc()}], key=lambda e: e["chip"])
             after["updated_utc"], after["updated_by"] = utc(), "r3_resource_adapter release"
             intent = {"schema": "r3-resource-release-intent-v1", "run": args.run, "chip": args.chip,
+                      "container_id": container["Id"],
                       "allocation_before": before, "allocation_before_sha256": sha_bytes(before_raw),
                       "allocation_after": after, "allocation_after_sha256": sha_bytes((json.dumps(after, indent=2, sort_keys=True, allow_nan=False) + "\n").encode()),
                       "proof": str(Path(args.proof).resolve())}
@@ -307,7 +315,7 @@ def main(argv=None):
     p = argparse.ArgumentParser(); sub = p.add_subparsers(dest="op", required=True)
     c = sub.add_parser("claim"); c.add_argument("--alloc", default=ALLOC_DEFAULT); c.add_argument("--run", required=True); c.add_argument("--chip", type=int, required=True); c.add_argument("--owner", required=True); c.add_argument("--purpose", required=True); c.add_argument("--proof", required=True)
     a = sub.add_parser("abort"); a.add_argument("--alloc", default=ALLOC_DEFAULT); a.add_argument("--run", required=True); a.add_argument("--chip", type=int, required=True); a.add_argument("--container", required=True); a.add_argument("--claim", required=True); a.add_argument("--proof", required=True)
-    r = sub.add_parser("release"); r.add_argument("--alloc", default=ALLOC_DEFAULT); r.add_argument("--run", required=True); r.add_argument("--chip", type=int, required=True); r.add_argument("--container", required=True); r.add_argument("--claim", required=True); r.add_argument("--proof", required=True)
+    r = sub.add_parser("release"); r.add_argument("--alloc", default=ALLOC_DEFAULT); r.add_argument("--run", required=True); r.add_argument("--chip", type=int, required=True); r.add_argument("--container", required=True); r.add_argument("--container-id"); r.add_argument("--claim", required=True); r.add_argument("--proof", required=True)
     l = sub.add_parser('reclaim-legacy')
     for name in ('alloc', 'container', 'container-id', 'marker', 'marker-sha256', 'entry-sha256', 'proof'):
         l.add_argument('--' + name, required=True)
