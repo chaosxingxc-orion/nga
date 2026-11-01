@@ -15,7 +15,10 @@ from pathlib import Path
 from typing import Any
 
 SCHEMA = "dataset-expansion-contract-v2"
-AUDIT_SCHEMA = "dataset-expansion-v3-local-metadata-audit-v1"
+AUDIT_SCHEMAS = {
+    "dataset-expansion-v3-local-metadata-audit-v1",
+    "dataset-expansion-v6-local-metadata-audit-v1",
+}
 READ_KEYS = ("candidate_test_samples_read", "model_outputs_read", "new_inference", "training_changed")
 MAX_REASONS = 64
 
@@ -88,8 +91,8 @@ def validate(contract: dict[str, Any], audit: dict[str, Any]) -> dict[str, Any]:
     reasons: list[str] = []
     if contract.get("schema") != SCHEMA:
         reasons.append(f"contract.schema must be {SCHEMA}")
-    if audit.get("schema") != AUDIT_SCHEMA:
-        reasons.append(f"audit.schema must be {AUDIT_SCHEMA}")
+    if audit.get("schema") not in AUDIT_SCHEMAS:
+        reasons.append(f"audit.schema must be one of {sorted(AUDIT_SCHEMAS)}")
     _false_scope(contract.get("read_scope"), "contract", reasons)
     _false_scope(audit.get("read_scope"), "audit", reasons)
 
