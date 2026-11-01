@@ -51,6 +51,33 @@ class Lifecycle(unittest.TestCase):
             self.assertEqual(L.supervise(self.plan,self.pin),terminal)
         release.assert_not_called();run.assert_not_called()
 
+    def test_result_and_terminal_scope_checked_before_success(self):
+        L.atomic(self.a/'LAUNCH_INTENT.json',{'command':['docker','run','-d'],'pin':self.pin})
+        result_dir=Path(self.q['out']);result_dir.mkdir()
+        marker={'exit_code':0,'plan_sha256':self.p['benchmark_sha256']}
+        report={'exact_loss_and_gradients':True,'plan_sha256':self.p['benchmark_sha256'],
+                'test_read':False,'scientific_acceptance':False}
+        for field,value in (('exact_loss_and_gradients',False),('plan_sha256','wrong'),
+                            ('test_read',True),('scientific_acceptance',True)):
+            L.atomic(result_dir/'EXIT.json',marker)
+            L.atomic(result_dir/'RESULT.json',dict(report,**{field:value}))
+            with patch.object(L.subprocess,'run'),patch.object(self.R,'release') as release:
+                result=L.supervise(self.plan,self.pin)
+            self.assertEqual(result['exit_code'],125);self.assertFalse(result['benchmark_complete'])
+            release.assert_called_once();(self.a/'SUPERVISOR_DONE.json').unlink()
+        L.atomic(result_dir/'RESULT.json',report)
+        with patch.object(L.subprocess,'run'),patch.object(self.R,'release'):
+            result=L.supervise(self.plan,self.pin)
+        self.assertEqual(result['exit_code'],0)
+        self.assertEqual(result['result_sha256'],L.sha(result_dir/'RESULT.json'))
+
+    def test_wrong_release_identity_cannot_complete(self):
+        L.atomic(self.a/'EXIT.json',{'exit_code':0,'container_exit_code':0,'plan_sha256':self.pin})
+        L.atomic(self.a/'RELEASE.json',{'run':'different','chip':3,'exit_code':0})
+        with patch.object(self.R,'release') as release:
+            with self.assertRaisesRegex(ValueError,'released evidence differs'):L.supervise(self.plan,self.pin)
+        release.assert_not_called();self.assertFalse((self.a/'SUPERVISOR_DONE.json').exists())
+
     def test_contract_has_only_train_data_and_pinned_inputs(self):
         K=L.module
         real=SimpleNamespace(ENV={'TASK_QUEUE_ENABLE':'2'})
