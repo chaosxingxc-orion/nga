@@ -130,6 +130,10 @@ def verify_manifest(path, pin):
     for key in ('out', 'container', 'training'):
         require(len({j[key] for j in jobs}) == len(jobs), 'duplicate job ' + key)
     for job in jobs:
+        container = job.get('container')
+        require(isinstance(container, str) and container.startswith('nga-r3-eng-eval-')
+                and all(c.isalnum() or c in '-_' for c in container),
+                'invalid container name')
         if 'after_eval' in job:
             dependency_path(job)
         require(type(job['chip']) is int and 0 <= job['chip'] < 8, 'invalid chip')

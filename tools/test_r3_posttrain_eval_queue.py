@@ -88,6 +88,14 @@ class QueueTests(unittest.TestCase):
         manifest = self.root / 'queue.json'; self.write(manifest, doc); pin = Q.sha(manifest)
         with patch.object(Q, '__file__', str(tools / names[0])):
             self.assertEqual(Q.verify_manifest(manifest, pin)['jobs'][0]['chip'], 2)
+            for bad in ('nga-r3-eval-fixture', 'nga-r3-eng-eval-bad/name', None):
+                original = self.job['container']
+                self.job['container'] = bad
+                self.write(manifest, doc)
+                with self.assertRaisesRegex(RuntimeError, 'invalid container name'):
+                    Q.verify_manifest(manifest, Q.sha(manifest))
+                self.job['container'] = original
+            self.write(manifest, doc)
             (tools / names[1]).write_text('# changed')
             with self.assertRaisesRegex(RuntimeError, 'tool changed'):
                 Q.verify_manifest(manifest, pin)
