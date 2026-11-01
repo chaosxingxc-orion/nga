@@ -114,3 +114,18 @@ N 轴沿用当前参考模型，并逐步加入 Qwen3.5 小于 10B 的 K0/K1 候
 - 第一批完成后刷新 `REFERENCE-BASELINE-LATEST.md`、Wiki 当前结论页和本地状态报告；历史过程文件按三天周期归档。
 
 本文件不产生新模型指标，也不改变现有冻结 TEST、训练门槛和历史读数。
+
+## 元数据审计后的准入更新
+
+2026-11-01 的只读审计已经完成第一轮，结果写入本地 `.local/reports/dataset-expansion-*-audit-20261101.json` 和 `.local/preparations/dataset-expansion-contract-20261101-v1/CONTRACT.json`。这些文件只读取 README、数据卡、清单和小型元数据，没有读取候选 TEST 样本、模型输出或权重，也没有启动新增推理。
+
+- `this-that-complex-decisions` 声明 1,710 个问题、19 个 family，原生按 `answer_index` 做 accuracy；没有显式 unknown 机制。它可作为确定性规则诊断候选，但还需要固定 family/schema、来源指纹和 question-only/常量判别对，因此当前仍是 `needs_review`。
+- `this-that-spatial-bench` 声明 7,305 个问题、15 个 family，包含 6,805 个确定性问题和 500 个 stochastic 问题；2,000 个问题标记为作者训练形状。deterministic、stochastic 和 `seen_in_training` 必须分层，不能合并成一个准确率；当前均为 `needs_review`。
+- `decision-models-as-guardrails` 有六个固定 test 配置和发布的 0.5 阈值，但存在 ids-only 行、来源/厂商暴露和子任务不平衡，必须按配置、类别和来源状态分列；当前为 `needs_review`，不能表述为生产安全结论。
+- `jev-safety-bench` 的 original/reversed/serialization-control 复用同一请求，必须以 `pair_id` 做成对统计，不能把 variant 当独立样本；当前为 `needs_review`。
+- Korean JEV 只有一个 evaluation split，没有 train/calibration split；Eikos 的 heldout 可以作为候选，但其 evaluation 文件必须与训练分离，并遵守 FinEntity 排除说明。两者当前均为 `needs_review`。
+- WebJev 只发布 train split，需按 `task_id` 另行预注册 held-out；在此之前不能汇报公开 TEST，当前 `blocked`。
+- ImajevBench 的 test 标签隐藏，且 datasheet 明确记录 statistical-power、image-necessity 和 construction-lint 门禁未通过；当前 `blocked`，不得在本地生成最终测试分数。
+- OneJev-Data 只有 train，sample 也是 train 子集；它可作为未来多模态训练来源调查，不能作为参考 TEST，当前 `blocked`。
+
+因此，扩展后合同共有 16 个新单元：12 个 `needs_review`、4 个 `blocked`，当前没有任何新增单元获得推理授权。只有完成逐单元来源/指标/执行审查并形成独立准入收据后，才可将单元加入 NPU FIFO。

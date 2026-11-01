@@ -53,3 +53,7 @@ CPU 侧为第一批 8 个任务族逐项固定版本、split、mask、样本数�
 - 数值权威入口：[REFERENCE-BASELINE-LATEST.md](../experiments/REFERENCE-BASELINE-LATEST.md)
 
 本文件是当前规划和状态说明，不产生新模型指标。每个 meaningful milestone 完成后，刷新最新报告和 Wiki 当前结论页，旧过程文件按三天周期归档。
+
+### 本轮审计后的实际准入状态
+
+第一轮元数据审计已落盘，但没有一个新增单元被授权直接推理。扩展合同目前为 16 个单元，其中 12 个 `needs_review`、4 个 `blocked`。复杂/空间任务的公开文件、guardrail 的 test 配置、Korean/Eikos 的候选 heldout 仍需逐单元固定来源和统计；WebJev 与 OneJev 缺少原生 TEST；Imajev 的隐藏标签和未通过发布门禁使其不能作为本地测试结果来源。该状态不影响现有 NPU 任务继续执行，也不改变已有参考基线。
