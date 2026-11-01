@@ -7,6 +7,7 @@ it is not scientific review. No receipt is generated on behalf of an operator.
 An interrupted prepare with no durable PREPARED receipt is never adopted/retried.
 """
 import argparse
+import functools
 import contextlib
 import fcntl
 import hashlib
@@ -115,6 +116,125 @@ def module(path, pin):
     return m
 
 
+# This boundary is cooperative protection under an externally authenticated Python
+# runtime, not a sandbox. It checks compiler INPUT bytes, not a later disk hash.
+_EXECUTION = threading.local()
+_AUDIT_INSTALLED = False
+
+
+def execution_scope(r):
+    pins = {p: h for p, h in r['source_pins'].items() if p.endswith('.py')}
+    frozen = Path(r['frozen_repository'])
+    # Future plan helpers must be byte-identical to reviewed copies. Never learn
+    # expected executable pins from a just-produced plan or mutable disk.
+    for target in r['targets']:
+        for source, pin in list(pins.items()):
+            path = Path(source)
+            if path.parent == frozen/'tools':
+                pins[str(Path(target['out'])/'tools'/path.name)] = pin
+    return pins
+
+
+def project_path(filename):
+    if not isinstance(filename, str) or not filename.startswith('/'):
+        return False
+    path = Path(filename)
+    # Installed interpreter/stdlib/site-packages are root's runtime boundary.
+    runtime = RUNS/'reviewer_torch_runtime_20261101_v1'
+    return (path.is_relative_to(REPO) or path.is_relative_to(Path('/mnt/cephfs/xingchao'))) and not path.is_relative_to(runtime)
+
+
+def checked_compile_input(raw, filename, pins):
+    project = filename in pins or project_path(filename)
+    if project:
+        require(filename in pins, 'executable outside reviewed closure: '+str(filename))
+        valid_pin(pins[filename])
+        require(isinstance(raw, (bytes, str)), 'project AST compilation forbidden')
+        raw = raw.encode('utf-8') if isinstance(raw, str) else raw
+        require(digest(raw) == pins[filename], 'execution buffer pin differs: '+filename)
+    return project
+
+
+def execution_audit(event, args):
+    state = getattr(_EXECUTION, 'state', None)
+    if state is None:
+        return
+    pins, compiled = state
+    if event == 'compile':
+        raw, filename = args
+        checked_compile_input(raw, filename, pins)
+    elif event == 'exec':
+        code = args[0]
+        if code.co_filename in pins or project_path(code.co_filename):
+            require(any(code is item for item in compiled), 'unchecked project code object')
+
+
+@contextlib.contextmanager
+def checked_execution(pins):
+    """Cover nested dynamic loads AND imports, including compile/hash races.
+
+    The compile wrapper checks actual arguments before compiling: CPython's AST
+    compile audit event omits the filename. Only checked project source buffers
+    can register returned code; project AST inputs are rejected. A
+    bytecode loader that bypasses compile is rejected at exec. Cached project
+    modules are removed for the scope and restored afterwards. One worker thread
+    performs consumers; this scope is not for concurrent Python executions.
+    """
+    import builtins
+    global _AUDIT_INSTALLED
+    require(getattr(_EXECUTION, 'state', None) is None, 'nested execution scope')
+    for path, pin in pins.items():
+        safe(path); valid_pin(pin)
+    if not _AUDIT_INSTALLED:
+        sys.addaudithook(execution_audit)
+        _AUDIT_INSTALLED = True
+    compiled = []
+    original_compile = builtins.compile
+    def checked_compile(source, filename, mode, flags=0, dont_inherit=False,
+                        optimize=-1, *, _feature_version=-1):
+        # Bind positional/keyword arguments normally and normalize a path-like
+        # filename once, so validation and compilation use the same filename.
+        filename = os.fsdecode(filename)
+        project = checked_compile_input(source, filename, _EXECUTION.state[0])
+        code = original_compile(source, filename, mode, flags, dont_inherit,
+                                optimize, _feature_version=_feature_version)
+        if project and isinstance(code, types.CodeType):
+            compiled.append(code)
+        return code
+    names = {Path(p).stem for p in pins}
+    def local(name, value):
+        # __main__ is the already authenticated worker, required by dill/torch.
+        return name != '__main__' and (name.split('.')[0] in names or
+                                      project_path(getattr(value, '__file__', None)))
+    cached = {n: v for n, v in list(sys.modules.items()) if local(n, v)}
+    previous_path = list(sys.path)
+    for name in cached:
+        del sys.modules[name]
+    sys.path[:] = [p for p in sys.path if p and not project_path(str(Path(p).absolute()))]
+    _EXECUTION.state = (dict(pins), compiled)
+    builtins.compile = checked_compile
+    try:
+        yield
+    finally:
+        builtins.compile = original_compile
+        _EXECUTION.state = None
+        sys.path[:] = previous_path
+        for name, value in list(sys.modules.items()):
+            if local(name, value):
+                del sys.modules[name]
+        sys.modules.update(cached)
+
+
+def bound_execution(function):
+    @functools.wraps(function)
+    def bound(r, *args, **kwargs):
+        if getattr(_EXECUTION, 'state', None) is not None:
+            return function(r, *args, **kwargs)
+        with checked_execution(execution_scope(r)):
+            return function(r, *args, **kwargs)
+    return bound
+
+
 def inventory(pins):
     for p, h in pins.items():
         safe(p); valid_pin(h)
@@ -135,6 +255,46 @@ def receipt_ref(path):
 
 def ref(value):
     return doc(value['path'], value['sha256'])
+
+
+def repair_copied_loaders(frozen, copies, pins):
+    """Only isolated preparation/launcher copies change. Hash the same buffer
+    immediately before compile; preserve every numerical consumer and threshold.
+    The scoped execution audit independently binds transitive helper/import pins.
+    """
+    for name in ('r3_formal_prepare.py', 'r3_formal_launcher.py'):
+        path = frozen/'tools'/name
+        source = checked(path, pins[str(path)]).decode('utf-8')
+        require(source.count('def source_module(path, name):') == 1, 'unexpected loader source')
+        source = source.replace('def source_module(path, name):',
+                                'def source_module(path, name, expected_pin):')
+        require(source.count('    raw = path.read_bytes()\n') == 1, 'unexpected loader read')
+        source = source.replace('    raw = path.read_bytes()\n',
+            "    if not isinstance(expected_pin, str) or len(expected_pin) != 64 or any(c not in '0123456789abcdef' for c in expected_pin):\n"
+            "        raise ValueError('concrete helper pin required')\n"
+            "    raw = path.read_bytes()\n"
+            "    if hashlib.sha256(raw).hexdigest() != expected_pin:\n"
+            "        raise ValueError('helper execution buffer pin differs')\n", 1)
+        if name == 'r3_formal_prepare.py':
+            for helper in ('r3_fresh_prechecks.py', 'r3_training_evidence.py',
+                           'r3_resume_evidence.py', 'r3_resume_reconstruction_evidence.py'):
+                pin = valid_pin(pins[str(frozen/'tools'/helper)])
+                pattern = r"source_module\(ROOT/'tools/" + re.escape(helper) + r"', ('[^']+')\)"
+                source, count = re.subn(pattern, lambda match:
+                    "source_module(ROOT/'tools/"+helper+"', "+match[1]+", '"+pin+"')", source)
+                require(count == 1, 'unexpected preparation helper call')
+        else:
+            source, count = re.subn(r"source_module\(helper_path, ('[^']+')\)",
+                r"source_module(helper_path, \1, p['files'][str(helper_path)])", source)
+            require(count == 5, 'unexpected launcher helper calls')
+            old = "source_module(p['adapter'], 'resource_adapter')"
+            require(source.count(old) == 1, 'unexpected adapter load')
+            source = source.replace(old,
+                "source_module(p['adapter'], 'resource_adapter', p['files'][p['adapter']])")
+        raw = source.encode('utf-8')
+        path.write_bytes(raw)
+        pins[str(path)] = digest(raw)
+        copies[str(REPO/'tools'/name)]['sha256'] = digest(raw)
 
 
 def freeze(out, handoff, handoff_pin, review, review_pin):
@@ -162,7 +322,7 @@ def freeze(out, handoff, handoff_pin, review, review_pin):
     out = safe(out)
     require(out.parent == RUNS, 'generation must be a new run root')
     out.mkdir(exist_ok=False)
-    # Frozen repository layout used through prepare.ROOT. Source bytes unmodified.
+    # Isolated repository layout; loader-only repairs below never edit originals.
     frozen = out / 'source'; frozen.mkdir()
     paths = [REPO / 'tools' / n for n in (
         'r3_formal_prepare.py', 'r3_formal_launcher.py', 'r3_resource_adapter.py',
@@ -182,6 +342,7 @@ def freeze(out, handoff, handoff_pin, review, review_pin):
         copies[str(source)] = {'path': str(target), 'sha256': digest(raw)}
         pins[str(target)] = digest(raw)
     require(pins[str(frozen/'tools/r3_formal_prepare.py')] == p['prepare_source']['sha256'], 'prepare source differs')
+    repair_copied_loaders(frozen, copies, pins)
     # Legacy precheck copy is an actual input of the unmodified preparation tool.
     legacy = RUNS / 'formal_k1_prechecks_20261031/prechecks'
     for f in legacy.rglob('*'):
@@ -279,8 +440,28 @@ def linkage(q, queue_pin, end_raw, validation_raw, bundle_raw, consumed):
     return b
 
 
-def dependency(r, authentication=None):
+def authentication_schema(r, q, authentication):
+    a = ref(authentication)
+    end = Path(r['queue']['path']).parent/'EXIT.json'
+    expected_paths = {str(end), str(end.with_name('VALIDATION.json')), q['output'],
+                      q['producer']['terminal'], q['producer']['job']['output']}
+    require(isinstance(a, dict) and a.get('schema') == 'r3-pt-precheck-authentication-v1'
+            and a.get('external_process_and_terminal_authenticated') is True
+            and a.get('queue') == r['queue'] and a.get('precheck_service') == r['precheck_service']
+            and a.get('worker_sha256') == q['worker_sha256']
+            and a.get('scientific_acceptance') is False
+            and isinstance(a.get('artifacts'), dict) and len(expected_paths) == 5
+            and set(a['artifacts']) == expected_paths, 'external completion authentication differs')
+    valid_pin(a['worker_sha256'])
+    for path, pin in a['artifacts'].items():
+        safe(path); valid_pin(pin)
+    return a
+
+
+@bound_execution
+def dependency(r, authentication=None, *, admission_only=False):
     q = ref(r['queue'])
+    a = authentication_schema(r, q, authentication) if authentication is not None else None
     waiter = module(q['worker'], q['worker_sha256'])
     waiter.request(Path(r['queue']['path']), r['queue']['sha256'])
     waiter.dependencies(q)
@@ -300,12 +481,7 @@ def dependency(r, authentication=None):
             consumed['terminal']: consumed['terminal_sha256'], consumed['report']: consumed['report_sha256']}
     if authentication is None:
         return {'state': 'WAIT_EXTERNAL_COMPLETION_AUTHENTICATION', 'observed': pins}
-    a = ref(authentication)
-    require(a.get('schema') == 'r3-pt-precheck-authentication-v1'
-            and a.get('external_process_and_terminal_authenticated') is True
-            and a.get('queue') == r['queue'] and a.get('precheck_service') == r['precheck_service']
-            and a.get('worker_sha256') == q['worker_sha256'] and a.get('artifacts') == pins
-            and a.get('scientific_acceptance') is False, 'external completion authentication differs')
+    require(a['artifacts'] == pins, 'external completion authentication differs')
     service = ref(r['precheck_service'])
     activation = ref(r['precheck_activation'])
     require(activation.get('service') == service and activation.get('process_identity_verified') is True
@@ -314,6 +490,13 @@ def dependency(r, authentication=None):
                         r['queue']['path'], '--sha256', r['queue']['sha256']]
     require(service.get('command') == expected_command and type(service.get('pid')) is int
             and isinstance(service.get('start_ticks'), str), 'precheck process command identity differs')
+    # Ingress authenticates the complete observed chain; numerical validation
+    # remains mandatory in run, after admission, and is never replaced by this.
+    if admission_only:
+        require(waiter.prerequisite(q) == consumed, 'report changed during admission')
+        inventory({**pins, **r['source_pins']})
+        ref(authentication)  # recheck immutable receipt before durable SIGNAL
+        return {'state': 'AUTHENTICATED_LINKAGE_PASS', 'artifacts': pins}
     consumer = module(q['consumer'], q['source_pins'][q['consumer']])
     actual = consumer.validate_bundle(q['output'], digest(b_raw), MODEL)
     require(actual == bundle, 'full consumer returned different bytes')
@@ -355,6 +538,7 @@ def seed_state(root, seed, output):
     return None
 
 
+@bound_execution
 def verify_plan(r, target, prepared, dep):
     out = Path(target['out']); plan_path = out/'plan.json'
     plan = doc(plan_path, prepared['plan_sha256'])
@@ -395,8 +579,13 @@ def verify_plan(r, target, prepared, dep):
 
 
 def prepare_plans(r, request_pin, dep, progress):
-    root = Path(r['root'])
     require(dep['state'] == 'AUTHENTICATED_FULL_PRECHECK_PASS', 'genuine full prechecks required')
+    with checked_execution(execution_scope(r)):
+        return _prepare_plans(r, request_pin, dep, progress)
+
+
+def _prepare_plans(r, request_pin, dep, progress):
+    root = Path(r['root'])
     resolved = {'request_sha256': request_pin, 'dependency': dep,
                 'targets': [{**x, 'kwargs': {**x['kwargs'], 'fresh_prechecks_sha256':
                     dep['artifacts'][x['kwargs']['fresh_prechecks']]}} for x in r['targets']]}
@@ -408,7 +597,7 @@ def prepare_plans(r, request_pin, dep, progress):
     frozen = Path(r['frozen_repository'])
     prep_path = frozen/'tools/r3_formal_prepare.py'
     prepare = module(prep_path, r['source_pins'][str(prep_path)])
-    prepare.ROOT = frozen  # explicit frozen repository layout; unmodified source
+    prepare.ROOT = frozen  # isolated layout, numerical consumers unchanged
     results = []
     for target in resolved['targets']:
         seed = target['seed']; out = Path(target['out'])
@@ -567,12 +756,12 @@ def start(path, pin, deployment_path, deployment_pin, resume=False):
 
 def send_signal(path, pin, authentication_path, authentication_pin):
     r = request(path, pin)
-    a = doc(authentication_path, authentication_pin)
-    require(a.get('external_process_and_terminal_authenticated') is True and a.get('queue') == r['queue']
-            and a.get('precheck_service') == r['precheck_service'], 'external authentication required')
     root = Path(r['root'])
     envelope = {'request_sha256': pin, 'authentication': {'path': str(authentication_path), 'sha256': authentication_pin}}
     with exclusive(root/'signal.lock'):
+        dep = dependency(r, envelope['authentication'], admission_only=True)
+        require(dep is not None and dep['state'] == 'AUTHENTICATED_LINKAGE_PASS',
+                'early authentication: genuine completion absent')
         if (root/'SIGNAL.json').exists():
             require((root/'SIGNAL.json').read_bytes() == canonical(envelope), 'different authentication signal; no overwrite')
         else:

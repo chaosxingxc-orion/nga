@@ -209,6 +209,68 @@ class WitnessTests(unittest.TestCase):
     def test_network(self): self.reject('container_observation',lambda d:d['inspect']['HostConfig'].update(NetworkMode='host'))
     def test_observer_self_identity(self): self.reject('container_observation',lambda d:d.update(observer_id='self'))
     def test_timestamp_inversion(self): self.reject('release',lambda d:d.update(released_utc='2026-11-01T01:00:00Z'))
+
+    def result_times(self, header, manifest):
+        d=self.f.docs['scoring_receipt'];d['header']['utc']=header;self.f.put('scoring_receipt',d)
+        d=self.f.docs['unit_manifest'];d['utc']=manifest;self.f.put('unit_manifest',d);self.f.refresh()
+
+    def test_rehashed_stale_header_and_manifest_before_start(self):
+        self.result_times('2026-11-01T00:00:00Z','2026-11-01T00:00:01Z')
+        with self.assertRaisesRegex(ValueError,'result provenance before container start'):self.f.verify()
+
+    def test_rehashed_header_previous_second_refused(self):
+        self.result_times('2026-11-01T08:21:13Z','2026-11-01T08:21:14Z')
+        with self.assertRaisesRegex(ValueError,'result provenance before container start'):self.f.verify()
+
+    def test_rehashed_manifest_before_start_refused(self):
+        self.result_times('2026-11-01T08:21:14Z','2026-11-01T08:21:13Z')
+        with self.assertRaisesRegex(ValueError,'result provenance before container start'):self.f.verify()
+
+    def test_rehashed_header_manifest_same_start_second_allowed(self):
+        self.result_times('2026-11-01T08:21:14Z','2026-11-01T08:21:14Z');self.f.verify()
+
+    def test_rehashed_header_manifest_evaluator_same_second_allowed(self):
+        value=self.f.docs['evaluator_complete']['utc'];self.result_times(value,value);self.f.verify()
+
+    def test_rehashed_header_after_manifest_refused(self):
+        self.result_times('2026-11-02T00:00:01Z','2026-11-02T00:00:00Z')
+        with self.assertRaisesRegex(ValueError,'result provenance ordering'):self.f.verify()
+
+    def test_rehashed_manifest_after_evaluator_refused(self):
+        self.result_times('2026-11-02T00:00:00Z','2026-11-02T00:00:03Z')
+        with self.assertRaisesRegex(ValueError,'result provenance ordering'):self.f.verify()
+
+    def test_rehashed_manifest_next_second_after_evaluator_refused(self):
+        self.result_times('2026-11-02T00:00:00Z','2026-11-02T00:00:02Z')
+        with self.assertRaisesRegex(ValueError,'result provenance ordering'):self.f.verify()
+
+    def free_time(self, value):
+        d=self.f.docs['release']
+        next(x for x in d['allocation_after']['free'] if x['chip']==3)['released_utc']=value
+        d['allocation_after_sha256']=W.digest(W.ledger_bytes(d['allocation_after']))
+        self.f.put('release',d);self.f.refresh()
+
+    def test_rehashed_free_before_claim_refused(self):
+        self.free_time('2026-11-01T00:00:00.000000Z')
+        with self.assertRaisesRegex(ValueError,'release free time'):self.f.verify()
+
+    def test_rehashed_free_after_claim_before_finish_refused(self):
+        self.free_time('2026-11-02T00:00:02.999999Z')
+        with self.assertRaisesRegex(ValueError,'release free time'):self.f.verify()
+
+    def test_rehashed_free_after_outer_release_refused(self):
+        self.free_time('2026-11-02T00:00:04.000001Z')
+        with self.assertRaisesRegex(ValueError,'release free time'):self.f.verify()
+
+    def test_rehashed_free_at_finish_boundary_allowed(self):
+        self.free_time('2026-11-02T00:00:03.000000Z');self.f.verify()
+
+    def test_rehashed_free_at_outer_release_boundary_allowed(self):
+        self.free_time('2026-11-02T00:00:04.000000Z');self.f.verify()
+
+    def test_rehashed_free_between_finish_and_release_allowed(self):
+        self.free_time('2026-11-02T00:00:03.000001Z');self.f.verify()
+
     def test_rehashed_header_command(self): self.reject('scoring_receipt',lambda d:d['header']['argv'].append('--partitions=test'))
     def test_rehashed_manifest_model(self): self.reject('unit_manifest',lambda d:d.update(model_sha256='b'*64))
     def test_rehashed_manifest_missing_output(self): self.reject('unit_manifest',lambda d:d['files'].pop(next(iter(d['files']))))

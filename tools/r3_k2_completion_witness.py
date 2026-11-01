@@ -284,7 +284,10 @@ def check_ledger(claim, release):
     equal(pick(ra, 'allocation'), [], 'release owner')
     free = pick(ra, 'free'); require(len(free) == 1, 'release free')
     fields(free[0], {'chip': 3, 'previous_run': RUN, 'release_evidence': str(ROOT/FIXED['release'])}, 'release reference')
-    require(timestamp(free[0]['released_utc']) <= timestamp(release['released_utc']), 'release free time')
+    # The resource writer records microseconds, not whole-second intervals.
+    free_time = timestamp(free[0]['released_utc'])
+    require(max(timestamp(claim['claimed_utc']), timestamp(release['container_finished_at']))
+            <= free_time <= timestamp(release['released_utc']), 'release free time')
     # Changes on other chips are permitted between claim and release, not during either transaction.
     for before, after in ((cb, ca), (rb, ra)):
         for key in ('allocation', 'free'):
@@ -337,7 +340,12 @@ def check_results(d, refs, spec, scorer, checked):
     fields(h, {'prompt_version': constants['PROMPT_VERSION'], 'prompt_format': constants['PROMPT_FORMAT'],
                'render': 'record_name', 'primary_input_mode': 'full',
                'track_t_sources': 'typed-decisions,openjev-synth,akhilaaa3'}, 'prompt and input protocol')
-    require(timestamp(h['utc']) <= timestamp(manifest['utc']) <= timestamp(d['evaluator_complete']['utc'])+1,
+    # core_r3.utc_now truncates to seconds: [utc, utc+1) must overlap
+    # the authenticated attempt. check_terminals binds release times to inspect.
+    start = timestamp(d['release']['container_started_at'])
+    require(all(start < timestamp(value)+1 for value in (h['utc'], manifest['utc'])),
+            'result provenance before container start')
+    require(timestamp(h['utc']) <= timestamp(manifest['utc']) < timestamp(d['evaluator_complete']['utc'])+1,
             'result provenance ordering')
     model = spec['model']
     complete = str(Path(model)/'.complete')
