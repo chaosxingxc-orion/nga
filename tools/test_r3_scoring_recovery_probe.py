@@ -14,6 +14,17 @@ import r3_scoring_recovery_probe as P
 SOURCE=Path('/mnt/cephfs/xingchao/experiments/jev/r3_runs/selection_cpu_closure_20261031_v2/r3_code/core_r3.py')
 
 class SourceBoundary(unittest.TestCase):
+    def test_only_two_registered_recovery_geometries(self):
+        import r3_scoring_recovery_launcher as L
+        for schema, per_suite, chunk in [('r3-dev-scoring-recovery-v1',4,2),
+                                         ('r3-dev-scoring-recovery-v2',32,32)]:
+            plan={'schema':schema,'protocol':{'records_per_suite':per_suite,'chunk':chunk,
+                  'mode':'rightpad','dtype':'float32','hf32':False,'token_budget':16384,'max_abs_nats':1e-3}}
+            for module in (P,L):
+                self.assertEqual(module.protocol_counts(plan),(per_suite,chunk))
+                bad=copy.deepcopy(plan);bad['protocol']['chunk']=16
+                with self.assertRaises(ValueError):module.protocol_counts(bad)
+
     def test_recovery_helpers_ignore_hostile_bytecode(self):
         import py_compile
         import r3_scoring_recovery_launcher as L
@@ -92,6 +103,17 @@ class RecoveryEvidence(unittest.TestCase):
                 P.validate_interruption(bad,pin,self.rows,self.readouts[:2],prefix,self.C)
         with self.assertRaises(ValueError):
             P.validate_interruption(marker,pin,self.rows,self.readouts[2:4],prefix,self.C)
+
+    def test_production_chunk_reuses_exactly_first_32(self):
+        rows=[dict(self.rows[0],kev={'id':str(i),'qindex':0}) for i in range(64)]
+        readouts=[self.C.readout_row(r,[0.,-1.]) for r in rows]
+        prefix=b'32 durable records';pin='a'*64
+        marker={'committed':32,'keys':sorted(self.C.kev_key(r) for r in rows[:32]),
+                'plan_sha256':pin,'prefix_sha256':hashlib.sha256(prefix).hexdigest()}
+        P.validate_interruption(marker,pin,rows,readouts[:32],prefix,self.C,32)
+        for wrong in (readouts[:2],readouts[32:],readouts[:31]+[readouts[32]]):
+            with self.assertRaises(ValueError):
+                P.validate_interruption(marker,pin,rows,wrong,prefix,self.C,32)
 
     def test_module_origin_must_be_exact_frozen_file(self):
         root=Path('/tmp/frozen');m=types.SimpleNamespace(__name__='eval_r3',__file__='/tmp/frozen/r3_code/eval_r3.py')

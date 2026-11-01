@@ -42,7 +42,18 @@ def validate_origin(m, root):
             'runtime module outside closure: '+m.__name__)
 
 
-def sample_rows(sources, core):
+def protocol_counts(plan):
+    counts = {'r3-dev-scoring-recovery-v1': (4, 2),
+              'r3-dev-scoring-recovery-v2': (32, 32)}
+    require(plan.get('schema') in counts, 'probe schema differs')
+    per_suite, chunk = counts[plan['schema']]
+    require(plan['protocol'] == {'records_per_suite': per_suite, 'chunk': chunk,
+            'mode': 'rightpad', 'dtype': 'float32', 'hf32': False,
+            'token_budget': 16384, 'max_abs_nats': 1e-3}, 'protocol differs')
+    return per_suite, chunk
+
+
+def sample_rows(sources, core, per_suite=4):
     require(set(sources)=={'decision-v7','transfer-v4'},'source suite population differs')
     rows=[]
     for suite in ('decision-v7','transfer-v4'):
@@ -50,10 +61,10 @@ def sample_rows(sources, core):
         require(path.name=='dev.jsonl' and path.parent.name==suite,'only native dev allowed')
         require(sha(path)==source['sha256'],'development source changed')
         population=[json.loads(x) for x in path.read_text().splitlines() if x.strip()]
-        require(source['indices']==[0,1,2,3],'sample selection differs')
-        require(len(population)>=4,'development population too small')
+        require(source['indices']==list(range(per_suite)),'sample selection differs')
+        require(len(population)>=per_suite,'development population too small')
         rows.extend(population[i] for i in source['indices'])
-    require(len({core.kev_key(r) for r in rows})==8,'cross-suite sample keys overlap')
+    require(len({core.kev_key(r) for r in rows})==2*per_suite,'cross-suite sample keys overlap')
     return rows
 
 
@@ -85,9 +96,9 @@ def compare_readouts(rows, reference, resumed, core):
     return delta
 
 
-def validate_interruption(marker, pin, rows, readouts, prefix, core):
-    validate_readouts(rows[:2],readouts,core)
-    require(marker=={'committed':2,'keys':sorted(core.kev_key(r) for r in rows[:2]),
+def validate_interruption(marker, pin, rows, readouts, prefix, core, chunk=2):
+    validate_readouts(rows[:chunk],readouts,core)
+    require(marker=={'committed':chunk,'keys':sorted(core.kev_key(r) for r in rows[:chunk]),
                     'plan_sha256':pin,'prefix_sha256':hashlib.sha256(prefix).hexdigest()},
             'interruption marker binding differs')
 
@@ -95,12 +106,11 @@ def validate_interruption(marker, pin, rows, readouts, prefix, core):
 def run(plan_path,pin,phase):
     require(sha(plan_path)==pin,'probe plan pin differs')
     p=json.loads(Path(plan_path).read_text())
-    require(p['schema']=='r3-dev-scoring-recovery-v1' and p['test_read'] is False
+    require(p['test_read'] is False
             and p['scientific_acceptance'] is False,'probe scope differs')
     require(phase in ('reference','interrupt','resume'),'unknown phase')
     require(p['probe_sha256']==sha(__file__),'probe implementation differs')
-    require(p['protocol']=={'records_per_suite':4,'chunk':2,'mode':'rightpad','dtype':'float32',
-                          'hf32':False,'token_budget':16384,'max_abs_nats':1e-3},'protocol differs')
+    per_suite, chunk = protocol_counts(p)
     root=Path(p['closure']['root'])
     CLOS=module('probe_closure',root/'r3_code/r3_final_closure.py')
     CLOS.verify(root,p['closure']['sha256'],True)
@@ -118,7 +128,7 @@ def run(plan_path,pin,phase):
     import provenance_r3 as PV
     import testlock_r3 as TL
     for m in (C,EVAL,FULL,AS,PV,TL):validate_origin(m,root)
-    rows=sample_rows(p['sources'],C)
+    rows=sample_rows(p['sources'],C,per_suite)
     out=Path(p['out']);out.mkdir(parents=True,exist_ok=True)
     work=out/('reference' if phase=='reference' else 'interrupted');work.mkdir(exist_ok=True)
     file=str(work/'readouts.jsonl')
@@ -131,10 +141,13 @@ def run(plan_path,pin,phase):
     scorer=EVAL.make_score_fn(args)
     identity=TL.model_identity(p['model'],adapter=p['adapter'],round_dir=str(work))
     descriptor=dict(scorer.describe())
-    # The frozen factory describes the production 32-question caller. This
-    # engineering probe deliberately commits two-question chunks instead.
-    descriptor['score_chunk_questions']=2
-    descriptor['layout']='right-padded candidates, token budget 16384, engineering recovery calls of 2 questions'
+    # v1 records its smaller caller explicitly. v2 preserves the production
+    # descriptor and requires its advertised chunk size to match execution.
+    if chunk == 2:
+        descriptor['score_chunk_questions']=2
+        descriptor['layout']='right-padded candidates, token budget 16384, engineering recovery calls of 2 questions'
+    else:
+        require(descriptor.get('score_chunk_questions') == chunk, 'production caller differs')
     descriptor['engineering_recovery_probe']=True
     seen=[]
     def recorded(batch,mode):
@@ -151,16 +164,16 @@ def run(plan_path,pin,phase):
         store.commit()
         print(json.dumps({'utc':C.utc_now(),'heartbeat':True,'phase':phase,'done':done,'total':total}),flush=True)
         if phase=='interrupt':
-            require(done==2 and len(store.done)==2,'interruption boundary differs')
+            require(done==chunk and len(store.done)==chunk,'interruption boundary differs')
             atomic(work/'INTERRUPT_READY.json',{'committed':done,'keys':sorted(store.done),'plan_sha256':pin,
                                                'prefix_sha256':sha(file)})
             os.kill(os.getpid(),signal.SIGKILL)
     try:
         if phase=='resume':
             validate_interruption(json.loads((work/'INTERRUPT_READY.json').read_text()),pin,rows,
-                                  list(store.done.values()),prefix,C)
+                                  list(store.done.values()),prefix,C,chunk)
         C.score_resumable(recorded,rows,C.kev_key,lambda r,s:PV.stamp(C.readout_row(r,s),identity['sha256']),
-                          store,chunk=2,progress=progress)
+                          store,chunk=chunk,progress=progress)
     finally:store.close()
     readouts=AS.read_verified(str(work),file,identity['sha256'],descriptor)
     validate_readouts(rows,readouts,C)

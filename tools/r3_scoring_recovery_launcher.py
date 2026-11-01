@@ -65,6 +65,17 @@ def module(path,name):
     exec(compile(raw,str(path),'exec',dont_inherit=True),m.__dict__)
     return m
 
+def protocol_counts(q):
+    counts = {'r3-dev-scoring-recovery-v1': (4, 2),
+              'r3-dev-scoring-recovery-v2': (32, 32)}
+    require(q.get('schema') in counts, 'probe schema differs')
+    per_suite, chunk = counts[q['schema']]
+    require(q['protocol'] == {'records_per_suite': per_suite, 'chunk': chunk,
+            'mode': 'rightpad', 'dtype': 'float32', 'hf32': False,
+            'token_budget': 16384, 'max_abs_nats': 1e-3}, 'probe protocol differs')
+    return per_suite, chunk
+
+
 def verify(path,pin):
     path=safe(path);require(sha(path)==pin,'execution plan changed');p=load(path)
     require(p['schema']=='r3-scoring-recovery-execution-v1' and p['test_read'] is False
@@ -79,15 +90,14 @@ def verify(path,pin):
     for filename,pinned in p['tools'].items():require(sha(safe(filename))==pinned,'execution tool differs')
     require(p['resource_adapter']==str(out/'execution-tools/r3_resource_adapter.py'),'adapter differs')
     require(sha(safe(p['probe_plan']))==p['probe_plan_sha256'],'probe plan changed');q=load(p['probe_plan'])
-    require(q['schema']=='r3-dev-scoring-recovery-v1' and q['test_read'] is False and q['scientific_acceptance'] is False,'probe scope differs')
+    require(q['test_read'] is False and q['scientific_acceptance'] is False,'probe scope differs')
     require(safe(q['out'])==out/'results','probe output differs')
     require(sha(safe(p['probe']))==q['probe_sha256'],'probe implementation differs')
-    require(q['protocol']=={'records_per_suite':4,'chunk':2,'mode':'rightpad','dtype':'float32',
-        'hf32':False,'token_budget':16384,'max_abs_nats':1e-3},'probe protocol differs')
+    per_suite, chunk = protocol_counts(q)
     require(set(q['sources'])=={'decision-v7','transfer-v4'},'source suites differ')
     for suite,entry in q['sources'].items():
         source=safe(entry['path'])
-        require(source==BASE/'KEV'/suite/'dev.jsonl' and sha(source)==entry['sha256'] and entry['indices']==[0,1,2,3],'native dev source differs')
+        require(source==BASE/'KEV'/suite/'dev.jsonl' and sha(source)==entry['sha256'] and entry['indices']==list(range(per_suite)),'native dev source differs')
     root=safe(q['closure']['root']);require(sha(root/'manifest.json')==q['closure']['sha256'],'closure manifest differs')
     manifest=load(root/'manifest.json')
     require(manifest['schema']=='r3-final-closure-v1','closure schema differs')
@@ -136,22 +146,24 @@ def contract(p,q,path,pin,phase,attempt):
 
 
 def outcome(p,q,phase,observed):
+    per_suite, chunk = protocol_counts(q)
+    total = 2 * per_suite
     require(observed['State']['Status'] in ('exited','dead'),'phase container still live')
     code=observed['State']['ExitCode'];require(type(code) is int,'noninteger actual exit')
     work=Path(q['out'])/('reference' if phase=='reference' else 'interrupted')
     if phase=='interrupt':
         require(code==137,'interrupt did not exit with expected SIGKILL 137')
         evidence=load(work/'INTERRUPT_READY.json')
-        require(evidence.get('plan_sha256')==p['probe_plan_sha256'] and evidence.get('committed')==2
-                and len(evidence.get('keys',[]))==2 and len(set(evidence['keys']))==2,'missing or invalid interruption proof')
+        require(evidence.get('plan_sha256')==p['probe_plan_sha256'] and evidence.get('committed')==chunk
+                and len(evidence.get('keys',[]))==chunk and len(set(evidence['keys']))==chunk,'missing or invalid interruption proof')
     else:
         require(code==0,'reference/resume failed')
         evidence=load(work/'DONE.json')
-        require(evidence.get('plan_sha256')==p['probe_plan_sha256'] and evidence.get('phase')==phase and evidence.get('rows')==8 and evidence.get('test_read') is False
+        require(evidence.get('plan_sha256')==p['probe_plan_sha256'] and evidence.get('phase')==phase and evidence.get('rows')==total and evidence.get('test_read') is False
                 and evidence.get('scientific_acceptance') is False,'phase completion evidence differs')
-        require(evidence.get('newly_scored')==(8 if phase=='reference' else 6),'scoring count differs')
+        require(evidence.get('newly_scored')==(total if phase=='reference' else total-chunk),'scoring count differs')
         if phase=='resume':
-            require(evidence.get('status')=='ENGINEERING_RECOVERY_PASS' and evidence.get('committed_reused')==2,'resume result differs')
+            require(evidence.get('status')=='ENGINEERING_RECOVERY_PASS' and evidence.get('committed_reused')==chunk,'resume result differs')
             value=evidence.get('max_abs_nats');require(type(value) in (float,int) and 0<=value<=1e-3,'resume score deviation differs')
     return {'phase':phase,'container_id':observed['Id'],'container_exit_code':code,
             'expected_exit':True,'evidence':evidence,'scientific_acceptance':False,'test_read':False}

@@ -16,6 +16,9 @@ class RecoveryLauncher(unittest.TestCase):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.root=Path(self.tmp.name);self.out=self.root/'run';self.out.mkdir()
         self.q={'out':str(self.out/'results'),'model':str(self.root/'model'),
+                'schema':'r3-dev-scoring-recovery-v1',
+                'protocol':{'records_per_suite':4,'chunk':2,'mode':'rightpad','dtype':'float32',
+                            'hf32':False,'token_budget':16384,'max_abs_nats':1e-3},
                 'adapter':str(self.root/'adapter'),'adapter_inventory':{'path':str(self.root/'adapter-inventory.json')},
                 'closure':{'root':str(self.root/'closure')},'base_inventory':{'path':str(self.out/'inventory.json')},
                 'sources':{s:{'path':str(self.root/'KEV'/s/'dev.jsonl')} for s in ('decision-v7','transfer-v4')}}
@@ -55,6 +58,25 @@ class RecoveryLauncher(unittest.TestCase):
     def test_live_container_never_accepted(self):
         self.ready();self.actual['State']['Status']='running'
         with self.assertRaisesRegex(ValueError,'live'):L.outcome(self.p,self.q,'interrupt',self.actual)
+
+    def test_production_chunk_rejects_old_small_completion(self):
+        self.q['schema']='r3-dev-scoring-recovery-v2'
+        self.q['protocol'].update(records_per_suite=32,chunk=32)
+        self.ready()
+        with self.assertRaisesRegex(ValueError,'proof'):
+            L.outcome(self.p,self.q,'interrupt',self.actual)
+        L.atomic(self.out/'results/interrupted/INTERRUPT_READY.json',
+                 {'plan_sha256':self.p['probe_plan_sha256'],'committed':32,'keys':list(map(str,range(32)))})
+        self.assertTrue(L.outcome(self.p,self.q,'interrupt',self.actual)['expected_exit'])
+        self.actual['State']['ExitCode']=0
+        d={'plan_sha256':self.p['probe_plan_sha256'],'phase':'resume','rows':64,'newly_scored':32,
+           'committed_reused':32,'status':'ENGINEERING_RECOVERY_PASS','max_abs_nats':0.,
+           'test_read':False,'scientific_acceptance':False}
+        path=self.out/'results/interrupted/DONE.json';L.atomic(path,d)
+        self.assertTrue(L.outcome(self.p,self.q,'resume',self.actual)['expected_exit'])
+        for change in ({'rows':8},{'newly_scored':6},{'committed_reused':2}):
+            L.atomic(path,{**d,**change})
+            with self.assertRaises(ValueError):L.outcome(self.p,self.q,'resume',self.actual)
 
     def test_mounts_only_dev_and_retained_exact_device(self):
         K=Mock(ENV={'HF_HUB_OFFLINE':'1'})

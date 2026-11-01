@@ -41,6 +41,8 @@ class RecoveryFlow(unittest.TestCase):
         self.L = module('recovery_flow_launcher', HERE / 'r3_scoring_recovery_launcher.py')
         self.R = module('recovery_flow_resource', HERE / 'r3_resource_adapter.py')
         self.K = module('recovery_flow_container', HERE / 'r3_final_container.py')
+        self.protocol = {'records_per_suite':4,'chunk':2,'mode':'rightpad','dtype':'float32',
+                         'hf32':False,'token_budget':16384,'max_abs_nats':1e-3}
         self.pin = 'b' * 64
         self.p = {'out': str(self.out), 'run': 'r3_runs/synthetic-recovery',
                   'allocation': str(self.alloc), 'chip': 3,
@@ -50,6 +52,7 @@ class RecoveryFlow(unittest.TestCase):
                   'probe': str(self.root / 'probe.py'), 'probe_plan': str(self.out / 'probe.json'),
                   'probe_plan_sha256': 'a' * 64}
         self.q = {'out': str(self.out / 'results'), 'model': str(self.root / 'model'),
+                  'schema':'r3-dev-scoring-recovery-v1','protocol':self.protocol,
                   'adapter': str(self.root / 'adapter'), 'closure': {'root': str(self.root / 'closure')},
                   'base_inventory': {'path': str(self.root / 'base-inventory.json')},
                   'adapter_inventory': {'path': str(self.root / 'adapter-inventory.json')},
@@ -113,18 +116,27 @@ class RecoveryFlow(unittest.TestCase):
         if phase == 'interrupt':
             if not self.omit_interrupt_proof:
                 self.L.atomic(work / 'INTERRUPT_READY.json', {
-                    'plan_sha256': self.p['probe_plan_sha256'], 'committed': 2, 'keys': ['a', 'b']})
+                    'plan_sha256': self.p['probe_plan_sha256'], 'committed': self.protocol['chunk'],
+                    'keys':list(map(str,range(self.protocol['chunk'])))})
         else:
-            result = {'plan_sha256': self.p['probe_plan_sha256'], 'phase': phase, 'rows': 8,
-                      'newly_scored': 8 if phase == 'reference' else 6,
+            total = 2*self.protocol['records_per_suite']
+            result = {'plan_sha256': self.p['probe_plan_sha256'], 'phase': phase, 'rows': total,
+                      'newly_scored': total if phase == 'reference' else total-self.protocol['chunk'],
                       'test_read': False, 'scientific_acceptance': False}
             if phase == 'resume':
-                result.update(status='ENGINEERING_RECOVERY_PASS', committed_reused=2, max_abs_nats=0.)
+                result.update(status='ENGINEERING_RECOVERY_PASS', committed_reused=self.protocol['chunk'], max_abs_nats=0.)
             self.L.atomic(work / 'DONE.json', result)
         return subprocess.CompletedProcess(command, 0, stdout=actual['Id'])
 
     def run_supervisor(self):
         return self.L.supervise(self.path, self.pin, 1)
+
+    def test_production_geometry_three_phase_handoff(self):
+        self.q['schema']='r3-dev-scoring-recovery-v2'
+        self.protocol.update(records_per_suite=32,chunk=32)
+        self.run_supervisor()
+        self.assertEqual(self.launches,['reference','interrupt','resume'])
+        self.assert_released('resume',0)
 
     def assert_released(self, last_phase, expected_exit):
         self.assertEqual(self.R.load(self.alloc)['allocation'], [])
