@@ -18,6 +18,28 @@ def baseline():
 
 
 class Fresh(unittest.TestCase):
+    def test_safe_path_rejects_test_data_but_allows_test_code(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            for suffix in ('test.jsonl', 'test.variants.jsonl', 'test/shard.parquet', 'test/shard.jsonl'):
+                with self.assertRaisesRegex(ValueError, 'test dataset'):
+                    F.safe_path(root/suffix)
+            self.assertEqual(F.safe_path(root/'test_r3_fresh_prechecks.py'), root/'test_r3_fresh_prechecks.py')
+
+    def test_bundle_rejects_whole_inventory_before_hashing_any_dependency(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            bundle = root/'K0_PRECHECKS.json'
+            doc = {'schema':'r3-fresh-k0-prechecks-v2','status':'PASS',
+                   'scientific_acceptance':False,'test_read':False,'model':'model',
+                   'inputs':{str(root/'benign.json'):'fake',str(root/'test.jsonl'):'fake'},
+                   'checks':{}}
+            bundle.write_text(json.dumps(doc))
+            pin = F.sha(bundle)
+            with patch.object(F, 'sha', side_effect=lambda p: pin if Path(p)==bundle else self.fail('dependency read')):
+                with self.assertRaisesRegex(ValueError, 'test dataset'):
+                    F.validate_bundle(bundle,pin,'model')
+
     def test_scope_rejects_adapter_test_seed_and_wrong_model(self):
         good=baseline();F.validate_baseline(good,'model')
         for mutate in [lambda x:x['header'].update(arm='K1'),

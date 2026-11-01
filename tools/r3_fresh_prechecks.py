@@ -56,7 +56,17 @@ def safe_path(value):
     p = Path(value)
     require(p.is_absolute() and str(p) == str(value) and '..' not in p.parts
             and not any(x.is_symlink() for x in (p, *p.parents)), 'unsafe provenance path')
+    require(p.name not in ('test.jsonl', 'test.variants.jsonl') and not
+            ('test' in p.parts and p.suffix in ('.jsonl', '.parquet')),
+            'test dataset dependency forbidden')
     return p
+
+
+def validate_inventory(files):
+    """Reject the entire dependency set before hashing any member."""
+    require(isinstance(files, dict), 'dependency inventory required')
+    for filename in files:
+        safe_path(filename)
 
 
 def canonical(value):
@@ -93,6 +103,15 @@ def reconstruct(report_path, model, config):
     C, E, D, PC, V = deps
     stored = R.load(report_path)
     validate_baseline(stored, model)
+    # The frozen provenance verifier walks manifested readouts. Preflight their
+    # paths and the declared data inventory before allowing it to read bytes.
+    validate_inventory(stored['header'].get('data_files', {}))
+    for subtree in ('trackk', 'trackt'):
+        for file in (report_path.parent/subtree).rglob('*.jsonl'):
+            safe_path(file)
+    for file in safe_path(model).rglob('*'):
+        if file.is_file():
+            safe_path(file)
     actual = R.rebuild(report_path.parent, config['kev_dir'], config['data_root'], deps)
     require(canonical(stored) == canonical(actual), 'K0 report differs from verified readouts')
     run = report_path.parent
@@ -120,7 +139,8 @@ def reconstruct(report_path, model, config):
     checks['d_kev_files_vs_manifest.json'] = PC.check_kev_manifest(paths, kev_dir=config['kev_dir'])
     files.update(Path(x) for x in paths)
     require(len(checks) == 6 and all(x.get('ok') is True for x in checks.values()), 'prechecks incomplete')
-    inventory = {str(safe_path(p)): sha(p) for p in sorted(files)}
+    validated = [safe_path(p) for p in sorted(files)]
+    inventory = {str(p): sha(p) for p in validated}
     return inventory, checks
 
 
@@ -131,6 +151,8 @@ def validate_bundle(path, pin, model):
     require(doc.get('schema') == 'r3-fresh-k0-prechecks-v2' and doc.get('status') == 'PASS'
             and doc.get('scientific_acceptance') is False and doc.get('test_read') is False
             and doc.get('model') == str(model), 'precheck bundle scope differs; regenerate v1 evidence')
+    validate_inventory(doc.get('inputs'))
+    validate_inventory(doc.get('checks'))
     config = configuration(SimpleNamespace(**doc['reconstruction']))
     require(doc.get('k0_report') in doc.get('inputs', {}), 'unbound K0 report')
     for filename, digest in {**doc['inputs'], **doc['checks']}.items():
