@@ -116,9 +116,13 @@ The first v3 metadata audit is complete: four newly added entries are all `needs
 
 The engineering queue also needs a separate admission note. A chip-3 Instruct-K0 DEV successor has `EXIT=0`, `RELEASE` and `SUPERVISOR_DONE`, but its precheck remains `PENDING_ROOT_REVIEW` and its scientific acceptance is false. It is retained as a possible successor input, not as a published result. The latest watchdog snapshot reported no queued admissible successor and marked the NPU as free; the retained release snapshot specifically lists chips 1 and 3 as free. Historical stalled entries do not count as active work. The next safe action is CPU provenance/precheck review, followed by FIFO activation only after an admissible successor is signed.
 
+Resource snapshot revision (2026-11-02): the guarded resource adapter has since released chip 2 as well as chip 3. The authoritative allocation file now lists chips 2 and 3 as free; chips 0, 1, 4, 5, 6 and 7 remain owned by existing engineering runs. This is recorded in local `.local/reports/resource-and-admission-snapshot-20261102.json`. No manual allocation edit was made. Formal K1 v8 remains `NONAUTHORIZING_RESOURCE_BLOCKED`, and the four new dataset panels remain `ready_for_inference=0`, so neither free chip is used for unapproved TEST work.
+
 The CPU precheck repair found a real version-binding error: the previous source-verified v2 bundle was for `Qwen3.5-0.8B-Base`, while the chip-3 report is Instruct. The current validator correctly rejected that bundle. A new, separately owned v2 bundle for the Instruct report now passes the same pinned validator with exit 0 and `test_read=false`; it is accepted only as scoped CPU precheck evidence. Formal preparation, exact-plan review and activation remain open.
 
 A new formal K1 preparation generation is now drafted at `formal_k1_preparation_20261102_v8`. It binds the corrected Instruct v2 precheck and records seed2/seed3, but remains `NONAUTHORIZING_RESOURCE_BLOCKED`: CHIP-ALLOCATION currently shows chip1 owned by the formal DEV run and chip4 owned by the 4B engineering DEV run. No resource claim, NPU activation, training launch or TEST read was made. The draft awaits an exact-plan Astra review and a later live release/claim transaction.
+
+The bounded exact-plan review then returned `CHANGES_REQUIRED`: v8 has a stale allocation hash, names chips 1/4 although the live adapter now lists chips 2/3 free, omits the repaired C02 receipt binding, and lacks a complete exact training/recovery closure. A new preparation generation and a fresh independent review are required before any activation.
 
 ### NxM direct-readout baseline
 

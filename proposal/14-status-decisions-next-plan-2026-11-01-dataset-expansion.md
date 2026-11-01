@@ -73,3 +73,8 @@ chip3 的 `instruct_k0_chip3_20261101_v1` 已有 `EXIT=0`、`RELEASE` 和 `SUPER
 C01/C02 CPU 前置复核已推进：旧的 source-verified v2 bundle 实际绑定的是 `Qwen3.5-0.8B-Base`，当前 validator 对 Instruct consumer fail-closed；没有覆盖旧文件。针对已完成的 chip3 Instruct DEV report，已生成独立的新 v2 bundle，并通过同一 pinned `validate_bundle`（exit 0、schema v2、`test_read=false`）。这只构成 `CPU_PRECHECK_ACCEPTED_WITH_SCOPE`，仍需新的 formal preparation、exact-plan review 和 activation ticket，不能启动正式训练或读取 TEST。绑定收据见 `.local/preparations/formal-next-20261101-v1/c02-instruct-v2-binding-20261102.json`。
 
 formal K1 v8 草案已生成并绑定该 C02 bundle，但资源门禁保持关闭：当前 `CHIP-ALLOCATION.json` 将 chip1 标为 formal DEV owner、chip4 标为 4B engineering DEV owner，只有 chip3 在该快照中 free。草案只记录候选资源，不修改 allocation、不启动 NPU；必须等 exact-plan Astra review 和真实 release/claim 事务完成后才能进入 activation。
+
+
+### Formal K1 v8 对抗审查结果（2026-11-02）
+
+formal K1 v8 的只读 exact-plan 审查结果为 `CHANGES_REQUIRED`，证据见本地 `.local/reports/formal-v8-exact-plan-review-20261102.json`。审查发现 v8 的 allocation hash 已过期，仍引用已占用的 chip1/chip4；当前资源适配器释放的是 chip2/chip3。v8 还没有绑定修复后的 C02 v2 收据，也没有把正式训练命令、代码/数据 hash、split、容器、heartbeat、EXIT/RELEASE/SUPERVISOR_DONE 和 relaunch 闭包写入新计划。因而不启动正式训练，先生成新代次 exact plan 并再次独立审查。
