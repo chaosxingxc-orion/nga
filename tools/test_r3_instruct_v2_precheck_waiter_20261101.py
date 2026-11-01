@@ -1,4 +1,5 @@
 import importlib.util
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -122,5 +123,99 @@ class WaiterTests(unittest.TestCase):
   self.assertEqual(result['output_sha256'],W.digest(Path(q['output']).read_bytes()))
   self.assertFalse(result['scientific_acceptance'])
   self.assertFalse((self.root/'EXIT.json').exists())
+
+ def run_watch_completion(self, mutation=None):
+  output=self.root/'evidence/K0_PRECHECKS.json'
+  consumed={'identity':'fixed'}
+  validation={'full_validate_bundle_completed':True,'consumed':consumed,
+              'output_sha256':W.digest(b'{"validated": true}')}
+  validation_raw=json.dumps(validation).encode()
+  def spawn(*args,**kwargs):
+   output.parent.mkdir();output.write_bytes(b'{"validated": true}')
+   (self.root/'VALIDATION.json').write_bytes(validation_raw)
+   return types.SimpleNamespace(pid=os.getpid(),returncode=0,poll=lambda:0)
+  original_atomic=W.atomic
+  def write(path,value):
+   original_atomic(path,value)
+   if Path(path).name=='heartbeat.json' and value['state']=='completed_pending_root_review' and mutation:
+    mutation(output,self.root/'VALIDATION.json')
+  with patch.object(W,'request',return_value={'output':str(output)}),patch.object(W,'dependencies'),patch.object(W,'prerequisite',return_value=consumed),patch.object(W.subprocess,'Popen',side_effect=spawn),patch.object(W,'atomic',side_effect=write):
+   rc=W.watch(self.queue,'pin')
+  return rc,validation_raw,output
+
+ def test_watch_success_retains_validated_hashes(self):
+  rc,raw,output=self.run_watch_completion()
+  self.assertEqual(rc,0)
+  terminal=json.loads((self.root/'EXIT.json').read_bytes())
+  self.assertEqual(terminal['validation_sha256'],W.digest(raw))
+  self.assertEqual(terminal['output_sha256'],W.digest(output.read_bytes()))
+  self.assertFalse((self.root/'FAILURE.json').exists())
+
+ def test_watch_rejects_output_mutation_before_completion(self):
+  rc,_,_=self.run_watch_completion(lambda output,validation:output.write_text('{"changed": true}'))
+  self.assertEqual(rc,1)
+  terminal=json.loads((self.root/'EXIT.json').read_bytes())
+  self.assertEqual(terminal['exit_code'],1)
+  self.assertIsNone(terminal['output_sha256'])
+  self.assertIn('source pin differs',json.loads((self.root/'FAILURE.json').read_bytes())['message'])
+
+ def test_watch_rejects_validation_mutation_before_completion(self):
+  rc,_,_=self.run_watch_completion(lambda output,validation:validation.write_text('{"changed": true}'))
+  self.assertEqual(rc,1)
+  terminal=json.loads((self.root/'EXIT.json').read_bytes())
+  self.assertEqual(terminal['exit_code'],1)
+  self.assertIsNone(terminal['validation_sha256'])
+  self.assertIn('source pin differs',json.loads((self.root/'FAILURE.json').read_bytes())['message'])
+
+ def test_watch_validation_parse_and_hash_use_identical_buffer(self):
+  original_loads=W.json.loads
+  def parse(raw,*args,**kwargs):
+   result=original_loads(raw,*args,**kwargs)
+   if isinstance(result,dict) and result.get('full_validate_bundle_completed'):
+    (self.root/'VALIDATION.json').write_text('{"changed_after_read": true}')
+   return result
+  with patch.object(W.json,'loads',side_effect=parse):rc,_,_=self.run_watch_completion()
+  self.assertEqual(rc,1)
+  self.assertEqual(json.loads((self.root/'EXIT.json').read_bytes())['exit_code'],1)
+
+ def assert_replay_preserves(self):
+  before={str(p.relative_to(self.root)):p.read_bytes() for p in self.root.rglob('*') if p.is_file() and p.name!='watch.lock'}
+  with patch.object(W,'request') as request,patch.object(W.subprocess,'Popen') as spawn:
+   with self.assertRaisesRegex(ValueError,'prior attempt'):W.watch(self.queue,'pin')
+   request.assert_not_called();spawn.assert_not_called()
+  after={str(p.relative_to(self.root)):p.read_bytes() for p in self.root.rglob('*') if p.is_file() and p.name!='watch.lock'}
+  self.assertEqual(before,after)
+
+ def test_watch_replay_preserves_actual_success(self):
+  self.assertEqual(self.run_watch_completion()[0],0)
+  self.assert_replay_preserves()
+
+ def test_watch_replay_preserves_actual_failure(self):
+  with patch.object(W,'request',side_effect=ValueError('initial failure')):
+   self.assertEqual(W.watch(self.queue,'pin'),1)
+  self.assert_replay_preserves()
+
+ def test_watch_replay_preserves_partial_generations(self):
+  markers=['EXIT.json','FAILURE.json','PRODUCE_INTENT.json','WATCH_INTENT.json',
+           'PRODUCER_FAILURE.json','CHILD.json','CONSUMED.json','VALIDATION.json',
+           'heartbeat.json','producer.log','evidence']
+  for name in markers:
+   with self.subTest(marker=name):
+    p=self.root/name
+    if name=='evidence':p.mkdir()
+    else:p.write_bytes(b'partial receipt; preserve exact bytes')
+    self.assert_replay_preserves()
+    if p.is_dir():p.rmdir()
+    else:p.unlink()
+
+ def test_watch_excludes_concurrent_terminal_owner(self):
+  with (self.root/'watch.lock').open('a') as lock:
+   fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+   with patch.object(W,'request') as request:
+    with self.assertRaises(BlockingIOError):W.watch(self.queue,'pin')
+    request.assert_not_called()
+  self.assertFalse((self.root/'WATCH_INTENT.json').exists())
+  self.assertFalse((self.root/'EXIT.json').exists())
+  self.assertFalse((self.root/'FAILURE.json').exists())
 
 if __name__=='__main__':unittest.main()

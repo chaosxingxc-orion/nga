@@ -168,9 +168,16 @@ def watch(path, pin):
     q = None
     with (root / 'watch.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        # Rejected replays never acquire terminal-writing ownership, including
+        # interrupted attempts with only a failure or partial-output receipt.
+        require(not any((root / name).exists() for name in (
+                'WATCH_INTENT.json', 'EXIT.json', 'FAILURE.json', 'PRODUCE_INTENT.json',
+                'PRODUCER_FAILURE.json', 'CHILD.json', 'CONSUMED.json', 'VALIDATION.json',
+                'heartbeat.json', 'producer.log', 'evidence')),
+                'prior attempt present; no automatic retry')
+        atomic(root / 'WATCH_INTENT.json', {'pid': os.getpid(), 'queue_sha256': pin,
+               'utc_seconds': time.time()})
         try:
-            require(not (root / 'EXIT.json').exists() and not (root / 'PRODUCE_INTENT.json').exists(),
-                    'prior attempt present; no automatic retry')
             while True:
                 q = request(path, pin)
                 consumed = prerequisite(q)
@@ -195,25 +202,36 @@ def watch(path, pin):
                        'model_monitor_interval_seconds': 600, 'scientific_acceptance': False})
                 time.sleep(15)
             require(child.returncode == 0, 'producer/validator failed; inspect bounded failure, no retry')
-            validation = json.loads((root / 'VALIDATION.json').read_bytes())
+            validation_raw = (root / 'VALIDATION.json').read_bytes()
+            validation_pin = digest(validation_raw)
+            validation = json.loads(validation_raw)
             require(validation['full_validate_bundle_completed'] is True and
                     validation['consumed'] == consumed == prerequisite(q), 'completion binding differs')
-            pinned(q['output'], validation['output_sha256'])
+            output_pin = validation['output_sha256']
+            pinned(q['output'], output_pin)
             dependencies(q)
-            rc = 0
             state = 'completed_pending_root_review'
+            atomic(root / 'heartbeat.json', {'state': state, 'utc_seconds': time.time(),
+                   'progress_count': 2, 'model_monitor_interval_seconds': 600,
+                   'scientific_acceptance': False})
+            # Recheck for observed mutation just before committing completion.
+            # EXIT binds the validated bytes, never hashes freshly read bytes.
+            pinned(root / 'VALIDATION.json', validation_pin)
+            pinned(q['output'], output_pin)
+            atomic(root / 'EXIT.json', {'exit_code': 0, 'queue_sha256': pin,
+                   'output_sha256': output_pin, 'validation_sha256': validation_pin,
+                   'review': 'PENDING_ROOT_REVIEW', 'scientific_acceptance': False, 'test_read': False})
+            rc = 0
         except Exception as error:
             state = 'failed_closed'
             atomic(root / 'FAILURE.json', {'type': type(error).__name__, 'message': str(error)[:1000]})
-        finally:
             if child is not None and child.poll() is None:
                 child.wait()
             atomic(root / 'heartbeat.json', {'state': state, 'utc_seconds': time.time(),
-                   'progress_count': 2 if rc == 0 else 0, 'model_monitor_interval_seconds': 600,
+                   'progress_count': 0, 'model_monitor_interval_seconds': 600,
                    'scientific_acceptance': False})
-            atomic(root / 'EXIT.json', {'exit_code': rc, 'queue_sha256': pin,
-                   'output_sha256': digest(safe(q['output']).read_bytes()) if rc == 0 else None,
-                   'validation_sha256': digest((root / 'VALIDATION.json').read_bytes()) if rc == 0 else None,
+            atomic(root / 'EXIT.json', {'exit_code': 1, 'queue_sha256': pin,
+                   'output_sha256': None, 'validation_sha256': None,
                    'review': 'PENDING_ROOT_REVIEW', 'scientific_acceptance': False, 'test_read': False})
     return rc
 
