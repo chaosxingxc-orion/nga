@@ -21,6 +21,8 @@ Formal K1 progress — 2026-11-01 21:49 UTC: seed2 is `1050/3116` (33.7%) and se
 
 Formal K1 progress — 2026-11-01 21:59 UTC: seed2 is `1250/3116` (40.1%) and seed3 is `1170/3116` (37.5%), with fresh heartbeats and no terminal markers. Both remain bound to chip2/chip3; TEST remains locked. Structured evidence is local at `.local/reports/formal-k1-progress-20261101T2159.json`.
 
+Monitoring correction — 2026-11-01 22:11 UTC: the CPU post-training watcher was briefly classified as stalled because it updated `digest.json` without a generic heartbeat. `tools/r3_posttrain_eval_plan.py` now writes timestamped `heartbeat.log`; the detached v15 watcher was restarted and remains `waiting_training`. It does not read TEST or use NPU resources.
+
 ## Coverage correction — 2026-11-02
 
 The current D1 matrix was too narrow for a broad Jev capability claim. Its 38 model-by-dataset units (36 scored and 2 blocked) remain frozen, but they are concentrated in a few source families. The repository inventory contains 24 directories, yet that count includes version projections, result packages, overlapping sources and different modalities.

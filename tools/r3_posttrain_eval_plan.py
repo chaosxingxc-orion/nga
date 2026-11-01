@@ -102,6 +102,7 @@ def main():
     ap=argparse.ArgumentParser();ap.add_argument('--training',action='append',required=True)
     ap.add_argument('--closure',required=True);ap.add_argument('--out',required=True);ap.add_argument('--watch',action='store_true')
     a=ap.parse_args();out=Path(a.out);out.mkdir(parents=True,exist_ok=True)
+    heartbeat=out/'heartbeat.log'
     states={}
     while True:
         for training in map(Path,a.training):
@@ -114,6 +115,13 @@ def main():
                 else:states[key]=prepare(training,Path(a.closure),target)
             except Exception as e:states[key]={'status':'needs_repair','error':str(e)}
         temp=out/'digest.pending';temp.write_text(json.dumps({'utc_seconds':time.time(),'jobs':states},indent=2)+'\n');temp.replace(out/'digest.json')
+        # Tier-0 watchdog liveness. The detached CPU watcher updates digest.json
+        # but must also expose a timestamped heartbeat that the generic
+        # watchdog can consume without reading evaluator logs. This does not
+        # read TEST, claim a device, or launch evaluation.
+        with heartbeat.open('a',encoding='utf-8') as stream:
+            summary=','.join(f'{k}={v.get("status", "unknown")}' for k,v in sorted(states.items()))
+            stream.write(f'{time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())} alive {summary}\n')
         if not a.watch or all(x['status'] in ('prepared','training_failed','not_complete_training') for x in states.values()):return
         time.sleep(30)
 
