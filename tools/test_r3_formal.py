@@ -19,9 +19,9 @@ class Formal(unittest.TestCase):
             root=Path(td);target=root/'test.jsonl';target.write_text('{}')
             link=root/'review.json';link.symlink_to(target)
             directory=root/'alias';directory.symlink_to(root,target_is_directory=True)
-            paths=(link,directory/'review.json',root/'sub/../review.json',Path('review.json'))
+            paths=(link,directory/'review.json',root/'sub/../review.json',Path('review.json'),target)
             for path in paths:
-                for reader in (L.load,L.sha):
+                for reader in (L.load,L.sha,lambda p:L.source_module(p,"guarded_source")):
                     with self.subTest(path=path,reader=reader.__name__), \
                          patch.object(Path,'read_text',side_effect=AssertionError('CONTENT_READ')), \
                          patch.object(Path,'read_bytes',side_effect=AssertionError('CONTENT_READ')), \

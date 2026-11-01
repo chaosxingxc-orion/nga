@@ -24,7 +24,7 @@ VERIFIER='c9eb4c819bf5a15ec4231e5c0b89499aae10de9a9bb9566a022c7ccf1b23ac87'
 # Deployed frozen generations retain their original pins and require a new
 # reconstruction generation for acceptance under this implementation.
 VALIDATOR = '15abf671a50d6d5bd559e830e17b818e762701ec208ead55c220a939c93ccea9'
-POLICY = 'e860553ee712348dd03437d713b199e89d70b0af81c160e5d226786e48fc59c3'
+POLICY = '30cdf75fe543685657bdda8c48aa622ed7c90c1b2d8009811a5b66c1cd401507'
 
 def policy():
     path=HERE/'r3_formal_launcher.py'

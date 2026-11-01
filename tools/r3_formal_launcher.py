@@ -20,9 +20,7 @@ CONTROL_MODELS = {'K1-QO':'/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Ba
 def source_module(path, name):
     """Compile the actual source bytes; never execute import-cache bytecode."""
     import types
-    path = Path(path)
-    if not path.is_absolute() or any(p.is_symlink() for p in (path, *path.parents)):
-        raise ValueError('unsafe helper source')
+    path = safe_content_path(path)
     raw = path.read_bytes()
     value = types.ModuleType(name)
     value.__file__ = str(path)
