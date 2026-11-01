@@ -1,5 +1,6 @@
 """Synthetic CPU retention/provenance tests; never actual Ascend evidence."""
 import importlib.util
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -45,6 +46,7 @@ class RetainedTests(unittest.TestCase):
                     r[k] = meta
         for r in records:
             r[(M.CHECKPOINT, 0, 'backward', M.TARGET, 'producer_operator')] = dict(name='aten.mul.Tensor', kwargs={},
+                right=dict(kind='Tensor', **r[(M.CHECKPOINT, 0, 'forward', M.TARGET, 'producer_operand')]),
                 left={k:v for k,v in r[(M.CHECKPOINT, 0, 'backward', M.TARGET, 'producer_incoming')].items() if k != 'sha256'},
                 output={k:v for k,v in r[(M.CHECKPOINT, 0, 'backward', M.TARGET, 'producer_outgoing')].items() if k != 'sha256'})
             for stage in M.STAGES:
@@ -74,7 +76,9 @@ class RetainedTests(unittest.TestCase):
             self.assertTrue(all(x['values_equal'] for x in d['cross_repeat']))
             self.assertTrue(all(x['values_equal'] for x in d['forward_recompute']))
             for row in d['cpu_vjp_interpretation']:
-                for key in ('cpu_float64_B_vjp', 'accumulation', 'producer_edge', 'cpu_producer_multiply'):
+                self.assertEqual(row['backward_input_status'], 'UNRESOLVED_BACKWARD_INPUT')
+                self.assertTrue(all(v['values_equal'] for v in row['cpu_float64_B_vjp_references'].values()))
+                for key in ('accumulation', 'producer_edge', 'cpu_producer_multiply'):
                     self.assertTrue(row[key]['values_equal'], (key, row))
             weights = [e for e in store.entries if e['identity']['key'][-1] == 'B_mm_operands' and e['identity']['slot'] == '1']
             self.assertTrue(all(e['metadata']['stride'] == [1, 4] for e in weights))
@@ -86,7 +90,7 @@ class RetainedTests(unittest.TestCase):
             row = next(x for x in d['cross_repeat'] if x['identity']['key'][-1] == 'B_cotangent')
             self.assertEqual(row['mismatched_elements'], 1)
             self.assertEqual(row['max_abs_difference'], .25)
-            self.assertTrue(all(r['cpu_float64_B_vjp']['values_equal'] for r in d['cpu_vjp_interpretation']))
+            self.assertTrue(all(all(v['values_equal'] for v in r['cpu_float64_B_vjp_references'].values()) for r in d['cpu_vjp_interpretation']))
 
     def test_payload_byte_corruption(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -105,7 +109,7 @@ class RetainedTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)/'retained'; _, pin = self.fixture(root)
             with (root/'INDEX.json').open('a') as f: f.write(' ')
-            with self.assertRaisesRegex(ValueError, 'index checksum'): self.check(root, pin)
+            with self.assertRaisesRegex(ValueError, 'checksum'): self.check(root, pin)
 
     def test_rehashed_manifest_corruptions_fail_closed(self):
         mutations = {
@@ -158,32 +162,40 @@ class RetainedTests(unittest.TestCase):
             M.atomic(Path(tmp)/'ACTIVATION.json', dict(allow_npu=True))
             with self.assertRaisesRegex(ValueError, 'parent activation'): M.activation_guard(Path(tmp), PIN)
 
+    def activation_fixture(self, root, accepted=True, terminal_pin=None):
+        pred = root/'predecessor'; (pred/'attempts/1').mkdir(parents=True)
+        fixed = Path('/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_k0_chip3_20261101_v1')
+        M.atomic(root/'review.json', dict(plan_sha256=PIN, prepared_accepted=accepted, reviewer='independent'))
+        M.atomic(pred/'execution.json', dict(schema='r3-engineering-posttrain-execution-v1',
+            run='r3_runs/instruct_k0_chip3_20261101_v1', out=str(fixed), chip=3,
+            container='nga-r3-eng-eval-instruct-k0-chip3-20261101-v1', test_read=False, scientific_acceptance=False))
+        execution_pin = M.sha(pred/'execution.json')
+        M.atomic(pred/'ENGINEERING_EVAL_EXIT.json', dict(exit_code=0, attempt=1,
+            plan_sha256=execution_pin if terminal_pin is None else terminal_pin, scientific_acceptance=False))
+        M.atomic(pred/'attempts/1/RELEASE.json', dict(chip=3, run='r3_runs/instruct_k0_chip3_20261101_v1',
+            container='nga-r3-eng-eval-instruct-k0-chip3-20261101-v1-a1', container_id='cid', exit_code=0))
+        M.atomic(pred/'attempts/1/LAUNCH_RECEIPT.json', dict(id='cid', sha256=execution_pin))
+        pins = {str(p.relative_to(pred)): M.sha(p) for p in pred.rglob('*.json')}
+        a = dict(schema='k2-retained-parent-activation-v1', plan_sha256=PIN, authorized_by='parent',
+            allow_npu=True, test_read=False, no_TEST=True, independent_prepared_review_passed=True,
+            review_path=str(root/'review.json'), review_sha256=M.sha(root/'review.json'),
+            predecessor_pins=pins, automatic_rerun=False)
+        M.atomic(root/'ACTIVATION.json', a)
+        original = M.checked_bytes
+        def route(path, *args, **kwargs):
+            p = Path(path)
+            return original(pred/p.relative_to(fixed) if p.is_relative_to(fixed) else p, *args, **kwargs)
+        return a, pred, route
+
     def test_activation_binds_independent_review_release_and_container(self):
         with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp); pred = root/'predecessor'; (pred/'attempts/1').mkdir(parents=True)
-            M.atomic(root/'review.json', dict(plan_sha256=PIN, prepared_accepted=True, reviewer='independent'))
-            M.atomic(pred/'execution.json', dict(run='r3_runs/instruct_k0_chip3_20261101_v1', container='instruct'))
-            M.atomic(pred/'ENGINEERING_EVAL_EXIT.json', dict(exit_code=0, attempt=1))
-            M.atomic(pred/'attempts/1/RELEASE.json', dict(chip=3, run='r3_runs/instruct_k0_chip3_20261101_v1',
-                     container='instruct-a1', container_id='cid', exit_code=0))
-            M.atomic(pred/'attempts/1/LAUNCH_RECEIPT.json', dict(id='cid', sha256=M.sha(pred/'execution.json')))
-            pins = {str(p.relative_to(pred)): M.sha(p) for p in pred.rglob('*.json')}
-            a = dict(schema='k2-retained-parent-activation-v1', plan_sha256=PIN, authorized_by='parent',
-                     allow_npu=True, test_read=False, no_TEST=True, independent_prepared_review_passed=True,
-                     review_path=str(root/'review.json'), review_sha256=M.sha(root/'review.json'),
-                     predecessor_pins=pins, automatic_rerun=False)
-            M.atomic(root/'ACTIVATION.json', a)
-            orig_sha, orig_load = M.sha, M.load
-            frozen_pred = Path('/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_k0_chip3_20261101_v1')
-            def route(p):
-                p = Path(p)
-                return pred/p.relative_to(frozen_pred) if p.is_relative_to(frozen_pred) else p
-            with patch.object(M, 'sha', lambda p: orig_sha(route(p))), patch.object(M, 'load', lambda p: orig_load(route(p))):
+            root = Path(tmp); a, pred, route = self.activation_fixture(root)
+            with patch.object(M, 'checked_bytes', route):
                 self.assertEqual(M.activation_guard(root, PIN), a)
-                release = orig_load(pred/'attempts/1/RELEASE.json'); release['container_id'] = 'other'
+                release = M.load(pred/'attempts/1/RELEASE.json'); release['container_id'] = 'other'
                 M.atomic(pred/'attempts/1/RELEASE.json', release)
-                with self.assertRaisesRegex(ValueError, 'release pin'): M.activation_guard(root, PIN)
-                a['predecessor_pins']['attempts/1/RELEASE.json'] = orig_sha(pred/'attempts/1/RELEASE.json')
+                with self.assertRaisesRegex(ValueError, 'checksum'): M.activation_guard(root, PIN)
+                a['predecessor_pins']['attempts/1/RELEASE.json'] = M.sha(pred/'attempts/1/RELEASE.json')
                 M.atomic(root/'ACTIVATION.json', a)
                 with self.assertRaisesRegex(ValueError, 'container identity'): M.activation_guard(root, PIN)
 
@@ -294,6 +306,305 @@ class IntegrationTests(unittest.TestCase):
                 probe.observe_operation('B', op, (), {})
             self.assertFalse(op.called)
 
+
+
+class RepairRegressions(unittest.TestCase):
+    # Reuse fixture helpers without rerunning the inherited test suite.
+    def test_reviewer_index_replacement_after_check_cannot_use_old_pin(self):
+        import shutil
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)/'original'; alt=Path(tmp)/'alternate'
+            _,pin=self.fixture(root);self.fixture(alt,changed=True)
+            original=M.checked_bytes;swapped=[]
+            def replacement(path,*args,**kwargs):
+                value=original(path,*args,**kwargs)
+                if Path(path)==root/'INDEX.json' and not swapped:
+                    for f in alt.iterdir():shutil.copyfile(f,root/f.name)
+                    swapped.append(True)
+                return value
+            with patch.object(M,'checked_bytes',replacement):
+                with self.assertRaisesRegex(ValueError,'checksum'):self.check(root,pin)
+            self.assertTrue(swapped)
+
+    def test_reviewer_rejected_review_replacement_never_authorizes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);a,pred,route=self.activation_fixture(root,accepted=False)
+            swapped=[]
+            def replacement(path,*args,**kwargs):
+                value=route(path,*args,**kwargs)
+                if Path(path)==root/'review.json' and not swapped:
+                    M.atomic(path,dict(plan_sha256=PIN,prepared_accepted=True,reviewer='independent'))
+                    swapped.append(True)
+                return value
+            with patch.object(M,'checked_bytes',replacement):
+                with self.assertRaisesRegex(ValueError,'independent prepared review'):M.activation_guard(root,PIN)
+            self.assertTrue(swapped)
+
+    def test_reviewer_recomputed_x_fixture_labels_both_references(self):
+      Torch=torch
+      with tempfile.TemporaryDirectory() as tmp:
+       root=Path(tmp)/'retained';self.fixture(root);d=M.load(root/'INDEX.json')
+       for e in d['entries']:
+        i=e['identity']; k=i['key'];label=k[-1]
+        change=(i['pair']=='observed' and ((len(k)==5 and k[2]=='recompute' and ((label=='B_mm_operands' and i['slot']=='0') or label=='A_mm_output')) or label=='incoming_B_gradient' or (label=='post_B_gradient' and i['question']==1)))
+        if not change:continue
+        t=Torch.frombuffer(bytearray((root/e['file']).read_bytes()),dtype=Torch.float32).clone().reshape(e['metadata']['shape'])
+        t=(t-1)*2+1 if label=='post_B_gradient' else t*2
+        raw=t.reshape(-1).view(Torch.uint8).numpy().tobytes();(root/e['file']).write_bytes(raw);e['sha256']=hashlib.sha256(raw).hexdigest()
+        event=next(v for v in d['events']['records'][i['repeat']] if v['key']==k)
+        target=event['observation'][int(i['slot'])] if i['slot'] else event['observation'];target['sha256']=e['sha256']
+       M.atomic(root/'INDEX.json',d);r=self.check(root,M.sha(root/'INDEX.json'))
+       for row in r['cpu_vjp_interpretation']:
+        self.assertFalse(row['cpu_float64_B_vjp_references']['forward']['values_equal'])
+        self.assertTrue(row['cpu_float64_B_vjp_references']['recompute']['values_equal'])
+        self.assertTrue(row['accumulation']['values_equal'])
+        self.assertEqual(row['backward_input_status'],'UNRESOLVED_BACKWARD_INPUT')
+        self.assertEqual(row['cpu_mac_terms'],240)
+
+    def test_reviewer_impossible_and_missing_producer_right_rejected(self):
+        for value in (None, {'shape':[999],'dtype':'invented','device':'unrelated'}):
+            with self.subTest(value=value),tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp)/'retained';self.fixture(root)
+                def corrupt(d):
+                    for records in d['events']['records']:
+                        op=next(e for e in records if e['key'][-1]=='producer_operator')['observation']
+                        if value is None:op.pop('right')
+                        else:op['right']=value
+                pin=self.mutate(root,corrupt)
+                with self.assertRaisesRegex(ValueError,'producer right'):self.check(root,pin)
+
+    def test_producer_tensor_scalar_linkage_and_discrimination(self):
+        saved=torch.tensor(2.)
+        tensor=M.producer_right(torch,saved.clone(),saved)
+        self.assertEqual(tensor,dict(kind='Tensor',**M.metadata(saved),sha256=__import__('hashlib').sha256(saved.numpy().tobytes()).hexdigest()))
+        for wrong in (torch.tensor(3.),torch.tensor([2.]),torch.tensor(2.,dtype=torch.float64),3.,float('nan')):
+            with self.subTest(wrong=str(wrong)),self.assertRaises(ValueError):M.producer_right(torch,wrong,saved)
+        for value in (2,2.):
+            with tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp)/'retained';self.fixture(root)
+                def scalar(d):
+                    for records in d['events']['records']:
+                        op=next(e for e in records if e['key'][-1]=='producer_operator')['observation']
+                        op.update(name='aten.mul.Scalar',right=M.producer_right(torch,value,saved))
+                pin=self.mutate(root,scalar);self.assertEqual(self.check(root,pin)['tensors'],50)
+                def wrong(d):
+                    op=next(e for e in d['events']['records'][0] if e['key'][-1]=='producer_operator')['observation']
+                    op['right']['value']=3
+                with self.assertRaisesRegex(ValueError,'producer scalar'):self.check(root,self.mutate(root,wrong))
+
+    def test_reviewer_wrong_missing_terminal_execution_pin_and_scope(self):
+        mutations=[lambda t:t.update(plan_sha256='wrong-execution-pin'),lambda t:t.pop('plan_sha256'),
+                   lambda t:t.update(attempt=2),lambda t:t.update(scientific_acceptance=True)]
+        for mutate in mutations:
+            with tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp);a,pred,route=self.activation_fixture(root)
+                t=M.load(pred/'ENGINEERING_EVAL_EXIT.json');mutate(t)
+                a['predecessor_pins']['ENGINEERING_EVAL_EXIT.json']=M.atomic(pred/'ENGINEERING_EVAL_EXIT.json',t)
+                M.atomic(root/'ACTIVATION.json',a)
+                with patch.object(M,'checked_bytes',route),self.assertRaisesRegex(ValueError,'terminal execution/scope'):
+                    M.activation_guard(root,PIN)
+        for field,value in [('chip',2),('run','wrong'),('out','/tmp/wrong'),('container','wrong'),('test_read',True)]:
+            with self.subTest(field=field),tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp);a,pred,route=self.activation_fixture(root)
+                e=M.load(pred/'execution.json');e[field]=value
+                a['predecessor_pins']['execution.json']=M.atomic(pred/'execution.json',e)
+                M.atomic(root/'ACTIVATION.json',a)
+                with patch.object(M,'checked_bytes',route),self.assertRaisesRegex(ValueError,'execution scope'):
+                    M.activation_guard(root,PIN)
+
+    def test_actual_checkpoint_weight_vjp_uses_recomputed_input(self):
+        from torch.utils.checkpoint import checkpoint
+        x=torch.tensor([[1.,2.],[3.,4.]],dtype=torch.float64,requires_grad=True)
+        w=torch.tensor([[2.],[3.]],dtype=torch.float64,requires_grad=True);calls=[]
+        def f(a,b):
+            current=a*(1 if not calls else 2);calls.append(current.detach().clone());return current@b
+        out=checkpoint(f,x,w,use_reentrant=False);out.sum().backward()
+        self.assertEqual(len(calls),2)
+        self.assertTrue(torch.equal(w.grad,calls[1].T@torch.ones_like(out)))
+        self.assertFalse(torch.equal(w.grad,calls[0].T@torch.ones_like(out)))
+
+    def test_cpu_work_budget_and_backend_autoload(self):
+        import sys
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)/'retained';_,pin=self.fixture(root);original=torch.Tensor.numel
+            def inflated(t):return 134217729 if tuple(t.shape)==(4,5) else original(t)
+            with patch.object(torch.Tensor,'numel',inflated),self.assertRaisesRegex(ValueError,'CPU VJP work budget'):
+                self.check(root,pin)
+        self.assertEqual(os.environ['TORCH_DEVICE_BACKEND_AUTOLOAD'],'0')
+        self.assertNotIn('torch_npu',sys.modules)
+
+    def test_source_checked_bytes_execute_not_replacement(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'module.py';path.write_text('VALUE = 17')
+            pin=M.sha(path);original=M.checked_bytes
+            def replacement(p,*args,**kwargs):
+                result=original(p,*args,**kwargs);Path(p).write_text("raise RuntimeError('replacement executed')")
+                return result
+            with patch.object(M,'checked_bytes',replacement):module=M.source(path,pin)
+            self.assertEqual(module.VALUE,17)
+            self.assertEqual(module.__checked_sha256__,pin)
+            with self.assertRaisesRegex(ValueError,'checksum'):M.source(path,pin)
+
+    def test_transitive_import_and_ast_read_use_checked_source(self):
+        import sys
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);helper=root/'kev_aug.py';trainer=root/'trainer.py'
+            helper.write_text('VALUE = 23');trainer.write_text('import kev_aug\nVALUE = kev_aug.VALUE\n')
+            pins={str(p):M.sha(p) for p in (helper,trainer)};sources=M.CheckedSources(pins)
+            helper.write_text("raise RuntimeError('unverified helper')");trainer.write_text('VALUE = 99')
+            with patch.dict(sys.modules,{'kev_aug':__import__('types').SimpleNamespace(VALUE=-1)}):
+                self.assertEqual(sources.get(trainer).VALUE,23)
+            self.assertIn('import kev_aug',sources.text_path(trainer).read_text())
+            with self.assertRaisesRegex(ValueError,'unverified'):sources.get(root/'other.py')
+
+    def test_actual_frozen_trainer_ast_and_helper_route(self):
+        p=M.load(M.V4/'plan.json');sources=M.CheckedSources(p['files'])
+        trainer=sources.get(Path(p['trainer']));trace=sources.get(Path(p['trainer']).with_name('r3_k2_reference_trace.py'))
+        trace.Path=sources.text_path
+        with patch.object(Path,'read_text',side_effect=AssertionError('AST path reopened')):
+            fn=trace.instrument(trainer,lambda *args:None,lambda *args:None,lambda *args:None)
+        self.assertTrue(callable(fn))
+        self.assertEqual(trainer.B.__checked_sha256__,p['files'][str(Path(p['trainer']).with_name('build_kev_sft.py'))])
+
+    def test_bounded_checked_json_and_payload_growth(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'bounded.json';path.write_bytes(b' '*(M.MAX_INDEX+1))
+            with self.assertRaisesRegex(ValueError,'size'):M.checked_json(path)
+            root=Path(tmp)/'retained';store,pin=self.fixture(root)
+            payload=root/store.entries[0]['file'];original=M.checked_bytes
+            def grow(p,*args,**kwargs):
+                if Path(p)==payload:
+                    with payload.open('ab') as f:f.write(b'!')
+                return original(p,*args,**kwargs)
+            with patch.object(M,'checked_bytes',grow),self.assertRaisesRegex(ValueError,'size'):self.check(root,pin)
+
+    def test_trace_reconstruction_checked_links(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);out=root/'results';out.mkdir()
+            _,index_pin=self.fixture(root/'retained');report=self.check(root/'retained',index_pin)
+            reconstruction_pin=M.atomic(out/'CPU_RECONSTRUCTION.json',report)
+            trace=dict(plan_sha256=PIN,test_read=False,scientific_acceptance=False,
+                backward_probe=dict(complete=True),control=dict(complete=True),
+                retained_index_sha256=index_pin,cpu_reconstruction_sha256=reconstruction_pin)
+            pin=M.atomic(out/'TRACE.json',trace)
+            self.assertEqual(M.checked_result(out/'TRACE.json',pin,PIN),(trace,pin))
+            original=M.checked_bytes
+            def replacement(p,*args,**kwargs):
+                result=original(p,*args,**kwargs)
+                if Path(p)==out/'TRACE.json':M.atomic(p,dict(trace,plan_sha256='replacement'))
+                return result
+            with patch.object(M,'checked_bytes',replacement):
+                self.assertEqual(M.checked_result(out/'TRACE.json',pin,PIN),(trace,pin))
+            M.atomic(out/'TRACE.json',trace)
+            for name in ('CPU_RECONSTRUCTION.json','../retained/INDEX.json'):
+                target=out/name if not name.startswith('..') else root/'retained/INDEX.json'
+                raw=target.read_bytes();target.write_bytes(raw+b' ')
+                with self.assertRaisesRegex(ValueError,'checksum'):M.checked_result(out/'TRACE.json',pin,PIN)
+                target.write_bytes(raw)
+
+    def test_bootstrap_consumes_checked_buffer_and_rejects_wrong_pin(self):
+        import sys,subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'entry.py';path.write_text("print('VERIFIED_ENTRY')")
+            args=M.entrypoint(path,M.sha(path))
+            result=subprocess.run([sys.executable,*args],capture_output=True,text=True,check=True)
+            self.assertEqual(result.stdout.strip(),'VERIFIED_ENTRY')
+            result=subprocess.run([sys.executable,*M.entrypoint(path,'0'*64)],capture_output=True,text=True)
+            self.assertNotEqual(result.returncode,0)
+            self.assertNotIn('VERIFIED_ENTRY',result.stdout)
+
+    def test_owned_supervisor_binds_terminal_to_consumed_trace_buffer(self):
+        import types
+        helper=M.V4.with_name('k2_retained_tensor_20261101_v2')/'tools/r3_k2_benchmark_launcher.py'
+        L=M.source(helper,M.sha(helper))
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);out=root/'results';out.mkdir();attempt=root/'attempts/1';attempt.mkdir(parents=True)
+            _,index_pin=self.fixture(root/'retained')
+            reconstruction_pin=M.atomic(out/'CPU_RECONSTRUCTION.json',self.check(root/'retained',index_pin))
+            trace=dict(schema='r3-k2-reference-trace-v1',complete=True,truncated=False,
+                reference_questions=12,repeat_questions=12,comparisons=[{}]*12,
+                plan_sha256=PIN,test_read=False,scientific_acceptance=False,
+                backward_probe=dict(complete=True),control=dict(complete=True),
+                retained_index_sha256=index_pin,cpu_reconstruction_sha256=reconstruction_pin)
+            trace_pin=M.atomic(out/'TRACE.json',trace)
+            M.atomic(out/'EXIT.json',dict(exit_code=0,plan_sha256=PIN,result_sha256=trace_pin))
+            execution_pin='e'*64
+            e=dict(out=str(root),run='mock/run',allocation=str(root/'allocation.json'),chip=3,
+                benchmark_sha256=PIN,schema='r3-k2-reference-trace-execution-retained-v1')
+            q=dict(out=str(out));spec=dict(name='mock-retained')
+            M.atomic(attempt/'CLAIM.json',{})
+            M.atomic(attempt/'LAUNCH_INTENT.json',dict(command=['MOCK_NO_LAUNCH'],pin=execution_pin))
+            M.atomic(attempt/'LAUNCH_RECEIPT.json',dict(id='mock-cid',sha256=execution_pin))
+            observed=dict(Id='mock-cid',State=dict(Status='exited',ExitCode=0))
+            releases=[]
+            resource=types.SimpleNamespace(load=lambda p:dict(allocation=[dict(chip=3,run='mock/run')]),
+                docker_inspect=lambda name:observed,release=lambda args:releases.append(args))
+            container=types.SimpleNamespace(command=lambda s:['MOCK_NO_LAUNCH'])
+            L.module=lambda p:resource if Path(p).name=='r3_resource_adapter.py' else container
+            L.verify=lambda path,pin:(e,q);L.spec=lambda *args:spec
+            L.verify_container=lambda *args:None;L.load=M.load
+            calls=[]
+            def result(path,expected):
+                value,pin=M.checked_result(path,expected,PIN);calls.append(pin)
+                # Reviewer's replacement pattern at the actual supervisor edge:
+                # the terminal must describe the validated buffer, not this file.
+                M.atomic(path,dict(trace,complete=False))
+                return value,pin
+            L.checked_result=result
+            with patch.object(L.subprocess,'run') as process:
+                terminal=L.supervise(root/'execution.json',execution_pin)
+            self.assertEqual(calls,[trace_pin]);self.assertEqual(len(releases),1)
+            self.assertEqual(terminal['result_sha256'],trace_pin)
+            self.assertNotEqual(terminal['result_sha256'],M.sha(out/'TRACE.json'))
+            self.assertTrue(terminal['diagnostic_complete'])
+            self.assertEqual(M.load(root/'ENGINEERING_EVAL_EXIT.json'),terminal)
+            # Only docker logs is mocked; no launch/claim/SSH/device operation.
+            self.assertEqual(process.call_args.args[0],['docker','logs','mock-cid'])
+
+    def test_plan_and_execution_replacements_use_checked_original_or_fail(self):
+        root=M.V4.with_name('k2_retained_tensor_20261101_v2')
+        original=M.checked_bytes
+        for filename in ('plan.json','execution.json'):
+            with self.subTest(filename=filename), tempfile.TemporaryDirectory() as tmp:
+                p=root/filename;pin=M.sha(p);replacement=Path(tmp)/filename
+                replacement.write_bytes(p.read_bytes());swapped=[]
+                def checked(path,*args,**kwargs):
+                    if Path(path)!=p:return original(path,*args,**kwargs)
+                    value=original(replacement,*args,**kwargs)
+                    if not swapped:
+                        d=json.loads(value[0]);d['test_read']=True
+                        M.atomic(replacement,d);swapped.append(True)
+                    return value
+                frozen=M.source(root/'tools/r3_k2_retained_tensor_probe.py',M.sha(root/'tools/r3_k2_retained_tensor_probe.py'))
+                frozen.checked_bytes=checked
+                if filename=='plan.json':
+                    result=frozen.verify_plan(p,pin)
+                    self.assertIs(result['test_read'],False)
+                else:
+                    # Supervisor's additional verify must reject the changed
+                    # execution on reread, before any spec/resource operation.
+                    with self.assertRaisesRegex(ValueError,'checksum'):frozen.launcher(p,pin)
+                self.assertEqual(swapped,[True])
+
+    def test_predecessor_checked_proof_replacements_do_not_change_consumed_scope(self):
+        for name in ('execution.json','ENGINEERING_EVAL_EXIT.json','attempts/1/RELEASE.json','attempts/1/LAUNCH_RECEIPT.json'):
+            with self.subTest(name=name),tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp);a,pred,route=self.activation_fixture(root);swapped=[]
+                def changed(path,*args,**kwargs):
+                    result=route(path,*args,**kwargs)
+                    if str(path).endswith('/'+name) and not swapped:
+                        M.atomic(pred/name,{'corrupted_replacement':True});swapped.append(True)
+                    return result
+                with patch.object(M,'checked_bytes',changed):
+                    self.assertEqual(M.activation_guard(root,PIN),a)
+                self.assertTrue(swapped)
+                with patch.object(M,'checked_bytes',route),self.assertRaisesRegex(ValueError,'checksum'):
+                    M.activation_guard(root,PIN)
+
+
+# Use helper methods without inheriting/rerunning RetainedTests' test methods.
+for _name in ('fixture','check','mutate','activation_fixture'):
+    setattr(RepairRegressions,_name,getattr(RetainedTests,_name))
 
 if __name__ == '__main__':
     unittest.main()
