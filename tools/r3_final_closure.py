@@ -90,7 +90,11 @@ def verify(root, pin, import_runtime=False):
     require(sha(manifest)==pin,'final closure manifest differs')
     doc=json.loads(manifest.read_text())
     require(doc.get('schema')=='r3-final-closure-v1','final closure schema differs')
-    actual={str(p.relative_to(root)) for p in root.rglob('*') if p.is_file() and p!=manifest}
+    # Importing the frozen modules during admission creates interpreter bytecode
+    # caches beside the sources.  They are runtime by-products, not closure
+    # inputs, and must not make an otherwise byte-identical closure unverifiable.
+    actual={str(p.relative_to(root)) for p in root.rglob('*')
+            if p.is_file() and p!=manifest and '__pycache__' not in p.parts}
     require(actual==set(doc['files']),'final closure inventory differs')
     for rel,pin_value in doc['files'].items():
         path=safe(root/rel)
