@@ -1,16 +1,18 @@
 # 当前任务状态、待决策事项与下一阶段计划
 
-共享运行快照截至 **2026-11-01 13:13:44.511885 UTC**；包含正式 seed2 训练完成、QO/PT v5 独立审查和资格检查器 v2 审查结论。本页汇总已保存证据，不是实时监控；2026-11-01 已完成主会话核验与整理。
+共享运行快照截至 **2026-11-01 13:34:31 UTC**；包含正式 seed2 训练后验收通过和 DEV 计划生成，以及 QO v6、PT v6 的最新工程状态。本页汇总已保存证据，不是实时监控。
 
-正式 K1 seed2 已于 **13:11:17 UTC 完成 3116/3116 步**，真实训练终止标记 exit=0；主会话随后直接核对保留容器、镜像和 Docker daemon，确认相同容器成功退出。单芯片训练记录吞吐约 884.03 tokens/s（不含启动/checkpoint 开销），峰值预留显存 6.709 GiB。当前两路训练、五路推理；芯片 1 已释放、正式 DEV 尚未启动，存在评估交接空档。13:02:30 的旧看门狗摘要为 8/8 驻留，不能代表训练结束后的当前满载。下一次常规巡检不早于 **13:23:44.511885 UTC**；完成事件的定向验证立即处理。正式 seed3 仍等待芯片 4 完整 **4B → 9B 训练/评估 → 9B K0** 链释放。
+正式 K1 seed2 已于 **13:11:17 UTC 完成 3116/3116 步**，真实终止标记 exit=0，保留容器及镜像身份已核对。单芯片训练记录吞吐约 884.03 tokens/s（不含启动/checkpoint 开销），峰值预留显存 6.709 GiB。训练后独立审查六项全部通过，主会话核对 228 项证据及 14 份采集文件；372 个 F32 张量、10,822,656 个参数完成结构和有限值检查。第一次采集因资源释放标签不匹配失败；仅修正标签的新版本经独立审查后完成第二次采集，旧失败原样保留。
 
-现有 capture watcher 已生成 REVIEW_REQUIRED，第一次真实 collector v3 采集已执行并 exit=1：采集器预期的资源释放 updated_by 标签与精确固定的生产代码/实际收据不一致。独立审查 FAIL、21 项证据已核对；未到达完整权重 payload 验证，不能据此推断训练失败。仅修改此标签的 collector v4 已获独立复核 PASS（17 项负例拒绝、14 个合成流程及 2 项 descriptor 检查）；主会话核对 14 项证据后启动第二次真实采集，已 exit=0。372 个 F32 张量、10,822,656 个参数完成全量结构和有限值扫描。真实训练后独立验收正在执行，正式 DEV 尚未启动；原始失败保留，芯片 1 的交接空档仍待解决。QO v3 和 PT runtime v3 的 **BLOCK** 保留。QO v4 修复已交付，130 项 CPU 检查通过、主会话核验 27 项直接引用及 10501 项清单，独立复审已 BLOCK：CPU 子进程缺失隔离参数，且释放事件可在准入预检期间先于数值验证发生；v5 修复已交付，151 项检查通过，主会话核验 26 项直接引用和 5534 项清单；独立复审确认两项针对性源码修复通过，且 622 MB 提取 CPU 环境在真实父/子进程通过原运行时检查；主会话核对 55 项直接引用。但前序自动释放与数值验证/收据发布的两处竞态仍可复现，原始运行环境目录也尚未受保护。v6 正实现释放协调和受保护运行环境发布。实际运行环境和完整数值准入仍未完成。PT v4 修复也已交付：76 项原回归、6 项专项检查及隔离进程退出/新 PID 恢复验证完成，主会话核验 24 项直接引用和 152 项清单，独立语义复审已 BLOCK：执行前未将目标解释器绑定到已审计运行时，监督进程与 observer 的锁交接也缺少实现。v5 已交付执行目标绑定及监督进程实现，76 项回归、5 项生命周期场景通过；主会话核验 17 项直接引用及 150 项清单，独立复审确认上一轮两项修复有效，但复现启动缓存字节码未绑定、额外可继承文件描述符进入 observer 两项问题；主会话核对 19 项直接引用后接受 BLOCK，v6 修复已启动。两个精确 CPU 进程的原始运行时身份均匹配，44 条已映射文件记录有 11 条与受保护目录匹配，另 33 条缺失或不同；完整运行环境与消费者依赖验证仍未完成。交付或检查通过不等于部署授权。
+**DEV 计划已生成，评估尚未启动。** 计划绑定本次 seed2 训练和实际 adapter；当前正在核对精确执行配置、同一训练/种子来源以及 DEV/calibration/Track T 范围。该审查完成后优先启动芯片 1，不等待 QO/PT 修复。快照记录两路训练、四路推理，芯片 1 存在交接空档，不能宣称持续满载。PT seed3 与 Instruct K0 的读出各达到 148,542/148,542，但这不代表 CPU 报告或来源重建完成。正式 seed3 仍等待芯片 4 完整 **4B → 9B 训练/评估 → 9B K0** 链释放。常规模型巡检保持 600 秒；完成事件的定向验证另行处理。
 
-QO v4 独立复审重跑 130 项现有检查，并以独立探针复现上述两项缺陷，主会话已接受 BLOCK；同字节收据/代码消费、完整源码/模型/运行时绑定、持久发布顺序和严格 chip/seed 类型检查不能替代真实子进程及释放时序验证。当前 CPU 检查包含明确的 Docker/数值 helper 模拟边界。PT v4 的清单同字节哈希/解析、缓存边界及分离 generation/attempt 的恢复协议获对应范围的独立确认；主会话核对 143 项直接文件引用后接受上述 BLOCK，完整 runtime/consumer 清单和实际部署控制器仍未就绪；observer 未部署、无生产 AUTH/SIGNAL。历史失败审查保留，不追溯改成 PASS。
+**QO 后继队列尚未准入。** v6 已实现受保护 CPU 运行环境与有界释放协调，独立复审仍发现两处实际衔接错误：后继生产者/消费者对 Python 隔离参数的要求不一致，且消费者固定了旧 DEV 执行文件路径。v7 正修复并验证实际生产者到消费者链。当前 DEV 使用自身冻结执行实现，不追溯改接新协调器。CPU 准入与评估异步；若未能在约定交接窗口完成，拒绝本次 QO 交接并及时释放资源，不无限占住空闲 NPU。
+
+**PT observer 尚未部署。** v6 已修复启动字节码缓存与额外继承文件描述符问题，交付包含 76 项回归、5 项生命周期和 8 项子进程检查，正在独立复审。原始 CPU 运行环境采集覆盖 81,039 条记录，但完整运行环境和消费者依赖仍未验证完毕；不签发生产 AUTH/SIGNAL。过去各版本的 BLOCK 保留，局部修复检查通过不等于实际部署。
 
 **2026-11-01 更正：**旧摘要 `low chips 7` 的 `7` 是芯片编号 7，曾误写为“7/8 芯片偏低”。原快照及全部实验指标不变；此更正不证明持续满载。
 
-正式资格条款审计已完成，47 份输入/快照及 14 段原文已核对。资格检查器 v2 的独立审查要求修复：合法 descriptor-relative 权重读取被 CLI 边界拒绝、评估配置缺少同一训练运行/种子绑定、R0 源码缺少已审查代码一致性绑定。63 项检查包含缺陷复现，不能当成就绪通过；独立 bootstrap 和既有数值规则获对应范围验证。当前三个 CPU 工作为 QO v6、PT v6，以及 v4 成功采集后的真实训练后独立验收；资格检查器修复排在这一关键交接之后。
+正式资格条款审计已完成，47 份输入/快照及 14 段原文已核对。资格检查器 v2 仍需修复合法 descriptor-relative 权重读取、评估配置与同一训练/种子绑定、R0 与已审查源码绑定三处问题。63 项检查包含缺陷复现，不能当成就绪通过。三个工作槽当前分别负责 DEV 执行审查、PT v6 独立复审、QO v7 衔接修复；资格检查器修复排在这一关键交接之后。
 
 **完整重复训练的证据缺口。** 已登记的 seed2 异芯片完整重复训练和同芯片顺序重复训练，在本次核对的当前代证据中尚未得到证明；step3000 起始的 20 步恢复检查不能替代完整训练后的 DEV 准确率/翻转率底噪。两次重复均不进入候选的种子均值，也不参与打破平局。异芯片底噪用于已明确登记的替换比较，同芯片结果只报告，即便数值更大也不改作门槛。当前 seed2 位于芯片 1，历史分配为原始/同芯片/异芯片 2/2/3；启动重复训练前须明确本代物理芯片映射及预登记时序。此缺口不撤销现有训练许可，不新增 K1 对 K0 的正 CI 或 TEST 门槛；底噪宽泛条款对 K0 防回退的适用性仍需在资格审查中明确。R0 配置重评分仍是采用时的既有依赖，不能以 Base K0 预检替代。
 
@@ -54,7 +56,7 @@ K1−K0 配对 90% bootstrap 区间为 [22.1519, 26.9778]、[0.2287, 7.0122] pp�
 
 ## 已完成的工程里程碑及边界
 
-**正式训练准备与启动。** Base K0 六项预检、各自恢复证据、精确 K1 计划的完整 CPU 验证及 train-only 独立审查已完成；当前正式 K1 seed2 确实启动。登记仍是 Qwen3.5-0.8B-Base，seeds2/3，参考 kernel，2 epochs / 3116 steps，10 基础问题/step，micro_tokens=12000，max_len=4096，LoRA r16/alpha32/dropout0.05，AdamW weight decay0.01，OneCycle max_lr1e-4。使用新正式输出，不复用工程 adapter/checkpoint；训练启动没有授予 postrun、DEV 或 TEST 准入。
+**正式训练准备与启动。** Base K0 六项预检、各自恢复证据、精确 K1 计划的完整 CPU 验证及 train-only 独立审查已完成；当前正式 K1 seed2 已完成 3116 步并通过训练后验收。登记仍是 Qwen3.5-0.8B-Base，seeds2/3，参考 kernel，2 epochs / 3116 steps，10 基础问题/step，micro_tokens=12000，max_len=4096，LoRA r16/alpha32/dropout0.05，AdamW weight decay0.01，OneCycle max_lr1e-4。使用新正式输出，不复用工程 adapter/checkpoint；训练启动没有授予 postrun、DEV 或 TEST 准入。
 
 **开发报告来源与汇总。** 早先七份已完成 DEV 报告的源码重建一致；后续 K1 seeds2/3、Base K0、QO 四成员的完整来源重建（含 Track T）获限定验收，PT seed2 也单独获来源重建验收。这些不是新的完整七成员 campaign 验收。冻结快照中的七成员队列有五个 ready_for_actual_reconstruction，仍等 Instruct K0 与 PT seed3；没有候选选择。来源读取边界、CPU 控制器、汇总持久发布与成员等待器的修复已获各自限定验收，但不能用模拟检查或文件存在代替真实重建。4B 两种子的工程训练均已完成 3,116 步，DEV 推理/比较与后续 9B 链仍按既有依赖推进。
 
@@ -90,10 +92,10 @@ K1−K0 配对 90% bootstrap 区间为 [22.1519, 26.9778]、[0.2287, 7.0122] pp�
 
 ## 下一阶段依赖计划
 
-1. **保持当前队列。** 正式 K1 seed2、逐候选 K2、4B/9B 和工程控制继续；seed3 提前准备独立 service/admission，等芯片 4 完整链释放，不能借 seed2 票据或重启现有任务。
-2. **K1 真正完成后再采集与验收。** 用精确已审 collector 及新鲜 root 认证的容器/镜像/来源观察，核对真实成功终态、3116 步、claim/release/DONE、完整非空有效 adapter。采集不是 postrun/loader/evaluation 独立准入；之后才生成并审查新 DEV/calibration/Track T 选择侧执行。
-3. **在 K1 评估仍运行时完成 QO 准备。** v4 修复须重新独立验收；K1 评估执行身份一冻结，即 materialize 精确 QO generation 并做一次真实完整数值 admission，不等评估完成。释放后消费绑定收据并保留实时来源/资源检查，不把完整数值校验重新放回释放后路径。芯片 1 顺序为 K1 train → K1 eval → QO train，CPU 分析异步。
-4. **补齐 PT 部署条件。** 完成 runtime v4 的同字节读取、不变来源/缓存及启动恢复协议复审，补齐完整 runtime/consumer closure 和实际部署验收；等真实 Instruct K0 报告/预检成功后，才生成 PT 自身正式计划与完整 CPU 准入。生产者离线技术 PASS 不等于 observer 部署。
+1. **保持当前队列。** 正式 K1 seed2 训练已完成，优先启动其 DEV；逐候选 K2、4B/9B 和工程控制继续；seed3 提前准备独立 service/admission，等芯片 4 完整链释放，不能借 seed2 票据或重启现有任务。
+2. **启动已完成训练的 K1 DEV。** 真实训练后独立验收已通过，新 DEV 计划已生成；完成精确执行配置与训练/种子绑定核查后，在芯片 1 启动 DEV/calibration/Track T。随后异步处理报告和资格检查，不将 DEV 读数称作 TEST 收益。
+3. **在 K1 评估仍运行时完成 QO 准备。** v7 衔接修复须重新独立验收；K1 评估执行身份一冻结，即 materialize 精确 QO generation 并做一次真实完整数值 admission，不等评估完成。释放后消费绑定收据并保留实时来源/资源检查，不把完整数值校验重新放回释放后路径。芯片 1 顺序为 K1 train → K1 eval → QO train，CPU 分析异步。
+4. **补齐 PT 部署条件。** 完成 runtime v6 的启动字节码、文件描述符与生命周期复审，补齐完整 runtime/consumer closure 和实际部署验收；等真实 Instruct K0 报告/预检成功后，才生成 PT 自身正式计划与完整 CPU 准入。生产者离线技术 PASS 不等于 observer 部署。
 5. **独立推进 K2 诊断。** 等真实前驱完成见证和独立准入后使用保留张量方案；不阻塞当前 K1。逐候选 K2 的恢复消费者/正式 launcher 仍有仅支持 K1 的缺口，若 DEV 支持继续采用，须补齐对应恢复、破坏对照、重建和精确计划，不能移植 K1 资格。
 6. **资格、选择、FINAL、同 TEST 依次完成。** 使用新正式 DEV 证据，完成 K-floor/K-align/K0 guard、原有控制与成对判定、跨芯片底噪适用性/实际证据及完整成员清单。较大尺寸各自完成协议，锁定选择后再按同 1200/656 TEST 人口报告收益、配对 90% CI 及校准/文献口径差异。无额外 DEV gate。
 7. **业务与 RL 后置。** 保持原范围，不新增生产集成或修改指标。root 负责 canonical 记录、验收与发布；只在有意义的里程碑更新远程结论，重复过程保存在本地档案。
@@ -102,7 +104,7 @@ K1−K0 配对 90% bootstrap 区间为 [22.1519, 26.9778]、[0.2287, 7.0122] pp�
 
 - 数值权威入口：[REFERENCE-BASELINE-LATEST.md](../experiments/REFERENCE-BASELINE-LATEST.md)、[固定矩阵](../experiments/REFERENCE-BASELINE-MATRIX-2026-10-31.json)、[增量](../experiments/REFERENCE-BASELINE-INCREMENT-2026-10-31.json)、[E39](../experiments/REFERENCE-DATED-REAUDIT-LATEST.json)、[路径索引](../experiments/REFERENCE-SOURCE-LOCATIONS.json)。
 - 指标边界：[补充规范](../experiments/R3-REFERENCE-METRICS-SUPPLEMENT-2026-11-01.md)、[口径区别](../experiments/R3-REFERENCE-METRICS-CONVENTIONS.md)。
-- 当前执行采用冻结的 `inspection-20261101T122237.json` 与 `active-delegation.md`，最新 collector/QO/PT 采用原始独立评审和 root 决定；完整哈希、PID 和限定范围集中在本次本地 `EVIDENCE-INDEX.md`，不在正文重复。
-- 本次发布前原文按精确字节保存在 `.local/archive/2026-11-01/conclusions-consolidation-1221/`；整理输入另存 `.local/preparations/current-report-wiki-consolidation-20261101-v1/archive/`；输入哈希见 `INPUTS.json`。同目录 `validation/` 保存表格前后逐字比较、科学数字来源映射、稳定章节覆盖和逐段归档去向；`HISTORICAL-MEASUREMENTS.md` 保留被压缩的完整测量段落。
+- 当前执行采用冻结的 `inspection-20261101T133431.json` 与 `active-delegation.md`，最新 collector/QO/PT 采用原始独立评审和 root 决定；本轮证据索引为本地 `.local/reports/postrun-publication-20261101T1340.json`；历史整理的 `EVIDENCE-INDEX.md` 仅对应当时状态。
+- 本次训练后验收更新前原文归档于 `.local/archive/2026-11-01/postrun-accepted-133931/`；较早整理原文按精确字节保存在 `.local/archive/2026-11-01/conclusions-consolidation-1221/`；整理输入另存 `.local/preparations/current-report-wiki-consolidation-20261101-v1/archive/`；输入哈希见 `INPUTS.json`。同目录 `validation/` 保存表格前后逐字比较、科学数字来源映射、稳定章节覆盖和逐段归档去向；`HISTORICAL-MEASUREMENTS.md` 保留被压缩的完整测量段落。
 
 本次移出的旧进度计数、时间/PID/哈希串、测试计数及修复过程只是历史，不是当前状态；旧失败、BLOCK、CHANGES_REQUIRED 未删除或追溯改判。旧阶段表中的等待状态以本页冻结状态为准。更早的原文归档 `.local/archive/2026-11-01/conclusions-before-consolidation-0326/` 仍为历史入口。本次已核对整理期间的变化，并刷新至上述共享快照。报告整理不改变实验门槛或科学验收状态。
