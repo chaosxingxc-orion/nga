@@ -103,7 +103,7 @@
 
 | 来源 | 固定证据 | 当前状态 | 不能进入队列的原因 |
 | --- | --- | --- | --- |
-| `Praveenrajus/jev-bench` v0.1.1 | manifest SHA256 `eace4223…52209`；22 sources；22,773 TEST | `needs_source_overlap_review` | `massive`、`paws`、`civil_comments` 与冻结 Nimble 来源名重叠，必须做 item/source identity 审计；不允许直接当独立泛化证据 |
+| `Praveenrajus/jev-bench` v0.1.1 | manifest SHA256 `eace4223…52209`；22 sources；22,773 TEST | `needs_source_overlap_review` | `massive`、`paws`、`civil_comments` 已与冻结 Nimble 面板的来源名和数据哈希对应上，但发布 TEST 数量与冻结抽样数量不同；必须做 item/source identity 审计，不允许直接当独立泛化证据 |
 | `Hanno-Labs/decision-bench` | schema `decision-bench-hf-v2`；data SHA256 `6c97d3f3…893ca`；23,900 eval、43 task IDs | `needs_metric_source_review` | canonical/applied/reasoning 三个来源部分、standard/compact 输入和 probability 字段需独立固定 |
 | `akhilaaa3/decision-bench` | README SHA256 `9031e3ff…48d5`；medium/hard 各 80 states、293 questions | `needs_source_overlap_review` | state-macro 与 question-weighted 统计必须分列，行身份和来源交集尚未核验 |
 | `DecisionRobust` image v1.3.0 | manifest 与 dataset-info hash；6 个 image panels | `needs_multimodal_harness_review` | curated/full 有包含关系，clean/attack 需要配对；文本模型不能补零替代图像接口 |
