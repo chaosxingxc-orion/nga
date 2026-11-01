@@ -1,6 +1,6 @@
 # Current Jev experiment conclusions
 
-Updated: 2026-11-01
+Updated: 2026-11-02
 Authority: this file is the current remote collaboration entry. Detailed run procedures, receipts, container logs and intermediate reviews remain in the local dated archive and CephFS. The remote wiki keeps only conclusions and the information needed for coordination.
 
 ## Current position
@@ -8,6 +8,18 @@ Authority: this file is the current remote collaboration entry. Detailed run pro
 D1 reference reporting is closed for the registered test matrix: 36 of 38 model-by-dataset combinations have results; Open-Jev-2B×JEVal and Open-Jev-9B×JEVal remain `blocked/null`. Test metrics are preserved by task formula, temperature, hard/soft target and effective denominator. Formal Jev training has not started. The three-step Qwen3.5-0.8B NPU preflight proves only the training path and guarded resource handoff; it is not a training result or a test-set result.
 
 The engineering constraints are fixed: NPU work consumes a per-chip FIFO queue; CPU scoring, independent checks, baseline locking, Astra review and report refresh run asynchronously in an ordered lane. The controller has regression tests, but a production queue and ready manifest are not deployed, so current continuous NPU saturation must not be claimed.
+
+## Coverage correction — 2026-11-02
+
+The current D1 matrix was too narrow for a broad Jev capability claim. Its 38 model-by-dataset units (36 scored and 2 blocked) remain frozen, but they are concentrated in a few source families. The repository inventory contains 24 directories, yet that count includes version projections, result packages, overlapping sources and different modalities.
+
+The expansion register now distinguishes approximately 16–17 independent source/task families and more than 50 native test/eval panels. The first priority is text-compatible reference evaluation: `Praveenrajus/jev-bench` (22 source panels), canonical `Hanno-Labs/decision-bench` (43 task IDs, 27 families, 28 domains), the independent `akhilaaa3/decision-bench` medium/hard panels, Eikos, Korean JEV, Respan Behavior, DecisionPivot and DecisionRobust text. Complex/spatial decisions and guardrail/safety follow as separate diagnostic families.
+
+This expansion does not authorize inference yet. The latest metadata audit has four new entries, all `needs_review`, with zero `ready_for_inference`; no candidate TEST rows were read. Jev-bench has confirmed source-name and release-hash correspondence with frozen Nimble panels for MASSIVE, PAWS and Civil Comments, so item identity must be audited before those panels can support independent generalization claims. Canonical versus legacy DecisionBench remain separate sources, and state-macro, question-weighted, hard/soft-label, calibration and paired robustness statistics remain separate tables.
+
+DecisionRobust image and other multimodal collections will use a separate matrix. WebJev and OneJev currently have no public TEST, Imajev remains blocked by its release gates, and `btzsc` remains a boundary classification comparison until its typed-decision schema is proven. Public collections still do not cover business-authored rules, Chinese business rules, unknown/fallback, evidence and audit state, equivalence classes or end-to-end cost per correct result; those require frozen internal datasets later.
+
+The detailed scope and execution order are in [`proposal/16-dataset-coverage-expansion-v4-status-2026-11-02.md`](../proposal/16-dataset-coverage-expansion-v4-status-2026-11-02.md). The frozen D1 values in this page and `experiments/REFERENCE-BASELINE-LATEST.md` are unchanged.
 
 ## Dimension 1 — how Jev-class gains are obtained
 
