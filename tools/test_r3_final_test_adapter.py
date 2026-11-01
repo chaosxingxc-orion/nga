@@ -70,6 +70,16 @@ class Integration(unittest.TestCase):
         self.assertEqual(len((self.round/'TEST-READS.log').read_text().splitlines()),2)
         self.assertGreaterEqual(self.verifier.call_count,6)
 
+    def test_supplement_retained_on_normal_and_recovery_paths(self):
+        def metrics(ticket,*args,**kwargs):
+            return {'reference_metrics':{'suite':ticket.suite,'synthetic':True}}
+        with patch.object(A.M,'verify',side_effect=metrics),patch.dict(sys.modules,{'r3_final_metrics':A.M}):
+            first=self.run_case();second=self.run_case()
+        expected={s:{'suite':s,'synthetic':True} for s in ('decision-v7','transfer-v4')}
+        self.assertEqual(first['reference_metrics'],expected)
+        self.assertEqual(second['reference_metrics'],expected)
+        self.producer.assert_called_once()
+
     def control(self,arm):
         self.args.arm=arm
         self.args.model_path=str(self.root/('Qwen__Qwen3.5-0.8B-Base' if arm=='K1-QO' else 'Qwen__Qwen3.5-0.8B'))

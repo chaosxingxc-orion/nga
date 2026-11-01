@@ -48,7 +48,7 @@ class Metrics(unittest.TestCase):
             return dict(kev={'id':str(i),'qindex':0},source='synthetic',qname='q',level_type='nominal',
                 gold='a',levels=[dict(id='a',name='A',definition='A'),dict(id='b',name='B',definition='B')])
         self.rows={('decision-v7','train'): [row('train'+str(i)) for i in range(24)],
-                   ('decision-v7','calibration'):[row('cal'+str(i)) for i in range(24)]}
+                   ('decision-v7','calibration'):[row('cal'+str(i)) for i in range(1148)]}
         self.vars={};self.scores={};self.files={};manifest={'suites':{}}
         for suite,n in [('decision-v7',1200),('transfer-v4',656)]:
             rows=[row(i) for i in range(n)];self.rows[(suite,'test')]=rows
@@ -111,6 +111,41 @@ class Metrics(unittest.TestCase):
         self.assertEqual(sum(vector['correct'])/1200,self.report['track_k']['partitions']['decision-v7/test']['headline']['kev_rule_accuracy'])
         self.assertEqual(vector['keys'],[self.C.kev_key(r) for r in self.rows[('decision-v7','test')]])
         self.assertEqual(self.report['track_k']['partitions']['decision-v7/test']['headline']['tie_count'],1)
+
+    def test_supplement_source_rebuild_export_and_tamper_refusal(self):
+        driver=load('supplement_driver_fixture',HERE/'r3_final_driver.py')
+        values={suite:self.M.verify(ticket,str(self.run),kev_dir=str(self.data),report=self.report)
+                for (suite,_),ticket in self.tickets.items()}
+        result={'state':'completed','reference_metrics':{s:v['reference_metrics'] for s,v in values.items()}}
+        plan={'out':str(self.run),'arm':'K1','model_sha256':self.identity['sha256'],
+              'closure':{'sha256':'d'*64}}
+        path=driver.export_reference_metrics(plan,'e'*64,result,self.report)
+        self.assertEqual(path,driver.export_reference_metrics(plan,'e'*64,result,self.report))
+        output=json.loads(Path(path['path']).read_text())
+        self.assertEqual(set(output['panels']),{'decision-v7/test','transfer-v4/test','decision-v7/calibration'})
+        self.assertEqual(output['panels']['decision-v7/calibration']['metrics']['n'],1148)
+        self.assertEqual(output['panels']['decision-v7/test']['metrics']['tie_count'],1)
+        self.assertFalse(output['scientific_acceptance'])
+        bad=copy.deepcopy(result);bad['reference_metrics']['transfer-v4']['panels']['decision-v7/calibration']['metrics']['nll']+=1
+        with self.assertRaisesRegex(ValueError,'calibration panels differ'):
+            driver.export_reference_metrics(plan,'e'*64,bad,self.report)
+        bad=copy.deepcopy(result);bad['state']='pending'
+        with self.assertRaisesRegex(ValueError,'not completed'):
+            driver.export_reference_metrics(plan,'e'*64,bad,self.report)
+        source=Path(self.C.k_readout_path(str(self.run),'decision-v7','test','clean'))
+        source.write_text(source.read_text()+'\n')
+        with self.assertRaisesRegex(ValueError,'source changed before export'):
+            driver.export_reference_metrics(plan,'e'*64,result,self.report)
+
+    def test_supplement_rejects_change_during_reconstruction(self):
+        import r3_reference_metrics as RM
+        original=RM.summarize
+        source=Path(self.C.k_readout_path(str(self.run),'decision-v7','test','clean'))
+        def mutate(*args):
+            value=original(*args);source.write_text(source.read_text()+'\n');return value
+        with patch.object(RM,'summarize',side_effect=mutate):
+            with self.assertRaisesRegex(ValueError,'sources changed during reconstruction'):
+                self.M.verify(self.tickets[('decision-v7','test')],str(self.run),kev_dir=str(self.data),report=self.report)
 
     def test_controls_match_original_producer(self):
         for arm,base in [('K1-QO','Qwen__Qwen3.5-0.8B-Base'),('K1-PT','Qwen__Qwen3.5-0.8B')]:

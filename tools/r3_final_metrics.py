@@ -5,6 +5,7 @@ ticket and verifies model/readout provenance separately. Dataset hashes are
 checked against both the task manifest and the producing report.
 """
 import json
+import hashlib
 from pathlib import Path
 
 
@@ -124,6 +125,24 @@ def verify(ticket, run_dir, *, kev_dir, report=None):
     validate_header(header, prompt=P, expected_sha256=ticket.identity['sha256'])
     require(all(header['model'].get(k) == ticket.identity.get(k)
                 for k in ('path','sha256','kind','base_path','base_revision')), 'metric report model differs')
+    # Bind exactly the files consumed below before loading their contents.
+    # A ticket and validated producer header are required before this boundary.
+    source_paths = [C.partition_path(s, split, variant, str(kev_dir)) for s, split, variant in (
+        ('decision-v7','train',False), ('decision-v7','calibration',False),
+        (ticket.suite,'test',False), (ticket.suite,'test',True))]
+    source_paths += [C.k_readout_path(str(run_dir),ticket.suite,'test',kind)
+                     for kind in ('clean','variants','question_only','empty_input')]
+    source_paths += [C.k_readout_path(str(run_dir),'decision-v7','calibration','clean'),
+                     str(Path(kev_dir)/'manifest.json')]
+    def snapshot():
+        result = {}
+        for name in source_paths:
+            path = Path(name)
+            require(path.is_absolute() and '..' not in path.parts
+                    and not any(p.is_symlink() for p in (path,*path.parents)), 'unsafe metric source')
+            result[name] = C.sha256_file(name)
+        return result
+    before = snapshot()
     populations={};paths=[]
     for kind,suite,split,variant in (
             ('train','decision-v7','train',False),('calibration','decision-v7','calibration',False),
@@ -155,5 +174,36 @@ def verify(ticket, run_dir, *, kev_dir, report=None):
             'n':len(correct),'tie_count':sum(C.is_tie(row['s']) for row in clean_ordered)}
     require(sum(correct)/len(correct)==rebuilt['test']['headline']['kev_rule_accuracy'],
             'paired vector headline differs')
+    import r3_reference_metrics as RM
+    panels = {}
+    for suite, split, rows, saved, readout_path in (
+        (ticket.suite,'test',populations['clean'],clean_ordered,
+         C.k_readout_path(str(run_dir),ticket.suite,'test','clean')),
+        ('decision-v7','calibration',populations['calibration'],
+         E.validate_population(readouts['calibration'],populations['calibration'],C.kev_key),
+         C.k_readout_path(str(run_dir),'decision-v7','calibration','clean'))):
+        require(len(rows) == (1148 if split == 'calibration' else
+                             {'decision-v7':1200,'transfer-v4':656}[suite]), 'supplement population differs')
+        scores = [x['s'] for x in saved]; gold = [C.gold_index(x) for x in rows]
+        values = RM.summarize(scores,gold)
+        headline = report['track_k']['partitions'][suite+'/'+split]['headline']
+        require(values['accuracy'] == headline['kev_rule_accuracy']
+                and values['tie_count'] == headline['tie_count']
+                and values['n'] == headline['n'], 'supplement headline differs')
+        data_path = C.partition_path(suite,split,False,str(kev_dir))
+        binding = {'keys':[C.kev_key(x) for x in rows], 'option_ids':[C.level_ids(x) for x in rows],
+                   'gold':gold,'scores':scores}
+        panels[suite+'/'+split] = {'metrics':values,'dataset_sha256':before[data_path],
+            'readout_sha256':before[readout_path],
+            'ordered_inputs_sha256':hashlib.sha256(json.dumps(binding,sort_keys=True,
+                separators=(',',':'),allow_nan=False).encode()).hexdigest()}
+    require(snapshot() == before, 'metric sources changed during reconstruction')
+    supplement = {'schema':'r3-source-reference-metrics-v1', 'suite':ticket.suite,
+        'specification_sha256':RM.SPECIFICATION_SHA256,'panels':panels,'source_sha256':before,
+        'producer_report_sha256':hashlib.sha256(json.dumps(report,sort_keys=True,
+            separators=(',',':'),allow_nan=False).encode()).hexdigest(),
+        'scientific_acceptance':False,'publication_authorized':False,
+        'scope':'source-rebuilt supplementary T1 fields; existing admission remains external'}
     return {'suite':ticket.suite,'paired_vector':vector,'verified_fields':sorted(rebuilt['test']),
+            'reference_metrics':supplement,
             'scope':'full Track K numerical fields; metric primitives shared with producer'}

@@ -45,7 +45,7 @@ def run(args, scorer, evaluator, *, owner, validate_admission, validate_publicat
     G.require(str(G.safe_path(args.out)) == owner['run_dir'], 'output differs')
     model_path = args.adapter or args.model_path
     log = L.CompletionLog(args.round_dir, model_path=model_path, **owner)
-    state = {'verified_suites':{}}
+    state = {'verified_suites':{}, 'reference_metrics':{}}
     report_path = G.safe_path(args.out) / 'TEST-PRODUCER-REPORT.json'
     G.safe_path(report_path)
 
@@ -94,10 +94,13 @@ def run(args, scorer, evaluator, *, owner, validate_admission, validate_publicat
             metrics = recovered.get('metrics',{})
         if 'paired_vector' in metrics:
             state['verified_suites'][suite]=metrics['paired_vector']
+        if 'reference_metrics' in metrics:
+            state['reference_metrics'][suite]=metrics['reference_metrics']
 
     outcome = T.run(args.round_dir, **owner, validate_admission=validate_admission,
                  validate_publication=validate_publication,
                  bind_execution=bind, score=score, verify_result=verify,
                  read_completion=log.read, append_completion=log.append)
 
-    return {**outcome,'verified_suites':state['verified_suites']}
+    return {**outcome,'verified_suites':state['verified_suites'],
+            'reference_metrics':state['reference_metrics']}

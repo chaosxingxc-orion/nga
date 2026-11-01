@@ -137,7 +137,61 @@ def evaluate(plan,pin,review):
     report=json.loads((Path(plan['out'])/'TEST-PRODUCER-REPORT.json').read_text())
     validate()
     export_vector(plan,pin,result,report,training_state.get('verified'),prompt=evaluator.P)
+    result['reference_metrics_artifact'] = export_reference_metrics(plan,pin,result,report)
     return result
+
+
+def export_reference_metrics(plan, pin, result, report):
+    """Separate, repeatable export from the same completed source transaction."""
+    RM = local('r3_reference_metrics')
+    G = local('r3_final_gain_compare')
+    C.require(result.get('state') == 'completed', 'publication not completed')
+    values = result.get('reference_metrics', {})
+    C.require(set(values) == set(G.SUITES), 'complete reference metrics required')
+    producer_pin = G.canonical(report)
+    producer_pin = hashlib.sha256(producer_pin.encode()).hexdigest()
+    panels = {}
+    sources = {}
+    for suite, value in values.items():
+        C.require(value.get('schema') == 'r3-source-reference-metrics-v1'
+                  and value.get('suite') == suite and value.get('scientific_acceptance') is False
+                  and value.get('publication_authorized') is False
+                  and value.get('specification_sha256') == RM.SPECIFICATION_SHA256
+                  and value.get('producer_report_sha256') == producer_pin, 'reference metrics binding differs')
+        C.require(set(value.get('panels', {})) == {suite+'/test','decision-v7/calibration'},
+                  'reference metric panels differ')
+        for name, panel in value['panels'].items():
+            metric = panel['metrics']; headline = report['track_k']['partitions'][name]['headline']
+            C.require(metric.get('schema') == 'r3-reference-probability-metrics-v1'
+                      and metric.get('specification_sha256') == RM.SPECIFICATION_SHA256
+                      and metric.get('temperature') == 1
+                      and metric.get('scientific_acceptance') is False
+                      and metric.get('publication_authorized') is False
+                      and metric.get('n') == headline['n']
+                      and metric.get('accuracy') == headline['kev_rule_accuracy']
+                      and metric.get('tie_count') == headline['tie_count'], 'reference metric headline/scope differs')
+            C.require(name not in panels or panels[name] == panel, 'calibration panels differ')
+            panels[name] = panel
+        for name, digest in value['source_sha256'].items():
+            G.pin(digest)
+            C.require(name not in sources or sources[name] == digest, 'source bindings differ')
+            C.require(C.sha(C.safe(name)) == digest, 'reference metric source changed before export')
+            sources[name] = digest
+    C.require(report['header']['model']['sha256'] == plan['model_sha256']
+              and report['header']['arm'] == plan['arm'], 'reference metric model differs')
+    output = {'schema':'r3-final-reference-metrics-v1','execution_plan_sha256':pin,
+              'closure_sha256':plan['closure']['sha256'],
+              'producer_report_sha256':producer_pin,'specification_sha256':RM.SPECIFICATION_SHA256,
+              'model':report['header']['model'],'arm':plan['arm'],
+              'input_mode':report['header']['primary_input_mode'],
+              'panels':panels,'source_sha256':sources,'scientific_acceptance':False,
+              'scope':'descriptive T1 metrics after existing publication transaction; no new adoption decision'}
+    path = C.safe(Path(plan['out'])/'TEST-REFERENCE-METRICS.json')
+    if path.exists():
+        C.require(json.loads(path.read_text()) == output, 'published reference metrics changed')
+    else:
+        atomic(path,output)
+    return {'path':str(path),'sha256':C.sha(path)}
 
 
 def run(plan_path,pin,review,attempt):
