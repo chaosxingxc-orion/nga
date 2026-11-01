@@ -54,6 +54,12 @@ Astra 第二轮为 CHANGES_REQUIRED，六类问题涉及实际数值重建、执
 
 第三轮及第四轮托管 Astra 均只返回规则确认，记为 **NOT_REVIEWED**；任务管理 MCP 接口也返回连接错误。第四轮已重新冻结 108 文件，包含 `70584f3` 自动 CPU 接续修改；01:56 UTC 使用此前可工作的只读 CLI runner 启动真实 Astra，child PID `2613170` 与实际命令、心跳已核对。当前仍待实质 verdict，没有新的独立通过结论。CLI runner 与托管子智能体明确区分，保留真实终态收据；代码修复审查不能替代尚缺的精确正式计划审查。
 
+## 最终评测源码身份补充修复
+
+在准备最终测试入口时复现了独立问题：旧 final closure 校验只检查预加载模块的路径，伪造相同路径的 `r3_final_metrics` 对象可以被接受。`e0f7277` 改为执行已校验源码字节，并统一 adapter、transaction、日志和 admission 的本地模块身份；反例包括预加载伪模块和恶意 unchecked-hash `.pyc`。50 项相关测试通过，新 41 文件评测代码闭包在 CPU 中实际导入 29 个模块，未访问数据或执行推理。
+
+新 closure manifest 为 `8bb413901b01cb389a658bdde3dcfce072382075aa3529d76c35e5e29355f1a9`，仍 `deployable=false`。修复晚于第四轮 readiness bundle，单独冻结 61 文件复审材料，manifest `32d1c5b6ac0e965f0ff56479acfd8c8b706b8226800669e8f3bb7a4c9f6cd3ae`；尚未独立审查，不能算作第四轮已覆盖，也不替代真实 scorer 中断恢复验证。
+
 ## 需要负责人决策的内容
 
 当前没有必须追加授权的事项。继续沿用：38 个参考单位不扩展；不设置算力预算上限；先验证公开任务下 Jev 训练方案；暂不接入真实业务；开发集用于选择，测试集用于最终指标；不同文献统计方式单列；每个 milestone 更新最新报告和 Wiki，本地过程文稿每三天归档。
