@@ -207,6 +207,30 @@ class QueueEvidenceTests(unittest.TestCase):
             self.republish(dict(self.common, member=member, evidence=evidence))
             with self.assertRaisesRegex(ValueError, 'actual source reconstruction'): self.check()
 
+    def test_receipt_changed_during_rebuild_cannot_enter_cache(self):
+        def rebuild(req, q):
+            doc = Q.load(self.out/'evidence.json')
+            doc['job_id'] = 'foreign'
+            self.republish(doc)
+            return self.source_member, self.source_payload
+        self.replay.side_effect = rebuild
+        with self.assertRaisesRegex(ValueError, 'changed during reconstruction'): self.check()
+
+    def test_cached_success_cannot_revive_after_failure(self):
+        cache = {'pt': self.check()}
+        saved = Q.read(self.out/'evidence.json')
+        Q.write(self.out/'evidence.json', {'changed': True})
+        with self.assertRaisesRegex(ValueError, 'receipt changed'):
+            Q.cached_state(self.out, self.job, self.pin, cache)
+        self.assertNotIn('pt', cache)
+        (self.out/'evidence.json').write_bytes(saved)
+        Q.write(self.out/'FAILURE.json', dict(self.common, state='failed_no_retry'), exclusive=True)
+        # Even a stale cache supplied by a caller cannot override the failure.
+        cache['pt'] = {'state': 'producer_complete'}
+        state = Q.cached_state(self.out, self.job, self.pin, cache)
+        self.assertEqual(state['state'], 'failed_no_retry')
+        self.assertNotIn('pt', cache)
+
 
 if __name__ == '__main__':
     unittest.main()

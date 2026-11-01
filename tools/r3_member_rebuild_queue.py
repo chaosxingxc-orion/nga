@@ -120,7 +120,7 @@ def zero(doc):
 def verify_queue(path, pin):
     q, _ = snapshot(path, pin)
     scope(q)
-    require(q['schema'] == 'r3-member-rebuild-queue-v4', 'queue schema differs')
+    require(q['schema'] == 'r3-member-rebuild-queue-v5', 'queue schema differs')
     require(q['controller']['path'] == str(Path(__file__).resolve())
             and globals().get('_EXECUTED_SHA256') == q['controller']['sha256'],
             'controller must execute verified bytes via bootstrap')
@@ -301,20 +301,33 @@ of mutually consistent saved hashes cannot stand in for this computation.
 
 def completed(root, job, queue_path, pin):
     require(not safe(root/'FAILURE.json').exists(), 'persisted failure forbids completion')
+    names = ('INTENT.json', 'request.json', 'RESULT.json', 'EXIT.json', 'evidence.json')
+    buffers = {name: read(root/name) for name in names}
+    pins = {name: hashlib.sha256(raw).hexdigest() for name,raw in buffers.items()}
+    # All completion-envelope reads below use these exact, pinned buffers. The
+    # producer/source verifier still reads its real inputs independently.
+    def bound(name):
+        return parse(buffers[name])
     req = validate_request(root, job, queue_path, pin)
-    end = load(root/'EXIT.json')
+    require(req == bound('request.json'), 'request buffer differs')
+    intent = bound('INTENT.json')
+    scope(intent)
+    require(intent['request_sha256'] == pins['request.json'] and intent['job_id'] == job['id']
+            and intent['queue_sha256'] == pin, 'intent buffer differs')
+    end = bound('EXIT.json')
     scope(end)
     zero(end)
-    result, result_pin = snapshot(root/'RESULT.json', end['result_sha256'])
+    result, result_pin = bound('RESULT.json'), pins['RESULT.json']
+    require(result_pin == end['result_sha256'], 'result hash differs')
     scope(result)
-    request_doc, request_pin = snapshot(root/'request.json')
-    require(request_doc == req, 'request changed during completion')
+    request_pin = pins['request.json']
     for d in (end, result):
         require(d['request_sha256'] == request_pin and d['queue_sha256'] == pin
                 and d['job_id'] == job['id'], 'completion identity differs')
     require(result['producer'] == req['producer'], 'result producer differs')
     require(set(result['outputs']) == {'evidence.json'}, 'exact singleton output required')
-    evidence, _ = snapshot(root/'evidence.json', result['outputs']['evidence.json'])
+    require(pins['evidence.json'] == result['outputs']['evidence.json'], 'evidence hash differs')
+    evidence = bound('evidence.json')
     scope(evidence)
     require(evidence['request_sha256'] == request_pin and evidence.get('job_id') == job['id']
             and evidence.get('queue_sha256') == pin, 'evidence envelope differs')
@@ -326,8 +339,28 @@ def completed(root, job, queue_path, pin):
             and canonical_pin(evidence_now) == canonical_pin(evidence['evidence']),
             'saved completion differs from actual source reconstruction')
     require(validate_request(root, job, queue_path, pin) == req, 'request changed during completion rebuild')
+    require(not safe(root/'FAILURE.json').exists(), 'failure appeared during reconstruction')
+    require(all(sha(root/name) == h for name,h in pins.items()), 'completion changed during reconstruction')
     return {'state': 'producer_complete', 'root': str(root), 'result_sha256': result_pin,
-            'independent_acceptance': False}
+            'independent_acceptance': False, 'validated_receipt_pins': pins}
+
+
+def cached_state(root, job, pin, accepted):
+    """Failure is authoritative even after an earlier successful validation."""
+    key = job['id']
+    if safe(root/'FAILURE.json').exists():
+        accepted.pop(key, None)
+        return failure_state(load(root/'FAILURE.json'), key, pin)
+    if key not in accepted:
+        return None
+    try:
+        state = accepted[key]
+        require(all(sha(root/name) == h for name,h in state['validated_receipt_pins'].items()),
+                'completed receipt changed')
+        return state
+    except Exception:
+        accepted.pop(key, None)
+        raise
 
 
 def worker(path, pin, key):
@@ -386,10 +419,9 @@ def watch(path, pin):
                 key = job['id']
                 out = safe(root/'members'/key)
                 try:
-                    if key in accepted:
-                        require(all(sha(out/name) == h for name,h in accepted[key]['pins'].items()),
-                                'completed receipt changed')
-                        states[key] = accepted[key]['state']
+                    cached = cached_state(out, job, pin, accepted)
+                    if cached is not None:
+                        states[key] = cached
                         continue
                     if (out/'FAILURE.json').exists():
                         failure = load(out/'FAILURE.json')
@@ -397,8 +429,7 @@ def watch(path, pin):
                         continue
                     if (out/'EXIT.json').exists():
                         states[key] = completed(out, job, path, pin)
-                        accepted[key] = {'state': states[key], 'pins': {name: sha(out/name) for name in
-                            ('INTENT.json', 'request.json', 'RESULT.json', 'EXIT.json', 'evidence.json')}}
+                        accepted[key] = states[key]
                         continue
                     require(not (out/'INTENT.json').exists(), 'uncertain intent; no automatic restart')
                     if not safe(job['terminal']).exists():
@@ -427,9 +458,9 @@ def watch(path, pin):
                         time.sleep(30)
                     require(child.wait() == 0, 'worker failed')
                     states[key] = completed(out, job, path, pin)
-                    accepted[key] = {'state': states[key], 'pins': {name: sha(out/name) for name in
-                        ('INTENT.json', 'request.json', 'RESULT.json', 'EXIT.json', 'evidence.json')}}
+                    accepted[key] = states[key]
                 except Exception as error:
+                    accepted.pop(key, None)
                     out.mkdir(parents=True, exist_ok=True)
                     failure = {'state': 'failed_no_retry', 'job_id': key, 'queue_sha256': pin,
                                'error': type(error).__name__+': '+str(error)[:350],
