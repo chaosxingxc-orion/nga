@@ -78,6 +78,12 @@
 
 这些缺口会作为业务数据集设计和后续强化学习目标，而不是在本轮公开 TEST 统计中假装已经覆盖。
 
+### D 层：业内对齐候选（尚未镜像）
+
+文献审查还发现以下公开面板值得登记，但它们目前不在本地准入矩阵中，也没有被计入“50+ 原生面板”：System1-Arena 的大规模问题与闭环环境、TypedBench 的策略合规/改写/选择性预测组合、JevAdvBench 的答案保持攻击、Sys1Cal-v1 的已知概率真值、Probability Contracts、PFR/拒答测试、AgentDecisionBench/DecisionGym，以及 TUPLE-Bench 的接口泄漏维度。它们分别覆盖闭环控制、概率语义、攻击鲁棒性、拒答和隐私泄漏，不能与普通 accuracy 面板合并。
+
+这些候选的接入顺序是：先记录论文版本、公开下载位置、原生 split 和指标公式，再判断是否有可复核 TEST；没有可复核 TEST 的只保留文献对照。镜像后仍需完成输入接口、来源交集、测试暴露和 paired key 审计，只有 `ready_for_inference` 才能入 FIFO。
+
 ## 四、自身实验维度与执行顺序
 
 ### M0：覆盖合同和准入（当前）
