@@ -20,6 +20,20 @@ PROTOCOL = dict(seed=2, step=0, question=1, target=TARGET, checkpoint=CHECKPOINT
                 dropout=0.05, use_reentrant=False, micro_tokens=12000, max_len=4096,
                 reference_evaluations=4, max_events=8192, max_tensor_bytes=512*1024**2,
                 diagnostic_only=True, chips=1)
+FROZEN_LAUNCHER_SHA256 = 'f69399487769400eea23ed44ee4e7655a2ac5074554623597e6ea8cdb2d6c8e9'
+V2_PREDECESSOR = dict(
+    kind='evaluation',
+    out='/mnt/cephfs/xingchao/experiments/jev/r3_runs/k2_backward_probe_20261101_v2',
+    execution_sha256='fb8d157e46a5123525738e81cfba0ad639cdab4b33e8faf19fd0bde6c9faf1c7',
+    container_id='40e8d51f71f8bc7f96517ab9a20d5bf47409356a87777f2faaa6d64233d23d89')
+
+# Recovery authorization is narrower than successful-predecessor admission.
+# It preserves the failed scientific/diagnostic outcome and pins its proof.
+V2_RECOVERY_PREDECESSOR = dict(V2_PREDECESSOR,
+    expected_exit_code=1, expected_container_exit_code=1,
+    authorization='coverage-repair-engineering-only',
+    terminal_sha256='95996cd1b577ddff3d46360d8709aec2ad35d99b379f74cf1bf4cef6ea48b76c',
+    release_sha256='0ff784ee23430c3231805a8c1534b34df495b7ba86c855da0067b9fd6ec4022e')
 
 
 def require(ok, reason):
@@ -210,28 +224,34 @@ class BackwardProbe:
                 return output
             self.wrap(module, 'forward', linear)
 
+    def observe_operation(self, scope, func, args, kwargs):
+        name = str(func)
+        # Exactly one invocation, including unsupported routes. Observation
+        # failures cannot trigger a second kernel or manufacture coverage.
+        result = func(*args, **kwargs)
+        if scope == 'dropout':
+            # Never infer a mask by dividing output by input (zeros hide it).
+            if name == 'aten.native_dropout.default':
+                self.event('dropout_mask', result[1])
+                self.event('dropout_mask_op', name)
+            elif name == 'aten.bernoulli_.float':
+                self.event('dropout_mask', result)
+                self.event('dropout_mask_op', name)
+        elif name in ('aten.mm.default', 'aten.matmul.default'):
+            # Fixed-image Ascend evidence: 3D x 2D aten.matmul after bf16
+            # casts. Capture dispatched operands, not Linear input/weight.
+            self.event(scope+'_mm_operator', dict(name=name, kwargs=kwargs))
+            self.event(scope+'_mm_operands', args)
+            self.event(scope+'_mm_output', result)
+        return result
+
     @contextmanager
     def dispatch(self, scope):
         from torch.utils._python_dispatch import TorchDispatchMode
         probe = self
         class Observe(TorchDispatchMode):
             def __torch_dispatch__(self, func, types, args=(), kwargs=None):
-                kwargs = kwargs or {}
-                name = str(func)
-                result = func(*args, **kwargs)
-                if scope == 'dropout':
-                    # Never infer a mask by dividing output by input (zero inputs
-                    # hide dropped elements). Observe the real RNG operation.
-                    if name == 'aten.native_dropout.default':
-                        probe.event('dropout_mask', result[1])
-                        probe.event('dropout_mask_op', name)
-                    elif name == 'aten.bernoulli_.float':
-                        probe.event('dropout_mask', result)
-                        probe.event('dropout_mask_op', name)
-                elif name == 'aten.mm.default':
-                    probe.event(scope+'_mm_operands', args)
-                    probe.event(scope+'_mm_output', result)
-                return result
+                return probe.observe_operation(scope, func, args, kwargs or {})
         with Observe():
             yield
 
@@ -277,7 +297,7 @@ class BackwardProbe:
                   'dropout_rng_entry', 'dropout_input', 'dropout_mask', 'dropout_mask_op',
                   'dropout_output', 'dropout_rng_exit']
         labels += [part+'_'+field for part in ('A', 'B') for field in
-                   ('input', 'weight', 'output', 'mm_operands', 'mm_output')]
+                   ('input', 'weight', 'output', 'mm_operator', 'mm_operands', 'mm_output')]
         for call in range(self.chunk_counts[phase]):
             for stage in ('forward', 'recompute'):
                 keys.update((self.checkpoint, call, stage, self.target, label) for label in labels)
@@ -285,7 +305,7 @@ class BackwardProbe:
             # PyTorch can stop before executing B's mm once saved inputs exist.
             # This is a distinct, explicit coverage outcome, never invented output.
             if self.records[phase].get((*prefix, 'B_early_stop')) is True:
-                for label in ('B_output', 'B_mm_operands', 'B_mm_output'):
+                for label in ('B_output', 'B_mm_operator', 'B_mm_operands', 'B_mm_output'):
                     keys.discard((*prefix, label))
                 keys.add((*prefix, 'B_early_stop'))
             keys.add((self.checkpoint, call, 'backward', self.target, 'B_cotangent'))
@@ -432,6 +452,45 @@ def run(path, pin):
     return result
 
 
+def verify_predecessor(previous, base):
+    # Legacy PT preparations remain identifiable; new evaluation predecessors
+    # are restricted to the exact already-running v2, never an arbitrary run.
+    if previous.get('kind', 'training') == 'training':
+        required = str(base/'r3_runs/pt_retained3000_resume_contract_20261101_chip3_v1/seed2')
+        require(previous['out'] == required
+                and previous['plan_sha256'] == '370ac30495eaaa43102d7108ebca11b5cbf0709285af3be57179b5834c15c248'
+                and sha(Path(required)/'plan.json') == previous['plan_sha256'], 'PT predecessor changed')
+    else:
+        require(previous in (V2_PREDECESSOR, V2_RECOVERY_PREDECESSOR), 'exact v2 predecessor required')
+        if 'expected_exit_code' in previous:
+            require(type(previous['expected_exit_code']) is int
+                    and type(previous['expected_container_exit_code']) is int, 'invalid expected exit type')
+            require(sha(Path(previous['out'])/'ENGINEERING_EVAL_EXIT.json') == previous['terminal_sha256']
+                    and sha(Path(previous['out'])/'attempts/1/RELEASE.json') == previous['release_sha256'],
+                    'v2 recovery terminal/release changed')
+        require(sha(Path(previous['out'])/'execution.json') == previous['execution_sha256'],
+                'v2 predecessor changed')
+
+
+def released_predecessor(p, successor, base):
+    previous = p['predecessor']
+    verify_predecessor(previous, base)
+    result = successor.predecessor(dict(previous_kind=previous.get('kind', 'training'),
+                                        previous_eval=previous['out'], chip=3))
+    expected_exit = previous.get('expected_exit_code', 0)
+    require(result is not None and type(result['exit_code']) is int and result['exit_code'] == expected_exit,
+            'exact predecessor terminal/release differs')
+    if 'expected_exit_code' in previous:
+        require(type(result.get('container_exit_code')) is int
+                and result['container_exit_code'] == previous['expected_container_exit_code']
+                and result['release_sha256'] == previous['release_sha256'],
+                'v2 recovery retained exit/release differs')
+    if previous.get('kind') == 'evaluation':
+        require(result['attempt'] == 1 and result['container_id'] == previous['container_id'],
+                'v2 retained predecessor identity differs')
+    return result
+
+
 def launcher(path, pin):
     """Reuse the frozen retained-container/resource supervisor without editing it.
 
@@ -443,7 +502,17 @@ def launcher(path, pin):
     require(sha(path) == pin, 'execution changed')
     for filename, digest in p['tools'].items():
         require(Path(filename).parent == root/'tools' and sha(filename) == digest, 'launcher source changed')
-    L = source(root/'tools/r3_k2_benchmark_launcher.py')
+    helper = root/'tools/r3_k2_benchmark_launcher.py'
+    require(sha(helper) == FROZEN_LAUNCHER_SHA256, 'unsupported lifecycle helper')
+    L = source(helper)
+    # Bind this one-path adaptation to the reviewed helper's exact bytes.
+    # Keep its start()/locking/detach/receipt implementation unchanged.
+    original_atomic = L.atomic
+    def runtime_atomic(filename, data):
+        if Path(filename) == root/'RELAUNCH.json':
+            filename = root/'SUPERVISOR_RELAUNCH.json'
+        return original_atomic(filename, data)
+    L.atomic = runtime_atomic
     def verify(execution, expected):
         require(sha(execution) == expected, 'execution changed')
         doc = load(execution)
@@ -462,9 +531,7 @@ def launcher(path, pin):
         q = verify_plan(doc['benchmark_plan'], doc['benchmark_sha256'])
         require(q['out'] == str(root/'results') and q['model'] == L.MODEL
                 and doc['container'] == 'nga-k2-backward-'+doc['benchmark_sha256'][:16], 'probe binding differs')
-        previous = doc['predecessor']
-        required = str(L.BASE/'r3_runs/pt_retained3000_resume_contract_20261101_chip3_v1/seed2')
-        require(previous['out'] == required and sha(Path(required)/'plan.json') == previous['plan_sha256'], 'PT predecessor changed')
+        verify_predecessor(doc['predecessor'], L.BASE)
         return doc, q
     def spec(doc, q, execution, expected):
         K = source(root/'tools/r3_final_container.py')
@@ -519,8 +586,7 @@ def main():
         # The queue and direct start both enforce this exact released predecessor.
         p = load(args.plan)
         S = source(Path(p['out'])/'tools/r3_eval_successor.py')
-        previous = S.predecessor(dict(previous_kind='training', previous_eval=p['predecessor']['out'], chip=3))
-        require(previous is not None and previous['exit_code'] == 0, 'exact PT predecessor not successfully released')
+        released_predecessor(p, S, L.BASE)
         print(json.dumps(L.start(args.plan, args.sha256) if args.op == 'start' else L.supervise(args.plan, args.sha256)))
 
 
