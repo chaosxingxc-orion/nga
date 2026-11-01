@@ -7,10 +7,28 @@ from pathlib import Path
 import tempfile
 import types
 import unittest
+from unittest.mock import patch
 
 import r3_scoring_recovery_probe as P
 
 SOURCE=Path('/mnt/cephfs/xingchao/experiments/jev/r3_runs/selection_cpu_closure_20261031_v2/r3_code/core_r3.py')
+
+class SourceBoundary(unittest.TestCase):
+    def test_recovery_helpers_ignore_hostile_bytecode(self):
+        import py_compile
+        import r3_scoring_recovery_launcher as L
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/'helper.py'
+            path.write_text('raise AssertionError("HOSTILE_CACHE_EXECUTED")\n')
+            py_compile.compile(str(path),invalidation_mode=py_compile.PycInvalidationMode.UNCHECKED_HASH)
+            path.write_text('VALUE = 17\n')
+            with patch.object(importlib.machinery.SourceFileLoader,'get_code',side_effect=AssertionError('BYTECODE_LOADER')):
+                self.assertEqual(P.module('probe_helper',path).VALUE,17)
+                self.assertEqual(L.module(path,'launcher_helper').VALUE,17)
+            link=Path(td)/'link.py';link.symlink_to(path)
+            for load in (lambda:P.module('probe_helper',link),lambda:L.module(link,'launcher_helper')):
+                with self.assertRaisesRegex(ValueError,'unsafe helper'):load()
+
 
 class RecoveryEvidence(unittest.TestCase):
     @classmethod

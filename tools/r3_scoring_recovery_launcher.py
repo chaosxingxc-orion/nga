@@ -56,7 +56,14 @@ def atomic(path,value):
         if os.path.exists(tmp):os.unlink(tmp)
 
 def module(path,name):
-    spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+    # Execute the source checked by the frozen plan, never adjacent bytecode.
+    import types
+    path=Path(path)
+    require(path.is_absolute() and '..' not in path.parts
+            and not any(p.is_symlink() for p in (path,*path.parents)), 'unsafe helper source')
+    raw=path.read_bytes();m=types.ModuleType(name);m.__file__=str(path)
+    exec(compile(raw,str(path),'exec',dont_inherit=True),m.__dict__)
+    return m
 
 def verify(path,pin):
     path=safe(path);require(sha(path)==pin,'execution plan changed');p=load(path)
