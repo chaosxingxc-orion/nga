@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from test_r3_k2_benchmark_verify import fixture
 
 s = importlib.util.spec_from_file_location('digest', Path(__file__).with_name('r3_k2_benchmark_digest.py'))
 D = importlib.util.module_from_spec(s); s.loader.exec_module(D)
@@ -32,18 +33,29 @@ class Digest(unittest.TestCase):
         self.assertIn('benchmark_failed', D.summarize(self.root, self.pin)['flags'])
 
     def test_bound_success_then_changed_result_refused(self):
-        report = {'plan_sha256': self.bp, 'scientific_acceptance': False, 'test_read': False,
-                  'speedup': 1.07, 'engineering_speed_candidate': True,
-                  'exact_loss_and_gradients': True, 'rows': [{'exact': True}] * 13}
+        report = fixture()
+        report['plan_sha256'] = self.bp
         digest = self.write('results/RESULT.json', report)
         self.write('results/EXIT.json', {'plan_sha256': self.bp, 'exit_code': 0})
         self.write('ENGINEERING_EVAL_EXIT.json', {'plan_sha256': self.pin, 'exit_code': 0,
             'benchmark_complete': True, 'result_sha256': digest})
         d = D.summarize(self.root, self.pin)
-        self.assertEqual(d['reported_speedup'], 1.07); self.assertEqual(d['flags'], [])
+        self.assertEqual(d['reported_speedup'], 1.2); self.assertEqual(d['flags'], [])
+        self.assertTrue(d['arithmetic']['arithmetic_verified'])
         self.assertFalse(d['completion_verified'])
         self.write('results/RESULT.json', dict(report, speedup=2))
         self.assertEqual(D.summarize(self.root, self.pin)['state'], 'needs_inspection')
+
+    def test_bound_but_incorrect_arithmetic_is_not_displayed(self):
+        report = fixture(); report['plan_sha256'] = self.bp; report['speedup'] = 3
+        digest = self.write('results/RESULT.json', report)
+        self.write('results/EXIT.json', {'plan_sha256': self.bp, 'exit_code': 0})
+        self.write('ENGINEERING_EVAL_EXIT.json', {'plan_sha256': self.pin, 'exit_code': 0,
+            'benchmark_complete': True, 'result_sha256': digest})
+        d = D.summarize(self.root, self.pin)
+        self.assertEqual(d['state'], 'needs_inspection')
+        self.assertNotIn('reported_speedup', d)
+        self.assertIn('summary differs', d['flags'][0])
 
     def test_malformed_progress_and_oversize_are_bounded(self):
         self.write('results/heartbeat.json', {'completed_pairs': True, 'total_pairs': 13})

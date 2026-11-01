@@ -6,8 +6,16 @@ authorization to replace a trainer. Invoke at the shared monitoring cadence.
 import hashlib
 import json
 from pathlib import Path
+import types
 
 LIMIT = 262144
+
+
+def arithmetic(report, plan_pin):
+    path = Path(__file__).with_name('r3_k2_benchmark_verify.py')
+    verifier = types.ModuleType('k2_arithmetic')
+    exec(compile(path.read_bytes(), str(path), 'exec'), verifier.__dict__)
+    return verifier.verify(report, plan_pin)
 
 
 def read(path):
@@ -64,6 +72,8 @@ def summarize(root, execution_pin):
                 or terminal.get('benchmark_complete') is not True
                 or report.get('scientific_acceptance') is not False or report.get('test_read') is not False):
             raise ValueError('terminal/result binding differs')
+        checked = arithmetic(report, pin)
+        result['arithmetic'] = checked
         result.update(reported_speedup=report.get('speedup'),
                       reported_exact_loss_and_gradients=report.get('exact_loss_and_gradients'),
                       reported_speed_candidate=report.get('engineering_speed_candidate'),
