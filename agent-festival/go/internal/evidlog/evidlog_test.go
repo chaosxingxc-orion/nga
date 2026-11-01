@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -47,6 +48,40 @@ func TestDenseAppend(t *testing.T) {
 	}
 	if len(l3.Entries()) != 2 {
 		t.Fatalf("torn tail not tolerated: %d entries", len(l3.Entries()))
+	}
+}
+
+// TestMidfileUnparseableRejected pins the OTHER half of the boundary: an
+// unparseable line BEFORE the EOF position (i.e. followed by more lines) is
+// rejected outright — silently skipping it would shrink the coverage
+// CheckCoverage accounts for and let a completeness verdict go green on an
+// incomplete record. The torn-tail face (same garbage, no trailing newline,
+// at EOF) stays tolerated and is pinned by TestDenseAppend.
+func TestMidfileUnparseableRejected(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "evid.jsonl")
+	l, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "bureau.q", Selector: "subj=x", Caller: "s2", At: "2026-11-01T10:01:00Z"}); err != nil {
+		t.Fatal(err)
+	}
+	good, err := json.Marshal(Entry{Seq: 2, Tool: "t", Caller: "s2", At: "2026-11-01T10:02:00Z"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	midfile := append(mustRead(t, path), '\n', '{', '"', 's', 'e', 'q', ':', '\n')
+	midfile = append(midfile, good...)
+	if err := os.WriteFile(path, midfile, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err == nil {
+		t.Fatal("mid-file unparseable line was silently skipped — coverage boundary missing")
+	} else if !strings.Contains(err.Error(), "EVIDLOG.MIDFILE_UNPARSEABLE") {
+		t.Fatalf("mid-file rejection lacks the neutral key: %v", err)
 	}
 }
 

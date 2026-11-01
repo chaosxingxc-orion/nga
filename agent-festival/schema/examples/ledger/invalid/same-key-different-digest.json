@@ -79,5 +79,5 @@
     }
   ],
   "_expect": "REJECT-context fixture: same operation_id with a different payload digest — the schema shape is valid (the STATE MACHINE in piece 2 rejects the match, 15 sB4 / 14-A5 counterexample four); this pins the digest field's schema presence",
-  "_expect_match": "payload_digest"
+  "_expect_match": "LEDGER.DIGEST_CHANGED_UNDER_KEY"
 }

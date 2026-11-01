@@ -208,19 +208,32 @@ func loadLines(path string) ([]parsedLine, error) {
 			continue
 		}
 		line := raw[start:i]
+		lineStart := start
 		start = i + 1
 		if len(line) == 0 {
 			continue
 		}
+		// The boundary: only the final line WITHOUT a trailing newline is a
+		// torn tail (interrupted last write) and is tolerated. Any unparseable
+		// line BEFORE the EOF position is rejected — silently skipping it
+		// would shrink the coverage CheckCoverage accounts for and turn a
+		// completeness verdict green on an incomplete record.
+		tornTail := i == len(raw)
 		var e Entry
 		if json.Unmarshal(line, &e) != nil {
-			continue // torn tail tolerance (mid-file unparseable lines are REJECTED by the caller's ParseLines — only this loader has the boundary)
+			if tornTail {
+				continue
+			}
+			return nil, fmt.Errorf("[EVIDLOG.MIDFILE_UNPARSEABLE] %s: unparseable line at byte offset %d (before EOF) — evidence coverage must not silently shrink", path, lineStart)
 		}
 		doc := map[string]any{}
 		dec := json.NewDecoder(bytes.NewReader(line))
 		dec.UseNumber()
 		if dec.Decode(&doc) != nil {
-			continue
+			if tornTail {
+				continue
+			}
+			return nil, fmt.Errorf("[EVIDLOG.MIDFILE_UNPARSEABLE] %s: unparseable line at byte offset %d (before EOF) — evidence coverage must not silently shrink", path, lineStart)
 		}
 		lines = append(lines, parsedLine{Raw: line, Doc: doc, Event: e})
 	}

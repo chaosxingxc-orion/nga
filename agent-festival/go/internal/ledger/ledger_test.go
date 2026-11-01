@@ -119,6 +119,14 @@ func TestOddFloatTwinPinsFoldedDomain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Byte-level pin: this fixture silently regressed ..993.0→..992.0 once and
+	// the whole suite stayed green, because both literals fold to the same
+	// float64 and every parsed assertion is identity-blind. The odd literal
+	// must survive at the BYTE level — any writer that "rounds" it at
+	// serialization time fails here, before any parser can fold it.
+	if !strings.Contains(string(raw), `"arbitration_seq": 9007199254740993.0`) {
+		t.Fatalf("odd-twin byte pin lost: the raw literal 9007199254740993.0 is gone from seq-odd-float-twin.json — the folding semantics are unpinned")
+	}
 	var doc map[string]any
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.UseNumber()

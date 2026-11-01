@@ -21,7 +21,8 @@
 
 
 <!-- corpus-manifest: machine-generated from schema/examples/**; regenerate with
-     python3 tools/corpus_manifest.py (do not hand-edit counts below) -->
+     python3 tools/corpus_manifest.py (do not hand-edit counts below);
+     verify with python3 tools/corpus_manifest.py --check (rc=1 on drift) -->
 | 族 | valid + invalid |
 |---|---|
 | `ledger` | 10 + 26 |
@@ -31,9 +32,7 @@
 | `replay` | 8 + 7 |
 | `compose` | 10 + 36 |
 | `evidlog` | 1 + 3 |
-| 增长族合计（非密钥库） | 146 |
-| 基座契约/信封（非密钥库其余） | 50 |
-| 全仓合计（含密钥库） | 200 |
+| 增长族合计 | 146 |
 | 基座契约/信封 | 50 |
 | 全仓合计（含密钥库） | 200 |
 

@@ -280,6 +280,20 @@ def check_lockstep() -> list[str]:
     return errs
 
 
+def check_odd_twin_bytes() -> list[str]:
+    """Byte-level pin on the odd-twin fixture (R2 M3): the literal
+    9007199254740993.0 must survive at the BYTE level. Both it and the even
+    twin fold to the same float64, so every parsed assertion is identity-blind
+    — this fixture silently regressed ..993.0→..992.0 once with the whole
+    suite green. The Go twin lives in ledger_test.go (TestOddFloatTwin)."""
+    p = HERE / "examples" / "ledger" / "valid" / "seq-odd-float-twin.json"
+    raw = p.read_bytes()
+    if b'"arbitration_seq": 9007199254740993.0' not in raw:
+        return [f"odd-twin byte pin lost: the raw literal 9007199254740993.0 is gone "
+                f"from {p.name} — the folding semantics are unpinned"]
+    return []
+
+
 def main() -> int:
     ex = HERE / "examples" / "ledger"
     bad = _suite.run_suite("ledger", ex / "valid", ex / "invalid", ledger_errors)
@@ -290,7 +304,7 @@ def main() -> int:
     if (n_valid, n_invalid) != (10, 26):
         print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 10+26 (corpus count changed?)")
         bad += 1
-    for e in check_status_lockstep() + check_lockstep():
+    for e in check_status_lockstep() + check_lockstep() + check_odd_twin_bytes():
         print(f"[ledger] FAIL {e}")
         bad += 1
     if bad == 0:
