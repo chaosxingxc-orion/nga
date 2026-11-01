@@ -75,6 +75,28 @@ class Publication(unittest.TestCase):
         self.assertEqual(first['verified_suites']['transfer-v4']['n'],656)
         self.producer.assert_called_once()
 
+    def reject_boundary_mutation(self):
+        original=self.TL.verify_test_result
+        def mutate(ticket,*args,**kwargs):
+            result=original(ticket,*args,**kwargs)
+            path=self.case.C.k_readout_path(str(self.run),ticket.suite,'test','clean')
+            rows=self.case.C.read_jsonl(path);rows[10]['s']=[0.,-2.0078125]
+            self.case.C.write_jsonl(path,rows)
+            return result
+        with patch.object(self.TL,'verify_test_result',side_effect=mutate):
+            with self.assertRaisesRegex(ValueError,'sources changed during provenance verification'):
+                self.execute()
+        self.assertEqual(self.TL.read_log(str(self.round)),[])
+        self.producer.assert_called_once()
+
+    def test_real_provenance_boundary_mutation_blocks_normal_publication(self):
+        self.reject_boundary_mutation()
+
+    def test_real_provenance_boundary_mutation_blocks_recovery_publication(self):
+        with patch.object(self.A.L.CompletionLog,'append',side_effect=RuntimeError('before commit')):
+            with self.assertRaisesRegex(RuntimeError,'before commit'):self.execute()
+        self.reject_boundary_mutation()
+
     def test_wrong_secondary_blocks_all_publication(self):
         self.producer.return_value['track_k']['partitions']['transfer-v4/test']['secondary']['operator']['accuracy']=.123
         with self.assertRaisesRegex(ValueError,'reconstructed metric differs'):self.execute()

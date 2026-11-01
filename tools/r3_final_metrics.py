@@ -1,7 +1,7 @@
 """CPU reconstruction of final Track K fields using frozen metric primitives.
 
 No scoring, ticket issuance or authorization. The caller provides an existing
-ticket and verifies model/readout provenance separately. Dataset hashes are
+ticket; model/readout provenance is verified inside the source snapshot. Dataset hashes are
 checked against both the task manifest and the producing report.
 """
 import json
@@ -109,7 +109,7 @@ def rebuild_suite(C, E, D, V, *, train, calibration, clean, variants, readouts, 
             'operator_fit':{'partition':'decision-v7/calibration','n':len(calibration),'fitted':fitted.summary()}}
 
 
-def verify(ticket, run_dir, *, kev_dir, report=None):
+def verify(ticket, run_dir, *, kev_dir, report=None, provenance_verifier=None):
     """Rebuild from raw rows; fail if any reported numerical field differs."""
     import core_r3 as C
     import selection_evidence_r3 as E
@@ -143,6 +143,10 @@ def verify(ticket, run_dir, *, kev_dir, report=None):
             result[name] = C.sha256_file(name)
         return result
     before = snapshot()
+    headline = report['track_k']['partitions'][ticket.suite+'/test']['headline']
+    source_verification = (provenance_verifier or TL.verify_test_result)(
+        ticket, headline['n'], headline['kev_rule_accuracy'], str(run_dir), kev_dir=str(kev_dir))
+    require(snapshot() == before, 'metric sources changed during provenance verification')
     populations={};paths=[]
     for kind,suite,split,variant in (
             ('train','decision-v7','train',False),('calibration','decision-v7','calibration',False),
@@ -205,5 +209,6 @@ def verify(ticket, run_dir, *, kev_dir, report=None):
         'scientific_acceptance':False,'publication_authorized':False,
         'scope':'source-rebuilt supplementary T1 fields; existing admission remains external'}
     return {'suite':ticket.suite,'paired_vector':vector,'verified_fields':sorted(rebuilt['test']),
+            'source_verification':source_verification,
             'reference_metrics':supplement,
             'scope':'full Track K numerical fields; metric primitives shared with producer'}

@@ -32,8 +32,19 @@ class Metrics(unittest.TestCase):
             gold = [rng.randrange(len(s)) for s in scores]
             reference = R.metrics([{'logits':s, 'p':R.softmax(s), 'label':y} for s,y in zip(scores,gold)])
             actual = M.summarize(scores, gold)
+            self.assertEqual(actual['probability_argmax_mismatch_count'],0)
             for a,b in [('accuracy','acc'),('brier_sum','brier'),('ece10','ece'),('nll','nll')]:
                 self.assertAlmostEqual(actual[a], reference[b], places=12)
+
+    def test_reference_probability_argmax_is_a_distinct_convention(self):
+        scores=[[0.,1e-20],[.01,0.]]; gold=[1,0]
+        actual=M.summarize(scores,gold)
+        reference=R.metrics([{'logits':s,'p':R.softmax(s),'label':y} for s,y in zip(scores,gold)])
+        self.assertEqual(actual['accuracy'],1.)
+        self.assertEqual(reference['acc'],.5)
+        self.assertEqual(actual['probability_argmax_mismatch_count'],1)
+        self.assertNotEqual(actual['ece10'],reference['ece'])
+        self.assertEqual(actual['brier_sum'],reference['brier'])
 
     def test_ece_edges_and_empty_bins(self):
         confidence = list(M.EDGES)

@@ -41,7 +41,11 @@ class Integration(unittest.TestCase):
             verify_test_result=self.verifier)
         self.core.KEV_DIR=str(self.root/'synthetic-data')
         self.tl.C=self.core
-        metric_check=patch.object(A.M,'verify',return_value={'scope':'control-flow fixture'})
+        def metrics(ticket,run_dir,*,kev_dir,report,provenance_verifier):
+            headline=report['track_k']['partitions'][ticket.suite+'/test']['headline']
+            verified=provenance_verifier(ticket,headline['n'],headline['kev_rule_accuracy'],run_dir,kev_dir=kev_dir)
+            return {'scope':'control-flow fixture','source_verification':verified}
+        metric_check=patch.object(A.M,'verify',side_effect=metrics)
         metric_check.start();self.addCleanup(metric_check.stop)
         self.report={'header':F.header(self.identity,'K0',self.prompt),'test_publication':{'state':'unpublished'},'track_k':{'operator_fit':{'n':100},'partitions':{
             'decision-v7/calibration':{'n':100},
@@ -72,7 +76,8 @@ class Integration(unittest.TestCase):
 
     def test_supplement_retained_on_normal_and_recovery_paths(self):
         def metrics(ticket,*args,**kwargs):
-            return {'reference_metrics':{'suite':ticket.suite,'synthetic':True}}
+            self.assertIs(kwargs['provenance_verifier'],self.verifier)
+            return {'reference_metrics':{'suite':ticket.suite,'synthetic':True},'source_verification':{}}
         with patch.object(A.M,'verify',side_effect=metrics),patch.dict(sys.modules,{'r3_final_metrics':A.M}):
             first=self.run_case();second=self.run_case()
         expected={s:{'suite':s,'synthetic':True} for s in ('decision-v7','transfer-v4')}

@@ -81,10 +81,9 @@ def run(args, scorer, evaluator, *, owner, validate_admission, validate_publicat
         G.require(result == dict(n=headline['n'], headline_accuracy=headline['kev_rule_accuracy'],
                                 producer_report_sha256=G.digest(report)), 'suite summary differs')
         if 'tickets' in state:
-            evaluator.TL.verify_test_result(state['tickets'][(suite, 'test')], result['n'],
-                result['headline_accuracy'], args.out)
             metrics = M.verify(state['tickets'][(suite, 'test')], args.out,
-                     kev_dir=evaluator.TL.C.KEV_DIR, report=report)
+                     kev_dir=evaluator.TL.C.KEV_DIR, report=report,
+                     provenance_verifier=evaluator.TL.verify_test_result)
         else:
             # A public verification-only entry in the NEW testlock source. It
             # validates durable staged/owner/log identity before opening data,

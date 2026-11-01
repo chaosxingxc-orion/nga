@@ -98,6 +98,27 @@ class Metrics(unittest.TestCase):
         self.prompt=__import__('prompt')
         self.report={'header':{**header(self.identity,'K1',self.prompt),'data_files':self.files},'track_k':block}
         self.producer_fn=env['run_track_k'];self.producer_args=args
+        self.PV=__import__('provenance_r3')
+        for path in self.scores:
+            rows=self.C.read_jsonl(path)
+            self.C.write_jsonl(path,[self.PV.stamp(row,self.identity['sha256']) for row in rows])
+        (self.run/'RUN_IDENTITY.json').write_text(json.dumps({'model_sha256':self.identity['sha256']}))
+        self.PV.write_unit_manifest(str(self.run),'synthetic',self.identity['sha256'],
+                                    self.report['header']['scorer'],list(self.scores))
+        identity_check=patch.object(self.TL,'model_identity',side_effect=lambda *a,**k:dict(self.identity))
+        identity_check.start();self.addCleanup(identity_check.stop)
+
+    def test_mutation_after_real_provenance_is_rejected(self):
+        ticket=self.tickets[('transfer-v4','test')]
+        source=self.C.k_readout_path(str(self.run),ticket.suite,'test','clean')
+        def mutate(*args,**kwargs):
+            result=self.TL.verify_test_result(*args,**kwargs)
+            rows=self.C.read_jsonl(source);rows[10]['s']=[0.,-2.0078125]
+            self.C.write_jsonl(source,rows)
+            return result
+        with self.assertRaisesRegex(ValueError,'sources changed during provenance verification'):
+            self.M.verify(ticket,str(self.run),kev_dir=str(self.data),report=self.report,
+                          provenance_verifier=mutate)
 
     def verify(self,report=None):
         for ticket in self.tickets.values():

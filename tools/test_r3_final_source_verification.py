@@ -41,7 +41,11 @@ class SourceVerification(unittest.TestCase):
         self.A=load('final_source_adapter',HERE/'r3_final_test_adapter.py')
         # This suite isolates original provenance checks. Full metric and source
         # integration is covered separately by test_r3_final_publication.py.
-        metric_check=patch.object(self.A.M,'verify',return_value={'scope':'source-only fixture'})
+        def metrics(ticket,run_dir,*,kev_dir,report,provenance_verifier):
+            headline=report['track_k']['partitions'][ticket.suite+'/test']['headline']
+            verified=provenance_verifier(ticket,headline['n'],headline['kev_rule_accuracy'],run_dir,kev_dir=kev_dir)
+            return {'scope':'source-only fixture','source_verification':verified}
+        metric_check=patch.object(self.A.M,'verify',side_effect=metrics)
         metric_check.start();self.addCleanup(metric_check.stop)
         self.model=self.root/'model';self.model.mkdir()
         (self.model/'weights.safetensors').write_bytes(b'synthetic bytes, never loaded as a model')

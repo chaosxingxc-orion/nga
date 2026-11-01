@@ -77,9 +77,9 @@ def verify_reserved_test_result(args, *, suite, result, leases, owner, completio
                        expected_sha256=owner['model_sha256'])
     # Internal verification capability: no ticket escapes, no scorer is called.
     ticket = TestTicket(identity, suite, 'test', _TOKEN)
-    verified = verify_test_result(ticket, result['n'], result['headline_accuracy'], args.out)
-    metrics = FM.verify(ticket, args.out, kev_dir=C.KEV_DIR, report=producer)
-    return {'source':verified,'metrics':metrics}
+    metrics = FM.verify(ticket, args.out, kev_dir=C.KEV_DIR, report=producer,
+                        provenance_verifier=verify_test_result)
+    return {'source':metrics['source_verification'],'metrics':metrics}
 '''
 
 AUTH = '''    tickets = {}
