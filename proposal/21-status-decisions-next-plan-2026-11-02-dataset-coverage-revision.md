@@ -179,3 +179,5 @@ Watchdog digest `2026-11-01T21:29:17Z` 显示 formal K1 v15 仍在运行：seed2
 最新 watchdog 轮巡 `2026-11-01T21:59:17Z`：seed2 `1250/3116`（40.1%），seed3 `1170/3116`（37.5%），heartbeat 分别为 `21:57:44Z` 和 `21:57:38Z`，仍无终端 marker。结构化副本为 `.local/reports/formal-k1-progress-20261101T2159.json`。
 
 监控修复 — 2026-11-01 22:11 UTC：主 watchdog 将 CPU 后处理 watcher 误判为 stalled，原因是 watcher 只更新 `digest.json` 而没有通用 `heartbeat.log`。已在 `tools/r3_posttrain_eval_plan.py` 增加 timestamped heartbeat，并以 detached 方式重启 v15 watcher；它仍只等待训练终端文件，不读取 TEST、不 claim NPU。修复后 watcher heartbeat 已写入 `/mnt/cephfs/xingchao/experiments/jev/r3_runs/posttrain_eval_preparation_20261102_v15/heartbeat.log`，代码 `py_compile` 通过。
+
+监控修复验证 — 2026-11-01 22:19 UTC：主 watchdog 已将 v15 后处理 watcher 识别为 `running`，heartbeat 为 26 秒前；误报 stalled 已清除。formal K1 seed2 为 `1660/3116`（53.3%），seed3 为 `1549/3116`（49.7%），heartbeat 分别为 `22:17:39Z` 和 `22:17:42Z`，仍无训练终端 marker。结构化副本为 `.local/reports/formal-k1-progress-20261101T2219.json`。
