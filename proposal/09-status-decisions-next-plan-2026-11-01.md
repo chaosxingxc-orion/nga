@@ -1,6 +1,6 @@
 # 当前任务状态、待决策事项与下一阶段计划
 
-更新时间：2026-11-01 UTC。运行快照截至 01:53 UTC；以下工程验收更新来自该日独立收据。本文覆盖当前结论；旧版过程记录保存在本地 archive，历史测量值不改写。
+更新时间：2026-11-01 UTC。运行快照截至 02:06 UTC；以下工程验收更新来自该日独立收据。本文覆盖当前结论；旧版过程记录保存在本地 archive，历史测量值不改写。
 
 ## 当前结论
 
@@ -10,16 +10,16 @@
 
 ## 当前执行与效率
 
-01:53 UTC 有界检查记录 host175 的 4 个训练容器、4 个推理容器；watchdog 最近一轮无失败或停滞告警。这是任务运行数量，不证明持续满载。
+02:06 UTC 有界检查记录 host175 的 3 个训练容器、5 个推理容器；watchdog 最近一轮无失败或停滞告警。这是任务运行数量，不证明持续满载。
 
 | 工作 | 已核实状态 | 下一依赖 |
 | --- | --- | --- |
-| 逐候选 K2，0.8B seeds2/3 | 1,239 / 1,190 步，各目标 3,116 步 | 实际终态、后继推理、开发计分 |
+| 逐候选 K2，0.8B seeds2/3 | 1,259 / 1,209 步，各目标 3,116 步 | 实际终态、后继推理、开发计分 |
 | K1，4B seed2 | 3,116 步，真实 exit0；后继推理已启动 | 推理完整收据及 CPU 计分 |
-| K1，4B seed3 | 1,681 / 3,116 步 | 队列自动接续 |
+| K1，4B seed3 | 1,800 / 3,116 步 | 队列自动接续 |
 | 首轮六路候选推理及 0.8B K0 | 各 148,542 条记录 | 该计数不是测试集样本数或收益 |
-| 2B K0 | 34,292 / 148,542 条，23.1% | 完整推理收据 |
-| 工程 QO/PT 控制 | QO seed2 在 01:46:46 UTC 真实 exit0，已自动接续推理；PT seed2 运行，PT seed3 等前驱释放 | 各自恢复/重建与比较证据 |
+| 2B K0 | 38,540 / 148,542 条，25.9% | 完整推理收据 |
+| 工程 QO/PT 控制 | QO seed2 在 01:46:46 UTC 真实 exit0，已自动接续推理；PT seed2 也已接续推理，PT seed3 状态以其队列为准 | 各自恢复/重建与比较证据 |
 | CPU 选择队列 | 10 done、6 waiting_reports、10 waiting_inference | 按依赖有序消费 |
 
 NPU 任务队列与 CPU 分析异步运行，CPU 复审不阻塞无依赖的 NPU 后继。主会话例行巡检共享约 600 秒窗口；只有明确终止、故障、空闲等事件才定向提前检查。队列脚本持续执行，不依赖模型每轮唤醒。芯片 4 命名导致的接续故障已修复，不能继续列为待修复事项。
@@ -52,13 +52,15 @@ Astra 第二轮为 CHANGES_REQUIRED，六类问题涉及实际数值重建、执
 - 真实保留容器的有效配置与启动收据校验通过。
 - 使用校验过的源代码重新生成和消费 K0：exit0，95 项输入、6 项检查，复哈希一致。范围仅限 dev/calibration。
 
-第三轮及第四轮托管 Astra 均只返回规则确认，记为 **NOT_REVIEWED**；任务管理 MCP 接口也返回连接错误。第四轮已重新冻结 108 文件，包含 `70584f3` 自动 CPU 接续修改；01:56 UTC 使用此前可工作的只读 CLI runner 启动真实 Astra，child PID `2613170` 与实际命令、心跳已核对。当前仍待实质 verdict，没有新的独立通过结论。CLI runner 与托管子智能体明确区分，保留真实终态收据；代码修复审查不能替代尚缺的精确正式计划审查。
+第三轮及第四轮托管 Astra 均只返回规则确认，记为 NOT_REVIEWED；任务管理 MCP 接口也连接失败。第四轮只读 CLI Astra 已真实完成：exit0，输出哈希一致，review SHA `94117950ad68821696e7337fc36021899ac0b0e5dd2f5357cd38213e57a2b2c9`，结论 **CHANGES_REQUIRED**。它核验了 108 文件，确认目标身份与 scope 矛盾的原反例关闭；仍有外层 helper 字节码绕过、嵌套证据测试路径读取、正式保留容器有效配置不完整、CPU 接续校验较弱及审查包缺少 successor helper 五类问题。
+
+`2a2035c` 已修复前两类路径：外层 admission/readiness/CPU helper 直接编译源码，嵌套 inventory 和单独 review/checkpoint 路径在内容读取前拒绝测试文件，原 checkpoint 限定到对应训练目录与步数。固定镜像无设备 CPU 新代次 70 项测试通过，真实容器 exit0，294 个冻结源文件复哈希一致。首轮因测试仍模拟旧导入接口失败，保留失败代次后修正测试再运行；未删改失败记录。容器有效配置、CPU 共享校验及完整复审包仍待收口；代码测试通过不等于 Astra 已关闭 finding。新 validator/verifier 不追改运行中的冻结队列，后续正式消费必须匹配新代次。
 
 ## 最终评测源码身份补充修复
 
 在准备最终测试入口时复现了独立问题：旧 final closure 校验只检查预加载模块的路径，伪造相同路径的 `r3_final_metrics` 对象可以被接受。`e0f7277` 改为执行已校验源码字节，并统一 adapter、transaction、日志和 admission 的本地模块身份；反例包括预加载伪模块和恶意 unchecked-hash `.pyc`。50 项相关测试通过，新 41 文件评测代码闭包在 CPU 中实际导入 29 个模块，未访问数据或执行推理。
 
-新 closure manifest 为 `8bb413901b01cb389a658bdde3dcfce072382075aa3529d76c35e5e29355f1a9`，仍 `deployable=false`。修复晚于第四轮 readiness bundle，单独冻结 61 文件复审材料，manifest `32d1c5b6ac0e965f0ff56479acfd8c8b706b8226800669e8f3bb7a4c9f6cd3ae`；尚未独立审查，不能算作第四轮已覆盖，也不替代真实 scorer 中断恢复验证。
+新 closure manifest 为 `8bb413901b01cb389a658bdde3dcfce072382075aa3529d76c35e5e29355f1a9`，仍 `deployable=false`。修复晚于第四轮 readiness bundle，单独冻结 61 文件复审材料，manifest `32d1c5b6ac0e965f0ff56479acfd8c8b706b8226800669e8f3bb7a4c9f6cd3ae`；独立只读 Astra runner 已启动（child PID `2624412`、实际命令已核对），尚待结论，不能算作第四轮已覆盖，也不替代真实 scorer 中断恢复验证。
 
 ## 需要负责人决策的内容
 
@@ -82,7 +84,7 @@ QO/PT CPU 队列也已升级至 `control_resume_cpu_queue_20261101_v3`：原空�
 退出当前阶段需要：全部 38 单位状态可解释；对应 K0 计分可核验；每个正式目标计划及独立审查完整；实际恢复/重建/终态一致；候选锁定后按冻结测试协议形成可发布收益。工程测试通过、exit0 或完整进度计数都不能单独满足这些条件。
 
 - [最新参考指标](../experiments/REFERENCE-BASELINE-LATEST.md)；[远程 Wiki 四维结论](https://github.com/chaosxingxc-orion/nga/wiki/Current-Conclusions)。
-- 本地巡检：`.local/reports/inspection-20261101T015338.json`；开发明细：`.local/reports/dev-findings-current.md`；CPU 验收：`.local/reports/cpu-repair-acceptance-20261101.json`。
+- 本地巡检：`.local/reports/inspection-20261101T020633.json`；开发明细：`.local/reports/dev-findings-current.md`；CPU 验收：`.local/reports/cpu-repair-acceptance-20261101.json`。
 - 新恢复计划 identity：`2f9cd65081c15e7039216a809a1dbe64d6e553422bb8e058ea060d5503fa5271`。
 - 新 K0 bundle SHA：`8f97ec9e559830cf62f9ec15e064cce959a42ee65b7ca66a56a3835efb8f7810`。
 - 第四轮审查 manifest SHA：`d06092db16ea55e32a7519e5bf3cc164bc60a174cd9ef187d0a1cd734aa58339`；范围为代码修复，非测试发布批准。
