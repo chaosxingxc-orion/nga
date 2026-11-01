@@ -60,4 +60,4 @@ CPU 侧为第一批 8 个任务族逐项固定版本、split、mask、样本数�
 
 ### 工程队列接续状态
 
-chip3 的 `instruct_k0_chip3_20261101_v1` 已有 `EXIT=0`、`RELEASE` 和 `SUPERVISOR_DONE`，但 precheck 终态的 review 仍为 `PENDING_ROOT_REVIEW`，科学准入仍为 false。因此它只能作为待审查的工程 DEV successor，不能直接发布结果或激活下游训练。watchdog 最近快照还显示没有合格排队 successor、约三个 chip 未使用；历史 stalled 条目不计入有效任务。下一步先完成来源/前置审查，再决定是否进入 FIFO，避免为保持满载而绕过准入。
+chip3 的 `instruct_k0_chip3_20261101_v1` 已有 `EXIT=0`、`RELEASE` 和 `SUPERVISOR_DONE`，但 precheck 终态的 review 仍为 `PENDING_ROOT_REVIEW`，科学准入仍为 false。因此它只能作为待审查的工程 DEV successor，不能直接发布结果或激活下游训练。watchdog 最近快照显示没有合格排队 successor、NPU 标记为 free；保留的 release 快照具体列出 chip1 和 chip3 已释放。历史 stalled 条目不计入有效任务。下一步先完成来源/前置审查，再决定是否进入 FIFO，避免为保持满载而绕过准入。
