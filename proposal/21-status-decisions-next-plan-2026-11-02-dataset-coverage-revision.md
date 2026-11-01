@@ -183,3 +183,5 @@ Watchdog digest `2026-11-01T21:29:17Z` 显示 formal K1 v15 仍在运行：seed2
 监控修复验证 — 2026-11-01 22:19 UTC：主 watchdog 已将 v15 后处理 watcher 识别为 `running`，heartbeat 为 26 秒前；误报 stalled 已清除。formal K1 seed2 为 `1660/3116`（53.3%），seed3 为 `1549/3116`（49.7%），heartbeat 分别为 `22:17:39Z` 和 `22:17:42Z`，仍无训练终端 marker。结构化副本为 `.local/reports/formal-k1-progress-20261101T2219.json`。
 
 最新 watchdog 轮巡 `2026-11-01T22:29:17Z`：seed2 `1860/3116`（59.7%），seed3 `1740/3116`（55.8%），heartbeat 分别为 `22:27:30Z` 和 `22:27:38Z`，仍无终端 marker；后处理 watcher heartbeat 为 `22:28:51Z`。结构化副本为 `.local/reports/formal-k1-progress-20261101T2229.json`。
+
+最新 watchdog 轮巡 `2026-11-01T22:39:17Z`：seed2 `2080/3116`（66.8%），seed3 `1930/3116`（61.9%），heartbeat 分别为 `22:37:30Z` 和 `22:37:38Z`，仍无终端 marker；后处理 watcher heartbeat 为 `22:38:51Z`。结构化副本为 `.local/reports/formal-k1-progress-20261101T2239.json`。
