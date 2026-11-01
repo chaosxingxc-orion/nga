@@ -70,7 +70,21 @@ def verify(path, pin):
     r0_reports = [j for j in jobs if j.get('kind') == 'r0_report']
     prechecks = [j for j in jobs if j.get('kind') == 'k0_prechecks']
     pt_reports = [j for j in jobs if j.get('kind') == 'pt_r0_report']
-    require(len(reports) + len(comparisons) + len(r0_reports) + len(prechecks) + len(pt_reports) == len(jobs), 'unknown CPU job kind')
+    qo_reports = [j for j in jobs if j.get('kind') == 'qo_diagnostic']
+    require(len(reports) + len(comparisons) + len(r0_reports) + len(prechecks) + len(pt_reports) + len(qo_reports) == len(jobs), 'unknown CPU job kind')
+    if qo_reports:
+        config = doc['qo_diagnostic']
+        require(sha(safe_absolute(config['tool'])) == config['tool_sha256'], 'QO tool changed')
+        safe_absolute(config['kev_dir']); safe_absolute(config['data_root'])
+        for job in qo_reports:
+            refs = job['candidate'] + [job['qo']]
+            require(len(job['candidate']) == 2 and len({(r['queue'], r['job']) for r in refs}) == 3,
+                    'three distinct external reports required')
+            for ref in refs:
+                external_report(ref, check_terminal=False)
+            output = safe_absolute(job['output'])
+            require(output == path.parent / 'comparisons' / job['id'] / 'qo_transfer_diagnostic.json',
+                    'QO output must belong to this queue')
     if pt_reports:
         verify_pt_config(doc['pt_r0_report'])
         require(len({j['eval_out'] for j in pt_reports}) == len(pt_reports), 'duplicate PT evaluation')
@@ -133,6 +147,48 @@ def safe_absolute(value):
             and not value.startswith('//') and not any(p.is_symlink() for p in (path, *path.parents)),
             'absolute nonsymlink evidence path required')
     return path
+
+
+def external_report(ref, check_terminal=True):
+    """Consume a frozen producer's report; never enqueue or execute its jobs."""
+    path = safe_absolute(ref['queue'])
+    require(sha(path) == ref['queue_sha256'], 'external queue changed')
+    doc = load(path)
+    require(doc.get('schema') == 'r3-cpu-report-queue-v1'
+            and doc.get('scientific_acceptance') is False and doc.get('test_read') is False,
+            'external queue scope differs')
+    jobs = [j for j in doc['jobs'] if j['id'] == ref['job']]
+    require(len(jobs) == 1 and jobs[0].get('kind', 'report') == 'report', 'external report job required')
+    job = jobs[0]
+    require(re.fullmatch(r'[A-Za-z0-9_-]+', job['id']), 'unsafe external job ID')
+    output = safe_absolute(job['output'])
+    require(output == safe_absolute(job['eval_out']) / 'results/selection_report.json',
+            'external report path differs')
+    if not check_terminal:
+        return str(output), None
+    terminal = safe_absolute(str(workdir(path, job) / 'EXIT.json'))
+    if not terminal.exists():
+        return str(output), 'waiting_reports'
+    end = load(terminal)
+    require(type(end.get('exit_code')) is int and end.get('scientific_acceptance') is False,
+            'external terminal scope differs')
+    if end['exit_code'] != 0:
+        return str(output), 'comparison_blocked'
+    require(sha(output) == end.get('output_sha256'), 'external report changed')
+    return str(output), 'ready'
+
+
+def validate_qo_output(report, job):
+    require(report.get('schema') == 'r3-qo-transfer-dev-diagnostic-v1'
+            and report.get('scientific_acceptance') is False
+            and report.get('test_read') is False and report.get('adoption_authorized') is False,
+            'QO diagnostic scope differs')
+    expected = {}
+    for ref in job['candidate'] + [job['qo']]:
+        output, state = external_report(ref)
+        require(state == 'ready', 'QO dependency no longer ready')
+        expected[output] = sha(output)
+    require(report.get('inputs') == expected, 'QO output inputs differ')
 
 
 def verify_pt_config(config):
@@ -255,6 +311,10 @@ def comparison_dependencies(job):
 
 
 def job_ready(path, doc, job):
+    if job.get('kind') == 'qo_diagnostic':
+        states = [external_report(ref)[1] for ref in job['candidate'] + [job['qo']]]
+        return 'comparison_blocked' if 'comparison_blocked' in states else (
+            'ready' if all(s == 'ready' for s in states) else 'waiting_reports')
     if job.get('kind') == 'pt_r0_report':
         return pt_r0_ready(doc, job)
     if job.get('kind', 'report') in ('report', 'r0_report'):
@@ -273,6 +333,14 @@ def job_ready(path, doc, job):
 
 
 def report_command(doc, job):
+    if job.get('kind') == 'qo_diagnostic':
+        config = doc['qo_diagnostic']
+        return [sys.executable, '-P', config['tool'], '--candidate',
+                *[external_report(ref)[0] for ref in job['candidate']],
+                '--qo', external_report(job['qo'])[0],
+                '--report-tool', doc['report_tool'], '--report-tool-sha256', doc['report_tool_sha256'],
+                '--closure', doc['closure'], '--closure-sha256', doc['closure_sha256'],
+                '--kev-dir', config['kev_dir'], '--data-root', config['data_root'], '--output', job['output']]
     if job.get('kind') == 'pt_r0_report':
         config = doc['pt_r0_report']
         return [sys.executable, '-P', config['tool'], '--run', job['eval_out'],
@@ -341,7 +409,9 @@ def worker(path, pin, job_id):
                 rc = 128 - rc
             if rc == 0:
                 report = load(job['output'])
-                if job.get('kind') == 'pt_r0_report':
+                if job.get('kind') == 'qo_diagnostic':
+                    validate_qo_output(report, job)
+                elif job.get('kind') == 'pt_r0_report':
                     validate_pt_output(report, doc, job)
                 elif job.get('kind') == 'r0_report':
                     require(type(report.get('exit_code')) is int and report['exit_code'] == 0

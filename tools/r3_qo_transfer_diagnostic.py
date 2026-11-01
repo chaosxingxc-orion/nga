@@ -83,6 +83,16 @@ def rebuilt(path, R, deps, kev, data):
     return actual,hashlib.sha256(raw).hexdigest()
 
 
+def closure_modules(closure, pin, R):
+    closure = safe(closure)
+    code = safe(closure / 'r3_code')
+    safe(closure / 'r0_code')
+    require(code.resolve().parent == closure.resolve(), 'canonical closure root differs')
+    require(hashlib.sha256((closure/'manifest.json').read_bytes()).hexdigest() == pin,
+            'closure identity differs')
+    return R.modules(code)
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--candidate',nargs=2,required=True);p.add_argument('--qo',required=True)
@@ -93,7 +103,7 @@ def main():
     closure=safe(a.closure);kev=safe(a.kev_dir);data=safe(a.data_root);output=safe(a.output)
     require(output.name=='qo_transfer_diagnostic.json','diagnostic output name required')
     require(hashlib.sha256((closure/'manifest.json').read_bytes()).hexdigest()==a.closure_sha256,'closure identity differs')
-    R=source(a.report_tool,a.report_tool_sha256);deps=R.modules(closure/'r3_code')
+    R=source(a.report_tool,a.report_tool_sha256);deps=closure_modules(closure,a.closure_sha256,R)
     loaded=[rebuilt(path,R,deps,kev,data) for path in paths]
     result=compare([x[0] for x in loaded[:2]],loaded[2][0],deps[1])
     result['inputs']={str(path):item[1] for path,item in zip(paths,loaded)}

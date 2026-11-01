@@ -58,5 +58,16 @@ class Diagnostic(unittest.TestCase):
     def test_test_paths_refused_before_read(self):
         with self.assertRaisesRegex(ValueError,'test path'):Q.safe('/tmp/test/selection_report.json')
 
+    def test_redirected_closure_refused_before_module_execution(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);a=root/'A';b=root/'B';a.mkdir();b.mkdir()
+            (b/'r3_code').mkdir();(a/'r3_code').symlink_to(b/'r3_code',target_is_directory=True)
+            (a/'manifest.json').write_text('{}');pin=hashlib.sha256(b'{}').hexdigest();loader=Mock()
+            with self.assertRaisesRegex(ValueError,'unsafe path'):Q.closure_modules(a,pin,loader)
+            loader.modules.assert_not_called()
+            (a/'r3_code').unlink();(a/'r3_code').mkdir();(a/'r0_code').mkdir()
+            Q.closure_modules(a,pin,loader);loader.modules.assert_called_once_with(a/'r3_code')
+
 
 if __name__=='__main__':unittest.main()
