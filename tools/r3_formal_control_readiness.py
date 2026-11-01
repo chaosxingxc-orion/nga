@@ -130,7 +130,9 @@ def main():
         k0_status = k0.get('status', 'MISSING')
     checks['fresh_k0'] = {'path': str(k0_bundle), 'status': k0_status}
     resume = load(a.resume_plan) if a.resume_plan.is_file() else {}
-    train_exit = Path(resume.get('out', a.resume_plan.parent)) / 'attempts/1/TRAIN_EXIT.json'
+    # The supervisor writes the canonical terminal receipt at the plan root;
+    # attempt directories retain EXIT.json as the per-attempt copy.
+    train_exit = Path(resume.get('out', a.resume_plan.parent)) / 'TRAIN_EXIT.json'
     exit_doc = load(train_exit) if train_exit.is_file() else {}
     checks['resume_source'] = {'path': str(a.resume_plan), 'status':
                                'PASS' if resume_source_ready(a.resume_plan)
