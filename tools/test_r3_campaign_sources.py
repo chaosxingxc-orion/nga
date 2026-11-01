@@ -103,6 +103,13 @@ class Sources(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,'nonsymlink'):S.verify(request)
                 loader.assert_not_called();rebuild.assert_not_called()
             (a/name).unlink();(a/other).rmdir()
+    def test_alternate_manifest_refused_before_loader_or_reconstruction(self):
+        request=self.request()
+        alternate=self.root/'approved.json';alternate.write_text(json.dumps({'code':{'fixture':{}}}))
+        request['closure_manifest']={'path':str(alternate),'sha256':S.sha(alternate)}
+        with patch.object(S,'module') as loader,patch.object(S,'rebuild_member') as rebuild:
+            with self.assertRaisesRegex(ValueError,'canonical manifest.json'):S.verify(request)
+            loader.assert_not_called();rebuild.assert_not_called()
     def test_later_member_cannot_hide_earlier_source_changes(self):
         paths=['train0/adapter/adapter_model.safetensors','eval0/selection_report.json',
                'eval0/trackk/readout.jsonl','eval0/manifests/main.json',

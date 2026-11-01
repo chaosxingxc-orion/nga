@@ -177,8 +177,10 @@ def verify(spec):
     require(isinstance(spec.get('members'), list) and len(spec['members']) == 7, 'seven source members required')
     tool = spec['report_tool']; safe(tool['path']); K.pin(tool['sha256'])
     require(sha(tool['path']) == tool['sha256'], 'report tool changed')
+    manifest_path = safe(spec['closure_manifest']['path'])
+    require(manifest_path.name == 'manifest.json', 'canonical manifest.json required')
     closure = artifact(spec['closure_manifest'])
-    root = safe(spec['closure_manifest']['path']).parent
+    root = manifest_path.parent
     code_root = safe(str(root/'r3_code'))
     safe(str(root/'r0_code'))
     require(code_root.resolve().parent == root.resolve(), 'canonical closure root differs')
