@@ -19,6 +19,8 @@ Efficiency follow-up — 2026-11-02: a read-only diagnosis records possible host
 
 Formal K1 progress — 2026-11-01 21:49 UTC: seed2 is `1050/3116` (33.7%) and seed3 is `980/3116` (31.5%), with fresh heartbeats and no terminal markers. Both remain bound to chip2/chip3; TEST remains locked and CPU post-training preparation is waiting for terminal closure. Structured evidence is local at `.local/reports/formal-k1-progress-20261101T2149.json`.
 
+Formal K1 progress — 2026-11-01 21:59 UTC: seed2 is `1250/3116` (40.1%) and seed3 is `1170/3116` (37.5%), with fresh heartbeats and no terminal markers. Both remain bound to chip2/chip3; TEST remains locked. Structured evidence is local at `.local/reports/formal-k1-progress-20261101T2159.json`.
+
 ## Coverage correction — 2026-11-02
 
 The current D1 matrix was too narrow for a broad Jev capability claim. Its 38 model-by-dataset units (36 scored and 2 blocked) remain frozen, but they are concentrated in a few source families. The repository inventory contains 24 directories, yet that count includes version projections, result packages, overlapping sources and different modalities.

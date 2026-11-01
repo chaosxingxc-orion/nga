@@ -24,6 +24,8 @@ Efficiency note — 2026-11-02: possible host-side gaps in sequence/index constr
 
 Execution progress — 2026-11-01 21:49 UTC: formal K1 v15 remains train-only and running. Seed2 is `1050/3116` (33.7%) and seed3 is `980/3116` (31.5%), with fresh heartbeats and no terminal markers. No TEST or Qwen3.5 result is added.
 
+Execution progress — 2026-11-01 21:59 UTC: formal K1 v15 remains train-only and running. Seed2 is `1250/3116` (40.1%) and seed3 is `1170/3116` (37.5%), with fresh heartbeats and no terminal markers. No TEST or Qwen3.5 result is added.
+
 Execution note — 2026-11-02: formal K1 v15 train-only seed2/seed3 is now running on host 175, bound to chip2/chip3 after reviewed `PLAN_VERIFIED` outputs and atomic resource claims. This does not add a reference or Qwen3.5 test metric; `test_read=false` and scientific acceptance remains false. The watchdog currently has fewer than three utilization passes, so the initial AICore means are not a sustained full-load verdict. Launch receipts and claims are recorded in local `.local/reports/formal-k1-launch-milestone-20261102.json`.
 
 Execution progress — 2026-11-02 21:05 UTC: both v15 seeds remain `running` with fresh heartbeats and no terminal markers. Watchdog progress is seed2 150/3116 (4.8%, about 855.5 tok/s/chip) and seed3 120/3116 (3.9%, about 795.0 tok/s/chip); these are training-throughput observations, not test metrics. No TEST read or Qwen3.5 result is added to this reference file until DEV selection, a separate final TEST ticket and independent scoring are complete.
