@@ -6,6 +6,8 @@ Restored and synchronized: **2026-11-01 UTC**. This is the current repository en
 
 These are reference inference results. They do not establish an NGA training gain, decision consistency, a research gate pass or production business benefit. Development/calibration results from current training are reported separately in the Wiki; they are not inserted into these test tables. No new inference or training was run to restore this page.
 
+Coverage note — 2026-11-02 v5 review: the frozen D1 values below remain unchanged. The candidate scope is being widened beyond the Jev-specific matrix because the current 38 units do not cover all required capability axes. Additional source candidates include AppliedMachineLearning-Lab Jev benchmarking (37 public task panels), JevBench public-231, Intern-Decision, Jevals, prevalence-shift, coherence, OOD-calibration and order-robustness repositories. These candidates have no Qwen3.5 results in this file until each panel passes source/split/input/metric/denominator/TEST-exposure admission. Native formulas remain separate; candidate rows are not read or reported as zero while they are `needs_review`.
+
 ## Evidence and reading conventions
 
 - [REFERENCE-BASELINE-MATRIX-2026-10-31.json](REFERENCE-BASELINE-MATRIX-2026-10-31.json) — SHA256 `03459facf6f86a919e10d9a0acef413b89c5a5d4ffd232352260722b05d0266e`.
