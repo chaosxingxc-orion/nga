@@ -22,13 +22,21 @@ R = importlib.util.module_from_spec(spec); spec.loader.exec_module(R)
 @unittest.skipIf(torch is None, 'torch CPU required')
 class Runner(unittest.TestCase):
     def test_same_model_two_reference_passes_and_complete_diagnostic(self):
+        self.exercise(False)
+
+    def test_control_and_incoming_boundary_full_runner(self):
+        self.exercise(True)
+
+    def exercise(self, boundary):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); trainer_path = root/'trainer.py'
             trainer_path.write_text('''def row_logprob_sums(torch, core, seqs, starts, pad, device):
     ids = torch.tensor(seqs); mask = torch.ones_like(ids)
     chunk, bi, ti, tg, owner = [0], [0], [0], [2], [0]
     bi_t = torch.tensor(bi)
-    return core.weight * (core.calls + 1)
+    tok_lp = core.weight * (core.calls + 1)
+    sums = tok_lp
+    return sums
 
 def step_loss(torch, core, tok, units, arm, device, pad, maxlen, micro, counters, backward=True):
     exs = [e for unit in units for e in unit]
@@ -54,16 +62,19 @@ def step_loss(torch, core, tok, units, arm, device, pad, maxlen, micro, counters
                 parsed.extend(argv)
                 return types.SimpleNamespace(model_path='synthetic', device='cpu')
             trainer.parse_args = parse
-            trainer.Data = lambda args: types.SimpleNamespace(step_units=lambda step: (None, [[{'id': 'one'}]]))
+            count = 12 if boundary else 1
+            trainer.Data = lambda args: types.SimpleNamespace(step_units=lambda step: (None, [[{'id': str(i)} for i in range(count)]]))
             builds = []
             def build(args, torch):
                 builds.append(True)
                 return model, [('weight', model.weight)], 1
             trainer.build_model = build
-            plan = {'schema':'r3-k2-reference-trace-plan-v1', 'protocol':R.PROTOCOL,
+            plan = {'schema':'r3-k2-reference-trace-plan-v2' if boundary else 'r3-k2-reference-trace-plan-v1',
+                    'protocol':R.BOUNDARY_PROTOCOL if boundary else R.PROTOCOL,
                     'test_read':False,'scientific_acceptance':False,'model':'synthetic',
                     'trainer':str(trainer_path),'out':str(root/'results')}
             files = [trainer_path, Path(trainer.TRAIN_FILE), Path(R.__file__), HERE/'r3_k2_reference_trace.py']
+            if boundary: files.append(HERE/'r3_k2_boundary_trace.py')
             plan['files'] = {str(p.resolve()):R.B.sha(p) for p in files}
             path=root/'plan.json';path.write_text(json.dumps(plan));seeds=[]
             npu=types.SimpleNamespace(synchronize=lambda:None)
@@ -74,10 +85,10 @@ def step_loss(torch, core, tok, units, arm, device, pad, maxlen, micro, counters
                  patch.object(R.B,'seed_and_snapshot',side_effect=lambda t,s,i:seeds.append((s,i)) or {'fixed':'rng'}):
                 result=R.run(path,R.B.sha(path))
             self.assertEqual(len(builds),1)
-            self.assertEqual(seeds,[(2,0),(2,0)])
+            self.assertEqual(seeds,[(2,0)]*(4 if boundary else 2))
             self.assertIn('--grad-ckpt',parsed)
             self.assertTrue(result['complete'])
-            self.assertEqual(result['reference_questions'],1)
+            self.assertEqual(result['reference_questions'],count)
             self.assertEqual(result['first_difference']['question'],0)
             self.assertTrue(result['first_difference']['components_equal']['loss'])
             self.assertFalse(result['first_difference']['gradient_diagnostic']['gradient_values_equal'])
@@ -85,6 +96,12 @@ def step_loss(torch, core, tok, units, arm, device, pad, maxlen, micro, counters
             self.assertTrue((root/'results/TRACE.json').exists())
             self.assertTrue((root/'results/TRACE_PARTIAL.json').exists())
             self.assertFalse((root/'results/RESULT.json').exists())
+            if boundary:
+                self.assertTrue(result['control']['complete'])
+                self.assertTrue(result['boundary']['complete'])
+                self.assertEqual(result['boundary']['incoming_events'], 1)
+                self.assertTrue(any(x['key'][0]=='reduction' for x in result['boundary']['comparisons']))
+                self.assertEqual(core.calls, 4)
 
 
 if __name__ == '__main__':unittest.main()

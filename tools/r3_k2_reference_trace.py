@@ -17,7 +17,7 @@ def fingerprint(value):
                                     allow_nan=False).encode()).hexdigest()
 
 
-def instrument(trainer, observer, chunk_observer=None):
+def instrument(trainer, observer, chunk_observer=None, before_backward=None, reduction_observer=None):
     tree = ast.parse(Path(trainer.__file__).read_text())
     function = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'step_loss')
     matches = [n for n in ast.walk(function) if isinstance(n, ast.For)
@@ -36,9 +36,17 @@ def instrument(trainer, observer, chunk_observer=None):
     if ast.dump(function) != original:
         raise ValueError('instrumentation altered reference computation')
     loop.body.append(inserted)
+    if before_backward is not None:
+        boundaries = [n for n in loop.body if isinstance(n, ast.If)
+                      and isinstance(n.test, ast.Name) and n.test.id == 'backward']
+        if len(boundaries) != 1 or len(boundaries[0].body) != 1:
+            raise ValueError('backward boundary differs')
+        call = ast.parse('_trace_before(s)').body[0]
+        boundaries[0].body.insert(0, call)
     module = types.ModuleType('k2_observed_reference')
     module.__dict__.update(trainer.__dict__)
     module._trace_observer = observer
+    module._trace_before = before_backward
     if chunk_observer is not None:
         rows = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'row_logprob_sums')
         boundaries = []
@@ -53,6 +61,20 @@ def instrument(trainer, observer, chunk_observer=None):
         body, index = boundaries[0]
         body.insert(index, ast.parse('_trace_chunk(chunk, ids, mask, bi, ti, tg, owner)').body[0])
         module._trace_chunk = chunk_observer
+        if reduction_observer is not None:
+            reductions = []
+            for node in ast.walk(rows):
+                for field, value in ast.iter_fields(node):
+                    if isinstance(value, list):
+                        for i, item in enumerate(value):
+                            if isinstance(item, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'sums' for t in item.targets):
+                                reductions.append((value, i))
+            if len(reductions) != 1:
+                raise ValueError('score reduction boundary differs')
+            body, i = reductions[0]
+            body.insert(i+1, ast.parse("_trace_reduction('after', owner, sums)").body[0])
+            body.insert(i, ast.parse("_trace_reduction('before', owner, tok_lp)").body[0])
+            module._trace_reduction = reduction_observer
         exec(compile(ast.fix_missing_locations(ast.Module(body=[rows], type_ignores=[])),
                      trainer.__file__, 'exec'), module.__dict__)
     exec(compile(ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[])),

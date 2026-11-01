@@ -38,8 +38,9 @@ def module(p):
 
 def verify(path,pin):
     require(sha(path)==pin,'execution pin differs');p=load(path);out=safe(p['out'])
-    trace = p['schema'] == 'r3-k2-reference-trace-execution-v1'
-    require(p['schema'] in ('r3-k2-benchmark-execution-v1','r3-k2-reference-trace-execution-v1') and p['scientific_acceptance'] is False
+    boundary = p['schema'] == 'r3-k2-reference-trace-execution-v2'
+    trace = p['schema'] in ('r3-k2-reference-trace-execution-v1','r3-k2-reference-trace-execution-v2')
+    require(p['schema'] in ('r3-k2-benchmark-execution-v1','r3-k2-reference-trace-execution-v1','r3-k2-reference-trace-execution-v2') and p['scientific_acceptance'] is False
             and p['test_read'] is False,'execution scope differs')
     require(out==safe(path).parent and out.is_relative_to(BASE/'r3_runs'),'output ownership differs')
     require(p['run']==str(out.relative_to(BASE)) and p['allocation']==str(BASE/'CHIP-ALLOCATION.json'),'ledger differs')
@@ -49,13 +50,15 @@ def verify(path,pin):
     require(set(p['tools'])=={str(out/'tools'/n) for n in TOOLS},'tools differ')
     for f,h in p['tools'].items():require(sha(f)==h,'tool changed')
     require(sha(p['benchmark_plan'])==p['benchmark_sha256'],'benchmark changed');q=load(p['benchmark_plan'])
-    require(q['schema']==('r3-k2-reference-trace-plan-v1' if trace else 'r3-k2-deferred-sync-benchmark-v1') and q['test_read'] is False
+    require(q['schema']==('r3-k2-reference-trace-plan-v2' if boundary else 'r3-k2-reference-trace-plan-v1' if trace else 'r3-k2-deferred-sync-benchmark-v1') and q['test_read'] is False
             and q['scientific_acceptance'] is False and q['model']==MODEL,'benchmark scope differs')
     require(safe(q['out'])==out/'results','benchmark output differs')
     protocol = ({'seed':2,'step':0,'reference_evaluations':2,'max_questions':32,
                  'max_reference_bytes':2*1024**3,'chips':1,'diagnostic_only':True} if trace else
                 {'seed':2,'warmup_pairs':3,'measured_pairs':10,'min_measured_seconds':60,
                  'exact_loss_and_gradients':True,'minimum_speedup':1.05,'chips':1})
+    if boundary:
+        protocol.update(reference_evaluations=4, boundary_observers=True, control_reference_evaluations=2)
     require(q['protocol']==protocol,'protocol differs')
     code=safe(q['trainer']).parent
     require(code==out/'code' and q['candidate']==str(code/'candidate_train_r3.py')
@@ -63,6 +66,7 @@ def verify(path,pin):
     require(p['benchmark']==str(code/('r3_k2_reference_trace_run.py' if trace else 'r3_k2_sync_benchmark.py')),'benchmark executable differs')
     names = ('train_r3.py','candidate_train_r3.py','build_kev_sft.py','kev_aug.py','r0_code/prompt.py','r3_k2_deferred_sync.py','r3_k2_sync_benchmark.py')
     if trace:names += ('r3_k2_reference_trace.py','r3_k2_reference_trace_run.py')
+    if boundary:names += ('r3_k2_boundary_trace.py',)
     require(set(q['files'])=={str(code/n) for n in names} | {TRAIN} |
         {str(f) for f in Path(MODEL).iterdir() if f.is_file()}, 'input inventory differs')
     for f,h in q['files'].items():require(sha(f)==h,'benchmark input changed')
@@ -97,7 +101,7 @@ def verify_container(p,s,a,cid=None):
 def args(p,proof,name):
     root=Path(p['out'])/'attempts/1'
     return types.SimpleNamespace(alloc=p['allocation'],run=p['run'],chip=p['chip'],container=name,
-        owner='K2 engineering',purpose=('Reference-only gradient repeat diagnostic' if p.get('schema')=='r3-k2-reference-trace-execution-v1' else 'Paired scalar-transfer correctness and throughput'),
+        owner='K2 engineering',purpose=('Reference-only gradient repeat diagnostic' if p.get('schema','').startswith('r3-k2-reference-trace-execution-') else 'Paired scalar-transfer correctness and throughput'),
         claim=str(root/'CLAIM.json'),proof=str(root/(proof+'.json')),
         container_id=load(root/'LAUNCH_RECEIPT.json')['id'] if proof=='RELEASE' else None)
 
@@ -145,7 +149,7 @@ def supervise(path,pin):
             atomic(out/'digest.json',{'state':'running','container_id':cid,'utc_seconds':time.time()});time.sleep(30)
         marker=Path(q['out'])/'EXIT.json';driver=load(marker) if marker.exists() else None
         code=a['State']['ExitCode'];valid=driver is not None and driver.get('plan_sha256')==p['benchmark_sha256'] and driver.get('exit_code')==code
-        trace = p.get('schema') == 'r3-k2-reference-trace-execution-v1'
+        trace = p.get('schema','').startswith('r3-k2-reference-trace-execution-')
         result=Path(q['out'])/('TRACE.json' if trace else 'RESULT.json');ok=valid and code==0 and result.exists()
         if ok:
             d=load(result)
@@ -153,6 +157,8 @@ def supervise(path,pin):
                            and d.get('truncated') is False and type(d.get('reference_questions')) is int
                            and 0<d['reference_questions']<=32 and d.get('repeat_questions')==d['reference_questions']
                            and len(d.get('comparisons',[]))==d['reference_questions']) if trace else d.get('exact_loss_and_gradients') is True
+            if p.get('schema') == 'r3-k2-reference-trace-execution-v2':
+                evidence_ok = evidence_ok and d.get('boundary',{}).get('complete') is True and d.get('control',{}).get('complete') is True
             ok=evidence_ok and d.get('plan_sha256')==p['benchmark_sha256'] and d.get('test_read') is False and d.get('scientific_acceptance') is False
         terminal={'exit_code':0 if ok else (code or 125),'container_exit_code':code,'attempt':1,'plan_sha256':pin,
             'benchmark_complete':ok and not trace,'result_sha256':sha(result) if ok else None,'test_read':False,'scientific_acceptance':False}
