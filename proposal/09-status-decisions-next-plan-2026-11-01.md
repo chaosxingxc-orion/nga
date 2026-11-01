@@ -1,6 +1,6 @@
 # 当前任务状态、待决策事项与下一阶段计划
 
-更新时间：2026-11-01 UTC。运行快照截至 03:04 UTC；以下工程验收更新来自该日独立收据。本文覆盖当前结论；旧版过程记录保存在本地 archive，历史测量值不改写。
+更新时间：2026-11-01 UTC。运行快照截至 03:14 UTC；以下工程验收更新来自该日独立收据。本文覆盖当前结论；旧版过程记录保存在本地 archive，历史测量值不改写。
 
 ## 当前结论
 
@@ -10,15 +10,15 @@
 
 ## 当前执行与效率
 
-03:04 UTC 有界检查记录 host175 的 3 个训练容器、5 个推理容器；watchdog 最近一轮无失败或停滞告警。这是任务运行数量，不证明持续满载。
+03:14 UTC 有界检查记录 host175 的 3 个训练容器、5 个推理容器；watchdog 最近一轮无失败或停滞告警。这是任务运行数量，不证明持续满载。
 
 | 工作 | 已核实状态 | 下一依赖 |
 | --- | --- | --- |
-| 逐候选 K2，0.8B seeds2/3 | 1,337 / 1,286 步，各目标 3,116 步 | 实际终态、后继推理、开发计分 |
+| 逐候选 K2，0.8B seeds2/3 | 1,356 / 1,298 步，各目标 3,116 步 | 实际终态、后继推理、开发计分 |
 | K1，4B seed2 | 3,116 步，真实 exit0；后继推理已启动 | 推理完整收据及 CPU 计分 |
-| K1，4B seed3 | 2,355 / 3,116 步 | 队列自动接续 |
+| K1，4B seed3 | 2,460 / 3,116 步 | 队列自动接续 |
 | 首轮六路候选推理及 0.8B K0 | 各 148,542 条记录 | 该计数不是测试集样本数或收益 |
-| 2B K0 | 46,006 / 148,542 条，31.0% | 完整推理收据 |
+| 2B K0 | 46,198 / 148,542 条，31.1% | 完整推理收据 |
 | 工程 QO/PT 控制 | QO seed2 在 01:46:46 UTC 真实 exit0，已自动接续推理；PT seed2 也已接续推理，PT seed3 状态以其队列为准 | 各自恢复/重建与比较证据 |
 | CPU 选择队列 | 10 done、6 waiting_reports、10 waiting_inference | 按依赖有序消费 |
 
@@ -92,6 +92,10 @@ K2 效率候选已实现（`f756f52`）：保持每问题 forward/backward 与 d
 
 PT/R0 报告队列也已安全更新为 `pt_r0_cpu_reports_20261101_v3`，pin `19b6f3b022b3a32cfba2c0ec1203a2bdc9d6a9aeb08371f2d7c4fa077cdc14a5`；本地 PID `2643074` 的实际命令已核对，三项均 waiting_inference。7 项 PT 消费与 21 项报告队列测试通过，报告生成器采用已完成七份一致性重建的版本。主 CPU 选择队列已升级为 `cpu_selection_queue_20261101_v11`，pin `83cdee3edfdc0d5b565b3823055161063cf627a57a809874f468db55a52b714d`，本地 PID `2649053` 实际命令已核验。10 项历史完成终态逐项复哈希后继承并标记来源，未重新标注为新版验收；其余 6 项等待报告、10 项等待推理，将使用新版计分工具。后续正式汇总仍要求完整来源重建。
 
+PT 正式准备的异步依赖已补齐一项：新增 `fresh-instruct-k0-prechecks`，在 instruct K0 报告成功且哈希一致后自动用同底座重建六项 K0 检查。复用已在 Base 路径执行的预检工具，未新增科学阈值。PT/R0 CPU 新队列 `pt_r0_cpu_reports_20261101_v4` pin `58e08d4b592830769007dc3fd725a165cbf71156d091935b71b47967ed9ade88`，本地 PID `2678295` 实际命令已核验；旧服务确认无 worker、启动意图或输出后安全替换。三个原任务 waiting_inference，新增任务 waiting_reports。产物尚未生成，不能当作 PT 预检通过。
+
+正式准备路径已核对并留存本地依赖表：K1 的 Base K0 检查、训练证据与恢复计划存在，缺实际 CPU 恢复重建；QO 有 Base 检查与独立训练证据，尚待其恢复计划及重建；PT 有独立训练证据，尚待 instruct K0 检查及自身恢复/重建。存在性清单仅定位缺口，完成后仍需逐项哈希、数值验证及精确计划独立审查。未生成正式批准或候选测试许可。
+
 ## 下一阶段执行计划
 
 QO/PT CPU 队列已进一步升级至 `control_resume_cpu_queue_20261101_v6`：原空闲服务确认无 worker 后安全停止，新 PID `3077221` 与命令已核对，两个任务均 waiting_restart，600 秒轮巡，包含执行前校验修复。Base v4 的新 PID 为 `3076653`。未改旧冻结证据或中断 NPU。
@@ -108,7 +112,7 @@ QO/PT CPU 队列已进一步升级至 `control_resume_cpu_queue_20261101_v6`：�
 退出当前阶段需要：全部 38 单位状态可解释；对应 K0 计分可核验；每个正式目标计划及独立审查完整；实际恢复/重建/终态一致；候选锁定后按冻结测试协议形成可发布收益。工程测试通过、exit0 或完整进度计数都不能单独满足这些条件。
 
 - [最新参考指标](../experiments/REFERENCE-BASELINE-LATEST.md)；[远程 Wiki 四维结论](https://github.com/chaosxingxc-orion/nga/wiki/Current-Conclusions)。
-- 本地巡检：`.local/reports/inspection-20261101T030427.json`；开发明细：`.local/reports/dev-findings-current.md`；CPU 验收：`.local/reports/cpu-repair-acceptance-20261101.json`。
+- 本地巡检：`.local/reports/inspection-20261101T031433.json`；开发明细：`.local/reports/dev-findings-current.md`；CPU 验收：`.local/reports/cpu-repair-acceptance-20261101.json`。
 - 新恢复计划 identity：`2f9cd65081c15e7039216a809a1dbe64d6e553422bb8e058ea060d5503fa5271`。
 - 新 K0 bundle SHA：`8f97ec9e559830cf62f9ec15e064cce959a42ee65b7ca66a56a3835efb8f7810`。
 - 第四轮审查 manifest SHA：`d06092db16ea55e32a7519e5bf3cc164bc60a174cd9ef187d0a1cd734aa58339`；范围为代码修复，非测试发布批准。
