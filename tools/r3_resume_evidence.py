@@ -63,6 +63,27 @@ def judge(loss_floor, weight_floor, resume_loss, resume_weight, controls):
     return {'bars':bars,'resume_pass':resumed,'controls_rejected':rejected,'pass':resumed and all(rejected.values())}
 
 
+def canonical_docker_command(plan, path, attempt):
+    """Complete registered restart invocation; extra Docker options are forbidden."""
+    cmd = ['docker', 'run', '-d', '--pull=never', '--name',
+           plan['container']+'-a'+str(attempt), '--network=none', '--shm-size', '64g',
+           '--ulimit', 'memlock=-1:-1', '--ulimit', 'stack=67108864:67108864']
+    for mount in (
+        f"type=bind,src={plan['code']},dst=/workspace,readonly",
+        f"type=bind,src={plan['model']},dst={plan['model']},readonly",
+        f"type=bind,src={plan['train_file']},dst={plan['train_file']},readonly",
+        f"type=bind,src={plan['out']},dst={plan['out']}",
+        'type=bind,src=/usr/local/Ascend/driver,dst=/usr/local/Ascend/driver,readonly',
+        f"type=bind,src={plan['code']},dst=/mnt/cephfs/xingchao/experiments/jev/r3_code,readonly"):
+        cmd += ['--mount', mount]
+    for device in ('davinci_manager', 'devmm_svm', 'hisi_hdc', f"davinci{plan['chip']}"):
+        cmd += ['--device', '/dev/'+device]
+    for key, value in plan['environment'].items():
+        cmd += ['-e', key+'='+value]
+    return cmd + ['--entrypoint', 'python3', plan['image_sha256'], '-P',
+                  '/workspace/r3_formal_driver.py', '--plan', str(path), '--attempt', str(attempt)]
+
+
 def validate(path, pin, target):
     path = Path(path)
     plan = load(path)
@@ -145,6 +166,8 @@ def validate(path, pin, target):
     require(sorted(mounts) == sorted(required_mounts), 'resume launch mounts differ')
     require(cmd[-8:] == ['python3',target['image_sha256'],'-P','/workspace/r3_formal_driver.py',
                         '--plan',str(path),'--attempt',str(terminal['attempt'])], 'resume driver command differs')
+    require(cmd == canonical_docker_command(plan, path, terminal['attempt']),
+            'resume complete Docker command differs')
     release = read(attempt/'RELEASE.json')
     require(release.get('schema') == 'r3-resource-release-v1' and release.get('run') == plan['run']
             and release.get('chip') == plan['chip'] and release.get('container_id') == launch['id']

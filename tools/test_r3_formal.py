@@ -14,6 +14,18 @@ spec.loader.exec_module(L)
 
 
 class Formal(unittest.TestCase):
+    def test_formal_scope_flags_rejected_even_with_matching_identity(self):
+        for field in ('scientific_acceptance', 'test_read'):
+            for value in (True, None, 0):
+                with self.subTest(field=field, value=value), tempfile.TemporaryDirectory() as td:
+                    plan = {'schema': 'r3-formal-k1-plan-v1',
+                            'scientific_acceptance': False, 'test_read': False}
+                    plan[field] = value
+                    path = Path(td) / 'plan.json'
+                    path.write_text(json.dumps(plan))
+                    with self.assertRaisesRegex(RuntimeError, 'training scope'):
+                        L.verify(str(path), L.identity(plan), reviewed=False)
+
     def test_unit_test_source_is_not_test_dataset(self):
         for p in ('/code/test_k2_shared.py','/code/test_train_r3.py','/data/dev.jsonl'):
             self.assertFalse(L.is_test_data(p))
@@ -49,6 +61,31 @@ class Formal(unittest.TestCase):
         self.assertEqual(len(mounts),5)
         self.assertTrue(all('test' not in x and 'src=/mnt/cephfs,' not in x for x in mounts))
         self.assertIn('type=bind,src=/run/code,dst=/workspace,readonly', mounts)
+
+    def test_ordinary_formal_retained_container_rejects_extra_configuration(self):
+        import copy
+        p = {'container':'formal', 'chip':1, 'code':'/run/code', 'out':'/run',
+             'model':'/model', 'train_file':'/data/train.jsonl',
+             'environment':{'HF_HUB_OFFLINE':'1'}, 'image_sha256':L.IMAGE,
+             'schema':'r3-formal-k1-plan-v1'}
+        mounts=[]
+        cmd=L.docker_command(p,'/run/plan.json',1)
+        for i, item in enumerate(cmd):
+            if item == '--mount':
+                fields=dict(x.split('=',1) if '=' in x else (x,True) for x in cmd[i+1].split(','))
+                mounts.append({'Source':fields['src'],'Destination':fields['dst'],
+                               'RW':'readonly' not in fields,'Type':'bind'})
+        observed={'Mounts':mounts,'Config':{'Entrypoint':['python3'],'Env':['HF_HUB_OFFLINE=1']},
+                  'HostConfig':{'NetworkMode':'none','Privileged':False}}
+        L.verify_control_resume_container(p,'/run/plan.json',1,observed)
+        for mutate in (lambda d:d['HostConfig'].update(Privileged=True),
+                       lambda d:d['HostConfig'].update(NetworkMode='host'),
+                       lambda d:d['Config'].update(Entrypoint=['bash']),
+                       lambda d:d['Mounts'][0].update(RW=True),
+                       lambda d:d['Config']['Env'].append('HF_HUB_OFFLINE=0')):
+            bad=copy.deepcopy(observed);mutate(bad)
+            with self.assertRaises(RuntimeError):
+                L.verify_control_resume_container(p,'/run/plan.json',1,bad)
 
     def test_review_hash_does_not_cycle_plan_identity(self):
         p = {'schema':'fixture','review_sha256':'PENDING'}

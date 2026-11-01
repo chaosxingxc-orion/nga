@@ -47,16 +47,7 @@ class Evidence(unittest.TestCase):
         terminal={'exit_code':0,'attempt':1};write(root/'TRAIN_EXIT.json',terminal);attempt=root/'attempts/1'
         write(attempt/'EXIT.json',terminal)
         write(attempt/'LAUNCH_RECEIPT.json',{'id':'f'*64,'image':'image','plan_sha256':self.pin})
-        cmd=['docker','run','-d','--network=none','--pull=never']
-        for device in ('davinci_manager','devmm_svm','hisi_hdc','davinci1'):cmd += ['--device','/dev/'+device]
-        cmd += ['-e','TASK_QUEUE_ENABLE=2']
-        for mount in (f'type=bind,src={tested},dst=/workspace,readonly',
-                      f'type=bind,src={model},dst={model},readonly',f'type=bind,src={train},dst={train},readonly',
-                      f'type=bind,src={root},dst={root}',
-                      'type=bind,src=/usr/local/Ascend/driver,dst=/usr/local/Ascend/driver,readonly',
-                      f'type=bind,src={tested},dst=/mnt/cephfs/xingchao/experiments/jev/r3_code,readonly'):
-            cmd += ['--mount',mount]
-        cmd += ['--entrypoint','python3','image','-P','/workspace/r3_formal_driver.py','--plan',str(self.path),'--attempt','1']
+        cmd=R.canonical_docker_command(plan,self.path,1)
         write(attempt/'LAUNCH_SPEC.json',{'command':cmd,'plan_sha256':self.pin})
         write(attempt/'RELEASE.json',{'schema':'r3-resource-release-v1','run':'contract','chip':1,'container_id':'f'*64,'container':'contract-container-a1','exit_code':0,'container_finished_at':'finish','container_started_at':'start','released_utc':'release'})
         write(attempt/'SUPERVISOR_DONE.json',{'exit_code':0})
@@ -105,6 +96,23 @@ class Evidence(unittest.TestCase):
     def test_cpu_only_launch_cannot_pass_as_npu_evidence(self):
         p=self.root/'attempts/1/LAUNCH_SPEC.json';d=json.loads(p.read_text());cmd=d['command'];i=cmd.index('/dev/davinci1');del cmd[i-1:i+1];write(p,d)
         with self.assertRaisesRegex(ValueError,'NPU device'):self.validate()
+
+    def test_extra_docker_configuration_rejected(self):
+        path=self.root/'attempts/1/LAUNCH_SPEC.json'
+        original=path.read_bytes()
+        for extra in (['--privileged'], ['-v','/tmp:/extra'], ['--network=host'],
+                      ['--cap-add','SYS_ADMIN'], ['--security-opt','seccomp=unconfined']):
+            doc=json.loads(original); doc['command'][3:3]=extra; write(path,doc)
+            with self.subTest(extra=extra), self.assertRaisesRegex(ValueError,'complete Docker command'):
+                self.validate()
+        path.write_bytes(original)
+
+    def test_canonical_command_matches_actual_launcher(self):
+        spec=importlib.util.spec_from_file_location('command_launcher',HERE/'r3_formal_launcher.py')
+        launcher=importlib.util.module_from_spec(spec);spec.loader.exec_module(launcher)
+        plan=R.load(self.path)
+        self.assertEqual(R.canonical_docker_command(plan,self.path,1),
+                         launcher.docker_command(plan,str(self.path),1))
 
     def test_wrong_launch_identity_and_stage_identity_fail(self):
         for rel,key,value in [('attempts/1/LAUNCH_RECEIPT.json','plan_sha256','wrong'),('STAGE-4.json','name','replica_a')]:

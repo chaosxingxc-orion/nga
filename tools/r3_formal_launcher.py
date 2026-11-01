@@ -96,6 +96,8 @@ def verify_resume_reconstruction(p):
 def verify(path, pin, reviewed=True):
     p = load(path)
     require(identity(p) == pin, 'plan identity changed')
+    require(p.get('scientific_acceptance') is False and p.get('test_read') is False,
+            'training scope must exclude scientific acceptance/test')
     require(p['schema'] in ('r3-formal-k1-plan-v1', 'r3-engineering-k1-plan-v1') and p['image_sha256'] == IMAGE, 'plan schema/image mismatch')
     engineering = p['schema'] == 'r3-engineering-k1-plan-v1'
     require(p['seed'] in (2, 3) and p['chip'] in (tuple(range(8)) if engineering else (1, 4)), 'unregistered seed/chip')
@@ -317,8 +319,7 @@ def supervisor(path, pin, attempt_no):
         require(d['Config']['Cmd'] == ['-P', '/workspace/r3_formal_driver.py', '--plan', path, '--attempt', str(attempt_no)], 'container command mismatch')
         devices = {x['PathOnHost'] for x in d['HostConfig']['Devices']}
         require(devices == {'/dev/davinci_manager', '/dev/devmm_svm', '/dev/hisi_hdc', f"/dev/davinci{p['chip']}"}, 'container devices mismatch')
-        if p.get('control_arm') and p.get('validation_kind')=='current_k1_resume_contract':
-            verify_control_resume_container(p,path,attempt_no,d)
+        verify_control_resume_container(p,path,attempt_no,d)
         while d['State']['Status'] not in ('exited', 'dead'):
             atomic(attempt / 'supervisor_heartbeat.json', {'utc_seconds': time.time(), 'container': container, 'status': d['State']['Status']})
             time.sleep(15)
