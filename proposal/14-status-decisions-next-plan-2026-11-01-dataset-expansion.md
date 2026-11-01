@@ -57,3 +57,7 @@ CPU 侧为第一批 8 个任务族逐项固定版本、split、mask、样本数�
 ### 本轮审计后的实际准入状态
 
 第一轮元数据审计已落盘，但没有一个新增单元被授权直接推理。扩展合同目前为 16 个单元，其中 12 个 `needs_review`、4 个 `blocked`。复杂/空间任务的公开文件、guardrail 的 test 配置、Korean/Eikos 的候选 heldout 仍需逐单元固定来源和统计；WebJev 与 OneJev 缺少原生 TEST；Imajev 的隐藏标签和未通过发布门禁使其不能作为本地测试结果来源。该状态不影响现有 NPU 任务继续执行，也不改变已有参考基线。
+
+### 工程队列接续状态
+
+chip3 的 `instruct_k0_chip3_20261101_v1` 已有 `EXIT=0`、`RELEASE` 和 `SUPERVISOR_DONE`，但 precheck 终态的 review 仍为 `PENDING_ROOT_REVIEW`，科学准入仍为 false。因此它只能作为待审查的工程 DEV successor，不能直接发布结果或激活下游训练。watchdog 最近快照还显示没有合格排队 successor、约三个 chip 未使用；历史 stalled 条目不计入有效任务。下一步先完成来源/前置审查，再决定是否进入 FIFO，避免为保持满载而绕过准入。
