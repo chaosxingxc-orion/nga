@@ -10,6 +10,7 @@ import importlib.util
 import json
 from pathlib import Path
 import sys
+from types import SimpleNamespace
 
 sys.dont_write_bytecode = True
 
@@ -41,89 +42,131 @@ def validate_baseline(report, expected_model):
     require('seed' not in report['selection_evidence'], 'baseline impersonates training seed')
 
 
+# Executable trust anchors are reviewed code constants, never supplied by a bundle.
+# Changing a consumer/closure requires a new code review and bundle generation.
+REPORT_TOOL_PINS = frozenset({
+    '3fe3b08c274e057424e836447e53a8d3a2873c45a63345ca244b083f01ac899b',
+    '4b71f5a6c97261bdbfcb03c6ca7e826a1b3ce71ebb317613140b14c9f29a3fb7',
+})
+CLOSURE_PINS = frozenset({'1c2f7d59dc365cbe52dcffe3fd9b734a8c09dc0612d35fe192703649710261df'})
+
+
+def safe_path(value):
+    p = Path(value)
+    require(p.is_absolute() and str(p) == str(value) and '..' not in p.parts
+            and not any(x.is_symlink() for x in (p, *p.parents)), 'unsafe provenance path')
+    return p
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False)
+
+
+def configuration(a):
+    config = {k: str(getattr(a, k)) for k in
+              ('report_tool', 'report_tool_sha256', 'frozen_code_dir',
+               'closure_sha256', 'kev_dir', 'data_root')}
+    config['generator'] = str(getattr(a, 'generator', Path(__file__).resolve()))
+    require(sha(safe_path(config['generator'])) == sha(__file__),
+            'precheck generator implementation differs')
+    tool = safe_path(config['report_tool'])
+    code = safe_path(config['frozen_code_dir'])
+    require(config['report_tool_sha256'] in REPORT_TOOL_PINS
+            and sha(tool) == config['report_tool_sha256'], 'untrusted report tool')
+    require(config['closure_sha256'] in CLOSURE_PINS
+            and sha(code.parent/'manifest.json') == config['closure_sha256'],
+            'untrusted reconstruction closure')
+    safe_path(config['kev_dir']); safe_path(config['data_root'])
+    return config
+
+
+def reconstruct(report_path, model, config):
+    """Recompute provenance, complete dev populations, scores and all six checks.
+
+    No result file is written. The pinned consumer checks model bytes, row stamps,
+    producer manifests, data membership and splits before returning any metrics.
+    """
+    report_path = safe_path(report_path)
+    R = load_module(config['report_tool'], 'fresh_precheck_report')
+    deps = R.modules(config['frozen_code_dir'])
+    C, E, D, PC, V = deps
+    stored = R.load(report_path)
+    validate_baseline(stored, model)
+    actual = R.rebuild(report_path.parent, config['kev_dir'], config['data_root'], deps)
+    require(canonical(stored) == canonical(actual), 'K0 report differs from verified readouts')
+    run = report_path.parent
+    files = {report_path, run/'SCORING_RECEIPT.track_kt.json',
+             run/'EVAL_COMPLETE.track_kt.json', run/'RUN_IDENTITY.json',
+             Path(config['report_tool']), Path(config['generator']),
+             Path(config['frozen_code_dir']).parent/'manifest.json',
+             Path(config['kev_dir'])/'manifest.json', Path(config['data_root'])/'manifest.json'}
+    manifest = R.load(Path(config['frozen_code_dir']).parent/'manifest.json')
+    files.update(Path(entry['snapshot']) for entry in manifest['code'].values())
+    files.update(Path(x) for x in actual['header']['data_files'])
+    for subtree, pattern in [('manifests', '*.json'), ('trackk', '*.jsonl'), ('trackt', '*.jsonl')]:
+        files.update((run/subtree).rglob(pattern))
+    files.update(p for p in safe_path(model).rglob('*') if p.is_file())
+    train, train_path = C.load_partition('decision-v7', 'train', kev_dir=config['kev_dir'])
+    parts, paths, checks = {}, [train_path], {}
+    for suite in C.SUITES:
+        rows, path = C.load_partition(suite, 'dev', kev_dir=config['kev_dir'])
+        variants, vp = C.load_partition(suite, 'dev', variants=True, kev_dir=config['kev_dir'])
+        parts[suite+'/dev'] = rows; paths += [path, vp]
+        checks['b_'+suite+'_dev.json'] = PC.check_b(rows, variants)
+        readouts = C.k_readout_path(str(run), suite, 'dev', 'clean')
+        checks['c_'+suite+'_k0_dev.json'] = PC.check_c(readouts)
+    checks['a_constant_uniform_gold_position.json'] = PC.check_a(train, parts)
+    checks['d_kev_files_vs_manifest.json'] = PC.check_kev_manifest(paths, kev_dir=config['kev_dir'])
+    files.update(Path(x) for x in paths)
+    require(len(checks) == 6 and all(x.get('ok') is True for x in checks.values()), 'prechecks incomplete')
+    inventory = {str(safe_path(p)): sha(p) for p in sorted(files)}
+    return inventory, checks
+
+
 def validate_bundle(path, pin, model):
-    path = Path(path)
-    require(path.is_absolute() and not any(p.is_symlink() for p in (path, *path.parents)), 'unsafe precheck bundle path')
+    path = safe_path(path)
     require(sha(path) == pin, 'precheck bundle pin differs')
     doc = json.loads(path.read_text())
-    require(doc.get('schema') == 'r3-fresh-k0-prechecks-v1' and doc.get('status') == 'PASS'
+    require(doc.get('schema') == 'r3-fresh-k0-prechecks-v2' and doc.get('status') == 'PASS'
             and doc.get('scientific_acceptance') is False and doc.get('test_read') is False
-            and doc.get('model') == str(model), 'precheck bundle scope differs')
-    expected = {'a_constant_uniform_gold_position.json', 'd_kev_files_vs_manifest.json',
-                'b_decision-v7_dev.json', 'b_transfer-v4_dev.json',
-                'c_decision-v7_k0_dev.json', 'c_transfer-v4_k0_dev.json'}
-    require(len(doc.get('checks', {})) == 6 and {Path(p).name for p in doc['checks']} == expected,
-            'precheck bundle incomplete')
+            and doc.get('model') == str(model), 'precheck bundle scope differs; regenerate v1 evidence')
+    config = configuration(SimpleNamespace(**doc['reconstruction']))
     require(doc.get('k0_report') in doc.get('inputs', {}), 'unbound K0 report')
-    # Consumption must retain the same provenance closure that `run()` emits;
-    # six `{ok:true}` stubs are not evidence of a reconstructed K0 score.
-    required_inputs = {doc.get('k0_report')}
-    input_names = set(doc.get('inputs', {}))
-    require(all(isinstance(x, str) and x in input_names for x in required_inputs),
-            'precheck provenance inventory incomplete')
-    require(any(Path(x).name == 'SCORING_RECEIPT.track_kt.json' for x in input_names),
-            'precheck scoring receipt not bound')
-    require(any(Path(x).name == 'r3_fresh_prechecks.py' for x in input_names),
-            'precheck generator not bound')
     for filename, digest in {**doc['inputs'], **doc['checks']}.items():
-        file = Path(filename)
-        require(file.is_absolute() and not any(p.is_symlink() for p in (file, *file.parents)), 'unsafe precheck dependency')
-        require(sha(file) == digest, 'precheck dependency changed: '+filename)
-    for filename in doc['checks']:
-        check = json.loads(Path(filename).read_text())
-        require(check.get('ok') is True and len(check) > 1, 'failed or empty precheck')
-    validate_baseline(json.loads(Path(doc['k0_report']).read_text()), str(model))
+        require(sha(safe_path(filename)) == digest, 'precheck dependency changed: '+filename)
+    inputs, checks = reconstruct(doc['k0_report'], str(model), config)
+    require(inputs == doc['inputs'], 'precheck provenance inventory differs')
+    require({str(path.parent/'prechecks'/name) for name in checks} == set(doc['checks']),
+            'precheck inventory differs')
+    for name, actual in checks.items():
+        stored = json.loads((path.parent/'prechecks'/name).read_text())
+        require(canonical(stored) == canonical(actual), 'precheck content differs: '+name)
+    for filename, digest in {**inputs, **doc['checks']}.items():
+        require(sha(safe_path(filename)) == digest, 'input changed during reconstruction: '+filename)
+    require(sha(path) == pin, 'precheck bundle changed during reconstruction')
     return doc
 
 
 def run(a):
-    report_path = Path(a.k0_report).resolve()
+    report_path = safe_path(a.k0_report)
     require(report_path.name == 'selection_report.json' and report_path.is_file(), 'completed K0 report required')
-    require(sha(a.report_tool) == a.report_tool_sha256, 'report tool pin differs')
-    closure = Path(a.frozen_code_dir).resolve().parent
-    require(sha(closure/'manifest.json') == a.closure_sha256, 'closure pin differs')
-    R = load_module(a.report_tool, 'fresh_precheck_report')
-    deps = R.modules(a.frozen_code_dir)
-    C, E, D, PC, V = deps
-    stored = R.load(report_path)
-    validate_baseline(stored, a.model)
-    # Full source/model/data/population validation; a historical argmax PASS
-    # or a report claiming provenance is not an alternative to reconstruction.
-    actual = R.rebuild(report_path.parent, a.kev_dir, a.data_root, deps)
-    canonical = lambda x: json.dumps(x, sort_keys=True, separators=(',', ':'), allow_nan=False)
-    require(canonical(stored) == canonical(actual), 'K0 report differs from verified readouts')
-    out = Path(a.out).resolve(); out.mkdir(parents=True, exist_ok=False)
-    receipt = report_path.parent/'SCORING_RECEIPT.track_kt.json'
-    inputs = {str(report_path):sha(report_path), str(receipt):sha(receipt),
-              str(closure/'manifest.json'):sha(closure/'manifest.json'),
-              str(Path(a.report_tool).resolve()):sha(a.report_tool),
-              str(Path(__file__).resolve()):sha(__file__)}
-    inputs.update(actual['header']['data_files'])
-    train, train_path = C.load_partition('decision-v7','train',kev_dir=a.kev_dir)
-    parts, paths = {}, [train_path]
-    for suite in C.SUITES:
-        rows, path = C.load_partition(suite,'dev',kev_dir=a.kev_dir)
-        variants, vp = C.load_partition(suite,'dev',variants=True,kev_dir=a.kev_dir)
-        parts[suite+'/dev'] = rows; paths += [path,vp]
-        PC.check_b(rows, variants, str(out), name='b_'+suite+'_dev')
-        readouts = C.k_readout_path(str(report_path.parent),suite,'dev','clean')
-        PC.check_c(readouts, run_dir=str(out), name='c_'+suite+'_k0_dev')
-        inputs[readouts] = sha(readouts)
-    PC.check_a(train,parts,str(out))
-    PC.check_kev_manifest(paths,str(out),kev_dir=a.kev_dir)
-    # This bundle deliberately does not stand in for train-code augmentation,
-    # LoRA freeze, restart or exact-plan Astra checks.
-    checks = {str(p):sha(p) for p in sorted((out/'prechecks').glob('*.json'))}
-    require(len(checks) == 6 and all(R.load(p).get('ok') is True for p in checks), 'prechecks incomplete')
-    for p, digest in inputs.items():
-        require(sha(p) == digest, 'input changed during prechecks: '+p)
-    result = {'schema':'r3-fresh-k0-prechecks-v1','status':'PASS','k0_report':str(report_path),
-              'model':a.model,'inputs':inputs,'checks':checks,
-              'scientific_acceptance':False,'test_read':False,
+    config = configuration(a)
+    inputs, results = reconstruct(report_path, a.model, config)
+    out = safe_path(a.out)
+    out.mkdir(parents=True, exist_ok=False)
+    (out/'prechecks').mkdir()
+    for name, result in results.items():
+        (out/'prechecks'/name).write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
+    checks = {str(out/'prechecks'/name):sha(out/'prechecks'/name) for name in results}
+    for filename, digest in inputs.items():
+        require(sha(filename) == digest, 'input changed during prechecks: '+filename)
+    result = {'schema':'r3-fresh-k0-prechecks-v2', 'status':'PASS', 'k0_report':str(report_path),
+              'model':a.model, 'inputs':inputs, 'checks':checks, 'reconstruction':config,
+              'scientific_acceptance':False, 'test_read':False,
               'remaining_formal_requirements':['exact frozen train-code augmentation and LoRA checks',
-                    'current restart/engineering gates','independent exact-plan Astra acceptance']}
-    (out/'K0_PRECHECKS.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
-    print(json.dumps({'output':str(out/'K0_PRECHECKS.json'),'checks':len(checks),'formal_ready':False}))
+                    'current restart/engineering gates', 'independent exact-plan Astra acceptance']}
+    (out/'K0_PRECHECKS.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
+    print(json.dumps({'output':str(out/'K0_PRECHECKS.json'), 'checks':len(checks), 'formal_ready':False}))
 
 
 def main():

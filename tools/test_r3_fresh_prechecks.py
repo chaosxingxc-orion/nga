@@ -28,40 +28,57 @@ class Fresh(unittest.TestCase):
             bad=copy.deepcopy(good);mutate(bad)
             with self.assertRaises(ValueError):F.validate_baseline(bad,'model')
 
-    def test_bundle_requires_complete_unchanged_evidence_and_model(self):
+    def forged_bundle(self, root):
+        report=root/'selection_report.json';report.write_text(json.dumps(baseline()))
+        checks={}
+        for name in ['a_constant_uniform_gold_position','d_kev_files_vs_manifest',
+                     'b_decision-v7_dev','b_transfer-v4_dev',
+                     'c_decision-v7_k0_dev','c_transfer-v4_k0_dev']:
+            p=root/(name+'.json');p.write_text('{"ok":true,"evidence":"fixture"}');checks[str(p)]=F.sha(p)
+        receipt=root/'SCORING_RECEIPT.track_kt.json';receipt.write_text('{"receipt":true}')
+        generator=root/'r3_fresh_prechecks.py';generator.write_text('# fixture\n')
+        d={'schema':'r3-fresh-k0-prechecks-v1','status':'PASS','scientific_acceptance':False,
+           'test_read':False,'model':'model','k0_report':str(report),
+           'inputs':{str(report):F.sha(report),str(receipt):F.sha(receipt),str(generator):F.sha(generator)},
+           'checks':checks}
+        bundle=root/'K0_PRECHECKS.json';bundle.write_text(json.dumps(d))
+        return bundle,d
+
+    def test_original_astra_counterexample_is_rejected(self):
         with tempfile.TemporaryDirectory() as td:
-            root=Path(td);report=root/'selection_report.json';report.write_text(json.dumps(baseline()))
-            checks={}
-            for name in ['a_constant_uniform_gold_position','d_kev_files_vs_manifest',
-                         'b_decision-v7_dev','b_transfer-v4_dev',
-                         'c_decision-v7_k0_dev','c_transfer-v4_k0_dev']:
-                p=root/(name+'.json');p.write_text('{"ok":true,"evidence":"fixture"}');checks[str(p)]=F.sha(p)
-            bundle=root/'K0_PRECHECKS.json'
-            receipt=root/'SCORING_RECEIPT.track_kt.json';receipt.write_text('{"receipt":true}')
-            generator=root/'r3_fresh_prechecks.py';generator.write_text('# fixture\n')
-            d={'schema':'r3-fresh-k0-prechecks-v1','status':'PASS','scientific_acceptance':False,
-               'test_read':False,'model':'model','k0_report':str(report),
-               'inputs':{str(report):F.sha(report),
-                         str(receipt): F.sha(receipt), str(generator): F.sha(generator)},'checks':checks}
-            bundle.write_text(json.dumps(d));pin=F.sha(bundle)
-            self.assertEqual(F.validate_bundle(bundle,pin,'model')['status'],'PASS')
-            ls=importlib.util.spec_from_file_location('launcher',Path(__file__).with_name('r3_formal_launcher.py'))
-            L=importlib.util.module_from_spec(ls);ls.loader.exec_module(L)
-            helper=Path(__file__).with_name('r3_fresh_prechecks.py').resolve()
-            plan={'fresh_k0_prechecks':str(bundle),'fresh_k0_prechecks_sha256':pin,
-                  'model':'model','files':{str(bundle):pin,str(helper):F.sha(helper),**d['inputs'],**checks}}
-            L.verify_fresh_prechecks(plan)
-            removed=plan['files'].pop(str(report))
-            with self.assertRaisesRegex(RuntimeError,'dependencies not bound'):L.verify_fresh_prechecks(plan)
-            plan['files'][str(report)]=removed
-            plan['files'].pop(str(helper))
-            with self.assertRaisesRegex(RuntimeError,'verifier not pinned'):L.verify_fresh_prechecks(plan)
-            with self.assertRaisesRegex(ValueError,'pin differs'):F.validate_bundle(bundle,'bad','model')
-            with self.assertRaisesRegex(ValueError,'scope differs'):F.validate_bundle(bundle,pin,'other')
-            report.write_text('{}')
-            with self.assertRaisesRegex(ValueError,'dependency changed'):F.validate_bundle(bundle,pin,'model')
-            d['checks'].pop(next(iter(checks)));bundle.write_text(json.dumps(d))
-            with self.assertRaisesRegex(ValueError,'incomplete'):F.validate_bundle(bundle,F.sha(bundle),'model')
+            bundle,doc=self.forged_bundle(Path(td))
+            with self.assertRaisesRegex(ValueError, 'regenerate v1'):
+                F.validate_bundle(bundle,F.sha(bundle),'model')
+
+    def test_rehashed_fake_tool_is_never_executed(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);bundle,doc=self.forged_bundle(root)
+            sentinel=root/'executed'
+            tool=root/'fake.py';tool.write_text(f'open({str(sentinel)!r}, "w").write("executed")')
+            code=root/'closure/r3_code';code.mkdir(parents=True)
+            (code.parent/'manifest.json').write_text('{"code":{}}')
+            doc.update(schema='r3-fresh-k0-prechecks-v2',reconstruction={
+                'report_tool':str(tool),'report_tool_sha256':F.sha(tool),
+                'frozen_code_dir':str(code),'closure_sha256':F.sha(code.parent/'manifest.json'),
+                'kev_dir':str(root),'data_root':str(root)})
+            bundle.write_text(json.dumps(doc))
+            with self.assertRaisesRegex(ValueError,'untrusted report tool'):
+                F.validate_bundle(bundle,F.sha(bundle),'model')
+            self.assertFalse(sentinel.exists())
+
+    def test_rehashed_fake_closure_is_rejected(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);bundle,doc=self.forged_bundle(root)
+            tool=Path(__file__).with_name('r3_selection_report.py').resolve()
+            code=root/'closure/r3_code';code.mkdir(parents=True)
+            (code.parent/'manifest.json').write_text('{"code":{}}')
+            doc.update(schema='r3-fresh-k0-prechecks-v2',reconstruction={
+                'report_tool':str(tool),'report_tool_sha256':F.sha(tool),
+                'frozen_code_dir':str(code),'closure_sha256':F.sha(code.parent/'manifest.json'),
+                'kev_dir':str(root),'data_root':str(root)})
+            bundle.write_text(json.dumps(doc))
+            with self.assertRaisesRegex(ValueError,'untrusted reconstruction closure'):
+                F.validate_bundle(bundle,F.sha(bundle),'model')
 
     def test_formal_prepare_refuses_legacy_default_before_writing(self):
         spec=importlib.util.spec_from_file_location('prepare',Path(__file__).with_name('r3_formal_prepare.py'))
@@ -72,24 +89,16 @@ class Fresh(unittest.TestCase):
                 P.prepare(out,2,1)
             self.assertFalse(out.exists())
 
-    def test_reconstruction_failure_never_publishes_prechecks(self):
+    def test_untrusted_generation_never_publishes_bundle(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td);report=root/'selection_report.json';report.write_text('{}')
-            tool=root/'tool.py';tool.write_text('')
+            tool=root/'tool.py';tool.write_text('raise AssertionError("must not execute")')
             closure=root/'closure';closure.mkdir();(closure/'manifest.json').write_text('{}')
             a=SimpleNamespace(k0_report=str(report),report_tool=str(tool),report_tool_sha256=F.sha(tool),
                 frozen_code_dir=str(closure/'r3_code'),closure_sha256=F.sha(closure/'manifest.json'),
-                model='model',out=str(root/'out'),kev_dir='dev',data_root='data')
-            for actual in [ValueError('unstamped provenance'),dict(baseline(),tampered=True)]:
-                def rebuild(*args):
-                    if isinstance(actual,Exception):raise actual
-                    return actual
-                R=SimpleNamespace(modules=lambda *a:(None,)*5,load=lambda p:baseline(),rebuild=rebuild)
-                with patch.object(F,'load_module',return_value=R):
-                    with self.assertRaises(ValueError):F.run(a)
-                self.assertFalse((root/'out').exists())
-            a.report_tool_sha256='0'*64
-            with self.assertRaisesRegex(ValueError,'tool pin'):F.run(a)
+                model='model',out=str(root/'out'),kev_dir=str(root),data_root=str(root))
+            with self.assertRaisesRegex(ValueError,'untrusted report tool'):F.run(a)
+            self.assertFalse((root/'out').exists())
 
 
 if __name__=='__main__':unittest.main()
