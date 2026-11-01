@@ -1,6 +1,6 @@
 # 当前任务状态、待决策事项与下一阶段计划
 
-更新时间：2026-11-01 UTC。运行快照截至 02:41 UTC；以下工程验收更新来自该日独立收据。本文覆盖当前结论；旧版过程记录保存在本地 archive，历史测量值不改写。
+更新时间：2026-11-01 UTC。运行快照截至 02:52 UTC；以下工程验收更新来自该日独立收据。本文覆盖当前结论；旧版过程记录保存在本地 archive，历史测量值不改写。
 
 ## 当前结论
 
@@ -10,15 +10,15 @@
 
 ## 当前执行与效率
 
-02:41 UTC 有界检查记录 host175 的 3 个训练容器、5 个推理容器；watchdog 最近一轮无失败或停滞告警。这是任务运行数量，不证明持续满载。
+02:52 UTC 有界检查记录 host175 的 3 个训练容器、5 个推理容器；watchdog 最近一轮无失败或停滞告警。这是任务运行数量，不证明持续满载。
 
 | 工作 | 已核实状态 | 下一依赖 |
 | --- | --- | --- |
-| 逐候选 K2，0.8B seeds2/3 | 1,308 / 1,252 步，各目标 3,116 步 | 实际终态、后继推理、开发计分 |
+| 逐候选 K2，0.8B seeds2/3 | 1,323 / 1,267 步，各目标 3,116 步 | 实际终态、后继推理、开发计分 |
 | K1，4B seed2 | 3,116 步，真实 exit0；后继推理已启动 | 推理完整收据及 CPU 计分 |
-| K1，4B seed3 | 2,126 / 3,116 步 | 队列自动接续 |
+| K1，4B seed3 | 2,233 / 3,116 步 | 队列自动接续 |
 | 首轮六路候选推理及 0.8B K0 | 各 148,542 条记录 | 该计数不是测试集样本数或收益 |
-| 2B K0 | 44,236 / 148,542 条，29.8% | 完整推理收据 |
+| 2B K0 | 45,654 / 148,542 条，30.7% | 完整推理收据 |
 | 工程 QO/PT 控制 | QO seed2 在 01:46:46 UTC 真实 exit0，已自动接续推理；PT seed2 也已接续推理，PT seed3 状态以其队列为准 | 各自恢复/重建与比较证据 |
 | CPU 选择队列 | 10 done、6 waiting_reports、10 waiting_inference | 按依赖有序消费 |
 
@@ -72,7 +72,7 @@ Astra 第二轮为 CHANGES_REQUIRED，六类问题涉及实际数值重建、执
 
 镜像中跳过的 4 项 final closure 与 8 项 final admission 已在本机实际补跑全部通过。第六轮独立复审已完成，417 文件完整复哈希，review SHA `c14b5f5f700e46049e8501c8280a87ab42403fff24ea96f26d0a7cd4ade6652b`，结论 CHANGES_REQUIRED：三个原始 v5 反例均关闭，尚余 launcher 的 source_module 未复用统一路径读取保护。审查注明现有生产调用链会拦截这些路径，未证明实际启动绕过。`1892efc` 已令该 reader 复用 safe_content_path，并同步 CPU policy pin；14 项 CPU、12 项 formal、4 项读取边界、31 项 scorer 恢复测试全部通过、无跳过。最新 reader 修复已进一步部署到 Base v4/控制 v6；旧空闲控制器确认无 worker/输出/意图后才替换，新 host175 PID `3076653` / `3077221` 实际命令已核验，均 waiting_restart。第七轮已合并此修复和 `162ef1d` scorer 补充修复，冻结 422 文件，manifest `6276edd8bb3142200541b336717503e5bb4f09612ea54a0facce108612000306`；第七轮已实际 exit0，review SHA `fb18607bdfdcaa81bc73e3cac9d9aeff0eb8e41dfcb617fb5ef25e637642ceea`，结论 **PASS_WITH_SCOPE**，源码修复范围内无阻断发现。独立反例验证了全部读取边界、11 类 prepared-controller 变异、28 类 propagation 变异和恢复 helper 字节码排除。主会话额外核对审查源码与当前源码及 Base v4/控制 v6 的实际冻结文件完全一致。审查报告中的“未部署”描述反映封包时点，部署一致性由后续独立哈希核对补足。范围不含实际 tensor/scorer 恢复、正式计划批准或测试收益。托管路径仍不执行，沿用已披露的受监控 CLI 后备路径，不将其称作托管子智能体。
 
-K2 效率候选已实现（`f756f52`）：保持每问题 forward/backward 与 dropout 顺序，仅将每问题 loss 标量传输延后为步骤末一次传输。固定镜像 CPU 的 3 项合成测试通过、无跳过，loss/梯度/RNG/调用顺序一致且 K1 源码路径不变；不能据此推断实际 Qwen/NPU 提速。真实 NPU 配对 benchmark 已冻结为 `k2_deferred_sync_benchmark_20261101_v2`，plan SHA `691269c4964fdb9ad51dda470e015789fdc0df92ed8ecd53b3bbe55373a8e0d6`：3 对 warmup、10 对测量、至少 60 秒、每芯片吞吐/reserved memory、逐元素完全相同的 loss/gradient 门槛、速度至少 1.05× 才保留为候选。不更新模型权重，仅检查初始 LoRA 的固定训练步骤；尚未接入资源调度或真实运行，也不在第七轮审查范围内。后续需独立审查和 NPU 实测后才能决定是否替换训练实现。
+K2 效率候选已实现（`f756f52`）：保持每问题 forward/backward 与 dropout 顺序，仅将每问题 loss 标量传输延后为步骤末一次传输。固定镜像 CPU 的 3 项合成测试通过、无跳过，loss/梯度/RNG/调用顺序一致且 K1 源码路径不变；不能据此推断实际 Qwen/NPU 提速。真实 NPU 配对 benchmark 已冻结为 `k2_deferred_sync_benchmark_20261101_v2`，plan SHA `691269c4964fdb9ad51dda470e015789fdc0df92ed8ecd53b3bbe55373a8e0d6`：3 对 warmup、10 对测量、至少 60 秒、每芯片吞吐/reserved memory、逐元素完全相同的 loss/gradient 门槛、速度至少 1.05× 才保留为候选。不更新模型权重，仅检查初始 LoRA 的固定训练步骤；尚未接入资源调度或真实运行，也不在第七轮审查范围内。后续需独立审查和 NPU 实测后才能决定是否替换训练实现。`0601db4` 已补齐脱机资源执行器：固定镜像、保留容器、按实际退出释放、缺少 driver marker 时失败、启动不确定时不重复发射；4 项生命周期测试通过。完整执行代次为 `k2_deferred_sync_benchmark_20261101_v3`，execution SHA `52648b63e63d352b01ef57d5519ef87951919f85353aa4b956aca45275636bb9`；后继队列 pin `e0484cb9709940686292293536aed46213426325534597c07c785428bde20434`，计划接在 chip3 的 scorer 恢复之后，配置校验通过但尚未激活。独立审查包为 23 文件，manifest `d4fff588e73f7ee99453d7ea0c4ba9c3c8798b159825bf2888b288b9d2022db5`，实际 Astra child PID `2654301` 与命令/心跳已核验，待 verdict。
 
 ## 需要负责人决策的内容
 
@@ -100,7 +100,7 @@ QO/PT CPU 队列已进一步升级至 `control_resume_cpu_queue_20261101_v6`：�
 退出当前阶段需要：全部 38 单位状态可解释；对应 K0 计分可核验；每个正式目标计划及独立审查完整；实际恢复/重建/终态一致；候选锁定后按冻结测试协议形成可发布收益。工程测试通过、exit0 或完整进度计数都不能单独满足这些条件。
 
 - [最新参考指标](../experiments/REFERENCE-BASELINE-LATEST.md)；[远程 Wiki 四维结论](https://github.com/chaosxingxc-orion/nga/wiki/Current-Conclusions)。
-- 本地巡检：`.local/reports/inspection-20261101T024118.json`；开发明细：`.local/reports/dev-findings-current.md`；CPU 验收：`.local/reports/cpu-repair-acceptance-20261101.json`。
+- 本地巡检：`.local/reports/inspection-20261101T025231.json`；开发明细：`.local/reports/dev-findings-current.md`；CPU 验收：`.local/reports/cpu-repair-acceptance-20261101.json`。
 - 新恢复计划 identity：`2f9cd65081c15e7039216a809a1dbe64d6e553422bb8e058ea060d5503fa5271`。
 - 新 K0 bundle SHA：`8f97ec9e559830cf62f9ec15e064cce959a42ee65b7ca66a56a3835efb8f7810`。
 - 第四轮审查 manifest SHA：`d06092db16ea55e32a7519e5bf3cc164bc60a174cd9ef187d0a1cd734aa58339`；范围为代码修复，非测试发布批准。
