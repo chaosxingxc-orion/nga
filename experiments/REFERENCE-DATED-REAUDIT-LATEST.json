@@ -1,0 +1,75 @@
+{
+  "schema": "reference-dated-reaudit-latest-v1",
+  "experiment": "E39",
+  "conclusion": "Completed dated re-audit and independent Astra review of current saved evidence for 28 legacy Kev panels; original historical binding gap unchanged.",
+  "runs": 7,
+  "records": 8462,
+  "questions": 11495,
+  "panels": 28,
+  "original_report": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e39_legacy_kev_current_reaudit_20261031_v2/generations/0001/report.json",
+    "sha256": "1d2c08c6dfb67b5311253430967923494b59fc676d0907d4bbecd2234878f59c"
+  },
+  "original_terminal": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e39_legacy_kev_current_reaudit_20261031_v2/generations/0001/COMPLETE.json",
+    "sha256": "8a004289695466cc2095cd3659ca73fb41b581f2701c50f6ec19d6116c360676"
+  },
+  "independent_review": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/astra_reviews/e39_legacy_kev_astra_20261031/review.md",
+    "sha256": "588a9431baa419735055b76943fef841a015cae9d2829fa9d9d28c2dd16bf6d0",
+    "complete_sha256": "49c9584ba95b599df571f6ad93c223ef8b122faf284fcf8fceffc740ec3f1dac",
+    "completed_utc": "2026-10-30T23:54:43.046664+00:00"
+  },
+  "erratum": {
+    "recorded_utc": "2026-10-30T23:57:08.520067+00:00",
+    "path": "/mnt/cephfs/xingchao/experiments/jev/reference_inference/e39_legacy_kev_current_reaudit_20261031_v2/ERRATUM-ASTRA-SCOPE-20261031.md",
+    "sha256": "61a0c621cad1af89b029f53b6695c684b35298c29a8194f958bef80ccdcc7885",
+    "metric_change": false,
+    "review_sha256": "588a9431baa419735055b76943fef841a015cae9d2829fa9d9d28c2dd16bf6d0",
+    "clarifications": [
+      "Auditor source hashes checked before bounded in-memory read adapter; original auditor bytes are not executed unmodified.",
+      "Durable per-file journal covers BEFORE/AFTER hash_phase only, not every internal auditor read.",
+      "Cross-scan equality is path/SHA/bytes; fd/stat identity is checked within reads, not stored across scans."
+    ],
+    "resume_scope": "Successful generation did not reuse cache; reviewer did not execute cache/restart/recovery or unit tests. Safe unattended resume remains unverified.",
+    "reviewer_extra_subgroups": [
+      {
+        "source": "devtools aegis_category",
+        "n": 25,
+        "correct_by_model": {
+          "kev08": 22,
+          "kev4": 23,
+          "kev9": 21
+        }
+      },
+      {
+        "source": "kev08 transfer clean native confidence>=0.99",
+        "n": 13,
+        "correct": 13
+      },
+      {
+        "source": "kev08 decision dbpedia14",
+        "n": 80,
+        "correct": 80
+      }
+    ]
+  },
+  "review_scope": {
+    "bundle_files": 8930,
+    "bundle_bytes": 45876752,
+    "receipts": 8462,
+    "questions": 11495,
+    "panels": 28,
+    "matrix_max_absolute_difference": 1.1102230246251565e-16,
+    "included_original_plan_inputs": 8875,
+    "included_original_plan_bytes": 31876988,
+    "excluded_original_plan_inputs": 77,
+    "excluded_original_plan_bytes": 30878489118
+  },
+  "limits": [
+    "Original 28 absent_legacy_inline_audit labels unchanged.",
+    "Independent reviewer did not reread 77 excluded inputs, query live Docker, rerun unit tests or exercise recovery.",
+    "No inference rerun, training gain, contamination exclusion or Open-Jev JEVal admission."
+  ],
+  "verified_existing_artifacts_utc_date": "2026-11-01"
+}

@@ -116,3 +116,6 @@ Astra K2 第三轮 **PASS_WITH_SCOPE**：独立实际函数探针拒绝同名运
 
 
 归档维护（2026-11-01）：已核实每天运行的三天保留定时器处于 enabled/active，最近一次服务执行成功；补入严格匹配 `inspection-YYYYMMDDTHHMMSS.json` 的本地巡检快照。七项归档测试通过，当前 dry-run 没有到龄文件；current/latest、登记文件、执行输入和 Git 跟踪文件继续受保护。
+
+
+参考证据补录（2026-11-01）：最新基线页原先遗漏了已完成的 E39 结论，现已恢复入口。E39 覆盖七次保存运行、8,462 条记录、11,495 个问题和 28 个旧版 Kev 面板；此前实际 Astra 独立重建全部面板，最大矩阵差 1.11e−16。本次重新核对 47 项结果/审查/终态文件、8,952 项保存扫描前后一致性及 28 面板指标，未重新推理或改动旧数值。原始 `absent_legacy_inline_audit` 限制仍在；独立审查未重读 77 项包外依赖、未验证无人值守恢复。结论索引为 `experiments/REFERENCE-DATED-REAUDIT-LATEST.json`。
