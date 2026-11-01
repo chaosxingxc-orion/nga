@@ -27,7 +27,7 @@ def module(name, root=HERE):
     m = source_module(root/(name+'.py'), name);return m
 C=module('r3_control_resume_cpu');S=module('r3_eval_successor')
 TOOLS={'r3_control_resume_cpu_queue.py','r3_control_resume_cpu.py','r3_resume_recompute.py',
-       'r3_resume_evidence.py','r3_eval_successor.py'}
+       'r3_resume_evidence.py','r3_eval_successor.py','r3_formal_launcher.py'}
 
 
 def verify(path,pin):

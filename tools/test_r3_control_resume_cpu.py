@@ -20,10 +20,16 @@ class CPU(unittest.TestCase):
                 'image':C.IMAGE,'files':{str(self.root/'checkpoint.pt'):'fixture'},'tools':{},
                 'scientific_acceptance':False,'test_read':False}
         self.actual=self.container()
+        self.image={'Id':C.IMAGE,'Config':{'Env':[]}}
+        self.daemon={'runtime':'ascend','cgroupns':'private'}
+        self.image_patch=patch.object(C,'image_config',return_value=self.image);self.image_patch.start();self.addCleanup(self.image_patch.stop)
+        self.policy=C.policy()
+        self.policy_patch=patch.object(C,'policy',return_value=self.policy);self.policy_patch.start();self.addCleanup(self.policy_patch.stop)
+        self.daemon_patch=patch.object(self.policy,'daemon_policy',return_value=self.daemon);self.daemon_patch.start();self.addCleanup(self.daemon_patch.stop)
     def container(self):
         cmd,mounts,args=C.command(self.c,self.config_path,self.pin)
         return {'Id':'b'*64,'Image':C.IMAGE,'Name':'/test-cpu','State':{'Status':'running','ExitCode':0},
-            'HostConfig':{'AutoRemove':False,'Devices':[],'Privileged':False,'NetworkMode':'none'},
+            'HostConfig':{'AutoRemove':False,'Devices':[],'Privileged':False,'NetworkMode':'none','Runtime':'ascend','CgroupnsMode':'private','IpcMode':'private','ShmSize':64*1024**2},
             'Config':{'Entrypoint':['python3'],'Cmd':args,'Env':['TORCH_DEVICE_BACKEND_AUTOLOAD=0']},
             'Mounts':[{'Type':'bind','Source':p,'Destination':p,'RW':rw} for p,rw in mounts.items()]}
     def test_preparation_rejects_previous_validator_before_execution(self):
@@ -54,9 +60,13 @@ class CPU(unittest.TestCase):
     def test_wrong_devices_mounts_and_generation_refused(self):
         for mutate in (lambda a:a['HostConfig'].update(Devices=[{'PathOnHost':'/dev/davinci0'}]),
                        lambda a:a['Mounts'][0].update(RW=not a['Mounts'][0]['RW']),
-                       lambda a:a.update(Image='wrong')):
+                       lambda a:a.update(Image='wrong'),
+                       lambda a:a['Config']['Env'].append('PYTHONPATH=/synthetic/cpu'),
+                       lambda a:a['HostConfig'].update(CapAdd=['SYS_ADMIN']),
+                       lambda a:a['Config'].update(Healthcheck={'Test':['CMD','evil']}),
+                       lambda a:a['HostConfig'].update(Memory=1)):
             a=self.container();mutate(a)
-            with self.assertRaises(ValueError):C.check_container(self.c,self.config_path,self.pin,a)
+            with self.assertRaises((ValueError,RuntimeError)):C.check_container(self.c,self.config_path,self.pin,a)
     def test_terminal_without_marker_not_success(self):
         self.actual['State']['Status']='exited'
         with patch.object(C,'verify',return_value=self.c),patch.object(C,'inspect',return_value=self.actual):
@@ -86,15 +96,17 @@ class CPU(unittest.TestCase):
                 'HostConfig':{'AutoRemove':False,'Devices':[{'PathOnHost':p} for p in
                 ('/dev/davinci_manager','/dev/devmm_svm','/dev/hisi_hdc','/dev/davinci0')]},
                 'Config':{'Entrypoint':['python3'],'Cmd':['-P','/workspace/r3_formal_driver.py','--plan',str(run/'plan.json'),'--attempt','1']}}
-        with patch.object(C,'inspect',return_value=actual):
+        with patch.object(C,'inspect',return_value=actual), patch.object(self.policy,'verify_control_resume_container') as effective:
             with self.assertRaisesRegex(ValueError,'actually complete'):C.released(run/'plan.json',self.pin,validator)
             actual['State']['Status']='exited'
             self.assertEqual(C.released(run/'plan.json',self.pin,validator)[3]['container_id'],'c'*64)
+            effective.assert_called()
             plan.update(control_arm=None,arm='k1',execution_scope='engineering_only',
                         model='/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base',
                         test_read=False,scientific_acceptance=False)
             C.atomic(run/'plan.json',plan)
             self.assertEqual(C.released(run/'plan.json',self.pin,validator)[3]['container_id'],'c'*64)
+            effective.assert_called()
             for field,value in (('model','other'),('test_read',True),('execution_scope','formal'),('arm','k2')):
                 bad=dict(plan,**{field:value});C.atomic(run/'plan.json',bad)
                 with self.assertRaisesRegex(ValueError,'restart identity'):C.released(run/'plan.json',self.pin,validator)

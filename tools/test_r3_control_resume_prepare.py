@@ -115,16 +115,18 @@ class Preparation(unittest.TestCase):
                       'HostConfig':{'NetworkMode':'none','Privileged':False}}
             image={'Id':plan['image_sha256'],'Config':{'Env':[]}}
             observed['Image']=plan['image_sha256']
+            observed['HostConfig'].update(Runtime='ascend',CgroupnsMode='private')
             observed['Config']['Cmd']=['-P','/workspace/r3_formal_driver.py','--plan',r['plan'],'--attempt','1']
             observed['HostConfig'].update(AutoRemove=False,ShmSize=64*1024**3,IpcMode='private',
                 Ulimits=[{'Name':'memlock','Soft':-1,'Hard':-1},{'Name':'stack','Soft':67108864,'Hard':67108864}],
                 Devices=[{'PathOnHost':'/dev/'+x,'PathInContainer':'/dev/'+x,'CgroupPermissions':'rwm'}
                          for x in ('davinci_manager','devmm_svm','hisi_hdc',f'davinci{plan["chip"]}')])
-            launch.verify_control_resume_container(plan,r['plan'],1,observed,image)
+            defaults={'runtime':'ascend','cgroupns':'private'}
+            launch.verify_control_resume_container(plan,r['plan'],1,observed,image,defaults)
             mounts[0]['RW']=True
-            with self.assertRaisesRegex(RuntimeError,'mounts'):launch.verify_control_resume_container(plan,r['plan'],1,observed,image)
+            with self.assertRaisesRegex(RuntimeError,'mounts'):launch.verify_control_resume_container(plan,r['plan'],1,observed,image,defaults)
             mounts[0]['RW']=False;observed['Config']['Env'].append('HF_HUB_OFFLINE=0')
-            with self.assertRaisesRegex(RuntimeError,'environment'):launch.verify_control_resume_container(plan,r['plan'],1,observed,image)
+            with self.assertRaisesRegex(RuntimeError,'environment'):launch.verify_control_resume_container(plan,r['plan'],1,observed,image,defaults)
 
     def test_finalized_plan_rejects_contract_source_environment_and_identity_changes(self):
         r=self.finalized();plan=P.R.load(r['plan']);P.verify_launch(plan)

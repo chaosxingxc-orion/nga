@@ -80,13 +80,22 @@ class Formal(unittest.TestCase):
                   'Cmd':['-P','/workspace/r3_formal_driver.py','--plan','/run/plan.json','--attempt','1'],
                   'Env':['PATH=/bin','HF_HUB_OFFLINE=1']},
                   'HostConfig':{'NetworkMode':'none','Privileged':False,'AutoRemove':False,
-                     'ShmSize':64*1024**3,'IpcMode':'private',
+                     'ShmSize':64*1024**3,'IpcMode':'private','Runtime':'ascend','CgroupnsMode':'private',
                      'Ulimits':[{'Name':'memlock','Soft':-1,'Hard':-1},
                                 {'Name':'stack','Soft':67108864,'Hard':67108864}],
                      'Devices':[{'PathOnHost':'/dev/'+x,'PathInContainer':'/dev/'+x,'CgroupPermissions':'rwm'}
                                 for x in ('davinci_manager','devmm_svm','hisi_hdc','davinci1')]}}
-        L.verify_control_resume_container(p,'/run/plan.json',1,observed,image)
+        L.verify_control_resume_container(p,'/run/plan.json',1,observed,image,daemon={'runtime':'ascend','cgroupns':'private'})
+        legacy=copy.deepcopy(observed);legacy['HostConfig']['CgroupnsMode']='host'
+        L.verify_control_resume_container(p,'/run/plan.json',1,legacy,image,daemon={'runtime':'ascend','cgroupns':'host'})
+        with self.assertRaisesRegex(RuntimeError,'CgroupnsMode'):
+            L.verify_control_resume_container(p,'/run/plan.json',1,legacy,image,daemon={'runtime':'ascend','cgroupns':'private'})
         for mutate in (lambda d:d['HostConfig'].update(Privileged=True),
+                       lambda d:d['Config'].update(Healthcheck={'Test':['CMD-SHELL','touch /run/probe']}),
+                       lambda d:d['HostConfig'].update(Memory=67108864),
+                       lambda d:d['HostConfig'].update(NanoCpus=1000000),
+                       lambda d:d['HostConfig'].update(Runtime='custom'),
+                       lambda d:d['HostConfig'].update(Init=True),
                        lambda d:d['HostConfig'].update(NetworkMode='host'),
                        lambda d:d['Config'].update(Entrypoint=['bash']),
                        lambda d:d['Mounts'][0].update(RW=True),
@@ -100,7 +109,7 @@ class Formal(unittest.TestCase):
                        lambda d:d['HostConfig']['Ulimits'][0].update(Hard=1)):
             bad=copy.deepcopy(observed);mutate(bad)
             with self.assertRaises(RuntimeError):
-                L.verify_control_resume_container(p,'/run/plan.json',1,bad,image)
+                L.verify_control_resume_container(p,'/run/plan.json',1,bad,image,daemon={'runtime':'ascend','cgroupns':'private'})
 
     def test_retained_container_id_must_match_receipt(self):
         with tempfile.TemporaryDirectory() as td:

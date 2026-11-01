@@ -316,7 +316,52 @@ def environment_map(items):
     return result
 
 
-def verify_control_resume_container(p, plan_path, attempt_no, observed, image=None):
+def daemon_policy():
+    """Observe defaults from the actual daemon, not from the candidate container."""
+    value=json.loads(subprocess.check_output(['docker','info','--format','{{json .}}'],text=True))
+    require(value.get('DefaultRuntime') and value.get('CgroupVersion') in ('1','2'), 'unknown Docker defaults')
+    return {'runtime':value['DefaultRuntime'],
+            'cgroupns':'private' if value['CgroupVersion']=='2' else 'host'}
+
+
+def verify_effective_policy(observed, image, environment, *, daemon=None):
+    """Shared CPU/NPU execution policy; command, mounts/devices checked by caller."""
+    require(image is not None and observed.get('Image')==image.get('Id'), 'pinned image configuration required')
+    daemon=daemon_policy() if daemon is None else daemon
+    cfg=observed.get('Config',{});host=observed.get('HostConfig',{});defaults=image.get('Config',{})
+    expected=environment_map(defaults.get('Env') or []);expected.update(environment)
+    require(environment_map(cfg.get('Env'))==expected,'retained environment differs')
+    for key in ('User','WorkingDir','StopSignal'):
+        require((cfg.get(key) or '')==(defaults.get(key) or ''),'retained image default differs: '+key)
+    require(cfg.get('Healthcheck')==defaults.get('Healthcheck'),'retained healthcheck differs')
+    for key in ('Tty','OpenStdin','StdinOnce'):
+        require(not cfg.get(key),'retained interactive configuration: '+key)
+    for key in ('CapAdd','CapDrop','SecurityOpt','DeviceRequests','DeviceCgroupRules','GroupAdd',
+                'Binds','VolumesFrom','Links','ExtraHosts','Dns','DnsSearch','DnsOptions','Sysctls','Tmpfs',
+                'PortBindings','StorageOpt','Annotations','LxcConf','VolumeDriver','CgroupParent',
+                'Cgroup','UsernsMode','Isolation','ContainerIDFile','CpusetCpus','CpusetMems',
+                'BlkioWeightDevice','BlkioDeviceReadBps','BlkioDeviceWriteBps','BlkioDeviceReadIOps','BlkioDeviceWriteIOps'):
+        require(not host.get(key),'retained extra configuration: '+key)
+    for key in ('Memory','MemoryReservation','MemorySwap','NanoCpus','CpuShares','CpuPeriod','CpuQuota',
+                'CpuRealtimePeriod','CpuRealtimeRuntime','CpuCount','CpuPercent','BlkioWeight',
+                'IOMaximumIOps','IOMaximumBandwidth','OomScoreAdj'):
+        require(host.get(key,0)==0,'retained resource override: '+key)
+    for key in ('MemorySwappiness','PidsLimit'):
+        require(host.get(key) is None,'retained resource override: '+key)
+    for key in ('Init','OomKillDisable','ReadonlyRootfs','PublishAllPorts','Privileged','AutoRemove'):
+        require(host.get(key) in (None,False),'retained host flag differs: '+key)
+    require(host.get('Runtime')==daemon['runtime'],'retained runtime differs')
+    require(host.get('CgroupnsMode')==daemon['cgroupns'],'retained namespace differs: CgroupnsMode')
+    require(host.get('NetworkMode')=='none','retained network differs')
+    for key in ('PidMode','UTSMode'):
+        require(not host.get(key),'retained namespace differs: '+key)
+    require(host.get('IpcMode') in ('private',''),'retained IPC differs')
+    restart=host.get('RestartPolicy') or {}
+    require(restart.get('Name','no') in ('no','') and restart.get('MaximumRetryCount',0)==0,
+            'retained restart policy differs')
+
+
+def verify_control_resume_container(p, plan_path, attempt_no, observed, image=None, daemon=None):
     """Bind retained effective configuration to canonical command and image defaults."""
     require(image is not None and image.get('Id') == p['image_sha256'],
             'pinned image configuration required')
@@ -333,6 +378,7 @@ def verify_control_resume_container(p, plan_path, attempt_no, observed, image=No
             and all(m.get('Type')=='bind' and m.get('Propagation','rprivate')=='rprivate' for m in mounts),
             'control restart retained mounts differ')
     cfg=observed.get('Config',{}); host=observed.get('HostConfig',{}); defaults=image.get('Config',{})
+    verify_effective_policy(observed,image,p['environment'],daemon=daemon)
     require(observed.get('Image') == image['Id'] and
             cfg.get('Entrypoint')==['python3'] and
             cfg.get('Cmd')==['-P','/workspace/r3_formal_driver.py','--plan',str(plan_path),'--attempt',str(attempt_no)] and
@@ -354,8 +400,8 @@ def verify_control_resume_container(p, plan_path, attempt_no, observed, image=No
     wanted={'/dev/'+x for x in ('davinci_manager','devmm_svm','hisi_hdc',f'davinci{p["chip"]}')}
     require(len(devices)==4 and {(x.get('PathOnHost'),x.get('PathInContainer'),x.get('CgroupPermissions'))
             for x in devices} == {(x,x,'rwm') for x in wanted}, 'retained device configuration differs')
-    for key in ('PidMode','UTSMode','CgroupnsMode'):
-        allowed=('', 'private') if key=='CgroupnsMode' else ('',)
+    for key in ('PidMode','UTSMode'):
+        allowed=('',)
         require((host.get(key) or '') in allowed, 'retained namespace differs: '+key)
     require(host.get('IpcMode') in ('private',''), 'retained IPC differs')
     for key in ('ReadonlyRootfs','PublishAllPorts'):

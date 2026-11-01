@@ -24,6 +24,17 @@ VERIFIER='c9eb4c819bf5a15ec4231e5c0b89499aae10de9a9bb9566a022c7ccf1b23ac87'
 # Deployed frozen generations retain their original pins and require a new
 # reconstruction generation for acceptance under this implementation.
 VALIDATOR = '15abf671a50d6d5bd559e830e17b818e762701ec208ead55c220a939c93ccea9'
+POLICY = 'c5d20267594b12de2032c5d5ac709369e7e24ecdfd25bbd72d4d0e87484f4ce0'
+
+def policy():
+    path=HERE/'r3_formal_launcher.py'
+    require(sha(path)==POLICY,'effective container policy differs')
+    return source_module(path,'effective_container_policy')
+
+def image_config():
+    image=json.loads(subprocess.check_output(['docker','image','inspect',IMAGE],text=True))[0]
+    require(image.get('Id')==IMAGE,'CPU image differs')
+    return image
 
 def source_module(path, name):
     """Compile the actual source bytes; never execute import-cache bytecode."""
@@ -92,6 +103,7 @@ def released(plan_path,pin,validator):
             'retained restart identity differs')
     require(actual['State']['Status'] in ('exited','dead') and actual['State']['ExitCode']==end['exit_code']==0,
             'restart not actually complete')
+    policy().verify_control_resume_container(plan,str(plan_path),end['attempt'],actual,image_config())
     require(not actual['HostConfig'].get('AutoRemove',True),'restart container not retained')
     require(actual['Config'].get('Entrypoint')==['python3']
             and actual['Config'].get('Cmd')==['-P','/workspace/r3_formal_driver.py','--plan',str(plan_path),
@@ -114,7 +126,7 @@ def prepare(plan_path,pin,out,container):
         p=safe(filename)
         require(not p.is_relative_to(out) and not out.is_relative_to(p.parent),'CPU output overlaps input')
     out.mkdir(parents=True);code=out/'code';code.mkdir()
-    for name in ('r3_control_resume_cpu.py','r3_resume_evidence.py','r3_resume_recompute.py'):
+    for name in ('r3_control_resume_cpu.py','r3_resume_evidence.py','r3_resume_recompute.py','r3_formal_launcher.py'):
         shutil.copyfile(HERE/name,code/name)
     files={**files,str(target):sha(target),str(safe(plan_path)):sha(plan_path)}
     source=load(target)
@@ -139,9 +151,10 @@ def verify(path,pin):
             and c.get('scientific_acceptance') is False and c.get('test_read') is False,'CPU scope differs')
     require(safe(path)==safe(c['out'])/'CONFIG.json','CPU config ownership differs')
     require(c['tools'].get(str(Path(c['out'])/'code/r3_resume_recompute.py'))==VERIFIER
-            and c['tools'].get(str(Path(c['out'])/'code/r3_resume_evidence.py'))==VALIDATOR,'CPU tools differ')
+            and c['tools'].get(str(Path(c['out'])/'code/r3_resume_evidence.py'))==VALIDATOR
+            and c['tools'].get(str(Path(c['out'])/'code/r3_formal_launcher.py'))==POLICY,'CPU tools differ')
     require(set(c['tools'])=={str(Path(c['out'])/'code'/name) for name in
-            ('r3_control_resume_cpu.py','r3_resume_recompute.py','r3_resume_evidence.py')},'CPU tool inventory differs')
+            ('r3_control_resume_cpu.py','r3_resume_recompute.py','r3_resume_evidence.py','r3_formal_launcher.py')},'CPU tool inventory differs')
     require(str(Path(__file__).resolve()) in c['tools'], 'CPU controller outside frozen closure')
     for filename,digest in {**c['files'],**c['tools']}.items():
         require(sha(filename)==digest,'CPU input changed: '+filename)
@@ -156,10 +169,14 @@ def command(c,path,pin):
     args=['-B','-P',str(out/'code/r3_control_resume_cpu.py'),'worker','--config',str(path),'--sha256',pin]
     return cmd+['--entrypoint','python3',IMAGE,*args],mounts,args
 
-def check_container(c,path,pin,actual):
+def check_container(c,path,pin,actual,image=None,daemon=None):
     _,mounts,args=command(c,path,pin)
     require(actual['Image']==IMAGE and actual['Name'].lstrip('/')==c['container'],'CPU identity differs')
     host=actual['HostConfig'];cfg=actual['Config']
+    P=policy()
+    P.verify_effective_policy(actual,image_config() if image is None else image,
+                              {'TORCH_DEVICE_BACKEND_AUTOLOAD':'0'},daemon=daemon)
+    require(host.get('ShmSize')==64*1024**2 and not host.get('Ulimits'),'CPU resource settings differ')
     require(host.get('AutoRemove') is False and not host.get('Devices') and not host.get('Privileged')
             and host.get('NetworkMode')=='none','CPU device/lifecycle differs')
     require(cfg.get('Entrypoint')==['python3'] and cfg.get('Cmd')==args
