@@ -20,7 +20,10 @@ import time
 HERE=Path(__file__).resolve().parent
 IMAGE='sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7'
 VERIFIER='0b3963432140b0860dad92f14f5f8079b884d9d4e6e5114d7cd902f10254803e'
-VALIDATOR='ea8e367417bb1b0990e9c67f4d2cecfb8c70c2c7589c9850e298d7d36c3c1be3'
+# New preparations require the strengthened complete-Docker-command validator.
+# Deployed frozen generations retain their original pins and require a new
+# reconstruction generation for acceptance under this implementation.
+VALIDATOR='b205ba9fa9970c16a58a9869bd85962493b48f05e82671ec1733da9c11b063c2'
 
 def require(ok,why):
     if not ok:raise ValueError(why)

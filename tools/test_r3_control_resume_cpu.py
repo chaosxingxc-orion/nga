@@ -26,6 +26,24 @@ class CPU(unittest.TestCase):
             'HostConfig':{'AutoRemove':False,'Devices':[],'Privileged':False,'NetworkMode':'none'},
             'Config':{'Entrypoint':['python3'],'Cmd':args,'Env':['TORCH_DEVICE_BACKEND_AUTOLOAD=0']},
             'Mounts':[{'Type':'bind','Source':p,'Destination':p,'RW':rw} for p,rw in mounts.items()]}
+    def test_preparation_rejects_previous_validator_before_execution(self):
+        legacy='ea8e367417bb1b0990e9c67f4d2cecfb8c70c2c7589c9850e298d7d36c3c1be3'
+        self.assertEqual(C.sha(C.HERE/'r3_resume_evidence.py'), C.VALIDATOR)
+        with patch.object(C,'VALIDATOR',legacy), patch.object(C,'released') as release:
+            with self.assertRaisesRegex(ValueError,'CPU implementation differs'):
+                C.prepare(self.root/'plan.json',self.pin,self.root/'new','new-cpu')
+            release.assert_not_called()
+            self.assertFalse((self.root/'new').exists())
+
+    def test_old_validator_inventory_cannot_be_relabelled_current(self):
+        config=dict(self.c,tools={
+            str(self.out/'code/r3_resume_recompute.py'):C.VERIFIER,
+            str(self.out/'code/r3_resume_evidence.py'):
+                'ea8e367417bb1b0990e9c67f4d2cecfb8c70c2c7589c9850e298d7d36c3c1be3'})
+        C.atomic(self.config_path,config)
+        with self.assertRaisesRegex(ValueError,'CPU tools differ'):
+            C.verify(self.config_path,C.sha(self.config_path))
+
     def test_detached_cpu_command_and_readonly_inputs(self):
         command,mounts,args=C.command(self.c,self.config_path,self.pin)
         self.assertEqual(command[:3],['docker','run','-d']);self.assertNotIn('--rm',command)
