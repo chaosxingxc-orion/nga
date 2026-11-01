@@ -55,5 +55,30 @@ class Queue(unittest.TestCase):
         with patch.object(Q,'module',return_value=SimpleNamespace(identity=lambda p:'wrong')):
             with self.assertRaisesRegex(ValueError,'identity'):Q.tick(self.job)
 
+    def test_direct_successor_binds_exact_plan_and_preparation(self):
+        R=Q.module('r3_resume_evidence')
+        plan={'chip':1,'out':str(self.restart),'review_sha256':'PENDING'}
+        self.put(self.restart/'plan.json',plan)
+        self.put(self.restart/'LAUNCH_PREPARATION.json',{})
+        successor=self.root/'successor.json'
+        entry={'id':'qo','chip':1,'next_kind':'training',
+               'next_execution':str(self.restart/'plan.json'),'next_sha256':R.identity(plan)}
+        def write_manifest():
+            self.put(successor,{'schema':'r3-eval-successor-v1','jobs':[entry]})
+            manifest=self.root/'queue.json'
+            self.put(manifest,{'schema':'r3-control-resume-cpu-queue-v1','interval_seconds':600,
+                'scientific_acceptance':False,'test_read':False,
+                'tools':{str(Q.HERE/n):Q.C.sha(Q.HERE/n) for n in Q.TOOLS},
+                'successor_queue':str(successor),'successor_queue_sha256':Q.C.sha(successor),
+                'jobs':[self.job]})
+            return manifest,Q.C.sha(manifest)
+        args=write_manifest();Q.verify(*args)
+        entry['next_sha256']='0'*64
+        with self.assertRaisesRegex(ValueError,'source differs'):Q.verify(*write_manifest())
+        entry['next_sha256']=R.identity(plan);entry['next_kind']='evaluation'
+        with self.assertRaisesRegex(ValueError,'not bound'):Q.verify(*write_manifest())
+        entry['next_kind']='training';(self.restart/'LAUNCH_PREPARATION.json').unlink()
+        with self.assertRaisesRegex(ValueError,'preparation missing'):Q.verify(*write_manifest())
+
 
 if __name__=='__main__':unittest.main()

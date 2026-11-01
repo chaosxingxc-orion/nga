@@ -60,7 +60,11 @@ def inspect(name):
 
 def released(plan_path,pin,validator):
     plan=load(plan_path);root=safe(plan_path).parent
-    require(validator.identity(plan)==pin and plan.get('control_arm') in ('K1-QO','K1-PT')
+    base = (plan.get('control_arm') is None
+            and plan.get('model')=='/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base'
+            and plan.get('arm')=='k1' and plan.get('execution_scope')=='engineering_only'
+            and plan.get('test_read') is False and plan.get('scientific_acceptance') is False)
+    require(validator.identity(plan)==pin and (base or plan.get('control_arm') in ('K1-QO','K1-PT'))
             and plan.get('validation_kind')=='current_k1_resume_contract', 'control restart identity differs')
     target=root/'SOURCE_PLAN.json'
     files=validator.validate(plan_path,pin,load(target))
@@ -197,7 +201,7 @@ def worker(path,pin):
             rc=p.returncode
     except BaseException as e:
         atomic(out/'FAILURE.json',{'type':type(e).__name__,'reason':str(e)[:500]})
-    end={'exit_code':rc,'config_sha256':pin,'utc_seconds':time.time(),'scientific_acceptance':False}
+    end={'exit_code':rc,'config_sha256':pin,'utc_seconds':time.time(),'scientific_acceptance':False,'test_read':False}
     if rc==0:end['result_sha256']=sha(out/'RECOMPUTED.json')
     atomic(out/'EXIT.json',end)
     return rc

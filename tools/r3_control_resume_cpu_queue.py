@@ -27,22 +27,31 @@ def verify(path,pin):
     for p,h in d['tools'].items():
         C.require(C.safe(p).parent==HERE and C.sha(p)==h,'CPU queue code changed')
     C.require(C.sha(d['successor_queue'])==d['successor_queue_sha256'],'restart successor queue changed')
-    sources=C.load(d['successor_queue'])['jobs'];jobs=d['jobs']
+    successor=C.load(d['successor_queue']);sources=successor['jobs'];jobs=d['jobs']
     C.require(jobs and len({j['id'] for j in jobs})==len(jobs),'duplicate/empty CPU jobs')
     for field in ('out','container','restart_out'):
         C.require(len({j[field] for j in jobs})==len(jobs),'duplicate CPU '+field)
     for j in jobs:
         C.safe(j['out']);C.safe(j['restart_out'])
-        matched=[r for r in sources if r['id']==j['id'] and r['out']==j['restart_out']]
+        direct=successor.get('schema')=='r3-eval-successor-v1'
+        if direct:
+            matched=[r for r in sources if r['id']==j['id']
+                     and r.get('next_kind')=='training'
+                     and r.get('next_execution')==str(Path(j['restart_out'])/'plan.json')]
+        else:
+            matched=[r for r in sources if r['id']==j['id'] and r['out']==j['restart_out']]
         C.require(len(matched)==1,'CPU restart not bound to successor')
         C.require(j['out']!=j['restart_out'],'CPU output overlaps restart')
         receipt=Path(j['restart_out'])/'LAUNCH_PREPARATION.json'
         if receipt.exists():
             R=module('r3_resume_evidence');r=matched[0]
             actual=C.load(Path(j['restart_out'])/'plan.json')
-            C.require(actual.get('chip')==r['chip'] and actual.get('out')==j['restart_out']
-                      and R.identity(C.load(Path(j['restart_out'])/'SOURCE_PLAN.json'))==r['source_pin'],
+            source_bound=(R.identity(actual)==r['next_sha256'] if direct else
+                          R.identity(C.load(Path(j['restart_out'])/'SOURCE_PLAN.json'))==r['source_pin'])
+            C.require(actual.get('chip')==r['chip'] and actual.get('out')==j['restart_out'] and source_bound,
                       'CPU restart source differs from queue')
+        elif direct:
+            C.require(False,'direct restart preparation missing')
     return d
 
 

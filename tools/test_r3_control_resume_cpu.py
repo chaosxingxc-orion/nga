@@ -90,6 +90,15 @@ class CPU(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'actually complete'):C.released(run/'plan.json',self.pin,validator)
             actual['State']['Status']='exited'
             self.assertEqual(C.released(run/'plan.json',self.pin,validator)[3]['container_id'],'c'*64)
+            plan.update(control_arm=None,arm='k1',execution_scope='engineering_only',
+                        model='/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base',
+                        test_read=False,scientific_acceptance=False)
+            C.atomic(run/'plan.json',plan)
+            self.assertEqual(C.released(run/'plan.json',self.pin,validator)[3]['container_id'],'c'*64)
+            for field,value in (('model','other'),('test_read',True),('execution_scope','formal'),('arm','k2')):
+                bad=dict(plan,**{field:value});C.atomic(run/'plan.json',bad)
+                with self.assertRaisesRegex(ValueError,'restart identity'):C.released(run/'plan.json',self.pin,validator)
+            C.atomic(run/'plan.json',plan)
             actual['Id']='d'*64
             with self.assertRaisesRegex(ValueError,'identity'):C.released(run/'plan.json',self.pin,validator)
 
