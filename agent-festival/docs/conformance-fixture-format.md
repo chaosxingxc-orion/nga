@@ -61,6 +61,8 @@
 | 侧 | 验证器 | 运行方式 |
 |---|---|---|
 | Python | `schema/{ledger,adoption,judgment,release}.py`（jsonschema）+ 共享 harness `_suite.py` | `python3 schema/<name>.py` |
+**判定域声明（0.2.0 合同文本，RFC 8785 规范级先例）**：浮点语法的 arbitration_seq 以 **float64 判定域**判定（RFC 8785 把数域钉为 ES double），不以精确十进制判定——奇数孪生夹具 seq-odd-float-twin 钉住此语义（9007199254740993.0 折损为 ..992 仍严格递增=双侧 ACCEPT；精确十进制读者会判 ..993.0 > ..994 而 REJECT）。
+
 | Go | `cmd/{ledger,adopt,judgment,release}`（santhosh+regexp2 经 internal/schemalib）+ 共享 runner `internal/suite` | `go run ./cmd/<name>` |
 
 关键纪律：

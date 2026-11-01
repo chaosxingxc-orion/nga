@@ -1,0 +1,103 @@
+{
+  "ledger_version": "0.1.0",
+  "events": [
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 9007199254740991,
+      "identity": {
+        "business_request_id": "br-twin",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-twin"
+      },
+      "versions": {
+        "evidence": "ev-1",
+        "rule": "r-1",
+        "model": "m-1",
+        "readout": "ro-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "adopted",
+        "detail": "fixture"
+      },
+      "accountability": {
+        "session": "s-1",
+        "skill": "sk-1",
+        "role": "employee"
+      },
+      "idempotency": {
+        "operation_id": "op-twin",
+        "payload_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://twin",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        }
+      ]
+    },
+    {
+      "event_type": "effect",
+      "arbitration_seq": 9007199254740992.0,
+      "identity": {
+        "business_request_id": "br-twin",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-twin"
+      },
+      "versions": {
+        "evidence": "ev-1",
+        "rule": "r-1",
+        "model": "m-1",
+        "readout": "ro-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "dispatched",
+        "detail": "fixture"
+      },
+      "accountability": {
+        "session": "s-1",
+        "skill": "sk-1",
+        "role": "employee"
+      },
+      "idempotency": {
+        "operation_id": "op-twin",
+        "payload_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    },
+    {
+      "event_type": "effect",
+      "arbitration_seq": 9007199254740994,
+      "identity": {
+        "business_request_id": "br-twin",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-twin"
+      },
+      "versions": {
+        "evidence": "ev-1",
+        "rule": "r-1",
+        "model": "m-1",
+        "readout": "ro-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "completed",
+        "detail": "fixture"
+      },
+      "accountability": {
+        "session": "s-1",
+        "skill": "sk-1",
+        "role": "employee"
+      },
+      "idempotency": {
+        "operation_id": "op-twin",
+        "payload_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    }
+  ],
+  "_expect": "ACCEPT: the odd-twin pin — arbitration_seq 9007199254740993.0 (float syntax) folds to 9007199254740992 in the float64 judgment domain (RFC 8785 pins the number domain to ES double); the sequence [..991 (int), ..993.0 (folds to ..992), ..994 (int)] is strictly increasing in the folded domain on BOTH oracle stacks. This pins the DECLARED judgment domain: float-syntax seqs are judged as float64, not as exact decimals — an exact-decimal reader would see ..993.0 > ..994 and REJECT (zcode golden-vector precedent)"
+}

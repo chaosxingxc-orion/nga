@@ -197,8 +197,8 @@ def ledger_errors(doc: dict) -> list[str]:
             pins[op] = (e["identity"], e["versions"], e.get("accountability"))
         elif e["event_type"] == "effect" and op in pins:
             if (e["identity"], e["versions"], e.get("accountability")) != pins[op]:
-                errs.append(f"events/{i}: effect event's attribution (identity/versions/"
-                            f"[LEDGER.ATTRIBUTION_DIVERGENCE] accountability) differs from the adopted pin for operation "
+                errs.append(f"[LEDGER.ATTRIBUTION_DIVERGENCE] events/{i}: effect event's attribution (identity/versions/"
+                            f"accountability) differs from the adopted pin for operation "
                             f"{op!r} — the machine stamps the winner's pin on every effect "
                             f"event; a divergence is a bypass write, not a machine transition")
 
@@ -287,8 +287,8 @@ def main() -> int:
     # corpus that shrank without its pin rebased must fail here too
     n_valid = len(list((ex / "valid").glob("*.json")))
     n_invalid = len(list((ex / "invalid").glob("*.json")))
-    if (n_valid, n_invalid) != (9, 26):
-        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 9+26 (corpus count changed?)")
+    if (n_valid, n_invalid) != (10, 26):
+        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 10+26 (corpus count changed?)")
         bad += 1
     for e in check_status_lockstep() + check_lockstep():
         print(f"[ledger] FAIL {e}")

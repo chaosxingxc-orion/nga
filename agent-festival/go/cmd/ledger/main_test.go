@@ -13,7 +13,7 @@ import (
 // had to repay).
 func TestLedgerSuiteGreenAndCounted(t *testing.T) {
 	buf := suite.Capture(func() { run() })
-	if !strings.Contains(buf, "[ledger] 9 must-accept + 26 must-reject, 0 failures") {
+	if !strings.Contains(buf, "[ledger] 10 must-accept + 26 must-reject, 0 failures") {
 		t.Fatalf("ledger summary line wrong (corpus count changed or suite red):\n%s", buf)
 	}
 	if !strings.Contains(buf, "ALL GREEN") {

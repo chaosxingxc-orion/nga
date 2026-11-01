@@ -1,8 +1,10 @@
 package ledger
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -102,5 +104,27 @@ func TestErrorsDoesNotMutateInput(t *testing.T) {
 	}
 	if string(before) != string(after) {
 		t.Fatalf("Errors mutated its input:\nbefore %s\nafter  %s", before, after)
+	}
+}
+
+// TestOddFloatTwinPinsFoldedDomain pins the DECLARED float64 judgment domain
+// (E4, RFC 8785 precedent — zcode golden-vector form): the float-syntax seq
+// 9007199254740993.0 folds to 9007199254740992 in float64; the fixture's
+// sequence is increasing only in the folded domain. An exact-decimal reader
+// would reject it — both oracle stacks must accept.
+func TestOddFloatTwinPinsFoldedDomain(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join(filepath.Dir(SchemaPath), "examples", "ledger", "valid", "seq-odd-float-twin.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]any
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.UseNumber()
+	if err := dec.Decode(&doc); err != nil {
+		t.Fatal(err)
+	}
+	delete(doc, "_expect")
+	if errs := Errors(doc); len(errs) > 0 {
+		t.Fatalf("odd-float-twin rejected in the folded domain: %v", errs)
 	}
 }
