@@ -46,7 +46,9 @@ class Benchmark(unittest.TestCase):
             if str(path)==str(self.transform):return SimpleNamespace(transform=lambda raw:self.candidate.read_bytes())
             return self.T
         self.loader=loader
-        self.npu=SimpleNamespace(synchronize=lambda:None,reset_peak_memory_stats=lambda:None,max_memory_reserved=lambda:2*1024**3)
+        self.npu=SimpleNamespace(synchronize=lambda:None,reset_peak_memory_stats=lambda:None,max_memory_reserved=lambda:2*1024**3,
+            manual_seed_all=lambda seed:None,get_rng_state_all=lambda:[torch.get_rng_state()],
+            _is_in_bad_fork=lambda:False)
 
     def execute(self):
         transformer=SimpleNamespace(AutoTokenizer=SimpleNamespace(from_pretrained=lambda p:SimpleNamespace(pad_token_id=0)))
@@ -80,5 +82,41 @@ class Benchmark(unittest.TestCase):
         self.T.synthetic_loss=changed
         with self.assertRaisesRegex(ValueError,'candidate changed'):self.execute()
         self.assertFalse((self.out/'RESULT.json').exists())
+        diagnostic=json.loads((self.out/'CANDIDATE_MISMATCH.json').read_text())
+        self.assertFalse(diagnostic['gradient_values_equal'])
+        self.assertEqual(diagnostic['mismatched_gradient_elements'],1)
+
+    def test_reference_mismatch_is_diagnosed_before_candidate(self):
+        original=self.T.step_loss
+        def unstable(*a,**kw):
+            value=original(*a,**kw)
+            if len(self.calls)==2:self.weight.grad[0]+=0.125
+            return value
+        self.T.step_loss=unstable
+        with self.assertRaisesRegex(ValueError,'reference repeat not bit-exact'):self.execute()
+        d=json.loads((self.out/'REFERENCE_REPEAT.json').read_text())
+        self.assertEqual(len(self.calls),2)
+        self.assertTrue(d['loss_equal']);self.assertTrue(d['statistics_equal'])
+        self.assertFalse(d['exact']);self.assertEqual(d['first_differing_gradients'],['w'])
+        self.assertEqual(d['gradient_max_abs_difference'],.125)
+        self.assertEqual(d['reference_rng']['rng_before'],d['repeat_rng']['rng_before'])
+        self.assertFalse((self.out/'RESULT.json').exists())
+
+    def test_accelerator_seeding_failure_is_not_swallowed(self):
+        self.npu.manual_seed_all=lambda seed:(_ for _ in ()).throw(RuntimeError('seed failed'))
+        with self.assertRaisesRegex(RuntimeError,'seed failed'):self.execute()
+        self.assertEqual(self.calls,[])
+        self.assertFalse((self.out/'RESULT.json').exists())
+
+    def test_diagnostics_keep_each_exactness_component_separate(self):
+        a={'loss':1.,'stats':{'tokens':20}};g={'w':torch.tensor([1.,2.])}
+        self.assertTrue(B.equality_diagnostic(torch,a,g,a,g)['exact'])
+        for b,h,field in [(dict(a,loss=1.1),g,'loss_equal'),
+                          (dict(a,stats={'tokens':21}),g,'statistics_equal'),
+                          (a,{},'gradient_keys_equal'),
+                          (a,{'w':torch.tensor([1.,2.1])},'gradient_values_equal')]:
+            d=B.equality_diagnostic(torch,a,g,b,h)
+            self.assertFalse(d[field]);self.assertFalse(d['exact'])
+            json.dumps(d,allow_nan=False)
 
 if __name__=='__main__':unittest.main()
