@@ -55,12 +55,23 @@ def validate_bundle(path, pin, model):
     require(len(doc.get('checks', {})) == 6 and {Path(p).name for p in doc['checks']} == expected,
             'precheck bundle incomplete')
     require(doc.get('k0_report') in doc.get('inputs', {}), 'unbound K0 report')
+    # Consumption must retain the same provenance closure that `run()` emits;
+    # six `{ok:true}` stubs are not evidence of a reconstructed K0 score.
+    required_inputs = {doc.get('k0_report')}
+    input_names = set(doc.get('inputs', {}))
+    require(all(isinstance(x, str) and x in input_names for x in required_inputs),
+            'precheck provenance inventory incomplete')
+    require(any(Path(x).name == 'SCORING_RECEIPT.track_kt.json' for x in input_names),
+            'precheck scoring receipt not bound')
+    require(any(Path(x).name == 'r3_fresh_prechecks.py' for x in input_names),
+            'precheck generator not bound')
     for filename, digest in {**doc['inputs'], **doc['checks']}.items():
         file = Path(filename)
         require(file.is_absolute() and not any(p.is_symlink() for p in (file, *file.parents)), 'unsafe precheck dependency')
         require(sha(file) == digest, 'precheck dependency changed: '+filename)
     for filename in doc['checks']:
-        require(json.loads(Path(filename).read_text()).get('ok') is True, 'failed precheck')
+        check = json.loads(Path(filename).read_text())
+        require(check.get('ok') is True and len(check) > 1, 'failed or empty precheck')
     validate_baseline(json.loads(Path(doc['k0_report']).read_text()), str(model))
     return doc
 

@@ -35,11 +35,14 @@ class Fresh(unittest.TestCase):
             for name in ['a_constant_uniform_gold_position','d_kev_files_vs_manifest',
                          'b_decision-v7_dev','b_transfer-v4_dev',
                          'c_decision-v7_k0_dev','c_transfer-v4_k0_dev']:
-                p=root/(name+'.json');p.write_text('{"ok":true}');checks[str(p)]=F.sha(p)
+                p=root/(name+'.json');p.write_text('{"ok":true,"evidence":"fixture"}');checks[str(p)]=F.sha(p)
             bundle=root/'K0_PRECHECKS.json'
+            receipt=root/'SCORING_RECEIPT.track_kt.json';receipt.write_text('{"receipt":true}')
+            generator=root/'r3_fresh_prechecks.py';generator.write_text('# fixture\n')
             d={'schema':'r3-fresh-k0-prechecks-v1','status':'PASS','scientific_acceptance':False,
                'test_read':False,'model':'model','k0_report':str(report),
-               'inputs':{str(report):F.sha(report)},'checks':checks}
+               'inputs':{str(report):F.sha(report),
+                         str(receipt): F.sha(receipt), str(generator): F.sha(generator)},'checks':checks}
             bundle.write_text(json.dumps(d));pin=F.sha(bundle)
             self.assertEqual(F.validate_bundle(bundle,pin,'model')['status'],'PASS')
             ls=importlib.util.spec_from_file_location('launcher',Path(__file__).with_name('r3_formal_launcher.py'))
