@@ -32,5 +32,5 @@
     }
   ],
   "_expect": "REJECT: a reused event with no adopted predecessor is a bypass write — the machine only ever writes reused downstream of an adoption; a foreign digest injected this way would squat the registry and stall the gate",
-  "_expect_match": "bypass"
+  "_expect_match": "LEDGER.EVENT_BEFORE_ADOPTION"
 }

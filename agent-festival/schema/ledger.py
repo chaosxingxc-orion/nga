@@ -71,10 +71,10 @@ def ledger_errors(doc: dict) -> list[str]:
     # dual validators' verdicts)
     seqs = [e["arbitration_seq"] for e in doc["events"]]
     if any(seqs[i] >= seqs[i + 1] for i in range(len(seqs) - 1)):
-        errs.append(f"events: arbitration_seq must be strictly increasing, got {seqs} — "
+        errs.append(f"[LEDGER.SEQ_NOT_INCREASING] events: arbitration_seq must be strictly increasing, got {seqs} — "
                     f"the machine never repeats or rewinds an arbitration sequence")
     if any(s > INT64_MAX for s in seqs):
-        errs.append("events: arbitration_seq exceeds the int64 domain — the machine's "
+        errs.append("[LEDGER.SEQ_INT64_OVERFLOW] events: arbitration_seq exceeds the int64 domain — the machine's "
                     "counter domain; such a document is not machine-writable")
     # cross-event rule: a payload digest is a function of the operation — the same
     # operation_id across idempotency entries must carry the same digest (15 B4:
@@ -87,7 +87,7 @@ def ledger_errors(doc: dict) -> list[str]:
         op, dig = idem["operation_id"], idem["payload_digest"]
         if op in seen and seen[op] != dig:
             errs.append(f"events: operation_id {op!r} carries payload_digest {dig!r} "
-                        f"but an earlier event recorded {seen[op]!r} — changed payload under the same key")
+                        f"[LEDGER.DIGEST_CHANGED_UNDER_KEY] but an earlier event recorded {seen[op]!r} — changed payload under the same key")
         seen[op] = dig
     # cross-event rule: arbitration_seq in float syntax beyond ±2^53 — the
     # value a parser recovers depends on its float rounding (Python's
@@ -96,7 +96,7 @@ def ledger_errors(doc: dict) -> list[str]:
     for i, e in enumerate(doc["events"]):
         seq = e["arbitration_seq"]
         if isinstance(seq, float) and seq == int(seq) and abs(seq) > 2 ** 53:
-            errs.append(f"events/{i}: arbitration_seq {seq!r} uses float syntax beyond the "
+            errs.append(f"[LEDGER.SEQ_FLOAT_BEYOND_EXACT] events/{i}: arbitration_seq {seq!r} uses float syntax beyond the "
                         f"exact-representation domain (±2^53) — the value a parser recovers "
                         f"depends on its float rounding, not on the document")
 
@@ -114,11 +114,11 @@ def ledger_errors(doc: dict) -> list[str]:
             # branches are unreachable: the schema's required outcome +
             # status enum constrain the value first.)
             family = "adoption" if status in ADOPT_STATUSES else "effect"
-            errs.append(f"events/{i}: {e['event_type']} event carries the {family}-family status "
+            errs.append(f"[LEDGER.STATUS_FAMILY] events/{i}: {e['event_type']} event carries the {family}-family status "
                         f"{status!r} — the status vocabulary never crosses the "
                         f"event-type boundary")
         if (e["event_type"] == "effect" or status != "adopted") and e.get("grants_at_decision"):
-            errs.append(f"events/{i}: {e['event_type']} event (status {status!r}) for operation "
+            errs.append(f"[LEDGER.GRANTS_ON_NON_ADOPTED] events/{i}: {e['event_type']} event (status {status!r}) for operation "
                         f"{e['identity']['operation_id']!r} carries grants_at_decision — the grant "
                         f"pin rides the adopted event only (stamped once, at the decision point)")
 
@@ -131,7 +131,7 @@ def ledger_errors(doc: dict) -> list[str]:
     # can never be in (R3 M-1, mirrors the Go checker).
     def not_a_transition(i: int, op: str, status: str, from_state: str) -> str:
         return (f"events/{i}: operation {op!r}: status {status!r} after "
-                f"{from_state or 'nothing'!r} is not a legal state-machine transition — "
+                f"[LEDGER.ILLEGAL_TRANSITION] {from_state or 'nothing'!r} is not a legal state-machine transition — "
                 f"a bypass write into the ledger, not a machine transition")
 
     state: dict[str, str] = {}
@@ -163,12 +163,12 @@ def ledger_errors(doc: dict) -> list[str]:
     for i, e in enumerate(doc["events"]):
         status = e.get("outcome", {}).get("status", "")
         if e["event_type"] == "adoption" and status == "conflict" and e.get("idempotency"):
-            errs.append(f"events/{i}: conflict event carries idempotency — the loser's digest "
+            errs.append(f"[LEDGER.CONFLICT_IDEM_FORBIDDEN] events/{i}: conflict event carries idempotency — the loser's digest "
                         f"never enters the registry; carrying it is a bypass write, not a "
                         f"machine transition")
         needs_idem = e["event_type"] == "effect" or status in ("adopted", "reused")
         if needs_idem and not e.get("idempotency"):
-            errs.append(f"events/{i}: {e['event_type']} event (status {status!r}) must carry "
+            errs.append(f"[LEDGER.IDEM_REQUIRED] events/{i}: {e['event_type']} event (status {status!r}) must carry "
                         f"idempotency — the machine writes it on every non-conflict event; its "
                         f"absence is a bypass write, not a machine transition")
 
@@ -179,7 +179,7 @@ def ledger_errors(doc: dict) -> list[str]:
     for i, e in enumerate(doc["events"]):
         idem = e.get("idempotency")
         if idem and idem["operation_id"] != e["identity"]["operation_id"]:
-            errs.append(f"events/{i}: idempotency.operation_id {idem['operation_id']!r} does not "
+            errs.append(f"[LEDGER.IDEM_IDENTITY_MISMATCH] events/{i}: idempotency.operation_id {idem['operation_id']!r} does not "
                         f"match identity.operation_id {e['identity']['operation_id']!r} — the "
                         f"machine writes them equal; a mismatch is a bypass write, not a "
                         f"machine transition")
@@ -198,7 +198,7 @@ def ledger_errors(doc: dict) -> list[str]:
         elif e["event_type"] == "effect" and op in pins:
             if (e["identity"], e["versions"], e.get("accountability")) != pins[op]:
                 errs.append(f"events/{i}: effect event's attribution (identity/versions/"
-                            f"accountability) differs from the adopted pin for operation "
+                            f"[LEDGER.ATTRIBUTION_DIVERGENCE] accountability) differs from the adopted pin for operation "
                             f"{op!r} — the machine stamps the winner's pin on every effect "
                             f"event; a divergence is a bypass write, not a machine transition")
 
@@ -213,13 +213,13 @@ def ledger_errors(doc: dict) -> list[str]:
         if e["event_type"] == "adoption":
             if e["outcome"]["status"] == "adopted":
                 if op in adopted:
-                    errs.append(f"events/{i}: operation {op!r} already has an adopted event — "
+                    errs.append(f"[LEDGER.DOUBLE_ADOPTED] events/{i}: operation {op!r} already has an adopted event — "
                                 f"a second adopted event would re-pin the machine's state mid-flight "
                                 f"(a bypass write, not a machine transition)")
                 adopted.add(op)
             elif op not in adopted:
                 errs.append(f"events/{i}: {e['event_type']} event for operation {op!r} "
-                            f"precedes its adopted event — a bypass write into the ledger, "
+                            f"[LEDGER.EVENT_BEFORE_ADOPTION] precedes its adopted event — a bypass write into the ledger, "
                             f"not a machine transition")
         elif op not in adopted:
             errs.append(f"events/{i}: effect event for operation {op!r} precedes its adopted "

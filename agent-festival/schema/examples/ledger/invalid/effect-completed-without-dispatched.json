@@ -71,5 +71,5 @@
     }
   ],
   "_expect": "REJECT: completed straight after adopted is not a legal transition — the machine's DAG runs adopted -> dispatched|unresolved -> completed|failed; absorbing this shape would let the machine resume from a state it can never be in and write events violating its own DAG",
-  "_expect_match": "transition"
+  "_expect_match": "LEDGER.ILLEGAL_TRANSITION"
 }

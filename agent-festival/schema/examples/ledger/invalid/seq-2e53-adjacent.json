@@ -71,5 +71,5 @@
     }
   ],
   "_expect": "REJECT: adjacent arbitration_seq values past 2^53 (9007199254740993 -> 9007199254740992) break the strictly-increasing order — float64 rounding is monotonic, so the violation is caught in both the exact-integer and the folded domain; this fixture documents the boundary, its legal twin (high-seq-across-2e53) is what pins the exact decoder",
-  "_expect_match": "increasing"
+  "_expect_match": "LEDGER.SEQ_NOT_INCREASING"
 }

@@ -71,5 +71,5 @@
     }
   ],
   "_expect": "REJECT: a conflict event carrying idempotency launders the loser's digest into the registry the replay matcher reads — the machine never registers a loser",
-  "_expect_match": "conflict event carries idempotency"
+  "_expect_match": "LEDGER.CONFLICT_IDEM_FORBIDDEN"
 }

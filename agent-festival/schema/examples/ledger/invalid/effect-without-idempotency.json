@@ -67,5 +67,5 @@
     }
   ],
   "_expect": "REJECT: an effect event without idempotency is a bypass write — the replay skips it, the machine resumes from a state the file contradicts, and its next write violates the transition grammar it enforces itself",
-  "_expect_match": "must carry idempotency"
+  "_expect_match": "LEDGER.IDEM_REQUIRED"
 }

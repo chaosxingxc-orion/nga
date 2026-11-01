@@ -100,5 +100,5 @@
     }
   ],
   "_expect": "REJECT: dispatched after unresolved is not a legal transition — the machine never re-dispatches an unresolved operation; absorbing this shape re-opens the duplicate-effect bug 14-A5 counterexample three exists to stop",
-  "_expect_match": "transition"
+  "_expect_match": "LEDGER.ILLEGAL_TRANSITION"
 }

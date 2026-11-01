@@ -129,5 +129,5 @@
     }
   ],
   "_expect": "REJECT: completed is terminal — a second completed effect event for the same operation is not a legal transition (the machine refuses every transition out of a terminal state)",
-  "_expect_match": "transition"
+  "_expect_match": "LEDGER.ILLEGAL_TRANSITION"
 }

@@ -57,7 +57,7 @@ func floatSyntaxBeyondExactDomain(doc map[string]any) []string {
 			continue
 		}
 		if f == math.Trunc(f) && (f > 1<<53 || f < -(1<<53)) {
-			errs = append(errs, fmt.Sprintf("events/%d: arbitration_seq %s uses float syntax beyond the exact-representation domain (±2^53) — the value a parser recovers depends on its float rounding, not on the document", i, n.String()))
+			errs = append(errs, fmt.Sprintf("[LEDGER.SEQ_FLOAT_BEYOND_EXACT] events/%d: arbitration_seq %s uses float syntax beyond the exact-representation domain (±2^53) — the value a parser recovers depends on its float rounding, not on the document", i, n.String()))
 		}
 	}
 	return errs
@@ -135,7 +135,7 @@ func notATransition(i int, op, status, from string) string {
 	if from == "" {
 		from = "nothing"
 	}
-	return fmt.Sprintf("events/%d: operation %q: status %q after %q is not a legal state-machine transition — a bypass write into the ledger, not a machine transition", i, op, status, from)
+	return fmt.Sprintf("[LEDGER.ILLEGAL_TRANSITION] events/%d: operation %q: status %q after %q is not a legal state-machine transition — a bypass write into the ledger, not a machine transition", i, op, status, from)
 }
 
 // Version is the ledger document version — the Go-side twin of the schema's
@@ -278,7 +278,7 @@ func Errors(doc map[string]any) []string {
 		return []string{"ledger: internal re-marshal failed: " + err.Error()}
 	}
 	if err := json.Unmarshal(raw, &d); err != nil {
-		return []string{"ledger: document does not fit the typed ledger view (an integer field beyond the int64 domain, or a type mismatch — the machine never writes such values): " + err.Error()}
+		return []string{"[LEDGER.SEQ_INT64_OVERFLOW] ledger: document does not fit the typed ledger view (an integer field beyond the int64 domain, or a type mismatch — the machine never writes such values): " + err.Error()}
 	}
 	var errs []string
 	// sequence ORDER is checked, density is not: the machine writes
@@ -288,7 +288,7 @@ func Errors(doc map[string]any) []string {
 	prevSeq := int64(-1)
 	for i, e := range d.Events {
 		if e.ArbitrationSeq <= prevSeq {
-			errs = append(errs, fmt.Sprintf("events/%d: arbitration_seq %d breaks the strictly-increasing order — the machine never repeats or rewinds an arbitration sequence", i, e.ArbitrationSeq))
+			errs = append(errs, fmt.Sprintf("[LEDGER.SEQ_NOT_INCREASING] events/%d: arbitration_seq %d breaks the strictly-increasing order — the machine never repeats or rewinds an arbitration sequence", i, e.ArbitrationSeq))
 		}
 		prevSeq = e.ArbitrationSeq
 	}
@@ -299,7 +299,7 @@ func Errors(doc map[string]any) []string {
 		}
 		op, dig := e.Idempotency.OperationID, e.Idempotency.PayloadDigest
 		if prev, has := seen[op]; has && prev != dig {
-			errs = append(errs, fmt.Sprintf("events/%d: operation_id %q carries payload_digest %q but an earlier event recorded %q — changed payload under the same key", i, op, dig, prev))
+			errs = append(errs, fmt.Sprintf("[LEDGER.DIGEST_CHANGED_UNDER_KEY] events/%d: operation_id %q carries payload_digest %q but an earlier event recorded %q — changed payload under the same key", i, op, dig, prev))
 		}
 		seen[op] = dig
 	}
@@ -319,11 +319,11 @@ func Errors(doc map[string]any) []string {
 			if AdoptStatuses[e.Outcome.Status] {
 				family = "adoption"
 			}
-			errs = append(errs, fmt.Sprintf("events/%d: %s event carries the %s-family status %q — the status vocabulary never crosses the event-type boundary", i, e.EventType, family, e.Outcome.Status))
+			errs = append(errs, fmt.Sprintf("[LEDGER.STATUS_FAMILY] events/%d: %s event carries the %s-family status %q — the status vocabulary never crosses the event-type boundary", i, e.EventType, family, e.Outcome.Status))
 		}
 		if e.EventType == "effect" || e.Outcome.Status != "adopted" {
 			if len(e.GrantsAtDecision) > 0 {
-				errs = append(errs, fmt.Sprintf("events/%d: %s event (status %q) for operation %q carries grants_at_decision — the grant pin rides the adopted event only (stamped once, at the decision point)", i, e.EventType, e.Outcome.Status, e.Identity.OperationID))
+				errs = append(errs, fmt.Sprintf("[LEDGER.GRANTS_ON_NON_ADOPTED] events/%d: %s event (status %q) for operation %q carries grants_at_decision — the grant pin rides the adopted event only (stamped once, at the decision point)", i, e.EventType, e.Outcome.Status, e.Identity.OperationID))
 			}
 		}
 	}
@@ -373,11 +373,11 @@ func Errors(doc map[string]any) []string {
 	// replay matcher reads — a bypass write (R12 M-1).
 	for i, e := range d.Events {
 		if e.EventType == "adoption" && e.Outcome.Status == "conflict" && e.Idempotency != nil {
-			errs = append(errs, fmt.Sprintf("events/%d: conflict event carries idempotency — the loser's digest never enters the registry; carrying it is a bypass write, not a machine transition", i))
+			errs = append(errs, fmt.Sprintf("[LEDGER.CONFLICT_IDEM_FORBIDDEN] events/%d: conflict event carries idempotency — the loser's digest never enters the registry; carrying it is a bypass write, not a machine transition", i))
 		}
 		needsIdem := e.EventType == "effect" || e.Outcome.Status == "adopted" || e.Outcome.Status == "reused"
 		if needsIdem && e.Idempotency == nil {
-			errs = append(errs, fmt.Sprintf("events/%d: %s event (status %q) must carry idempotency — the machine writes it on every non-conflict event; its absence is a bypass write, not a machine transition", i, e.EventType, e.Outcome.Status))
+			errs = append(errs, fmt.Sprintf("[LEDGER.IDEM_REQUIRED] events/%d: %s event (status %q) must carry idempotency — the machine writes it on every non-conflict event; its absence is a bypass write, not a machine transition", i, e.EventType, e.Outcome.Status))
 		}
 	}
 	// the key coupling: the machine writes idempotency.operation_id and
@@ -387,7 +387,7 @@ func Errors(doc map[string]any) []string {
 	// ledger (R6 BLOCKER).
 	for i, e := range d.Events {
 		if e.Idempotency != nil && e.Idempotency.OperationID != e.Identity.OperationID {
-			errs = append(errs, fmt.Sprintf("events/%d: idempotency.operation_id %q does not match identity.operation_id %q — the machine writes them equal; a mismatch is a bypass write, not a machine transition", i, e.Idempotency.OperationID, e.Identity.OperationID))
+			errs = append(errs, fmt.Sprintf("[LEDGER.IDEM_IDENTITY_MISMATCH] events/%d: idempotency.operation_id %q does not match identity.operation_id %q — the machine writes them equal; a mismatch is a bypass write, not a machine transition", i, e.Idempotency.OperationID, e.Identity.OperationID))
 		}
 	}
 	// attribution consistency: the machine stamps the winner's
@@ -412,7 +412,7 @@ func Errors(doc map[string]any) []string {
 			if p, has := pins[op]; has {
 				if e.Identity != p.identity || e.Versions != p.versions ||
 					!accountabilityEqual(e.Accountability, p.accountability) {
-					errs = append(errs, fmt.Sprintf("events/%d: effect event's attribution (identity/versions/accountability) differs from the adopted pin for operation %q — the machine stamps the winner's pin on every effect event; a divergence is a bypass write, not a machine transition", i, op))
+					errs = append(errs, fmt.Sprintf("[LEDGER.ATTRIBUTION_DIVERGENCE] events/%d: effect event's attribution (identity/versions/accountability) differs from the adopted pin for operation %q — the machine stamps the winner's pin on every effect event; a divergence is a bypass write, not a machine transition", i, op))
 				}
 			}
 		}
@@ -423,15 +423,15 @@ func Errors(doc map[string]any) []string {
 		if e.EventType == "adoption" {
 			if e.Outcome.Status == "adopted" {
 				if adopted[op] {
-					errs = append(errs, fmt.Sprintf("events/%d: operation %q already has an adopted event — a second adopted event would re-pin the machine's state mid-flight (a bypass write, not a machine transition)", i, op))
+					errs = append(errs, fmt.Sprintf("[LEDGER.DOUBLE_ADOPTED] events/%d: operation %q already has an adopted event — a second adopted event would re-pin the machine's state mid-flight (a bypass write, not a machine transition)", i, op))
 				}
 				adopted[op] = true
 			} else if !adopted[op] {
 				// reused/conflict before any adopted event for the operation
-				errs = append(errs, fmt.Sprintf("events/%d: %s event for operation %q precedes its adopted event — a bypass write into the ledger, not a machine transition", i, e.EventType, op))
+				errs = append(errs, fmt.Sprintf("[LEDGER.EVENT_BEFORE_ADOPTION] events/%d: %s event for operation %q precedes its adopted event — a bypass write into the ledger, not a machine transition", i, e.EventType, op))
 			}
 		} else if !adopted[op] {
-			errs = append(errs, fmt.Sprintf("events/%d: effect event for operation %q precedes its adopted event — a bypass write into the ledger, not a machine transition", i, op))
+			errs = append(errs, fmt.Sprintf("[LEDGER.EVENT_BEFORE_ADOPTION] events/%d: effect event for operation %q precedes its adopted event — a bypass write into the ledger, not a machine transition", i, op))
 		}
 	}
 	return errs

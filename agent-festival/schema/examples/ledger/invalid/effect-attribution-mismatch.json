@@ -71,5 +71,5 @@
     }
   ],
   "_expect": "REJECT: the machine stamps the winner's identity/versions/accountability pin on every effect event — a divergent model version here forges the audit trail and would pollute the piece-6 replay correlation keys",
-  "_expect_match": "attribution"
+  "_expect_match": "LEDGER.ATTRIBUTION_DIVERGENCE"
 }

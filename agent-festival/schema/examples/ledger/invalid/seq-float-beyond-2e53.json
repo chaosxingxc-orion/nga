@@ -42,5 +42,5 @@
     }
   ],
   "_expect": "REJECT: arbitration_seq in float syntax past 2^53 — the value a parser recovers depends on its float rounding (odd values fold), so the document has no parser-independent value; both validators reject by rule rather than disagree about what it says",
-  "_expect_match": "float syntax"
+  "_expect_match": "LEDGER.SEQ_FLOAT_BEYOND_EXACT"
 }

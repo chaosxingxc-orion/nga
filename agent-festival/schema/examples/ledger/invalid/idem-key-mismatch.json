@@ -71,5 +71,5 @@
     }
   ],
   "_expect": "REJECT: idempotency.operation_id must equal identity.operation_id — the machine writes them equal on every event; a mismatch registers a phantom operation the caller never created and lets the machine write zero-identity events under it, bricking its own ledger",
-  "_expect_match": "does not match"
+  "_expect_match": "LEDGER.IDEM_IDENTITY_MISMATCH"
 }

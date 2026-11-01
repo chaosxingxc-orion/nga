@@ -69,5 +69,5 @@
     }
   ],
   "_expect": "REJECT: an effect event before its adoption event is a bypass write — the adopt state machine is the single writer, and effects only exist downstream of an adoption (order matters, not just presence)",
-  "_expect_match": "bypass"
+  "_expect_match": "LEDGER.ILLEGAL_TRANSITION"
 }

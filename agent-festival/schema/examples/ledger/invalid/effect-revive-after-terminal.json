@@ -129,5 +129,5 @@
     }
   ],
   "_expect": "REJECT: completed is terminal — no transition out exists; a dispatched event after a terminal state is a revival, exactly the duplicate-effect family the machine exists to stop",
-  "_expect_match": "transition"
+  "_expect_match": "LEDGER.ILLEGAL_TRANSITION"
 }

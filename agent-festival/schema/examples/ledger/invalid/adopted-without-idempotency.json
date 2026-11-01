@@ -38,5 +38,5 @@
     }
   ],
   "_expect": "REJECT: the machine writes idempotency on every non-conflict event — an adopted event without it is a bypass write; the replay skips nil-idempotency events, the machine re-adopts the same operation, and the file ends with two adopted events its own loader rejects",
-  "_expect_match": "must carry idempotency"
+  "_expect_match": "LEDGER.IDEM_REQUIRED"
 }

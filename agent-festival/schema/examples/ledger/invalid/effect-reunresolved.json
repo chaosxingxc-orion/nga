@@ -100,5 +100,5 @@
     }
   ],
   "_expect": "REJECT: unresolved is not a self-loop — the machine records the state once and waits for reconciliation (completed/failed); a second unresolved event is not a machine write",
-  "_expect_match": "transition"
+  "_expect_match": "LEDGER.ILLEGAL_TRANSITION"
 }

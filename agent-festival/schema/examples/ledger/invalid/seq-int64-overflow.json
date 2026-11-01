@@ -42,5 +42,5 @@
     }
   ],
   "_expect": "REJECT: arbitration_seq one past the int64 domain — the machine's counter is an int; Python's bignum would otherwise ACCEPT what the Go typed view rejects, forking the dual validators' verdicts on the same document",
-  "_expect_match": "int64"
+  "_expect_match": "LEDGER.SEQ_INT64_OVERFLOW"
 }
