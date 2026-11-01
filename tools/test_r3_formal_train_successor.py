@@ -20,14 +20,14 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent
 BASE = Path('/mnt/cephfs/xingchao/experiments/jev/r3_runs')
-FROZEN = Path(os.environ.get('FORMAL_SUCCESSOR_TEST_TOOLS', str(BASE/'formal_k1_preparation_20261101_v5/seed2/tools')))
+FROZEN = Path(os.environ.get('FORMAL_SUCCESSOR_TEST_TOOLS', str(BASE/'formal_k1_preparation_20261101_v6/seed2/tools')))
 
 def module(path):
     path = Path(path); value = types.ModuleType(path.stem); value.__file__ = str(path)
     exec(compile(path.read_bytes(), str(path), 'exec', dont_inherit=True), value.__dict__)
     return value
 
-S = module(ROOT/'r3_formal_train_successor.py')
+S = module(Path(os.environ.get('FORMAL_SUCCESSOR_TEST_CONTROLLER', str(ROOT/'r3_formal_train_successor.py'))))
 R = module(FROZEN/'r3_resource_adapter.py')
 L = module(FROZEN/'r3_formal_launcher.py')
 E = module(BASE/'r0_current_scoring_20261031_v1/execution-tools/r3_posttrain_eval_launcher.py')
@@ -75,7 +75,7 @@ class SuccessorTests(unittest.TestCase):
         self.job=dict(id='seed2',chip=1,attempt=1,plan=str(self.out/'plan.json'),previous_execution=str(self.execution),
                       previous_execution_sha256=pin(self.execution),fresh_files=[],competitors=[])
         self.p=dict(schema='r3-formal-k1-plan-v1',seed=2,test_read=False,scientific_acceptance=False,out=str(self.out),
-                    launcher=L.__file__,adapter=R.__file__,driver=str(ROOT/'r3_formal_train_successor.py'),
+                    launcher=L.__file__,adapter=R.__file__,driver=S.__file__,
                     code='/fixture/code',model=str(self.model),train_file='/fixture/train.jsonl',image_sha256=E.IMAGE,
                     environment={},chip=1,container='formal',allocation=str(self.alloc),run='formal-run',
                     review_path=str(self.out/'review.json'),review_sha256='PENDING',
@@ -383,5 +383,171 @@ class DockerParserTests(unittest.TestCase):
                 with self.subTest(func=func,stderr=stderr,stdout=stdout),patch.object(subprocess,'run',return_value=types.SimpleNamespace(returncode=rc,stderr=stderr,stdout=stdout)),self.assertRaises((RuntimeError,ValueError)):
                     func('formal-a1')
             with patch.object(subprocess,'run',side_effect=subprocess.TimeoutExpired('docker inspect',30)),self.assertRaises(subprocess.TimeoutExpired):func('formal-a1')
+
+class FailclosedStartTests(unittest.TestCase):
+    setUp = SuccessorTests.setUp
+    patch = SuccessorTests.patch
+    inspect = SuccessorTests.inspect
+    seal_plan = SuccessorTests.seal_plan
+    finish_parent = SuccessorTests.finish_parent
+    lineage = SuccessorTests.lineage
+    precondition = SuccessorTests.precondition
+    claim = SuccessorTests.claim
+    completed_successor = SuccessorTests.completed_successor
+    release_args = SuccessorTests.release_args
+    # Run only the new methods; original 27 are loaded separately by the runner.
+    def abort_args(self):
+        a=self.release_args();a.proof=str(self.out/'attempts/1/ABORT.json');return a
+
+    def test_abort_all_generations_and_replays_are_inert(self):
+        self.finish_parent();intent=self.precondition();self.claim(intent)
+        a=self.abort_args()
+        for mode in ('ordinary','wrong_generation','claim_replaced','proof_replay','intent_replay','container_live','device_live'):
+            with self.subTest(mode=mode):
+                ledger=json.loads(self.alloc.read_bytes());ledger['allocation']=[dict(ledger['allocation'][0]),dict(chip=4,run='unrelated')]
+                if mode=='wrong_generation':ledger['allocation'][0]['claimed_utc']='new-generation'
+                write(self.alloc,ledger)
+                if mode=='claim_replaced':Path(a.claim).write_bytes(Path(a.claim).read_bytes()+b' ')
+                if mode=='proof_replay':write(a.proof,dict(synthetic=True))
+                if mode=='intent_replay':write(a.proof+'.intent',dict(synthetic=True))
+                before={str(q):q.read_bytes() for q in (self.alloc,Path(a.claim),Path(a.proof),Path(a.proof+'.intent')) if q.exists()}
+                with patch.object(R,'locked',side_effect=AssertionError('abort must not lock')),patch.object(R,'docker_inspect',side_effect=AssertionError('abort must not inspect')),patch.object(R,'live_chip_conflict',side_effect=AssertionError('abort must not observe device')),self.assertRaisesRegex(RuntimeError,'automatic abort disabled'):
+                    R.abort_claim(a)
+                self.assertEqual(before,{q:Path(q).read_bytes() for q in before})
+                # The exposed CLI must reject without a different dispatch path.
+                with self.assertRaisesRegex(RuntimeError,'automatic abort disabled'):
+                    R.main(['abort','--alloc',a.alloc,'--run',a.run,'--chip','1','--container',a.container,'--claim',a.claim,'--proof',a.proof])
+                self.assertEqual(self.alloc.read_bytes(),before[str(self.alloc)])
+
+    def test_container_appearing_at_abort_lock_never_reaches_lock(self):
+        self.finish_parent();intent=self.precondition();self.claim(intent);before=self.alloc.read_bytes()
+        def late(path):
+            self.formal_actual=observed(L.docker_command(self.p,self.job['plan'],1),'late-container')
+            self.formal_actual['State']['Status']='running'
+            return R.locked(path)
+        with patch.object(R,'locked',side_effect=late) as lock,self.assertRaisesRegex(RuntimeError,'automatic abort disabled'):R.abort_claim(self.abort_args())
+        lock.assert_not_called();self.assertEqual(before,self.alloc.read_bytes())
+
+    @contextlib.contextmanager
+    def launcher_boundary(self,dispatch,inspect=None):
+        with patch.object(L,'verify',return_value=self.p),patch.object(L.socket,'gethostname',return_value='k8s-node1'),patch.object(L.subprocess,'check_output',return_value=json.dumps([{'Id':E.IMAGE}])),patch.object(L,'inspect',side_effect=inspect or self.inspect),patch.object(L,'source_module',return_value=R),patch.object(L.subprocess,'run',side_effect=dispatch),contextlib.redirect_stdout(io.StringIO()):
+            yield
+
+    def failure_case(self,mode):
+        self.finish_parent();intent=self.precondition();calls=[];captured={};a=self.out/'attempts/1'
+        def dispatch(cmd,**kwargs):
+            if cmd[:2]==['docker','run']:
+                calls.append('docker_run');captured['ledger']=self.alloc.read_bytes();captured['claim']=(a/'CLAIM.json').read_bytes()
+                self.assertTrue((a/'NEEDS_REPAIR.json').exists())
+                if mode in ('late_container','late_device'):
+                    self.formal_actual=observed(cmd,'late-container');self.formal_actual['State']['Status']='running'
+                if mode=='replace_claim':(a/'CLAIM.json').write_bytes(captured['claim']+b' ')
+                if mode in ('missing_after_success','inspect_timeout','replace_claim_success'):
+                    if mode=='replace_claim_success':
+                        self.formal_actual=observed(cmd,'created');(a/'CLAIM.json').write_bytes(captured['claim']+b' ')
+                    return None
+                if mode=='keyboard_interrupt':raise KeyboardInterrupt('synthetic interruption')
+                raise RuntimeError('synthetic uncertain docker run')
+            if len(cmd)>3 and cmd[2]==R.__file__:
+                calls.append(cmd[3]);self.assertEqual(cmd[3],'claim');return R.main(cmd[3:])
+            raise AssertionError('unexpected external command')
+        def inspect(name):
+            if mode=='inspect_timeout' and 'docker_run' in calls:raise subprocess.TimeoutExpired('docker inspect',30)
+            return self.inspect(name)
+        # Preserve a concurrent unrelated chip exactly through the real claim/start failure.
+        ledger=json.loads(self.alloc.read_bytes());ledger['allocation'].append(dict(chip=4,run='unrelated',claimed_utc='other'));write(self.alloc,ledger)
+        with self.launcher_boundary(dispatch,inspect),self.assertRaises((RuntimeError,KeyboardInterrupt,subprocess.TimeoutExpired)):
+            L.supervisor(self.job['plan'],self.job['plan_sha256'],1,intent['precondition_sha256'])
+        marker=json.loads((a/'NEEDS_REPAIR.json').read_bytes())
+        self.assertEqual(calls,['claim','docker_run']);self.assertEqual(self.alloc.read_bytes(),captured['ledger'])
+        self.assertEqual(marker['captured_claim_utf8'].encode(),captured['claim']);self.assertEqual(marker['claim_sha256'],S.digest(captured['claim']))
+        self.assertEqual(marker['plan_sha256'],self.job['plan_sha256']);self.assertEqual(marker['phase'],'docker_start_uncertain')
+        self.assertFalse((a/'ABORT.json').exists());self.assertFalse((a/'RELEASE.json').exists())
+        if mode not in ('replace_claim','replace_claim_success'):self.assertEqual((a/'CLAIM.json').read_bytes(),captured['claim'])
+        marker_before=(a/'NEEDS_REPAIR.json').read_bytes()
+        # Direct supervisor replay rejects even if the delayed container now appears.
+        with self.launcher_boundary(dispatch,inspect),self.assertRaisesRegex(RuntimeError,'explicit repair'):
+            L.supervisor(self.job['plan'],self.job['plan_sha256'],1,intent['precondition_sha256'])
+        self.assertEqual(calls,['claim','docker_run']);self.assertEqual(marker_before,(a/'NEEDS_REPAIR.json').read_bytes())
+        write(self.state/'seed2.START_INTENT.json',intent)
+        with patch.object(S,'source',return_value=R):self.assertEqual(S.tick(self.job,self.a,self.state)['status'],'needs_repair')
+        self.assertEqual(self.alloc.read_bytes(),captured['ledger'])
+
+    def test_real_failure_branch_absent_retains_claim(self):self.failure_case('absent')
+    def test_real_failure_branch_late_container_retains_claim(self):self.failure_case('late_container')
+    def test_real_failure_branch_late_device_retains_claim(self):
+        with patch.object(R,'live_chip_conflict',side_effect=lambda *args: self.formal_actual is not None):self.failure_case('late_device')
+    def test_real_failure_branch_captures_claim_before_replacement(self):self.failure_case('replace_claim')
+    def test_successful_docker_missing_observation_retains_claim(self):self.failure_case('missing_after_success')
+    def test_successful_docker_inspect_timeout_retains_claim(self):self.failure_case('inspect_timeout')
+    def test_successful_docker_claim_replacement_retains_claim(self):self.failure_case('replace_claim_success')
+    def test_interrupted_docker_retains_claim(self):self.failure_case('keyboard_interrupt')
+
+    def test_marker_file_and_directory_fsync(self):
+        self.finish_parent();intent=self.precondition();self.claim(intent);a=self.out/'attempts/1';sync=os.fsync;calls=[]
+        def record(fd):
+            import stat
+            calls.append('directory' if stat.S_ISDIR(os.fstat(fd).st_mode) else 'file');return sync(fd)
+        with patch.object(L.os,'fsync',side_effect=record):L.start_marker(a,self.p,self.job['plan_sha256'],intent['precondition_sha256'],(a/'CLAIM.json').read_bytes(),'synthetic')
+        self.assertEqual(calls,['file','directory'])
+
+    def test_marker_blocks_completed_status(self):
+        self.finish_parent();intent=self.completed_successor();write(self.out/'attempts/1/NEEDS_REPAIR.json',dict(synthetic=True))
+        with patch.object(R,'docker_inspect',side_effect=AssertionError('must stop before Docker')):
+            self.assertEqual(S.observe(self.job,self.p,intent,R)['status'],'needs_repair')
+
+    def test_confirmed_start_clears_latch_only_after_retained_validation(self):
+        self.finish_parent();intent=self.precondition();a=self.out/'attempts/1';calls=[]
+        def dispatch(cmd,**kwargs):
+            if cmd[:2]==['docker','run']:
+                calls.append('docker_run');self.assertTrue((a/'NEEDS_REPAIR.json').exists())
+                self.formal_actual=observed(cmd,'confirmed');self.formal_actual['State']['Status']='running';return None
+            self.assertEqual(cmd[3],'claim');calls.append('claim');return R.main(cmd[3:])
+        def stop_after_validation(seconds):
+            self.assertFalse((a/'NEEDS_REPAIR.json').exists());self.assertTrue((a/'LAUNCH_RECEIPT.json').exists())
+            raise RuntimeError('synthetic stop before monitoring')
+        with self.launcher_boundary(dispatch),patch.object(L,'daemon_policy',return_value=dict(runtime='runc',cgroupns='private')),patch.object(L.time,'sleep',side_effect=stop_after_validation),self.assertRaisesRegex(RuntimeError,'synthetic stop'):
+            L.supervisor(self.job['plan'],self.job['plan_sha256'],1,intent['precondition_sha256'])
+        self.assertEqual(calls,['claim','docker_run']);self.assertFalse((a/'RELEASE.json').exists())
+
+    def test_marker_fsync_failure_prevents_docker(self):
+        self.finish_parent();intent=self.precondition();calls=[];a=self.out/'attempts/1'
+        def dispatch(cmd,**kwargs):
+            self.assertEqual(cmd[3],'claim');calls.append('claim');return R.main(cmd[3:])
+        with self.launcher_boundary(dispatch),patch.object(L,'sync_directory',side_effect=OSError('synthetic fsync failed')),self.assertRaisesRegex(OSError,'synthetic fsync'):
+            L.supervisor(self.job['plan'],self.job['plan_sha256'],1,intent['precondition_sha256'])
+        self.assertEqual(calls,['claim']);self.assertTrue((a/'NEEDS_REPAIR.json').exists())
+        self.assertEqual(json.loads(self.alloc.read_bytes())['allocation'][0],json.loads((a/'CLAIM.json').read_bytes())['entry'])
+
+    def envelope_fixture(self):
+        self.p['review_policy']=S.REVIEW_POLICY;self.p['review_sha256']='PENDING';h=S.identity(self.p)
+        report=self.root/'independent-report.json';write(report,dict(verdict='PASS',scope=S.REVIEW_SCOPE,approved_canonical_plan_sha256=[h],synthetic=True))
+        terminal=self.root/'worker-terminal.json';write(terminal,dict(exit_code=0,synthetic=True))
+        result=self.root/'worker-result.txt';result.write_text('SYNTHETIC CPU FIXTURE ONLY\n')
+        queue=self.root/'prepared-queue.json';write(queue,dict(controller=self.p['successor_guard']['controller'],jobs=[dict(plan=self.job['plan'],plan_sha256=h,plan_raw_sha256=h)]))
+        ref=lambda p:dict(path=str(p),sha256=pin(p))
+        value=dict(schema=S.REVIEW_POLICY,scope=S.REVIEW_SCOPE,requested_model='gpt-6-astra',model_evidence_kind='parent-observed-requested-model-dispatch',runtime_attestation='unavailable-not-required',worker_exit_code=0,worker_id='synthetic-worker',authenticator_identity='synthetic-parent',authenticated_at='synthetic',activation_authorized=False,review_report=ref(report),worker_terminal=ref(terminal),worker_result=ref(result),prepared_queue=ref(queue),plans=[dict(path=self.job['plan'],canonical_sha256=h,prepared_raw_sha256=h)],synthetic=True)
+        self.attach_fixture(value,h);return value,h
+
+    def attach_fixture(self,value,h):
+        write(self.p['review_path'],value);self.p['review_sha256']=pin(self.p['review_path']);write(self.job['plan'],self.p);self.job.update(plan_sha256=h,plan_raw_sha256=pin(self.job['plan']))
+
+    def test_requested_model_parent_pinned_fixture_accepts(self):
+        value,h=self.envelope_fixture();self.assertEqual(S.plan(self.job),self.p)
+        # Exact same verifier invoked by the isolated launcher, with source hash checked there.
+        S.verify_review(self.p,h)
+
+    def test_requested_model_envelope_pin_scope_and_policy_negatives(self):
+        original,h=self.envelope_fixture()
+        for field,value in [('requested_model','other'),('runtime_attestation','provider-attested'),('scope','activation'),('worker_exit_code',1),('activation_authorized',True),('plans',[])]:
+            bad=copy.deepcopy(original);bad[field]=value;self.attach_fixture(bad,h)
+            with self.subTest(field=field),self.assertRaises(RuntimeError):S.plan(self.job)
+        for field in ('review_report','worker_terminal','worker_result','prepared_queue'):
+            bad=copy.deepcopy(original);bad[field]['sha256']='0'*64;self.attach_fixture(bad,h)
+            with self.subTest(field=field),self.assertRaises(RuntimeError):S.plan(self.job)
+        self.attach_fixture(original,h);report=Path(original['review_report']['path']);v=json.loads(report.read_bytes());v['verdict']='BLOCK';write(report,v)
+        original['review_report']['sha256']=pin(report);self.attach_fixture(original,h)
+        with self.assertRaisesRegex(RuntimeError,'independent PASS'):S.plan(self.job)
+
 
 if __name__=='__main__':unittest.main()

@@ -77,6 +77,47 @@ def process_matches(receipt):
     return raw.rstrip(b'\0').split(b'\0') == [os.fsencode(x) for x in receipt['command']]
 
 
+REVIEW_POLICY = 'requested-astra-parent-pinned-v1'
+REVIEW_SCOPE = 'exact-formal-train-only-readiness-no-activation'
+
+
+def verify_review(p, pin):
+    """The parent authenticates this pin via the externally pinned attached queue.
+
+    Hashes bind bytes, not authorship. No backend runtime attestation is claimed.
+    The producer must never create the real parent envelope or approval.
+    """
+    review = load(p['review_path'], p['review_sha256'])
+    if p.get('review_policy') != REVIEW_POLICY:
+        require('review_policy' not in p, 'unknown review policy')
+        require(review.get('approved_plan_sha256') == pin and review.get('verdict') == 'PASS'
+                and review.get('review_kind') == 'independent_astra'
+                and review.get('reviewer_model') == 'gpt-6-astra', 'exact review differs')
+        return
+    require(review.get('schema') == REVIEW_POLICY and review.get('scope') == REVIEW_SCOPE
+            and review.get('requested_model') == 'gpt-6-astra'
+            and review.get('model_evidence_kind') == 'parent-observed-requested-model-dispatch'
+            and review.get('runtime_attestation') == 'unavailable-not-required'
+            and review.get('worker_exit_code') == 0 and type(review.get('worker_exit_code')) is int
+            and review.get('worker_id') and review.get('authenticator_identity')
+            and review.get('authenticated_at') and review.get('activation_authorized') is False,
+            'parent review policy differs')
+    def artifact(key):
+        ref = review[key]
+        return content(ref['path'], ref['sha256'])
+    report = json.loads(artifact('review_report'))
+    artifact('worker_terminal'); artifact('worker_result')
+    require(report.get('verdict') == 'PASS' and report.get('scope') == REVIEW_SCOPE
+            and pin in report.get('approved_canonical_plan_sha256', []), 'independent PASS/scope differs')
+    prepared = json.loads(artifact('prepared_queue'))
+    require(prepared['controller'] == p['successor_guard']['controller'], 'review queue controller differs')
+    matches = [j for j in prepared['jobs'] if j['plan'] == str(Path(p['out'])/'plan.json')]
+    require(len(matches) == 1 and matches[0]['plan_sha256'] == pin
+            and matches[0]['plan_raw_sha256'] == pin, 'prepared plan pins differ')
+    expected = dict(path=matches[0]['plan'], canonical_sha256=pin, prepared_raw_sha256=pin)
+    require(expected in review.get('plans', []), 'review exact plan pins differ')
+
+
 def plan(job, reviewed=True):
     p = load(job['plan'], job['plan_raw_sha256'])
     require(identity(p) == job['plan_sha256'], 'canonical plan differs')
@@ -87,10 +128,7 @@ def plan(job, reviewed=True):
             and p['out'] == str(Path(job['plan']).parent), 'plan ownership differs')
     require(job['attempt'] == 1 and type(job['attempt']) is int, 'fresh attempt1 only')
     if reviewed:
-        review = load(p['review_path'], p['review_sha256'])
-        require(review.get('approved_plan_sha256') == job['plan_sha256'] and review.get('verdict') == 'PASS'
-            and review.get('review_kind') == 'independent_astra'
-            and review.get('reviewer_model') == 'gpt-6-astra', 'exact review differs')
+        verify_review(p, job['plan_sha256'])
     for key in ('launcher', 'adapter', 'driver'):
         content(p[key], p['files'][p[key]])
     return p
@@ -384,6 +422,8 @@ def ready(job, p, resource, authorization):
 def observe(job, p, intent, resource):
     out = Path(p['out']); rp = out/'SUPERVISOR_RECEIPT.json'
     require(intent['job'] == job, 'start intent wrong plan/job')
+    if (out/'attempts/1/NEEDS_REPAIR.json').exists():
+        return {'status': 'needs_repair', 'reason': 'durable start uncertainty; explicit reconciliation required'}
     if not rp.exists():
         return {'status': 'needs_repair', 'reason': 'start intent without receipt; never restart'}
     snap = Snapshot(); receipt = snap.read(rp)
