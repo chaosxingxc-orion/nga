@@ -235,6 +235,40 @@ def reconstruct(q, request, Q, progress):
     return result, {'before': before, 'after': after, **SCOPE}
 
 
+def serialize(doc):
+    """Freeze a verified document once; its byte pin never comes from disk."""
+    return (json.dumps(doc, sort_keys=True, indent=2, allow_nan=False)+'\n').encode()
+
+
+def write_buffer(path, raw, Q):
+    """Keep the exclusive, durable output lifecycle while writing exact bytes."""
+    fd = os.open(Q.safe(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'wb') as stream:
+        stream.write(raw)
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def verified_outputs(root, result_pin, Q):
+    """Consume only checked buffers, using the retained RESULT/EXIT pin.
+
+    A later mutation cannot be adopted by a fresh hash: subsequent consumers
+    must use EXIT.result_sha256 here and use the returned documents directly.
+    """
+    root = Path(root)
+    result, _ = Q.snapshot(root/'RESULT.json', result_pin)
+    names = {'campaign.json', 'evidence.json', 'source-snapshots.json'}
+    Q.require(set(result['outputs']) == set(result['canonical_sha256']) == names,
+              'aggregate output set differs')
+    docs = {}
+    for name in sorted(names):
+        doc, _ = Q.snapshot(root/name, result['outputs'][name])
+        Q.require(Q.canonical_pin(doc) == result['canonical_sha256'][name],
+                  'aggregate canonical correspondence differs: '+name)
+        docs[name] = doc
+    return docs
+
+
 def run(path, pin, q, Q):
     root = Path(path).parent
     fd = os.open(Q.safe(root/'worker.lock'), os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
@@ -287,12 +321,18 @@ def run(path, pin, q, Q):
             Q.require(not Q.safe(root/'FAILURE.json').exists() and not heartbeat_errors, 'failure during rebuild')
             outputs = {'campaign.json': result['campaign'], 'evidence.json': result,
                        'source-snapshots.json': snapshots}
-            for name, doc in outputs.items(): Q.write(root/name, doc, exclusive=True)
-            Q.write(root/'RESULT.json', dict(common,
-                outputs={n: Q.sha(root/n) for n in outputs},
-                canonical_sha256={n: Q.canonical_pin(d) for n,d in outputs.items()},
-                actual_cpu_reconstruction=True), exclusive=True)
-            Q.write(root/'EXIT.json', dict(common, exit_code=0, result_sha256=Q.sha(root/'RESULT.json')), exclusive=True)
+            buffers = {name: serialize(doc) for name, doc in outputs.items()}
+            output_pins = {name: hashlib.sha256(raw).hexdigest() for name, raw in buffers.items()}
+            canonical_pins = {name: Q.canonical_pin(Q.parse(raw)) for name, raw in buffers.items()}
+            for name, raw in buffers.items(): write_buffer(root/name, raw, Q)
+            result_buffer = serialize(dict(common, outputs=output_pins,
+                canonical_sha256=canonical_pins, actual_cpu_reconstruction=True))
+            result_pin = hashlib.sha256(result_buffer).hexdigest()
+            write_buffer(root/'RESULT.json', result_buffer, Q)
+            # Recheck saved bytes against retained pins, including canonical
+            # correspondence. No hash obtained from disk becomes an authority.
+            verified_outputs(root, result_pin, Q)
+            Q.write(root/'EXIT.json', dict(common, exit_code=0, result_sha256=result_pin), exclusive=True)
             progress.update(state='complete_independent_review_pending', progress_count=7)
             rc = 0
         except Exception as error:

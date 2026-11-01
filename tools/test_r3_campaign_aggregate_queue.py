@@ -123,6 +123,80 @@ class AggregateTests(unittest.TestCase):
         self.assertEqual(Q.load(self.root/'EXIT.json')['exit_code'],0)
         with self.assertRaisesRegex(ValueError,'no restart'): self.run_mocked()
 
+    def assert_output_mutation_rejected(self, target):
+        # Same deterministic interleaving for old Q.write and new byte writer.
+        owner = A if hasattr(A, 'write_buffer') else Q
+        name = 'write_buffer' if owner is A else 'write'
+        original = getattr(owner, name)
+        def mutate(path, *args, **kwargs):
+            original(path, *args, **kwargs)
+            if Path(path).name == target:
+                doc = Q.load(path); doc['unverified_mutation'] = True
+                Path(path).write_text(json.dumps(doc))
+        with patch.object(owner, name, side_effect=mutate):
+            rc, _ = self.run_mocked()
+        self.assertEqual(rc, 1)
+        self.assertEqual(Q.load(self.root/'EXIT.json')['exit_code'], 1)
+        self.assertTrue((self.root/'FAILURE.json').exists())
+        self.assertTrue(Q.load(self.root/target)['unverified_mutation'])
+
+    def test_campaign_output_mutation_rejected(self):
+        self.assert_output_mutation_rejected('campaign.json')
+
+    def test_evidence_output_mutation_rejected(self):
+        self.assert_output_mutation_rejected('evidence.json')
+
+    def test_source_snapshots_output_mutation_rejected(self):
+        self.assert_output_mutation_rejected('source-snapshots.json')
+
+    def test_result_output_mutation_rejected(self):
+        self.assert_output_mutation_rejected('RESULT.json')
+
+    def test_downstream_uses_retained_checked_buffers(self):
+        self.assertEqual(self.run_mocked()[0], 0)
+        pin = Q.load(self.root/'EXIT.json')['result_sha256']
+        target = self.root/'campaign.json'
+        original = Q.read
+        def mutate_after_read(path):
+            raw = original(path)
+            if Path(path) == target:
+                target.write_text('{"unverified_mutation":true}')
+            return raw
+        with patch.object(Q, 'read', side_effect=mutate_after_read):
+            docs = A.verified_outputs(self.root, pin, Q)
+        self.assertEqual(docs['campaign.json'], {'synthetic':'all-seven'})
+        with self.assertRaisesRegex(ValueError, 'artifact changed'):
+            A.verified_outputs(self.root, pin, Q)
+
+    def test_canonical_correspondence_required_even_with_valid_byte_pins(self):
+        self.assertEqual(self.run_mocked()[0], 0)
+        path = self.root/'RESULT.json'; doc = Q.load(path)
+        doc['canonical_sha256']['campaign.json'] = '0'*64
+        Q.write(path, doc)
+        with self.assertRaisesRegex(ValueError, 'canonical correspondence'):
+            A.verified_outputs(self.root, Q.sha(path), Q)
+
+    def test_exit_retains_result_pin_after_late_disk_mutation(self):
+        original = Q.write; retained = {}
+        def mutate_at_exit(path, doc, **kwargs):
+            if Path(path).name == 'EXIT.json' and doc['exit_code'] == 0:
+                retained['pin'] = Q.sha(self.root/'RESULT.json')
+                result = Q.load(self.root/'RESULT.json'); result['unverified_mutation'] = True
+                (self.root/'RESULT.json').write_text(json.dumps(result))
+            return original(path, doc, **kwargs)
+        with patch.object(Q, 'write', side_effect=mutate_at_exit):
+            self.assertEqual(self.run_mocked()[0], 0)
+        pin = Q.load(self.root/'EXIT.json')['result_sha256']
+        self.assertEqual(pin, retained['pin'])
+        self.assertNotEqual(pin, Q.sha(self.root/'RESULT.json'))
+        with self.assertRaisesRegex(ValueError, 'artifact changed'):
+            A.verified_outputs(self.root, pin, Q)
+
+    def test_verified_documents_serialized_once(self):
+        with patch.object(A, 'serialize', wraps=A.serialize) as serializer:
+            self.assertEqual(self.run_mocked()[0], 0)
+        self.assertEqual(serializer.call_count, 4)
+
     def test_existing_output_never_overwritten(self):
         Q.write(self.root/'campaign.json',{'owner':'other'},exclusive=True)
         rc,_=self.run_mocked(); self.assertEqual(rc,1)
