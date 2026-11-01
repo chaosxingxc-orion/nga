@@ -21,6 +21,7 @@ def require(ok, why):
 
 def sha(path):
     p = Path(path)
+    require_not_test(p)
     require(p.is_absolute() and p.is_file() and not any(x.is_symlink() for x in (p, *p.parents)), 'unsafe evidence path')
     h = hashlib.sha256()
     with p.open('rb') as stream:
@@ -30,7 +31,15 @@ def sha(path):
 
 
 def load(path):
+    require_not_test(path)
     return json.loads(Path(path).read_text())
+
+
+def require_not_test(path):
+    p = Path(path)
+    require(p.name not in ('test.jsonl', 'test.variants.jsonl') and not
+            ('test' in p.parts and p.suffix in ('.jsonl', '.parquet')),
+            'test dataset dependency forbidden')
 
 
 def validate(path, pin, code, model, train, image, *, control_arm=None, input_mode='full'):
@@ -52,6 +61,9 @@ def validate(path, pin, code, model, train, image, *, control_arm=None, input_mo
         require(model == CONTROL_MODELS[control_arm] and doc.get('model') == str(model),
                 'control model evidence differs')
     files = doc['files']
+    # Reject the entire inventory before hashing even the first dependency.
+    for filename in files:
+        require_not_test(filename)
     for filename, digest in files.items():
         require(sha(filename) == digest, 'training evidence dependency changed: '+filename)
     def bound(p):

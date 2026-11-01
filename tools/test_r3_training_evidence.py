@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 spec=importlib.util.spec_from_file_location('E',Path(__file__).with_name('r3_training_evidence.py'))
 E=importlib.util.module_from_spec(spec);spec.loader.exec_module(E)
@@ -38,6 +39,27 @@ class Evidence(unittest.TestCase):
         self.assertIn(str(self.bundle),self.validate())
         with self.assertRaisesRegex(ValueError,'pin differs'):self.validate(pin='0'*64)
         with self.assertRaisesRegex(ValueError,'execution evidence'):self.validate(image='other')
+
+    def test_forbidden_inventory_rejected_before_dependency_reads(self):
+        self.files[str(self.root/'test.jsonl')] = 'unopened'
+        self.repin()
+        original = E.sha
+        reads = []
+        def observed(path):
+            reads.append(Path(path))
+            return original(path)
+        with patch.object(E, 'sha', side_effect=observed):
+            with self.assertRaisesRegex(ValueError, 'test dataset dependency forbidden'):
+                self.validate()
+        self.assertEqual(reads, [self.bundle])
+
+    def test_direct_forbidden_artifact_never_opened(self):
+        with patch.object(Path, 'open') as opened:
+            with self.assertRaisesRegex(ValueError, 'test dataset dependency forbidden'):
+                E.sha(self.root/'test.jsonl')
+            with self.assertRaisesRegex(ValueError, 'test dataset dependency forbidden'):
+                E.load(self.root/'test'/'shard.parquet')
+            opened.assert_not_called()
 
     def test_legacy_full_pack_cannot_be_reused_as_qo_or_pt(self):
         with self.assertRaisesRegex(ValueError, 'legacy training evidence'):
