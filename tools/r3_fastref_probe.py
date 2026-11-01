@@ -14,6 +14,25 @@ import subprocess
 import sys
 import time
 
+TOTAL_STEPS = 85
+WARMUP_STEPS = 5
+
+
+def measurement_window(rows, implementation):
+    if [r['step'] for r in rows] != list(range(1, TOTAL_STEPS + 1)):
+        raise ValueError('unexpected step sequence: ' + implementation)
+    if not all(math.isfinite(r[k]) for r in rows
+               for k in ('loss', 'grad_norm', 'step_s', 'tokens', 'base_questions')):
+        raise ValueError('nonfinite measurement: ' + implementation)
+    measured = rows[WARMUP_STEPS:]
+    seconds = sum(r['step_s'] for r in measured)
+    diagnostic = {'implementation': implementation, 'total_steps': TOTAL_STEPS,
+                  'warmup_steps': WARMUP_STEPS, 'measured_steps': len(measured),
+                  'measured_seconds': seconds, 'minimum_seconds': 60,
+                  'nonpositive_time_count': sum(r['step_s'] <= 0 for r in measured)}
+    diagnostic['valid'] = seconds >= 60 and diagnostic['nonpositive_time_count'] == 0
+    return measured, diagnostic
+
 
 def atomic(path,value):
     tmp=path.with_suffix('.pending');tmp.write_text(json.dumps(value,indent=2,sort_keys=True,allow_nan=False)+'\n');tmp.replace(path)
@@ -67,24 +86,25 @@ def main():
     ap=argparse.ArgumentParser();ap.add_argument('--out',required=True);a=ap.parse_args();out=Path(a.out)
     stage(out,'model_contract',['python3','-P','/workspace/r3_hf32_off.py','/workspace/r3_fastref_e2e.py','--device','npu:0'])
     # Numerical admission precedes any throughput comparison. Same seed,
-    # recipe, data and 3116-step schedule; stop after the same first 45 steps.
+    # recipe, data and 3116-step schedule; stop after the same first 85 steps.
     for impl in ('ref','fast_ref'):
         root=out/impl
         cmd=['python3','-P','/workspace/r3_hf32_off.py','/workspace/train_r3.py','--out',str(root),'--arm','k1','--seed','2',
              '--model-path','/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base',
              '--kernel','ref','--micro-tokens','3000','--max-len','4096','--save-every','0',
              '--no-merge','--epochs','2','--total-steps','3116','--expect-pairs','186',
-             '--gdn-impl',impl,'--stop-after','45']
+             '--gdn-impl',impl,'--stop-after',str(TOTAL_STEPS)]
         stage(out,impl,cmd)
     summaries={}
     for impl in ('ref','fast_ref'):
         root=out/impl;rows=[json.loads(x) for x in (root/'losses.jsonl').read_text().splitlines()]
-        assert [r['step'] for r in rows]==list(range(1,46))
-        assert all(math.isfinite(r[k]) for r in rows for k in ('loss','grad_norm','step_s','tokens','base_questions'))
-        measured=rows[5:];seconds=sum(r['step_s'] for r in measured)
-        assert seconds>=60 and all(r['step_s']>0 for r in measured),'insufficient measurement window'
+        measured, diagnostic = measurement_window(rows, impl)
+        atomic(out/(impl+'-measurement.json'), diagnostic)
+        if not diagnostic['valid']:
+            raise ValueError('invalid measurement window: '+json.dumps(diagnostic,sort_keys=True))
+        seconds=diagnostic['measured_seconds']
         perf=json.loads((root/'perf.json').read_text())
-        summaries[impl]={'warmup_steps':5,'measured_steps':40,'step_seconds':seconds,'chips':1,
+        summaries[impl]={'warmup_steps':WARMUP_STEPS,'measured_steps':len(measured),'step_seconds':seconds,'chips':1,
                          'questions_per_second_per_chip':sum(r['base_questions'] for r in measured)/seconds,
                          'tokens_per_second_per_chip':sum(r['tokens'] for r in measured)/seconds,
                          'trainer_perf':perf}
@@ -93,7 +113,7 @@ def main():
             'scientific_acceptance':False,'test_read':False,
             'hf32':False,'contract_lora_dropout':0.0,'throughput_lora_dropout':0.05,
             'contract_chunk_overhead':4000,'throughput_chunk_overhead':2000,
-            'scope':'same-data 45-step engineering comparison; not complete trajectory equivalence or task gain'}
+            'scope':'same-data 85-step engineering comparison; not complete trajectory equivalence or task gain'}
     atomic(out/'digest.json',result);atomic(out/'RESULT.json',result)
 
 

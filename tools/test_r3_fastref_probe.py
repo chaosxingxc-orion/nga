@@ -12,6 +12,32 @@ P=importlib.util.module_from_spec(s);s.loader.exec_module(P)
 
 
 class ProbeStages(unittest.TestCase):
+    def rows(self, seconds=1.0):
+        return [dict(step=i, loss=1.0, grad_norm=1.0, step_s=seconds,
+                     tokens=100, base_questions=10) for i in range(1, 86)]
+
+    def test_longer_common_window_preserves_duration_gate(self):
+        measured, diagnostic = P.measurement_window(self.rows(), 'fast_ref')
+        self.assertEqual(len(measured), 80)
+        self.assertEqual(diagnostic['measured_seconds'], 80)
+        self.assertTrue(diagnostic['valid'])
+        _, short = P.measurement_window(self.rows(.5), 'fast_ref')
+        self.assertFalse(short['valid'])
+        self.assertEqual(short['measured_seconds'], 40)
+        self.assertEqual(short['minimum_seconds'], 60)
+
+    def test_invalid_times_and_step_sequences_rejected(self):
+        rows = self.rows(2.0); rows[6]['step_s'] = 0
+        _, diagnostic = P.measurement_window(rows, 'ref')
+        self.assertGreater(diagnostic['measured_seconds'], 60)
+        self.assertEqual(diagnostic['nonpositive_time_count'], 1)
+        self.assertFalse(diagnostic['valid'])
+        rows[6]['step_s'] = float('nan')
+        with self.assertRaisesRegex(ValueError, 'nonfinite'):
+            P.measurement_window(rows, 'ref')
+        with self.assertRaisesRegex(ValueError, 'step sequence'):
+            P.measurement_window(self.rows()[:45], 'ref')
+
     def test_real_failure_stops_and_cannot_be_silently_retried(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);(root/'plan.json').write_text(json.dumps({'files':{}}))
