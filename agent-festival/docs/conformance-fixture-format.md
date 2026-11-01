@@ -1,6 +1,6 @@
 # Conformance 夹具格式与跨语言消费指南
 
-> 目的：本仓 170 件 JSON 夹具是**可执行行为规格**（executable behavior spec），不是静态测试数据。本文定义夹具格式、钉子纪律、双 oracle lockstep 模式，以及任何语言（包括 NGA Java SDK）如何消费同一批夹具做 conformance 验证。这是 issue #1 碰撞回应提议 1（"95 夹具升格跨语言 conformance 基准"）的落地说明。
+> 目的：本仓 195 件 JSON 夹具（全仓含密钥库；六增长族 141 件——三种口径见机生成清单）是**可执行行为规格**（executable behavior spec），不是静态测试数据。本文定义夹具格式、钉子纪律、双 oracle lockstep 模式，以及任何语言（包括 NGA Java SDK）如何消费同一批夹具做 conformance 验证。这是 issue #1 碰撞回应提议 1（"95 夹具升格跨语言 conformance 基准"）的落地说明。
 >
 > 先例：langgraph 的 checkpoint-conformance 套件、本仓 Python/Go 双 oracle（17+5 轮空白审查验证）——"夹具即规范"已被三方独立到达。
 
@@ -11,11 +11,27 @@
 | `schema/examples/ledger/{valid,invalid}` | 事件账本文档 | 9 + 26 |
 | `schema/examples/adoption/{valid,invalid}` | 采纳请求文档 | 2 + 5 |
 | `schema/examples/judgment/{valid,invalid}` | 判断规格文档 | 2 + 19 |
-| `schema/examples/release/{valid,invalid}` | 发布清单文档 | 2 + 9 |
+| `schema/examples/release/{valid,invalid}` | 发布清单文档 | 3 + 14 |
+| `schema/examples/replay/{valid,invalid}` | 重放用例文档（件6） | 8 + 7 |
 | `schema/examples/compose/{valid,invalid}` | 执行图（基座件1） | 10 + 36 |
 | `schema/examples/{valid,invalid,envelopes,keys}` | 基座契约/信封/密钥库 | 其余 |
 
 计数钉三处同原子维护：`cmd/*/main_test.go` 摘要行、各 `*.py` oracle 的元组断言、`schema/README.md`。**语料增减必须同笔 rebase 三处**——这是防静默缩水的硬闸（D93，源于 4b04cea/4e52a20 教训）。
+
+
+<!-- corpus-manifest: machine-generated from schema/examples/**; regenerate with
+     python3 tools/corpus_manifest.py (do not hand-edit counts below) -->
+| 族 | valid + invalid |
+|---|---|
+| `ledger` | 9 + 26 |
+| `adoption` | 2 + 5 |
+| `judgment` | 2 + 19 |
+| `release` | 3 + 14 |
+| `replay` | 8 + 7 |
+| `compose` | 10 + 36 |
+| 增长族合计 | 141 |
+| 基座契约/信封 | 50 |
+| 全仓合计（含密钥库） | 195 |
 
 ## 二、夹具的钉子语法
 
