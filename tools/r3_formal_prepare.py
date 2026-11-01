@@ -158,7 +158,6 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
             'allocation': str(BASE / 'CHIP-ALLOCATION.json'), 'image_sha256': IMAGE,
             'container': f'nga-r3-formal-k1-s{seed}-20261031', 'command': command,
             'environment': {'ASCEND_RT_VISIBLE_DEVICES': '0', 'TASK_QUEUE_ENABLE': '2',
-                            'TORCH_DEVICE_BACKEND_AUTOLOAD': '0',
                             'PYTORCH_NPU_ALLOC_CONF': 'expandable_segments:True',
                             'NGA_R0_CODE': '/workspace/r0_code', 'PYTHONDONTWRITEBYTECODE': '1',
                             'HF_HUB_OFFLINE': '1', 'TRANSFORMERS_OFFLINE': '1', 'TOKENIZERS_PARALLELISM': 'false'},
