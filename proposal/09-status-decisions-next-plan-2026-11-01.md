@@ -1,6 +1,6 @@
 # 当前任务状态、待决策事项与下一阶段计划
 
-更新时间：2026-11-01 UTC。运行快照截至 02:06 UTC；以下工程验收更新来自该日独立收据。本文覆盖当前结论；旧版过程记录保存在本地 archive，历史测量值不改写。
+更新时间：2026-11-01 UTC。运行快照截至 02:17 UTC；以下工程验收更新来自该日独立收据。本文覆盖当前结论；旧版过程记录保存在本地 archive，历史测量值不改写。
 
 ## 当前结论
 
@@ -10,15 +10,15 @@
 
 ## 当前执行与效率
 
-02:06 UTC 有界检查记录 host175 的 3 个训练容器、5 个推理容器；watchdog 最近一轮无失败或停滞告警。这是任务运行数量，不证明持续满载。
+02:17 UTC 有界检查记录 host175 的 3 个训练容器、5 个推理容器；watchdog 最近一轮无失败或停滞告警。这是任务运行数量，不证明持续满载。
 
 | 工作 | 已核实状态 | 下一依赖 |
 | --- | --- | --- |
-| 逐候选 K2，0.8B seeds2/3 | 1,259 / 1,209 步，各目标 3,116 步 | 实际终态、后继推理、开发计分 |
+| 逐候选 K2，0.8B seeds2/3 | 1,274 / 1,225 步，各目标 3,116 步 | 实际终态、后继推理、开发计分 |
 | K1，4B seed2 | 3,116 步，真实 exit0；后继推理已启动 | 推理完整收据及 CPU 计分 |
-| K1，4B seed3 | 1,800 / 3,116 步 | 队列自动接续 |
+| K1，4B seed3 | 1,906 / 3,116 步 | 队列自动接续 |
 | 首轮六路候选推理及 0.8B K0 | 各 148,542 条记录 | 该计数不是测试集样本数或收益 |
-| 2B K0 | 38,540 / 148,542 条，25.9% | 完整推理收据 |
+| 2B K0 | 40,268 / 148,542 条，27.1% | 完整推理收据 |
 | 工程 QO/PT 控制 | QO seed2 在 01:46:46 UTC 真实 exit0，已自动接续推理；PT seed2 也已接续推理，PT seed3 状态以其队列为准 | 各自恢复/重建与比较证据 |
 | CPU 选择队列 | 10 done、6 waiting_reports、10 waiting_inference | 按依赖有序消费 |
 
@@ -43,7 +43,7 @@ K1 相对 K0 的配对 90% bootstrap 区间分别为 [22.1519, 26.9778]、[0.228
 
 旧 Base K1 step2200 恢复的 NPU 退出和资源释放为 0，但原 checkpoint 被 keep=2 清除，CPU 重建退出 1。旧失败保留，不回填原路径，也不以剩余 SOURCE.pt 副本自动替代原始证据要求。保留副本方案的独立审查要求补足来源、完整 recipe 和状态验证，当前不采用它绕过阻塞。
 
-新的 Base K1 恢复使用真实保留的 step3000：仍为 20 步、3 replicas、10+10 分段及原阈值。固定镜像无设备 CPU 结构预检退出 0，核对 372 个 LoRA tensors 和 372 个 optimizer states、scheduler step3000；这不等于恢复后的数值一致性通过。新计划 33 项冻结依赖已逐项复哈希，已排队等待 chip1 的 R0 释放。实际 NPU 恢复、独立 CPU 数值重建和精确计划验收仍未完成。自动 CPU 接续现已部署：`base_retained3000_cpu_queue_20261101_v1`，host175 PID `2825827` 的实际命令已核对，状态 `waiting_restart`；每 600 秒检查实际退出/释放后，使用固定镜像无 NPU 设备容器重建。13 项相关测试通过。新增代码 `70584f3` 不在旧第三轮冻结包内，须单独纳入下一次审查。
+新的 Base K1 恢复使用真实保留的 step3000：仍为 20 步、3 replicas、10+10 分段及原阈值。固定镜像无设备 CPU 结构预检退出 0，核对 372 个 LoRA tensors 和 372 个 optimizer states、scheduler step3000；这不等于恢复后的数值一致性通过。新计划 33 项冻结依赖已逐项复哈希，已排队等待 chip1 的 R0 释放。实际 NPU 恢复、独立 CPU 数值重建和精确计划验收仍未完成。自动 CPU 接续现已部署：`base_retained3000_cpu_queue_20261101_v2`，host175 PID `2960970` 的实际命令已核对，状态 `waiting_restart`；每 600 秒检查实际退出/释放后，使用固定镜像无 NPU 设备容器重建。13 项相关测试通过。最新代次已包含源码边界与共享容器校验，正由第五轮代码审查覆盖；实际数值结果仍待恢复完成。
 
 Astra 第二轮为 CHANGES_REQUIRED，六类问题涉及实际数值重建、执行源码身份、保留容器配置、目标一致性、scope 矛盾与禁止文件的读取顺序。对应修复已提交；现有证据包括：
 
@@ -54,13 +54,13 @@ Astra 第二轮为 CHANGES_REQUIRED，六类问题涉及实际数值重建、执
 
 第三轮及第四轮托管 Astra 均只返回规则确认，记为 NOT_REVIEWED；任务管理 MCP 接口也连接失败。第四轮只读 CLI Astra 已真实完成：exit0，输出哈希一致，review SHA `94117950ad68821696e7337fc36021899ac0b0e5dd2f5357cd38213e57a2b2c9`，结论 **CHANGES_REQUIRED**。它核验了 108 文件，确认目标身份与 scope 矛盾的原反例关闭；仍有外层 helper 字节码绕过、嵌套证据测试路径读取、正式保留容器有效配置不完整、CPU 接续校验较弱及审查包缺少 successor helper 五类问题。
 
-`2a2035c` 已修复前两类路径：外层 admission/readiness/CPU helper 直接编译源码，嵌套 inventory 和单独 review/checkpoint 路径在内容读取前拒绝测试文件，原 checkpoint 限定到对应训练目录与步数。固定镜像无设备 CPU 新代次 70 项测试通过，真实容器 exit0，294 个冻结源文件复哈希一致。首轮因测试仍模拟旧导入接口失败，保留失败代次后修正测试再运行；未删改失败记录。`388cbcc` 已将 CPU/NPU 接续接到共享有效配置规则，补充 healthcheck、资源限制、runtime、init、额外环境变量等检查，并从真实 Docker daemon 读取默认 runtime/cgroup namespace。host175 实际默认为 ascend/private；旧保留 NPU 与 CPU 容器的只读正向检查均通过。固定镜像新代次 81 项回归通过、真实 exit0、冻结源哈希一致。首轮遗漏 synthetic fixture 的 daemon 默认值导致失败，保留记录后修正测试再跑；不改变生产默认值。旧运行队列仍使用原冻结版本，需新的 CPU 验证代次才能引用最新校验。
+`2a2035c` 已修复前两类路径：外层 admission/readiness/CPU helper 直接编译源码，嵌套 inventory 和单独 review/checkpoint 路径在内容读取前拒绝测试文件，原 checkpoint 限定到对应训练目录与步数。固定镜像无设备 CPU 新代次 70 项测试通过，真实容器 exit0，294 个冻结源文件复哈希一致。首轮因测试仍模拟旧导入接口失败，保留失败代次后修正测试再运行；未删改失败记录。`388cbcc` 已将 CPU/NPU 接续接到共享有效配置规则，补充 healthcheck、资源限制、runtime、init、额外环境变量等检查，并从真实 Docker daemon 读取默认 runtime/cgroup namespace。host175 实际默认为 ascend/private；旧保留 NPU 与 CPU 容器的只读正向检查均通过。固定镜像新代次 81 项回归通过、真实 exit0、冻结源哈希一致。首轮遗漏 synthetic fixture 的 daemon 默认值导致失败，保留记录后修正测试再跑；不改变生产默认值。02:17 UTC 已部署新的 CPU 验证代次：Base v2、QO/PT v4。旧控制器实际命令核对、暂停并确认没有 worker/准备意图/完成恢复后才停止，新服务 PID `2960970` / `2960999` 与命令已核对；均 waiting_restart。旧证据未改写，新收据尚待产生。
 
 ## 最终评测源码身份补充修复
 
 在准备最终测试入口时复现了独立问题：旧 final closure 校验只检查预加载模块的路径，伪造相同路径的 `r3_final_metrics` 对象可以被接受。`e0f7277` 改为执行已校验源码字节，并统一 adapter、transaction、日志和 admission 的本地模块身份；反例包括预加载伪模块和恶意 unchecked-hash `.pyc`。50 项相关测试通过，新 41 文件评测代码闭包在 CPU 中实际导入 29 个模块，未访问数据或执行推理。
 
-首版 41 文件 closure manifest 为 `8bb413901b01cb389a658bdde3dcfce072382075aa3529d76c35e5e29355f1a9`。其独立 Astra 已真实 exit0，review SHA `69d5ab37615d0a0d2a73d76f189f2023258f04b030dbc42195a140b716e3f98e`，仍为 CHANGES_REQUIRED：driver 启动/向量导出和 supervisor admission 存在外层字节码加载与旧 alias 问题。`2f13906` 已修复这些出口，25 项相关测试通过；旧 closure 不被追改或宣布通过，实际 scorer 中断恢复验证仍未完成。
+首版 41 文件 closure manifest 为 `8bb413901b01cb389a658bdde3dcfce072382075aa3529d76c35e5e29355f1a9`。其独立 Astra 已真实 exit0，review SHA `69d5ab37615d0a0d2a73d76f189f2023258f04b030dbc42195a140b716e3f98e`，仍为 CHANGES_REQUIRED：driver 启动/向量导出和 supervisor admission 存在外层字节码加载与旧 alias 问题。`2f13906` 已修复这些出口，25 项相关测试通过；旧 closure 不被追改或宣布通过；新 v2 closure 已冻结 41 文件并在 CPU 实际导入 29 个模块，manifest `90a3f779e4aaa49f4f095d148b42cb392f0f3f269aba143cd9ca01e6e25a8528`，仍 deployable=false。实际 scorer 中断恢复验证仍未完成。
 
 第五轮统一代码复审包已封存为 410 文件，manifest `3c9eabe7ef887a92f12690e7dc572c89610a4d03a25792d4e7086784344a4181`，包括此前缺失的 successor helper、实际部署队列/旧代码、最新修复和两轮审查。只读 Astra child PID `2630140` 与实际命令、心跳已核验，当前待 verdict；scope 为代码修复，非正式计划或测试发布许可。
 
@@ -72,7 +72,7 @@ Astra 第二轮为 CHANGES_REQUIRED，六类问题涉及实际数值重建、执
 
 ## 下一阶段执行计划
 
-QO/PT CPU 队列也已升级至 `control_resume_cpu_queue_20261101_v3`：原空闲服务确认无 worker 后安全停止，新 PID `2844606` 与命令已核对，两个任务均 waiting_restart，600 秒轮巡，使用最新验证器。未改旧冻结证据或中断 NPU。
+QO/PT CPU 队列也已升级至 `control_resume_cpu_queue_20261101_v4`：原空闲服务确认无 worker 后安全停止，新 PID `2960999` 与命令已核对，两个任务均 waiting_restart，600 秒轮巡，使用最新验证器。未改旧冻结证据或中断 NPU。
 
 1. **保持工程队列持续消费。** 等已启动训练/推理的真实终态，按资源所有权接续；继续 2B/4B/9B 规模与逐候选 K2、控制实验。出现效率或调度问题先修复；不靠重复发射任务维持表面利用率。
 2. **完成恢复证据链。** 新 Base 自动 CPU 重建队列已接上，等待真实完成并验收输出；QO/PT 各自产生恢复和终态，不能用 Base 代替。新版验证器需要新冻结代次，不重标旧收据。
@@ -86,7 +86,7 @@ QO/PT CPU 队列也已升级至 `control_resume_cpu_queue_20261101_v3`：原空�
 退出当前阶段需要：全部 38 单位状态可解释；对应 K0 计分可核验；每个正式目标计划及独立审查完整；实际恢复/重建/终态一致；候选锁定后按冻结测试协议形成可发布收益。工程测试通过、exit0 或完整进度计数都不能单独满足这些条件。
 
 - [最新参考指标](../experiments/REFERENCE-BASELINE-LATEST.md)；[远程 Wiki 四维结论](https://github.com/chaosxingxc-orion/nga/wiki/Current-Conclusions)。
-- 本地巡检：`.local/reports/inspection-20261101T020633.json`；开发明细：`.local/reports/dev-findings-current.md`；CPU 验收：`.local/reports/cpu-repair-acceptance-20261101.json`。
+- 本地巡检：`.local/reports/inspection-20261101T021757.json`；开发明细：`.local/reports/dev-findings-current.md`；CPU 验收：`.local/reports/cpu-repair-acceptance-20261101.json`。
 - 新恢复计划 identity：`2f9cd65081c15e7039216a809a1dbe64d6e553422bb8e058ea060d5503fa5271`。
 - 新 K0 bundle SHA：`8f97ec9e559830cf62f9ec15e064cce959a42ee65b7ca66a56a3835efb8f7810`。
 - 第四轮审查 manifest SHA：`d06092db16ea55e32a7519e5bf3cc164bc60a174cd9ef187d0a1cd734aa58339`；范围为代码修复，非测试发布批准。
