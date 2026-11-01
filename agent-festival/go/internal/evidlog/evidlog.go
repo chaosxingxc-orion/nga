@@ -47,23 +47,30 @@ type Entry struct {
 
 // Log is an in-memory evidence log; Open attaches the durable form.
 type Log struct {
-	entries []Entry
-	seq     int
-	path    string
+	entries  []Entry
+	seq      int
+	path     string
+	tornTail bool // the durable form's tail was skipped at load — Append must refuse
 }
 
 // Open loads (or starts) the durable form at path.
 func Open(path string) (*Log, error) {
 	l := &Log{seq: -1, path: path}
-	lines, err := loadLines(path)
+	lines, tornTail, err := loadLines(path)
 	if err != nil {
 		return nil, err
 	}
-	for _, ln := range lines {
-		l.entries = append(l.entries, ln.Event)
-		if ln.Event.Seq > l.seq {
-			l.seq = ln.Event.Seq
+	l.tornTail = tornTail
+	// The durable face runs the SAME density contract as the envelope face
+	// (CheckDoc): writer-allocated seqs are dense from 0. A byte-clean file
+	// with a dropped line is exactly the "incomplete record" the coverage
+	// verdict must never go green on (R3 M1).
+	for i, ln := range lines {
+		if ln.Event.Seq != i {
+			return nil, fmt.Errorf("[EVIDLOG.SEQ_GAP] %s: entries/%d has seq %d, want %d — the durable form must stay dense (a gap is a dropped line or a foreign writer)", path, i, ln.Event.Seq, i)
 		}
+		l.entries = append(l.entries, ln.Event)
+		l.seq = ln.Event.Seq
 	}
 	return l, nil
 }
@@ -78,12 +85,24 @@ func (l *Log) Append(e Entry) error {
 		return err
 	}
 	if l.path != "" {
+		if l.tornTail {
+			// The loader tolerated this file's unparseable tail by skipping
+			// it. Appending would splice that tail into the middle of the
+			// file and brick every future Open. The writer refuses instead
+			// of silently destroying evidence bytes — repairing the tail is
+			// a human decision on an audit record (R3 M2).
+			l.seq--
+			return fmt.Errorf("[EVIDLOG.TORN_TAIL_BLOCKED] %s: the durable form ends in an unparseable torn tail (tolerated at Open) — appending would turn it into a mid-file line and brick the log; repair the tail first", l.path)
+		}
 		existing, err := os.ReadFile(l.path)
 		if err != nil && !os.IsNotExist(err) {
 			l.seq--
 			return err
 		}
-		next := append(bytes.TrimRight(existing, "\n"), '\n')
+		var next []byte
+		if len(existing) > 0 {
+			next = append(bytes.TrimRight(existing, "\n"), '\n')
+		}
 		next = append(next, line...)
 		next = append(next, '\n')
 		dir, base := filepath.Split(l.path)
@@ -193,15 +212,21 @@ type parsedLine struct {
 	Event Entry
 }
 
-func loadLines(path string) ([]parsedLine, error) {
+// loadLines parses the durable JSONL form. The bool reports a TOLERATED torn
+// tail: the final line lacked a newline AND was unparseable, so bytes were
+// skipped — the caller (Open) must remember it, because appending to a file
+// whose tail was skipped would turn those bytes into a mid-file line and
+// brick the log against this very loader (R3 M2).
+func loadLines(path string) ([]parsedLine, bool, error) {
 	raw, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
-		return nil, nil
+		return nil, false, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	var lines []parsedLine
+	tornTail := false
 	start := 0
 	for i := 0; i <= len(raw); i++ {
 		if i != len(raw) && raw[i] != '\n' {
@@ -217,27 +242,54 @@ func loadLines(path string) ([]parsedLine, error) {
 		// torn tail (interrupted last write) and is tolerated. Any unparseable
 		// line BEFORE the EOF position is rejected — silently skipping it
 		// would shrink the coverage CheckCoverage accounts for and turn a
-		// completeness verdict green on an incomplete record.
+		// completeness verdict green on an incomplete record. The same holds
+		// for lines that PARSE but are not entry objects (a bare `null`
+		// unmarshals into a zero-value phantom entry) or entries without a
+		// seq — a durable line is an entry or the file is not loadable.
 		tornTail := i == len(raw)
 		var e Entry
 		if json.Unmarshal(line, &e) != nil {
 			if tornTail {
-				continue
+				return lines, true, nil
 			}
-			return nil, fmt.Errorf("[EVIDLOG.MIDFILE_UNPARSEABLE] %s: unparseable line at byte offset %d (before EOF) — evidence coverage must not silently shrink", path, lineStart)
+			return nil, false, fmt.Errorf("[EVIDLOG.MIDFILE_UNPARSEABLE] %s: unparseable line at byte offset %d (before EOF) — evidence coverage must not silently shrink", path, lineStart)
 		}
 		doc := map[string]any{}
 		dec := json.NewDecoder(bytes.NewReader(line))
 		dec.UseNumber()
 		if dec.Decode(&doc) != nil {
 			if tornTail {
-				continue
+				return lines, true, nil
 			}
-			return nil, fmt.Errorf("[EVIDLOG.MIDFILE_UNPARSEABLE] %s: unparseable line at byte offset %d (before EOF) — evidence coverage must not silently shrink", path, lineStart)
+			return nil, false, fmt.Errorf("[EVIDLOG.MIDFILE_UNPARSEABLE] %s: unparseable line at byte offset %d (before EOF) — evidence coverage must not silently shrink", path, lineStart)
+		}
+		if doc == nil {
+			if tornTail {
+				return lines, true, nil
+			}
+			return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d is %q, not an entry object — a phantom entry must not enter the audit record", path, lineStart, string(line))
+		}
+		// Shape: a durable line must carry every required Entry field —
+		// seq/tool/at/caller (the envelope schema's required set). A
+		// `{"seq":1}`-style object that parses cleanly is still a phantom:
+		// it would enter the audit record and silently pass the density
+		// rule (R3 M1, phantom family).
+		missingKey := ""
+		for _, k := range []string{"seq", "tool", "at", "caller"} {
+			if _, has := doc[k]; !has {
+				missingKey = k
+				break
+			}
+		}
+		if missingKey != "" {
+			if tornTail {
+				return lines, true, nil
+			}
+			return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d is an object without %q — a durable line is a full entry (seq/tool/at/caller), not a fragment", path, lineStart, missingKey)
 		}
 		lines = append(lines, parsedLine{Raw: line, Doc: doc, Event: e})
 	}
-	return lines, nil
+	return lines, tornTail, nil
 }
 
 func contains(hay []string, needle string) bool {

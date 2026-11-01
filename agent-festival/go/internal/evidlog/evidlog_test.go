@@ -24,6 +24,12 @@ func TestDenseAppend(t *testing.T) {
 	if err := l.Append(Entry{Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"}); err != nil {
 		t.Fatal(err)
 	}
+	// first-write byte shape: a fresh log must not begin with a newline (the
+	// TrimRight-of-empty quirk used to write a leading "\n" — harmless only
+	// while empty lines were silently skipped)
+	if b := mustRead(t, path); len(b) == 0 || b[0] != '{' {
+		t.Fatalf("first write did not start with an entry object: %q", b)
+	}
 	if err := l.Append(Entry{Tool: "bureau.q", Selector: "subj=x", Caller: "s2", At: "2026-11-01T10:01:00Z"}); err != nil {
 		t.Fatal(err)
 	}
@@ -82,6 +88,106 @@ func TestMidfileUnparseableRejected(t *testing.T) {
 		t.Fatal("mid-file unparseable line was silently skipped — coverage boundary missing")
 	} else if !strings.Contains(err.Error(), "EVIDLOG.MIDFILE_UNPARSEABLE") {
 		t.Fatalf("mid-file rejection lacks the neutral key: %v", err)
+	}
+}
+
+// TestDurableSeqGapRejected pins the durable face of the density contract
+// (R3 M1): a byte-clean file with a dropped line — both lines perfectly
+// parseable, the gap invisible to any per-line parser — must fail Open with
+// EVIDLOG.SEQ_GAP, exactly as the envelope face (CheckDoc, seq-gap.json
+// fixture) rejects the same shape. A dropped line is the cheapest way to
+// shrink what CheckCoverage accounts for.
+func TestDurableSeqGapRejected(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "evid.jsonl")
+	l1, _ := json.Marshal(Entry{Seq: 0, Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"})
+	l2, _ := json.Marshal(Entry{Seq: 2, Tool: "bureau.q", Selector: "subj=x", Caller: "s2", At: "2026-11-01T10:01:00Z"})
+	body := append(append(append([]byte{}, l1...), '\n'), l2...)
+	body = append(body, '\n')
+	if err := os.WriteFile(path, body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err == nil {
+		t.Fatal("dropped line silently absorbed — durable face never ran the density contract")
+	} else if !strings.Contains(err.Error(), "EVIDLOG.SEQ_GAP") {
+		t.Fatalf("seq-gap rejection lacks the neutral key: %v", err)
+	}
+}
+
+// TestNullLineRejected pins the phantom-entry face (R3 M1): a bare `null`
+// line unmarshals into a zero-value Entry without error, and a
+// `{"seq":1}`-style fragment parses cleanly while still being a phantom —
+// both must be rejected mid-file with EVIDLOG.NON_OBJECT_LINE; at the
+// torn-tail position (EOF, no newline) the loader tolerates them as tail
+// garbage.
+func TestNullLineRejected(t *testing.T) {
+	l1, _ := json.Marshal(Entry{Seq: 0, Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"})
+	l2, _ := json.Marshal(Entry{Seq: 1, Tool: "bureau.q", Selector: "subj=x", Caller: "s2", At: "2026-11-01T10:01:00Z"})
+	cases := map[string][]byte{
+		"bare null":         append(append(append([]byte{}, l1...), '\n', 'n', 'u', 'l', 'l', '\n'), l2...),
+		"fragment with seq": append(append(append(append([]byte{}, l1...), '\n', '{', '"', 's', 'e', 'q', '"', ':', '9', '}', '\n'), l2...), '\n'),
+		"missing caller":    append(append(append([]byte{}, l1...), '\n', '{', '"', 's', 'e', 'q', '"', ':', '1', ',', '"', 't', 'o', 'o', 'l', '"', ':', '"', 'x', '"', ',', '"', 'a', 't', '"', ':', '"', 'y', '"', '}', '\n')),
+	}
+	for name, body := range cases {
+		path := filepath.Join(t.TempDir(), "evid.jsonl")
+		if err := os.WriteFile(path, append(body, '\n'), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Open(path); err == nil {
+			t.Fatalf("%s: phantom line absorbed into the audit record", name)
+		} else if !strings.Contains(err.Error(), "EVIDLOG.NON_OBJECT_LINE") {
+			t.Fatalf("%s: rejection lacks the neutral key: %v", name, err)
+		}
+	}
+}
+
+// TestAppendRefusesTornTail pins the writer's recovery duty (R3 M2): Open
+// tolerates a torn tail by skipping it, but Append on that same log must
+// REFUSE — appending would splice the tail into mid-file and brick every
+// future Open against this loader. After a human repair (tail removed, the
+// log ends cleanly), appending works and the reopened log is dense.
+func TestAppendRefusesTornTail(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "evid.jsonl")
+	l, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"}); err != nil {
+		t.Fatal(err)
+	}
+	clean := mustRead(t, path) // the valid prefix, ends with '\n'
+	line, _ := json.Marshal(Entry{Seq: 1, Tool: "bureau.q"})
+	if err := os.WriteFile(path, append(append([]byte{}, clean...), line[:len(line)-5]...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	l2, err := Open(path) // tolerance at load: 1 entry, torn tail remembered
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l2.Append(Entry{Tool: "t", Caller: "s2", At: "2026-11-01T10:02:00Z"}); err == nil {
+		t.Fatal("Append wrote over a tolerated torn tail — the log is now bricked for every future Open")
+	} else if !strings.Contains(err.Error(), "EVIDLOG.TORN_TAIL_BLOCKED") {
+		t.Fatalf("torn-tail refusal lacks the neutral key: %v", err)
+	}
+	// repair: drop the torn tail bytes (a human decision on an audit record)
+	// and rewrite the second entry cleanly — the log ends with '\n' again,
+	// then the writer resumes and stays loadable and dense
+	good, _ := json.Marshal(Entry{Seq: 1, Tool: "bureau.q", Selector: "subj=x", Caller: "s2", At: "2026-11-01T10:01:00Z"})
+	if err := os.WriteFile(path, append(append(append([]byte{}, clean...), good...), '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	l3, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l3.Append(Entry{Tool: "t", Caller: "s2", At: "2026-11-01T10:02:00Z"}); err != nil {
+		t.Fatalf("Append still refuses after repair: %v", err)
+	}
+	l4, err := Open(path)
+	if err != nil {
+		t.Fatalf("reopened log rejected after repair+append: %v", err)
+	}
+	if es := l4.Entries(); len(es) != 3 || es[2].Seq != 2 {
+		t.Fatalf("repair+append lost density: %+v", es)
 	}
 }
 

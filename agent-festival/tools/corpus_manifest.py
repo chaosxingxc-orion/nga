@@ -38,11 +38,18 @@ def manifest() -> str:
 
 def check() -> int:
     doc = DOC.read_text()
-    if manifest() not in doc:
+    n = doc.count(manifest())
+    if n == 0:
         print(f"[manifest] FAIL: the block in {DOC} does not match the regenerated "
               f"manifest — hand-edited rows or a corpus change without a re-render. "
               f"Fix: python3 tools/corpus_manifest.py > (paste between the "
               f"corpus-manifest comment and the next section header).")
+        return 1
+    if n > 1:
+        # R2 M2's disease form is duplicate rows; a stale SECOND block (R3
+        # m5 probe) must count as drift too, not pass on the good copy.
+        print(f"[manifest] FAIL: the regenerated manifest appears {n} times in "
+              f"{DOC} — a duplicate/stale block exists; keep exactly one.")
         return 1
     print(f"[manifest] OK: committed block == regenerated manifest ({DOC})")
     return 0

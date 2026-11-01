@@ -285,7 +285,7 @@ def check_odd_twin_bytes() -> list[str]:
     9007199254740993.0 must survive at the BYTE level. Both it and the even
     twin fold to the same float64, so every parsed assertion is identity-blind
     — this fixture silently regressed ..993.0→..992.0 once with the whole
-    suite green. The Go twin lives in ledger_test.go (TestOddFloatTwin)."""
+    suite green. The Go twin lives in ledger_test.go (TestOddFloatTwinPinsFoldedDomain)."""
     p = HERE / "examples" / "ledger" / "valid" / "seq-odd-float-twin.json"
     raw = p.read_bytes()
     if b'"arbitration_seq": 9007199254740993.0' not in raw:
