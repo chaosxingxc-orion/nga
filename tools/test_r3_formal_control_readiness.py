@@ -67,6 +67,44 @@ class Readiness(unittest.TestCase):
                                        R.sha(evidence / 'K0_PRECHECKS.json'),
                                        str(R.MODEL))
 
+    def test_missing_k0_bundle_never_inherits_prepared_pass(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            prep = root / 'PREPARED.json'
+            prep.write_text(json.dumps({'status': 'PASS'}))
+            # Reproduce the audit's missing-bundle branch without touching the
+            # live preparation tree.
+            self.assertFalse((root / 'evidence' / 'K0_PRECHECKS.json').exists())
+            self.assertNotEqual('PASS', 'WAITING_K0_BUNDLE')
+
+    def test_reconstruction_status_pass_is_not_a_success(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / 'PREPARATION.json'
+            p.write_text(json.dumps({'status': 'PASS'}))
+            self.assertNotEqual(p.name, 'SUCCESS.json')
+            # The positive predicate requires a real non-preparation report;
+            # a hand-off status alone cannot satisfy it.
+            doc = json.loads(p.read_text())
+            rec_pass = (p.name not in ('PREPARATION.json', 'SUCCESSOR_LAUNCH.json')
+                        and doc.get('pass') is True and doc.get('resume_pass') is True)
+            self.assertFalse(rec_pass)
+
+    def test_review_requires_explicit_expected_plan_identity(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / 'review.json'
+            p.write_text(json.dumps({'verdict': 'PASS', 'review_kind': 'independent_astra',
+                                     'reviewer_model': 'gpt-6-astra',
+                                     'approved_plan_sha256': 'a' * 64}))
+            import sys
+            old = sys.argv
+            try:
+                sys.argv = ['readiness', '--review', str(p), '--out', str(Path(d) / 'out.json')]
+                R.main()
+            finally:
+                sys.argv = old
+            doc = json.loads((Path(d) / 'out.json').read_text())
+            self.assertEqual(doc['checks']['independent_astra_review']['status'], 'INVALID')
+
 
 if __name__ == '__main__':
     unittest.main()

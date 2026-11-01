@@ -31,6 +31,13 @@ def load(path):
     return json.loads(Path(path).read_text())
 
 
+def canonical_plan_sha256(plan):
+    """Return the plan identity used by the formal launcher/resume validator."""
+    import hashlib
+    value = dict(plan, review_sha256='PENDING')
+    return hashlib.sha256((json.dumps(value, sort_keys=True, indent=2) + '\n').encode()).hexdigest()
+
+
 def validator():
     path = ROOT / 'tools/r3_training_evidence.py'
     spec = importlib.util.spec_from_file_location('r3_training_evidence', path)
@@ -70,6 +77,7 @@ def resume_source_ready(plan_path):
     """Check the retained receipt chain before treating a restart as usable."""
     try:
         plan = load(plan_path)
+        plan_pin = canonical_plan_sha256(plan)
         root = Path(plan['out'])
         terminal_path = root / 'TRAIN_EXIT.json'
         terminal = load(terminal_path)
@@ -88,9 +96,12 @@ def resume_source_ready(plan_path):
         spec = load(attempt/'LAUNCH_SPEC.json')
         release = load(attempt/'RELEASE.json')
         done = load(attempt/'SUPERVISOR_DONE.json')
-        return (launch.get('plan_sha256') == plan.get('plan_sha256')
+        # The plan does not carry a mutable self-hash.  Compare receipts with
+        # the canonical identity, and reject absent/non-hex receipt pins.
+        valid_pin = isinstance(plan_pin, str) and len(plan_pin) == 64
+        return (valid_pin and launch.get('plan_sha256') == plan_pin
                 and isinstance(launch.get('id'), str) and len(launch['id']) == 64
-                and spec.get('plan_sha256') == plan.get('plan_sha256')
+                and spec.get('plan_sha256') == plan_pin
                 and release.get('exit_code') == 0
                 and done.get('exit_code') == 0
                 and (root/'CONTRACT_RESULT.json').is_file()
@@ -108,6 +119,8 @@ def main():
     ap.add_argument('--resume-reconstruction', type=Path,
                     default=BASE/'current_resume_cpu_recompute_20261031_v1/PREPARATION.json')
     ap.add_argument('--review', type=Path, default=None)
+    ap.add_argument('--expected-plan-sha256', default=None,
+                    help='exact canonical formal plan identity approved by the review')
     ap.add_argument('--out', type=Path, required=True)
     a = ap.parse_args()
     checks = {
@@ -127,7 +140,9 @@ def main():
         except Exception:
             k0_status = 'INVALID'
     else:
-        k0_status = k0.get('status', 'MISSING')
+        # PREPARED.json is only a queue hand-off.  Its status must never be
+        # promoted to evidence PASS when the immutable worker bundle is absent.
+        k0_status = 'WAITING_K0_BUNDLE'
     checks['fresh_k0'] = {'path': str(k0_bundle), 'status': k0_status}
     resume = load(a.resume_plan) if a.resume_plan.is_file() else {}
     # The supervisor writes the canonical terminal receipt at the plan root;
@@ -148,15 +163,18 @@ def main():
                 and isinstance(rec.get('plan_sha256'), str) and len(rec['plan_sha256']) == 64
                 and isinstance(rec.get('target_sha256'), str) and len(rec['target_sha256']) == 64)
     checks['resume_reconstruction'] = {'path': str(a.resume_reconstruction), 'status':
-                                      'PASS' if rec_pass else (rec.get('status', 'WAITING')
-                                      if a.resume_reconstruction.is_file() else 'WAITING')}
+                                      'PASS' if rec_pass else
+                                      ('INVALID' if a.resume_reconstruction.is_file() else 'WAITING')}
     review = load(a.review) if a.review and a.review.is_file() else {}
+    expected_review_pin = getattr(a, 'expected_plan_sha256', None)
     checks['independent_astra_review'] = {'status': 'PASS' if (
         review.get('verdict') == 'PASS'
         and review.get('review_kind') == 'independent_astra'
         and review.get('reviewer_model') == 'gpt-6-astra'
         and isinstance(review.get('approved_plan_sha256'), str)
         and len(review['approved_plan_sha256']) == 64
+        and isinstance(expected_review_pin, str)
+        and review.get('approved_plan_sha256') == expected_review_pin
     ) else ('INVALID' if review else 'MISSING')}
     missing = [key for key, value in checks.items() if value.get('status') != 'PASS']
     result = {'schema': 'r3-formal-control-readiness-v1', 'scientific_acceptance': False,
