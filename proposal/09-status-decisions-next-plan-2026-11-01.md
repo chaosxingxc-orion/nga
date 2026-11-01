@@ -142,7 +142,7 @@ Astra K2 第三轮 **PASS_WITH_SCOPE**：独立实际函数探针拒绝同名运
 | K2 执行器 Astra v3 | review SHA `fe2c68253dcfc881d5ca75d59a7a0ef90d8a0c036765290a9b8559f5c209775d` |
 | K2 benchmark v5 | execution SHA `1ae7944ec5d07d1f1c6a94384b364e348ce500ebf297e2876623115f40393147` |
 | K2 successor v3 | pin `309f5634a49cbb330d1c9fe8666ad928dd29dcbacd383d18b1ce98387501dfbd` |
-| 当前 final source closure v2 | manifest `90a3f779e4aaa49f4f095d148b42cb392f0f3f269aba143cd9ca01e6e25a8528` |
+| 当前 final source closure（2026-11-01 v1，仅准备） | 42 文件、30 个 CPU 运行模块导入验证通过；manifest `7c3588de299f19dba0852257dd9cedb1454f2bb16d7efce6b7ad862a81fbe753`；不可部署 |
 | 本地运行/开发/依赖 | `.local/reports/inspection-20261101T042823.json`、`dev-findings-current.md`、`formal-preparation-dependencies-current.json` |
 
 截至本次整理前的完整过程文本已按原字节保存在 `.local/archive/2026-11-01/conclusions-before-consolidation-0326/` 并记录 SHA；旧测量值不被改写。当前服务、计划和审查的详细收据仍留在本地/CephFS，远程只保留协作所需结论。
