@@ -1,5 +1,7 @@
 # 当前任务状态、待决策事项与下一阶段计划
 
+> 2026-11-01 正式 DEV 运行状态更新：watchdog 最近快照显示 formal K1 seed2 已写满 148,542/148,542 读出，但其 Docker 容器仍为 running，`ENGINEERING_EVAL_EXIT`、`RELEASE` 和 supervisor 完成标记尚未出现。因此已准备的 CPU handoff 仍保持 `waiting_inference`，没有读取 readout 或启动 report watcher；读出数不能替代容器/释放终态。K2 有界实际链审查已交付，结论保持 `BOUNDED_ACTUAL_CHAIN_PASS_EXTERNAL_ACCEPTANCE_BLOCKED`。
+>
 > 2026-11-01 CPU/K2 验收更新：正式 seed2 DEV 的 CPU handoff 已准备完成，queue schema、单 job 绑定、源码闭包比较和 21 项 queue 测试通过；真实 DEV 终态标记尚不存在，因此队列保持等待，没有读取 readout 或生成报告。K2 v4 实际前驱链对 32 份允许的非 TEST 文件完成哈希、行数、模型戳、重复键和时间顺序检查，结果为有界链通过；precision-probes 历史报告哈希漂移及缺少外部 parent/observer 认证仍阻断 witness、activation 和科学准入。
 >
 > 2026-11-01 公开任务覆盖契约更新：第一批候选评估已生成 14 单元矩阵，覆盖 Kev hard/documents/devtools、Typed Decisions、BEV、Open-Jev v1.1、DecisionPivot core 和 DecisionRobust text。当前 14/14 标为 `needs_review`，因为至少一项 split、mask、公式、来源重叠或 TEST 暴露控制尚未核验；未读候选 TEST 样本，未启动新增推理。它是接入前准备证据，不是新增指标或训练授权。
