@@ -23,6 +23,8 @@ The detailed scope and execution order are in [`proposal/16-dataset-coverage-exp
 
 Resource correction — 2026-11-02: a local Docker inspection briefly reported the six allocated receipt IDs as missing. That observation was against the wrong Docker daemon. A direct inspection on host 175 resolves all six immutable receipt IDs to running containers; chips 0, 1, 4, 5, 6 and 7 remain allocated, and chips 2 and 3 are the only free chips. No release or allocation edit was made. Formal preparation must use a fresh allocation snapshot and the resource adapter claim transaction.
 
+Engineering correction — 2026-11-02: the formal prepare/launcher pair now accepts an explicit two-chip seed binding, validates chip IDs against the eight-device range, and rejects a seed/chip mismatch. The launcher also disables Torch backend autoload before importing the CPU-only checker. The change is committed as `4f57092`; focused regression tests pass. A v11 CPU preparation attempt was stopped by the existing evidence consumer because the selected legacy training-evidence pack is not compatible with the newer Instruct/Base evidence closure; no NPU activation or TEST read occurred. A subsequent container attempt exposed that the 175 workspace snapshot was stale and incomplete, so the preparation has not yet received an exact-plan Astra review. The next action is to rerun the CPU-only preparation from a complete, hash-pinned source snapshot, then obtain a fresh independent review.
+
 ## Dimension 1 — how Jev-class gains are obtained
 
 This is our literature grouping, not a claim that each paper established a causal mechanism. A work can belong to more than one group.
