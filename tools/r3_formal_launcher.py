@@ -17,7 +17,21 @@ CONTROL_MODELS = {'K1-QO':'/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Ba
                   'K1-PT':'/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B'}
 
 
+def source_module(path, name):
+    """Compile the actual source bytes; never execute import-cache bytecode."""
+    import types
+    path = Path(path)
+    if not path.is_absolute() or any(p.is_symlink() for p in (path, *path.parents)):
+        raise ValueError('unsafe helper source')
+    raw = path.read_bytes()
+    value = types.ModuleType(name)
+    value.__file__ = str(path)
+    exec(compile(raw, str(path), 'exec', dont_inherit=True), value.__dict__)
+    return value
+
+
 def sha(path):
+    require(not is_test_data(path), 'test dataset dependency forbidden')
     h = hashlib.sha256()
     with Path(path).open('rb') as f:
         for b in iter(lambda: f.read(1 << 20), b''):
@@ -26,6 +40,7 @@ def sha(path):
 
 
 def load(path):
+    require(not is_test_data(path), 'test dataset dependency forbidden')
     return json.loads(Path(path).read_text())
 
 
@@ -56,11 +71,11 @@ def verify_fresh_prechecks(p):
     import importlib.util
     helper_path = Path(__file__).with_name('r3_fresh_prechecks.py')
     require(str(helper_path) in p['files'], 'fresh precheck verifier not pinned')
+    require(p['files'][str(helper_path)] == sha(helper_path), 'fresh precheck source differs')
     require(p.get('fresh_k0_prechecks') in p['files'] and
             p['files'][p['fresh_k0_prechecks']] == p.get('fresh_k0_prechecks_sha256'),
             'fresh K0 prechecks not bound')
-    spec = importlib.util.spec_from_file_location('formal_fresh_prechecks', helper_path)
-    helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+    helper = source_module(helper_path, 'formal_fresh_prechecks')
     bundle = helper.validate_bundle(p['fresh_k0_prechecks'], p['fresh_k0_prechecks_sha256'], p['model'])
     require(all(p['files'].get(f) == h for f,h in {**bundle['inputs'], **bundle['checks']}.items()),
             'fresh precheck dependencies not bound')
@@ -71,8 +86,8 @@ def verify_resume_evidence(p):
     helper_path = Path(__file__).with_name('r3_resume_evidence.py')
     require(str(helper_path) in p['files'], 'resume evidence verifier not pinned')
     require(p.get('resume_plan') in p['files'] and p.get('resume_plan_sha256'), 'resume plan not bound')
-    spec = importlib.util.spec_from_file_location('formal_resume_evidence', helper_path)
-    helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+    require(p['files'][str(helper_path)] == sha(helper_path), 'resume verifier source differs')
+    helper = source_module(helper_path, 'formal_resume_evidence')
     evidence = helper.validate(p['resume_plan'], p['resume_plan_sha256'], p)
     require(all(p['files'].get(f) == h for f,h in evidence.items()), 'resume evidence dependencies not bound')
 
@@ -84,8 +99,7 @@ def verify_resume_reconstruction(p):
     for field in ('resume_reconstruction', 'reconstruction_target'):
         require(p.get(field) in p['files'] and p.get(field+'_sha256')
                 and p['files'][p[field]] == p[field+'_sha256'], 'reconstruction artifact not bound')
-    spec = importlib.util.spec_from_file_location('formal_resume_reconstruction', helper_path)
-    helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+    helper = source_module(helper_path, 'formal_resume_reconstruction')
     files = helper.validate(p['resume_reconstruction'], p['resume_reconstruction_sha256'],
         resume_plan=p['resume_plan'], resume_pin=p['resume_plan_sha256'], target=p,
         reconstruction_target=p['reconstruction_target'],
@@ -206,8 +220,7 @@ def verify(path, pin, reviewed=True):
         import importlib.util
         helper_path=Path(__file__).with_name('r3_control_resume_prepare.py')
         require(p['files'].get(str(helper_path))==sha(helper_path),'control restart verifier not bound')
-        spec=importlib.util.spec_from_file_location('control_restart_admission',helper_path)
-        helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+        helper = source_module(helper_path, 'control_restart_admission')
         helper.verify_launch(p)
     if not engineering:
         verify_resume_evidence(p)
@@ -218,8 +231,7 @@ def verify(path, pin, reviewed=True):
         require(str(helper_path) in p['files'], 'training evidence verifier not pinned')
         require(p.get('training_evidence') in p['files'] and
                 p['files'][p['training_evidence']] == p.get('training_evidence_sha256'), 'training evidence not bound')
-        spec = importlib.util.spec_from_file_location('formal_training_evidence', helper_path)
-        helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+        helper = source_module(helper_path, 'formal_training_evidence')
         evidence = helper.validate(p['training_evidence'], p['training_evidence_sha256'],
                                    p['code'], p['model'], p['train_file'], p['image_sha256'],
                                    control_arm=control_arm,
@@ -382,9 +394,7 @@ def supervisor(path, pin, attempt_no):
                 require((prior / 'RELEASE.json').exists(), 'previous attempt is not released')
             require(not (attempt / 'EXIT.json').exists(), 'attempt already terminal')
             # A ledger entry alone cannot establish absence of a stale live device holder.
-            spec = __import__('importlib.util', fromlist=['util']).spec_from_file_location('resource_adapter', p['adapter'])
-            resource = __import__('importlib.util', fromlist=['util']).module_from_spec(spec)
-            spec.loader.exec_module(resource)
+            resource = source_module(p['adapter'], 'resource_adapter')
             require(not resource.live_chip_conflict(p['chip'], container), 'live container owns device')
             adapter(p, 'claim', attempt, container)
             command = docker_command(p, path, attempt_no)

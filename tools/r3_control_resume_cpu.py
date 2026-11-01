@@ -19,11 +19,24 @@ import time
 
 HERE=Path(__file__).resolve().parent
 IMAGE='sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7'
-VERIFIER='0b3963432140b0860dad92f14f5f8079b884d9d4e6e5114d7cd902f10254803e'
+VERIFIER='c9eb4c819bf5a15ec4231e5c0b89499aae10de9a9bb9566a022c7ccf1b23ac87'
 # New preparations require the strengthened complete-Docker-command validator.
 # Deployed frozen generations retain their original pins and require a new
 # reconstruction generation for acceptance under this implementation.
-VALIDATOR = '5a00d2cff57d82ffe533bf7b10ddaffafbfd4b61651aac9c6d59ecaff97dbd84'
+VALIDATOR = '15abf671a50d6d5bd559e830e17b818e762701ec208ead55c220a939c93ccea9'
+
+def source_module(path, name):
+    """Compile the actual source bytes; never execute import-cache bytecode."""
+    import types
+    path = Path(path)
+    if not path.is_absolute() or any(p.is_symlink() for p in (path, *path.parents)):
+        raise ValueError('unsafe helper source')
+    raw = path.read_bytes()
+    value = types.ModuleType(name)
+    value.__file__ = str(path)
+    exec(compile(raw, str(path), 'exec', dont_inherit=True), value.__dict__)
+    return value
+
 
 def require(ok,why):
     if not ok:raise ValueError(why)
@@ -31,6 +44,8 @@ def require(ok,why):
 def safe(path):
     p=Path(path)
     require(p.is_absolute() and '..' not in p.parts and not any(x.is_symlink() for x in (p,*p.parents)), 'unsafe path')
+    require(p.name not in ('test.jsonl','test.variants.jsonl') and not
+            ('test' in p.parts and p.suffix in ('.jsonl','.parquet')), 'test dataset dependency forbidden')
     return p
 
 def sha(path):
@@ -48,8 +63,7 @@ def atomic(path,value):
     tmp.chmod(0o644);tmp.replace(p)
 
 def module(path):
-    s=importlib.util.spec_from_file_location('control_cpu_receipts',path)
-    m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
+    m = source_module(path, 'control_cpu_receipts');return m
 
 def inspect(name):
     r=subprocess.run(['docker','inspect',name],capture_output=True,text=True,timeout=30)

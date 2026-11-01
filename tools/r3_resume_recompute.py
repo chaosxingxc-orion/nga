@@ -13,20 +13,40 @@ import math
 from pathlib import Path
 
 
+def source_module(path, name):
+    """Compile the actual source bytes; never execute import-cache bytecode."""
+    import types
+    path = Path(path)
+    if not path.is_absolute() or any(p.is_symlink() for p in (path, *path.parents)):
+        raise ValueError('unsafe helper source')
+    raw = path.read_bytes()
+    value = types.ModuleType(name)
+    value.__file__ = str(path)
+    exec(compile(raw, str(path), 'exec', dont_inherit=True), value.__dict__)
+    return value
+
+
 def require(ok, reason):
     if not ok:
         raise ValueError(reason)
 
 
 def module(path, name):
-    spec = importlib.util.spec_from_file_location(name, path)
-    value = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(value)
+    value = source_module(path, name)
     return value
 
 
+def evidence_path(path):
+    p=Path(path)
+    require(p.is_absolute() and '..' not in p.parts and not any(q.is_symlink() for q in (p,*p.parents)),
+            'unsafe reconstruction evidence path')
+    require(p.name not in ('test.jsonl','test.variants.jsonl') and not
+            ('test' in p.parts and p.suffix in ('.jsonl','.parquet')), 'test dataset dependency forbidden')
+    return p
+
+
 def records(path, start, steps):
-    rows = [json.loads(line) for line in Path(path).read_text().splitlines()]
+    rows = [json.loads(line) for line in evidence_path(path).read_text().splitlines()]
     require([r.get('step') for r in rows] == list(range(start+1, start+steps+1)),
             'restart step population differs')
     for row in rows:
@@ -77,6 +97,8 @@ def numerical_verdict(replicas, resumed, controls):
 
 
 def verify(root, pinned_files):
+    for path in pinned_files:
+        evidence_path(path)
     import torch
     root = Path(root)
     load = lambda p: json.loads(p.read_text())
@@ -123,7 +145,9 @@ def main():
     p.add_argument('--validator',required=True); p.add_argument('--validator-sha256',required=True)
     p.add_argument('--output',required=True)
     args = p.parse_args()
-    digest = lambda path: hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    for path in (args.validator,args.target,args.plan):
+        evidence_path(path)
+    digest = lambda path: hashlib.sha256(evidence_path(path).read_bytes()).hexdigest()
     require(digest(args.validator) == args.validator_sha256, 'validator code identity differs')
     require(digest(args.target) == args.target_sha256, 'target plan identity differs')
     validator = module(args.validator,'resume_receipt_validator')

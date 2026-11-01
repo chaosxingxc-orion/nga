@@ -31,7 +31,7 @@ class Evidence(unittest.TestCase):
         shutil.copy2(HERE/'r3_resume_contract.py',tested/'r3_resume_contract.py')
         self.target={'code':str(code),'model':str(model),'train_file':str(train),'image_sha256':'image','scientific_acceptance':False,'test_read':False,'environment':{'TASK_QUEUE_ENABLE':'2'},
                      'command':['python3','-P','/workspace/train_r3.py','--out','target','--seed','3','--arm','k1','--micro-tokens','12000']}
-        original=b/'source';original.mkdir();checkpoint=original/'ckpt.pt';checkpoint.write_bytes(b'synthetic checkpoint')
+        original=b/'source';original.mkdir();(original/'ckpt').mkdir();checkpoint=original/'ckpt/step_002200.pt';checkpoint.write_bytes(b'synthetic checkpoint')
         shutil.copy2(checkpoint,root/'SOURCE.pt')
         source={**self.target,'out':str(original),'code':str(sourcecode),'seed':2,'files':{str(p):R.sha(p) for p in [*sourcecode.rglob('*.py'),model/'weights',train]}}
         source['command']=list(self.target['command']);source['command'][source['command'].index('--seed')+1]='2'
@@ -154,9 +154,7 @@ class EntryPoints(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             out=Path(td)/'new'
             fake=type('Helper',(),{'validate_bundle':staticmethod(lambda *a:{})})()
-            loader=type('Loader',(),{'exec_module':staticmethod(lambda m:None)})()
-            fake_spec=type('Spec',(),{'loader':loader})()
-            with patch.object(P.importlib.util,'spec_from_file_location',return_value=fake_spec), patch.object(P.importlib.util,'module_from_spec',return_value=fake):
+            with patch.object(P,'source_module',return_value=fake):
                 with self.assertRaisesRegex(ValueError,'resume plan'):
                     P.prepare(out,2,1,fresh_prechecks='fixture',fresh_prechecks_sha256='fixture',training_evidence='fixture',training_evidence_sha256='fixture')
             self.assertFalse(out.exists())

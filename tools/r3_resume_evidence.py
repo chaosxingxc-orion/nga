@@ -22,9 +22,17 @@ def require(ok, message):
         raise ValueError(message)
 
 
-def sha(path):
+def safe_evidence(path):
     p = Path(path)
-    require(p.is_absolute() and p.is_file() and not any(x.is_symlink() for x in (p, *p.parents)), 'unsafe resume evidence path')
+    require(p.is_absolute() and '..' not in p.parts and not any(x.is_symlink() for x in (p, *p.parents)), 'unsafe resume evidence path')
+    require(p.name not in ('test.jsonl','test.variants.jsonl') and not
+            ('test' in p.parts and p.suffix in ('.jsonl','.parquet')), 'test dataset dependency forbidden')
+    return p
+
+
+def sha(path):
+    p = safe_evidence(path)
+    require(p.is_file(), 'missing resume evidence file')
     h = hashlib.sha256()
     with p.open('rb') as stream:
         for block in iter(lambda: stream.read(1 << 20), b''):
@@ -33,7 +41,7 @@ def sha(path):
 
 
 def load(path):
-    return json.loads(Path(path).read_text())
+    return json.loads(safe_evidence(path).read_text())
 
 
 def scope(doc, *, legacy=False):
@@ -106,6 +114,8 @@ def validate(path, pin, target):
             and plan.get('test_read') is False and plan.get('scientific_acceptance') is False,
             'resume plan scope differs')
     files = dict(plan['files'])
+    for filename in files:
+        safe_evidence(filename)
     for filename, digest in files.items():
         require(sha(filename) == digest, 'resume input changed: '+filename)
     files[str(path)] = sha(path)
@@ -151,7 +161,10 @@ def validate(path, pin, target):
     origin = read(root/'SOURCE.json', True)
     require(origin['step'] == config['source_step'] and origin['sha256'] == config['source_sha256']
             == files.get(str(root/'SOURCE.pt')) and origin['training'] == source['out'], 'resume checkpoint binding differs')
-    files[origin['checkpoint']] = sha(origin['checkpoint'])
+    original_checkpoint=safe_evidence(origin['checkpoint'])
+    require(original_checkpoint==Path(source['out'])/'ckpt'/f"step_{config['source_step']:06d}.pt",
+            'original checkpoint location differs')
+    files[origin['checkpoint']] = sha(original_checkpoint)
     require(files[origin['checkpoint']] == config['source_sha256'], 'original checkpoint changed')
     terminal = read(root/'TRAIN_EXIT.json')
     require(type(terminal.get('exit_code')) is int and terminal['exit_code'] == 0

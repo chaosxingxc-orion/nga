@@ -128,10 +128,8 @@ class Reconstruction(unittest.TestCase):
         P=module('r3_formal_prepare')
         from types import SimpleNamespace
         fake=SimpleNamespace(validate_bundle=lambda *a:{})
-        spec=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda m:None))
         out=self.fixture.root/'never-created'
-        with patch.object(P.importlib.util,'spec_from_file_location',return_value=spec), \
-             patch.object(P.importlib.util,'module_from_spec',return_value=fake):
+        with patch.object(P,'source_module',return_value=fake):
             with self.assertRaisesRegex(ValueError,'CPU resume reconstruction'):
                 P.prepare(out,2,1,fresh_prechecks='p',fresh_prechecks_sha256='p',
                     training_evidence='e',training_evidence_sha256='e',

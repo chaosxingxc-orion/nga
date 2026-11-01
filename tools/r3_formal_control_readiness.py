@@ -19,16 +19,38 @@ DATA = Path('/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/train.jsonl')
 CODE = ROOT / 'experiments/r3_sft/r3_code'
 
 
+def source_module(path, name):
+    """Compile the actual source bytes; never execute import-cache bytecode."""
+    import types
+    path = Path(path)
+    if not path.is_absolute() or any(p.is_symlink() for p in (path, *path.parents)):
+        raise ValueError('unsafe helper source')
+    raw = path.read_bytes()
+    value = types.ModuleType(name)
+    value.__file__ = str(path)
+    exec(compile(raw, str(path), 'exec', dont_inherit=True), value.__dict__)
+    return value
+
+
+def safe_evidence(path):
+    p=Path(path)
+    if not p.is_absolute() or '..' in p.parts or any(q.is_symlink() for q in (p,*p.parents)):
+        raise ValueError('unsafe evidence path')
+    if p.name in ('test.jsonl','test.variants.jsonl') or ('test' in p.parts and p.suffix in ('.jsonl','.parquet')):
+        raise ValueError('test dataset dependency forbidden')
+    return p
+
+
 def sha(path):
     h = hashlib.sha256()
-    with Path(path).open('rb') as f:
+    with safe_evidence(path).open('rb') as f:
         for block in iter(lambda: f.read(1 << 20), b''):
             h.update(block)
     return h.hexdigest()
 
 
 def load(path):
-    return json.loads(Path(path).read_text())
+    return json.loads(safe_evidence(path).read_text())
 
 
 def canonical_plan_sha256(plan):
@@ -40,8 +62,7 @@ def canonical_plan_sha256(plan):
 
 def validator():
     path = ROOT / 'tools/r3_training_evidence.py'
-    spec = importlib.util.spec_from_file_location('r3_training_evidence', path)
-    mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+    mod = source_module(path, 'r3_training_evidence')
     return mod
 
 
@@ -66,9 +87,7 @@ def evidence(path, arm, model):
 def module(name):
     """Use this audited implementation, never execute a helper selected by evidence."""
     path = Path(__file__).with_name(name + '.py')
-    spec = importlib.util.spec_from_file_location('readiness_' + name, path)
-    result = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(result)
+    result = source_module(path, 'readiness_' + name)
     return result
 
 
@@ -157,6 +176,10 @@ def target_review(target, pin):
 
 
 def target_identity(target, pin):
+    for field in ('review_path','resume_plan','resume_reconstruction','reconstruction_target',
+                  'fresh_k0_prechecks','training_evidence'):
+        if field in target:
+            safe_evidence(target[field])
     require(canonical_plan_sha256(target) == pin, 'target canonical identity differs')
     require(target.get('schema') == 'r3-formal-k1-plan-v1'
             and target.get('scientific_acceptance') is False and target.get('test_read') is False,

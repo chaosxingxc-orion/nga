@@ -16,6 +16,19 @@ TRAIN = BASE / 'KEV/decision-v7/train.jsonl'
 IMAGE = 'sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7'
 
 
+def source_module(path, name):
+    """Compile the actual source bytes; never execute import-cache bytecode."""
+    import types
+    path = Path(path)
+    if not path.is_absolute() or any(p.is_symlink() for p in (path, *path.parents)):
+        raise ValueError('unsafe helper source')
+    raw = path.read_bytes()
+    value = types.ModuleType(name)
+    value.__file__ = str(path)
+    exec(compile(raw, str(path), 'exec', dont_inherit=True), value.__dict__)
+    return value
+
+
 def sha(path):
     h = hashlib.sha256()
     with Path(path).open('rb') as f:
@@ -65,8 +78,7 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
     if not engineering:
         if not fresh_prechecks or not fresh_prechecks_sha256:
             raise ValueError('formal preparation requires externally pinned fresh K0 prechecks')
-        spec = importlib.util.spec_from_file_location('fresh_prechecks', ROOT/'tools/r3_fresh_prechecks.py')
-        helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+        helper = source_module(ROOT/'tools/r3_fresh_prechecks.py', 'fresh_prechecks')
         fresh = helper.validate_bundle(fresh_prechecks, fresh_prechecks_sha256, model)
         if not training_evidence or not training_evidence_sha256:
             raise ValueError('formal preparation requires pinned augmentation/LoRA evidence')
@@ -106,8 +118,7 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
         shutil.copy2(ROOT/'tools/r3_fresh_prechecks.py', tool_dir/'r3_fresh_prechecks.py')
     training_files = {}
     if not engineering:
-        spec = importlib.util.spec_from_file_location('training_evidence', ROOT/'tools/r3_training_evidence.py')
-        helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+        helper = source_module(ROOT/'tools/r3_training_evidence.py', 'training_evidence')
         training_files = helper.validate(training_evidence, training_evidence_sha256, code, model, TRAIN, IMAGE,
                                         control_arm=control_arm,
                                         input_mode=control['primary_input_mode'] if control else 'full')
@@ -159,12 +170,10 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
         if not engineering:
             plan['container'] = formal_control_container(out, control_arm, seed)
     if not engineering:
-        spec = importlib.util.spec_from_file_location('resume_evidence', ROOT/'tools/r3_resume_evidence.py')
-        helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+        helper = source_module(ROOT/'tools/r3_resume_evidence.py', 'resume_evidence')
         plan.update(resume_plan=str(Path(resume_plan).absolute()), resume_plan_sha256=resume_plan_sha256)
         plan['files'].update(helper.validate(plan['resume_plan'], resume_plan_sha256, plan))
-        spec = importlib.util.spec_from_file_location('resume_reconstruction', ROOT/'tools/r3_resume_reconstruction_evidence.py')
-        helper = importlib.util.module_from_spec(spec); spec.loader.exec_module(helper)
+        helper = source_module(ROOT/'tools/r3_resume_reconstruction_evidence.py', 'resume_reconstruction')
         plan.update(resume_reconstruction=str(Path(resume_reconstruction).absolute()),
                     resume_reconstruction_sha256=resume_reconstruction_sha256,
                     reconstruction_target=str(Path(reconstruction_target).absolute()),

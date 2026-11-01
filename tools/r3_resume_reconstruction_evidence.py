@@ -9,8 +9,8 @@ import json
 import math
 from pathlib import Path
 
-VERIFIER_SHA256 = '0b3963432140b0860dad92f14f5f8079b884d9d4e6e5114d7cd902f10254803e'
-VALIDATOR_SHA256 = '5a00d2cff57d82ffe533bf7b10ddaffafbfd4b61651aac9c6d59ecaff97dbd84'
+VERIFIER_SHA256 = 'c9eb4c819bf5a15ec4231e5c0b89499aae10de9a9bb9566a022c7ccf1b23ac87'
+VALIDATOR_SHA256 = '15abf671a50d6d5bd559e830e17b818e762701ec208ead55c220a939c93ccea9'
 
 
 def require(ok, reason):

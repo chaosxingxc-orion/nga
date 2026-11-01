@@ -18,9 +18,21 @@ ALLOCATION=str(RUN_ROOT/'CHIP-ALLOCATION.json')
 ENVIRONMENT={'ASCEND_RT_VISIBLE_DEVICES':'0','HF_HUB_OFFLINE':'1','NGA_R0_CODE':'/workspace/r0_code',
  'PYTHONDONTWRITEBYTECODE':'1','PYTORCH_NPU_ALLOC_CONF':'expandable_segments:True',
  'TASK_QUEUE_ENABLE':'2','TOKENIZERS_PARALLELISM':'false','TRANSFORMERS_OFFLINE':'1'}
+def source_module(path, name):
+    """Compile the actual source bytes; never execute import-cache bytecode."""
+    import types
+    path = Path(path)
+    if not path.is_absolute() or any(p.is_symlink() for p in (path, *path.parents)):
+        raise ValueError('unsafe helper source')
+    raw = path.read_bytes()
+    value = types.ModuleType(name)
+    value.__file__ = str(path)
+    exec(compile(raw, str(path), 'exec', dont_inherit=True), value.__dict__)
+    return value
+
+
 def module(name):
-    s=importlib.util.spec_from_file_location(name,HERE/(name+'.py'))
-    m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
+    m = source_module(HERE/(name+'.py'), name);return m
 R=module('r3_resume_evidence');C=module('r3_resume_contract')
 
 
@@ -58,6 +70,8 @@ def source(path,pin):
     if arm=='K1-QO':cmd+=['--drop-state']
     require(plan['command']==cmd,'source control training recipe differs')
     C.validate_source_plan(plan)
+    for file in plan['files']:
+        R.safe_evidence(file)
     for file,digest in plan['files'].items():
         p=safe(file)
         require(p.name not in ('test.jsonl','test.variants.jsonl')

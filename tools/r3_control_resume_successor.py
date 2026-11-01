@@ -16,9 +16,21 @@ import sys
 import time
 
 HERE=Path(__file__).resolve().parent
+def source_module(path, name):
+    """Compile the actual source bytes; never execute import-cache bytecode."""
+    import types
+    path = Path(path)
+    if not path.is_absolute() or any(p.is_symlink() for p in (path, *path.parents)):
+        raise ValueError('unsafe helper source')
+    raw = path.read_bytes()
+    value = types.ModuleType(name)
+    value.__file__ = str(path)
+    exec(compile(raw, str(path), 'exec', dont_inherit=True), value.__dict__)
+    return value
+
+
 def module(name):
-    spec=importlib.util.spec_from_file_location(name,HERE/(name+'.py'))
-    m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+    m = source_module(HERE/(name+'.py'), name);return m
 S=module('r3_eval_successor')
 Q=module('r3_posttrain_eval_queue')
 P=module('r3_control_resume_prepare')
