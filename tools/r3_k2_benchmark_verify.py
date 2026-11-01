@@ -22,15 +22,19 @@ def require(ok, message):
 
 def number(value, name, minimum=None):
     require(type(value) in (int, float), name + ': expected number')
-    require(math.isfinite(value), name + ': nonfinite')
+    try:
+        finite = math.isfinite(value)
+    except OverflowError:
+        finite = False
+    require(finite, name + ': nonfinite or numeric overflow')
     if minimum is not None:
         require(value >= minimum, name + ': below minimum')
     return value
 
 
 def equal_number(actual, expected, name):
-    number(actual, name)
-    require(math.isclose(actual, expected, rel_tol=1e-12, abs_tol=1e-12), name + ': summary differs')
+    number(actual, name, 0)
+    require(math.isclose(actual, expected, rel_tol=1e-12, abs_tol=0), name + ': summary differs')
 
 
 def verify(report, plan_sha256):
@@ -60,6 +64,7 @@ def verify(report, plan_sha256):
             require(isinstance(stats, dict), 'invalid statistics')
             for key in ('tokens', 'rows', 'resp_tokens'):
                 require(type(stats.get(key)) is int and stats[key] >= 0, 'invalid stats.' + key)
+                number(stats[key], 'stats.' + key, 0)
             require(stats['tokens'] > 0 and stats['rows'] > 0, 'empty measured population')
         require(row['reference']['loss'] == row['candidate']['loss'], 'paired loss differs')
         require(row['reference']['stats'] == row['candidate']['stats'], 'paired statistics differ')
@@ -71,9 +76,11 @@ def verify(report, plan_sha256):
     performance = {}
     for arm in ARMS:
         equal_number(report['seconds'].get(arm), seconds[arm], arm + '.seconds')
+        tokens = sum(row[arm]['stats']['tokens'] for row in measured)
+        number(tokens, 'measured tokens', 0)
         performance[arm] = {
             'questions_per_second_per_chip': 100 / seconds[arm],
-            'tokens_per_second_per_chip': sum(row[arm]['stats']['tokens'] for row in measured) / seconds[arm],
+            'tokens_per_second_per_chip': tokens / seconds[arm],
             'reserved_gib_peak': max(row[arm]['reserved_gib'] for row in measured),
             'chips': 1,
         }

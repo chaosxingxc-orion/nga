@@ -78,6 +78,30 @@ class Verify(unittest.TestCase):
         for row in report['rows'][3:]: row['candidate']['seconds'] = 1
         with self.assertRaisesRegex(ValueError, 'window'): V.verify(report, PIN)
 
+    def test_review_numeric_overflow_and_near_zero_summary(self):
+        for field in ('seconds', 'tokens'):
+            report = fixture()
+            for arm in V.ARMS:
+                target = report['rows'][3][arm]
+                if field == 'tokens': target = target['stats']
+                target[field] = 10 ** 400
+            with self.subTest(field=field), self.assertRaises(ValueError): V.verify(report, PIN)
+        report = fixture()
+        for row in report['rows'][3:]: row['candidate']['seconds'] = 1e15
+        report['seconds']['candidate'] = 1e16
+        report['speedup'] = 120 / 1e16
+        report['engineering_speed_candidate'] = False
+        report['performance']['candidate']['questions_per_second_per_chip'] = 100 / 1e16
+        report['performance']['candidate']['tokens_per_second_per_chip'] = 200 / 1e16
+        self.assertTrue(V.verify(report, PIN)['arithmetic_verified'])
+        for path in (['speedup'], ['performance', 'candidate', 'questions_per_second_per_chip'],
+                     ['performance', 'candidate', 'tokens_per_second_per_chip']):
+            for value in (-1e-13, 0):
+                changed = copy.deepcopy(report); target = changed
+                for key in path[:-1]: target = target[key]
+                target[path[-1]] = value
+                with self.subTest(path=path,value=value), self.assertRaises(ValueError): V.verify(changed, PIN)
+
     def test_valid_below_threshold_is_negative_evidence_not_failure(self):
         report = fixture()
         for row in report['rows']: row['reference'] = copy.deepcopy(row['candidate'])

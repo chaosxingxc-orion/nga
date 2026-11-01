@@ -26,7 +26,20 @@ def read(path):
         raw = stream.read(LIMIT + 1)
     if len(raw) > LIMIT:
         raise ValueError('metadata size limit exceeded')
-    return json.loads(raw), hashlib.sha256(raw).hexdigest()
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('duplicate JSON key')
+            result[key] = value
+        return result
+    try:
+        value = json.loads(raw, object_pairs_hook=unique)
+    except RecursionError as exc:
+        raise ValueError('metadata nesting limit exceeded') from exc
+    if not isinstance(value, dict):
+        raise ValueError('metadata must be an object')
+    return value, hashlib.sha256(raw).hexdigest()
 
 
 def summarize(root, execution_pin):
@@ -50,7 +63,8 @@ def summarize(root, execution_pin):
         if (root / 'results/heartbeat.json').exists():
             heartbeat, _ = read(root / 'results/heartbeat.json')
             n = heartbeat.get('completed_pairs')
-            if type(n) is not int or not 0 <= n <= 13 or heartbeat.get('total_pairs') != 13:
+            if (type(n) is not int or not 0 <= n <= 13
+                    or type(heartbeat.get('total_pairs')) is not int or heartbeat['total_pairs'] != 13):
                 raise ValueError('invalid paired progress')
             result.update(completed_pairs=n, total_pairs=13, heartbeat_utc_seconds=heartbeat.get('utc_seconds'))
         terminal_path = root / 'ENGINEERING_EVAL_EXIT.json'
@@ -67,7 +81,7 @@ def summarize(root, execution_pin):
             return result
         driver, _ = read(root / 'results/EXIT.json')
         report, digest = read(root / 'results/RESULT.json')
-        if (driver.get('exit_code') != 0 or driver.get('plan_sha256') != pin
+        if (type(driver.get('exit_code')) is not int or driver['exit_code'] != 0 or driver.get('plan_sha256') != pin
                 or report.get('plan_sha256') != pin or digest != terminal.get('result_sha256')
                 or terminal.get('benchmark_complete') is not True
                 or report.get('scientific_acceptance') is not False or report.get('test_read') is not False):
@@ -85,7 +99,7 @@ def summarize(root, execution_pin):
             result['flags'].append('equivalence_not_reported')
         if report.get('engineering_speed_candidate') is not True:
             result['flags'].append('speed_threshold_not_met')
-    except (OSError, ValueError, TypeError, KeyError) as exc:
+    except (OSError, ValueError, TypeError, KeyError, OverflowError, RecursionError) as exc:
         result.update(state='needs_inspection')
         result['flags'].append(type(exc).__name__ + ': ' + str(exc)[:200])
     return result

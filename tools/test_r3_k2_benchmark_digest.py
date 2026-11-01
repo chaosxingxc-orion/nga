@@ -63,5 +63,48 @@ class Digest(unittest.TestCase):
         (self.root / 'results/heartbeat.json').write_bytes(b'x' * (D.LIMIT + 1))
         self.assertIn('size limit', D.summarize(self.root, self.pin)['flags'][0])
 
+    def bind_report(self, report):
+        digest = self.write('results/RESULT.json', report)
+        self.write('results/EXIT.json', {'plan_sha256': self.bp, 'exit_code': 0})
+        self.write('ENGINEERING_EVAL_EXIT.json', {'plan_sha256': self.pin, 'exit_code': 0,
+            'benchmark_complete': True, 'result_sha256': digest})
+
+    def test_review_nonobject_metadata_and_nested_json_are_bounded(self):
+        for name in ('execution.json', 'plan.json', 'digest.json', 'results/heartbeat.json',
+                     'ENGINEERING_EVAL_EXIT.json', 'results/EXIT.json', 'results/RESULT.json'):
+            with self.subTest(name=name):
+                report = fixture(); report['plan_sha256'] = self.bp; self.bind_report(report)
+                path = self.root/name; old = path.read_bytes() if path.exists() else None
+                try:
+                    self.write(name, [])
+                    self.assertEqual(D.summarize(self.root,self.pin)['state'],'needs_inspection')
+                finally:
+                    if old is None: path.unlink()
+                    else: path.write_bytes(old)
+        (self.root/'results/heartbeat.json').write_text('['*1100+'0'+']'*1100)
+        self.assertEqual(D.summarize(self.root,self.pin)['state'],'needs_inspection')
+
+    def test_review_overflow_duplicates_and_integer_types(self):
+        for field in ('seconds', 'tokens'):
+            report = fixture(); report['plan_sha256'] = self.bp
+            for arm in ('reference','candidate'):
+                target=report['rows'][3][arm]
+                if field=='tokens': target=target['stats']
+                target[field]=10**400
+            self.bind_report(report)
+            self.assertEqual(D.summarize(self.root,self.pin)['state'],'needs_inspection')
+        report=fixture();report['plan_sha256']=self.bp;self.bind_report(report)
+        path=self.root/'results/RESULT.json';raw=path.read_bytes();path.write_bytes(b'{"speedup":999,'+raw[1:])
+        self.write('ENGINEERING_EVAL_EXIT.json',{'plan_sha256':self.pin,'exit_code':0,
+            'benchmark_complete':True,'result_sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
+        self.assertIn('duplicate',D.summarize(self.root,self.pin)['flags'][0])
+        self.bind_report(report)
+        for value in (False,0.0):
+            self.write('results/EXIT.json',{'plan_sha256':self.bp,'exit_code':value})
+            self.assertEqual(D.summarize(self.root,self.pin)['state'],'needs_inspection')
+        self.bind_report(report)
+        self.write('results/heartbeat.json',{'completed_pairs':13,'total_pairs':13.0})
+        self.assertEqual(D.summarize(self.root,self.pin)['state'],'needs_inspection')
+
 
 if __name__ == '__main__': unittest.main()
