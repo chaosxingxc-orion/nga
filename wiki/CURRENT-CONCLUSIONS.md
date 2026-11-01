@@ -15,6 +15,8 @@ P0 panel register milestone — 2026-11-02: a local machine-readable register no
 
 Formal K1 progress — 2026-11-01 21:29 UTC: the watchdog reports seed2 `650/3116` (20.86%, about 954.5 tok/s/chip) and seed3 `580/3116` (18.61%, about 845.0 tok/s/chip), with fresh heartbeats and no terminal markers. The allocation ledger still binds them to chip2/chip3. The 3600-second AICore windows are about 53.0% and 53.6%; this confirms active NPU work but does not support a sustained full-load claim. Training remains uninterrupted, TEST remains locked, and post-training CPU preparation is waiting for both successful terminal closures. Structured evidence is local at `.local/reports/formal-k1-progress-20261101T2129.json`.
 
+Efficiency follow-up — 2026-11-02: a read-only diagnosis records possible host-side gaps in Python sequence/index construction, per-chunk loss synchronization, `micro_tokens` sizing and the reference kernel. No formal code or configuration was changed; any fix must be a separate engineering benchmark with identical loss/gradient checks before reuse. Evidence is local at `.local/reports/formal-k1-efficiency-diagnosis-20261102.md`.
+
 ## Coverage correction — 2026-11-02
 
 The current D1 matrix was too narrow for a broad Jev capability claim. Its 38 model-by-dataset units (36 scored and 2 blocked) remain frozen, but they are concentrated in a few source families. The repository inventory contains 24 directories, yet that count includes version projections, result packages, overlapping sources and different modalities.
