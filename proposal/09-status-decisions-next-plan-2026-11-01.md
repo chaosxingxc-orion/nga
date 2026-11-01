@@ -1,5 +1,7 @@
 # 当前任务状态、待决策事项与下一阶段计划
 
+> 2026-11-01 CPU/K2 验收更新：正式 seed2 DEV 的 CPU handoff 已准备完成，queue schema、单 job 绑定、源码闭包比较和 21 项 queue 测试通过；真实 DEV 终态标记尚不存在，因此队列保持等待，没有读取 readout 或生成报告。K2 v4 实际前驱链对 32 份允许的非 TEST 文件完成哈希、行数、模型戳、重复键和时间顺序检查，结果为有界链通过；precision-probes 历史报告哈希漂移及缺少外部 parent/observer 认证仍阻断 witness、activation 和科学准入。
+>
 > 2026-11-01 公开任务覆盖契约更新：第一批候选评估已生成 14 单元矩阵，覆盖 Kev hard/documents/devtools、Typed Decisions、BEV、Open-Jev v1.1、DecisionPivot core 和 DecisionRobust text。当前 14/14 标为 `needs_review`，因为至少一项 split、mask、公式、来源重叠或 TEST 暴露控制尚未核验；未读候选 TEST 样本，未启动新增推理。它是接入前准备证据，不是新增指标或训练授权。
 >
 > 2026-11-01 七成员工程报告更新：独立 CPU 重建完成，七个成员的报告与来源绑定一致，campaign、evidence、source-snapshots 三份输出逐字节一致；主会话复核审查中的 26 个显式文件引用，无哈希差异。范围仅限工程 DEV/calibration 和 Track T 选择半区，未选择候选、未授予正式资格、未产生 TEST 收益。冻结指标实现被复用，并非第二套独立数学实现。Open-Jev 合成 ordinal 的零 floor accuracy 与非零 argmax accuracy、高 C 分支率并存；小样本单元和极值警示保留。
