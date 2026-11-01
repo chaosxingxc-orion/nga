@@ -19,7 +19,7 @@ import (
 	"math"
 	"strings"
 
-	"festival-dev/go/internal/schemalib"
+	"github.com/openjiuwen/agent-festival/go/internal/schemalib"
 )
 
 // AdoptStatuses / EffectStatuses are the status families. Package-level so

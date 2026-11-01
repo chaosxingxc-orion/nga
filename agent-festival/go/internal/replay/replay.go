@@ -55,9 +55,9 @@ import (
 	"slices"
 	"strings"
 
-	"festival-dev/go/internal/adopt"
-	"festival-dev/go/internal/ledger"
-	"festival-dev/go/internal/schemalib"
+	"github.com/openjiuwen/agent-festival/go/internal/adopt"
+	"github.com/openjiuwen/agent-festival/go/internal/ledger"
+	"github.com/openjiuwen/agent-festival/go/internal/schemalib"
 )
 
 // SchemaPath is where replay-case.schema.json was found ("" = not found).

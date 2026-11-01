@@ -9,8 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"festival-dev/go/internal/release"
-	"festival-dev/go/internal/suite"
+	"github.com/openjiuwen/agent-festival/go/internal/release"
+	"github.com/openjiuwen/agent-festival/go/internal/suite"
 )
 
 func main() {

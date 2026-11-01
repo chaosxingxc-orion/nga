@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	"festival-dev/go/internal/validate"
+	"github.com/openjiuwen/agent-festival/go/internal/validate"
 )
 
 // ---------- constants ----------

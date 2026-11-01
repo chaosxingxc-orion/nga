@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"festival-dev/go/internal/adopt"
-	"festival-dev/go/internal/ledger"
-	"festival-dev/go/internal/suite"
+	"github.com/openjiuwen/agent-festival/go/internal/adopt"
+	"github.com/openjiuwen/agent-festival/go/internal/ledger"
+	"github.com/openjiuwen/agent-festival/go/internal/suite"
 )
 
 func loadCase(t *testing.T, name string) *Case {

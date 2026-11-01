@@ -11,8 +11,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"festival-dev/go/internal/adopt"
-	"festival-dev/go/internal/suite"
+	"github.com/openjiuwen/agent-festival/go/internal/adopt"
+	"github.com/openjiuwen/agent-festival/go/internal/suite"
 )
 
 func main() {

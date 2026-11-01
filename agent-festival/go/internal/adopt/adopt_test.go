@@ -13,7 +13,7 @@ import (
 	"sync"
 	"testing"
 
-	"festival-dev/go/internal/ledger"
+	"github.com/openjiuwen/agent-festival/go/internal/ledger"
 )
 
 // digestA/digestB are two well-formed distinct JCS-shape digests (fixture

@@ -45,8 +45,8 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"festival-dev/go/internal/ledger"
-	"festival-dev/go/internal/rfc8785"
+	"github.com/openjiuwen/agent-festival/go/internal/ledger"
+	"github.com/openjiuwen/agent-festival/go/internal/rfc8785"
 )
 
 // State is one state of the per-operation state machine.

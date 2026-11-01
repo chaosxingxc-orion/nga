@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"festival-dev/go/internal/validate"
+	"github.com/openjiuwen/agent-festival/go/internal/validate"
 )
 
 // TestGraphRegistrationRetryAfterFailure pins the retryable-registration

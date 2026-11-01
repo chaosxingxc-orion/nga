@@ -9,8 +9,8 @@ import (
 
 	"github.com/go-jose/go-jose/v4"
 
-	"festival-dev/go/internal/rfc8785"
-	"festival-dev/go/internal/validate"
+	"github.com/openjiuwen/agent-festival/go/internal/rfc8785"
+	"github.com/openjiuwen/agent-festival/go/internal/validate"
 )
 
 // TestSignEnvelopeRoundTrip pins cmd/sign's core path (V23 S3): a signed

@@ -10,8 +10,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"festival-dev/go/internal/replay"
-	"festival-dev/go/internal/suite"
+	"github.com/openjiuwen/agent-festival/go/internal/replay"
+	"github.com/openjiuwen/agent-festival/go/internal/suite"
 )
 
 func main() { os.Exit(run()) }

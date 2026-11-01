@@ -10,9 +10,9 @@ import (
 	"sort"
 	"strings"
 
-	"festival-dev/go/internal/compose"
-	"festival-dev/go/internal/suite"
-	"festival-dev/go/internal/validate"
+	"github.com/openjiuwen/agent-festival/go/internal/compose"
+	"github.com/openjiuwen/agent-festival/go/internal/suite"
+	"github.com/openjiuwen/agent-festival/go/internal/validate"
 )
 
 func main() { os.Exit(run()) }

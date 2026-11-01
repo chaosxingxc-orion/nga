@@ -1,4 +1,4 @@
-module festival-dev/go
+module github.com/openjiuwen/agent-festival/go
 
 go 1.24.0
 

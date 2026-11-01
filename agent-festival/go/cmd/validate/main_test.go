@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"festival-dev/go/internal/validate"
+	"github.com/openjiuwen/agent-festival/go/internal/validate"
 )
 
 // TestListEqualTypeStrict pins the kids-pin value-level comparison (V20 M-2):

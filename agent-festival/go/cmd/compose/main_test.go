@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"festival-dev/go/internal/compose"
-	"festival-dev/go/internal/validate"
+	"github.com/openjiuwen/agent-festival/go/internal/compose"
+	"github.com/openjiuwen/agent-festival/go/internal/validate"
 )
 
 // The runner's pin-comparison guards live here as testing.T tests (V21 F3:

@@ -6,7 +6,7 @@
 package adopt
 
 import (
-	"festival-dev/go/internal/schemalib"
+	"github.com/openjiuwen/agent-festival/go/internal/schemalib"
 )
 
 // SchemaPath is where adoption.schema.json was found ("" = not found).

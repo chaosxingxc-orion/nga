@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"festival-dev/go/internal/suite"
+	"github.com/openjiuwen/agent-festival/go/internal/suite"
 )
 
 // TestAdoptionSuiteGreenAndCounted pins the driver's verdict AND the corpus

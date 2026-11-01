@@ -18,7 +18,7 @@ import (
 
 	"github.com/go-jose/go-jose/v4"
 
-	"festival-dev/go/internal/rfc8785"
+	"github.com/openjiuwen/agent-festival/go/internal/rfc8785"
 )
 
 // ---------- schema loading ----------

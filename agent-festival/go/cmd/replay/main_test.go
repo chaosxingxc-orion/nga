@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
-	"festival-dev/go/internal/replay"
+	"github.com/openjiuwen/agent-festival/go/internal/replay"
 
-	"festival-dev/go/internal/suite"
+	"github.com/openjiuwen/agent-festival/go/internal/suite"
 )
 
 // TestReplaySuiteGreenAndCounted pins the driver's verdict AND the corpus

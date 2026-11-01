@@ -6,7 +6,7 @@
 package judgment
 
 import (
-	"festival-dev/go/internal/schemalib"
+	"github.com/openjiuwen/agent-festival/go/internal/schemalib"
 )
 
 // SchemaPath is where judgment.schema.json was found ("" = not found).
