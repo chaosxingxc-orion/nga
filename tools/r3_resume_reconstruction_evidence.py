@@ -1,16 +1,16 @@
 """Bind a separately reconstructed restart report to a proposed training recipe.
 
-CPU-only artifact validation, not tensor reconstruction or review authorship.
-The exact-plan reviewer must establish that the pinned reconstruction executed.
-No test data, torch, launch, FINAL or scientific approval is involved.
+CPU reconstruction is executed again during consumption through pinned source.
+PyTorch is required; missing runtime dependencies fail closed. This verifies
+numerical content, not training/reviewer authorship or historical execution.
+No test data, launch, FINAL or scientific approval is involved.
 """
-import importlib.util
 import json
 import math
 from pathlib import Path
 
 VERIFIER_SHA256 = '0b3963432140b0860dad92f14f5f8079b884d9d4e6e5114d7cd902f10254803e'
-VALIDATOR_SHA256 = 'b205ba9fa9970c16a58a9869bd85962493b48f05e82671ec1733da9c11b063c2'
+VALIDATOR_SHA256 = '5a00d2cff57d82ffe533bf7b10ddaffafbfd4b61651aac9c6d59ecaff97dbd84'
 
 
 def require(ok, reason):
@@ -18,14 +18,24 @@ def require(ok, reason):
         raise ValueError(reason)
 
 
-def validator():
-    path = Path(__file__).with_name('r3_resume_evidence.py')
+def trusted_module(filename, pin, name):
+    # Execute the verified source bytes directly: never cached bytecode or a
+    # pre-existing module merely claiming the same __file__.
     import hashlib
-    require(hashlib.sha256(path.read_bytes()).hexdigest() == VALIDATOR_SHA256,
-            'receipt validator implementation differs')
-    spec = importlib.util.spec_from_file_location('reconstruction_receipt_validator', path)
-    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    import types
+    path = Path(__file__).with_name(filename)
+    require(not any(p.is_symlink() for p in (path, *path.parents)), 'unsafe verifier source')
+    source = path.read_bytes()
+    require(hashlib.sha256(source).hexdigest() == pin, 'verifier implementation differs')
+    module = types.ModuleType(name)
+    module.__file__ = str(path)
+    exec(compile(source, str(path), 'exec'), module.__dict__)
     return module
+
+
+def validator():
+    return trusted_module('r3_resume_evidence.py', VALIDATOR_SHA256,
+                          'reconstruction_receipt_validator')
 
 
 def validate(path, pin, *, resume_plan, resume_pin, target, reconstruction_target,
@@ -52,6 +62,11 @@ def validate(path, pin, *, resume_plan, resume_pin, target, reconstruction_targe
     actual = R.validate(resume_plan, resume_pin, target)
     original = R.validate(resume_plan, resume_pin, R.load(reconstruction_target))
     require(actual == original == doc.get('inputs'), 'reconstruction input inventory differs')
+    verifier = trusted_module('r3_resume_recompute.py', VERIFIER_SHA256,
+                              'reconstruction_tensor_verifier')
+    reconstructed = verifier.verify(Path(resume_plan).parent, actual)
+    for key in ('replicas', 'resumed', 'controls', 'bars', 'resume_pass', 'controls_rejected', 'pass'):
+        require(reconstructed[key] == doc.get(key), 'CPU reconstructed report differs: '+key)
     claimed = R.load(Path(resume_plan).parent/'CONTRACT_RESULT.json')
     replicas, resumed, controls = doc['replicas'], doc['resumed'], doc['controls']
     require(isinstance(replicas, list) and len(replicas) == 3, 'reconstruction replicas differ')
@@ -73,5 +88,6 @@ def validate(path, pin, *, resume_plan, resume_pin, target, reconstruction_targe
         require(R.sha(filename) == digest, 'reconstruction dependency changed')
     require(R.sha(path) == pin and R.sha(reconstruction_target) == reconstruction_target_sha256,
             'reconstruction artifact changed during validation')
-    return {**actual, str(Path(path)):pin,
+    return {**actual, str(Path(__file__).with_name('r3_resume_recompute.py')):VERIFIER_SHA256,
+            str(Path(path)):pin,
             str(Path(reconstruction_target)):reconstruction_target_sha256}

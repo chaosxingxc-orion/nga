@@ -23,7 +23,7 @@ VERIFIER='0b3963432140b0860dad92f14f5f8079b884d9d4e6e5114d7cd902f10254803e'
 # New preparations require the strengthened complete-Docker-command validator.
 # Deployed frozen generations retain their original pins and require a new
 # reconstruction generation for acceptance under this implementation.
-VALIDATOR='b205ba9fa9970c16a58a9869bd85962493b48f05e82671ec1733da9c11b063c2'
+VALIDATOR = '5a00d2cff57d82ffe533bf7b10ddaffafbfd4b61651aac9c6d59ecaff97dbd84'
 
 def require(ok,why):
     if not ok:raise ValueError(why)

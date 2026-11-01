@@ -29,7 +29,7 @@ class Evidence(unittest.TestCase):
             for d in (code,tested,sourcecode):
                 p=d/rel;p.parent.mkdir(exist_ok=True);p.write_text('# fixture\n')
         shutil.copy2(HERE/'r3_resume_contract.py',tested/'r3_resume_contract.py')
-        self.target={'code':str(code),'model':str(model),'train_file':str(train),'image_sha256':'image','environment':{'TASK_QUEUE_ENABLE':'2'},
+        self.target={'code':str(code),'model':str(model),'train_file':str(train),'image_sha256':'image','scientific_acceptance':False,'test_read':False,'environment':{'TASK_QUEUE_ENABLE':'2'},
                      'command':['python3','-P','/workspace/train_r3.py','--out','target','--seed','3','--arm','k1','--micro-tokens','12000']}
         original=b/'source';original.mkdir();checkpoint=original/'ckpt.pt';checkpoint.write_bytes(b'synthetic checkpoint')
         shutil.copy2(checkpoint,root/'SOURCE.pt')
@@ -113,6 +113,21 @@ class Evidence(unittest.TestCase):
         plan=R.load(self.path)
         self.assertEqual(R.canonical_docker_command(plan,self.path,1),
                          launcher.docker_command(plan,str(self.path),1))
+
+    def test_contradictory_scope_rejected_across_receipt_chain(self):
+        for rel in ('TRAIN_EXIT.json','attempts/1/EXIT.json','attempts/1/LAUNCH_RECEIPT.json',
+                    'attempts/1/LAUNCH_SPEC.json','attempts/1/RELEASE.json',
+                    'attempts/1/SUPERVISOR_DONE.json','STAGE-0.json'):
+            path=self.root/rel;raw=path.read_bytes()
+            for key in ('test_read','scientific_acceptance'):
+                doc=json.loads(raw);doc[key]=True;write(path,doc)
+                with self.subTest(rel=rel,key=key),self.assertRaises(ValueError):self.validate()
+            path.write_bytes(raw)
+
+    def test_source_plan_scope_rejected_even_after_repinning(self):
+        source=self.root/'SOURCE_PLAN.json';doc=R.load(source);doc['test_read']=True;write(source,doc)
+        plan=R.load(self.path);plan['files'][str(source)]=R.sha(source);write(self.path,plan);self.pin=R.identity(plan)
+        with self.assertRaisesRegex(ValueError,'scope'):self.validate()
 
     def test_wrong_launch_identity_and_stage_identity_fail(self):
         for rel,key,value in [('attempts/1/LAUNCH_RECEIPT.json','plan_sha256','wrong'),('STAGE-4.json','name','replica_a')]:

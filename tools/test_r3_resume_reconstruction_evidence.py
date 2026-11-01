@@ -20,6 +20,22 @@ class Reconstruction(unittest.TestCase):
         self.addCleanup(self.fixture.doCleanups)
         self.addCleanup(self.fixture.tmp.cleanup)
         f=self.fixture
+        # Real tiny tensor and complete 20-step loss fixtures. No mocks of the
+        # verifier: a positive case must be numerically reconstructed.
+        import torch
+        for name in ('replica_a','replica_b','replica_c','resumed','zero_moments','no_update'):
+            bad=name in ('zero_moments','no_update')
+            root=f.root/name
+            rows=[dict(step=i,epoch=0,lr=.001,loss=2. if bad else 1.,grad_norm=1.,
+                       base_questions=1,examples=1,tokens=10,chunks=1) for i in range(2201,2221)]
+            (root/'losses.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in rows))
+            torch.save({'step':2220,'lora':{'w':torch.tensor([2. if bad else 1.])},
+                        'sched':{'last_epoch':2220}},root/'ckpt/step_002220.pt')
+        result=F.R.load(f.root/'CONTRACT_RESULT.json')
+        result.update(replicas=[{'loss':0.,'weight_relative_l2':0.}]*3,
+                      resumed={'loss':0.,'weight_relative_l2':0.})
+        result.update(F.R.judge(0.,0.,0.,0.,result['controls']))
+        for name in ('CONTRACT_RESULT.json','digest.json'):F.write(f.root/name,result)
         self.target=f.root/'cpu-target.json';F.write(self.target,f.target)
         self.target_pin=F.R.sha(self.target)
         result=F.R.load(f.root/'CONTRACT_RESULT.json')
@@ -44,6 +60,23 @@ class Reconstruction(unittest.TestCase):
         self.assertEqual(files[str(self.target)],self.target_pin)
         self.assertEqual(files[str(self.report)],self.pin)
         self.assertIn(str(self.fixture.root/'resumed/ckpt/step_002220.pt'),files)
+
+    def test_arbitrary_checkpoint_bytes_rejected_even_with_rehashed_inventory(self):
+        (self.fixture.root/'resumed/ckpt/step_002220.pt').write_bytes(b'fixture')
+        self.doc['inputs']=self.fixture.validate();self.save()
+        with self.assertRaises(Exception):self.verify()
+
+    def test_empty_loss_records_rejected_even_with_rehashed_inventory(self):
+        (self.fixture.root/'resumed/losses.jsonl').write_text('{}\n')
+        self.doc['inputs']=self.fixture.validate();self.save()
+        with self.assertRaisesRegex(ValueError,'step population'):self.verify()
+
+    def test_changed_tensor_with_rehashed_inventory_is_reconstructed(self):
+        import torch
+        path=self.fixture.root/'resumed/ckpt/step_002220.pt'
+        state=torch.load(path,weights_only=True);state['lora']['w']+=.25;torch.save(state,path)
+        self.doc['inputs']=self.fixture.validate();self.save()
+        with self.assertRaisesRegex(ValueError,'stored distance'):self.verify()
 
     def test_asserted_pass_without_complete_input_inventory_refused(self):
         self.doc['inputs'].pop(str(self.fixture.root/'resumed/ckpt/step_002220.pt'))

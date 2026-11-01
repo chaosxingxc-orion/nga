@@ -113,7 +113,7 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
                                         input_mode=control['primary_input_mode'] if control else 'full')
         shutil.copy2(ROOT/'tools/r3_training_evidence.py', tool_dir/'r3_training_evidence.py')
     if not engineering:
-        for name in ('r3_resume_evidence.py', 'r3_resume_reconstruction_evidence.py'):
+        for name in ('r3_resume_evidence.py', 'r3_resume_reconstruction_evidence.py', 'r3_resume_recompute.py'):
             shutil.copy2(ROOT/'tools'/name, tool_dir/name)
     prereg = ROOT / '.local/archive/2026-10-31/experiments'
     for name in ('R3-SFT-PREREG.md', 'R3-TRAINING-WAVE-PREREG-2026-10-31.md'):

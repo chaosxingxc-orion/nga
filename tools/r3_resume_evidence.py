@@ -36,6 +36,18 @@ def load(path):
     return json.loads(Path(path).read_text())
 
 
+def scope(doc, *, legacy=False):
+    """Missing flags on old receipts are unknown, never a positive claim.
+
+    Historical driver/stage receipts omitted test_read (sometimes both flags).
+    Preserve that format, but reject every explicit non-False declaration.
+    Source plans and contract results must carry both exact false flags.
+    """
+    for key in ('scientific_acceptance', 'test_read'):
+        require((legacy and key not in doc) or doc.get(key) is False,
+                'contradictory or missing evidence scope: '+key)
+
+
 def identity(plan):
     return hashlib.sha256((json.dumps(dict(plan, review_sha256='PENDING'), indent=2, sort_keys=True)+'\n').encode()).hexdigest()
 
@@ -104,7 +116,9 @@ def validate(path, pin, target):
         if frozen:
             require(files.get(str(p)) == digest, 'resume input not bound: '+str(p))
         files[str(p)] = digest
-        return load(p)
+        doc = load(p)
+        scope(doc, legacy=True)
+        return doc
 
     require(plan['command'] == ['python3','-P','/workspace/r3_resume_contract.py','--out',str(root)], 'resume execution command differs')
     for key in ('model', 'train_file', 'image_sha256', 'environment'):
@@ -112,6 +126,7 @@ def validate(path, pin, target):
     contract_code = Path(plan['code'])/'r3_resume_contract.py'
     require(files.get(str(contract_code)) in CONTRACT_SHA256, 'unrecognized resume contract implementation')
     source = read(root/'SOURCE_PLAN.json', True)
+    scope(source)
     require(source.get('seed') == 2 and source.get('arm', 'k1') == 'k1'
             and recipe(source['command']) == recipe(target['command']), 'resume training recipe differs')
     for key in ('model', 'train_file', 'image_sha256', 'environment'):
