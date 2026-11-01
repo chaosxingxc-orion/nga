@@ -515,7 +515,7 @@ class RepairRegressions(unittest.TestCase):
 
     def test_owned_supervisor_binds_terminal_to_consumed_trace_buffer(self):
         import types
-        helper=M.V4.with_name('k2_retained_tensor_20261101_v2')/'tools/r3_k2_benchmark_launcher.py'
+        helper=M.V4.with_name('k2_retained_tensor_20261101_v3')/'tools/r3_k2_benchmark_launcher.py'
         L=M.source(helper,M.sha(helper))
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);out=root/'results';out.mkdir();attempt=root/'attempts/1';attempt.mkdir(parents=True)
@@ -562,7 +562,7 @@ class RepairRegressions(unittest.TestCase):
             self.assertEqual(process.call_args.args[0],['docker','logs','mock-cid'])
 
     def test_plan_and_execution_replacements_use_checked_original_or_fail(self):
-        root=M.V4.with_name('k2_retained_tensor_20261101_v2')
+        root=M.V4.with_name('k2_retained_tensor_20261101_v3')
         original=M.checked_bytes
         for filename in ('plan.json','execution.json'):
             with self.subTest(filename=filename), tempfile.TemporaryDirectory() as tmp:

@@ -606,6 +606,26 @@ def activation_guard(root, pin):
     verdict, _ = checked_json(review, a['review_sha256'])
     require(verdict.get('plan_sha256') == pin and verdict.get('prepared_accepted') is True
             and verdict.get('reviewer') != 'retained-tensor-preparer', 'independent prepared review required')
+    route = a.get('predecessor_route', 'strict-terminal-pin-v1')
+    require(route in ('strict-terminal-pin-v1', 'authenticated-legacy-completion-v1'), 'unknown predecessor route')
+    if route == 'authenticated-legacy-completion-v1':
+        require(a.get('automatic_rerun') is False, 'automatic rerun forbidden')
+        p, _ = checked_json(root/'plan.json', pin)
+        helper = root/'tools/r3_k2_completion_witness.py'
+        require(str(helper) in p['evidence'], 'completion verifier unbound')
+        W = source(helper, p['evidence'][str(helper)])
+        request = a['completion_request']
+        W.refcheck(request)
+        require(request['path'] == str(root.with_name('k2_completion_witness_20261101_v3')/'request.json'),
+                'completion request path differs')
+        # Request pin must be authenticated by the parent outside this filesystem.
+        # The checked request is also parsed by the verifier from its retained buffer.
+        result = W.verify(request['path'], request['sha256'], pin)
+        require(next(r for r in result['checked_metadata'] if r['path'] == W.__file__)['sha256']
+                == p['evidence'][str(helper)], 'completion verifier plan pin differs')
+        require(next(r for r in result['checked_metadata'] if r['path'] == request['path']) == request,
+                'completion request reference differs')
+        return dict(a, _completion_checked=result)
     predecessor = Path('/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_k0_chip3_20261101_v1')
     names = ('ENGINEERING_EVAL_EXIT.json', 'attempts/1/RELEASE.json', 'execution.json', 'attempts/1/LAUNCH_RECEIPT.json')
     require(set(a['predecessor_pins']) == set(names), 'predecessor inventory differs')
@@ -733,7 +753,7 @@ def launcher(path, pin):
         require(e['image'] == L.IMAGE and e['allocation'] == str(L.BASE/'CHIP-ALLOCATION.json')
                 and root.is_relative_to(L.BASE/'r3_runs') and e['run'] == str(root.relative_to(L.BASE)), 'resource binding differs')
         require(e['launcher'] == e['benchmark'] == str(Path(__file__).resolve()), 'entrypoint binding differs')
-        require(set(e['tools']) == {str(root/'tools'/n) for n in (*L.TOOLS, 'r3_k2_retained_tensor_probe.py')}, 'launcher inventory differs')
+        require(set(e['tools']) == {str(root/'tools'/n) for n in (*L.TOOLS, 'r3_k2_retained_tensor_probe.py', 'r3_k2_completion_witness.py')}, 'launcher inventory differs')
         for f, h in e['tools'].items():
             require(sha(f) == h, 'launcher changed')
         p = verify_plan(e['benchmark_plan'], e['benchmark_sha256'])
@@ -749,9 +769,21 @@ def launcher(path, pin):
         a = activation_guard(root, e['benchmark_sha256'])
         mounts[a['review_path']] = False
         predecessor = Path('/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_k0_chip3_20261101_v1')
-        for n in a['predecessor_pins']:
-            require(n in ('execution.json', 'ENGINEERING_EVAL_EXIT.json', 'attempts/1/RELEASE.json', 'attempts/1/LAUNCH_RECEIPT.json'), 'unexpected predecessor file')
-            mounts[str(predecessor/n)] = False
+        if a.get('predecessor_route', 'strict-terminal-pin-v1') == 'authenticated-legacy-completion-v1':
+            checked = a['_completion_checked']
+            for ref in checked['checked_metadata'] + checked['result_files']:
+                mounts[str(safe(ref['path']))] = False
+            # Result inventory enumeration and frozen source closure need their directories.
+            mounts[str(predecessor/'results/trackk')] = False
+            mounts[str(predecessor/'results/trackt')] = False
+            mounts[str(predecessor/'execution-tools')] = False
+            mounts[str(predecessor.with_name('combined_eval_closure_20261031_v1')/'r3_code')] = False
+            mounts[str(predecessor.with_name('combined_eval_closure_20261031_v1')/'r0_code')] = False
+            mounts['/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B/.complete'] = False
+        else:
+            for n in a['predecessor_pins']:
+                require(n in ('execution.json', 'ENGINEERING_EVAL_EXIT.json', 'attempts/1/RELEASE.json', 'attempts/1/LAUNCH_RECEIPT.json'), 'unexpected predecessor file')
+                mounts[str(predecessor/n)] = False
         for f in p['evidence']:
             mounts[f] = False
         return dict(name=e['container']+'-a1', image=L.IMAGE,
