@@ -25,7 +25,7 @@
 
 ## 覆盖反馈后的修订
 
-用户指出上一版数据集选择仍偏少。复核后确认，上一版 12 个候选任务族仍压缩了多个可独立汇报的原生测试面板，尤其是 `Praveenrajus/jev-bench`（22 个 test configs）、canonical `Hanno-Labs/DecisionBench`（43 个 task IDs）、legacy `akhilaaa3/DecisionBench`（medium/hard）、Eikos heldout、Korean JEV、Respan Behavior 和 DecisionRobust text。新版本将候选轴扩展到约 16–17 个来源/任务族和 50+ 原生测试面板；各面板仍按 split、来源、公式、分母和 paired 关系独立审计，不改变 D1 已冻结的 38 个模型×数据集单元。
+用户指出上一版数据集选择仍偏少。复核后确认，上一版 12 个候选任务族仍压缩了多个可独立汇报的原生测试面板，尤其是此前遗漏的 `Praveenrajus/jev-bench`（22 个 test configs）、canonical `Hanno-Labs/DecisionBench`（43 个 task IDs）、legacy `akhilaaa3/DecisionBench`（medium/hard）和 DecisionRobust image；同时把已有候选 Eikos heldout、Korean JEV、Respan Behavior 和 DecisionRobust text 拆成独立原生面板。新版本将候选轴扩展到约 16–17 个来源/任务族和 50+ 原生测试面板；各面板仍按 split、来源、公式、分母和 paired 关系独立审计，不改变 D1 已冻结的 38 个模型×数据集单元。
 
 详细的 v3 范围、优先级、排除项和里程碑见 [`proposal/15-dataset-coverage-expansion-v3-2026-11-02.md`](15-dataset-coverage-expansion-v3-2026-11-02.md)。本轮仍未读取新增候选 TEST 样本，也未授权新增推理。默认先做 CPU 元数据合同，只有 `ready_for_inference` 面板进入 NPU FIFO；NPU 执行与 CPU scorer/分析继续异步。
 

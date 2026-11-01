@@ -10,7 +10,7 @@
 - 24 个本地目录只是库存，不是 24 个独立数据集；其中包含版本投影、结果包、同源子集和多模态数据。
 - 当前 D1 参考矩阵仍冻结为 38 个模型×数据集单元，36 个有结果，2 个 Open-Jev×JEVal 为 `blocked/null`；不能通过本文件追溯改写。
 - 新的覆盖轴将纳入约 **16–17 个任务族/来源族、50 个以上原生测试面板** 的候选矩阵。每个面板保留原生 TEST、原生公式和分母；只有审计通过的格子才进入推理 FIFO。
-- `Praveenrajus/jev-bench`、canonical `Hanno-Labs/decision-bench`、legacy `akhilaaa3/decision-bench`、Eikos heldout、Korean JEV、Respan Behavior 和 DecisionRobust text 是上一版最明显遗漏的可审计候选。
+- `Praveenrajus/jev-bench`、canonical `Hanno-Labs/decision-bench`、legacy `akhilaaa3/decision-bench` 和 DecisionRobust image 是上一版最明显遗漏的可审计候选；Eikos heldout、Korean JEV、Respan Behavior 和 DecisionRobust text 虽已出现在上一版候选中，本版将它们从“族级候选”提升为可独立计分的原生面板。
 - 不把通用分类集合 `btzsc`、只有 train 的 WebJev/OneJev 或隐藏标签/发布门禁失败的 Imajev 伪装成公开 TEST；它们分别保留为边界候选、训练来源或阻塞记录。
 
 ## 扩展后的覆盖层级
