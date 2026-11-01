@@ -54,13 +54,15 @@ Astra 第二轮为 CHANGES_REQUIRED，六类问题涉及实际数值重建、执
 
 第三轮及第四轮托管 Astra 均只返回规则确认，记为 NOT_REVIEWED；任务管理 MCP 接口也连接失败。第四轮只读 CLI Astra 已真实完成：exit0，输出哈希一致，review SHA `94117950ad68821696e7337fc36021899ac0b0e5dd2f5357cd38213e57a2b2c9`，结论 **CHANGES_REQUIRED**。它核验了 108 文件，确认目标身份与 scope 矛盾的原反例关闭；仍有外层 helper 字节码绕过、嵌套证据测试路径读取、正式保留容器有效配置不完整、CPU 接续校验较弱及审查包缺少 successor helper 五类问题。
 
-`2a2035c` 已修复前两类路径：外层 admission/readiness/CPU helper 直接编译源码，嵌套 inventory 和单独 review/checkpoint 路径在内容读取前拒绝测试文件，原 checkpoint 限定到对应训练目录与步数。固定镜像无设备 CPU 新代次 70 项测试通过，真实容器 exit0，294 个冻结源文件复哈希一致。首轮因测试仍模拟旧导入接口失败，保留失败代次后修正测试再运行；未删改失败记录。容器有效配置、CPU 共享校验及完整复审包仍待收口；代码测试通过不等于 Astra 已关闭 finding。新 validator/verifier 不追改运行中的冻结队列，后续正式消费必须匹配新代次。
+`2a2035c` 已修复前两类路径：外层 admission/readiness/CPU helper 直接编译源码，嵌套 inventory 和单独 review/checkpoint 路径在内容读取前拒绝测试文件，原 checkpoint 限定到对应训练目录与步数。固定镜像无设备 CPU 新代次 70 项测试通过，真实容器 exit0，294 个冻结源文件复哈希一致。首轮因测试仍模拟旧导入接口失败，保留失败代次后修正测试再运行；未删改失败记录。`388cbcc` 已将 CPU/NPU 接续接到共享有效配置规则，补充 healthcheck、资源限制、runtime、init、额外环境变量等检查，并从真实 Docker daemon 读取默认 runtime/cgroup namespace。host175 实际默认为 ascend/private；旧保留 NPU 与 CPU 容器的只读正向检查均通过。固定镜像新代次 81 项回归通过、真实 exit0、冻结源哈希一致。首轮遗漏 synthetic fixture 的 daemon 默认值导致失败，保留记录后修正测试再跑；不改变生产默认值。旧运行队列仍使用原冻结版本，需新的 CPU 验证代次才能引用最新校验。
 
 ## 最终评测源码身份补充修复
 
 在准备最终测试入口时复现了独立问题：旧 final closure 校验只检查预加载模块的路径，伪造相同路径的 `r3_final_metrics` 对象可以被接受。`e0f7277` 改为执行已校验源码字节，并统一 adapter、transaction、日志和 admission 的本地模块身份；反例包括预加载伪模块和恶意 unchecked-hash `.pyc`。50 项相关测试通过，新 41 文件评测代码闭包在 CPU 中实际导入 29 个模块，未访问数据或执行推理。
 
-新 closure manifest 为 `8bb413901b01cb389a658bdde3dcfce072382075aa3529d76c35e5e29355f1a9`，仍 `deployable=false`。修复晚于第四轮 readiness bundle，单独冻结 61 文件复审材料，manifest `32d1c5b6ac0e965f0ff56479acfd8c8b706b8226800669e8f3bb7a4c9f6cd3ae`；独立只读 Astra runner 已启动（child PID `2624412`、实际命令已核对），尚待结论，不能算作第四轮已覆盖，也不替代真实 scorer 中断恢复验证。
+首版 41 文件 closure manifest 为 `8bb413901b01cb389a658bdde3dcfce072382075aa3529d76c35e5e29355f1a9`。其独立 Astra 已真实 exit0，review SHA `69d5ab37615d0a0d2a73d76f189f2023258f04b030dbc42195a140b716e3f98e`，仍为 CHANGES_REQUIRED：driver 启动/向量导出和 supervisor admission 存在外层字节码加载与旧 alias 问题。`2f13906` 已修复这些出口，25 项相关测试通过；旧 closure 不被追改或宣布通过，实际 scorer 中断恢复验证仍未完成。
+
+第五轮统一代码复审包已封存为 410 文件，manifest `3c9eabe7ef887a92f12690e7dc572c89610a4d03a25792d4e7086784344a4181`，包括此前缺失的 successor helper、实际部署队列/旧代码、最新修复和两轮审查。只读 Astra child PID `2630140` 与实际命令、心跳已核验，当前待 verdict；scope 为代码修复，非正式计划或测试发布许可。
 
 ## 需要负责人决策的内容
 
