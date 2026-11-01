@@ -133,8 +133,42 @@ sha=lambda f:hashlib.sha256(f.read_bytes()).hexdigest()
         self.inference_ready();root=Path(self.job['eval_out'])
         self.write(root/'ENGINEERING_EVAL_EXIT.json',{'attempt':3,'exit_code':0})
         with self.assertRaisesRegex(RuntimeError,'generation differs'):Q.ready(self.job)
+
         self.inference_ready();plan=Q.load(root/'execution.json');plan['chip']=5;self.write(root/'execution.json',plan)
         with self.assertRaisesRegex(RuntimeError,'generation differs'):Q.ready(self.job)
+
+    def test_verify_checks_declared_producer_and_preserves_legacy_queue(self):
+        report = self.root / 'report.py'
+        report.write_text('# synthetic report tool\n')
+        consumer = self.root / 'consumer'
+        producer = self.root / 'producer'
+        self.write(consumer / 'manifest.json', {'code': {}})
+        self.write(producer / 'manifest.json', {'code': {}, 'generation': 1})
+        controller = Path(Q.__file__).resolve()
+        doc = {
+            'schema': 'r3-cpu-report-queue-v1', 'test_read': False,
+            'scientific_acceptance': False, 'controller': str(controller),
+            'controller_sha256': Q.sha(controller),
+            'report_tool': str(report), 'report_tool_sha256': Q.sha(report),
+            'closure': str(consumer), 'closure_sha256': Q.sha(consumer / 'manifest.json'),
+            'jobs': [self.job],
+        }
+        def verify(value):
+            self.write(self.path, value)
+            return Q.verify(self.path, Q.sha(self.path))
+        self.assertEqual(verify(doc), doc)  # unchanged legacy contract
+        doc['producer_closure'] = {'path': str(producer),
+                                  'manifest_sha256': Q.sha(producer / 'manifest.json')}
+        self.assertEqual(verify(doc), doc)
+        self.write(producer / 'manifest.json', {'code': {}, 'generation': 2})
+        with self.assertRaisesRegex(RuntimeError, 'producer closure manifest changed'):
+            verify(doc)
+        doc['producer_closure']['manifest_sha256'] = 'bad'
+        with self.assertRaisesRegex(RuntimeError, 'producer closure pin malformed'):
+            verify(doc)
+        doc['producer_closure'] = None
+        with self.assertRaisesRegex(RuntimeError, 'producer closure pin malformed'):
+            verify(doc)
 
     def test_ready_later_job_runs_without_waiting_first(self):
         later=dict(self.job,id='two',eval_out=str(self.root/'later'))

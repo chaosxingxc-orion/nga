@@ -63,6 +63,17 @@ def verify(path, pin):
     require(sha(closure / 'manifest.json') == doc['closure_sha256'], 'closure manifest changed')
     for entry in load(closure / 'manifest.json')['code'].values():
         require(sha(entry['snapshot']) == entry['sha256'], 'frozen closure code changed')
+    # Legacy queues lack this field. When supplied, it is a runtime contract,
+    # not merely a note about which code produced the readouts.
+    if 'producer_closure' in doc:
+        producer = doc['producer_closure']
+        require(isinstance(producer, dict), 'producer closure pin malformed')
+        producer_root = safe_absolute(producer.get('path'))
+        producer_pin = producer.get('manifest_sha256')
+        require(isinstance(producer_pin, str) and re.fullmatch('[0-9a-f]{64}', producer_pin),
+                'producer closure pin malformed')
+        require(sha(producer_root / 'manifest.json') == producer_pin,
+                'producer closure manifest changed')
     jobs = doc['jobs']
     require(jobs and len({j['id'] for j in jobs}) == len(jobs), 'empty or duplicate jobs')
     reports = [j for j in jobs if j.get('kind', 'report') == 'report']
