@@ -12,6 +12,8 @@ Coverage note — 2026-11-02 v6 review: the user identified that the v5 candidat
 
 Coverage note — 2026-11-02 v7 review: the first common-text admission wave is now explicit rather than implicit. P0 contains ten source/task families: AppliedMachineLearning-Lab Jev benchmarking (about 37 native panels), JevBench public-231, Intern-Decision, Jevals, canonical/legacy DecisionBench, Decision Model Benchmark, BEV Decision, LocalLLaMA typed decisions, TDM prevalence-shift and Jev OOD calibration. The planning range remains approximately 25–30 source/task families and 70+ native panels; it is not a completed experiment count. The five v6-audited families and 18 declared panels remain `needs_review`, with zero `ready_for_inference`; no candidate TEST row or Qwen3.5 result is added here. The updated admission order is documented in [`../proposal/19-dataset-coverage-expansion-v7-status-2026-11-02.md`](../proposal/19-dataset-coverage-expansion-v7-status-2026-11-02.md).
 
+Coverage note — 2026-11-02 P0 metadata milestone: six additional common-text source families were audited from documentation/manifests only: AppliedMachineLearning-Lab Jev benchmarking, Intern-Decision, Jevals, Hanno-Labs DecisionBench, Praveenrajus JevBench and akhilaaa3 DecisionBench. All remain `needs_review` with zero `ready_for_inference`; no candidate TEST row, model output or Qwen3.5 metric is added. The per-panel contract and lineage work must close before any of these sources enters the FIFO. Evidence is local in `.local/reports/p0-common-text-metadata-audit-20261102.{md,json}`.
+
 ## Evidence and reading conventions
 
 - [REFERENCE-BASELINE-MATRIX-2026-10-31.json](REFERENCE-BASELINE-MATRIX-2026-10-31.json) — SHA256 `03459facf6f86a919e10d9a0acef413b89c5a5d4ffd232352260722b05d0266e`.
