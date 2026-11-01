@@ -1,5 +1,7 @@
 # 当前任务状态、待决策事项与下一阶段计划
 
+> 2026-11-01 公开任务覆盖契约更新：第一批候选评估已生成 14 单元矩阵，覆盖 Kev hard/documents/devtools、Typed Decisions、BEV、Open-Jev v1.1、DecisionPivot core 和 DecisionRobust text。当前 14/14 标为 `needs_review`，因为至少一项 split、mask、公式、来源重叠或 TEST 暴露控制尚未核验；未读候选 TEST 样本，未启动新增推理。它是接入前准备证据，不是新增指标或训练授权。
+>
 > 2026-11-01 七成员工程报告更新：独立 CPU 重建完成，七个成员的报告与来源绑定一致，campaign、evidence、source-snapshots 三份输出逐字节一致；主会话复核审查中的 26 个显式文件引用，无哈希差异。范围仅限工程 DEV/calibration 和 Track T 选择半区，未选择候选、未授予正式资格、未产生 TEST 收益。冻结指标实现被复用，并非第二套独立数学实现。Open-Jev 合成 ordinal 的零 floor accuracy 与非零 argmax accuracy、高 C 分支率并存；小样本单元和极值警示保留。
 >
 > 同期工程状态：QO v8 直接接续实现已交付，CPU fixture 通过，但生产数值准入和独立执行审查仍未完成。K2 v4 准备审查的一份 precision-probes 引用在报告内存在旧新哈希不一致，暂不接受为当前完整固定证据；已取得原历史容器 exit=0 的现场完整观察，实际链独立审查进行中，尚未签发见证或启动诊断。下文旧快照中的“七成员复审待做”由此更新替代，其余旧运行计数仍是带时间的快照。
