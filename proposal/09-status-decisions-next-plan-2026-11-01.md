@@ -1,16 +1,16 @@
 # 当前任务状态、待决策事项与下一阶段计划
 
-共享运行快照截至 **2026-11-01 12:12:33.929452 UTC**；审查状态采用随后已认证的 collector v3、QO v3、PT v3 结论。本页汇总已保存证据，不是实时监控；2026-11-01 已完成主会话核验与整理。
+共享运行快照截至 **2026-11-01 12:22:37.045810 UTC**；审查状态采用随后已认证的 collector v3、QO v3、PT v3 结论。本页汇总已保存证据，不是实时监控；2026-11-01 已完成主会话核验与整理。
 
-正式 K1 seed2 在芯片 1 训练，进度 **1927/3116**；三路训练、五路推理。看门狗记录 **8/8 芯片驻留**，结构化检查无新增错误/失败/停滞；驻留不能证明持续满利用率。下一次常规巡检下限为 **12:22:33.929452 UTC**，本次整理没有发起巡检。正式 seed3 仍等待芯片 4 完整 **4B → 9B 训练/评估 → 9B K0** 链释放，seed2 票据不覆盖 seed3，不重启或抢占现有任务。
+正式 K1 seed2 在芯片 1 训练，进度 **2136/3116**；三路训练、五路推理。看门狗记录 **8/8 芯片驻留**，结构化检查无新增错误/失败/停滞；驻留不能证明持续满利用率。下一次常规巡检下限为 **12:32:37.045810 UTC**，本次整理没有发起巡检。正式 seed3 仍等待芯片 4 完整 **4B → 9B 训练/评估 → 9B K0** 链释放，seed2 票据不覆盖 seed3，不重启或抢占现有任务。
 
-训练后 CPU capture watcher 已运行，但仅等待真实完成；**尚未实际采集 adapter，也未执行新正式 DEV 评估**。collector v3 独立复审 PASS，root 认证 19 项引用后接受“真实成功完成后的源码就绪”范围；真实完成、来源/容器/镜像认证、有效权重及独立评估准入仍需满足。QO v3 和 PT runtime v3 均为 **BLOCK**，各自 v4 修复在进行；交付或检查通过不等于部署授权。
+训练后 CPU capture watcher 已运行，但仅等待真实完成；**尚未实际采集 adapter，也未执行新正式 DEV 评估**。collector v3 独立复审 PASS，root 认证 19 项引用后接受“真实成功完成后的源码就绪”范围；真实完成、来源/容器/镜像认证、有效权重及独立评估准入仍需满足。QO v3 和 PT runtime v3 的 **BLOCK** 保留。QO v4 修复已交付，130 项 CPU 检查通过、主会话核验 27 项直接引用及 10501 项清单，独立复审进行中；实际运行环境和完整数值准入仍未完成。PT v4 修复继续，交付或检查通过不等于部署授权。
 
-QO 尚缺同字节收据/代码消费、完整源码/模型/运行时绑定、持久发布顺序和严格 chip/seed 类型检查。PT 尚缺清单同字节哈希/解析、受保护不变来源的缓存边界及进程退出后的具体恢复协议；observer 未部署、无生产 AUTH/SIGNAL。历史失败审查保留，不追溯改成 PASS。
+QO v4 针对同字节收据/代码消费、完整源码/模型/运行时绑定、持久发布顺序和严格 chip/seed 类型检查的修复仍须独立验收；当前 CPU 检查包含明确的 Docker/数值 helper 模拟边界。PT 尚缺清单同字节哈希/解析、受保护不变来源的缓存边界及进程退出后的具体恢复协议；observer 未部署、无生产 AUTH/SIGNAL。历史失败审查保留，不追溯改成 PASS。
 
 **2026-11-01 更正：**旧摘要 `low chips 7` 的 `7` 是芯片编号 7，曾误写为“7/8 芯片偏低”。原快照及全部实验指标不变；此更正不证明持续满载。
 
-当前三项 CPU 工作为 QO v4 修复、PT v4 修复及正式资格/跨芯片底噪条款核对；最后一项仅梳理现有证据与适用条款，不新增门槛、不启动实验。
+当前三项 CPU 工作为 QO v4 独立复审、PT v4 修复及正式资格/跨芯片底噪条款核对；最后一项仅梳理现有证据与适用条款，不新增门槛、不启动实验。
 
 ## 科学结论与不变判定
 
@@ -76,7 +76,7 @@ K1−K0 配对 90% bootstrap 区间为 [22.1519, 26.9778]、[0.2287, 7.0122] pp�
 
 后续完整 q1 探针的 50 项跨重复比较中 47 项一致，差异为所选分支 B cotangent、incoming B gradient 与累加后 B gradient；44 项 forward/recompute 比较中 40 项范围可比且全部一致。它不能归因为 dropout、checkpoint、矩阵乘法或累加方式。早期覆盖不全及运行期改写冻结文件的失败保持失败。保留张量 v4 仅准备就绪、未激活，恰好 50 份 payload、总载荷上限 128 MiB；仍需 Instruct 自然完成见证、真实来源/容器链及独立准入。CPU float64 数学复算不等价于 NPU 舍入/归约。当前没有根因解决、生产采用或 K2 有效提速结论。
 
-历史逐候选 K2 为 0.241/0.232 基础问题/s/chip（各 1 芯片），当时 14.5/14.4 GiB 是 HBM 使用量而非 reserved；不同候选展开不能直接比较 token/s。正式 K1 在 12:12:33 UTC 快照中的累计窗口每芯片 881.6359521346596 tokens/s、3.2647966855874864 questions/s（1 芯片、1922 测量步、排除 5 warmup），reserved 未知，排除启动/checkpoint 开销。速度变化仍须满足登记 loss/gradient 数值条件，不能替代质量证据。
+历史逐候选 K2 为 0.241/0.232 基础问题/s/chip（各 1 芯片），当时 14.5/14.4 GiB 是 HBM 使用量而非 reserved；不同候选展开不能直接比较 token/s。正式 K1 在 12:22:37 UTC 快照中的累计窗口每芯片 882.1123645694645 tokens/s、3.28476911006326 questions/s（1 芯片、2131 测量步、排除 5 warmup），reserved 未知，排除启动/checkpoint 开销。速度变化仍须满足登记 loss/gradient 数值条件，不能替代质量证据。
 
 ## 文献、参考基线与业务边界
 
@@ -100,7 +100,7 @@ K1−K0 配对 90% bootstrap 区间为 [22.1519, 26.9778]、[0.2287, 7.0122] pp�
 
 - 数值权威入口：[REFERENCE-BASELINE-LATEST.md](../experiments/REFERENCE-BASELINE-LATEST.md)、[固定矩阵](../experiments/REFERENCE-BASELINE-MATRIX-2026-10-31.json)、[增量](../experiments/REFERENCE-BASELINE-INCREMENT-2026-10-31.json)、[E39](../experiments/REFERENCE-DATED-REAUDIT-LATEST.json)、[路径索引](../experiments/REFERENCE-SOURCE-LOCATIONS.json)。
 - 指标边界：[补充规范](../experiments/R3-REFERENCE-METRICS-SUPPLEMENT-2026-11-01.md)、[口径区别](../experiments/R3-REFERENCE-METRICS-CONVENTIONS.md)。
-- 当前执行采用冻结的 `inspection-20261101T121233.json` 与 `active-delegation.md`，最新 collector/QO/PT 采用原始独立评审和 root 决定；完整哈希、PID 和限定范围集中在本次本地 `EVIDENCE-INDEX.md`，不在正文重复。
+- 当前执行采用冻结的 `inspection-20261101T122237.json` 与 `active-delegation.md`，最新 collector/QO/PT 采用原始独立评审和 root 决定；完整哈希、PID 和限定范围集中在本次本地 `EVIDENCE-INDEX.md`，不在正文重复。
 - 本次发布前原文按精确字节保存在 `.local/archive/2026-11-01/conclusions-consolidation-1221/`；整理输入另存 `.local/preparations/current-report-wiki-consolidation-20261101-v1/archive/`；输入哈希见 `INPUTS.json`。同目录 `validation/` 保存表格前后逐字比较、科学数字来源映射、稳定章节覆盖和逐段归档去向；`HISTORICAL-MEASUREMENTS.md` 保留被压缩的完整测量段落。
 
 本次移出的旧进度计数、时间/PID/哈希串、测试计数及修复过程只是历史，不是当前状态；旧失败、BLOCK、CHANGES_REQUIRED 未删除或追溯改判。旧阶段表中的等待状态以本页冻结状态为准。更早的原文归档 `.local/archive/2026-11-01/conclusions-before-consolidation-0326/` 仍为历史入口。本次已核对整理期间的变化，并刷新至上述共享快照。报告整理不改变实验门槛或科学验收状态。
