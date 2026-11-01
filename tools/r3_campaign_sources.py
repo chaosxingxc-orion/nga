@@ -11,11 +11,22 @@ import json
 from pathlib import Path
 import stat
 import tempfile
+import types
 
 
 def module(path, name):
-    spec = importlib.util.spec_from_file_location(name, path)
-    value = importlib.util.module_from_spec(spec); spec.loader.exec_module(value)
+    path = Path(path)
+    if not path.is_absolute() or any(p.is_symlink() for p in (path, *path.parents)):
+        raise ValueError('unsafe source module path')
+    raw = path.read_bytes()
+    pins = globals().get('_SOURCE_PINS')
+    if pins is not None and pins.get(str(path)) != hashlib.sha256(raw).hexdigest():
+        raise ValueError('source module not pinned: '+str(path))
+    value = types.ModuleType(name)
+    value.__file__ = str(path)
+    if pins is not None:
+        value.__dict__['_SOURCE_PINS'] = pins
+    exec(compile(raw, str(path), 'exec', dont_inherit=True), value.__dict__)
     return value
 
 
