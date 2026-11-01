@@ -107,7 +107,7 @@ This is an active research and engineering repository. Most existing code and ex
 | **Tasks and protocols** | Data builders, manifests, frozen protocols and amendments, and result documents in [`experiments/`](experiments/README.md). |
 | **Baseline code** | Prompt rendering, candidate scoring, splits, threshold fitting, paired metrics, and reporting in [`experiments/r0_baseline/`](experiments/r0_baseline/). |
 | **SFT code snapshots** | Data preparation, training, evaluation, and launchers in [`experiments/r3_sft/`](experiments/r3_sft/README.md). Its `r1_code` directory means SFT round 1, not proposal round R1. |
-| **Experiment records** | Purpose, hypothesis, setup, results, and verdict for each recorded experiment in [`wiki/`](wiki/README.md). |
+| **Experiment results** | [Latest reference baseline](experiments/REFERENCE-BASELINE-LATEST.md) with test metrics, protocol differences and evidence limits; [current conclusions on GitHub Wiki](https://github.com/chaosxingxc-orion/nga/wiki/Current-Conclusions) for collaboration and engineering progress. Process records are maintained locally. |
 | **Operational tools** | Monitoring digests, anomaly flags, and model-copy verification in [`tools/`](tools/README.md). |
 
 ### Recorded progress and current limits
