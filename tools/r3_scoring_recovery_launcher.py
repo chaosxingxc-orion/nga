@@ -257,7 +257,7 @@ def phase_run(p,q,path,pin,phase,R,K,directory):
 
 def resource_args(p,directory,name,op):
     return SimpleNamespace(alloc=p['allocation'],run=p['run'],chip=p['chip'],container=name,
-        owner='R3 scoring recovery',purpose='Eight dev records; real scoring process interruption recovery',
+        owner='R3 scoring recovery',purpose='Pinned development population; real scoring process interruption recovery',
         claim=str(directory/'CLAIM.json'),proof=str(directory/(op.upper()+'.json')))
 
 
