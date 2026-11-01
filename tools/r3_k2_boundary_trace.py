@@ -27,6 +27,7 @@ class BoundaryTrace:
         self.handles = []
         self.events = 0
         self.failed = False
+        self.chunk_counts = [0, 0]
 
     def install(self):
         if self.handles:
@@ -121,6 +122,29 @@ class BoundaryTrace:
         owner_pin = hashlib.sha256(json.dumps(owners, separators=(',', ':')).encode()).hexdigest()
         self.capture(('reduction', stage, count, owner_pin), tensor)
 
+    def chunk(self):
+        if self.question == 5:
+            self.chunk_counts[self.phase] += 1
+
+    def coverage(self, sequence, phase):
+        keys = set(sequence)
+        required = {('scores_before_backward',)}
+        for name, parameter in self.trainable:
+            for question in (0, 1):
+                required.update({('prior', question, name), ('post', question, name)})
+        incoming = {name: sum(k[0] == 'incoming' and k[1] == name for k in sequence)
+                    for name, parameter in self.trainable}
+        before = [k for k in sequence if k[0:2] == ('reduction', 'before')]
+        after = [k for k in sequence if k[0:2] == ('reduction', 'after')]
+        count = self.chunk_counts[phase]
+        reductions = count > 0 and len(before) == len(after) == count
+        reductions = reductions and [(k[2], k[3]) for k in before] == [(k[2], k[3]) for k in after]
+        reductions = reductions and [k[2] for k in before] == list(range(count))
+        return {'required_records_present': required <= keys,
+                'incoming_counts': incoming, 'missing_incoming_leaves': sorted(n for n,c in incoming.items() if c == 0),
+                'observed_chunks': count, 'paired_reductions_complete': reductions,
+                'complete': required <= keys and bool(incoming) and all(incoming.values()) and reductions}
+
     def begin_repeat(self):
         if self.phase != 0 or self.question < 6 or not self.reference:
             raise ValueError('missing complete reference boundaries')
@@ -133,8 +157,12 @@ class BoundaryTrace:
 
     def summary(self):
         incoming = [x for x in self.comparisons if x['key'][0] == 'incoming']
+        coverage = [self.coverage(self.reference_sequence or self.sequence, 0),
+                    self.coverage(self.sequence, 1) if self.phase == 1 else None]
         return {'schema': 'r3-k2-boundary-trace-v1',
-                'complete': self.phase == 1 and self.question >= 6 and not self.reference and not self.failed,
+                'complete': self.phase == 1 and self.question >= 6 and not self.reference and not self.failed
+                            and all(x and x['complete'] for x in coverage),
+                'coverage': coverage,
                 'questions_observed': self.question, 'peak_reference_bytes': self.peak_bytes,
                 'event_order_equal': self.sequence == self.reference_sequence,
                 'incoming_events': len(incoming), 'comparisons': self.comparisons,

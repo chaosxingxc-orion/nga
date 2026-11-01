@@ -63,8 +63,9 @@ def digest(value):
 def artifact(entry):
     require(set(entry) == {'path', 'sha256'}, 'artifact descriptor differs')
     p = safe(entry['path']); K.pin(entry['sha256'])
-    require(sha(p) == entry['sha256'], 'artifact changed: '+str(p))
-    return json.loads(p.read_text())
+    raw = p.read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == entry['sha256'], 'artifact changed: '+str(p))
+    return json.loads(raw)
 
 
 def scope(report):

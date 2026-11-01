@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 P = Path(__file__).with_name('r3_member_rebuild_queue.py')
 S = importlib.util.spec_from_file_location('queue', P)
@@ -25,7 +26,10 @@ class QueueEvidenceTests(unittest.TestCase):
         self.end = self.producer/'jobs/pt/EXIT.json'
         Q.write(self.end, {'exit_code': 0, 'output_sha256': Q.sha(self.report), 'scientific_acceptance': False})
         self.path = self.r/'queue.json'
-        Q.write(self.path, {})
+        self.code = {str(self.r/n): n for n in ('r3_selection_report.py', 'r3_campaign_sources.py',
+                                               'r3_final_campaign.py', 'r3_model_inventory.py')}
+        self.q = {'code': self.code, 'closure_manifest': {'path': '/closure', 'sha256': 'c'}}
+        Q.write(self.path, self.q)
         self.pin = Q.sha(self.path)
         self.expected = {'role': 'control', 'arm': 'K1-PT', 'seed': 3,
                          'base': '/model', 'adapter': '/seed3/adapter'}
@@ -33,6 +37,11 @@ class QueueEvidenceTests(unittest.TestCase):
                     'terminal': str(self.end), 'report': str(self.report), 'expected': self.expected,
                     'base_inventory': {'path': '/base-inventory', 'sha256': 'b'},
                     'adapter_inventory': {'path': '/adapter-inventory', 'sha256': 'a'}}
+        for name in ('base_inventory', 'adapter_inventory'):
+            ip = self.r/(name+'.json')
+            inv = {'root': name, 'files': {'synthetic': {'sha256': 'x'}}}
+            Q.write(ip, {'inventory': inv, 'inventory_sha256': Q.canonical_pin(inv)})
+            self.job[name] = {'path': str(ip), 'sha256': Q.sha(ip)}
         self.out = self.r/'member'
         self.out.mkdir()
         bindings = Q.producer(self.job)
@@ -49,7 +58,19 @@ class QueueEvidenceTests(unittest.TestCase):
         self.member = {'role': 'control', 'arm': 'K1-PT',
                        'model': {'base_path': '/model', 'path': '/seed3/adapter'},
                        'training': {'seed': 3, 'arm': 'K1-PT', 'adapter_path': '/seed3/adapter'}}
-        Q.write(self.out/'evidence.json', dict(self.common, member=self.member))
+        self.payload = {'report': bindings['report'],
+            'inventories': {name: Q.load(self.job[name]['path'])['inventory_sha256']
+                            for name in ('base_inventory', 'adapter_inventory')},
+            'code': {'report_tool': {'path': str(self.r/'r3_selection_report.py'), 'sha256': 'r3_selection_report.py'},
+                     'closure_manifest': self.q['closure_manifest'], 'consumer_sha256': 'r3_campaign_sources.py',
+                     'structure_sha256': 'r3_final_campaign.py', 'inventory_sha256': 'r3_model_inventory.py'},
+            'reconstructed_report_sha256': Q.canonical_pin(Q.load(self.report)),
+            'source_snapshot': {'files': {e['path']: e['sha256'] for e in self.req['entry'].values()},
+                                'trees': {'tree': []}, 'models': {'model': {}}},
+            'training': self.member['training']}
+        self.member['verified_evidence_sha256'] = Q.canonical_pin(self.payload)
+        self.member['model']['base_inventory_sha256'] = self.payload['inventories']['base_inventory']
+        Q.write(self.out/'evidence.json', dict(self.common, member=self.member, evidence=self.payload))
         self.result = dict(self.common, producer=bindings, outputs={'evidence.json': Q.sha(self.out/'evidence.json')})
         self.finish()
 
@@ -118,6 +139,41 @@ class QueueEvidenceTests(unittest.TestCase):
         Q.write(self.out/'FAILURE.json', failure, exclusive=True)
         with self.assertRaisesRegex(ValueError, 'persisted failure'):
             self.check()
+
+    def test_spoofed_failure_success_rejected(self):
+        f = dict(self.common, state='producer_complete')
+        with self.assertRaisesRegex(ValueError, 'persisted failure'):
+            Q.failure_state(f, 'pt', self.pin)
+
+    def test_missing_reconstruction_payload_rejected(self):
+        Q.write(self.out/'evidence.json', dict(self.common, member=self.member))
+        self.result['outputs']['evidence.json'] = Q.sha(self.out/'evidence.json')
+        self.finish()
+        with self.assertRaisesRegex(ValueError, 'payload'): self.check()
+
+    def test_duplicate_output_owner_rejected(self):
+        d = Q.load(self.pq); d['jobs'].append(dict(d['jobs'][0], id='other'))
+        Q.write(self.pq, d); self.job['producer_queue_sha256'] = Q.sha(self.pq)
+        with self.assertRaisesRegex(ValueError, 'multiple owners'): Q.producer(self.job)
+
+    def test_single_buffer_hash_and_parse(self):
+        original = Q.read(self.end)
+        changed = json.dumps({'exit_code': 1}).encode()
+        with patch.object(Q, 'read', side_effect=[original, changed]) as reader:
+            doc, pin = Q.snapshot(self.end)
+        self.assertEqual(reader.call_count, 1)
+        self.assertEqual(doc['exit_code'], 0)
+        self.assertEqual(pin, __import__('hashlib').sha256(original).hexdigest())
+
+    def test_bootstrap_rejects_changed_executed_source(self):
+        import subprocess, sys
+        target = self.r/'controller.py'
+        target.write_text('raise RuntimeError("must not execute")\n')
+        result = subprocess.run([sys.executable, '-P', '-c', Q.BOOTSTRAP, str(target), '0'*64],
+                                capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('controller bytes changed', result.stderr)
+        self.assertNotIn('RuntimeError: must not execute', result.stderr)
 
 
 if __name__ == '__main__':

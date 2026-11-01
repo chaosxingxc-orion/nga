@@ -16,6 +16,28 @@ import threading
 import time
 import types
 
+# Passed to Python as immutable command text; target bytes are read once, checked
+# against the externally supplied pin, then compiled from that same buffer.
+BOOTSTRAP = '''import hashlib,os,stat,sys
+from pathlib import Path
+p=Path(sys.argv[1]);pin=sys.argv[2];args=sys.argv[3:]
+if not p.is_absolute() or '..' in p.parts or any(x.is_symlink() for x in (p,*p.parents)):raise ValueError('unsafe controller')
+fd=os.open(p,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+with os.fdopen(fd,'rb') as f:
+ s=os.fstat(f.fileno())
+ if not stat.S_ISREG(s.st_mode):raise ValueError('nonregular controller')
+ raw=f.read()
+if hashlib.sha256(raw).hexdigest()!=pin:raise ValueError('controller bytes changed')
+sys.argv=[str(p),*args]
+exec(compile(raw,str(p),'exec',dont_inherit=True),{'__name__':'__main__','__file__':str(p),'_EXECUTED_SHA256':pin})
+'''
+
+
+def command(q, op, path, pin, key=None):
+    args = [sys.executable, '-P', '-c', BOOTSTRAP, q['controller']['path'],
+            q['controller']['sha256'], op, '--queue', str(path), '--sha256', pin]
+    return args + (['--job', key] if key is not None else [])
+
 
 def require(ok, why):
     if not ok:
@@ -46,14 +68,30 @@ def sha(path):
     return hashlib.sha256(read(path)).hexdigest()
 
 
-def load(path):
+def parse(raw):
     def pairs(items):
         result = {}
         for key, value in items:
             require(key not in result, 'duplicate JSON key')
             result[key] = value
         return result
-    return json.loads(read(path), object_pairs_hook=pairs)
+    return json.loads(raw, object_pairs_hook=pairs)
+
+
+def snapshot(path, expected=None):
+    raw = read(path)
+    pin = hashlib.sha256(raw).hexdigest()
+    require(expected is None or pin == expected, 'artifact changed: '+str(path))
+    return parse(raw), pin
+
+
+def load(path):
+    return snapshot(path)[0]
+
+
+def canonical_pin(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'),
+                                    allow_nan=False).encode()).hexdigest()
 
 
 def write(path, doc, exclusive=False):
@@ -80,12 +118,12 @@ def zero(doc):
 
 
 def verify_queue(path, pin):
-    require(sha(path) == pin, 'queue changed')
-    q = load(path)
+    q, _ = snapshot(path, pin)
     scope(q)
-    require(q['schema'] == 'r3-member-rebuild-queue-v2', 'queue schema differs')
+    require(q['schema'] == 'r3-member-rebuild-queue-v3', 'queue schema differs')
     require(q['controller']['path'] == str(Path(__file__).resolve())
-            and sha(__file__) == q['controller']['sha256'], 'controller bytes differ')
+            and globals().get('_EXECUTED_SHA256') == q['controller']['sha256'],
+            'controller must execute verified bytes via bootstrap')
     require(q['interval_seconds'] == 30, 'queue cadence differs')
     root = safe(path).parent
     require(set(Path(p).name for p in q['code']) == {
@@ -116,20 +154,21 @@ def sources(q):
 
 
 def producer(job):
-    require(sha(job['producer_queue']) == job['producer_queue_sha256'], 'producer queue changed')
-    q = load(job['producer_queue'])
+    q, _ = snapshot(job['producer_queue'], job['producer_queue_sha256'])
     matches = [j for j in q['jobs'] if j['id'] == job['id']]
     require(len(matches) == 1 and matches[0].get('kind') == 'report'
             and matches[0].get('output') == job['report'], 'producer job/output mapping differs')
+    require(sum(j.get('output') == job['report'] for j in q['jobs']) == 1,
+            'producer output has multiple owners')
     require(Path(job['terminal']) == Path(job['producer_queue']).parent/'jobs'/job['id']/'EXIT.json',
             'producer terminal owner differs')
-    terminal = load(job['terminal'])
+    terminal, terminal_pin = snapshot(job['terminal'])
     zero(terminal)
     require(terminal.get('scientific_acceptance') is False, 'producer scope differs')
     report_pin = sha(job['report'])
     require(terminal['output_sha256'] == report_pin, 'producer output differs')
     return {'queue': {'path': job['producer_queue'], 'sha256': job['producer_queue_sha256']},
-            'terminal': {'path': job['terminal'], 'sha256': sha(job['terminal'])},
+            'terminal': {'path': job['terminal'], 'sha256': terminal_pin},
             'report': {'path': job['report'], 'sha256': report_pin}, 'job_id': job['id']}
 
 
@@ -150,14 +189,14 @@ def request(root, job, q, queue_path, queue_pin, C):
     entry = {'report': bindings['report'], 'base_inventory': job['base_inventory'],
              'adapter_inventory': job['adapter_inventory']}
     C.artifact(entry['base_inventory'])
-    h = C.scope(load(job['report']))
+    h = C.scope(snapshot(job['report'], bindings['report']['sha256'])[0])
     e = job['expected']
     require(h['arm'] == e['arm'] and h['model']['base_path'] == e['base']
             and h['model']['path'] == (e['adapter'] or e['base']), 'report model differs')
     if e['adapter'] and entry['adapter_inventory'] is None:
         train = safe(e['adapter']).parent/'TRAIN_EXIT.json'
-        zero(load(train))
-        train_pin = sha(train)
+        train_doc, train_pin = snapshot(train)
+        zero(train_doc)
         inv = C.M.capture(e['adapter'])
         ip = root/'adapter-inventory.json'
         write(ip, {'inventory': inv, 'inventory_sha256': C.M.identity(inv),
@@ -177,9 +216,8 @@ def validate_request(root, job, queue_path, pin):
     intent = load(root/'INTENT.json')
     scope(intent)
     require(intent['queue_sha256'] == pin and intent['job_id'] == job['id'], 'intent identity differs')
-    req = load(root/'request.json')
+    req, _ = snapshot(root/'request.json', intent['request_sha256'])
     scope(req)
-    require(sha(root/'request.json') == intent['request_sha256'], 'request changed')
     require(req['queue'] == {'path': str(queue_path), 'sha256': pin}
             and req['job_id'] == job['id'] and req['expected'] == job['expected'], 'request identity differs')
     require(req['producer'] == producer(job), 'bound producer changed')
@@ -195,27 +233,71 @@ def validate_request(root, job, queue_path, pin):
     return req
 
 
+def reconstruction_payload(document, req, q):
+    member = document['member']
+    require(isinstance(document.get('evidence'), dict), 'reconstruction payload required')
+    evidence = document['evidence']
+    require(member.get('verified_evidence_sha256') == canonical_pin(evidence),
+            'reconstruction digest differs')
+    require(evidence['report'] == req['entry']['report'], 'reconstructed report binding differs')
+    tool = next(p for p in q['code'] if p.endswith('/r3_selection_report.py'))
+    expected_code = {'report_tool': {'path': tool, 'sha256': q['code'][tool]},
+        'closure_manifest': q['closure_manifest'],
+        'consumer_sha256': q['code'][next(p for p in q['code'] if p.endswith('/r3_campaign_sources.py'))],
+        'structure_sha256': q['code'][next(p for p in q['code'] if p.endswith('/r3_final_campaign.py'))],
+        'inventory_sha256': q['code'][next(p for p in q['code'] if p.endswith('/r3_model_inventory.py'))]}
+    require(evidence['code'] == expected_code, 'reconstruction code differs')
+    inventories = {}
+    for name, entry in req['entry'].items():
+        if name.endswith('_inventory') and entry is not None:
+            inv, _ = snapshot(entry['path'], entry['sha256'])
+            require(canonical_pin(inv['inventory']) == inv['inventory_sha256'], 'inventory digest differs')
+            inventories[name] = inv['inventory_sha256']
+    require(evidence['inventories'] == inventories, 'reconstruction inventory differs')
+    require(member['model']['base_inventory_sha256'] == inventories['base_inventory'], 'member base inventory differs')
+    report, _ = snapshot(req['entry']['report']['path'], req['entry']['report']['sha256'])
+    require(evidence['reconstructed_report_sha256'] == canonical_pin(report), 'report reconstruction digest differs')
+    require(isinstance(evidence.get('source_snapshot'), dict)
+            and set(evidence['source_snapshot']) == {'files', 'trees', 'models'}
+            and all(evidence['source_snapshot'].values()), 'source snapshot missing')
+    for entry in req['entry'].values():
+        if entry is not None:
+            require(evidence['source_snapshot']['files'].get(entry['path']) == entry['sha256'],
+                    'snapshot artifact binding differs')
+    if 'training' in member:
+        require(evidence.get('training') == member['training'], 'training evidence differs')
+
+
+def failure_state(failure, key, pin):
+    scope(failure)
+    require(failure.get('state') == 'failed_no_retry'
+            and failure.get('job_id') == key and failure.get('queue_sha256') == pin,
+            'invalid persisted failure')
+    return {'state': 'failed_no_retry', 'job_id': key, 'error': failure.get('error', '')}
+
+
 def completed(root, job, queue_path, pin):
     require(not safe(root/'FAILURE.json').exists(), 'persisted failure forbids completion')
     req = validate_request(root, job, queue_path, pin)
     end = load(root/'EXIT.json')
     scope(end)
     zero(end)
-    result = load(root/'RESULT.json')
+    result, result_pin = snapshot(root/'RESULT.json', end['result_sha256'])
     scope(result)
-    require(end['result_sha256'] == sha(root/'RESULT.json'), 'result hash differs')
-    request_pin = sha(root/'request.json')
+    request_doc, request_pin = snapshot(root/'request.json')
+    require(request_doc == req, 'request changed during completion')
     for d in (end, result):
         require(d['request_sha256'] == request_pin and d['queue_sha256'] == pin
                 and d['job_id'] == job['id'], 'completion identity differs')
     require(result['producer'] == req['producer'], 'result producer differs')
     require(set(result['outputs']) == {'evidence.json'}, 'exact singleton output required')
-    require(sha(root/'evidence.json') == result['outputs']['evidence.json'], 'evidence changed')
-    evidence = load(root/'evidence.json')
+    evidence, _ = snapshot(root/'evidence.json', result['outputs']['evidence.json'])
     scope(evidence)
     require(evidence['request_sha256'] == request_pin, 'evidence request differs')
     identity(evidence['member'], job['expected'])
-    return {'state': 'producer_complete', 'root': str(root), 'result_sha256': sha(root/'RESULT.json'),
+    q, _ = snapshot(queue_path, pin)
+    reconstruction_payload(evidence, req, q)
+    return {'state': 'producer_complete', 'root': str(root), 'result_sha256': result_pin,
             'independent_acceptance': False}
 
 
@@ -242,7 +324,8 @@ def worker(path, pin, key):
         C.artifact(q['closure_manifest'])
         tool_path = next(p for p in q['code'] if p.endswith('/r3_selection_report.py'))
         tool = C.module(tool_path, 'pinned_report')
-        deps = tool.modules(Path(q['closure_manifest']['path']).parent/'r3_code')
+        deps = tool.modules(Path(q['closure_manifest']['path']).parent/'r3_code',
+                            manifest_pin=q['closure_manifest']['sha256'])
         code = {'report_tool': {'path': tool_path, 'sha256': q['code'][tool_path]},
                 'closure_manifest': q['closure_manifest'],
                 'consumer_sha256': q['code'][C.__file__],
@@ -288,10 +371,7 @@ def watch(path, pin):
                 try:
                     if (out/'FAILURE.json').exists():
                         failure = load(out/'FAILURE.json')
-                        scope(failure)
-                        require(failure['job_id'] == key and failure['queue_sha256'] == pin,
-                                'failure identity differs')
-                        states[key] = failure
+                        states[key] = failure_state(failure, key, pin)
                         continue
                     if (out/'EXIT.json').exists():
                         states[key] = completed(out, job, path, pin)
@@ -309,8 +389,7 @@ def watch(path, pin):
                     write(out/'INTENT.json', {'queue_sha256': pin, 'job_id': key,
                           'request_sha256': sha(out/'request.json'), 'scientific_acceptance': False,
                           'test_read': False}, exclusive=True)
-                    cmd = [sys.executable, '-P', str(Path(__file__).resolve()), 'worker',
-                           '--queue', str(path), '--sha256', pin, '--job', key]
+                    cmd = command(q, 'worker', path, pin, key)
                     write(out/'RELAUNCH.json', {'command': cmd}, exclusive=True)
                     logfile = safe(out/'worker.log')
                     logfd = os.open(logfile, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)

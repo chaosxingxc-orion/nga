@@ -76,11 +76,14 @@ class VerifiedSources:
             sys.path[:] = previous_path
 
 
-def modules(code_dir):
+def modules(code_dir, manifest_pin=None):
     root = Path(code_dir).resolve()
     r0 = root.parent / 'r0_code'
     require(root.name == 'r3_code' and r0.is_dir(), 'frozen r3_code and sibling r0_code required')
-    manifest = load(root.parent / 'manifest.json')
+    raw_manifest = (root.parent / 'manifest.json').read_bytes()
+    require(manifest_pin is None or hashlib.sha256(raw_manifest).hexdigest() == manifest_pin,
+            'scientific closure manifest changed')
+    manifest = json.loads(raw_manifest)
     require(isinstance(manifest.get('code'), dict) and manifest['code'], 'code manifest missing')
     pinned, sources = set(), {}
     for entry in manifest['code'].values():

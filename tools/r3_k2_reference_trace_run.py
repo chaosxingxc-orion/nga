@@ -64,6 +64,10 @@ def run(path, pin):
             extra.after()
         B.atomic(out/'heartbeat.json', {'phase': trace.phase, 'completed_questions': trace.index,
                  'utc_seconds': B.time.time(), 'scientific_acceptance': False, 'test_read': False})
+    def observe_chunk(*values):
+        trace.observe_chunk(*values)
+        if extra is not None and extra.handles:
+            extra.chunk()
     fn = instrument(trainer, observe, trace.observe_chunk)
     pad = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else 0
     endpoints = []
@@ -78,7 +82,7 @@ def run(path, pin):
                                        PROTOCOL['max_questions'], PROTOCOL['max_reference_bytes'])
                 endpoints = []
                 extra.install()
-                fn = instrument(trainer, observe, trace.observe_chunk, extra.before, extra.reduction)
+                fn = instrument(trainer, observe, observe_chunk, extra.before, extra.reduction)
             for phase in range(2):
                 if phase:
                     trace.begin_repeat()
