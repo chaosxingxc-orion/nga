@@ -173,3 +173,5 @@ Watchdog digest `2026-11-01T21:29:17Z` 显示 formal K1 v15 仍在运行：seed2
 当前 3600 秒 AICore 窗口约为 chip2 53.0%、chip3 53.6%，足以证明进程在持续消耗 NPU，但不足以宣称达到满载。训练不中断；在终端证据齐全后，先做吞吐/算子效率诊断，再进入 DEV/selection CPU 评测。该摘要的结构化副本在 `.local/reports/formal-k1-progress-20261101T2129.json`。
 
 只读效率诊断已记录在 `.local/reports/formal-k1-efficiency-diagnosis-20261102.md`。初步候选包括 Python 侧序列拼接、逐行 position/gather 构造、每 chunk 的 host loss 同步、`micro_tokens=12000` 分块和 reference kernel；这些只作为下一轮工程 benchmark 的假设。本轮 formal K1 不改代码、不改变 kernel 或 batch 配置，保证结果可比。
+
+最新 watchdog 轮巡 `2026-11-01T21:49:17Z`：seed2 `1050/3116`（33.7%），seed3 `980/3116`（31.5%），两者 heartbeat 均为 `21:47:44Z`，仍无训练、释放或 supervisor 完成 marker。结构化副本为 `.local/reports/formal-k1-progress-20261101T2149.json`。
