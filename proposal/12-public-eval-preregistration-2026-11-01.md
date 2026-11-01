@@ -14,16 +14,16 @@
 
 ## 第一批矩阵
 
-| ID | 任务与固定版本 | 首要对象 | 原生指标/分母 | 统一补充指标 | 当前状态 |
-| --- | --- | --- | --- | --- | --- |
-| P1 | Kev hard-v1，clean mask | Kev 0.8B/4B/9B | question-weighted accuracy；上游 Brier/ECE10/NLL（各自发布分母） | one-hot Brier、top-confidence ECE10、NLL；逐题 decision-level paired 仅在保存 item outputs 后计算 | 已有参考结果；复核版本/mask/来源后可纳入 |
-| P2 | Kev documents-v1，clean mask | Kev 0.8B/4B/9B | accuracy；4B/9B 上游校准可比性未建立，不能补 Brier/ECE/NLL | 仅在 logit/probability 字段完整时计算；否则只报 accuracy | 已有参考结果；校准口径受限 |
-| P3 | Kev devtools-v1，release mask（full mask 单列诊断） | Kev 0.8B/4B/9B | release accuracy、Brier/ECE10；full mask 1,073 与 release 1,071 不混合 | 统一指标按 mask 分开 | 已有参考结果；full/release 分列 |
-| P4 | Typed Decisions common test，400 states/2,000 questions | Kev 0.8B/4B/9B、Nimble-9B、Open-Jev-2B/9B | common scorer accuracy/KL/Brier/ECE10；不声称复现各模型原生 TEST | argmax accuracy、KL(q‖p)、summed Brier、ECE10；按 question type 分层 | 已有共同测试结果；不是原生测试替代 |
-| P5 | BEV Decision Mix：default、hard_50k、numeric_temporal、skills、counterfactual_15k | 先参考模型，后训练候选 | 以发布卡定义为准；反事实保留成对分母 | clean accuracy、paired counterfactual flip/consistency；numeric/temporal 分层 | 候选；split 与字段需核查后运行 |
-| P6 | Open-Jev v1.1，发布 test 与 OOD 分开 | Open-Jev-2B/9B、Kev 0.8B/4B/9B | hard accuracy、expected accuracy、NLL、Brier、expected Brier、ECE15 | 同一 mask 的 decision-level paired；test/OOD 不合并 | 候选；版本投影和来源族需核查 |
-| P7 | DecisionPivot core；13 core families 与 35 reference tasks 分开 | 当前可运行的参考模型 | 使用其 core scorer 的 family/任务分母 | 仅在 gold、候选集和概率字段一致时补 accuracy/Brier/ECE | 候选诊断；不把 reference tasks 当 35 个独立数据集 |
-| P8 | DecisionRobust text：clean 与 attacked 成对子集 | 当前可运行的参考模型 | clean accuracy、attacked accuracy，按原生 collection 分母 | paired flip rate、robust retention、按攻击类型分层 | 候选诊断；不接图像子集，不称生产安全 |
+| ID | 任务与固定版本 | 首要对象 | 原生指标/分母 | 统一补充指标 | 缺陷登记映射与判别对照 | 当前状态 |
+| --- | --- | --- | --- | --- | --- | --- |
+| P1 | Kev hard-v1，clean mask | Kev 0.8B/4B/9B | question-weighted accuracy；上游 Brier/ECE10/NLL（各自发布分母） | one-hot Brier、top-confidence ECE10、NLL；逐题 decision-level paired 仅在保存 item outputs 后计算 | defect 2/10（规则组合与决策一致性）；paired item-level accuracy 是判别对照，不能以恒定标签通过 | 已有参考结果；复核版本/mask/来源后可纳入 |
+| P2 | Kev documents-v1，clean mask | Kev 0.8B/4B/9B | accuracy；4B/9B 上游校准可比性未建立，不能补 Brier/ECE/NLL | 仅在 logit/probability 字段完整时计算；否则只报 accuracy | defect 2/10；文档问题的候选/标签交换或反事实小对照用于区分规则读取与格式记忆 | 已有参考结果；校准口径受限 |
+| P3 | Kev devtools-v1，release mask（full mask 单列诊断） | Kev 0.8B/4B/9B | release accuracy、Brier/ECE10；full mask 1,073 与 release 1,071 不混合 | 统一指标按 mask 分开 | defect 2/10；release 与 full 成对决策差异是判别对照，禁止将全常量输出视为鲁棒性 | 已有参考结果；full/release 分列 |
+| P4 | Typed Decisions common test，400 states/2,000 questions | Kev 0.8B/4B/9B、Nimble-9B、Open-Jev-2B/9B | common scorer accuracy/KL/Brier/ECE10；不声称复现各模型原生 TEST | argmax accuracy、KL(q‖p)、summed Brier、ECE10；按 question type 分层 | defect 1/8/17（level 定义、类型与命名迁移）；名称/定义置换 paired accuracy 是判别对照 | 已有共同测试结果；不是原生测试替代 |
+| P5 | BEV Decision Mix：default、hard_50k、numeric_temporal、skills、counterfactual_15k | 先参考模型，后训练候选 | 以发布卡定义为准；反事实保留成对分母 | clean accuracy、paired counterfactual flip/consistency；numeric/temporal 分层 | defect 4/10/12（数值/时间、规则组合、反事实）；counterfactual consistency 必须同时报告 flip discrimination，不能只报不变率 | 候选；split 与字段需核查后运行 |
+| P6 | Open-Jev v1.1，发布 test 与 OOD 分开 | Open-Jev-2B/9B、Kev 0.8B/4B/9B | hard accuracy、expected accuracy、NLL、Brier、expected Brier、ECE15 | 同一 mask 的 decision-level paired；test/OOD 不合并 | defect 1/8/17；OOD invariance paired with source/label discrimination, preserving type-stratified counterexamples | 候选；版本投影和来源族需核查 |
+| P7 | DecisionPivot core；13 core families 与 35 reference tasks 分开 | 当前可运行的参考模型 | 使用其 core scorer 的 family/任务分母 | 仅在 gold、候选集和概率字段一致时补 accuracy/Brier/ECE | defect 2/3/4/10（组合、状态、数值/时间与决策重复）；paired state update and counterfactual choice provide discrimination counterpart | 候选诊断；不把 reference tasks 当 35 个独立数据集 |
+| P8 | DecisionRobust text：clean 与 attacked 成对子集 | 当前可运行的参考模型 | clean accuracy、attacked accuracy，按原生 collection 分母 | paired flip rate、robust retention、按攻击类型分层 | defect 9/12（注入与表面扰动）；clean-vs-attacked retention paired with attack-success discrimination, never retention alone | 候选诊断；不接图像子集，不称生产安全 |
 
 ## 结果状态编码
 

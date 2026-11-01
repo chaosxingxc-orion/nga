@@ -1,6 +1,6 @@
 # Current Jev experiment conclusions
 
-Updated: 2026-10-31  
+Updated: 2026-11-01
 Authority: this file is the current remote collaboration entry. Detailed run procedures, receipts, container logs and intermediate reviews remain in the local dated archive and CephFS. The remote wiki keeps only conclusions and the information needed for coordination.
 
 ## Current position
@@ -105,6 +105,10 @@ These are capability requirements, not production claims. Existing public tasks 
 The main missing artifacts are business-authored rules, equivalence classes, unknown/fallback, auditable intermediate state, joint cost/correctness evaluation, and Chinese business/numeric tasks. These must become frozen datasets and metrics before training claims are made.
 
 ## Dimension 4 — our experiment route
+
+### Dataset coverage expansion (2026-11-01)
+
+The first public-evaluation contract covered six task families and 14 evaluation cells. That is too narrow for a broad Jev capability claim. The local inventory contains 24 directories, but this count includes version projections, result packages, overlapping sources and different modalities; it is not a count of independent datasets. The next coverage milestone therefore expands the candidate task axis to 12 families in three batches: eight direct-test families (the existing six plus complex deterministic decisions and spatial decisions), three boundary/migration families (safety/guardrail, multilingual/behavior and web/action), and one separate multimodal family (vision/video typed decisions). New cells remain `needs_review` until split, source family, metric formula, fields and test-exposure controls are verified. No new candidate TEST samples have been read and no new inference or training has been authorized by this planning update. The detailed scope is in [`proposal/13-dataset-coverage-expansion-v2-2026-11-01.md`](../proposal/13-dataset-coverage-expansion-v2-2026-11-01.md).
 
 ### NxM direct-readout baseline
 
