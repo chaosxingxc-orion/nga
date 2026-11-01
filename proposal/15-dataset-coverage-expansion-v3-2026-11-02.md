@@ -96,3 +96,16 @@
 ## 当前禁止的结论
 
 本文件不产生任何新模型指标，不能称新增面板已经完成推理，不能把 `needs_review` 当作可运行，不能把公开任务提升写成真实业务收益，也不能把多模态/训练-only 来源补零进入总分。
+
+## M0 元数据审计结果（2026-11-02）
+
+第一轮新增来源审计已完成，机器结果保存在本地 `.local/reports/dataset-expansion-v3-metadata-audit-20261102.json`。审计只读取 README、manifest、dataset card 和发布元数据，没有读取候选 TEST 行、模型输出或权重。
+
+| 来源 | 固定证据 | 当前状态 | 不能进入队列的原因 |
+| --- | --- | --- | --- |
+| `Praveenrajus/jev-bench` v0.1.1 | manifest SHA256 `eace4223…52209`；22 sources；22,773 TEST | `needs_source_overlap_review` | `massive`、`paws`、`civil_comments` 与冻结 Nimble 来源名重叠，必须做 item/source identity 审计；不允许直接当独立泛化证据 |
+| `Hanno-Labs/decision-bench` | schema `decision-bench-hf-v2`；data SHA256 `6c97d3f3…893ca`；23,900 eval、43 task IDs | `needs_metric_source_review` | canonical/applied/reasoning 三个来源部分、standard/compact 输入和 probability 字段需独立固定 |
+| `akhilaaa3/decision-bench` | README SHA256 `9031e3ff…48d5`；medium/hard 各 80 states、293 questions | `needs_source_overlap_review` | state-macro 与 question-weighted 统计必须分列，行身份和来源交集尚未核验 |
+| `DecisionRobust` image v1.3.0 | manifest 与 dataset-info hash；6 个 image panels | `needs_multimodal_harness_review` | curated/full 有包含关系，clean/attack 需要配对；文本模型不能补零替代图像接口 |
+
+所以本轮新增条目为 4 个，`ready_for_inference=0`，`needs_review=4`，`blocked=0`。只有逐项完成来源、指标和执行审查并签发准入收据后，才可把其中的面板加入 NPU FIFO。

@@ -29,6 +29,8 @@
 
 详细的 v3 范围、优先级、排除项和里程碑见 [`proposal/15-dataset-coverage-expansion-v3-2026-11-02.md`](15-dataset-coverage-expansion-v3-2026-11-02.md)。本轮仍未读取新增候选 TEST 样本，也未授权新增推理。默认先做 CPU 元数据合同，只有 `ready_for_inference` 面板进入 NPU FIFO；NPU 执行与 CPU scorer/分析继续异步。
 
+M0 的第一轮 metadata 审计已经完成：Jev-bench、canonical/legacy DecisionBench 和 DecisionRobust image 共 4 个新增条目，当前为 4 个 `needs_review`、0 个 `ready_for_inference`、0 个 `blocked`。Jev-bench 中 `massive`、`paws`、`civil_comments` 与冻结 Nimble 来源名重叠，不能直接作为独立泛化证据；其余来源仍需逐项核对来源身份、统计公式、输入接口和配对关系。机器审计结果在本地 `.local/reports/dataset-expansion-v3-metadata-audit-20261102.json`，本轮没有读取候选 TEST 行或启动新增推理。
+
 ## 下一阶段计划
 
 ### 阶段 A：扩展任务合同
