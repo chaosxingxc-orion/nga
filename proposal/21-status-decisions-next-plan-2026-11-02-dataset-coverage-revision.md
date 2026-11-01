@@ -147,3 +147,21 @@ P1 用于检验直接驱动是否只是记住固定候选格式，必须保留 p
 - [`.local/reports/dataset-gap-inventory-20261102.md`](../.local/reports/dataset-gap-inventory-20261102.md)
 - [`.local/reports/p0-common-text-metadata-audit-20261102.md`](../.local/reports/p0-common-text-metadata-audit-20261102.md)
 - [`wiki/CURRENT-CONCLUSIONS.md`](../wiki/CURRENT-CONCLUSIONS.md)
+
+## 8. 本轮新增的机器证据
+
+P0 六个来源族的逐族登记已写入本地 `.local/reports/p0-panel-admission-register-20261102.{json,md}`。登记记录了声明的任务/配置数、独立面板数的待定状态和每个来源的阻塞字段。声明数合计 114，但不能相加为独立面板数；必须完成 item-level lineage 和原生协议去重后才能计数。登记的 `ready_for_inference` 数为 0，读取范围四项均为 `false`。
+
+P0 合同验证命令及当前结果：
+
+```text
+python3 -m unittest -v tests/test_validate_dataset_panel_contract.py
+Ran 5 tests ... OK
+
+python3 -P tools/validate_dataset_panel_contract.py \\
+  --contract .local/preparations/dataset-expansion-contract-20261102-v2/CONTRACT.json \\
+  --audit .local/reports/dataset-expansion-v3-metadata-audit-20261102.json
+admission=NO_FIFO_ADMISSION; ready=0; nonready=4; candidate_rows_read=false
+```
+
+该验证只证明合同拒绝未闭合面板，不代表任何候选已经可以推理。
