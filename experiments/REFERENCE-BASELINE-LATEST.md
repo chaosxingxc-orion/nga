@@ -16,6 +16,8 @@ Coverage note — 2026-11-02 P0 metadata milestone: six additional common-text s
 
 Execution note — 2026-11-02: formal K1 v15 train-only seed2/seed3 is now running on host 175, bound to chip2/chip3 after reviewed `PLAN_VERIFIED` outputs and atomic resource claims. This does not add a reference or Qwen3.5 test metric; `test_read=false` and scientific acceptance remains false. The watchdog currently has fewer than three utilization passes, so the initial AICore means are not a sustained full-load verdict. Launch receipts and claims are recorded in local `.local/reports/formal-k1-launch-milestone-20261102.json`.
 
+Execution progress — 2026-11-02 21:05 UTC: both v15 seeds remain `running` with fresh heartbeats and no terminal markers. Watchdog progress is seed2 150/3116 (4.8%, about 855.5 tok/s/chip) and seed3 120/3116 (3.9%, about 795.0 tok/s/chip); these are training-throughput observations, not test metrics. No TEST read or Qwen3.5 result is added to this reference file until DEV selection, a separate final TEST ticket and independent scoring are complete.
+
 ## Evidence and reading conventions
 
 - [REFERENCE-BASELINE-MATRIX-2026-10-31.json](REFERENCE-BASELINE-MATRIX-2026-10-31.json) — SHA256 `03459facf6f86a919e10d9a0acef413b89c5a5d4ffd232352260722b05d0266e`.
