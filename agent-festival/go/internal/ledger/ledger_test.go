@@ -107,11 +107,13 @@ func TestErrorsDoesNotMutateInput(t *testing.T) {
 	}
 }
 
-// TestOddFloatTwinPinsFoldedDomain pins the DECLARED float64 judgment domain
-// (E4, RFC 8785 precedent — zcode golden-vector form): the float-syntax seq
-// 9007199254740993.0 folds to 9007199254740992 in float64; the fixture's
-// sequence is increasing only in the folded domain. An exact-decimal reader
-// would reject it — both oracle stacks must accept.
+// TestOddFloatTwinPinsFoldedDomain pins the FOLDING semantics of the declared
+// float64 judgment domain (E4, RFC 8785 precedent — zcode golden-vector form):
+// the float-syntax literal 9007199254740993.0 (2^53+1) is NOT representable in
+// float64 and is judged as its even twin 9007199254740992. Both domains accept
+// this fixture's sequence — by different routes (float64 via folding, exact via
+// ..993.0 < ..994). The domain-divergence faces are pinned by the rejection-side
+// fixtures (float-beyond-2^53 and int64-overflow), not by this one.
 func TestOddFloatTwinPinsFoldedDomain(t *testing.T) {
 	raw, err := os.ReadFile(filepath.Join(filepath.Dir(SchemaPath), "examples", "ledger", "valid", "seq-odd-float-twin.json"))
 	if err != nil {

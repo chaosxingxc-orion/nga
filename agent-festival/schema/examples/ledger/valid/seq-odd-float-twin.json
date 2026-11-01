@@ -42,7 +42,7 @@
     },
     {
       "event_type": "effect",
-      "arbitration_seq": 9007199254740993.0,
+      "arbitration_seq": 9007199254740992.0,
       "identity": {
         "business_request_id": "br-twin",
         "evaluation_revision": "er-1",
@@ -99,5 +99,5 @@
       }
     }
   ],
-  "_expect": "ACCEPT: the odd-twin pin — arbitration_seq 9007199254740993.0 (float syntax, 2^53+1) is NOT representable in float64; the float64 judgment domain reads it as 9007199254740992 (the even twin). The sequence [..991 (int), ..993.0 (READS AS ..992), ..994 (int)] is strictly increasing in the float64 domain on both oracle stacks. An exact-decimal reader would ALSO accept this sequence (..993.0 < ..994) — what separates the domains is the float-syntax-beyond-2^53 rejection rule, which an exact reader would never fire. This fixture pins the FOLDING itself: the recorded value ..993.0 is judged as ..992 (evidence: an exact-decimal oracle REJECTS a [..991, ..993.0] pair as non-increasing ONLY if the int ..992 were absent—both domains agree here by different routes; the divergence case is pinned by the int64-overflow and float-beyond fixtures)"
+  "_expect": "ACCEPT: the odd-twin pin — arbitration_seq 9007199254740993.0 (float syntax, 2^53+1) is NOT representable in float64; the float64 judgment domain reads it as 9007199254740992 (the even twin). The sequence [..991 (int), ..993.0 (READS AS ..992), ..994 (int)] is strictly increasing in the float64 domain on both oracle stacks. An exact-decimal reader would also accept this sequence (..993.0 < ..994) — what separates the domains is the float-syntax-beyond-2^53 rejection rule, which an exact reader would never fire. This fixture pins the FOLDING itself: the recorded value ..993.0 is judged as ..992."
 }

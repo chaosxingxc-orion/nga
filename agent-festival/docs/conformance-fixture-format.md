@@ -1,6 +1,6 @@
 # Conformance 夹具格式与跨语言消费指南
 
-> 目的：本仓 200 件 JSON 夹具（全仓含密钥库；增长族 142 件——三种口径见机生成清单）是**可执行行为规格**（executable behavior spec），不是静态测试数据。本文定义夹具格式、钉子纪律、双 oracle lockstep 模式，以及任何语言（包括 NGA Java SDK）如何消费同一批夹具做 conformance 验证。这是 issue #1 碰撞回应提议 1（"95 夹具升格跨语言 conformance 基准"）的落地说明。
+> 目的：本仓 200 件 JSON 夹具（全仓含密钥库；增长族 146 件——三种口径见机生成清单）是**可执行行为规格**（executable behavior spec），不是静态测试数据。本文定义夹具格式、钉子纪律、双 oracle lockstep 模式，以及任何语言（包括 NGA Java SDK）如何消费同一批夹具做 conformance 验证。这是 issue #1 碰撞回应提议 1（"95 夹具升格跨语言 conformance 基准"）的落地说明。
 >
 > 先例：langgraph 的 checkpoint-conformance 套件、本仓 Python/Go 双 oracle（17+5 轮空白审查验证）——"夹具即规范"已被三方独立到达。
 
@@ -31,7 +31,9 @@
 | `replay` | 8 + 7 |
 | `compose` | 10 + 36 |
 | `evidlog` | 1 + 3 |
-| 增长族合计 | 146 |
+| 增长族合计（非密钥库） | 146 |
+| 基座契约/信封（非密钥库其余） | 50 |
+| 全仓合计（含密钥库） | 200 |
 | 基座契约/信封 | 50 |
 | 全仓合计（含密钥库） | 200 |
 
@@ -63,10 +65,9 @@
 | 侧 | 验证器 | 运行方式 |
 |---|---|---|
 | Python | `schema/{ledger,adoption,judgment,release}.py`（jsonschema）+ 共享 harness `_suite.py` | `python3 schema/<name>.py` |
-**判定域声明（0.2.0 合同文本，RFC 8785 规范级先例）**：浮点语法的 arbitration_seq 以 **float64 判定域**判定（RFC 8785 把数域钉为 ES double），不以精确十进制判定。奇数孪生夹具 seq-odd-float-twin 钉住折损语义：字面量 9007199254740993.0（2^53+1，float64 不可精确表示）被判定域读取为偶数孪生 ..992——序列 [..991, ..993.0(读作 ..992), ..994] 在两域均严格递增但**经不同路径**；两域的判决分叉面由 float-beyond-2^53（float64 域拒、精确域不拒此规则）与 int64-overflow（typed 域拒）两个拒绝侧夹具各自钉住。
-
 | Go | `cmd/{ledger,adopt,judgment,release}`（santhosh+regexp2 经 internal/schemalib）+ 共享 runner `internal/suite` | `go run ./cmd/<name>` |
 
+**判定域声明（0.2.0 合同文本，RFC 8785 规范级先例）**：浮点语法的 arbitration_seq 以 **float64 判定域**判定（RFC 8785 把数域钉为 ES double），不以精确十进制判定。奇数孪生夹具 seq-odd-float-twin 钉住折损语义：字面量 9007199254740993.0（2^53+1，float64 不可精确表示）被判定域读取为偶数孪生 ..992——序列 [..991, ..993.0(读作 ..992), ..994] 在两域均严格递增但**经不同路径**；两域的判决分叉面由 float-beyond-2^53（float64 域拒、精确域不拒此规则）与 int64-overflow（typed 域拒）两个拒绝侧夹具各自钉住。
 关键纪律：
 - **checker 各自独立实现**（双验证器交叉是防单引擎语义漂移的机制），**harness 共享单源**（套件纪律不是被验语义）
 - 引擎 parity 立法：regexp 引擎用 .NET 语义（`$` 匹配尾换行前，与 Python re 一致）——Go 默认 RE2 会在 pattern 面分叉（基座 V3 MAJOR-1 教训）
