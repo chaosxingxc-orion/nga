@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 import torch
 import r3_k2_sync_benchmark as B
+import r3_k2_benchmark_verify as V
 
 class Benchmark(unittest.TestCase):
     def setUp(self):
@@ -64,6 +65,10 @@ class Benchmark(unittest.TestCase):
             self.assertEqual(row,{'questions_per_second_per_chip':1,'tokens_per_second_per_chip':2,
                                   'reserved_gib_peak':2,'chips':1})
         self.assertFalse(result['test_read']);self.assertFalse(result['scientific_acceptance'])
+        checked=V.verify_file(self.out/'RESULT.json',self.pin)
+        self.assertTrue(checked['arithmetic_verified'])
+        self.assertEqual(checked['seconds'],result['seconds'])
+        self.assertFalse(checked['gradient_equivalence_independently_verified'])
         self.assertEqual(B.sha(self.path),self.pin)
         self.assertEqual(json.loads((self.out/'heartbeat.json').read_text())['completed_pairs'],13)
         with self.assertRaisesRegex(ValueError,'fresh benchmark'):self.execute()
