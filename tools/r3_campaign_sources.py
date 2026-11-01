@@ -179,13 +179,16 @@ def verify(spec):
     require(sha(tool['path']) == tool['sha256'], 'report tool changed')
     closure = artifact(spec['closure_manifest'])
     root = safe(spec['closure_manifest']['path']).parent
+    code_root = safe(str(root/'r3_code'))
+    safe(str(root/'r0_code'))
+    require(code_root.resolve().parent == root.resolve(), 'canonical closure root differs')
     require(bool(closure.get('code')), 'scientific closure missing')
     kev, data = str(safe(spec['kev_dir'])), str(safe(spec['data_root']))
     code = {'report_tool': tool, 'closure_manifest': spec['closure_manifest'],
             'consumer_sha256': sha(__file__), 'structure_sha256': sha(HERE/'r3_final_campaign.py'),
             'inventory_sha256': sha(HERE/'r3_model_inventory.py')}
     R = module(tool['path'], 'campaign_sources_report_tool')
-    deps = R.modules(root/'r3_code')
+    deps = R.modules(code_root)
     members, sources = [], []
     for entry in spec['members']:
         member, evidence = rebuild_member(entry, R, deps, kev, data, code)

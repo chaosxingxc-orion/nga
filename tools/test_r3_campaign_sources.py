@@ -91,6 +91,18 @@ class Sources(unittest.TestCase):
         self.assertIn(str(self.root/'eval0/trackk/readout.jsonl'),first['files'])
         self.assertIn(str(self.root/'eval0/manifests/main.json'),first['files'])
         self.assertIn(str(self.base),first['models'])
+    def test_redirected_code_closure_refused_before_loader_or_reconstruction(self):
+        a=self.root/'closure-a';b=self.root/'closure-b';a.mkdir();b.mkdir()
+        (b/'r3_code').mkdir();(b/'r0_code').mkdir()
+        (a/'manifest.json').write_text(json.dumps({'code':{'fixture':{}}}))
+        request=self.request();request['closure_manifest']={'path':str(a/'manifest.json'),'sha256':S.sha(a/'manifest.json')}
+        for name in ('r3_code','r0_code'):
+            other='r0_code' if name=='r3_code' else 'r3_code'
+            (a/name).symlink_to(b/name,target_is_directory=True);(a/other).mkdir()
+            with self.subTest(child=name),patch.object(S,'module') as loader,patch.object(S,'rebuild_member') as rebuild:
+                with self.assertRaisesRegex(ValueError,'nonsymlink'):S.verify(request)
+                loader.assert_not_called();rebuild.assert_not_called()
+            (a/name).unlink();(a/other).rmdir()
     def test_later_member_cannot_hide_earlier_source_changes(self):
         paths=['train0/adapter/adapter_model.safetensors','eval0/selection_report.json',
                'eval0/trackk/readout.jsonl','eval0/manifests/main.json',
