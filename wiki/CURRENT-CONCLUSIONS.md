@@ -13,6 +13,8 @@ Coverage correction — 2026-11-02 dataset inventory revision: the local CephFS 
 
 P0 panel register milestone — 2026-11-02: a local machine-readable register now records all six audited P0 families, their declared task/config counts (114 in total, explicitly non-additive), unresolved lineage/metric/TEST-exposure fields and read-scope flags. Independent panel counts remain pending; all six are `needs_review`, with zero `ready_for_inference`. Contract tests pass (5/5), while the validator correctly returns `NO_FIFO_ADMISSION`. The register is local at `.local/reports/p0-panel-admission-register-20261102.{md,json}`.
 
+Formal K1 progress — 2026-11-01 21:29 UTC: the watchdog reports seed2 `650/3116` (20.86%, about 954.5 tok/s/chip) and seed3 `580/3116` (18.61%, about 845.0 tok/s/chip), with fresh heartbeats and no terminal markers. The allocation ledger still binds them to chip2/chip3. The 3600-second AICore windows are about 53.0% and 53.6%; this confirms active NPU work but does not support a sustained full-load claim. Training remains uninterrupted, TEST remains locked, and post-training CPU preparation is waiting for both successful terminal closures. Structured evidence is local at `.local/reports/formal-k1-progress-20261101T2129.json`.
+
 ## Coverage correction — 2026-11-02
 
 The current D1 matrix was too narrow for a broad Jev capability claim. Its 38 model-by-dataset units (36 scored and 2 blocked) remain frozen, but they are concentrated in a few source families. The repository inventory contains 24 directories, yet that count includes version projections, result packages, overlapping sources and different modalities.
