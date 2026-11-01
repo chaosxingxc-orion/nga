@@ -6,11 +6,10 @@ retained and requires a fresh output directory for retry.
 """
 import argparse
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
 import sys
-from types import SimpleNamespace
+from types import SimpleNamespace, ModuleType
 
 sys.dont_write_bytecode = True
 
@@ -19,10 +18,15 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def load_module(path, name):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+def load_module(path, name, expected_pin):
+    # Read once, validate those bytes, compile those same bytes. SourceFileLoader
+    # could execute a timestamp-valid untrusted .pyc even with writes disabled.
+    raw = safe_path(path).read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == expected_pin, 'report tool pin differs')
+    module = ModuleType(name)
+    module.__file__ = str(path)
+    module.__package__ = ''
+    exec(compile(raw, str(path), 'exec', dont_inherit=True), module.__dict__)
     return module
 
 
@@ -44,10 +48,7 @@ def validate_baseline(report, expected_model):
 
 # Executable trust anchors are reviewed code constants, never supplied by a bundle.
 # Changing a consumer/closure requires a new code review and bundle generation.
-REPORT_TOOL_PINS = frozenset({
-    '3fe3b08c274e057424e836447e53a8d3a2873c45a63345ca244b083f01ac899b',
-    '4b71f5a6c97261bdbfcb03c6ca7e826a1b3ce71ebb317613140b14c9f29a3fb7',
-})
+REPORT_TOOL_PINS = frozenset({'6e44272fefd6fdab21540c39fd84f105386e54cfe9fd9c01a38f41fb46c3cd78'})
 CLOSURE_PINS = frozenset({'1c2f7d59dc365cbe52dcffe3fd9b734a8c09dc0612d35fe192703649710261df'})
 
 
@@ -87,7 +88,7 @@ def reconstruct(report_path, model, config):
     producer manifests, data membership and splits before returning any metrics.
     """
     report_path = safe_path(report_path)
-    R = load_module(config['report_tool'], 'fresh_precheck_report')
+    R = load_module(config['report_tool'], 'fresh_precheck_report', config['report_tool_sha256'])
     deps = R.modules(config['frozen_code_dir'])
     C, E, D, PC, V = deps
     stored = R.load(report_path)

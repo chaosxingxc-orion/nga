@@ -7,7 +7,8 @@ write report.json or confer formal acceptance. All model rows retain provenance.
 import argparse
 import copy
 import hashlib
-import importlib
+import builtins
+import types
 import json
 import os
 from pathlib import Path
@@ -27,34 +28,84 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+class VerifiedSources:
+    """Compile the exact manifest-verified bytes, never .pyc or sys.modules.
+
+    Private module identities also cover imports performed later by functions.
+    Standard-library/installed dependencies remain part of the trusted runtime;
+    only the manifest's local Python modules are covered by this loader.
+    """
+    def __init__(self, sources, runtime_path):
+        self.sources = sources
+        self.loaded = {}
+        self.runtime_path = list(runtime_path)
+
+    def import_source(self, name):
+        if name in self.loaded:
+            return self.loaded[name]
+        path, raw = self.sources[name]
+        module = types.ModuleType(name)
+        module.__file__ = str(path)
+        module.__package__ = ''
+        module.__loader__ = self
+        module.__dict__['__builtins__'] = dict(vars(builtins), __import__=self.import_hook)
+        self.loaded[name] = module  # permit circular imports within the closure
+        previous_path = list(sys.path)
+        try:
+            exec(compile(raw, str(path), 'exec', dont_inherit=True), module.__dict__)
+        except BaseException:
+            del self.loaded[name]
+            raise
+        finally:
+            sys.path[:] = previous_path
+        return module
+
+    def import_hook(self, name, globals=None, locals=None, fromlist=(), level=0):
+        require(level == 0, 'relative imports unsupported in flat frozen closure')
+        head = name.split('.')[0]
+        if head in self.sources:
+            require(name == head, 'package import unsupported in flat frozen closure')
+            return self.import_source(head)
+        # Legacy source mutates sys.path. Never let those mutations resolve an
+        # external dependency from an unverified historical code directory.
+        previous_path = list(sys.path)
+        try:
+            sys.path[:] = self.runtime_path
+            return builtins.__import__(name, globals, locals, fromlist, level)
+        finally:
+            sys.path[:] = previous_path
+
+
 def modules(code_dir):
-    # CPU verification must never add bytecode files to an immutable closure.
-    sys.dont_write_bytecode = True
     root = Path(code_dir).resolve()
     r0 = root.parent / 'r0_code'
     require(root.name == 'r3_code' and r0.is_dir(), 'frozen r3_code and sibling r0_code required')
     manifest = load(root.parent / 'manifest.json')
     require(isinstance(manifest.get('code'), dict) and manifest['code'], 'code manifest missing')
-    pinned = set()
+    pinned, sources = set(), {}
     for entry in manifest['code'].values():
         file = Path(entry['snapshot'])
         require(file.is_absolute() and not any(x.is_symlink() for x in (file, *file.parents)),
                 'invalid frozen code dependency')
-        require(sha(file) == entry['sha256'], 'frozen code changed: ' + str(file))
+        require(file.parent in (root, r0) and file.suffix == '.py'
+                and file.stem.isidentifier(), 'flat local Python sources required')
+        raw = file.read_bytes()
+        require(hashlib.sha256(raw).hexdigest() == entry['sha256'], 'frozen code changed: ' + str(file))
+        require(file.stem not in sources, 'duplicate frozen module name')
+        sources[file.stem] = (file, raw)
         pinned.add(file.resolve())
     actual = {p.resolve() for directory in (root, r0) for p in directory.rglob('*.py')}
     require(actual == pinned, 'frozen code inventory differs')
-    sys.path[:0] = [str(root), str(r0)]
-    C = importlib.import_module('core_r3')
-    # core_r3 carries historical absolute paths. Resolve every subsequent local
-    # import from this supplied closure, then check origins explicitly.
-    sys.path[:0] = [str(root), str(r0)]
-    names = ['selection_evidence_r3', 'degenerate_r3', 'prechecks_r3', 'variants_r3',
+    runtime_path = [p for p in sys.path if p and Path(p).resolve() not in (root, r0)]
+    loader = VerifiedSources(sources, runtime_path)
+    names = ['core_r3', 'selection_evidence_r3', 'degenerate_r3', 'prechecks_r3', 'variants_r3',
              'track_t_r3', 'provenance_r3', 'testlock_r3', 'common', 'split', 'thresholds', 'metrics', 'prompt', 'scorer']
-    loaded = {name: importlib.import_module(name) for name in names}
-    for m in [C, *loaded.values()]:
-        require(Path(m.__file__).resolve().parent in (root, r0), 'module escaped frozen closure: ' + m.__name__)
-    return C, loaded['selection_evidence_r3'], loaded['degenerate_r3'], loaded['prechecks_r3'], loaded['variants_r3']
+    loaded = {name: loader.import_source(name) for name in names}
+    # External selector callers import these public names. Publish only freshly
+    # executed verified identities; preloaded objects were never consulted.
+    sys.modules.update(loader.loaded)
+    return tuple(loaded[n] for n in ('core_r3', 'selection_evidence_r3', 'degenerate_r3',
+                                    'prechecks_r3', 'variants_r3'))
 
 
 def rebuild(run, kev_dir, data_root, deps):
