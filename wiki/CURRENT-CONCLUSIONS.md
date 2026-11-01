@@ -114,6 +114,8 @@ The engineering queue also needs a separate admission note. A chip-3 Instruct-K0
 
 The CPU precheck repair found a real version-binding error: the previous source-verified v2 bundle was for `Qwen3.5-0.8B-Base`, while the chip-3 report is Instruct. The current validator correctly rejected that bundle. A new, separately owned v2 bundle for the Instruct report now passes the same pinned validator with exit 0 and `test_read=false`; it is accepted only as scoped CPU precheck evidence. Formal preparation, exact-plan review and activation remain open.
 
+A new formal K1 preparation generation is now drafted at `formal_k1_preparation_20261102_v8`. It binds the corrected Instruct v2 precheck and records seed2/seed3, but remains `NONAUTHORIZING_RESOURCE_BLOCKED`: CHIP-ALLOCATION currently shows chip1 owned by the formal DEV run and chip4 owned by the 4B engineering DEV run. No resource claim, NPU activation, training launch or TEST read was made. The draft awaits an exact-plan Astra review and a later live release/claim transaction.
+
 ### NxM direct-readout baseline
 
 D1 remains the current 38-cell reference scope; it is not expanded. Internal experiments will build a separate NxM product: N model sizes (first Qwen3.5-0.8B, then 2B, 4B and 9B) × M frozen tasks (Kev decision/transfer, Typed, JEVal and later gap datasets). Every cell uses the same harness, test lock, paired decision-level metrics and resource evidence; missing cells are `blocked`, never zero.

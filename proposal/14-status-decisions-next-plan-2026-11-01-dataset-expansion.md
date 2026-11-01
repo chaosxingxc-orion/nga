@@ -63,3 +63,5 @@ CPU 侧为第一批 8 个任务族逐项固定版本、split、mask、样本数�
 chip3 的 `instruct_k0_chip3_20261101_v1` 已有 `EXIT=0`、`RELEASE` 和 `SUPERVISOR_DONE`，但 precheck 终态的 review 仍为 `PENDING_ROOT_REVIEW`，科学准入仍为 false。因此它只能作为待审查的工程 DEV successor，不能直接发布结果或激活下游训练。watchdog 最近快照显示没有合格排队 successor、NPU 标记为 free；保留的 release 快照具体列出 chip1 和 chip3 已释放。历史 stalled 条目不计入有效任务。下一步先完成来源/前置审查，再决定是否进入 FIFO，避免为保持满载而绕过准入。
 
 C01/C02 CPU 前置复核已推进：旧的 source-verified v2 bundle 实际绑定的是 `Qwen3.5-0.8B-Base`，当前 validator 对 Instruct consumer fail-closed；没有覆盖旧文件。针对已完成的 chip3 Instruct DEV report，已生成独立的新 v2 bundle，并通过同一 pinned `validate_bundle`（exit 0、schema v2、`test_read=false`）。这只构成 `CPU_PRECHECK_ACCEPTED_WITH_SCOPE`，仍需新的 formal preparation、exact-plan review 和 activation ticket，不能启动正式训练或读取 TEST。绑定收据见 `.local/preparations/formal-next-20261101-v1/c02-instruct-v2-binding-20261102.json`。
+
+formal K1 v8 草案已生成并绑定该 C02 bundle，但资源门禁保持关闭：当前 `CHIP-ALLOCATION.json` 将 chip1 标为 formal DEV owner、chip4 标为 4B engineering DEV owner，只有 chip3 在该快照中 free。草案只记录候选资源，不修改 allocation、不启动 NPU；必须等 exact-plan Astra review 和真实 release/claim 事务完成后才能进入 activation。
