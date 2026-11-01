@@ -57,6 +57,20 @@ class Archive(unittest.TestCase):
         self.assertEqual(old.read_text(), 'original')
         self.assertEqual(target.read_text(), 'prior')
 
+    def test_dated_inspections_archive_without_moving_active_inputs(self):
+        old = self.file('.local/reports/inspection-20261020T130000.json')
+        protected = [self.file(name, old=not name.endswith('20261031T130000.json')) for name in (
+            '.local/reports/inspection-20261031T130000.json',
+            '.local/reports/inspection-current.json',
+            '.local/reports/inspection-20261020T130000-plan.json',
+            '.local/reports/inspection-20261020T130000.json.backup',
+            '.local/reports/inspection-launch.json')]
+        result = A.archive(self.root, date='2026-10-31')
+        self.assertEqual([x['source'] for x in result['moved']], [str(old.relative_to(self.root))])
+        self.assertFalse(old.exists())
+        self.assertTrue(all(p.exists() for p in protected))
+        self.assertEqual((self.root/result['moved'][0]['target']).read_text(), 'evidence')
+
     def test_symlink_source_and_destination(self):
         source = self.file('outside.md')
         (self.root/'wiki').mkdir()

@@ -7,6 +7,7 @@ import fcntl
 import json
 import math
 import os
+import re
 from pathlib import Path
 import subprocess
 
@@ -37,7 +38,8 @@ def candidates(root, cutoff, tracked):
             # snapshots in the local report directory are automatically eligible.
             eligible = path.suffix.lower() in (".md", ".txt")
             if scope == ".local/reports" and path.suffix == ".json":
-                eligible = path.name.startswith(("training-status-", "npu-batched-status-"))
+                eligible = (path.name.startswith(("training-status-", "npu-batched-status-"))
+                            or re.fullmatch(r"inspection-\d{8}T\d{6}\.json", path.name) is not None)
             if eligible and path.stat().st_mtime < cutoff:
                 yield path
 

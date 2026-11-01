@@ -113,3 +113,6 @@ Astra K2 第三轮 **PASS_WITH_SCOPE**：独立实际函数探针拒绝同名运
 
 
 2026-11-01 参考证据路径核对：固定矩阵与增量中的 96 个唯一“路径/哈希”引用均找到同字节文件，90 个仍在原处、五个在本地 archive、一个旧版本从 Git 历史恢复。新增 `experiments/REFERENCE-SOURCE-LOCATIONS.json` 仅修复归档查询入口；不改写原始快照或指标，也不将缺失的历史 audit-SHA 终态绑定改为通过。
+
+
+归档维护（2026-11-01）：已核实每天运行的三天保留定时器处于 enabled/active，最近一次服务执行成功；补入严格匹配 `inspection-YYYYMMDDTHHMMSS.json` 的本地巡检快照。七项归档测试通过，当前 dry-run 没有到龄文件；current/latest、登记文件、执行输入和 Git 跟踪文件继续受保护。
