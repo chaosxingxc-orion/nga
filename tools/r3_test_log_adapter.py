@@ -13,8 +13,12 @@ import math
 import os
 from pathlib import Path
 
-spec=importlib.util.spec_from_file_location('test_guard',Path(__file__).with_name('r3_test_execution_guard.py'))
-G=importlib.util.module_from_spec(spec);spec.loader.exec_module(G)
+loader=globals().get('__loader__')
+if hasattr(loader,'sources') and hasattr(loader,'load'):
+    G=loader.load('r3_test_execution_guard')
+else:
+    spec=importlib.util.spec_from_file_location('test_guard',Path(__file__).with_name('r3_test_execution_guard.py'))
+    G=importlib.util.module_from_spec(spec);spec.loader.exec_module(G)
 COUNTS={'decision-v7':1200,'transfer-v4':656}
 
 

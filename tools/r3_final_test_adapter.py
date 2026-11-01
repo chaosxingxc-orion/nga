@@ -12,6 +12,9 @@ import sys
 
 
 def sibling(name):
+    loader = globals().get('__loader__')
+    if hasattr(loader, 'sources') and hasattr(loader, 'load'):
+        return loader.load(name)
     path = Path(__file__).with_name(name + '.py')
     existing = sys.modules.get(name)
     if existing is not None:

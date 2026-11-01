@@ -5,12 +5,14 @@ and legacy R0 imports rebound to the sibling frozen directory. All resulting
 files are hashed; no datasets, checkpoints, FINAL or approval are generated.
 """
 import argparse
+import builtins
 import hashlib
 import importlib
 import importlib.util
 import json
 from pathlib import Path
 import sys
+import types
 
 SOURCE_MANIFEST = '1c2f7d59dc365cbe52dcffe3fd9b734a8c09dc0612d35fe192703649710261df'
 COMPONENTS = ('r3_test_execution_guard', 'r3_test_transaction', 'r3_test_log_adapter',
@@ -19,7 +21,8 @@ COMPONENTS = ('r3_test_execution_guard', 'r3_test_transaction', 'r3_test_log_ada
 RUNTIME = ('core_r3', 'full_eval_r3', 'testlock_r3', 'scorer_r3', 'admissible_store_r3',
            'selection_evidence_r3', 'degenerate_r3', 'prechecks_r3', 'variants_r3',
            'track_t_r3', 'provenance_r3', 'clauses_r3', 'common', 'split', 'thresholds',
-           'metrics', 'prompt', 'scorer', 'decision', 'r3_final_test_adapter', 'r3_final_metrics', 'r3_model_inventory')
+           'metrics', 'prompt', 'scorer', 'decision', 'eval_r3', 'r3_final_admission',
+           'r3_final_test_adapter', 'r3_final_metrics', 'r3_model_inventory')
 
 
 def require(ok, message):
@@ -38,6 +41,44 @@ def sha(path):
     with Path(path).open('rb') as f:
         for chunk in iter(lambda:f.read(1<<20),b''):h.update(chunk)
     return h.hexdigest()
+
+
+class VerifiedRuntime:
+    """Execute pinned source bytes, including later local imports, without pyc."""
+    def __init__(self, sources, runtime_path):
+        self.sources, self.loaded = sources, {}
+        self.runtime_path = list(runtime_path)
+
+    def load(self, name):
+        if name in self.loaded:
+            return self.loaded[name]
+        path, raw = self.sources[name]
+        value = types.ModuleType(name)
+        value.__file__, value.__package__, value.__loader__ = str(path), '', self
+        value.__dict__['__builtins__'] = dict(vars(builtins), __import__=self.import_hook)
+        self.loaded[name] = value
+        previous = list(sys.path)
+        try:
+            exec(compile(raw, str(path), 'exec', dont_inherit=True), value.__dict__)
+        except BaseException:
+            del self.loaded[name]
+            raise
+        finally:
+            sys.path[:] = previous
+        return value
+
+    def import_hook(self, name, globals=None, locals=None, fromlist=(), level=0):
+        require(level == 0, 'relative imports unsupported in flat final closure')
+        head = name.split('.')[0]
+        if head in self.sources:
+            require(name == head, 'package import unsupported in flat final closure')
+            return self.load(head)
+        previous = list(sys.path)
+        try:
+            sys.path[:] = self.runtime_path
+            return builtins.__import__(name, globals, locals, fromlist, level)
+        finally:
+            sys.path[:] = previous
 
 
 def prepare(source, output):
@@ -96,9 +137,16 @@ def verify(root, pin, import_runtime=False):
     actual={str(p.relative_to(root)) for p in root.rglob('*')
             if p.is_file() and p!=manifest and '__pycache__' not in p.parts}
     require(actual==set(doc['files']),'final closure inventory differs')
+    sources={}
     for rel,pin_value in doc['files'].items():
         path=safe(root/rel)
-        require(path.is_relative_to(root) and sha(path)==pin_value,'final closure file differs: '+rel)
+        require(path.is_relative_to(root), 'final closure path escaped: '+rel)
+        raw=path.read_bytes()
+        require(hashlib.sha256(raw).hexdigest()==pin_value,'final closure file differs: '+rel)
+        if path.suffix=='.py':
+            require(path.parent in (root/'r3_code',root/'r0_code') and path.stem.isidentifier()
+                    and path.stem not in sources,'flat unique Python modules required')
+            sources[path.stem]=(path,raw)
     origins={}
     if import_runtime:
         sys.dont_write_bytecode=True
@@ -107,12 +155,12 @@ def verify(root, pin, import_runtime=False):
             if name in sys.modules:
                 m=sys.modules[name];p=getattr(m,'__file__',None)
                 require(p is not None and Path(p).resolve().is_relative_to(root),'preloaded module escaped closure: '+name)
-        sys.path[:0]=[str(root/'r3_code'),str(root/'r0_code')]
-        for name in RUNTIME:importlib.import_module(name)
-        for name in names & set(sys.modules):
-            p=Path(sys.modules[name].__file__).resolve()
-            require(p.is_relative_to(root) and str(p.relative_to(root)) in doc['files'],'module escaped closure: '+name)
-            origins[name]=str(p)
+        runtime_path=[p for p in sys.path if p and Path(p).resolve() not in
+                      (root/'r3_code',root/'r0_code')]
+        loader=VerifiedRuntime(sources,runtime_path)
+        for name in RUNTIME:loader.load(name)
+        sys.modules.update(loader.loaded)
+        origins={name:str(sources[name][0]) for name in loader.loaded}
     return {'files':len(doc['files']),'origins':origins,'scientific_acceptance':False}
 
 

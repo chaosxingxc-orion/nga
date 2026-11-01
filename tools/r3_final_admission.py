@@ -17,6 +17,9 @@ SUITES=['decision-v7','transfer-v4']
 
 
 def helper(name):
+    loader=globals().get('__loader__')
+    if hasattr(loader,'sources') and hasattr(loader,'load'):
+        return loader.load(name)
     path=Path(__file__).with_name(name+'.py')
     spec=importlib.util.spec_from_file_location(name,path)
     m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m

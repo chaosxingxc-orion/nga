@@ -48,5 +48,32 @@ else:raise AssertionError('foreign module accepted')
         p=subprocess.run([sys.executable,'-B','-I','-c',script,str(HERE/'r3_final_closure.py'),str(self.root),self.pin],capture_output=True,text=True)
         self.assertEqual(p.returncode,0,p.stderr);self.assertEqual(p.stdout.strip(),'refused')
 
+    def test_forged_in_closure_modules_and_pyc_are_never_executed(self):
+        script='''import importlib.util,sys,types,py_compile,tempfile
+from pathlib import Path
+s=importlib.util.spec_from_file_location('check',sys.argv[1]);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+root=Path(sys.argv[2]);before=list(sys.path)
+for name in ('r3_final_metrics','r3_test_transaction','eval_r3'):
+ fake=types.ModuleType(name);fake.__file__=str(root/'r3_code'/(name+'.py'));fake.unverified=True;sys.modules[name]=fake
+for relative in ('r3_code/r3_final_metrics.py','r3_code/r3_test_execution_guard.py','r0_code/prompt.py'):
+ source=root/relative;cache=Path(importlib.util.cache_from_source(str(source)));cache.parent.mkdir(exist_ok=True)
+ with tempfile.NamedTemporaryFile(suffix='.py') as malicious:
+  Path(malicious.name).write_text('raise RuntimeError("unverified bytecode executed")\\n')
+  py_compile.compile(malicious.name,cfile=str(cache),invalidation_mode=py_compile.PycInvalidationMode.UNCHECKED_HASH)
+result=m.verify(root,sys.argv[3],True)
+assert sys.path==before
+for name in ('r3_final_metrics','r3_test_transaction','eval_r3'):
+ assert not getattr(sys.modules[name],'unverified',False)
+adapter=sys.modules['r3_final_test_adapter'];transaction=sys.modules['r3_test_transaction']
+assert adapter.M is sys.modules['r3_final_metrics']
+assert adapter.T is transaction
+assert adapter.G is transaction.G is sys.modules['r3_test_log_adapter'].G
+assert adapter.sibling('r3_final_metrics') is adapter.M
+print('verified-source-runtime')
+'''
+        p=subprocess.run([sys.executable,'-B','-I','-c',script,str(HERE/'r3_final_closure.py'),str(self.root),self.pin],capture_output=True,text=True)
+        self.assertEqual(p.returncode,0,p.stderr)
+        self.assertEqual(p.stdout.strip(),'verified-source-runtime')
+
 
 if __name__=='__main__':unittest.main()
