@@ -4,16 +4,28 @@
   "title": "Evidence Collection Log — draft 0.1.0",
   "type": "object",
   "additionalProperties": false,
-  "required": ["evidlog_version", "entries"],
+  "required": [
+    "evidlog_version",
+    "entries"
+  ],
   "properties": {
-    "evidlog_version": { "type": "string", "const": "0.1.0" },
+    "evidlog_version": {
+      "type": "string",
+      "const": "0.1.0"
+    },
     "entries": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["seq", "tool", "selector", "caller", "at"],
+        "required": [
+          "seq",
+          "tool",
+          "selector",
+          "caller",
+          "at"
+        ],
         "properties": {
           "seq": {
             "description": "Monotonic per-log sequence, allocated by the log writer (codex rollout form). In-band — makes coverage checking a pure density function.",
@@ -49,5 +61,5 @@
       }
     }
   },
-  "$comment": "Piece-7 spike: the query-trail log that makes sealed-evidence completeness declarations machine-checkable (夏 ruling round-1): a declaration 'queried bank statements' must have a matching entry here. Deliberately NOT the piece-4 event ledger — that book keeps business events (adoption/effect, eight rule families, replay); this log keeps evidence-collection calls (append-only density). Two atoms, two logs (word-sense collision resolved by separation). Provenance: 夏 adjudication §2 (query-trail field, machine-checkable)."
+  "$comment": "Known contract gaps driving 0.2.0: (1) networknt 2.x/3.x API break — Java consumer pinned to 2.0.0; (2) pattern-match mode divergence (trailing-newline digest accepted by Py/Go, rejected by networknt) — corpus has no pin; (3) odd-twin folded-value semantics unregistered; (4) format-doc count staleness — fixed by E1 manifest. See GEPA spike report."
 }

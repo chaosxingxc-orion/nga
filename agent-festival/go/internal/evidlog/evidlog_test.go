@@ -83,6 +83,12 @@ func TestCoverageMissingAndHiddenExclusion(t *testing.T) {
 	if len(rep.Unaccounted) == 0 {
 		t.Fatal("a queried-but-unlisted selector is invisible — the silent-zero face is blind")
 	}
+	// OK double-direction pin: hidden exclusions must make OK=false too
+	// (R2 mut-1: reverting to单向 OK stayed green — this line pins the bidirectional semantics)
+	rep = CheckCoverage(l, Declaration{QueriedTool: "bank.fetch", Selector: "acct=1"})
+	if rep.OK {
+		t.Fatal("OK=true with unaccounted entries — the bidirectional OK semantics regressed")
+	}
 }
 
 // TestSeqGapRejected pins the density rule at doc level (mirrors the invalid fixture).

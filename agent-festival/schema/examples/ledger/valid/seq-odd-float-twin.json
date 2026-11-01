@@ -42,7 +42,7 @@
     },
     {
       "event_type": "effect",
-      "arbitration_seq": 9007199254740992.0,
+      "arbitration_seq": 9007199254740993.0,
       "identity": {
         "business_request_id": "br-twin",
         "evaluation_revision": "er-1",

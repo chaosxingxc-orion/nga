@@ -24,7 +24,7 @@ L3 capability contract 的机器形态。设计依据见 [ADR-0001](../docs/adr/
 | `judgment.py` | 判断规格 oracle：schema 校验，与 Go 侧（go run ./cmd/judgment）交叉 + D93 计数钉；件3 无机器无跨文档规则——语义所有权归知识工作流（先验边界） |
 | `adoption.schema.json` | 采纳契约 0.1.0（增长层件2，NGA 供件）：请求=三层身份+P5 版本+payload_digest（JCS-sha256 同基座形制）+grants_at_decision（14-A4 派发时复核的授权钉照）；闭环契约 additionalProperties:false |
 | `adoption.py` | 采纳请求 oracle：schema 校验，与 Go 侧（go run ./cmd/adopt）交叉；状态机语义（单写者/14-A5 四反例/崩溃耐久）在 go/internal/adopt 测试所有权 |
-| `evidlog.schema.json` | 取证记录族 0.1.0（件7 spike，夏裁决落地）：S2 调查的授权工具调用 append-only 日志——封存件完整性声明的机器旁证（声明「查过银行流水」→ 本日志必有对应调用记录；差集告警）；带内 writer 分配 seq（密度=覆盖是纯函数，codex rollout 形态）；与件4 事件账本刻意两原子两日志（词义碰撞的分离解——夏裁决 §2） |
+| `evidlog.schema.json` | 取证记录族 0.1.0（件7 spike，夏裁决落地）：S2 调查的授权工具调用 append-only 日志——封存件完整性声明的机器旁证（声明「查过银行流水」→ 本日志必有对应调用记录；差集告警）；带内 writer 分配 seq（密度=覆盖是纯函数，codex rollout 形态）；与件4 事件账本刻意两原子两日志（词义碰撞的分离解——夏裁决 §2）；夹具样例：1 必须通过 / 3 必须拒绝 |
 | `evidlog.py` | 取证日志 oracle：schema+密度规则双侧镜像，与 Go 侧（go run ./cmd/evidlog）交叉 + D93 计数钉；件7 是 spike——S2 集成属对方半场，仓内只供日志原子与覆盖检查 |
 | `_suite.py` | Python 侧共享夹具 harness（非 oracle）：镜像 go/internal/suite 的两相套件纪律与 V28 F-1/V32 M-1 pin 硬化，ledger/adoption/judgment/release/replay 五 oracle 复用；checker 各自独立实现以保交叉验证 |
 | `examples/ledger/valid`, `examples/ledger/invalid` | 账本样例：10 必须通过（含奇数孪生 seq 钉——float64 判定域声明夹具） / 26 必须拒绝（合法侧：高 seq 跨 2^53 合法链 + DAG 三条链 + 浮点语法整值 seq；拒绝侧：旁路直写两形态 / 孤儿 reused / 双 adopted / status 家族越界 / effect 携 grant 钉照 / adopted 无钉照 / 事件侧 grant 形状违规 / digest 形状 / 缺版本 / 缺 outcome / seq 逆序 / 2^53 相邻 seq 折损钉 / int64 溢出钉 / 浮点语法超 2^53 精确域 / idem-identity 键错位 / 转移序三形态：completed 无 dispatched 前驱 + 终态后再生 + unresolved 后再 dispatched / 终态复活 / re-unresolved / reused 携钉照 / idem 缺席两形态（adopted/effect）/ conflict 反向携 idem / effect 归因偏离钉照） |

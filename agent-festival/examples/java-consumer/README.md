@@ -17,7 +17,7 @@ cd examples/java-consumer
 
 ## Status (2026-11-01)
 
-80/80 fixtures green in both arms (default-double and exact-BigDecimal), 64/64
+81/81 fixtures green in both arms (default-double and exact-BigDecimal), 64/64
 wrong-reason pins hit, loader hardening self-checks pass. Zero Go dependencies —
 this is the Java ecosystem consuming the corpus with industry libraries only.
 

@@ -18,7 +18,7 @@
    授权准入（子任务权限 ⊆ 父任务权限 ⊆ 发起员工持有）+ 父预算均分切分（shares）
 3. **信封再签**（`cmd/sign`）：三算法签发 + 全套夹具再生物（语料唯一真源）
 
-95 个双向夹具（valid 必须 0 错、invalid 必须拒且拒绝理由逐字钉 `_expect_match`）
+200 个双向夹具（全仓口径——见 conformance-fixture-format.md 机生成清单）（valid 必须 0 错、invalid 必须拒且拒绝理由逐字钉 `_expect_match`）
 构成行为规格——**夹具即规范**。
 
 ## 与 NGA 架构的映射（V0.2 三态四面）
