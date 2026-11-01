@@ -18,8 +18,13 @@ from types import SimpleNamespace
 
 
 def sibling(name):
-    p=Path(__file__).with_name(name+'.py');s=importlib.util.spec_from_file_location(name,p)
-    m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
+    loader=globals().get('__loader__')
+    if hasattr(loader,'sources') and hasattr(loader,'load'):
+        return loader.load(name)
+    import types
+    p=Path(__file__).with_name(name+'.py');m=types.ModuleType(name);m.__file__=str(p)
+    exec(compile(p.read_bytes(),str(p),'exec',dont_inherit=True),m.__dict__)
+    return m
 
 A=sibling('r3_final_admission');K=sibling('r3_final_container')
 R=sibling('r3_resource_adapter');D=sibling('r3_final_driver')

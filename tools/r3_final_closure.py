@@ -94,8 +94,9 @@ def prepare(source, output):
     require(set(sources)=={str(p.relative_to(source)) for d in ('r0_code','r3_code')
                           for p in (source/d).rglob('*.py')},'source inventory differs')
     here=Path(__file__).resolve().parent
-    spec=importlib.util.spec_from_file_location('final_prepare',here/'r3_final_eval_prepare.py')
-    P=importlib.util.module_from_spec(spec);spec.loader.exec_module(P)
+    preparer=here/'r3_final_eval_prepare.py'
+    P=types.ModuleType('final_prepare');P.__file__=str(preparer)
+    exec(compile(preparer.read_bytes(),str(preparer),'exec',dont_inherit=True),P.__dict__)
     generated={};changes={}
     old='R0_CODE = "/mnt/cephfs/xingchao/experiments/jev/r0_code"'
     new='R0_CODE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "r0_code")'

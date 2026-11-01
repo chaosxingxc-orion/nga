@@ -20,9 +20,14 @@ import traceback
 
 
 def local(name):
+    loader=globals().get('__loader__')
+    if hasattr(loader,'sources') and hasattr(loader,'load'):
+        return loader.load(name)
     path=Path(__file__).with_name(name+'.py')
-    spec=importlib.util.spec_from_file_location(name,path)
-    m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+    import types
+    m=types.ModuleType(name);m.__file__=str(path)
+    exec(compile(path.read_bytes(),str(path),'exec',dont_inherit=True),m.__dict__)
+    return m
 
 
 C=local('r3_final_closure')

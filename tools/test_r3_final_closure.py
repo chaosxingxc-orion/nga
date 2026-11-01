@@ -69,6 +69,21 @@ assert adapter.M is sys.modules['r3_final_metrics']
 assert adapter.T is transaction
 assert adapter.G is transaction.G is sys.modules['r3_test_log_adapter'].G
 assert adapter.sibling('r3_final_metrics') is adapter.M
+driver=adapter.__loader__.load('r3_final_driver')
+assert driver.local('r3_final_metrics') is adapter.M
+import importlib.machinery
+from unittest.mock import patch
+original=importlib.machinery.SourceFileLoader.get_code
+def guarded(loader,name):
+ if Path(loader.path).is_relative_to(root): raise AssertionError('final bootstrap used bytecode loader')
+ return original(loader,name)
+with patch.object(importlib.machinery.SourceFileLoader,'get_code',guarded):
+ for name in ('r3_final_driver','r3_final_supervisor'):
+  entry=types.ModuleType('entry');path=root/'r3_code'/(name+'.py');entry.__file__=str(path)
+  exec(compile(path.read_bytes(),str(path),'exec'),entry.__dict__)
+  if name=='r3_final_driver': assert callable(entry.C.verify)
+  else: assert callable(entry.A.verify)
+
 print('verified-source-runtime')
 '''
         p=subprocess.run([sys.executable,'-B','-I','-c',script,str(HERE/'r3_final_closure.py'),str(self.root),self.pin],capture_output=True,text=True)
