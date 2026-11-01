@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-festival.local/schema/evidlog/0.1.0",
+  "title": "Evidence Collection Log — draft 0.1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["evidlog_version", "entries"],
+  "properties": {
+    "evidlog_version": { "type": "string", "const": "0.1.0" },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["seq", "tool", "selector", "caller", "at"],
+        "properties": {
+          "seq": {
+            "description": "Monotonic per-log sequence, allocated by the log writer (codex rollout form). In-band — makes coverage checking a pure density function.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "tool": {
+            "description": "The authorized tool channel invoked (e.g. bank-statement.fetch).",
+            "type": "string",
+            "minLength": 1
+          },
+          "selector": {
+            "description": "What was queried within the tool's domain.",
+            "type": "string",
+            "minLength": 1
+          },
+          "caller": {
+            "description": "Who initiated the call (an S2 investigation step id).",
+            "type": "string",
+            "minLength": 1
+          },
+          "at": {
+            "description": "Timestamp in RFC 3339.",
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T"
+          },
+          "result_ref": {
+            "description": "Where the fetched evidence lives (a sealed-store address).",
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$comment": "Piece-7 spike: the query-trail log that makes sealed-evidence completeness declarations machine-checkable (夏 ruling round-1): a declaration 'queried bank statements' must have a matching entry here. Deliberately NOT the piece-4 event ledger — that book keeps business events (adoption/effect, eight rule families, replay); this log keeps evidence-collection calls (append-only density). Two atoms, two logs (word-sense collision resolved by separation). Provenance: 夏 adjudication §2 (query-trail field, machine-checkable)."
+}

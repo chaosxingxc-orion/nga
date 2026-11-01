@@ -1,0 +1,21 @@
+{
+  "evidlog_version": "0.1.0",
+  "entries": [
+    {
+      "seq": 0,
+      "tool": "t",
+      "selector": "s1",
+      "caller": "s2-step-1",
+      "at": "2026-11-01T10:00:00Z"
+    },
+    {
+      "seq": 2,
+      "tool": "t",
+      "selector": "s2",
+      "caller": "s2-step-1",
+      "at": "2026-11-01T10:00:00Z"
+    }
+  ],
+  "_expect": "REJECT: a gap in the in-band seq — a foreign writer or a dropped entry; density is what makes coverage a pure function",
+  "_expect_match": "dense"
+}
