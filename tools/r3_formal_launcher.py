@@ -93,13 +93,52 @@ def verify_resume_reconstruction(p):
     require(all(p['files'].get(f) == h for f,h in files.items()), 'reconstruction dependencies not bound')
 
 
+def validate_dependency_inventory(files):
+    """Check every path before reading any dependency bytes."""
+    require(isinstance(files, dict), 'dependency inventory required')
+    for filename in files:
+        q = Path(filename)
+        require(q.is_absolute() and '..' not in q.parts and
+                not any(x.is_symlink() for x in (q, *q.parents)), 'unsafe dependency path')
+        require(not is_test_data(filename), 'test dataset dependency forbidden')
+
+
+def formal_target_identity(p):
+    """Shared non-I/O identity invariants for formal launch and readiness."""
+    require(p.get('schema') == 'r3-formal-k1-plan-v1' and
+            p.get('scientific_acceptance') is False and p.get('test_read') is False,
+            'formal scope differs')
+    require(type(p.get('chip')) is int and p['chip'] in (1, 4), 'formal chip differs')
+    require(type(p.get('seed')) is int and p['seed'] in (2, 3), 'formal seed differs')
+    evaluation = p.get('evaluation', {})
+    require(evaluation.get('test_requires_separate_final_ticket') is True,
+            'separate final test ticket required')
+    arm = p.get('control_arm')
+    if arm is not None:
+        require(arm in CONTROL_MODELS, 'formal control arm differs')
+        seeds = [2] if arm == 'K1-QO' else [2, 3]
+        control = {'control_arm':arm, 'candidate_for_adoption':False,
+                   'primary_input_mode':'drop' if arm == 'K1-QO' else 'full',
+                   'registered_seeds':seeds}
+        require(p['seed'] in seeds and p.get('model') == CONTROL_MODELS[arm],
+                'formal control model/seed differs')
+        require(p.get('control') == control and all(evaluation.get(k) == v for k,v in control.items()),
+                'formal control evaluation differs')
+        suffix = hashlib.sha256(str(Path(p['out']).absolute()).encode()).hexdigest()[:16]
+        require(p.get('container') == f'nga-r3-formal-{arm.lower()}-s{p["seed"]}-{suffix}',
+                'formal control container identity differs')
+
+
 def verify(path, pin, reviewed=True):
     p = load(path)
     require(identity(p) == pin, 'plan identity changed')
     require(p.get('scientific_acceptance') is False and p.get('test_read') is False,
             'training scope must exclude scientific acceptance/test')
     require(p['schema'] in ('r3-formal-k1-plan-v1', 'r3-engineering-k1-plan-v1') and p['image_sha256'] == IMAGE, 'plan schema/image mismatch')
+    validate_dependency_inventory(p['files'])
     engineering = p['schema'] == 'r3-engineering-k1-plan-v1'
+    if not engineering:
+        formal_target_identity(p)
     require(p['seed'] in (2, 3) and p['chip'] in (tuple(range(8)) if engineering else (1, 4)), 'unregistered seed/chip')
     model_name = Path(p['model']).name
     formal_models = ('Qwen__Qwen3.5-0.8B-Base', 'Qwen__Qwen3.5-0.8B')
@@ -254,8 +293,21 @@ def docker_command(p, plan_path, attempt_no):
     return cmd
 
 
-def verify_control_resume_container(p, plan_path, attempt_no, observed):
-    """A retained restart container must match the prepared mount/environment contract."""
+def environment_map(items):
+    require(isinstance(items, list), 'container environment list required')
+    result = {}
+    for item in items:
+        require(isinstance(item, str) and '=' in item, 'invalid container environment')
+        key, value = item.split('=', 1)
+        require(key not in result, 'duplicate container environment key')
+        result[key] = value
+    return result
+
+
+def verify_control_resume_container(p, plan_path, attempt_no, observed, image=None):
+    """Bind retained effective configuration to canonical command and image defaults."""
+    require(image is not None and image.get('Id') == p['image_sha256'],
+            'pinned image configuration required')
     command=docker_command(p,plan_path,attempt_no)
     expected=[]
     for index,value in enumerate(command):
@@ -266,22 +318,53 @@ def verify_control_resume_container(p, plan_path, attempt_no, observed):
     mounts=observed.get('Mounts',[])
     actual=[(m.get('Source'),m.get('Destination'),m.get('RW')) for m in mounts]
     require(len(actual)==len(expected) and sorted(actual)==sorted(expected)
-            and all(m.get('Type')=='bind' for m in mounts),'control restart retained mounts differ')
-    require(observed.get('Config',{}).get('Entrypoint')==['python3']
-            and observed.get('HostConfig',{}).get('NetworkMode')=='none'
-            and not observed.get('HostConfig',{}).get('Privileged',False),
-            'control restart retained isolation differs')
-    env=observed['Config'].get('Env',[])
-    for key,value in p['environment'].items():
-        require([item for item in env if item.startswith(key+'=')]==[key+'='+value],
-                'control restart retained environment differs')
+            and all(m.get('Type')=='bind' and m.get('Propagation','rprivate')=='rprivate' for m in mounts),
+            'control restart retained mounts differ')
+    cfg=observed.get('Config',{}); host=observed.get('HostConfig',{}); defaults=image.get('Config',{})
+    require(observed.get('Image') == image['Id'] and
+            cfg.get('Entrypoint')==['python3'] and
+            cfg.get('Cmd')==['-P','/workspace/r3_formal_driver.py','--plan',str(plan_path),'--attempt',str(attempt_no)] and
+            host.get('NetworkMode')=='none' and host.get('Privileged') is False and
+            host.get('AutoRemove') is False, 'retained identity/isolation differs')
+    wanted_env=environment_map(defaults.get('Env') or [])
+    wanted_env.update(p['environment'])
+    require(environment_map(cfg.get('Env')) == wanted_env, 'retained environment differs')
+    for key in ('User','WorkingDir','StopSignal'):
+        require((cfg.get(key) or '') == (defaults.get(key) or ''), 'retained image default differs: '+key)
+    for key in ('CapAdd','CapDrop','SecurityOpt','DeviceRequests','DeviceCgroupRules','GroupAdd',
+                'Binds','VolumesFrom','Links','ExtraHosts','Dns','DnsSearch','Sysctls','Tmpfs'):
+        require(not host.get(key), 'retained extra configuration: '+key)
+    require(host.get('ShmSize') == 64 * 1024**3, 'retained shared memory differs')
+    limits=host.get('Ulimits') or []
+    require(len(limits)==2 and {x.get('Name'):(x.get('Soft'),x.get('Hard')) for x in limits} ==
+            {'memlock':(-1,-1),'stack':(67108864,67108864)}, 'retained ulimits differ')
+    devices=host.get('Devices') or []
+    wanted={'/dev/'+x for x in ('davinci_manager','devmm_svm','hisi_hdc',f'davinci{p["chip"]}')}
+    require(len(devices)==4 and {(x.get('PathOnHost'),x.get('PathInContainer'),x.get('CgroupPermissions'))
+            for x in devices} == {(x,x,'rwm') for x in wanted}, 'retained device configuration differs')
+    for key in ('PidMode','UTSMode','CgroupnsMode'):
+        allowed=('', 'private') if key=='CgroupnsMode' else ('',)
+        require((host.get(key) or '') in allowed, 'retained namespace differs: '+key)
+    require(host.get('IpcMode') in ('private',''), 'retained IPC differs')
+    for key in ('ReadonlyRootfs','PublishAllPorts'):
+        require(not host.get(key), 'retained host flag differs: '+key)
+    require((host.get('RestartPolicy') or {}).get('Name','no') in ('no',''), 'retained restart policy differs')
+
+
+def verify_retained_receipts(attempt, pin, observed, command):
+    launch=load(attempt/'LAUNCH_RECEIPT.json')
+    spec=load(attempt/'LAUNCH_SPEC.json')
+    require(launch.get('id') == observed.get('Id') and launch.get('image') == observed.get('Image')
+            and launch.get('plan_sha256') == pin, 'retained launch receipt identity differs')
+    require(spec.get('plan_sha256') == pin and spec.get('command') == command,
+            'retained complete command differs')
 
 
 def supervisor(path, pin, attempt_no):
     p = verify(path, pin)
     require(socket.gethostname() == 'k8s-node1', 'must run on host npu / 175')
-    image = subprocess.check_output(['docker', 'image', 'inspect', IMAGE, '--format', '{{.Id}}'], text=True).strip()
-    require(image == IMAGE, 'actual image digest mismatch')
+    image = json.loads(subprocess.check_output(['docker', 'image', 'inspect', IMAGE], text=True))[0]
+    require(image.get('Id') == IMAGE, 'actual image digest mismatch')
     out = Path(p['out'])
     lock = (out / 'supervisor.lock').open('a')
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -319,7 +402,8 @@ def supervisor(path, pin, attempt_no):
         require(d['Config']['Cmd'] == ['-P', '/workspace/r3_formal_driver.py', '--plan', path, '--attempt', str(attempt_no)], 'container command mismatch')
         devices = {x['PathOnHost'] for x in d['HostConfig']['Devices']}
         require(devices == {'/dev/davinci_manager', '/dev/devmm_svm', '/dev/hisi_hdc', f"/dev/davinci{p['chip']}"}, 'container devices mismatch')
-        verify_control_resume_container(p,path,attempt_no,d)
+        verify_retained_receipts(attempt, pin, d, docker_command(p,path,attempt_no))
+        verify_control_resume_container(p,path,attempt_no,d,image)
         while d['State']['Status'] not in ('exited', 'dead'):
             atomic(attempt / 'supervisor_heartbeat.json', {'utc_seconds': time.time(), 'container': container, 'status': d['State']['Status']})
             time.sleep(15)

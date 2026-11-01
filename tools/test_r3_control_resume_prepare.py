@@ -102,11 +102,18 @@ class Preparation(unittest.TestCase):
                     mounts.append({'Type':'bind','Source':fields['src'],'Destination':fields['dst'],'RW':'readonly' not in fields})
             observed={'Mounts':mounts,'Config':{'Entrypoint':['python3'],'Env':[k+'='+v for k,v in plan['environment'].items()]},
                       'HostConfig':{'NetworkMode':'none','Privileged':False}}
-            launch.verify_control_resume_container(plan,r['plan'],1,observed)
+            image={'Id':plan['image_sha256'],'Config':{'Env':[]}}
+            observed['Image']=plan['image_sha256']
+            observed['Config']['Cmd']=['-P','/workspace/r3_formal_driver.py','--plan',r['plan'],'--attempt','1']
+            observed['HostConfig'].update(AutoRemove=False,ShmSize=64*1024**3,IpcMode='private',
+                Ulimits=[{'Name':'memlock','Soft':-1,'Hard':-1},{'Name':'stack','Soft':67108864,'Hard':67108864}],
+                Devices=[{'PathOnHost':'/dev/'+x,'PathInContainer':'/dev/'+x,'CgroupPermissions':'rwm'}
+                         for x in ('davinci_manager','devmm_svm','hisi_hdc',f'davinci{plan["chip"]}')])
+            launch.verify_control_resume_container(plan,r['plan'],1,observed,image)
             mounts[0]['RW']=True
-            with self.assertRaisesRegex(RuntimeError,'mounts'):launch.verify_control_resume_container(plan,r['plan'],1,observed)
+            with self.assertRaisesRegex(RuntimeError,'mounts'):launch.verify_control_resume_container(plan,r['plan'],1,observed,image)
             mounts[0]['RW']=False;observed['Config']['Env'].append('HF_HUB_OFFLINE=0')
-            with self.assertRaisesRegex(RuntimeError,'environment'):launch.verify_control_resume_container(plan,r['plan'],1,observed)
+            with self.assertRaisesRegex(RuntimeError,'environment'):launch.verify_control_resume_container(plan,r['plan'],1,observed,image)
 
     def test_finalized_plan_rejects_contract_source_environment_and_identity_changes(self):
         r=self.finalized();plan=P.R.load(r['plan']);P.verify_launch(plan)

@@ -34,6 +34,11 @@ class Readiness(unittest.TestCase):
                   'files': {}, 'control': {'control_arm': arm, 'candidate_for_adoption': False,
                   'primary_input_mode': 'drop' if arm == 'K1-QO' else 'full',
                   'registered_seeds': [2] if arm == 'K1-QO' else [2, 3]}}
+        target['chip'] = 1
+        target['evaluation'] = dict(target['control'], test_requires_separate_final_ticket=True)
+        import hashlib
+        suffix=hashlib.sha256(target['out'].encode()).hexdigest()[:16]
+        target['container']=f'nga-r3-formal-{arm.lower()}-s{seed}-{suffix}'
         target['command'] = ['python3', '-P', '/workspace/train_r3.py', '--out', target['out'],
             '--arm', 'k1', '--seed', str(seed), '--model-path', model, '--kernel', 'ref', '--grad-ckpt',
             '--micro-tokens', '12000', '--max-len', '4096', '--save-every', '200', '--no-merge',
@@ -83,11 +88,22 @@ class Readiness(unittest.TestCase):
         with self.assertRaises(ValueError): R.target_identity(bad, R.canonical_plan_sha256(bad))
         with self.assertRaises(ValueError): R.target_identity(target, 'f'*64)
 
+    def test_target_rejects_execution_evaluation_identity_conflicts(self):
+        target=self.target()
+        for mutate in (lambda p:p.update(chip=7), lambda p:p.update(container='different'),
+                       lambda p:p['evaluation'].update(control_arm='K1-PT'),
+                       lambda p:p['evaluation'].update(primary_input_mode='full'),
+                       lambda p:p['evaluation'].update(candidate_for_adoption=True),
+                       lambda p:p['evaluation'].update(test_requires_separate_final_ticket=False)):
+            bad=copy.deepcopy(target);mutate(bad)
+            with self.assertRaises((ValueError, RuntimeError)):
+                R.target_identity(bad,R.canonical_plan_sha256(bad))
+
     def test_old_validator_bytes_cannot_claim_current_validation(self):
         target = self.target()
         with self.assertRaises(ValueError): R.target_implementations(target)
         for name in ('r3_resume_evidence', 'r3_resume_reconstruction_evidence',
-                     'r3_training_evidence', 'r3_fresh_prechecks'):
+                     'r3_training_evidence', 'r3_fresh_prechecks', 'r3_formal_launcher'):
             path = HERE / (name + '.py'); target['files'][str(path)] = R.sha(path)
         R.target_implementations(target)
         target['files'][str(HERE / 'r3_fresh_prechecks.py')] = 'f' * 64

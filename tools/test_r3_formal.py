@@ -75,17 +75,52 @@ class Formal(unittest.TestCase):
                 fields=dict(x.split('=',1) if '=' in x else (x,True) for x in cmd[i+1].split(','))
                 mounts.append({'Source':fields['src'],'Destination':fields['dst'],
                                'RW':'readonly' not in fields,'Type':'bind'})
-        observed={'Mounts':mounts,'Config':{'Entrypoint':['python3'],'Env':['HF_HUB_OFFLINE=1']},
-                  'HostConfig':{'NetworkMode':'none','Privileged':False}}
-        L.verify_control_resume_container(p,'/run/plan.json',1,observed)
+        image={'Id':L.IMAGE,'Config':{'Env':['PATH=/bin'],'User':'','WorkingDir':''}}
+        observed={'Image':L.IMAGE,'Mounts':mounts,'Config':{'Entrypoint':['python3'],
+                  'Cmd':['-P','/workspace/r3_formal_driver.py','--plan','/run/plan.json','--attempt','1'],
+                  'Env':['PATH=/bin','HF_HUB_OFFLINE=1']},
+                  'HostConfig':{'NetworkMode':'none','Privileged':False,'AutoRemove':False,
+                     'ShmSize':64*1024**3,'IpcMode':'private',
+                     'Ulimits':[{'Name':'memlock','Soft':-1,'Hard':-1},
+                                {'Name':'stack','Soft':67108864,'Hard':67108864}],
+                     'Devices':[{'PathOnHost':'/dev/'+x,'PathInContainer':'/dev/'+x,'CgroupPermissions':'rwm'}
+                                for x in ('davinci_manager','devmm_svm','hisi_hdc','davinci1')]}}
+        L.verify_control_resume_container(p,'/run/plan.json',1,observed,image)
         for mutate in (lambda d:d['HostConfig'].update(Privileged=True),
                        lambda d:d['HostConfig'].update(NetworkMode='host'),
                        lambda d:d['Config'].update(Entrypoint=['bash']),
                        lambda d:d['Mounts'][0].update(RW=True),
-                       lambda d:d['Config']['Env'].append('HF_HUB_OFFLINE=0')):
+                       lambda d:d['Config']['Env'].append('HF_HUB_OFFLINE=0'),
+                       lambda d:d['Config']['Env'].append('PYTHONPATH=/synthetic/out'),
+                       lambda d:d['HostConfig'].update(CapAdd=['SYS_ADMIN']),
+                       lambda d:d['HostConfig'].update(SecurityOpt=['seccomp=unconfined']),
+                       lambda d:d['HostConfig'].update(ShmSize=1),
+                       lambda d:d['HostConfig']['Devices'][0].update(PathInContainer='/wrong'),
+                       lambda d:d['HostConfig']['Devices'][0].update(CgroupPermissions='r'),
+                       lambda d:d['HostConfig']['Ulimits'][0].update(Hard=1)):
             bad=copy.deepcopy(observed);mutate(bad)
             with self.assertRaises(RuntimeError):
-                L.verify_control_resume_container(p,'/run/plan.json',1,bad)
+                L.verify_control_resume_container(p,'/run/plan.json',1,bad,image)
+
+    def test_retained_container_id_must_match_receipt(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);command=['fixture']
+            (root/'LAUNCH_RECEIPT.json').write_text(json.dumps({'id':'one','image':L.IMAGE,'plan_sha256':'pin'}))
+            (root/'LAUNCH_SPEC.json').write_text(json.dumps({'command':command,'plan_sha256':'pin'}))
+            L.verify_retained_receipts(root,'pin',{'Id':'one','Image':L.IMAGE},command)
+            with self.assertRaisesRegex(RuntimeError,'identity'):
+                L.verify_retained_receipts(root,'pin',{'Id':'other','Image':L.IMAGE},command)
+
+    def test_forbidden_inventory_rejected_before_any_dependency_read(self):
+        plan={'schema':'r3-engineering-k1-plan-v1','image_sha256':L.IMAGE,
+              'scientific_acceptance':False,'test_read':False,
+              'files':{'/safe/code.py':'x','/synthetic/test.jsonl':'y'}}
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/'plan.json';path.write_text(json.dumps(plan))
+            with patch.object(L,'sha',side_effect=AssertionError('must not hash')) as read:
+                with self.assertRaisesRegex(RuntimeError,'test dataset'):
+                    L.verify(path,L.identity(plan))
+                read.assert_not_called()
 
     def test_review_hash_does_not_cycle_plan_identity(self):
         p = {'schema':'fixture','review_sha256':'PENDING'}

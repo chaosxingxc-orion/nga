@@ -161,6 +161,10 @@ def target_identity(target, pin):
     require(target.get('schema') == 'r3-formal-k1-plan-v1'
             and target.get('scientific_acceptance') is False and target.get('test_read') is False,
             'target formal train-only scope differs')
+    try:
+        module('r3_formal_launcher').formal_target_identity(target)
+    except RuntimeError as exc:
+        raise ValueError(str(exc)) from exc
     arm = target.get('control_arm')
     require(arm in ('K1-QO', 'K1-PT'), 'explicit registered control required')
     seeds = [2] if arm == 'K1-QO' else [2, 3]
@@ -195,7 +199,7 @@ def target_identity(target, pin):
 
 def target_implementations(target):
     for name in ('r3_resume_evidence', 'r3_resume_reconstruction_evidence',
-                 'r3_training_evidence', 'r3_fresh_prechecks'):
+                 'r3_training_evidence', 'r3_fresh_prechecks', 'r3_formal_launcher'):
         expected = sha(Path(__file__).with_name(name + '.py'))
         entries = [h for p, h in target['files'].items() if Path(p).name == name + '.py']
         require(entries and all(h == expected for h in entries),
