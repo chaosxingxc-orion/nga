@@ -112,6 +112,8 @@ The first public-evaluation contract covered six task families and 14 evaluation
 
 The engineering queue also needs a separate admission note. A chip-3 Instruct-K0 DEV successor has `EXIT=0`, `RELEASE` and `SUPERVISOR_DONE`, but its precheck remains `PENDING_ROOT_REVIEW` and its scientific acceptance is false. It is retained as a possible successor input, not as a published result. The latest watchdog snapshot reported no queued admissible successor and marked the NPU as free; the retained release snapshot specifically lists chips 1 and 3 as free. Historical stalled entries do not count as active work. The next safe action is CPU provenance/precheck review, followed by FIFO activation only after an admissible successor is signed.
 
+The CPU precheck repair found a real version-binding error: the previous source-verified v2 bundle was for `Qwen3.5-0.8B-Base`, while the chip-3 report is Instruct. The current validator correctly rejected that bundle. A new, separately owned v2 bundle for the Instruct report now passes the same pinned validator with exit 0 and `test_read=false`; it is accepted only as scoped CPU precheck evidence. Formal preparation, exact-plan review and activation remain open.
+
 ### NxM direct-readout baseline
 
 D1 remains the current 38-cell reference scope; it is not expanded. Internal experiments will build a separate NxM product: N model sizes (first Qwen3.5-0.8B, then 2B, 4B and 9B) × M frozen tasks (Kev decision/transfer, Typed, JEVal and later gap datasets). Every cell uses the same harness, test lock, paired decision-level metrics and resource evidence; missing cells are `blocked`, never zero.
