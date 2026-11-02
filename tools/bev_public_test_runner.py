@@ -174,17 +174,18 @@ def score_batch(batch, scorer, prompt, bridge, plan):
     eligible, results = [], []
     for row in batch:
         parsed = bridge.to_r3_row(row['request'])
-        rendered = prompt.build_prompt(parsed, render='record_name', input_mode='full')
-        prefix = scorer.tok(rendered.text, add_special_tokens=False)['input_ids']
-        labels = [scorer.tok(x, add_special_tokens=False)['input_ids'] for x in rendered.candidates]
+        # Use the frozen scorer's encoding path once; validate the exact Enc
+        # that score_raw would pass to score_enc, then retain it for scoring.
+        encoded = scorer.encode([parsed])[0]
+        prefix, labels = encoded.prefix, encoded.cands
         require(prefix and all(labels), 'empty tokenizer sequence')
         require(len({tuple(x) for x in labels}) == len(labels), 'duplicate tokenized candidates')
         length = max(len(prefix)+len(x) for x in labels)
         if length > plan['scoring']['max_sequence_tokens']:
             results.append((row, None, {'id':row['id'],'status':'unsupported_length','sequence_tokens':length}))
-        else: eligible.append((row, parsed))
+        else: eligible.append((row, encoded))
     if eligible:
-        raw = scorer.score_raw([parsed for _, parsed in eligible], mode=plan['scoring']['mode'])
+        raw = scorer.score_enc([encoded for _, encoded in eligible], mode=plan['scoring']['mode'])
         require(len(raw) == len(eligible), 'scorer population differs')
         for (row, _), scores in zip(eligible, raw):
             pred = bridge.from_raw(row['id'], scores, len(row['request']['candidate_keys']))
