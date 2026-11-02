@@ -63,7 +63,30 @@ def formal_control_container(out, control_arm, seed):
     return f'nga-r3-formal-{control_arm.lower()}-s{seed}-{suffix}'
 
 
-def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False, fresh_prechecks=None, fresh_prechecks_sha256=None, training_evidence=None, training_evidence_sha256=None, resume_plan=None, resume_plan_sha256=None, control_arm=None, resume_reconstruction=None, resume_reconstruction_sha256=None, reconstruction_target=None, reconstruction_target_sha256=None, formal_chips=(1, 4), formal_schedule=None, formal_schedule_sha256=None, formal_role=None):
+def bind_successor_guard(plan, tool_dir, path, expected_sha):
+    """Freeze a caller-declared dependency contract without inventing activation."""
+    if not path or not expected_sha or sha(path) != expected_sha:
+        raise ValueError('exact successor guard configuration required')
+    config = json.loads(Path(path).read_text())
+    keys = set(config)
+    common = {'competitors', 'controller', 'controller_sha256'}
+    if keys not in (common | {'previous_training'}, common | {'previous_execution', 'previous_execution_sha256'}):
+        raise ValueError('unsupported successor guard fields')
+    if not isinstance(config['competitors'], list):
+        raise ValueError('successor competitors list required')
+    controller = Path(config.pop('controller')); controller_pin = config.pop('controller_sha256')
+    if (not controller.is_absolute() or controller.name != 'r3_formal_train_successor.py'
+            or any(p.is_symlink() for p in (controller,*controller.parents))
+            or sha(controller) != controller_pin or controller_pin != sha(ROOT/'tools/r3_formal_train_successor.py')):
+        raise ValueError('shared successor controller identity differs')
+    plan['files'][str(controller)] = controller_pin
+    plan['files'][str(Path(path).absolute())] = expected_sha
+    plan['successor_guard'] = dict(config, controller=str(controller))
+
+
+def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False, fresh_prechecks=None, fresh_prechecks_sha256=None, training_evidence=None, training_evidence_sha256=None, resume_plan=None, resume_plan_sha256=None, control_arm=None, resume_reconstruction=None, resume_reconstruction_sha256=None, reconstruction_target=None, reconstruction_target_sha256=None, formal_chips=(1, 4), formal_schedule=None, formal_schedule_sha256=None, formal_role=None, successor_guard=None, successor_guard_sha256=None):
+    if (successor_guard or successor_guard_sha256) and (engineering or control_arm or not all((successor_guard, successor_guard_sha256))):
+        raise ValueError('successor guard requires exact formal Base configuration')
     role_binding=any(x is not None for x in (formal_schedule,formal_schedule_sha256,formal_role))
     if role_binding and (engineering or control_arm or not all((formal_schedule,formal_schedule_sha256,formal_role))):
         raise ValueError('complete formal Base role binding required')
@@ -171,6 +194,8 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
             'evaluation': {'seeds': [2, 3], 'decision_dev_min': .80, 'transfer_dev_min': .60,
                            'max_k0_regression_pp': 1.0, 'test_requires_separate_final_ticket': True},
             'engineering_evidence': str(BASE / 'r3_runs/formal_k1_prechecks_20261031/V12_REVERIFICATION.json'), 'engineering_evidence_scope': 'retrospective CPU recomputation; not independent Astra acceptance'}
+    if successor_guard:
+        bind_successor_guard(plan, tool_dir, successor_guard, successor_guard_sha256)
     if role_binding:
         helper_path=tool_dir/'r3_formal_roles.py'
         shutil.copy2(ROOT/'tools/r3_formal_roles.py',helper_path)
@@ -271,6 +296,8 @@ def main():
     ap.add_argument('--reconstruction-target-sha256')
     ap.add_argument('--control-arm', choices=('K1-QO','K1-PT'))
     ap.add_argument('--model')
+    ap.add_argument('--successor-guard')
+    ap.add_argument('--successor-guard-sha256')
     ap.add_argument('--formal-schedule')
     ap.add_argument('--formal-schedule-sha256')
     ap.add_argument('--formal-role',choices=('primary_s2','primary_s3','samechip_s2','diffchip_s2'))
@@ -294,13 +321,14 @@ def main():
             resume_reconstruction=args.resume_reconstruction,resume_reconstruction_sha256=args.resume_reconstruction_sha256,
             reconstruction_target=args.reconstruction_target,reconstruction_target_sha256=args.reconstruction_target_sha256,
             formal_chips=tuple(schedule['physical_chips']),formal_schedule=args.formal_schedule,
-            formal_schedule_sha256=args.formal_schedule_sha256,formal_role=args.formal_role),indent=2))
+            formal_schedule_sha256=args.formal_schedule_sha256,formal_role=args.formal_role, successor_guard=args.successor_guard,
+            successor_guard_sha256=args.successor_guard_sha256),indent=2))
         return
     seeds = (2,) if args.control_arm == 'K1-QO' else (2,3)
     print(json.dumps([prepare(parent / f'seed{seed}', seed, chip, args.engineering, model=model, control_arm=args.control_arm, fresh_prechecks=args.fresh_prechecks, fresh_prechecks_sha256=args.fresh_prechecks_sha256, training_evidence=args.training_evidence, training_evidence_sha256=args.training_evidence_sha256, resume_plan=args.resume_plan, resume_plan_sha256=args.resume_plan_sha256,
         resume_reconstruction=args.resume_reconstruction, resume_reconstruction_sha256=args.resume_reconstruction_sha256,
         reconstruction_target=args.reconstruction_target, reconstruction_target_sha256=args.reconstruction_target_sha256,
-        formal_chips=tuple(args.formal_chips)) for seed, chip in zip(seeds, tuple(args.formal_chips))], indent=2))
+        formal_chips=tuple(args.formal_chips), successor_guard=args.successor_guard, successor_guard_sha256=args.successor_guard_sha256) for seed, chip in zip(seeds, tuple(args.formal_chips))], indent=2))
 
 
 if __name__ == '__main__':

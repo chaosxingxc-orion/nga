@@ -12,6 +12,8 @@ import subprocess
 import sys
 import time
 
+SUCCESSOR_CLAIM_GUARD_VERSION = 1
+
 IMAGE = 'sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7'
 CONTROL_MODELS = {'K1-QO':'/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base',
                   'K1-PT':'/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B'}
@@ -258,6 +260,10 @@ def verify(path, pin, reviewed=True):
         require(p.get('execution_scope') == 'engineering_only' and p.get('scientific_acceptance') is False
                 and p.get('test_read') is False, 'engineering scope must exclude scientific acceptance/test')
         require(p.get('authorization') == 'user_execute_engineering_when_ready_20261031', 'engineering authorization missing')
+    elif reviewed and p.get('successor_guard') is not None:
+        controller = p['successor_guard'].get('controller')
+        require(controller and p['files'].get(controller) == sha(controller), 'successor review controller not pinned')
+        source_module(controller, 'formal_successor_review').verify_review(p, pin)
     elif reviewed:
         review = load(p['review_path'])
         require(sha(p['review_path']) == p['review_sha256'], 'review hash mismatch')
@@ -268,11 +274,31 @@ def verify(path, pin, reviewed=True):
 
 
 def inspect(name):
-    proc = subprocess.run(['docker', 'inspect', name], capture_output=True, text=True, timeout=30)
-    if proc.returncode:
-        require('no such' in proc.stderr.lower(), 'Docker observation failed: ' + proc.stderr[:200])
-        return None
-    return json.loads(proc.stdout)[0]
+    p = subprocess.run(['docker', 'inspect', name], capture_output=True, text=True, check=False, timeout=30)
+    if p.returncode:
+        # Docker CLI emits [] on stdout for an absent object. Only its exact
+        # one-object daemon response proves absence; transport errors never do.
+        absent = {f'Error: No such object: {name}', f'Error response from daemon: No such container: {name}'}
+        if p.returncode == 1 and p.stderr.strip().lower() in {x.lower() for x in absent} and p.stdout.strip() in ('', '[]'):
+            return None
+        raise RuntimeError('Docker observation uncertain: ' + p.stderr[:200])
+    rows = json.loads(p.stdout)
+    if not isinstance(rows, list) or len(rows) != 1 or not isinstance(rows[0], dict):
+        raise RuntimeError('Docker successful observation malformed/empty')
+    value = rows[0]
+    if not isinstance(value.get('Id'), str) or not value['Id'] or not isinstance(value.get('State'), dict):
+        raise RuntimeError('Docker container observation incomplete')
+    if value.get('Name') != '/' + name and not value['Id'].startswith(name):
+        raise RuntimeError('Docker observation requested identity differs')
+    return value
+
+
+def image_inspect(image_id):
+    p = subprocess.run(['docker', 'image', 'inspect', image_id], capture_output=True, text=True, check=True, timeout=30)
+    rows = json.loads(p.stdout)
+    if not isinstance(rows, list) or len(rows) != 1 or rows[0].get('Id') != image_id:
+        raise RuntimeError('Docker image observation differs')
+    return rows[0]
 
 
 def observe_retained(name, container_id, heartbeat, sleep=time.sleep):
@@ -290,11 +316,36 @@ def observe_retained(name, container_id, heartbeat, sleep=time.sleep):
             sleep(15)
 
 
-def adapter(p, op, attempt, container):
+def successor_binding(p, pin, precondition_pin, required=True):
+    guard = p.get('successor_guard')
+    if guard is None:
+        require(precondition_pin is None, 'precondition supplied without successor guard')
+        return
+    controller = guard.get('controller')
+    require(controller and Path(controller).name == 'r3_formal_train_successor.py'
+            and p['files'].get(controller) == sha(controller), 'successor controller not pinned')
+    if precondition_pin is None:
+        require(not required, 'successor precondition required for launch')
+        return
+    require(isinstance(precondition_pin, str) and len(precondition_pin) == 64
+            and all(c in '0123456789abcdef' for c in precondition_pin), 'invalid precondition pin')
+    path = Path(p['out']) / 'SUCCESSOR_PRECONDITION.json'
+    require(sha(path) == precondition_pin, 'successor precondition changed')
+    pre = load(path)
+    require(p == load(pre['job']['plan']), 'successor precondition plan path differs')
+    require(pre['job']['plan_sha256'] == pin and pre['job']['chip'] == p['chip']
+            and pre['job']['attempt'] == 1, 'successor precondition plan differs')
+
+
+def adapter(p, op, attempt, container, plan_path=None, plan_pin=None, precondition_pin=None):
     cmd = [sys.executable, '-P', p['adapter'], op, '--alloc', p['allocation'], '--run', p['run'], '--chip', str(p['chip'])]
     if op == 'claim':
         owner = 'R3 engineering ' + p.get('arm', 'k1').upper() if p['schema'] == 'r3-engineering-k1-plan-v1' else 'R3 formal K1'
         cmd += ['--owner', owner, '--purpose', f"{p.get('arm', 'k1')} seed {p['seed']}; train only", '--proof', str(attempt / 'CLAIM.json')]
+        successor_binding(p, plan_pin, precondition_pin)
+        if p.get('successor_guard') is not None:
+            require(plan_path is not None, 'claim exact plan path required')
+            cmd += ['--plan', str(plan_path), '--plan-sha256', plan_pin, '--precondition-sha256', precondition_pin]
     else:
         cmd += ['--container', container, '--claim', str(attempt / 'CLAIM.json'), '--proof', str(attempt / (op.upper() + '.json'))]
     if op == 'release':
@@ -438,8 +489,34 @@ def verify_retained_receipts(attempt, pin, observed, command):
             'retained complete command differs')
 
 
-def supervisor(path, pin, attempt_no):
+def start_marker(attempt, p, pin, precondition_pin, claim_raw, phase):
+    marker = attempt/'NEEDS_REPAIR.json'
+    value = dict(schema='formal-start-needs-repair-v1', status='needs_repair',
+                 phase=phase, plan_sha256=pin, precondition_sha256=precondition_pin,
+                 run=p['run'], chip=p['chip'], container=p['container']+'-a1',
+                 allocation=p['allocation'], claim_path=str(attempt/'CLAIM.json'),
+                 claim_sha256=hashlib.sha256(claim_raw).hexdigest(),
+                 captured_claim_utf8=claim_raw.decode('utf-8'), automatic_release=False,
+                 scientific_acceptance=False)
+    temp = attempt/'NEEDS_REPAIR.pending'
+    with temp.open('x') as f:
+        json.dump(value, f, indent=2, sort_keys=True); f.write('\n')
+        f.flush(); os.fsync(f.fileno())
+    os.replace(temp, marker)
+    sync_directory(attempt)
+
+
+def sync_directory(path):
+    fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try: os.fsync(fd)
+    finally: os.close(fd)
+
+
+def supervisor(path, pin, attempt_no, precondition_pin=None):
     p = verify(path, pin)
+    successor_binding(p, pin, precondition_pin)
+    guarded = p.get('successor_guard') is not None
+    require(not guarded or attempt_no == 1, 'fresh guarded attempt1 only')
     require(socket.gethostname() == 'k8s-node1', 'must run on host npu / 175')
     image = json.loads(subprocess.check_output(['docker', 'image', 'inspect', IMAGE], text=True))[0]
     require(image.get('Id') == IMAGE, 'actual image digest mismatch')
@@ -450,6 +527,9 @@ def supervisor(path, pin, attempt_no):
     attempt.mkdir(parents=True, exist_ok=True)
     container = p['container'] + '-a' + str(attempt_no)
     try:
+        if guarded:
+            require(not (attempt/'NEEDS_REPAIR.json').exists() and not (attempt/'NEEDS_REPAIR.pending').exists(),
+                    'uncertain start; explicit repair required')
         d = inspect(container)
         if d is None:
             terminal = out / 'TRAIN_EXIT.json'
@@ -462,24 +542,33 @@ def supervisor(path, pin, attempt_no):
             # A ledger entry alone cannot establish absence of a stale live device holder.
             resource = source_module(p['adapter'], 'resource_adapter')
             require(not resource.live_chip_conflict(p['chip'], container), 'live container owns device')
-            adapter(p, 'claim', attempt, container)
+            adapter(p, 'claim', attempt, container, path, pin, precondition_pin)
+            if guarded:
+                claim_raw = safe_content_path(attempt/'CLAIM.json').read_bytes()
+                start_marker(attempt, p, pin, precondition_pin, claim_raw, 'docker_start_pending')
             command = docker_command(p, path, attempt_no)
             atomic(attempt / 'LAUNCH_SPEC.json', {'command': command, 'plan_sha256': pin})
             try:
                 subprocess.run(command, check=True)
+                d = inspect(container)
+                require(d is not None, 'started container cannot be observed')
+                if guarded:
+                    require((attempt/'CLAIM.json').read_bytes() == claim_raw, 'captured claim changed during start')
+                atomic(attempt / 'LAUNCH_RECEIPT.json', {'id': d['Id'], 'image': d['Image'], 'plan_sha256': pin})
             except BaseException:
-                if inspect(container) is None:
+                if guarded:
+                    start_marker(attempt, p, pin, precondition_pin, claim_raw, 'docker_start_uncertain')
+                elif inspect(container) is None:
                     adapter(p, 'abort', attempt, container)
                 raise
-            d = inspect(container)
-            require(d is not None, 'started container cannot be observed')
-            atomic(attempt / 'LAUNCH_RECEIPT.json', {'id': d['Id'], 'image': d['Image'], 'plan_sha256': pin})
         require(d['Image'] == IMAGE and not d['HostConfig']['AutoRemove'], 'container identity mismatch')
         require(d['Config']['Cmd'] == ['-P', '/workspace/r3_formal_driver.py', '--plan', path, '--attempt', str(attempt_no)], 'container command mismatch')
         devices = {x['PathOnHost'] for x in d['HostConfig']['Devices']}
         require(devices == {'/dev/davinci_manager', '/dev/devmm_svm', '/dev/hisi_hdc', f"/dev/davinci{p['chip']}"}, 'container devices mismatch')
         verify_retained_receipts(attempt, pin, d, docker_command(p,path,attempt_no))
         verify_control_resume_container(p,path,attempt_no,d,image)
+        if guarded and (attempt/'NEEDS_REPAIR.json').exists():
+            (attempt/'NEEDS_REPAIR.json').unlink(); sync_directory(attempt)
         while d['State']['Status'] not in ('exited', 'dead'):
             atomic(attempt / 'supervisor_heartbeat.json', {'utc_seconds': time.time(), 'container': container, 'status': d['State']['Status']})
             time.sleep(15)
@@ -505,16 +594,25 @@ def main():
     ap.add_argument('--sha256', required=True)
     ap.add_argument('--attempt', type=int, default=1)
     ap.add_argument('--unreviewed', action='store_true')
+    ap.add_argument('--precondition-sha256')
     a = ap.parse_args()
     require(not a.unreviewed or a.op == 'verify', 'unreviewed allowed only for CPU verification')
     p = verify(a.plan, a.sha256, reviewed=not a.unreviewed)
+    successor_binding(p, a.sha256, a.precondition_sha256, required=a.op != 'verify')
     if a.op == 'verify':
         print(json.dumps({'status': 'PLAN_VERIFIED', 'reviewed': not a.unreviewed and p['schema'] == 'r3-formal-k1-plan-v1', 'scope': p.get('execution_scope', 'formal'), 'sha256': a.sha256}))
     elif a.op == 'supervise':
-        supervisor(a.plan, a.sha256, a.attempt)
+        supervisor(a.plan, a.sha256, a.attempt, a.precondition_sha256)
     else:
         require(socket.gethostname() == 'k8s-node1', 'must start on host npu / 175')
+        if p.get('successor_guard') is not None:
+            require(a.attempt == 1, 'fresh guarded attempt1 only')
+            with (Path(p['out'])/'GUARDED_START_INTENT.json').open('x') as intent:
+                json.dump({'plan_sha256':a.sha256,'precondition_sha256':a.precondition_sha256}, intent)
+                intent.flush(); os.fsync(intent.fileno())
         cmd = [sys.executable, '-P', p['launcher'], 'supervise', '--plan', a.plan, '--sha256', a.sha256, '--attempt', str(a.attempt)]
+        if a.precondition_sha256 is not None:
+            cmd += ['--precondition-sha256', a.precondition_sha256]
         with (Path(p['out']) / 'supervisor.log').open('ab', buffering=0) as f:
             process = subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, start_new_session=True)
         atomic(Path(p['out']) / 'SUPERVISOR_RECEIPT.json', {'pid': process.pid, 'command': cmd})

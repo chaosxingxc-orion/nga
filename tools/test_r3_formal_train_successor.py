@@ -20,7 +20,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent
 BASE = Path('/mnt/cephfs/xingchao/experiments/jev/r3_runs')
-FROZEN = Path(os.environ.get('FORMAL_SUCCESSOR_TEST_TOOLS', str(BASE/'formal_k1_preparation_20261101_v6/seed2/tools')))
+FROZEN = Path(os.environ.get('FORMAL_SUCCESSOR_TEST_TOOLS', str(ROOT)))
 
 def module(path):
     path = Path(path); value = types.ModuleType(path.stem); value.__file__ = str(path)
