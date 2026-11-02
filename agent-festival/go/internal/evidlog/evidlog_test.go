@@ -604,6 +604,27 @@ func TestAppendRechecksEvolvingTail(t *testing.T) {
 	}
 }
 
+// TestConformantLineSharesLadder pins the third consumer of the shared
+// table (R10 inner MINOR-1): conformantLine claims to be "the same ladder"
+// as loadLines — every phantom shape must read NOT conformant through it,
+// or the Append byte-level re-check would splice lines the loader rejects.
+// A positive twin (a conformant line reads true) guards the over-reject
+// direction.
+func TestConformantLineSharesLadder(t *testing.T) {
+	for _, tc := range phantomShapeCases {
+		if conformantLine(tc.line) {
+			t.Fatalf("%s: conformantLine accepted a shape the loader ladder rejects", tc.name)
+		}
+	}
+	good, err := json.Marshal(Entry{Seq: 1, Tool: "t", Selector: "s", Caller: "c", At: "a"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !conformantLine(good) {
+		t.Fatalf("conformantLine rejected a well-formed entry: %s", good)
+	}
+}
+
 // TestSeqGapRejected pins the density rule at doc level (mirrors the invalid fixture).
 func TestSeqGapRejected(t *testing.T) {
 	doc := map[string]any{
