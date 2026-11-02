@@ -129,6 +129,7 @@ var phantomShapeCases = []struct {
 	line []byte
 	want string // expected neutral key at the mid-file position
 }{
+	{"invalid UTF-8", []byte("{\"seq\":1,\"tool\":\"ba\xffnk.fetch\",\"selector\":\"r\",\"caller\":\"s\",\"at\":\"y\"}"), "EVIDLOG.MIDFILE_UNPARSEABLE"},
 	{"bare null", []byte(`null`), "EVIDLOG.NON_OBJECT_LINE"},
 	{"array line", []byte(`[1,2]`), "EVIDLOG.NON_OBJECT_LINE"},
 	{"scalar line", []byte(`42`), "EVIDLOG.NON_OBJECT_LINE"},
@@ -318,6 +319,14 @@ func TestAppendRejectsUnwritableEntry(t *testing.T) {
 	if err := l.Append(Entry{}); err == nil {
 		t.Fatal("zero-value entry accepted")
 	}
+	// invalid UTF-8 (R9 F1 write side): the json encoder would launder it to
+	// U+FFFD, making the durable form diverge from the caller's copy — the
+	// gate must refuse before any bytes are produced.
+	if err := l.Append(Entry{Tool: "ba\xffnk.fetch", Selector: "s", Caller: "c", At: "a"}); err == nil {
+		t.Fatal("Append accepted an invalid-UTF-8 field — the durable write would be laundered")
+	} else if !strings.Contains(err.Error(), "EVIDLOG.INVALID_ENTRY") {
+		t.Fatalf("UTF-8 refusal lacks the neutral key: %v", err)
+	}
 	if err := l.Append(Entry{Tool: "t", Selector: "s=1", Caller: "s2", At: "z"}); err != nil {
 		t.Fatalf("valid append refused after gate rejections: %v", err)
 	}
@@ -327,6 +336,41 @@ func TestAppendRejectsUnwritableEntry(t *testing.T) {
 	}
 	if es := l2.Entries(); len(es) != 1 || es[0].Seq != 0 {
 		t.Fatalf("unexpected entries after refusals: %+v", es)
+	}
+}
+
+// TestDurableAcceptsExtraFieldLine pins the deliberate asymmetry (R9 F3):
+// the durable face does NOT ride the schema's additionalProperties:false —
+// a line carrying an extra field loads fine here, while the envelope face
+// (CheckDoc) rejects the same document. This is a declared ride-scope
+// decision (see the loadLines shape-gate comment), not drift: this test
+// exists so the acceptance cannot silently flip in either direction.
+func TestDurableAcceptsExtraFieldLine(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "evid.jsonl")
+	l1, _ := json.Marshal(Entry{Seq: 0, Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"})
+	extra := []byte(`{"seq":1,"tool":"bureau.q","selector":"subj=x","caller":"s2","at":"2026-11-01T10:01:00Z","fabricated":"counterclaim"}`)
+	var body []byte
+	body = append(body, l1...)
+	body = append(body, '\n')
+	body = append(body, extra...)
+	body = append(body, '\n')
+	if err := os.WriteFile(path, body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	l2, err := Open(path)
+	if err != nil {
+		t.Fatalf("extra-field line rejected on the durable face (ride scope says additionalProperties is envelope-only): %v", err)
+	}
+	if len(l2.Entries()) != 2 {
+		t.Fatalf("unexpected entries: %d", len(l2.Entries()))
+	}
+	// the same content reorganized as an envelope document IS rejected by
+	// the envelope face — the two faces intentionally disagree on this shape
+	doc := map[string]any{"evidlog_version": "0.1.0", "entries": []any{
+		json.RawMessage(l1), json.RawMessage(extra),
+	}}
+	if errs := CheckDoc(doc); len(errs) == 0 {
+		t.Fatal("envelope face accepted an extra-field document — additionalProperties:false disappeared")
 	}
 }
 

@@ -532,7 +532,16 @@ def main(argv: list[str]) -> int:
             rc |= bool(errs)
         return rc
     ex = HERE / "examples" / "compose"
-    return 1 if run_suite(ex / "valid", ex / "invalid") else 0
+    bad = run_suite(ex / "valid", ex / "invalid")
+    # D93 count-floor (the Go twin lives in cmd/compose/main_test.go): a
+    # corpus that shrank without its pin rebased must fail here too — this
+    # oracle was the one family missing the third count pin (R9 F5).
+    n_valid = len(list((ex / "valid").glob("*.json")))
+    n_invalid = len(list((ex / "invalid").glob("*.json")))
+    if (n_valid, n_invalid) != (10, 36):
+        print(f"[compose] FAIL corpus count {n_valid}+{n_invalid} != pinned 10+36 (corpus count changed?)")
+        bad += 1
+    return 1 if bad else 0
 
 
 if __name__ == "__main__":

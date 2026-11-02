@@ -127,6 +127,18 @@ type opState struct {
 // file, never a partial line; the tolerated shape can only come from
 // outside). Events end at the last complete line; anything non-parseable
 // elsewhere fails the open.
+// TORN-TAIL DOCTRINE, DELIBERATE DIVERGENCE (R9 F2 ruling record): this
+// package HEALS — a rewrite rebuilds the file from parsed lines, so the
+// remnant bytes disappear without a trace. evidlog does the opposite
+// (remember + refuse writes + coverage refuses green) because an evidence
+// log's skipped bytes may hold unaccounted queries. Here the machine's
+// event file is its only durable state and the state machine itself is the
+// self-repairing check: a lost tail re-derives to the pre-write state, the
+// transition table rejects any replay the lost line would have made
+// illegal, and a re-dispatch of an external effect is exactly the 14-A5
+// unresolved first-class case the machine already models. Healing here is
+// lossy-but-safe; do NOT port evidlog's doctrine over, and do NOT port
+// healing into evidlog.
 // The loaded lines are checked BEFORE any state is absorbed: a file this
 // machine did not write fails the open (see checkLoaded).
 func Open(path string) (*Machine, error) {

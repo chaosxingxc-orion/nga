@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"unicode/utf8"
 
 	"github.com/openjiuwen/agent-festival/go/internal/schemalib"
 )
@@ -77,6 +78,19 @@ func Open(path string) (*Log, error) {
 
 // Append records one call (writer-allocated seq, temp+rename atomic).
 func (l *Log) Append(e Entry) error {
+	// Writer-side UTF-8 gate (R9 F1), BEFORE any marshal: Go's json encoder
+	// silently launders invalid UTF-8 to U+FFFD, so a laundered write would
+	// make the durable form differ from what the caller holds in memory.
+	// The loader rejects such lines on sight (ledger/load.go precedent);
+	// this gate closes the write side of the same hole. All five string
+	// fields ride, including the optional ResultRef — everything that ends
+	// up as durable bytes must be byte-representable (adopt's R5 BLOCKER
+	// doctrine: the gate rejects what it cannot byte-represent).
+	for _, s := range []string{e.Tool, e.Selector, e.Caller, e.At, e.ResultRef} {
+		if !utf8.ValidString(s) {
+			return fmt.Errorf("[EVIDLOG.INVALID_ENTRY] Append refuses: a string field is not valid UTF-8 — the json encoder would launder it to U+FFFD and the durable form would diverge from the caller's copy")
+		}
+	}
 	l.seq++
 	e.Seq = l.seq
 	line, err := json.Marshal(e)
@@ -238,9 +252,11 @@ func CheckDoc(doc map[string]any) []string {
 	return nil
 }
 
+// parsedLine is one accepted durable line. Unlike ledger.ParsedLine it does
+// NOT retain Raw/Doc: nothing re-derives bytes from parsed lines here (the
+// writer re-reads the whole file, see Append), so carrying them would only
+// invite wrong assumptions about byte-level rebuilds (R9 F6).
 type parsedLine struct {
-	Raw   []byte
-	Doc   map[string]any
 	Event Entry
 }
 
@@ -259,7 +275,6 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 		return nil, false, err
 	}
 	var lines []parsedLine
-	tornTail := false
 	start := 0
 	for i := 0; i <= len(raw); i++ {
 		if i != len(raw) && raw[i] != '\n' {
@@ -274,17 +289,30 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 		// The boundary: only the final line WITHOUT a trailing newline is a
 		// torn tail (interrupted last write) and is tolerated. Any line
 		// BEFORE the EOF position that is not a conformant entry is rejected
-		// — unparseable bytes, valid JSON that is not an entry object,
-		// field-type mismatches, and everything entryShapeError guards
-		// (missing keys, empty/null strings, non-numeric seq) — silently
-		// skipping any of them would shrink the coverage CheckCoverage
-		// accounts for and turn a completeness verdict green on an
-		// incomplete record. A durable line is an entry or the file is not
-		// loadable.
-		tornTail := i == len(raw)
+		// — invalid UTF-8, unparseable bytes, valid JSON that is not an
+		// entry object, field-type mismatches, and everything
+		// entryShapeError guards (missing keys, empty/null strings,
+		// non-numeric seq) — silently skipping any of them would shrink the
+		// coverage CheckCoverage accounts for and turn a completeness
+		// verdict green on an incomplete record. A durable line is an entry
+		// or the file is not loadable.
+		atEOF := i == len(raw)
+		// valid UTF-8 comes FIRST (ledger/load.go precedent, completed here
+		// after evidlog rode only the JSON-classification arm of it — R9
+		// F1): Go's json decoder silently replaces invalid bytes with
+		// U+FFFD, so an invalid-UTF-8 line would parse "successfully" with
+		// laundered keys and the audit record would silently differ from
+		// what was written. The writer gate (Append) enforces valid UTF-8,
+		// so such a line is provably not a machine write.
+		if !utf8.Valid(line) {
+			if atEOF {
+				return lines, true, nil
+			}
+			return nil, false, fmt.Errorf("[EVIDLOG.MIDFILE_UNPARSEABLE] %s: line at byte offset %d is not valid UTF-8 — a bypass or corrupted write (Go's json decoder would launder it to U+FFFD)", path, lineStart)
+		}
 		var e Entry
 		if json.Unmarshal(line, &e) != nil {
-			if tornTail {
+			if atEOF {
 				return lines, true, nil
 			}
 			// Valid JSON is a different audit fact from unparseable bytes —
@@ -313,13 +341,13 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 			// decode cleanly here. If this ever fires it means the decode
 			// paths diverged — non-torn it is the mid-file disease; at the
 			// torn position it is tail garbage like any other.
-			if tornTail {
+			if atEOF {
 				return lines, true, nil
 			}
 			return nil, false, fmt.Errorf("[EVIDLOG.MIDFILE_UNPARSEABLE] %s: unparseable line at byte offset %d (before EOF) — evidence coverage must not silently shrink", path, lineStart)
 		}
 		if doc == nil {
-			if tornTail {
+			if atEOF {
 				return lines, true, nil
 			}
 			return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d is %q, not an entry object — a phantom entry must not enter the audit record", path, lineStart, string(line))
@@ -339,7 +367,7 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 		// parses cleanly is still a phantom: it would enter the audit record
 		// and silently pass the density rule (R3 M1, phantom family).
 		if key, why := entryShapeError(doc); key != "" {
-			if tornTail {
+			if atEOF {
 				return lines, true, nil
 			}
 			if why == "without" {
@@ -347,9 +375,9 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 			}
 			return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d has an empty or null %q — the envelope schema's minLength:1 rides the durable face too", path, lineStart, key)
 		}
-		lines = append(lines, parsedLine{Raw: line, Doc: doc, Event: e})
+		lines = append(lines, parsedLine{Event: e})
 	}
-	return lines, tornTail, nil
+	return lines, false, nil
 }
 
 // entryShapeError is the durable face's entry-shape contract, shared by the
