@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -126,6 +128,9 @@ func TestNullLineRejected(t *testing.T) {
 		"bare null":         append(append(append([]byte{}, l1...), '\n', 'n', 'u', 'l', 'l', '\n'), l2...),
 		"fragment with seq": append(append(append(append([]byte{}, l1...), '\n', '{', '"', 's', 'e', 'q', '"', ':', '9', '}', '\n'), l2...), '\n'),
 		"missing caller":    append(append(append([]byte{}, l1...), '\n', '{', '"', 's', 'e', 'q', '"', ':', '1', ',', '"', 't', 'o', 'o', 'l', '"', ':', '"', 'x', '"', ',', '"', 'a', 't', '"', ':', '"', 'y', '"', '}', '\n')),
+		"missing selector":  append(append(append([]byte{}, l1...), '\n', '{', '"', 's', 'e', 'q', '"', ':', '1', ',', '"', 't', 'o', 'o', 'l', '"', ':', '"', 'x', '"', ',', '"', 'c', 'a', 'l', 'l', 'e', 'r', '"', ':', '"', 's', '"', ',', '"', 'a', 't', '"', ':', '"', 'y', '"', '}', '\n')),
+		"null caller":       append(append(append([]byte{}, l1...), '\n', '{', '"', 's', 'e', 'q', '"', ':', '1', ',', '"', 't', 'o', 'o', 'l', '"', ':', '"', 'x', '"', ',', '"', 's', 'e', 'l', 'e', 'c', 't', 'o', 'r', '"', ':', '"', 'r', '"', ',', '"', 'c', 'a', 'l', 'l', 'e', 'r', '"', ':', 'n', 'u', 'l', 'l', ',', '"', 'a', 't', '"', ':', '"', 'y', '"', '}', '\n')),
+		"empty selector":    append(append(append([]byte{}, l1...), '\n', '{', '"', 's', 'e', 'q', '"', ':', '1', ',', '"', 't', 'o', 'o', 'l', '"', ':', '"', 'x', '"', ',', '"', 's', 'e', 'l', 'e', 'c', 't', 'o', 'r', '"', ':', '"', '"', ',', '"', 'c', 'a', 'l', 'l', 'e', 'r', '"', ':', '"', 's', '"', ',', '"', 'a', 't', '"', ':', '"', 'y', '"', '}', '\n')),
 	}
 	for name, body := range cases {
 		path := filepath.Join(t.TempDir(), "evid.jsonl")
@@ -163,7 +168,7 @@ func TestAppendRefusesTornTail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := l2.Append(Entry{Tool: "t", Caller: "s2", At: "2026-11-01T10:02:00Z"}); err == nil {
+	if err := l2.Append(Entry{Tool: "t", Selector: "s=1", Caller: "s2", At: "2026-11-01T10:02:00Z"}); err == nil {
 		t.Fatal("Append wrote over a tolerated torn tail — the log is now bricked for every future Open")
 	} else if !strings.Contains(err.Error(), "EVIDLOG.TORN_TAIL_BLOCKED") {
 		t.Fatalf("torn-tail refusal lacks the neutral key: %v", err)
@@ -179,7 +184,7 @@ func TestAppendRefusesTornTail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := l3.Append(Entry{Tool: "t", Caller: "s2", At: "2026-11-01T10:02:00Z"}); err != nil {
+	if err := l3.Append(Entry{Tool: "t", Selector: "s=2", Caller: "s2", At: "2026-11-01T10:02:00Z"}); err != nil {
 		t.Fatalf("Append still refuses after repair: %v", err)
 	}
 	l4, err := Open(path)
@@ -188,6 +193,121 @@ func TestAppendRefusesTornTail(t *testing.T) {
 	}
 	if es := l4.Entries(); len(es) != 3 || es[2].Seq != 2 {
 		t.Fatalf("repair+append lost density: %+v", es)
+	}
+}
+
+// TestRequiredKeysLockstep mechanically locks the durable face's key table
+// to its two siblings (R4 M-1 — the table drifted once: selector was missing
+// while the comment claimed equality): schema/evidlog.schema.json's
+// entries.items.required list, the loader's requiredEntryKeys, and the Entry
+// struct's json tags (minus the omitempty optional) must agree as sets.
+func TestRequiredKeysLockstep(t *testing.T) {
+	schemaRaw, err := os.ReadFile(filepath.Join(filepath.Dir(SchemaPath), "evidlog.schema.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var schemaDoc struct {
+		Properties struct {
+			Entries struct {
+				Items struct {
+					Required []string `json:"required"`
+				} `json:"items"`
+			} `json:"entries"`
+		} `json:"properties"`
+	}
+	if err := json.Unmarshal(schemaRaw, &schemaDoc); err != nil {
+		t.Fatal(err)
+	}
+	schemaKeys := map[string]bool{}
+	for _, k := range schemaDoc.Properties.Entries.Items.Required {
+		schemaKeys[k] = true
+	}
+	loaderKeys := map[string]bool{}
+	for _, k := range requiredEntryKeys {
+		loaderKeys[k] = true
+	}
+	entryKeys := map[string]bool{}
+	et := reflect.TypeOf(Entry{})
+	for i := 0; i < et.NumField(); i++ {
+		tag := et.Field(i).Tag.Get("json")
+		name := strings.Split(tag, ",")[0]
+		if strings.Contains(tag, ",omitempty") {
+			continue // optional by construction
+		}
+		entryKeys[name] = true
+	}
+	for name, want := range map[string]map[string]bool{"schema required": schemaKeys, "Entry json tags": entryKeys} {
+		if !reflect.DeepEqual(loaderKeys, want) {
+			t.Fatalf("%s lockstep broken:\nloader  %v\n%s %v", name, sortedKeys(loaderKeys), name, sortedKeys(want))
+		}
+	}
+}
+
+func sortedKeys(m map[string]bool) []string {
+	ks := make([]string, 0, len(m))
+	for k := range m {
+		ks = append(ks, k)
+	}
+	sort.Strings(ks)
+	return ks
+}
+
+// TestCoverageTornTailNotGreen pins the verdict face of the torn-tail
+// contract (R4 M-2): on a log whose tail was skipped at load, CheckCoverage
+// must refuse a green verdict even when the visible entries match the
+// declaration — the skipped tail may hold an unaccounted query. TornTail
+// carries the reason so callers can distinguish it from a coverage miss.
+func TestCoverageTornTailNotGreen(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "evid.jsonl")
+	l, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"}); err != nil {
+		t.Fatal(err)
+	}
+	torn, _ := json.Marshal(Entry{Seq: 1, Tool: "bureau.q", Selector: "subj=hidden"})
+	if err := os.WriteFile(path, append(mustRead(t, path), torn[:len(torn)-5]...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	l2, err := Open(path) // tolerated at load, tail remembered
+	if err != nil {
+		t.Fatal(err)
+	}
+	rep := CheckCoverage(l2, Declaration{QueriedTool: "bank.fetch", Selector: "acct=1"})
+	if rep.OK {
+		t.Fatal("coverage verdict green on an incomplete record — the skipped tail is unblessed evidence")
+	}
+	if !rep.TornTail {
+		t.Fatalf("OK=false without the TornTail reason: %+v", rep)
+	}
+}
+
+// TestTornNullToleratedAtLoad pins the torn-tail position of the phantom
+// shapes (R4 m-5): a bare `null` at EOF WITHOUT a trailing newline is tail
+// garbage — tolerated at load, remembered as torn (Append must refuse), and
+// must stay tolerated if the loader is ever refactored.
+func TestTornNullToleratedAtLoad(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "evid.jsonl")
+	l, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, append(mustRead(t, path), 'n', 'u', 'l', 'l'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	l2, err := Open(path)
+	if err != nil {
+		t.Fatalf("null at the torn-tail position must be tolerated: %v", err)
+	}
+	if len(l2.Entries()) != 1 {
+		t.Fatalf("phantom entered the record: %d entries", len(l2.Entries()))
+	}
+	if err := l2.Append(Entry{Tool: "t", Selector: "s=1", Caller: "s2", At: "z"}); err == nil || !strings.Contains(err.Error(), "EVIDLOG.TORN_TAIL_BLOCKED") {
+		t.Fatalf("torn-tail memory lost on a null tail: %v", err)
 	}
 }
 

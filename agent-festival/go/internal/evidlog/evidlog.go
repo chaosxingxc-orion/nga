@@ -111,9 +111,14 @@ func (l *Log) Append(e Entry) error {
 			l.seq--
 			return err
 		}
+		renamed := false
+		defer func() {
+			if !renamed {
+				tmp.Close()
+				os.Remove(tmp.Name()) // no hidden .evid.jsonl.* residue on any failure path (R4 m-3)
+			}
+		}()
 		if _, err := tmp.Write(next); err != nil {
-			tmp.Close()
-			os.Remove(tmp.Name())
 			l.seq--
 			return err
 		}
@@ -125,6 +130,7 @@ func (l *Log) Append(e Entry) error {
 			l.seq--
 			return err
 		}
+		renamed = true
 	}
 	l.entries = append(l.entries, e)
 	return nil
@@ -146,6 +152,7 @@ type CoverageReport struct {
 	OK          bool
 	Missing     []string // selectors the declaration claims but the log lacks
 	Unaccounted []string // log entries the declaration does not cover — verdict-bearing: empties gate OK
+	TornTail    bool     // the log's tail was skipped at load: the record is incomplete — OK is forced false
 }
 
 // CheckCoverage verifies a declaration against the log: every claimed query
@@ -154,6 +161,15 @@ type CoverageReport struct {
 // hid something. In-band seqs make both sides pure set/density functions.
 func CheckCoverage(log *Log, decl Declaration) CoverageReport {
 	rep := CoverageReport{OK: true}
+	// A tolerated torn tail means the record is provably incomplete — the
+	// skipped tail may hold an unaccounted query. The verdict must never go
+	// green on it (R4 M-2: Append refuses to brick the file, and the verdict
+	// refuses to bless the gap — the same incompleteness, both consumers).
+	// The flag lands in the FINAL verdict assignment below, not here — an
+	// early OK=false would be clobbered by the Missing/Unaccounted clean-up.
+	if log.tornTail {
+		rep.TornTail = true
+	}
 	logHas := map[string]bool{}
 	for _, e := range log.Entries() {
 		k := e.Tool + "|" + e.Selector
@@ -178,8 +194,9 @@ func CheckCoverage(log *Log, decl Declaration) CoverageReport {
 	}
 	// OK requires BOTH directions clean: no claimed-but-absent query (Missing)
 	// and no queried-but-unlisted selector on the declared tool (a hidden
-	// exclusion — "沉默的零 vs 声明的零" are different audit facts)
-	rep.OK = len(rep.Missing) == 0 && len(rep.Unaccounted) == 0
+	// exclusion — "沉默的零 vs 声明的零" are different audit facts) — and a
+	// complete record: a torn tail forces false regardless of the diff.
+	rep.OK = !log.tornTail && len(rep.Missing) == 0 && len(rep.Unaccounted) == 0
 	return rep
 }
 
@@ -270,27 +287,51 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 			return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d is %q, not an entry object — a phantom entry must not enter the audit record", path, lineStart, string(line))
 		}
 		// Shape: a durable line must carry every required Entry field —
-		// seq/tool/at/caller (the envelope schema's required set). A
-		// `{"seq":1}`-style object that parses cleanly is still a phantom:
-		// it would enter the audit record and silently pass the density
-		// rule (R3 M1, phantom family).
-		missingKey := ""
-		for _, k := range []string{"seq", "tool", "at", "caller"} {
-			if _, has := doc[k]; !has {
-				missingKey = k
+		// seq/tool/selector/caller/at (the envelope schema's required set)
+		// with the string fields non-empty non-null strings (the schema's
+		// minLength:1; a present-but-null key would otherwise become an
+		// empty-string phantom). A `{"seq":1}`-style object that parses
+		// cleanly is still a phantom: it would enter the audit record and
+		// silently pass the density rule (R3 M1, phantom family). The key
+		// set is mechanically locked to the schema by
+		// TestRequiredKeysLockstep (R4 M-1: the loader table drifted from
+		// the schema once — selector was missing while the comment claimed
+		// equality).
+		badKey := ""
+		badWhy := ""
+		for _, k := range requiredEntryKeys {
+			v, has := doc[k]
+			if !has {
+				badKey, badWhy = k, "without"
 				break
 			}
+			if k != "seq" {
+				s, isStr := v.(string)
+				if !isStr || s == "" {
+					badKey, badWhy = k, "empty-or-null"
+					break
+				}
+			}
 		}
-		if missingKey != "" {
+		if badKey != "" {
 			if tornTail {
 				return lines, true, nil
 			}
-			return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d is an object without %q — a durable line is a full entry (seq/tool/at/caller), not a fragment", path, lineStart, missingKey)
+			if badWhy == "without" {
+				return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d is an object without %q — a durable line is a full entry (seq/tool/selector/caller/at), not a fragment", path, lineStart, badKey)
+			}
+			return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d has an empty or null %q — the envelope schema's minLength:1 rides the durable face too", path, lineStart, badKey)
 		}
 		lines = append(lines, parsedLine{Raw: line, Doc: doc, Event: e})
 	}
 	return lines, tornTail, nil
 }
+
+// requiredEntryKeys is the durable face's entry-shape contract, mechanically
+// locked to schema/evidlog.schema.json's required list and the Entry struct's
+// json tags by TestRequiredKeysLockstep. Order matches the schema's required
+// list; "seq" is the only non-string key (writer-allocated int).
+var requiredEntryKeys = []string{"seq", "tool", "selector", "caller", "at"}
 
 func contains(hay []string, needle string) bool {
 	for _, h := range hay {

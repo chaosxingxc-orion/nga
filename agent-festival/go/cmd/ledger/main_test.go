@@ -38,6 +38,6 @@ func TestManifestCheckGate(t *testing.T) {
 	cmd.Dir = root
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("manifest --check gate red:\n%s", out)
+		t.Fatalf("manifest --check gate red (err=%v):\n%s", err, out)
 	}
 }

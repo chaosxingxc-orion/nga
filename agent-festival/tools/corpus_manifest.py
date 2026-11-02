@@ -11,6 +11,7 @@ between the comment and the next section header. --check is the mechanical
 gate: the committed block was hand-edited once (R2 M2 — duplicate rows with
 drifted labels) and nothing caught it; --check must stay green on HEAD.
 """
+import re
 import sys
 from pathlib import Path
 
@@ -21,7 +22,10 @@ def _count(pattern: str) -> int:
     return len(list(Path("schema/examples").glob(pattern)))
 
 def manifest() -> str:
-    lines = []
+    # The header rows belong to the machine too (R4 m-1: delimited --check
+    # exposed that the old generator skipped them — the slot's first two rows
+    # were silently hand-maintained while the block claimed do-not-edit).
+    lines = ["| 族 | valid + invalid |", "|---|---|"]
     total = 0
     for fam in FAMILIES:
         base = Path("schema/examples") / fam
@@ -38,18 +42,31 @@ def manifest() -> str:
 
 def check() -> int:
     doc = DOC.read_text()
-    n = doc.count(manifest())
-    if n == 0:
-        print(f"[manifest] FAIL: the block in {DOC} does not match the regenerated "
-              f"manifest — hand-edited rows or a corpus change without a re-render. "
-              f"Fix: python3 tools/corpus_manifest.py > (paste between the "
-              f"corpus-manifest comment and the next section header).")
+    # Delimited parse (R4 m-1): the manifest slot lives between the
+    # corpus-manifest comment and the next section header. A stale SECOND
+    # block anywhere else — byte-identical or with drifted counts (the probe
+    # that beat the previous substring check) — must count as drift too.
+    m = re.search(r"<!-- corpus-manifest:.*?-->\n(.*?)(?=\n## )", doc, re.S)
+    if not m:
+        print(f"[manifest] FAIL: no corpus-manifest block found in {DOC} — "
+              f"the delimited slot (comment → next ## header) is missing.")
         return 1
+    if m.group(1).strip() != manifest():
+        print(f"[manifest] FAIL: the delimited block in {DOC} does not match the "
+              f"regenerated manifest — hand-edited rows or a corpus change "
+              f"without a re-render. Fix: python3 tools/corpus_manifest.py > "
+              f"(paste between the corpus-manifest comment and the next "
+              f"section header).")
+        return 1
+    # Sentinel count, not full-block count: a stale second block with DRIFTED
+    # counts (the probe that beat the substring check) never equals
+    # manifest(), but every manifest-shaped table carries the generator-only
+    # label 增长族合计 — a second occurrence is a duplicate, equal or not.
+    n = doc.count("| 增长族合计 |")
     if n > 1:
-        # R2 M2's disease form is duplicate rows; a stale SECOND block (R3
-        # m5 probe) must count as drift too, not pass on the good copy.
-        print(f"[manifest] FAIL: the regenerated manifest appears {n} times in "
-              f"{DOC} — a duplicate/stale block exists; keep exactly one.")
+        print(f"[manifest] FAIL: {n} manifest-shaped tables in {DOC} (sentinel "
+              f"增长族合计 seen {n} times) — a duplicate/stale block exists "
+              f"outside the slot; keep exactly one.")
         return 1
     print(f"[manifest] OK: committed block == regenerated manifest ({DOC})")
     return 0
