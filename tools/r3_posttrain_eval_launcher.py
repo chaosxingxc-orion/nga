@@ -305,6 +305,16 @@ def resource_op(p, op, attempt, name):
         command += ['--owner', 'R3 engineering dev inference', '--purpose', 'Frozen engineering development scoring; no candidate test']
     else:
         command += ['--container', name, '--claim', str(attempt / 'CLAIM.json')]
+    # A formal DEV successor carries a claim-time predecessor guard.  The
+    # precondition is created by the detached guard watcher and is passed to
+    # the resource adapter, which rechecks it under the allocation lock.
+    if op == 'claim' and p.get('successor_guard'):
+        precondition = Path(p['out']) / 'SUCCESSOR_PRECONDITION.json'
+        require(precondition.exists(), 'successor precondition missing')
+        execution = Path(p['out']) / 'execution.json'
+        require(load(execution) == p, 'guard execution changed')
+        command += ['--plan', str(execution), '--plan-sha256', sha(execution),
+                    '--precondition-sha256', sha(precondition)]
     subprocess.run(command, check=True)
 
 

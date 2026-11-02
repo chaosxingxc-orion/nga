@@ -687,7 +687,15 @@ def training_predecessor(job, resource):
 
     This is operational handoff evidence. Scientific/DEV eligibility is separate.
     """
-    target=plan(job); p=training_binding(job,target); ref=job['previous_training'];root=Path(p['out'])
+    target=plan(job); p=training_binding(job,target)
+    return training_predecessor_evidence(job['previous_training'], p, resource)
+
+
+def training_predecessor_evidence(ref, p, resource):
+    """Shared operational validator; callers first bind their target and edge."""
+    require(load(ref['plan'],ref['plan_raw_sha256']) == p
+            and identity(p) == ref['plan_sha256'], 'training evidence plan differs')
+    root=Path(p['out'])
     marker=root/'TRAIN_EXIT.json'
     if not marker.exists(): return None
     snap=Snapshot();snap.raw(ref['plan'],ref['plan_raw_sha256'])

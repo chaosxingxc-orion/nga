@@ -95,9 +95,15 @@ def successor_guard(args):
         raise RuntimeError('complete successor claim binding required')
     path, plan_pin, precondition_pin = values
     p = load(path)
-    canonical = (json.dumps(dict(p, review_sha256='PENDING'), indent=2, sort_keys=True) + '\n').encode()
-    if sha_bytes(canonical) != plan_pin:
-        raise RuntimeError('claim plan identity differs')
+    # Formal train-to-DEV packages use the ordinary raw execution-plan SHA;
+    # historical training successor plans use the older PENDING canonical form.
+    if p.get('successor_guard', {}).get('identity_mode') == 'sha256_raw':
+        if sha_bytes(read_bytes(path)) != plan_pin:
+            raise RuntimeError('claim plan identity differs')
+    else:
+        canonical = (json.dumps(dict(p, review_sha256='PENDING'), indent=2, sort_keys=True) + '\n').encode()
+        if sha_bytes(canonical) != plan_pin:
+            raise RuntimeError('claim plan identity differs')
     if (p.get('run') != args.run or p.get('chip') != args.chip or
             validated_path(p['allocation']) != validated_path(args.alloc) or
             Path(p['adapter']).resolve() != Path(__file__).resolve() or
@@ -105,7 +111,8 @@ def successor_guard(args):
             args.proof != str(Path(p['out']) / 'attempts/1/CLAIM.json')):
         raise RuntimeError('claim plan resource binding differs')
     controller = p.get('successor_guard', {}).get('controller')
-    if not controller or Path(controller).name != 'r3_formal_train_successor.py':
+    if not controller or Path(controller).name not in ('r3_formal_train_successor.py',
+                                                       'r3_formal_dev_successor.py'):
         raise RuntimeError('registered successor controller required')
     raw = read_bytes(controller)
     if p['files'].get(controller) != sha_bytes(raw):
