@@ -24,8 +24,21 @@ REPLAY_SCHEMA = json.loads((HERE / "replay-case.schema.json").read_text())
 
 def replay_errors(doc: dict) -> list[str]:
     v = jsonschema.Draft202012Validator(REPLAY_SCHEMA)
-    return [f"{'/'.join(str(p) for p in e.absolute_path) or '<root>'}: {e.message}"
+    errs = [f"{'/'.join(str(p) for p in e.absolute_path) or '<root>'}: {e.message}"
             for e in v.iter_errors(doc)]
+    if errs:
+        return errs
+    # 数值域章程 v2 literal gate (R16 A-M1): divergence_at is a business
+    # number — JSON Schema's integer type accepts 3.0 by value, the Go typed
+    # view rejects the literal; this rule makes both sides reject the same
+    # documents (json.loads yields float exactly for float syntax).
+    exp = doc.get("expected") or {}
+    da = exp.get("divergence_at")
+    if isinstance(da, float):
+        errs.append(f"[REPLAY.SEQ_FLOAT_SYNTAX] expected.divergence_at {da!r} is not an integer literal — "
+                    f"the divergence locator domain is integer; this package does no "
+                    f"float math (user ruling 2026-11-02)")
+    return errs
 
 
 def main() -> int:
@@ -34,8 +47,8 @@ def main() -> int:
     # D93 count-floor (the Go twin lives in cmd/replay/main_test.go)
     n_valid = len(list((ex / "valid").glob("*.json")))
     n_invalid = len(list((ex / "invalid").glob("*.json")))
-    if (n_valid, n_invalid) != (8, 7):
-        print(f"[replay] FAIL corpus count {n_valid}+{n_invalid} != pinned 8+7 (corpus count changed?)")
+    if (n_valid, n_invalid) != (8, 8):
+        print(f"[replay] FAIL corpus count {n_valid}+{n_invalid} != pinned 8+8 (corpus count changed?)")
         bad += 1
     return 1 if bad else 0
 

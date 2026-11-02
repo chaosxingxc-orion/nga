@@ -29,11 +29,9 @@ def evidlog_errors(doc: dict) -> list[str]:
             errs.append(f"[EVIDLOG.SEQ_FLOAT_SYNTAX] entries/{i}: seq {e['seq']!r} is not an integer literal — "
                         f"the counter domain is machine-written int64; this package does no "
                         f"float math (user ruling 2026-11-02)")
-            return errs
-        if isinstance(e["seq"], int) and (e["seq"] > 2 ** 63 - 1 or e["seq"] < -(2 ** 63)):
+        elif isinstance(e["seq"], int) and e["seq"] > 2 ** 63 - 1:
             errs.append(f"[EVIDLOG.SEQ_INT64_OVERFLOW] entries/{i}: seq {e['seq']} exceeds the int64 domain — "
                         f"the writer's counter domain; such a document is not machine-writable")
-            return errs
     # code rule: in-band seq must be dense and increasing (writer-allocated —
     # a gap is a foreign writer or a dropped entry; mirrors the Go checker)
     prev = -1

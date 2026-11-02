@@ -76,9 +76,6 @@ def ledger_errors(doc: dict) -> list[str]:
     if any(seqs[i] >= seqs[i + 1] for i in range(len(seqs) - 1)):
         errs.append(f"[LEDGER.SEQ_NOT_INCREASING] events: arbitration_seq must be strictly increasing, got {seqs} — "
                     f"the machine never repeats or rewinds an arbitration sequence")
-    if any(s > INT64_MAX for s in seqs):
-        errs.append("[LEDGER.SEQ_INT64_OVERFLOW] events: arbitration_seq exceeds the int64 domain — the machine's "
-                    "counter domain; such a document is not machine-writable")
     # cross-event rule: a payload digest is a function of the operation — the same
     # operation_id across idempotency entries must carry the same digest (15 B4:
     # 'changed payload under the same key' is a rejection, not a second opinion)
@@ -105,7 +102,7 @@ def ledger_errors(doc: dict) -> list[str]:
             errs.append(f"[LEDGER.SEQ_FLOAT_SYNTAX] events/{i}: arbitration_seq {seq!r} is not an integer literal — "
                         f"the counter domain is machine-written int64; this package does no "
                         f"float math (user ruling 2026-11-02)")
-        if isinstance(seq, int) and (seq > INT64_MAX or seq < -(2 ** 63)):
+        if isinstance(seq, int) and seq > INT64_MAX:
             errs.append(f"[LEDGER.SEQ_INT64_OVERFLOW] events/{i}: arbitration_seq {seq} exceeds the int64 domain — "
                         f"the machine's counter domain; such a document is not machine-writable")
 

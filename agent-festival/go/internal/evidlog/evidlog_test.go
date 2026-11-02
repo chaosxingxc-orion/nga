@@ -841,3 +841,30 @@ func TestUncuredBlankLineRefused(t *testing.T) {
 		t.Fatalf("refusal lacks the neutral key: %v", err)
 	}
 }
+
+// TestReturnedEntriesDoNotAliasState pins the copy contract (R16 B-M1,
+// adopt's TestPinIsNotCallerAliased family): mutating the slice returned
+// by Entries must not reach the log's internal state — an aliasing
+// regression would let an in-process caller forge CheckCoverage's verdict
+// (rewrite the unaccounted entry to the declaration's face → OK flips
+// true with zero durable bytes changing).
+func TestReturnedEntriesDoNotAliasState(t *testing.T) {
+	l := open(t)
+	l.Append(Entry{Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "a"})
+	l.Append(Entry{Tool: "bureau.q", Selector: "subj=x", Caller: "s2", At: "b"})
+	rep := CheckCoverage(l, Declaration{QueriedTool: "bank.fetch", Selector: "acct=1"})
+	if rep.OK {
+		t.Fatalf("baseline setup wrong: unaccounted entry not flagged: %+v", rep)
+	}
+	// forge attempt: rewrite the returned copy to the declaration's face
+	es := l.Entries()
+	es[1].Tool = "bank.fetch"
+	es[1].Selector = "acct=1"
+	if rep2 := CheckCoverage(l, Declaration{QueriedTool: "bank.fetch", Selector: "acct=1"}); rep2.OK {
+		t.Fatal("mutating the returned slice forged the coverage verdict — Entries aliases internal state")
+	}
+	// the pristine copy still reflects the true state
+	if es2 := l.Entries(); es2[1].Tool != "bureau.q" {
+		t.Fatalf("internal state was mutated through the returned slice: %+v", es2[1])
+	}
+}

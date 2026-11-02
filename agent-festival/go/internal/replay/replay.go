@@ -149,11 +149,11 @@ type Case struct {
 // LoadCase decodes a case document from its RAW map form, preserving BOTH
 // raw views. Boundary: the typed decode requires recorded_events to fit the
 // Event types — a record whose integers leave the int64-typed form (e.g.
-// float syntax like 5.0, which the ledger checker itself accepts under the
-// double charter) fails HERE with a decode error. That is the declared edge
-// between the format layer (Python accepts it) and the Go behavior layer
-// (refuses loudly) — a case fixture carrying such a record is out of the
-// Go corpus.
+// float syntax like 5.0, rejected by the ledger checker's literal gate since
+// the R16 数值域章程) fails HERE with a decode error; divergence_at
+// float syntax is rejected BEFORE the typed decode with the
+// REPLAY.SEQ_FLOAT_SYNTAX key so both oracles reject the same document
+// (R16 A-M1 — the Py schema face alone would accept it by value).
 // raw views: the recorded events' (for the conformance arm) and the case
 // document's own map (for schema validation — validating a typed
 // re-projection would launder unknown fields away, the same R2 lesson one
@@ -163,6 +163,18 @@ func LoadCase(doc map[string]any) (*Case, error) {
 	raw, err := json.Marshal(doc)
 	if err != nil {
 		return nil, err
+	}
+	// 数值域章程 v2 literal gate (R16 A-M1), BEFORE the typed decode: the
+	// typed view rejects float syntax without a neutral key, while the
+	// Python schema face accepts it by value — this gate makes both sides
+	// reject the same documents WITH the key. json.Number is guaranteed by
+	// the numbersSurvived discipline below.
+	if exp, ok := doc["expected"].(map[string]any); ok {
+		if n, ok := exp["divergence_at"].(json.Number); ok {
+			if _, err := n.Int64(); err != nil {
+				return nil, fmt.Errorf("[REPLAY.SEQ_FLOAT_SYNTAX] expected.divergence_at %s is not an integer literal — the divergence locator domain is integer; this package does no float math (user ruling 2026-11-02)", n.String())
+			}
+		}
 	}
 	var c Case
 	if err := json.Unmarshal(raw, &c); err != nil {

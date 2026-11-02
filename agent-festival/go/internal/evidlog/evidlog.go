@@ -40,7 +40,7 @@ var schema = schemalib.NewLazy(
 
 // Entry is one evidence-collection call.
 type Entry struct {
-	Seq       int    `json:"seq"`
+	Seq       int64  `json:"seq"`
 	Tool      string `json:"tool"`
 	Selector  string `json:"selector"`
 	Caller    string `json:"caller"`
@@ -60,7 +60,7 @@ type Entry struct {
 // re-check — this contract line follows it).
 type Log struct {
 	entries  []Entry
-	seq      int
+	seq      int64
 	path     string
 	tornTail bool // the durable form's tail was skipped at load — Append must refuse
 	opened   bool // Open only: a zero-value &Log{} never reaches the durable form (R10 m3 — the composite literal is legal outside the package, and a zero seq would violate dense-from-0)
@@ -80,7 +80,7 @@ func Open(path string) (*Log, error) {
 	// with a dropped line is exactly the "incomplete record" the coverage
 	// verdict must never go green on (R3 M1).
 	for i, ln := range lines {
-		if ln.Event.Seq != i {
+		if ln.Event.Seq != int64(i) {
 			return nil, fmt.Errorf("[EVIDLOG.SEQ_GAP] %s: entries/%d has seq %d, want %d — the durable form must stay dense (a gap is a dropped line or a foreign writer)", path, i, ln.Event.Seq, i)
 		}
 		l.entries = append(l.entries, ln.Event)
@@ -261,8 +261,18 @@ func (l *Log) Append(e Entry) error {
 	return nil
 }
 
-// Entries returns the log's entries.
-func (l *Log) Entries() []Entry { return l.entries }
+// Entries returns a COPY of the log's entries (R16 B-M1, adopt's
+// copyGrants/copyAccountability family): the returned slice must not alias
+// the log's internal state — an in-process caller that mutates it while
+// displaying/summarizing would otherwise forge CheckCoverage's verdict on
+// the same Log (declared entry rewritten to the declaration's face →
+// OK=false flips to true with zero durable bytes changing). Entry is a
+// flat struct of value types, so a slice copy is deep.
+func (l *Log) Entries() []Entry {
+	out := make([]Entry, len(l.entries))
+	copy(out, l.entries)
+	return out
+}
 
 // Declaration is a completeness claim from a sealed evidence package
 // (夏 ruling's field group).
@@ -362,7 +372,7 @@ func CheckDoc(doc map[string]any) []string {
 	if err := json.Unmarshal(raw, &d); err != nil {
 		return []string{"evidlog: decode failed: " + err.Error()}
 	}
-	prev := -1
+	prev := int64(-1)
 	for i, e := range d.Entries {
 		if e.Seq != prev+1 {
 			return []string{fmt.Sprintf("entries/%d: seq %d breaks the dense writer-allocated sequence (want %d) — a gap or a foreign writer", i, e.Seq, prev+1)}
@@ -599,7 +609,7 @@ func conformantLine(line []byte) bool {
 // form this package's writer emits) is a legal durable state; any float
 // syntax is !ok (R16 数值域章程). Int64 decoding is exact for the whole
 // int64 domain — no folding, no 2^53 boundary.
-func lastDurableSeq(existing []byte) (int, bool) {
+func lastDurableSeq(existing []byte) (int64, bool) {
 	for start := len(existing); start > 0; {
 		end := start
 		start = bytes.LastIndexByte(existing[:start-1], '\n') + 1
@@ -616,7 +626,7 @@ func lastDurableSeq(existing []byte) (int, bool) {
 		}
 		if n, isNum := doc["seq"].(json.Number); isNum {
 			if iv, err := n.Int64(); err == nil {
-				return int(iv), true
+				return int64(iv), true
 			}
 			return 0, false // 1.5, 1e2 — Int64 rejects both
 		}

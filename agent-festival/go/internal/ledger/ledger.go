@@ -190,9 +190,9 @@ func Errors(doc map[string]any) []string {
 		return []string{"schema: " + err.Error()}
 	}
 	// integer-literal domain (R16, user ruling): float-syntax seqs are
-	// rejected by rule BEFORE anything else — no normalization layer, no
-	// copy mutation contract (CheckDoc no longer rewrites the caller's
-	// document; the copyDoc above is retired with the normalization).
+	// rejected by rule BEFORE anything else — the normalization layer and
+	// the copyDoc that once lived in this function retired with it (R16
+	// 数值域章程; evidlog's CheckDoc rewrites retired the same day).
 	if errs := floatSyntax(doc); len(errs) > 0 {
 		return errs
 	}
