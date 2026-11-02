@@ -304,6 +304,10 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 		dec := json.NewDecoder(bytes.NewReader(line))
 		dec.UseNumber()
 		if dec.Decode(&doc) != nil {
+			// Defensively unreachable: the Entry unmarshal above already
+			// proved the line is valid JSON (an object or null), and both
+			// decode cleanly here. If this ever fires it means the decode
+			// paths diverged — treat it as the mid-file disease it would be.
 			if tornTail {
 				return lines, true, nil
 			}
@@ -315,13 +319,18 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 			}
 			return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d is %q, not an entry object — a phantom entry must not enter the audit record", path, lineStart, string(line))
 		}
-		// Shape: the durable face rides the schema's required set and its
-		// minLength:1 — and NOTHING else (R5 F5 declares the ride scope
-		// here, at the single shared gate): pattern (at's timestamp shape)
-		// and additionalProperties:false stay envelope-face-only. A
-		// `{"seq":1}`-style object that parses cleanly is still a phantom:
-		// it would enter the audit record and silently pass the density
-		// rule (R3 M1, phantom family).
+		// Shape: the durable face rides the schema's required set, its
+		// minLength:1 on the string fields, and seq's type:integer — and
+		// NOTHING else (R5 F5 declares the ride scope here, at the single
+		// shared gate; R8 fixed this declaration after the seq-type check
+		// made the old "required + minLength only" text false). pattern
+		// (at's timestamp shape) and additionalProperties:false stay
+		// envelope-face-only. Non-integer seq LITERALS never reach this gate
+		// — "seq":1e2 / 1.5 fail the Entry decode upstream as TYPE_MISMATCH;
+		// what the gate's number check actually guards is the null→Seq=0
+		// normalization. A `{"seq":1}`-style object that parses cleanly is
+		// still a phantom: it would enter the audit record and silently pass
+		// the density rule (R3 M1, phantom family).
 		if key, why := entryShapeError(doc); key != "" {
 			if tornTail {
 				return lines, true, nil
@@ -339,8 +348,10 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 // entryShapeError is the durable face's entry-shape contract, shared by the
 // writer (Append's pre-write gate) and the reader (loadLines) — one table,
 // both consumers, so neither side can drift from the other (R5 F1). It
-// checks required-key presence and non-empty string values only; the schema
-// ride scope is declared at the loadLines call site. Mechanically locked to
+// checks required-key presence, non-empty string values, and that seq is a
+// NUMBER (the schema ride scope is declared at the loadLines call site —
+// R8: the "presence + strings only" wording here went false when the
+// seq-type check landed). Mechanically locked to
 // schema/evidlog.schema.json's required list and the Entry struct's json
 // tags by TestRequiredKeysLockstep (R4 M-1: the loader table drifted from
 // the schema once — selector was missing while the comment claimed

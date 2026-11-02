@@ -119,12 +119,12 @@ func TestDurableSeqGapRejected(t *testing.T) {
 // position, per case and per EXPECTED KEY (R7: the previous loop asserted
 // one key for every case, so the TYPE_MISMATCH arm could be deleted and the
 // suite stayed green — each arm of the dispatch now has its own pin).
-// Legal-JSON-but-not-an-entry shapes (bare null, array, scalar, fragment
-// objects, missing/null/empty required strings) reject with
+// Legal-JSON-but-not-an-entry shapes (bare null, array, scalar, string,
+// bool, fragment objects, missing/null/empty required fields) reject with
 // EVIDLOG.NON_OBJECT_LINE; object rows whose field types mismatch the Entry
 // shape ("seq":"x", "tool":123) reject with EVIDLOG.TYPE_MISMATCH. At the
-// torn-tail position (EOF, no newline) all of them are tolerated as tail
-// garbage (pinned by TestTornNullToleratedAtLoad).
+// torn-tail position (EOF, no newline) all of these shapes are tolerated as
+// tail garbage — that face is pinned per-case by TestTornPhantomShapesTolerated.
 func TestNullLineRejected(t *testing.T) {
 	l1, _ := json.Marshal(Entry{Seq: 0, Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"})
 	l2, _ := json.Marshal(Entry{Seq: 1, Tool: "bureau.q", Selector: "subj=x", Caller: "s2", At: "2026-11-01T10:01:00Z"})
@@ -136,6 +136,8 @@ func TestNullLineRejected(t *testing.T) {
 		{"bare null", []byte(`null`), "EVIDLOG.NON_OBJECT_LINE"},
 		{"array line", []byte(`[1,2]`), "EVIDLOG.NON_OBJECT_LINE"},
 		{"scalar line", []byte(`42`), "EVIDLOG.NON_OBJECT_LINE"},
+		{"string line", []byte(`"hello"`), "EVIDLOG.NON_OBJECT_LINE"},
+		{"bool line", []byte(`true`), "EVIDLOG.NON_OBJECT_LINE"},
 		{"fragment with seq", []byte(`{"seq":9}`), "EVIDLOG.NON_OBJECT_LINE"},
 		{"missing caller", []byte(`{"seq":1,"tool":"x","selector":"r","at":"y"}`), "EVIDLOG.NON_OBJECT_LINE"},
 		{"missing selector", []byte(`{"seq":1,"tool":"x","caller":"s","at":"y"}`), "EVIDLOG.NON_OBJECT_LINE"},
@@ -320,6 +322,73 @@ func TestAppendRejectsUnwritableEntry(t *testing.T) {
 	}
 }
 
+// TestNullSeqFirstLineRejected pins the scenario the seq-type check exists
+// for (R8: the mid-file table case never exercises it — there the pre-fix
+// behavior was SEQ_GAP, not silent absorption): a `{"seq":null,...}` FIRST
+// line normalizes to Seq=0, so pre-fix the file loaded "fine" and the ghost
+// tool entered coverage accounting. The check must reject it at index 0.
+func TestNullSeqFirstLineRejected(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "evid.jsonl")
+	ghost := []byte(`{"seq":null,"tool":"ghost.tool","selector":"hidden=1","caller":"s2","at":"2026-11-01T10:00:00Z"}`)
+	l2, _ := json.Marshal(Entry{Seq: 1, Tool: "bureau.q", Selector: "subj=x", Caller: "s2", At: "2026-11-01T10:01:00Z"})
+	var body []byte
+	body = append(body, ghost...)
+	body = append(body, '\n')
+	body = append(body, l2...)
+	body = append(body, '\n')
+	if err := os.WriteFile(path, body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err == nil {
+		t.Fatal("null-seq ghost first line absorbed as Seq=0 — phantom doctrine violated at the exact index the check exists for")
+	} else if !strings.Contains(err.Error(), "EVIDLOG.NON_OBJECT_LINE") {
+		t.Fatalf("rejection lacks the neutral key: %v", err)
+	}
+}
+
+// TestTornPhantomShapesTolerated pins the torn-tail position for the whole
+// phantom family, per case (R8: the header comment of TestNullLineRejected
+// claimed "all of them tolerated, pinned by TestTornNullToleratedAtLoad"
+// while that test covered only bare null — the claim now matches the pin).
+// Every shape below, WITHOUT a trailing newline at EOF, is tolerated at
+// load (skipped), remembered as torn (Append refuses), and must stay
+// tolerated if the loader is ever refactored.
+func TestTornPhantomShapesTolerated(t *testing.T) {
+	cases := [][]byte{
+		[]byte(`null`),
+		[]byte(`[1,2]`),
+		[]byte(`"str"`),
+		[]byte(`42`),
+		[]byte(`{"seq":9}`),
+		[]byte(`{"seq":null,"tool":"x","selector":"r","caller":"s","at":"y"}`),
+		[]byte(`{"seq":"x","tool":"x","selector":"r","caller":"s","at":"y"}`),
+		[]byte(`{"seq":1,"tool":"x"}`),
+	}
+	for _, tail := range cases {
+		path := filepath.Join(t.TempDir(), "evid.jsonl")
+		l, err := Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := l.Append(Entry{Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"}); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, append(mustRead(t, path), tail...), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		l2, err := Open(path)
+		if err != nil {
+			t.Fatalf("tail %s: phantom shape at the torn-tail position must be tolerated: %v", tail, err)
+		}
+		if len(l2.Entries()) != 1 {
+			t.Fatalf("tail %s: phantom entered the record: %d entries", tail, len(l2.Entries()))
+		}
+		if err := l2.Append(Entry{Tool: "t", Selector: "s=1", Caller: "s2", At: "z"}); err == nil || !strings.Contains(err.Error(), "EVIDLOG.TORN_TAIL_BLOCKED") {
+			t.Fatalf("tail %s: torn-tail memory lost: %v", tail, err)
+		}
+	}
+}
+
 // TestCoverageTornTailNotGreen pins the verdict face of the torn-tail
 // contract (R4 M-2): on a log whose tail was skipped at load, CheckCoverage
 // must refuse a green verdict even when the visible entries match the
@@ -351,33 +420,9 @@ func TestCoverageTornTailNotGreen(t *testing.T) {
 	}
 }
 
-// TestTornNullToleratedAtLoad pins the torn-tail position of the phantom
-// shapes (R4 m-5): a bare `null` at EOF WITHOUT a trailing newline is tail
-// garbage — tolerated at load, remembered as torn (Append must refuse), and
-// must stay tolerated if the loader is ever refactored.
-func TestTornNullToleratedAtLoad(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "evid.jsonl")
-	l, err := Open(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := l.Append(Entry{Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"}); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, append(mustRead(t, path), 'n', 'u', 'l', 'l'), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	l2, err := Open(path)
-	if err != nil {
-		t.Fatalf("null at the torn-tail position must be tolerated: %v", err)
-	}
-	if len(l2.Entries()) != 1 {
-		t.Fatalf("phantom entered the record: %d entries", len(l2.Entries()))
-	}
-	if err := l2.Append(Entry{Tool: "t", Selector: "s=1", Caller: "s2", At: "z"}); err == nil || !strings.Contains(err.Error(), "EVIDLOG.TORN_TAIL_BLOCKED") {
-		t.Fatalf("torn-tail memory lost on a null tail: %v", err)
-	}
-}
+// (TestTornNullToleratedAtLoad from R4 m-5 was superseded by
+// TestTornPhantomShapesTolerated, whose per-case table includes the bare
+// null tail this test pinned alone.)
 
 func mustRead(t *testing.T, p string) []byte {
 	t.Helper()
