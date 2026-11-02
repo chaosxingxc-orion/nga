@@ -99,6 +99,6 @@
       }
     }
   ],
-  "_expect": "REJECT: arbitration_seq 9007199254740993.0 uses float syntax — integer literals only (user ruling 2026-11-02). The odd-twin folding narrative this fixture was born from (float64 folds 2^53+1 onto 2^53, both domains accept) is retired with the charter; the shape now rejects at the literal gate. The adjacent integer-literal twins (9007199254740993, 9007199254740992) stay pinned by seq-2e53-adjacent.json as an ORDER rejection.",
+  "_expect": "REJECT: arbitration_seq 9007199254740992.0 uses float syntax — integer literals only (user ruling 2026-11-02). The odd-twin folding narrative this fixture was born from (float64 folds 2^53+1 onto 2^53, both domains accept) is retired with the charter; the shape now rejects at the literal gate. The adjacent integer-literal twins (9007199254740993, 9007199254740992) stay pinned by seq-2e53-adjacent.json as an ORDER rejection.",
   "_expect_match": "LEDGER.SEQ_FLOAT_SYNTAX"
 }

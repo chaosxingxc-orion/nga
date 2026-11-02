@@ -8,7 +8,7 @@
 
 | 目录 | 内容 | 计数（D93 双侧钉） |
 |---|---|---|
-| `schema/examples/ledger/{valid,invalid}` | 事件账本文档 | 10 + 26 |
+| `schema/examples/ledger/{valid,invalid}` | 事件账本文档 | 8 + 28 |
 | `schema/examples/adoption/{valid,invalid}` | 采纳请求文档 | 2 + 5 |
 | `schema/examples/judgment/{valid,invalid}` | 判断规格文档 | 2 + 19 |
 | `schema/examples/release/{valid,invalid}` | 发布清单文档 | 3 + 14 |
@@ -66,9 +66,9 @@
 | Go | `cmd/{ledger,adopt,judgment,release,replay,compose,evidlog}`（santhosh+regexp2 经 internal/schemalib）+ 共享 runner `internal/suite` | `go run ./cmd/<name>` |
 
 （上表枚举以机生成 manifest 的七族为准——R13 B-m2：手写四族表曾把 evidlog/replay/compose 三族隐身。）
-**归一化规则同步义务（R13 F3）**：evidlog.normalizeSeqDomain 与 ledger.normalizeIntegralNumbers 是有意独立拷贝（evidlog 不 import ledger）——范围不同（evidlog 只归一 entries[].seq；ledger 全树）且 ledger 的 CheckDoc 对调用方 doc 做深拷贝保护而 evidlog 原地突变（各自合同）。同族语义漂移由共享夹具族（seq-float-syntax / seq-float-beyond-2e53 的双侧同命）钉住，非人工同步。
+**历史注记（R13 F3→R16 退役）**：归一化规则同步义务段（normalizeSeqDomain/normalizeIntegralNumbers 的独立拷贝与突变合同差异）随 v1 charter 一并退役——两函数已删，条目留此防考古误导。
 
-**数值域章程 v2（用户立法 2026-11-02，R16）**：本仓一切业务数值域**禁止 float/double**——必须 int/long 替代。JSON 整数字面量是唯一合法数字形态：写者只发（Go `int`/`int64` 字段序列化）、双侧 checker 只收（Go `json.Number.Int64()` 拒一切浮点语法 `[X.SEQ_FLOAT_SYNTAX]`；Python `isinstance(int)`——json.loads 恰好按字面量区分 int/float）、整数字面量超 int64 走 `[X.SEQ_INT64_OVERFLOW]`。JSON Schema 的 integer 类型按值判定会收 1.0——字面量门在 checker 层补位（schema pattern 无法表达：JSON Schema 的 pattern 只作用于 string 实例）。本章程废除 v1 double charter（曾以 RFC 8785 类推收容域内整值浮点语法——JCS 只管签名 payload，从未管过计数器域；归一化层与 ±2^53 子域规则随之整体退役）；旧 charter 时代的夹具（seq-float-syntax / seq-odd-float-twin 由 valid 转 invalid、seq-float-beyond-2e53 键族并入字面量门）保留为章程变更的行为钉。**唯一豁免**：`go/internal/rfc8785`（RFC 8785 JCS 签名规范化器——外部协议的数字序列化规则，非业务数值；是否连签名面一并清除待用户另行裁定）。
+**数值域章程 v2（用户立法 2026-11-02，R16）**：本仓一切业务数值域**禁止 float/double**——必须 int/long 替代。JSON 整数字面量是唯一合法数字形态：写者只发（Go `int`/`int64` 字段序列化）、双侧 checker 只收（Go `json.Number.Int64()` 拒一切浮点语法 `[X.SEQ_FLOAT_SYNTAX]`；Python `isinstance(int)`——json.loads 恰好按字面量区分 int/float）、整数字面量超 int64 走 `[X.SEQ_INT64_OVERFLOW]`。JSON Schema 的 integer 类型按值判定会收 1.0——字面量门在 checker 层补位（schema pattern 无法表达：JSON Schema 的 pattern 只作用于 string 实例）。本章程废除 v1 double charter（曾以 RFC 8785 类推收容域内整值浮点语法——JCS 只管签名 payload，从未管过计数器域；归一化层与 ±2^53 子域规则随之整体退役）；旧 charter 时代的夹具（seq-float-syntax / seq-odd-float-twin 由 valid 转 invalid、seq-float-beyond-2e53 键族并入字面量门）保留为章程变更的行为钉。**豁免清单（逐面显式，防隐含依赖）**：① `go/internal/rfc8785`（RFC 8785 JCS 签名规范化器——外部协议的数字序列化规则，非业务数值；是否连签名面一并清除待用户另行裁定）；② schema 引擎关键字域（Go validate 的 santhosh 与 Py jsonschema 的 number/integer 关键字实现——JSON Schema 规范语义按值判定，章程的「字面量门在 checker 层补位」正是骑在该按值行为之上；动引擎=动规范实现）。**待裁登记**：compose 的 amount 面仍是基座 v1 形态（整值浮点语法收容、docstring 引旧 charter）——用户裁定扩豁免或排期转换。
 关键纪律：
 - **checker 各自独立实现**（双验证器交叉是防单引擎语义漂移的机制），**harness 共享单源**（套件纪律不是被验语义）
 - 引擎 parity 立法：regexp 引擎用 .NET 语义（`$` 匹配尾换行前，与 Python re 一致）——Go 默认 RE2 会在 pattern 面分叉（基座 V3 MAJOR-1 教训）
