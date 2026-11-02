@@ -31,14 +31,15 @@ import (
 // JSON does not parse (the base's discipline).
 var expectMatchRe = regexp.MustCompile(`"_expect_match"\s*:\s*"([^"]*)"`)
 
-// Fixture is a loaded fixture document with its pins popped. Extra carries
-// loader-supplied piece-specific pins (e.g. compose's _expect_composed) —
-// the shared discipline owns the common pins, pieces own their extras.
+// Fixture is a loaded fixture document with its pins popped. The shared
+// discipline owns the common pins; piece-specific extras (compose's
+// _expect_composed) travel through the loader closure instead (R20 B-3:
+// the Extra field was born-dead — zero consumers, the Go compose checker
+// pins via WithLoader's captured map).
 type Fixture struct {
 	Doc         map[string]any
 	ExpectMatch string
 	ParseError  string
-	Extra       any
 }
 
 // Load reads a fixture and pops its _expect* pins. A document whose JSON
@@ -96,20 +97,13 @@ type Checker func(doc map[string]any) []string
 type Option func(*config)
 
 type config struct {
-	loader     func(path string) (*Fixture, error)
-	validExtra func(fx *Fixture) []string
+	loader func(path string) (*Fixture, error)
 }
 
 // WithLoader replaces the default Load (compose rides the frozen base's
 // rich loader: bare-NaN scan, surrogate scoping, regex pin extraction).
 func WithLoader(l func(path string) (*Fixture, error)) Option {
 	return func(c *config) { c.loader = l }
-}
-
-// WithValidExtra runs after a valid-phase fixture passes the checker —
-// piece-specific output pins (compose's composed-map comparison) live here.
-func WithValidExtra(h func(fx *Fixture) []string) Option {
-	return func(c *config) { c.validExtra = h }
 }
 
 // Run executes the two-phase suite over the example directories and returns
@@ -144,9 +138,6 @@ func Run(label, validDir, invalidDir string, check Checker, opts ...Option) int 
 			continue
 		}
 		errs := check(fx.Doc)
-		if len(errs) == 0 && cfg.validExtra != nil {
-			errs = cfg.validExtra(fx)
-		}
 		if len(errs) == 0 {
 			fmt.Printf("[%s] PASS must-accept %s\n", label, name)
 		} else {

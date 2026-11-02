@@ -7,7 +7,7 @@
 //
 // Deliberately NOT the piece-4 event ledger (the word-sense collision 夏's
 // ruling surfaced): the event book keeps business events (adoption/effect,
-// eight rule families, a state machine, replay); this log keeps
+// nine rule families, a state machine, replay); this log keeps
 // evidence-collection calls (append-only density, no state machine). Two
 // atoms, two logs. If a future need merges them, that is a new ruling, not a
 // refactor.

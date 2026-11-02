@@ -12,8 +12,9 @@ coupling, status families never
 crossing the event-type boundary, the grant pin riding the adopted event
 only, effect events carrying the adopted pin's attribution triple, and the
 single-writer event-sequence grammar (each operation opens with exactly
-one adopted event and its effect events follow the machine's transition
-DAG). Input discipline: documents come in as literal-preserving decoded maps
+one adopted event), and the per-operation transition order (each
+operation's effect events follow the machine's transition DAG — an
+independent family, R19). Input discipline: documents come in as literal-preserving decoded maps
 (json.loads: int for integer literals, float for float syntax) — the
 integer-literal rule keys off exactly that. A Go caller must decode with
 UseNumber (json.Number.Int64 = the same literal check). The

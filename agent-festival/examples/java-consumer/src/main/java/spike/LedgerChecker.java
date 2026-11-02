@@ -71,7 +71,7 @@ public final class LedgerChecker {
         return errs;
     }
 
-    // -- family 1+2: strictly increasing arbitration_seq, int64 domain ------
+    // -- rule 1+2: strictly increasing arbitration_seq, int64 domain ------
 
     private void ruleMonotonicSeq(List<ObjectNode> events, List<String> errs) {
         List<BigInteger> seqs = new ArrayList<>();
@@ -94,7 +94,7 @@ public final class LedgerChecker {
         }
     }
 
-    // -- family 3: one payload digest per operation id ----------------------
+    // -- rule 3: one payload digest per operation id ----------------------
 
     private void ruleDigestPerOperation(List<ObjectNode> events, List<String> errs) {
         Map<String, String> seen = new HashMap<>();
@@ -114,7 +114,7 @@ public final class LedgerChecker {
         }
     }
 
-    // -- family 4 (R16 数值域章程 v2): integer literals only — no float math -
+    // -- rule 4 (R16 数值域章程 v2): integer literals only — no float math -
     // The v1 ±2^53 sub-domain NOTE retired with the charter (it described the
     // folded-double decision domain, which no longer exists: the reference
     // oracles now read the LITERAL — Go json.Number.Int64(), Python
@@ -138,7 +138,7 @@ public final class LedgerChecker {
         }
     }
 
-    // -- family 5: status families never cross the event-type boundary ------
+    // -- rule 5: status families never cross the event-type boundary ------
 
     private void ruleStatusFamilies(List<ObjectNode> events, List<String> errs) {
         for (int i = 0; i < events.size(); i++) {
@@ -157,7 +157,7 @@ public final class LedgerChecker {
         }
     }
 
-    // -- family 6: the grant pin rides the adopted event only ---------------
+    // -- rule 6: the grant pin rides the adopted event only ---------------
 
     private void ruleGrantPinRidesAdopted(List<ObjectNode> events, List<String> errs) {
         for (int i = 0; i < events.size(); i++) {
@@ -173,7 +173,7 @@ public final class LedgerChecker {
         }
     }
 
-    // -- family 7: per-operation transition order mirrors the machine DAG ---
+    // -- rule 7: per-operation transition order mirrors the machine DAG ---
 
     private void ruleTransitionDag(List<ObjectNode> events, List<String> errs) {
         Map<String, String> state = new HashMap<>();
@@ -218,7 +218,7 @@ public final class LedgerChecker {
                 + "transition — a bypass write into the ledger, not a machine transition";
     }
 
-    // -- family 8: idempotency presence, bidirectional ----------------------
+    // -- rule 8: idempotency presence, bidirectional ----------------------
 
     private void ruleIdempotencyPresence(List<ObjectNode> events, List<String> errs) {
         for (int i = 0; i < events.size(); i++) {
@@ -242,7 +242,7 @@ public final class LedgerChecker {
         }
     }
 
-    // -- family 9: idempotency.operation_id == identity.operation_id --------
+    // -- rule 9: idempotency.operation_id == identity.operation_id --------
 
     private void ruleKeyCoupling(List<ObjectNode> events, List<String> errs) {
         for (int i = 0; i < events.size(); i++) {
@@ -259,7 +259,7 @@ public final class LedgerChecker {
         }
     }
 
-    // -- family 10: effect attribution == the adopted pin --------------------
+    // -- rule 10: effect attribution == the adopted pin --------------------
 
     private void ruleAttribution(List<ObjectNode> events, List<String> errs) {
         Map<String, String> pins = new HashMap<>();
@@ -286,7 +286,7 @@ public final class LedgerChecker {
                 + "\u0000" + e.path("accountability").toString();
     }
 
-    // -- family 11: single-writer event-sequence grammar ---------------------
+    // -- rule 11: single-writer event-sequence grammar ---------------------
 
     private void ruleSingleWriterGrammar(List<ObjectNode> events, List<String> errs) {
         Set<String> adopted = new HashSet<>();

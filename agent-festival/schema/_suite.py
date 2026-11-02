@@ -61,13 +61,7 @@ def load_extras(path: Path, extra_keys: tuple = ()):
     return doc, match, extras, None
 
 
-def run_suite(label: str, valid_dir: Path, invalid_dir: Path, errors) -> int:
-    """Run the two-phase suite; returns the failure count (0 = green)."""
-    valid = sorted(valid_dir.glob("*.json"))
-    invalid = sorted(invalid_dir.glob("*.json"))
-    if not valid or not invalid:
-        print(f"[{label}] suite incomplete: need at least one valid and one invalid example")
-        return 1
+def _default_valid_phase(label: str, valid, errors) -> int:
     bad = 0
     for f in valid:
         doc, _, err = load(f)
@@ -83,6 +77,29 @@ def run_suite(label: str, valid_dir: Path, invalid_dir: Path, errors) -> int:
             bad += 1
         else:
             print(f"[{label}] PASS must-accept {f.name}")
+    return bad
+
+
+def run_suite(label: str, valid_dir: Path, invalid_dir: Path, errors, valid_phase=None) -> int:
+    """Run the two-phase suite; returns the failure count (0 = green).
+
+    valid_phase (R20 A-2, the Go twin's WithLoader form): optional callable
+    (sorted valid paths) -> failure count replacing the default
+    must-accept loop — for the one family whose valid face carries extra
+    pinned assertions (compose's _expect_composed). The INVALID loop is
+    never overridable: it is the lockstep-danger face (ac4585b dropped a
+    wrong-typed branch in a hand-copied one — R2 m-3's original disease),
+    so it stays single-sourced here.
+    """
+    valid = sorted(valid_dir.glob("*.json"))
+    invalid = sorted(invalid_dir.glob("*.json"))
+    if not valid or not invalid:
+        print(f"[{label}] suite incomplete: need at least one valid and one invalid example")
+        return 1
+    if valid_phase is not None:
+        bad = valid_phase(valid)
+    else:
+        bad = _default_valid_phase(label, valid, errors)
     for f in invalid:
         doc, match, err = load(f)
         name = f.name
@@ -106,9 +123,8 @@ def run_suite(label: str, valid_dir: Path, invalid_dir: Path, errors) -> int:
     return bad
 
 
-def main(label: str, valid_dir: Path, invalid_dir: Path, errors) -> int:
-    bad = run_suite(label, valid_dir, invalid_dir, errors)
-    return 1 if bad else 0
+# (main() retired R20 A-3: born-dead wrapper — the six simple oracles call
+# run_suite directly and compose has its own runner; grep 全史零调用者)
 
 
 def _self_test() -> bool:

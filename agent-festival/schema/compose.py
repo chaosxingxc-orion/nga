@@ -462,41 +462,34 @@ def composed_mismatches(composed: dict, expected: dict) -> list[str]:
 
 
 def run_suite(valid_dir: Path, invalid_dir: Path) -> int:
-    valid, invalid = sorted(valid_dir.glob("*.json")), sorted(invalid_dir.glob("*.json"))
-    if not valid or not invalid:
-        print("[compose] suite incomplete: need at least one valid and one invalid example")
-        return 1
-    bad = 0
-    for f in valid:
-        doc, _, expected, parse_error = load(f)
-        errs, composed = ([parse_error], None) if parse_error else compose_errors(doc)
-        if composed and not errs and expected:
-            errs = composed_mismatches(composed, expected)
-        print(f"[compose] {'PASS' if not errs else 'FAIL'} must-accept {f.name}")
-        for e in errs:
-            print(f"      {e}")
-        if composed and not errs:
-            print(f"      requires(G)={len(composed['requires'])} atoms effects={composed['effects']} "
-                  f"bounds={jsonable_bounds(composed['bounds'])}")
-        bad += bool(errs)
-    for f in invalid:
-        doc, match, _, parse_error = load(f)
-        if doc is not None and parse_error:
-            # wrong-typed pin (doc parsed, pin unreadable) — the V28 F-1
-            # face: FAIL loud, never a silent PASS (mirrors _suite.run_suite)
-            print(f"[compose] FAIL must-reject {f.name}  ({parse_error} — an unreadable pin cannot verify the rejection)")
-            bad += 1
-            continue
-        errs = [parse_error] if parse_error else compose_errors(doc)[0]
-        if not errs:
-            print(f"[compose] FAIL must-reject {f.name}  (was accepted!)")
-            bad += 1
-        elif match and not any(match in e for e in errs):
-            print(f"[compose] FAIL must-reject {f.name}  (rejected for the wrong reason: {errs[0]!r} lacks {match!r})")
-            bad += 1
-        else:
-            print(f"[compose] PASS must-reject {f.name}  ({errs[0]})")
-    print(f"[compose] {len(valid)} must-accept + {len(invalid)} must-reject, {bad} failures")
+    # R20 A-2: the INVALID loop + summary ride the shared harness
+    # single-source (_suite.run_suite) — the lockstep-danger face the
+    # hand-copied copy once dropped a wrong-typed branch in (ac4585b).
+    # The VALID loop stays family-local as a valid_phase hook: the
+    # _expect_composed pin comparison is compose's extra valid face (the
+    # Go twin implements its own post-loop for the same reason).
+    def compose_valid_phase(valid):
+        bad = 0
+        for f in valid:
+            doc, _, expected, parse_error = load(f)
+            errs, composed = ([parse_error], None) if parse_error else compose_errors(doc)
+            if composed and not errs and expected:
+                errs = composed_mismatches(composed, expected)
+            print(f"[compose] {'PASS' if not errs else 'FAIL'} must-accept {f.name}")
+            for e in errs:
+                print(f"      {e}")
+            if composed and not errs:
+                print(f"      requires(G)={len(composed['requires'])} atoms effects={composed['effects']} "
+                      f"bounds={jsonable_bounds(composed['bounds'])}")
+            bad += bool(errs)
+        return bad
+
+    def compose_errors_list(doc):
+        return compose_errors(doc)[0]
+
+    bad = _suite.run_suite("compose", valid_dir, invalid_dir, compose_errors_list,
+                           valid_phase=compose_valid_phase)
+    valid = sorted(valid_dir.glob("*.json"))
     return bad + run_guard_suite(valid[0])
 
 

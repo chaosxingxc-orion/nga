@@ -457,11 +457,11 @@ func (m *Machine) append(ev *ledger.Event) error {
 	// guilty caller, instead of emitting a false success that poisons the
 	// file for the next Open (probes: sequential stale write, stale double
 	// dispatch — both silently "succeeded" pre-gate).
-	want := 0
+	want := int64(0)
 	if len(parsed) > 0 {
-		want = int(parsed[len(parsed)-1].Event.ArbitrationSeq) + 1
+		want = parsed[len(parsed)-1].Event.ArbitrationSeq + 1
 	}
-	if int(ev.ArbitrationSeq) != want {
+	if ev.ArbitrationSeq != want {
 		return fmt.Errorf("[ADOPT.STALE_WRITER] %s: append refused — the durable form's last seq is %d but this instance is about to write %d; the Open-time view is stale (foreign or stale-instance write). Re-Open to absorb the file, then decide", m.path, want-1, ev.ArbitrationSeq)
 	}
 	next := make([]byte, 0, len(existing)+len(line)+1)

@@ -20,7 +20,7 @@
 //
 // The two verdicts are separate contracts (legacy 12号 §3 tail semantics):
 // fidelity — did recomputation reproduce the record? conformance — does the
-// record itself pass the ledger's eight rule families? All four quadrants
+// record itself pass the ledger's nine rule families? All four quadrants
 // are legal outcomes; a replay of a recorded violation is fidelity-match +
 // conformance-fail. No ecosystem precedent defines the double-verdict
 // runner output contract — this package is that contract's first machine
