@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate replay-case fixtures (piece 6 oracle, Python side — FORMAT ONLY).
+"""Validate replay-case fixtures (piece 6 oracle, Python side — FORMAT ONLY: schema + the R16 charter numeric-literal rule, the one charter-sourced format rule; see replay_errors).
 
 Per the collision ruling (E): the Python oracle drives ONLY from the
 machine-readable replay-case.schema.json (schema-as-source). Any behavioral

@@ -868,3 +868,30 @@ func TestReturnedEntriesDoNotAliasState(t *testing.T) {
 		t.Fatalf("internal state was mutated through the returned slice: %+v", es2[1])
 	}
 }
+
+// TestForeignDuplicateSeqPassesGate pins the declared "necessary, not
+// sufficient" boundary arm (R17 B-3): a foreign line that duplicates the
+// current last seq with an integer LITERAL passes the arithmetic
+// inspection (Append returns nil — a false success by design), and the
+// next Open catches it as SEQ_GAP. The comment contract at the gate stays
+// mechanically verified instead of declared-only.
+func TestForeignDuplicateSeqPassesGate(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "evid.jsonl")
+	l, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	l.Append(Entry{Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "a"})
+	l.Append(Entry{Tool: "bureau.q", Selector: "subj=x", Caller: "s2", At: "b"})
+	// foreign writer appends a duplicate of the last line (integer literal)
+	if err := os.WriteFile(path, append(mustRead(t, path), mustRead(t, path)...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "t", Selector: "s=2", Caller: "s2", At: "c"}); err != nil {
+		t.Fatalf("the declared passthrough arm rejected — boundary contract changed: %v", err)
+	}
+	if l2, err := Open(path); err == nil {
+		_ = l2
+		t.Fatal("next Open accepted a duplicated-seq file — the fail-loud catch is gone")
+	}
+}

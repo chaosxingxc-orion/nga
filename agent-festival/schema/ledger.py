@@ -228,7 +228,9 @@ def ledger_errors(doc: dict) -> list[str]:
                             f"precedes its adopted event — a bypass write into the ledger, "
                             f"not a machine transition")
         elif op not in adopted:
-            errs.append(f"events/{i}: effect event for operation {op!r} precedes its adopted "
+            # (R17 B-1: the Go twin's effect branch carries the neutral key —
+            # this was the one unkeyed mirror in the digit-aware key diff)
+            errs.append(f"[LEDGER.EVENT_BEFORE_ADOPTION] events/{i}: effect event for operation {op!r} precedes its adopted "
                         f"event — a bypass write into the ledger, not a machine transition")
     return errs
 

@@ -50,6 +50,12 @@ type Entry struct {
 
 // Log is an in-memory evidence log; Open attaches the durable form.
 //
+// Concurrency contract (R17 B-2, adopt's declared form): NOT safe for
+// concurrent use — one goroutine drives the writer (adopt serializes under
+// its machine lock; this log relies on the same single-writer discipline
+// without taking a lock — concurrent Append is a data race on seq/entries
+// even when the durable gates happen to refuse).
+//
 // Single-instance contract (R10 MAJOR-1, mirroring adopt.Machine): at most
 // ONE Log instance per file. entries/tornTail are the Open-time view — a
 // foreign writer's appends WHILE a Log is open are outside the contract:
