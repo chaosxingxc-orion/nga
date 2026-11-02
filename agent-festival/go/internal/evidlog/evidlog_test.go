@@ -607,6 +607,21 @@ func TestAppendRechecksEvolvingTail(t *testing.T) {
 	} else if !strings.Contains(err.Error(), "EVIDLOG.STALE_SEQ") {
 		t.Fatalf("erase-face refusal lacks the neutral key: %v", err)
 	}
+	// truncation-preserving fractional seq (R11 inner MINOR-1): a foreign
+	// 1.5-seq line used to truncate to 1 and pass the continuity arm when
+	// the view's next write was 2 — lastDurableSeq must report !ok for
+	// non-integer seq so the precise !ok arm fires.
+	if err := os.WriteFile(path, cleanOpenState, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, append(mustRead(t, path), []byte(`{"seq":1.5,"tool":"frac.q","selector":"f","caller":"s2","at":"x"}`+"\n")...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "t", Selector: "s=2", Caller: "s2", At: "z"}); err == nil {
+		t.Fatal("fractional foreign seq passed the continuity arm via truncation")
+	} else if !strings.Contains(err.Error(), "EVIDLOG.STALE_SEQ") {
+		t.Fatalf("fractional-seq refusal lacks the neutral key: %v", err)
+	}
 	// legal face: a CONFORMANT last line without a newline survives splicing
 	// — reset the file to the clean Open-time content first (the garbage
 	// tail above would fuse with the appended line into one diseased line,

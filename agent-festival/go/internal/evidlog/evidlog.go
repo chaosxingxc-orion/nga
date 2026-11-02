@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"unicode/utf8"
@@ -165,9 +166,10 @@ func (l *Log) Append(e Entry) error {
 		// non-empty file OR any e.Seq above 0 (an emptied file plus a
 		// non-fresh view is the erase face of the same disease — R11 inner
 		// MAJOR-1). Honest boundary: the gate is necessary, not sufficient —
-		// a foreign line that PRESERVES the seq arithmetic (e.g. a duplicate
-		// of the current last seq) passes arithmetic inspection and is left
-		// to the next Open's density check to catch.
+		// a foreign line that PRESERVES the seq arithmetic (a duplicate of
+		// the current last seq, or a truncation-preserving fractional seq
+		// like 1.5 with the next view at 2) passes arithmetic inspection
+		// and is left to the next Open's checks to catch.
 		if len(existing) > 0 || e.Seq > 0 {
 			lastSeq, ok := lastDurableSeq(existing)
 			if !ok {
@@ -513,7 +515,15 @@ func lastDurableSeq(existing []byte) (int, bool) {
 		// plain Unmarshal produces float64 for numbers (json.Number would
 		// need UseNumber, which this path does not use) — the json.Number
 		// case below was dead code and is gone (R11 inner MINOR-3).
+		// A non-integer seq (1.5 / 1e2 literals are the only way one gets
+		// here — the loader rejects them upstream) is never a legal durable
+		// state: report !ok so the caller's precise arm fires instead of a
+		// silently truncated comparison (R11 inner MINOR-1 — the
+		// truncation-preserving blind spot).
 		if f, isNum := doc["seq"].(float64); isNum {
+			if f != math.Trunc(f) {
+				return 0, false
+			}
 			return int(f), true
 		}
 		return 0, false
