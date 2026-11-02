@@ -577,6 +577,19 @@ func TestAppendRechecksEvolvingTail(t *testing.T) {
 	} else if !strings.Contains(err.Error(), "EVIDLOG.TORN_TAIL_BLOCKED") {
 		t.Fatalf("evolved-tail refusal lacks the neutral key: %v", err)
 	}
+	// foreign VALID line (with newline) AFTER Open (R11 singularity): the
+	// splice would fix a duplicate seq into the file — the seq-continuity
+	// re-check must refuse in the guilty caller (STALE_SEQ), not let the
+	// next Open find the gap. The file then goes back to cleanOpenState for
+	// the legal face below.
+	if err := os.WriteFile(path, append(mustRead(t, path), []byte("{\"seq\":1,\"tool\":\"ghost.q\",\"selector\":\"g\",\"caller\":\"s2\",\"at\":\"x\"}\n")...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "t", Selector: "s=1", Caller: "s2", At: "z"}); err == nil {
+		t.Fatal("stale instance wrote a duplicate seq — false success poisoning the durable form")
+	} else if !strings.Contains(err.Error(), "EVIDLOG.STALE_SEQ") {
+		t.Fatalf("stale-seq refusal lacks the neutral key: %v", err)
+	}
 	// legal face: a CONFORMANT last line without a newline survives splicing
 	// — reset the file to the clean Open-time content first (the garbage
 	// tail above would fuse with the appended line into one diseased line,

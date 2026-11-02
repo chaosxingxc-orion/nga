@@ -1623,3 +1623,37 @@ func TestReturnedEventGrantsDoNotAliasPin(t *testing.T) {
 		t.Fatalf("dispatch with covering live set = %q, want dispatched: %s", d.Status, d.Detail)
 	}
 }
+
+// TestStaleInstanceWriteRejected pins the write-time seq-continuity gate
+// (R11 MAJOR, probe S1 promoted): a stale instance's append — one whose
+// Open-time view predates another instance's durable write — is a false
+// success that poisons the file for the next Open. The gate must refuse it
+// in the guilty caller (ADOPT.STALE_WRITER) instead. The legal faces are
+// pinned by TestCrashRecoveryTornTail / TestHealKeepsNoTrailingNewlineEvent:
+// recovery re-Open, torn-tail healing and no-newline survivors all carry
+// seq == lastParsed+1 and pass by construction.
+func TestStaleInstanceWriteRejected(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m1 := mustOpen(t, path)
+	if o := m1.Adopt(testRequest("op-a", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("m1 adopt = %q", o.Status)
+	}
+	// a second instance absorbs the file and writes its own event
+	m2 := mustOpen(t, path)
+	if o := m2.Adopt(testRequest("op-b", digestB, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("m2 adopt = %q", o.Status)
+	}
+	// the STALE m1 (its view ends at seq 0) writes again: the gate must
+	// refuse — pre-gate this emitted a duplicate seq 1 and bricked the file
+	o := m1.Adopt(testRequest("op-c", digestA, pinGrants()))
+	if o.Status != "rejected" {
+		t.Fatalf("stale write succeeded with %q — false success poisoning the durable form", o.Status)
+	}
+	if m3, err := Open(path); err != nil {
+		t.Fatalf("file poisoned by the stale write: %v", err)
+	} else if m3.State("op-a") != StateAdopted || m3.State("op-b") != StateAdopted {
+		t.Fatalf("legal events lost: op-a=%v op-b=%v", m3.State("op-a"), m3.State("op-b"))
+	} else if s := m3.State("op-c"); s == StateAdopted {
+		t.Fatalf("stale write leaked into the durable form: op-c=%v", s)
+	}
+}

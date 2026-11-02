@@ -84,10 +84,18 @@ type Outcome struct {
 	Event  *ledger.Event
 }
 
+// A zero-value Machine is not usable (Adopt would panic on the nil ops
+// map) — Open is the only constructor. The panic is loud, not silent: the
+// zero value can never reach the durable form (R11 MINOR-b, evidlog-m3's
+// adopt-side cousin — noisier but structurally the same statement).
+//
 // Machine is the adoption gate. Use Open to attach a durable JSONL file.
 // The durable form supports at most ONE Machine instance per file: the
 // rewrite is read-rebuild-rename under this instance's lock only — a second
-// instance on the same path interleaves renames and silently loses events
+// instance on the same path would interleave renames and silently lose
+// events, and a STALE instance's write is a false success that poisons the
+// file (detectable at the next Open) — since R11 the write-time
+// ADOPT.STALE_WRITER gate rejects it in the guilty caller instead
 // (contract-external use; a crashed process leaves at most one live
 // instance, and restart goes through Open again).
 type Machine struct {
@@ -437,6 +445,24 @@ func (m *Machine) append(ev *ledger.Event) error {
 	parsed, err := ledger.ParseLines(existing)
 	if err != nil {
 		return err
+	}
+	// Write-time seq-continuity gate (R11 MAJOR — the counterpart of
+	// evidlog's R10 face-B re-check): the Open-time view may be stale after
+	// an out-of-band or stale-instance write. Under the machine's
+	// strictly-increasing seq the last parsed event must be exactly this
+	// event's predecessor — every legal path (14-A5 crash-recovery
+	// re-Open, torn-tail healing, a surviving no-newline complete line)
+	// passes by construction; the ONLY thing this gate can reject is a
+	// write whose view of the file is stale, and it fails HERE, in the
+	// guilty caller, instead of emitting a false success that poisons the
+	// file for the next Open (probes: sequential stale write, stale double
+	// dispatch — both silently "succeeded" pre-gate).
+	want := 0
+	if len(parsed) > 0 {
+		want = int(parsed[len(parsed)-1].Event.ArbitrationSeq) + 1
+	}
+	if int(ev.ArbitrationSeq) != want {
+		return fmt.Errorf("[ADOPT.STALE_WRITER] %s: append refused — the durable form's last seq is %d but this instance is about to write %d; the Open-time view is stale (foreign or stale-instance write). Re-Open to absorb the file, then decide", m.path, want-1, ev.ArbitrationSeq)
 	}
 	next := make([]byte, 0, len(existing)+len(line)+1)
 	for _, l := range parsed {

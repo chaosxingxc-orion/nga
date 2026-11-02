@@ -156,6 +156,20 @@ func (l *Log) Append(e Entry) error {
 				return fmt.Errorf("[EVIDLOG.TORN_TAIL_BLOCKED] %s: the durable form now ends in a torn tail the Open-time view did not see — appending would brick the log; repair the tail first", l.path)
 			}
 		}
+		// Seq-continuity re-check (R11 singularity — the evidlog side of
+		// adopt's ADOPT.STALE_WRITER gate, completing the three-piece
+		// symmetry): even a VALID foreign line appended after Open would be
+		// spliced into a duplicate/gap seq below. The last durable seq must
+		// be exactly e.Seq-1; anything else is an out-of-band write and
+		// fails here, in the guilty caller. Empty file: last seq is -1 and
+		// e.Seq is 0 — passes.
+		if len(existing) > 0 {
+			lastSeq, ok := lastDurableSeq(existing)
+			if !ok || lastSeq+1 != e.Seq {
+				l.seq--
+				return fmt.Errorf("[EVIDLOG.STALE_SEQ] %s: append refused — the durable form's last seq is %d but this instance is about to write %d; the Open-time view is stale (foreign or stale-instance write). Re-Open to absorb the file, then decide", l.path, lastSeq, e.Seq)
+			}
+		}
 		var next []byte
 		if len(existing) > 0 {
 			next = append(bytes.TrimRight(existing, "\n"), '\n')
@@ -468,6 +482,36 @@ func conformantLine(line []byte) bool {
 	}
 	k, _ := entryShapeError(doc)
 	return k == ""
+}
+
+// lastDurableSeq extracts the seq of the last non-empty line in the durable
+// form (ok=false when no such line exists or the line carries no numeric
+// seq — the caller refuses on !ok). Used by Append's seq-continuity
+// re-check (R11).
+func lastDurableSeq(existing []byte) (int, bool) {
+	for start := len(existing); start > 0; {
+		end := start
+		start = bytes.LastIndexByte(existing[:start-1], '\n') + 1
+		line := existing[start:end]
+		line = bytes.TrimSuffix(line, []byte("\n"))
+		if len(line) == 0 {
+			continue
+		}
+		var doc map[string]any
+		if json.Unmarshal(line, &doc) != nil || doc == nil {
+			return 0, false
+		}
+		switch v := doc["seq"].(type) {
+		case json.Number:
+			if n, err := v.Int64(); err == nil {
+				return int(n), true
+			}
+		case float64:
+			return int(v), true
+		}
+		return 0, false
+	}
+	return 0, false
 }
 
 // requiredEntryKeys is the shape table above; order matches the schema's
