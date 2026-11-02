@@ -10,6 +10,44 @@ Q=importlib.util.module_from_spec(s);s.loader.exec_module(Q)
 
 
 class CPUQueueTests(unittest.TestCase):
+    def test_parallel_limit_rejects_unbounded_or_noninteger_settings(self):
+        self.assertEqual(Q.parallel_limit({}), 1)
+        for value in (0, -1, 9, True, 2.0, '2', None):
+            with self.subTest(value=value), self.assertRaises(RuntimeError):
+                Q.parallel_limit({'max_parallel_jobs': value})
+
+    def test_parallel_ready_jobs_respect_capacity_and_dependency_wait(self):
+        jobs = [dict(self.job, id=name, output=str(self.root/(name+'.json')))
+                for name in ('one', 'two', 'three', 'compare')]
+        doc = dict(self.doc, jobs=jobs, max_parallel_jobs=2)
+        with patch.object(Q, 'observe', side_effect=[{'status':'ready'}]*3 +
+                          [{'status':'waiting_reports'}]), \
+                patch.object(Q.subprocess, 'Popen', side_effect=[Mock(pid=51), Mock(pid=52)]) as spawn:
+            states = Q.tick(self.path, self.pin, doc)
+        self.assertEqual(spawn.call_count, 2)
+        self.assertEqual([c.args[0][-1] for c in spawn.call_args_list], ['one', 'two'])
+        self.assertEqual(states['three']['status'], 'ready')
+        self.assertEqual(states['compare']['status'], 'waiting_reports')
+        for job in jobs[:2]:
+            self.assertTrue((Q.workdir(self.path, job)/'WORKER.json').exists())
+
+    def test_parallel_rejects_same_output_under_different_job_ids(self):
+        doc = dict(self.doc, max_parallel_jobs=2,
+                   jobs=[self.job, dict(self.job, id='two')])
+        with self.assertRaisesRegex(RuntimeError, 'distinct outputs'):
+            Q.tick(self.path, self.pin, doc)
+
+    def test_parallel_counts_existing_workers_and_quarantines_uncertainty(self):
+        jobs = [dict(self.job, id=name, output=str(self.root/(name+'.json')))
+                for name in ('one', 'two')]
+        doc = dict(self.doc, jobs=jobs, max_parallel_jobs=2)
+        for status in ('reporting', 'orphan_child_live', 'needs_repair', 'observation_uncertain'):
+            with self.subTest(status=status), \
+                    patch.object(Q, 'observe', side_effect=[{'status':status}, {'status':'ready'}]), \
+                    patch.object(Q.subprocess, 'Popen', return_value=Mock(pid=53)) as spawn:
+                Q.tick(self.path, self.pin, doc)
+                self.assertEqual(spawn.call_count, int(status in ('reporting', 'orphan_child_live')))
+
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.root=Path(self.tmp.name);self.path=self.root/'queue.json';self.pin='pin'

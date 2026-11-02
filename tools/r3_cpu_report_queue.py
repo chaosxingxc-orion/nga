@@ -57,9 +57,20 @@ def process_matches(receipt, proc_root=Path('/proc')):
     return actual == [os.fsencode(x) for x in receipt['command']]
 
 
+def parallel_limit(doc):
+    limit = doc.get('max_parallel_jobs', 1)
+    require(type(limit) is int and 1 <= limit <= 8,
+            'CPU max_parallel_jobs must be an integer from 1 to 8')
+    if limit > 1:
+        outputs = [str(Path(j['output']).resolve()) for j in doc['jobs']]
+        require(len(outputs) == len(set(outputs)), 'parallel jobs require distinct outputs')
+    return limit
+
+
 def verify(path, pin):
     require(sha(path) == pin, 'queue manifest changed')
     doc = load(path)
+    parallel_limit(doc)
     interval = doc.get('poll_interval_seconds', 600)
     require(type(interval) is int and interval >= 600, 'CPU polling interval must be at least 600 seconds')
     require(doc['schema'] == 'r3-cpu-report-queue-v1' and doc['test_read'] is False
@@ -649,6 +660,7 @@ def observe(path, pin, job, doc=None):
 
 
 def tick(path, pin, doc):
+    limit = parallel_limit(doc)
     states = {}
     for job in doc['jobs']:
         try:
@@ -656,9 +668,12 @@ def tick(path, pin, doc):
         except Exception as error:
             states[job['id']] = {'status': 'observation_uncertain', 'error': str(error)[:300]}
     # Uncertain workers may still consume CPU. Stop new starts until inspected.
-    busy = any(x['status'] in ('reporting', 'orphan_child_live', 'needs_repair', 'observation_uncertain') for x in states.values())
-    if not busy:
+    uncertain = any(x['status'] in ('needs_repair', 'observation_uncertain') for x in states.values())
+    active = sum(x['status'] in ('reporting', 'orphan_child_live') for x in states.values())
+    if not uncertain:
         for job in doc['jobs']:
+            if active >= limit:
+                break
             if states[job['id']]['status'] != 'ready':
                 continue
             root = workdir(path, job); root.mkdir(parents=True, exist_ok=True)
@@ -669,7 +684,7 @@ def tick(path, pin, doc):
                                            stdin=subprocess.DEVNULL, start_new_session=True)
             atomic(root / 'WORKER.json', {'pid': process.pid, 'command': command})
             states[job['id']] = {'status': 'reporting', 'pid': process.pid}
-            break
+            active += 1
     return states
 
 
