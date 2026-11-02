@@ -117,11 +117,13 @@ func TestDurableSeqGapRejected(t *testing.T) {
 
 // phantomShapeCases is the SINGLE shared phantom-shape table — one table,
 // two consumers (R8 inner-review F1, the same move as R5 F1): every shape
-// the mid-file ladder rejects is pinned there by TestNullLineRejected AND
-// pinned as tolerated tail garbage by TestTornPhantomShapesTolerated, from
-// this one list. A shape can no longer exist on one face without the other:
-// the "all of these shapes" class of claim is now structurally equal to the
-// pins, so the drift family (claim wider than pins) is inexpressible here.
+// IN THIS LIST — each of them rejected by the mid-file ladder — is pinned
+// by TestNullLineRejected (expected key) AND pinned as tolerated tail
+// garbage by TestTornPhantomShapesTolerated. A list shape can no longer
+// exist on one face without the other: on the two tests' pin faces, the
+// "all of these shapes" class of claim is structurally equal to the pins
+// (comments elsewhere in the file can still overclaim — that stays a
+// review target).
 var phantomShapeCases = []struct {
 	name string
 	line []byte

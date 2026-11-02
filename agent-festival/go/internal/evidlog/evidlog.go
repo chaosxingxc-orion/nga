@@ -100,8 +100,9 @@ func (l *Log) Append(e Entry) error {
 	}
 	if l.path != "" {
 		if l.tornTail {
-			// The loader tolerated this file's unparseable tail by skipping
-			// it. Appending would splice that tail into the middle of the
+			// The loader tolerated this file's torn tail (unparseable
+			// bytes or a phantom shape) by skipping it. Appending would
+			// splice that tail into the middle of the
 			// file and brick every future Open. The writer refuses instead
 			// of silently destroying evidence bytes — repairing the tail is
 			// a human decision on an audit record (R3 M2).
@@ -244,8 +245,9 @@ type parsedLine struct {
 }
 
 // loadLines parses the durable JSONL form. The bool reports a TOLERATED torn
-// tail: the final line lacked a newline AND was unparseable, so bytes were
-// skipped — the caller (Open) must remember it, because appending to a file
+// tail: the final line lacked a newline and did not decode into a conformant
+// entry (unparseable bytes or a phantom shape), so bytes were skipped — the
+// caller (Open) must remember it, because appending to a file
 // whose tail was skipped would turn those bytes into a mid-file line and
 // brick the log against this very loader (R3 M2).
 func loadLines(path string) ([]parsedLine, bool, error) {
