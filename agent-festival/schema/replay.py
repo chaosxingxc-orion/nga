@@ -38,6 +38,12 @@ def replay_errors(doc: dict) -> list[str]:
         errs.append(f"[REPLAY.SEQ_FLOAT_SYNTAX] expected.divergence_at {da!r} is not an integer literal — "
                     f"the divergence locator domain is integer; this package does no "
                     f"float math (user ruling 2026-11-02)")
+    elif isinstance(da, int) and da > 2 ** 63 - 1:
+        # bignum beyond int64: Go's typed view rejects it — the twin arm
+        # keeps the dual oracles on the same verdict (family form, ledger
+        # seq-int64-overflow precedent)
+        errs.append(f"[REPLAY.SEQ_INT64_OVERFLOW] expected.divergence_at {da} exceeds the int64 domain — "
+                    f"the divergence locator domain; such a case is not machine-writable")
     return errs
 
 
@@ -47,8 +53,8 @@ def main() -> int:
     # D93 count-floor (the Go twin lives in cmd/replay/main_test.go)
     n_valid = len(list((ex / "valid").glob("*.json")))
     n_invalid = len(list((ex / "invalid").glob("*.json")))
-    if (n_valid, n_invalid) != (8, 8):
-        print(f"[replay] FAIL corpus count {n_valid}+{n_invalid} != pinned 8+8 (corpus count changed?)")
+    if (n_valid, n_invalid) != (8, 9):
+        print(f"[replay] FAIL corpus count {n_valid}+{n_invalid} != pinned 8+9 (corpus count changed?)")
         bad += 1
     return 1 if bad else 0
 

@@ -168,11 +168,20 @@ func LoadCase(doc map[string]any) (*Case, error) {
 	// typed view rejects float syntax without a neutral key, while the
 	// Python schema face accepts it by value — this gate makes both sides
 	// reject the same documents WITH the key. json.Number is guaranteed by
-	// the numbersSurvived discipline below.
+	// the UseNumber input discipline (the doc comment above; suite.Load
+	// decodes with UseNumber); numbersSurvived below enforces that
+	// discipline only for recorded_events.
 	if exp, ok := doc["expected"].(map[string]any); ok {
 		if n, ok := exp["divergence_at"].(json.Number); ok {
 			if _, err := n.Int64(); err != nil {
-				return nil, fmt.Errorf("[REPLAY.SEQ_FLOAT_SYNTAX] expected.divergence_at %s is not an integer literal — the divergence locator domain is integer; this package does no float math (user ruling 2026-11-02)", n.String())
+				// syntax guard (family form, ledger/evidlog precedent):
+				// integer syntax beyond int64 is the typed domain's rejection;
+				// float syntax is the literal gate's — Py bignum would accept
+				// the former silently, the twin arm below closes that fork.
+				if strings.ContainsAny(n.String(), ".eE") {
+					return nil, fmt.Errorf("[REPLAY.SEQ_FLOAT_SYNTAX] expected.divergence_at %s is not an integer literal — the divergence locator domain is integer; this package does no float math (user ruling 2026-11-02)", n.String())
+				}
+				return nil, fmt.Errorf("[REPLAY.SEQ_INT64_OVERFLOW] expected.divergence_at %s exceeds the int64 domain — the divergence locator domain; such a case is not machine-writable", n.String())
 			}
 		}
 	}

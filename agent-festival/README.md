@@ -18,7 +18,7 @@
    授权准入（子任务权限 ⊆ 父任务权限 ⊆ 发起员工持有）+ 父预算均分切分（shares）
 3. **信封再签**（`cmd/sign`）：三算法签发 + 全套夹具再生物（语料唯一真源）
 
-204 个双向夹具（全仓口径——见 conformance-fixture-format.md 机生成清单）（valid 必须 0 错、invalid 必须拒且拒绝理由逐字钉 `_expect_match`）
+205 个双向夹具（全仓口径——见 conformance-fixture-format.md 机生成清单）（valid 必须 0 错、invalid 必须拒且拒绝理由逐字钉 `_expect_match`）
 构成行为规格——**夹具即规范**。
 
 ## 与 NGA 架构的映射（V0.2 三态四面）
@@ -52,7 +52,7 @@ go run ./cmd/compose          # 执行图合成套件（10+36 夹具+11 守卫�
 go run ./cmd/sign             # 再生全部信封语料（换新密钥，需整批提交）
 ```
 （包结构与依赖红线以 `cd go && go list ./...` 为单一真源——20 包：
-9 cmd 入口 + 11 internal 库；schema/ 9 个 schema 文件 + 204 夹具）
+9 cmd 入口 + 11 internal 库；schema/ 9 个 schema 文件 + 205 夹具）
 
 Python oracle 侧：`pip install -r ../schema/requirements.txt` 后
 `python3 ../schema/validate.py` / `../schema/compose.py`。

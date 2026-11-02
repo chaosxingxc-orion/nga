@@ -1,6 +1,6 @@
 # Conformance 夹具格式与跨语言消费指南
 
-> 目的：本仓 204 件 JSON 夹具（全仓含密钥库；增长族 150 件——三种口径见机生成清单）是**可执行行为规格**（executable behavior spec），不是静态测试数据。本文定义夹具格式、钉子纪律、双 oracle lockstep 模式，以及任何语言（包括 NGA Java SDK）如何消费同一批夹具做 conformance 验证。这是 issue #1 碰撞回应提议 1（"95 夹具升格跨语言 conformance 基准"）的落地说明。
+> 目的：本仓 205 件 JSON 夹具（全仓含密钥库；增长族 151 件——三种口径见机生成清单）是**可执行行为规格**（executable behavior spec），不是静态测试数据。本文定义夹具格式、钉子纪律、双 oracle lockstep 模式，以及任何语言（包括 NGA Java SDK）如何消费同一批夹具做 conformance 验证。这是 issue #1 碰撞回应提议 1（"95 夹具升格跨语言 conformance 基准"）的落地说明。
 >
 > 先例：langgraph 的 checkpoint-conformance 套件、本仓 Python/Go 双 oracle（17+5 轮空白审查验证）——"夹具即规范"已被三方独立到达。
 
@@ -29,12 +29,12 @@
 | `adoption` | 2 + 5 |
 | `judgment` | 2 + 19 |
 | `release` | 3 + 14 |
-| `replay` | 8 + 8 |
+| `replay` | 8 + 9 |
 | `compose` | 10 + 36 |
 | `evidlog` | 1 + 6 |
-| 增长族合计 | 150 |
+| 增长族合计 | 151 |
 | 基座契约/信封 | 50 |
-| 全仓合计（含密钥库） | 204 |
+| 全仓合计（含密钥库） | 205 |
 ## 二、夹具的钉子语法
 
 每个夹具是一份带内嵌钉的 JSON 文档：
