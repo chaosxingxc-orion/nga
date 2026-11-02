@@ -193,7 +193,11 @@ func (l *Log) Append(e Entry) error {
 		// the loader's empty log — same semantics as a zero-byte file — and
 		// passes (R15 B-1: the !ok arm used to refuse it forever, a
 		// fail-closed availability loss with no audit payoff: the loader
-		// heals empty lines away, so there is nothing to protect). Honest
+		// heals EMPTY LINES — zero-length segments — away, so there is
+		// nothing to protect; a whitespace-only file the loader would
+		// REJECT does not ride this exemption — R15 inner M1 narrowed the
+		// predicate from TrimSpace (which covered space/tab/CR lines the
+		// loader refuses) to newline-only). Honest
 		// boundary: the gate is necessary, not sufficient —
 		// a foreign line that PRESERVES the seq arithmetic (an
 		// integer-literal duplicate of the current last seq) passes
@@ -201,8 +205,8 @@ func (l *Log) Append(e Entry) error {
 		// catch. Fractional and exponent-notation literals (1.5, 1e0) are
 		// refused outright by lastDurableSeq (UseNumber/Int64 — R12).
 		if len(existing) > 0 || e.Seq > 0 {
-			if len(bytes.TrimSpace(existing)) == 0 && e.Seq == 0 {
-				// whitespace-only + fresh view — the loader's empty log
+			if len(bytes.Trim(existing, "\n")) == 0 && e.Seq == 0 {
+				// newline-only + fresh view — the loader's empty log
 			} else {
 				lastSeq, ok := lastDurableSeq(existing)
 				if !ok {
@@ -375,7 +379,11 @@ func CheckDoc(doc map[string]any) []string {
 // consumer calling CheckDoc on a plain-decoded map got a density-misfiled
 // rejection for the same value that a UseNumber decode keys correctly;
 // the double-type arm mirrors entryShapeError's seq switch so the neutral
-// key is the decode-independent contract, per conformance §四).
+// key is the decode-independent contract for the FLOAT-SYNTAX domain —
+// plain decode cannot know the original literal's syntax, so an
+// integer-syntax value beyond ±2^53 keys differently between decodes
+// (density key vs this key; the VERDICT still agrees — both reject —
+// per the aggregate contract; R15 inner M3 declares this seam).
 func normalizeSeqDomain(doc map[string]any) []string {
 	entries, ok := doc["entries"].([]any)
 	if !ok {
@@ -400,7 +408,10 @@ func normalizeSeqDomain(doc map[string]any) []string {
 				continue // fractional — let the schema/typed parse reject it
 			}
 			if f64 < -(1<<53) || f64 > 1<<53 {
-				return []string{fmt.Sprintf("[EVIDLOG.SEQ_FLOAT_BEYOND_EXACT] entries/%d: seq %v uses float syntax beyond the exact-representation domain (±2^53) — the value a parser recovers depends on its float rounding, not on the document", idx, f64)}
+				// syntax-neutral wording: a plain-decoded value carries no
+				// literal syntax — the key is the contract, not the prose
+				// (R15 inner M3)
+				return []string{fmt.Sprintf("[EVIDLOG.SEQ_FLOAT_BEYOND_EXACT] entries/%d: seq %v is beyond the exact-representation domain (±2^53) — the value a parser recovers depends on its float rounding, not on the document", idx, f64)}
 			}
 			m["seq"] = int64(f64)
 			continue

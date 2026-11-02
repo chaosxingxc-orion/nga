@@ -854,3 +854,25 @@ func TestWhitespaceOnlyFileAppend(t *testing.T) {
 		t.Fatalf("unexpected entries: %+v", l2.Entries())
 	}
 }
+
+// TestUncuredBlankLineRefused pins the NOT-exempt face of the R15 B-1
+// exemption (R15 inner M1): a file whose lines are blank but non-empty
+// (" \n") is one the loader REJECTS (it only heals zero-length lines) —
+// the fresh view's first Append must refuse it (STALE_SEQ !ok arm), not
+// ride the exemption and splice a write the loader cannot reload (the
+// TrimSpace predicate used to brick exactly this).
+func TestUncuredBlankLineRefused(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "evid.jsonl")
+	l, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(" \n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "t", Selector: "s", Caller: "c", At: "a"}); err == nil {
+		t.Fatal("blank-but-nonempty line rode the empty-log exemption — the loader rejects this file and the write would brick it")
+	} else if !strings.Contains(err.Error(), "EVIDLOG.STALE_SEQ") {
+		t.Fatalf("refusal lacks the neutral key: %v", err)
+	}
+}

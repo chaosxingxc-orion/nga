@@ -34,9 +34,11 @@ def manifest() -> str:
         lines.append(f"| `{fam}` | {v} + {i} |")
         total += v + i
     lines.append(f"| 增长族合计 | {total} |")
-    base_total = _count("valid/*.json") + _count("invalid/*.json") + _count("envelopes/**/*.json")
+    # base faces = the oracles' consumption faces, single level everywhere
+    # (R15 inner M2: 计数=消费=对账 三面合一)
+    base_total = _count("valid/*.json") + _count("invalid/*.json") + _count("envelopes/valid/*.json") + _count("envelopes/invalid/*.json")
     lines.append(f"| 基座契约/信封 | {base_total} |")
-    all_total = total + base_total + _count("keys/**/*.json")
+    all_total = total + base_total + _count("keys/trusted.jwks.json") + _count("keys/invalid/*.jwks.json")
     lines.append(f"| 全仓合计（含密钥库） | {all_total} |")
     return "\n".join(lines)
 
@@ -67,8 +69,14 @@ def strayed_files() -> list[str]:
         enumerated.update((base / "invalid").glob("*.json"))
     enumerated.update(root.glob("valid/*.json"))
     enumerated.update(root.glob("invalid/*.json"))
-    enumerated.update(root.glob("envelopes/**/*.json"))
-    enumerated.update(root.glob("keys/**/*.json"))
+    # Base faces mirror the ORACLES' consumption exactly (R15 inner M2:
+    # recursive globs here counted nested fixtures the single-level suites
+    # never load — the strayed gate must enumerate what the oracles
+    # actually consume, so a nested fixture becomes stray, not counted).
+    enumerated.update(root.glob("envelopes/valid/*.json"))
+    enumerated.update(root.glob("envelopes/invalid/*.json"))
+    enumerated.update(root.glob("keys/trusted.jwks.json"))
+    enumerated.update(root.glob("keys/invalid/*.jwks.json"))
     actual = set(root.rglob("*.json"))
     return sorted(str(p) for p in actual - enumerated)
 
