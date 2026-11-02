@@ -125,6 +125,8 @@ func TestNullLineRejected(t *testing.T) {
 	l1, _ := json.Marshal(Entry{Seq: 0, Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"})
 	l2, _ := json.Marshal(Entry{Seq: 1, Tool: "bureau.q", Selector: "subj=x", Caller: "s2", At: "2026-11-01T10:01:00Z"})
 	cases := map[string][]byte{
+		"array line":        append(append(append([]byte{}, l1...), '\n', '[', '1', ',', '2', ']', '\n'), l2...),
+		"scalar line":       append(append(append([]byte{}, l1...), '\n', '4', '2', '\n'), l2...),
 		"bare null":         append(append(append([]byte{}, l1...), '\n', 'n', 'u', 'l', 'l', '\n'), l2...),
 		"fragment with seq": append(append(append(append([]byte{}, l1...), '\n', '{', '"', 's', 'e', 'q', '"', ':', '9', '}', '\n'), l2...), '\n'),
 		"missing caller":    append(append(append([]byte{}, l1...), '\n', '{', '"', 's', 'e', 'q', '"', ':', '1', ',', '"', 't', 'o', 'o', 'l', '"', ':', '"', 'x', '"', ',', '"', 'a', 't', '"', ':', '"', 'y', '"', '}', '\n')),
@@ -199,7 +201,7 @@ func TestAppendRefusesTornTail(t *testing.T) {
 // TestRequiredKeysLockstep mechanically locks the durable face's key table
 // to its two siblings (R4 M-1 — the table drifted once: selector was missing
 // while the comment claimed equality): schema/evidlog.schema.json's
-// entries.items.required list, the loader's requiredEntryKeys, and the Entry
+// entries.items.required list, the shared requiredEntryKeys (one table, both consumers since R5 F1), and the Entry
 // struct's json tags (minus the omitempty optional) must agree as sets.
 func TestRequiredKeysLockstep(t *testing.T) {
 	schemaRaw, err := os.ReadFile(filepath.Join(filepath.Dir(SchemaPath), "evidlog.schema.json"))

@@ -283,12 +283,20 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 			if tornTail {
 				return lines, true, nil
 			}
-			// Valid JSON with a field-type mismatch (e.g. "seq":"x") is a
-			// different audit fact from unparseable bytes — name it as such
-			// (ledger/load.go precedent: "valid JSON but not an event").
-			probe := map[string]any{}
-			if json.Unmarshal(line, &probe) == nil {
-				return nil, false, fmt.Errorf("[EVIDLOG.TYPE_MISMATCH] %s: line at byte offset %d is valid JSON but not an entry (field type mismatch) — evidence coverage must not silently shrink", path, lineStart)
+			// Valid JSON is a different audit fact from unparseable bytes —
+			// classify by dynamic type (R6 m1: the map-typed probe mislabeled
+			// arrays/scalars as unparseable, splitting them from `null` which
+			// the doc==nil branch below calls NOT_AN_OBJECT): an object is a
+			// field-type mismatch, any other valid JSON is simply not an
+			// entry object (ledger/load.go precedent).
+			var anyProbe any
+			if json.Unmarshal(line, &anyProbe) == nil {
+				switch anyProbe.(type) {
+				case map[string]any:
+					return nil, false, fmt.Errorf("[EVIDLOG.TYPE_MISMATCH] %s: line at byte offset %d is valid JSON but not an entry (field type mismatch) — evidence coverage must not silently shrink", path, lineStart)
+				default: // array, string, number, bool
+					return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d is valid JSON but not an entry object — a phantom entry must not enter the audit record", path, lineStart)
+				}
 			}
 			return nil, false, fmt.Errorf("[EVIDLOG.MIDFILE_UNPARSEABLE] %s: unparseable line at byte offset %d (before EOF) — evidence coverage must not silently shrink", path, lineStart)
 		}
