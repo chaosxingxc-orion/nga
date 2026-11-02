@@ -49,6 +49,8 @@ def frozen(path, expected):
 
 def prepare(path, expected):
     c = frozen(path, expected)
+    if c.get('schema') == 'nga-bev-public-test-prepare-v1':
+        return module(Path(__file__).with_name('bev_public_test_builder.py'), 'bev_public_builder').prepare(path, expected)
     E.require(set(c) == {'schema', 'template_plan', 'template_cpu', 'root', 'run', 'container', 'chip'}, 'prepare fields differ')
     E.require(c['schema'] == SCHEMA, 'unsupported prepare schema')
     E.require(type(c['chip']) is int and 0 <= c['chip'] < 8, 'chip must be integer 0..7')
@@ -117,13 +119,17 @@ def prepare(path, expected):
 
 def bind(prepared_path, prepared_sha, review_path, review_sha, attempt):
     p = frozen(prepared_path, prepared_sha); root = E.safe(str(prepared_path)).parent
-    E.require(p['schema'] == 'nga-bev-workflow-prepared-v1' and p['approved'] is False, 'prepared schema differs')
+    public = p.get('schema') == 'nga-bev-public-test-prepared-v1'
+    E.require(p['schema'] in ('nga-bev-workflow-prepared-v1', 'nga-bev-public-test-prepared-v1')
+              and p['approved'] is False, 'prepared schema differs')
     for key in ('plan', 'cpu', 'consumer', 'entrypoint', 'workflow'): E.pinned(p[key])
     E.require(p['entrypoint'] == pin(Path(E.__file__)) and p['workflow'] == pin(Path(__file__)), 'workflow version differs')
     review = frozen(review_path, review_sha)
     E.require(review.get('deployment_suitable') is True and review.get('cpu_config_sha256') == p['cpu']['sha256']
               and review.get('consumer_sha256') == p['consumer']['sha256'], 'CPU admission differs')
-    entry = dict(schema=E.SCHEMA, kind='bev-dev-v1', plan=p['plan'],
+    if public:
+        module(p['consumer']['path'], 'bev_public_consumer_bind').verify_config(p['cpu']['path'], p['cpu']['sha256'])
+    entry = dict(schema=E.SCHEMA, kind='bev-public-test-v1' if public else 'bev-dev-v1', plan=p['plan'],
                  review={'path': str(E.safe(str(review_path))), 'sha256': review_sha}, attempt=attempt)
     # Validate in our own temporary directory before reserving the final attempt.
     # A rejected review must not prevent a corrected review for the same attempt.
@@ -188,6 +194,10 @@ def cpu_start(c):
 
 
 def operate(op, path, expected):
+    candidate = frozen(path, expected)
+    if candidate.get('schema') == 'nga-bev-public-test-prepared-v1':
+        E.require(op in ('validate','dry-run'), 'prepared package requires independent review and bind before activation')
+        return module(Path(__file__).with_name('bev_public_test_builder.py'), 'bev_public_validate').validate_prepared(path, expected, op)
     c, entry, plan = load_activation(path, expected)
     if op == 'validate':
         return {'status':'validated','inference':E.execute('validate',c['entry']['path'],c['entry']['sha256'])}

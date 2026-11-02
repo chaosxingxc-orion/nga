@@ -59,13 +59,20 @@ def load_config(path, expected_sha=None):
     config = read_json(path)
     require(isinstance(config, dict) and set(config) == {'schema', 'kind', 'plan', 'review', 'attempt'},
             'config fields differ')
-    require(config['schema'] == SCHEMA and config['kind'] == 'bev-dev-v1', 'unsupported schema/kind')
+    require(config['schema'] == SCHEMA and config['kind'] in ('bev-dev-v1', 'bev-public-test-v1'), 'unsupported schema/kind')
     require(type(config['attempt']) is int and config['attempt'] >= 1, 'positive integer attempt required')
     plan_path, review_path = pinned(config['plan']), pinned(config['review'])
     plan, review = read_json(plan_path), read_json(review_path)
-    require(plan.get('schema') == 'bev-dev-plan-v1' and plan.get('scientific_acceptance') is False
-            and plan.get('test_read') is False and plan.get('source_split') == 'train_derived_dev',
+    public = config['kind'] == 'bev-public-test-v1'
+    require(plan.get('schema') == ('bev-public-test-plan-v1' if public else 'bev-dev-plan-v1')
+            and plan.get('scientific_acceptance') is False
+            and plan.get('test_read') is public
+            and plan.get('source_split') == ('public_release_test' if public else 'train_derived_dev'),
             'unsupported experiment scope')
+    if public:
+        require(plan.get('candidate_selection_allowed') is False and plan.get('expected_questions') == 6518
+                and review.get('scope') == 'public_release_test'
+                and review.get('candidate_selection_allowed') is False, 'public TEST admission differs')
     require(review.get('activation_authorized') is True and review.get('scientific_acceptance') is False
             and review.get('approved_plan_sha256') == config['plan']['sha256'], 'activation review differs')
     require(config['attempt'] in review.get('attempts', []), 'attempt not approved')
@@ -77,7 +84,8 @@ def load_config(path, expected_sha=None):
             require(review.get('hashes', {}).get(str(p)) == entry['sha256'], 'dependency outside review: ' + str(p))
     host = safe(plan['code']['host']['path'])
     runner = safe(plan['code']['runner']['path'])
-    require(host.name == 'bev_host.py' and runner.name == 'bev_runner.py', 'unsupported executable adapter')
+    require(host.name == ('bev_public_test_host.py' if public else 'bev_host.py')
+            and runner.name == ('bev_public_test_runner.py' if public else 'bev_runner.py'), 'unsupported executable adapter')
     out = safe(plan['out'])
     require(host.parent == runner.parent and host.parent.parent == plan_path.parent,
             'package code placement differs')
