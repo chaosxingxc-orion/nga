@@ -14,13 +14,14 @@
 
 ## 2. 覆盖分层
 
-### P0：共同文本 NxM（优先完成合同并进入 FIFO）
+### P0：共同文本 NxM（逐面板完成合同，完成一个即可进入 FIFO）
 
 这些任务可以使用同一套文本输入、typed candidate set、single-pass readout 和 CPU scorer。每个面板仍需单独关闭 source hash、split、输入字段、target/type、pair key、原生公式、分母、license、lineage 和 TEST 暴露。
 
 | 来源族 | 任务面板 | 承载能力 | 进入条件 |
 |---|---|---|---|
-| JevBench public / Praveenrajus Jev-bench | public-231、choice/noul/score、难度和校准子面板 | Jev 原生读出、难度、校准、成本 | 与 Nimble/Applied ML 逐 item 去重，private 仅文献参考 |
+| fstandhartinger/jevbench public-231 | public-231、choice/noul/score、难度和校准子面板 | Jev 原生读出、难度、校准、成本 | 独立登记；与 Praveenrajus、Nimble、Applied ML 逐 item 去重，private 仅文献参考 |
+| Praveenrajus/jev-bench | banking、意图路由等公开任务面板 | 原生 choice/route 指标；完整消息和二元问题分母分开 | 不是 fstandhartinger/jevbench 的别名；先确认 release、split 和来源 lineage |
 | AppliedMachineLearning-Lab | 约 37 个公开报告中的 choice、noul、score、路由、OOD、moderation、grounding 面板 | 跨来源直接驱动、分类、校准 | 报告 split 与可复现 TEST 分开登记，未闭合者 reference-only |
 | Intern-Decision | 7 个 accuracy suite 与 known-distribution calibration | typed decision、已知概率语义、成本/延迟 | 固定后端、温度、输入格式和来源 lineage |
 | Jevals | Banking77、PubMedQA、HelpSteer2 | 常规意图、医学问答、评分/ordinal | choice/noul/score 三种 target 分表，禁止合并总分 |
@@ -32,9 +33,9 @@
 | Jev OOD calibration | public known/unknown 与 synthetic unknowable | OOD、拒答、ECE/Brier/NLL | public in-domain 与 synthetic unknown 分开，不宣称同一种泛化 |
 | btzsc conventional routing | Banking77、MASSIVE、AGNews、topic、sentiment、toxicity | 普通分类/路由边界 | 只有 typed schema 和 split 合同闭合后才进入 Jev NxM，否则保留边界诊断 |
 
-P0 不是“十一个已完成数据集”。截至本版本，v9 审计的 12 个来源族仍全部为 `needs_review`，`ready_for_inference=0`，没有候选 TEST 指标。
+P0 不是“十一个已完成数据集”。截至本版本，v9 审计的 12 个来源族仍全部为 `needs_review`，`ready_for_inference=0`，没有候选 TEST 指标。这里的阻塞是逐面板的：某个面板完成 adapter/scorer 和 lineage 后，可以先进入 FIFO，不需要等待其余 P0 来源。
 
-### P1：文本专项矩阵（P0 direct-readout 后按能力轴加入）
+### P1：文本专项矩阵（与 P0 并行准备，独立准入）
 
 | 来源族 | 面板/任务 | 必须保留的指标 |
 |---|---|---|
@@ -64,7 +65,7 @@ P0 不是“十一个已完成数据集”。截至本版本，v9 审计的 12 �
 
 ## 4. 不改变当前训练和实验流水线
 
-formal K1 v15 双 seed 继续 detached 运行，训练不读取 TEST；CPU 侧同时完成合同、去重、scorer 和文档。三条流水线保持异步：
+根据本地 `formal-k1-dev-launch-20261102.json` 启动收据，formal K1 v15 双 seed 已结束训练并于 2026-11-02 启动 detached DEV/calibration/Track T 评估；该收据不是当前终态证明，scientific acceptance 仍为 false。不得把后续审查倒写成已完成的事前 Astra 审查。CPU 侧同时推进合同、去重、scorer 和文档。三条流水线保持异步：
 
 1. CPU：来源合同、item lineage、指标预注册和 admission receipt；
 2. NPU：只消费 `ready_for_inference` 的 FIFO 任务并保持资源 claim、heartbeat、terminal marker；
@@ -72,11 +73,28 @@ formal K1 v15 双 seed 继续 detached 运行，训练不读取 TEST；CPU 侧�
 
 watchdog 继续约 10 分钟轮巡，编排者只读 digest。每个 milestone 增量刷新最新报告，过程文件三天后归档。
 
+固定参考模型和协议的公开 TEST 推理可以逐面板先行，不等待新训练完成；新训练候选的最终 TEST 仍须先完成 DEV 选择、校准和独立审查。使用公开测试反馈选择后续方案时，应登记暴露状态，不能继续声称该来源完全未见。
+
+### 缺口与 defect registry 的对应
+
+以下是本项目的任务设计映射，不是来源论文的结论。每个具体实验启动前仍须固定指标公式、split、阈值和配对规则。
+
+| 扩展目标 | survey §2.2.4 | 理想行为与必须排除的退化解 |
+|---|---|---|
+| 定义理解、跨 schema typed decisions | defect 1、17 | 按定义判断；用定义交换和新 level set 排除只记标签名或位置 |
+| 数字/日期、例外与状态变化 | defect 3、4、10 | 执行完整规则；保留规则族留出及应改变答案的配对，排除记生成模板 |
+| unknown、拒答、先验变化 | defect 5、7、16 | 在正确性与覆盖率间满足冻结目标；同时报告 known 接受表现，排除全部拒答 |
+| ordinal、评分与等级定义 | defect 8、17 | 按定义恢复等级分布；报告距离误差与定义变更对照，排除恒报中间等级 |
+| 改写、排序、候选顺序与 coherence | defect 6、9、12、16 | 等价输入保持正确，语义改变时相应改变；同时报告 stable-correct/stable-wrong，排除常量输出 |
+| 证据 support/conflict/missing | defect 14 | 根据可用证据判断并识别缺失；设置记录与观察冲突对照，排除只信记录 |
+
+原生任务标签上的理想分类器只代表该任务定义内的正确性，不能自动证明业务能力。来源重叠未闭合的跨域数据不称为 source-disjoint；多语言数量也不能代替中文定义理解证据。
+
 ## 5. 执行顺序
 
-1. 完成 P0 逐面板合同和 lineage，优先 JevBench/Jevals、BEV/LocalLLaMA、DMB routing、TDM/OOD；
-2. 合同闭合的 P0 面板按 FIFO 进入文本 NxM direct-readout，CPU scorer 异步运行；
-3. P0 取得可比基线后加入 ORDER BY、coherence、robustness、guardrail、跨语言和空间/复杂规则；
+1. 完成 P0 逐面板合同和 lineage，首批优先 Jevals Banking77 choice、JevBench public-231、BEV numeric_temporal/counterfactual、LocalLLaMA typed decisions、DMB routing、TDM/OOD；
+2. 任一合同闭合的 P0 面板按 FIFO 进入文本 NxM direct-readout，CPU scorer 异步运行；
+3. 已闭合的 P0 面板运行期间，同时准备 ORDER BY、coherence、robustness、guardrail、跨语言和空间/复杂规则，不把它们人为串成一个大闸门；
 4. 单独建立多模态、网页/闭环矩阵；
 5. 冻结业务缺口集并报告基础模型直接驱动表现；
 6. 只有直接驱动、SFT/LoRA、proper scoring、校准和成本基线稳定后，才讨论 RL。
