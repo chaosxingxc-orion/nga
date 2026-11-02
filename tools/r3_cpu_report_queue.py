@@ -86,11 +86,14 @@ def verify(path, pin):
     require(jobs and len({j['id'] for j in jobs}) == len(jobs), 'empty or duplicate jobs')
     reports = [j for j in jobs if j.get('kind', 'report') == 'report']
     comparisons = [j for j in jobs if j.get('kind') == 'comparison']
+    external_comparisons = [j for j in jobs if j.get('kind') == 'external_comparison']
     r0_reports = [j for j in jobs if j.get('kind') == 'r0_report']
     prechecks = [j for j in jobs if j.get('kind') == 'k0_prechecks']
     pt_reports = [j for j in jobs if j.get('kind') == 'pt_r0_report']
     qo_reports = [j for j in jobs if j.get('kind') == 'qo_diagnostic']
-    require(len(reports) + len(comparisons) + len(r0_reports) + len(prechecks) + len(pt_reports) + len(qo_reports) == len(jobs), 'unknown CPU job kind')
+    require(len(reports) + len(comparisons) + len(external_comparisons) + len(r0_reports) + len(prechecks) + len(pt_reports) + len(qo_reports) == len(jobs), 'unknown CPU job kind')
+    for job in external_comparisons:
+        verify_external_comparison(path, job)
     if qo_reports:
         config = doc['qo_diagnostic']
         require(sha(safe_absolute(config['tool'])) == config['tool_sha256'], 'QO tool changed')
@@ -146,7 +149,7 @@ def verify(path, pin):
         if job.get('kind', 'report') == 'report':
             require(Path(job['eval_out']).is_absolute(), 'absolute evaluation path required')
             require(Path(job['output']).name == 'selection_report.json', 'selection report filename required')
-    if comparisons:
+    if comparisons or external_comparisons:
         config = doc['comparison']
         for key in ('tool', 'selector'):
             require(Path(config[key]).is_absolute() and sha(config[key]) == config[key + '_sha256'],
@@ -200,6 +203,47 @@ def external_report(ref, check_terminal=True):
         return str(output), 'comparison_blocked'
     require(sha(output) == end.get('output_sha256'), 'external report changed')
     return str(output), 'ready'
+
+
+def external_comparison_refs(job):
+    require(isinstance(job.get('candidate'), list) and len(job['candidate']) == 2,
+            'two external candidate reports required')
+    require(not any(k in job for k in ('incumbent', 'r0_report')),
+            'external comparison supports K0 diagnostics only')
+    refs = job['candidate'] + [job['baseline']]
+    for ref in refs:
+        require(isinstance(ref, dict) and set(ref) == {'queue', 'queue_sha256', 'job'} and
+                isinstance(ref['job'], str) and re.fullmatch(r'[A-Za-z0-9_-]+', ref['job']) and
+                isinstance(ref['queue_sha256'], str) and re.fullmatch('[0-9a-f]{64}', ref['queue_sha256']),
+                'invalid external comparison reference')
+    require(len({(ref['queue'], ref['job']) for ref in refs}) == 3,
+            'three distinct external reports required')
+    return refs
+
+
+def verify_external_comparison(path, job):
+    refs = external_comparison_refs(job)
+    outputs = [external_report(ref, check_terminal=False)[0] for ref in refs]
+    require(len(set(outputs)) == 3, 'external reports alias the same output')
+    require(all(safe_absolute(ref['queue']) != path for ref in refs), 'self-referencing external queue')
+    require(isinstance(job.get('id'), str) and re.fullmatch(r'[A-Za-z0-9_-]+', job['id']),
+            'unsafe external comparison ID')
+    require(safe_absolute(job['output']) == path.parent / 'comparisons' / job['id'] / 'development_comparison.json',
+            'external comparison output must belong to this queue')
+
+
+def validate_external_comparison_output(report, job, started_inputs=None):
+    require(report.get('schema') == 'r3-development-comparison-v1' and
+            report.get('scientific_acceptance') is False and report.get('test_read') is False,
+            'external comparison output scope differs')
+    expected = {}
+    for ref in external_comparison_refs(job):
+        output, state = external_report(ref)
+        require(state == 'ready', 'external comparison dependency no longer ready')
+        expected[output] = sha(output)
+    require(started_inputs is None or expected == started_inputs,
+            'external comparison inputs changed during execution')
+    require(report.get('inputs') == expected, 'external comparison inputs differ')
 
 
 def validate_qo_output(report, job):
@@ -418,6 +462,10 @@ def comparison_dependencies(job):
 
 
 def job_ready(path, doc, job):
+    if job.get('kind') == 'external_comparison':
+        states = [external_report(ref)[1] for ref in external_comparison_refs(job)]
+        return 'comparison_blocked' if 'comparison_blocked' in states else (
+            'ready' if all(s == 'ready' for s in states) else 'waiting_reports')
     if job.get('kind') == 'qo_diagnostic':
         states = [external_report(ref)[1] for ref in job['candidate'] + [job['qo']]]
         return 'comparison_blocked' if 'comparison_blocked' in states else (
@@ -440,6 +488,18 @@ def job_ready(path, doc, job):
 
 
 def report_command(doc, job):
+    if job.get('kind') == 'external_comparison':
+        config = doc['comparison']
+        outputs = []
+        for ref in external_comparison_refs(job):
+            output, state = external_report(ref)
+            require(state == 'ready', 'external comparison dependency not ready')
+            outputs.append(output)
+        return [sys.executable, '-P', config['tool'], '--candidate', *outputs[:2],
+                '--baseline', outputs[2], '--frozen-code-dir', str(Path(doc['closure']) / 'r3_code'),
+                '--selector', config['selector'], '--selector-sha256', config['selector_sha256'],
+                '--report-tool', doc['report_tool'], '--report-tool-sha256', doc['report_tool_sha256'],
+                '--output', job['output']]
     if job.get('kind') == 'qo_diagnostic':
         config = doc['qo_diagnostic']
         return [sys.executable, '-P', config['tool'], '--candidate',
@@ -500,7 +560,13 @@ def worker(path, pin, job_id):
     require(job_ready(path, doc, job) == 'ready', 'job inputs not ready')
     require(not (root / 'EXIT.json').exists(), 'worker already terminal')
     require(not Path(job['output']).exists(), 'fresh report output required')
+    if job.get('kind') == 'external_comparison':
+        verify_external_comparison(path, job)
+        Path(job['output']).parent.mkdir(parents=True, exist_ok=True)
     command = report_command(doc, job)
+    started_inputs = ({external_report(ref)[0]: sha(external_report(ref)[0])
+                       for ref in external_comparison_refs(job)}
+                      if job.get('kind') == 'external_comparison' else None)
     rc, process = 125, None
     try:
         with (root / 'report.log').open('ab', buffering=0) as log:
@@ -518,6 +584,8 @@ def worker(path, pin, job_id):
                 report = load(job['output'])
                 if job.get('kind') == 'qo_diagnostic':
                     validate_qo_output(report, job)
+                elif job.get('kind') == 'external_comparison':
+                    validate_external_comparison_output(report, job, started_inputs)
                 elif job.get('kind') == 'pt_r0_report':
                     validate_pt_output(report, doc, job)
                 elif job.get('kind') == 'r0_report':

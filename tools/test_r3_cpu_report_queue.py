@@ -331,6 +331,103 @@ sha=lambda f:hashlib.sha256(f.read_bytes()).hexdigest()
             self.write(Q.workdir(self.path,report)/'EXIT.json',{'exit_code':0,'output_sha256':Q.sha(report['output'])})
         return doc,job,reports
 
+    def external_comparison_fixture(self):
+        refs=[]
+        for name in ('s2','s3','k0'):
+            queue=self.root/name/'queue.json';run=self.root/name/'eval'
+            report={'id':name,'eval_out':str(run),'output':str(run/'results/selection_report.json')}
+            self.write(queue,{'schema':'r3-cpu-report-queue-v1','test_read':False,
+                              'scientific_acceptance':False,'jobs':[report]})
+            self.write(Path(report['output']),{'fixture':name})
+            self.write(Q.workdir(queue,report)/'EXIT.json',{'exit_code':0,'scientific_acceptance':False,
+                       'output_sha256':Q.sha(report['output'])})
+            refs.append({'queue':str(queue),'queue_sha256':Q.sha(queue),'job':name})
+        job={'id':'external','kind':'external_comparison','candidate':refs[:2],'baseline':refs[2],
+             'output':str(self.root/'comparisons/external/development_comparison.json')}
+        doc={**self.doc,'jobs':[job],'comparison':{'tool':str(self.root/'compare.py'),
+             'selector':str(self.root/'select.py'),'selector_sha256':'pin'},'report_tool_sha256':'report-pin'}
+        return doc,job,refs
+
+    def test_external_comparison_waits_or_blocks_on_real_terminals(self):
+        doc,job,refs=self.external_comparison_fixture()
+        Q.verify_external_comparison(self.path,job)
+        self.assertEqual(Q.job_ready(self.path,doc,job),'ready')
+        queue=Path(refs[0]['queue']);report=Q.load(queue)['jobs'][0]
+        terminal=Q.workdir(queue,report)/'EXIT.json';original=terminal.read_bytes();terminal.unlink()
+        self.assertEqual(Q.job_ready(self.path,doc,job),'waiting_reports')
+        self.write(terminal,{'exit_code':7,'scientific_acceptance':False})
+        self.assertEqual(Q.job_ready(self.path,doc,job),'comparison_blocked')
+        terminal.write_bytes(original);Path(report['output']).write_text('{}')
+        with self.assertRaisesRegex(RuntimeError,'external report changed'):Q.job_ready(self.path,doc,job)
+
+    def test_external_comparison_duplicate_scope_and_output_rejected(self):
+        doc,job,refs=self.external_comparison_fixture()
+        job['baseline']=refs[0]
+        with self.assertRaisesRegex(RuntimeError,'distinct'):Q.verify_external_comparison(self.path,job)
+        job['baseline']=refs[2];job['output']=str(self.root/'elsewhere/development_comparison.json')
+        with self.assertRaisesRegex(RuntimeError,'belong'):Q.verify_external_comparison(self.path,job)
+        job['output']=str(self.root/'comparisons/external/development_comparison.json')
+        queue=Path(refs[0]['queue']);value=Q.load(queue);value['test_read']=True;self.write(queue,value)
+        with self.assertRaisesRegex(RuntimeError,'queue changed'):Q.verify_external_comparison(self.path,job)
+        refs[0]['queue_sha256']=Q.sha(queue)
+        with self.assertRaisesRegex(RuntimeError,'scope differs'):Q.verify_external_comparison(self.path,job)
+
+    def test_external_comparison_full_verifier_pins_consumer_and_scopes(self):
+        doc,job,_=self.external_comparison_fixture()
+        controller=Path(Q.__file__).resolve();report=Path(doc['report_tool'])
+        report.write_text('# fixture report\n')
+        for key in ('tool','selector'):
+            f=Path(doc['comparison'][key]);f.write_text('# fixture '+key+'\n')
+            doc['comparison'][key+'_sha256']=Q.sha(f)
+        self.write(Path(doc['closure'])/'manifest.json',{'code':{}})
+        doc.update(schema='r3-cpu-report-queue-v1',test_read=False,scientific_acceptance=False,
+                   controller=str(controller),controller_sha256=Q.sha(controller),
+                   report_tool_sha256=Q.sha(report),
+                   closure_sha256=Q.sha(Path(doc['closure'])/'manifest.json'))
+        self.write(self.path,doc)
+        self.assertEqual(Q.verify(self.path,Q.sha(self.path)),doc)
+        Path(doc['comparison']['selector']).write_text('# changed\n')
+        with self.assertRaisesRegex(RuntimeError,'comparison code changed'):
+            Q.verify(self.path,Q.sha(self.path))
+
+    def test_external_comparison_alias_via_different_queue_is_rejected(self):
+        doc,job,refs=self.external_comparison_fixture()
+        queue=Path(refs[1]['queue']);value=Q.load(queue);first=Q.load(refs[0]['queue'])['jobs'][0]
+        value['jobs'][0].update(eval_out=first['eval_out'],output=first['output']);self.write(queue,value)
+        refs[1]['queue_sha256']=Q.sha(queue)
+        with self.assertRaisesRegex(RuntimeError,'alias'):Q.verify_external_comparison(self.path,job)
+
+    def test_external_comparison_real_worker_and_exact_input_hashes(self):
+        doc,job,refs=self.external_comparison_fixture()
+        script=Path(doc['comparison']['tool'])
+        script.write_text('''import sys,json,hashlib
+from pathlib import Path
+a=sys.argv; files=a[a.index('--candidate')+1:a.index('--baseline')]+[a[a.index('--baseline')+1]]
+out=Path(a[a.index('--output')+1])
+out.write_text(json.dumps({'schema':'r3-development-comparison-v1','scientific_acceptance':False,
+'test_read':False,'inputs':{p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in files}}))
+''')
+        command=Q.report_command(doc,job)
+        self.assertEqual(command[command.index('--candidate')+1:command.index('--baseline')],
+                         [Q.external_report(r)[0] for r in refs[:2]])
+        self.assertNotIn('--incumbent',command);self.assertNotIn('--r0-run',command)
+        Q.workdir(self.path,job).mkdir(parents=True)
+        with patch.object(Q,'verify',return_value=doc):self.assertEqual(Q.worker(self.path,self.pin,job['id']),0)
+        self.assertEqual(Q.observe(self.path,self.pin,job,doc)['status'],'done')
+        result=Q.load(job['output']);result['inputs'][Q.external_report(refs[0])[0]]='bad'
+        with self.assertRaisesRegex(RuntimeError,'inputs differ'):Q.validate_external_comparison_output(result,job)
+        with self.assertRaisesRegex(RuntimeError,'changed during execution'):
+            Q.validate_external_comparison_output(Q.load(job['output']),job,{'old':'hash'})
+        result['test_read']=True
+        with self.assertRaisesRegex(RuntimeError,'scope differs'):Q.validate_external_comparison_output(result,job)
+
+    def test_external_comparison_exit_zero_wrong_schema_is_failed(self):
+        doc,job,_=self.external_comparison_fixture()
+        Path(doc['comparison']['tool']).write_text("import sys\nfrom pathlib import Path\nPath(sys.argv[sys.argv.index('--output')+1]).write_text('{}')\n")
+        Q.workdir(self.path,job).mkdir(parents=True)
+        with patch.object(Q,'verify',return_value=doc):self.assertEqual(Q.worker(self.path,self.pin,job['id']),125)
+        self.assertIsNone(Q.load(Q.workdir(self.path,job)/'EXIT.json')['output_sha256'])
+
     def test_comparison_waits_for_all_report_terminals_and_hashes(self):
         doc,job,reports=self.comparison_fixture()
         self.assertEqual(Q.job_ready(self.path,doc,job),'ready')
