@@ -579,9 +579,14 @@ func TestAppendRechecksEvolvingTail(t *testing.T) {
 	}
 	// foreign VALID line (with newline) AFTER Open (R11 singularity): the
 	// splice would fix a duplicate seq into the file — the seq-continuity
-	// re-check must refuse in the guilty caller (STALE_SEQ), not let the
-	// next Open find the gap. The file then goes back to cleanOpenState for
-	// the legal face below.
+	// re-check must refuse in the guilty caller (STALE_SEQ). Reset to the
+	// clean Open-time content FIRST (the leftover garbage from the previous
+	// sub-case would fuse with the ghost line into a seq-is-an-object row,
+	// which trips the !ok arm instead of this continuity arm), so this case
+	// genuinely exercises the continuity comparison.
+	if err := os.WriteFile(path, cleanOpenState, 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(path, append(mustRead(t, path), []byte("{\"seq\":1,\"tool\":\"ghost.q\",\"selector\":\"g\",\"caller\":\"s2\",\"at\":\"x\"}\n")...), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -589,6 +594,18 @@ func TestAppendRechecksEvolvingTail(t *testing.T) {
 		t.Fatal("stale instance wrote a duplicate seq — false success poisoning the durable form")
 	} else if !strings.Contains(err.Error(), "EVIDLOG.STALE_SEQ") {
 		t.Fatalf("stale-seq refusal lacks the neutral key: %v", err)
+	}
+	// foreign ERASE face (R11 inner MAJOR-1): the file is truncated to zero
+	// bytes after Open, and the stale view's next Append must refuse — a
+	// bare len>0 guard would let a stale Seq=1 write itself in as the new
+	// first line and brick the log at the next Open.
+	if err := os.WriteFile(path, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "t", Selector: "s=1", Caller: "s2", At: "z"}); err == nil {
+		t.Fatal("stale instance wrote onto an erased file — false success resetting the log base")
+	} else if !strings.Contains(err.Error(), "EVIDLOG.STALE_SEQ") {
+		t.Fatalf("erase-face refusal lacks the neutral key: %v", err)
 	}
 	// legal face: a CONFORMANT last line without a newline survives splicing
 	// — reset the file to the clean Open-time content first (the garbage

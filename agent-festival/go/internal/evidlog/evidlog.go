@@ -159,13 +159,22 @@ func (l *Log) Append(e Entry) error {
 		// Seq-continuity re-check (R11 singularity — the evidlog side of
 		// adopt's ADOPT.STALE_WRITER gate, completing the three-piece
 		// symmetry): even a VALID foreign line appended after Open would be
-		// spliced into a duplicate/gap seq below. The last durable seq must
-		// be exactly e.Seq-1; anything else is an out-of-band write and
-		// fails here, in the guilty caller. Empty file: last seq is -1 and
-		// e.Seq is 0 — passes.
-		if len(existing) > 0 {
+		// spliced into a duplicate/gap seq below, and a foreign TRUNCATION
+		// would let a stale Seq write itself in as the new first line. The
+		// last durable seq must be exactly e.Seq-1; the guard fires on a
+		// non-empty file OR any e.Seq above 0 (an emptied file plus a
+		// non-fresh view is the erase face of the same disease — R11 inner
+		// MAJOR-1). Honest boundary: the gate is necessary, not sufficient —
+		// a foreign line that PRESERVES the seq arithmetic (e.g. a duplicate
+		// of the current last seq) passes arithmetic inspection and is left
+		// to the next Open's density check to catch.
+		if len(existing) > 0 || e.Seq > 0 {
 			lastSeq, ok := lastDurableSeq(existing)
-			if !ok || lastSeq+1 != e.Seq {
+			if !ok {
+				l.seq--
+				return fmt.Errorf("[EVIDLOG.STALE_SEQ] %s: append refused — the durable form's last line carries no numeric seq (empty or diseased file); repair the file before appending", l.path)
+			}
+			if lastSeq+1 != e.Seq {
 				l.seq--
 				return fmt.Errorf("[EVIDLOG.STALE_SEQ] %s: append refused — the durable form's last seq is %d but this instance is about to write %d; the Open-time view is stale (foreign or stale-instance write). Re-Open to absorb the file, then decide", l.path, lastSeq, e.Seq)
 			}
@@ -501,13 +510,11 @@ func lastDurableSeq(existing []byte) (int, bool) {
 		if json.Unmarshal(line, &doc) != nil || doc == nil {
 			return 0, false
 		}
-		switch v := doc["seq"].(type) {
-		case json.Number:
-			if n, err := v.Int64(); err == nil {
-				return int(n), true
-			}
-		case float64:
-			return int(v), true
+		// plain Unmarshal produces float64 for numbers (json.Number would
+		// need UseNumber, which this path does not use) — the json.Number
+		// case below was dead code and is gone (R11 inner MINOR-3).
+		if f, isNum := doc["seq"].(float64); isNum {
+			return int(f), true
 		}
 		return 0, false
 	}

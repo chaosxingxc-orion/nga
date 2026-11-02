@@ -1649,6 +1649,11 @@ func TestStaleInstanceWriteRejected(t *testing.T) {
 	if o.Status != "rejected" {
 		t.Fatalf("stale write succeeded with %q — false success poisoning the durable form", o.Status)
 	}
+	// pin the neutral key too (R11 inner m4: first bracketed key in the
+	// package — a rename would silently break key-matching callers)
+	if !strings.Contains(o.Detail, "ADOPT.STALE_WRITER") {
+		t.Fatalf("refusal detail lacks the neutral key: %q", o.Detail)
+	}
 	if m3, err := Open(path); err != nil {
 		t.Fatalf("file poisoned by the stale write: %v", err)
 	} else if m3.State("op-a") != StateAdopted || m3.State("op-b") != StateAdopted {
