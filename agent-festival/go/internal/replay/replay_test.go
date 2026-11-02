@@ -225,7 +225,7 @@ func TestRecoversToDispatchableNotBeyond(t *testing.T) {
 func TestInspectExposesGapsInViolatingRecord(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "violating.jsonl")
 	// a hand-written violating record: an effect event with no adoption
-	// predecessor (the bypass shape the eight families reject)
+	// predecessor (the bypass shape the nine families reject)
 	line := `{"event_type":"effect","arbitration_seq":0,"identity":{"business_request_id":"br-x","operation_id":"op-x"},"versions":{"evidence":"e","rule":"r","model":"m","readout":"ro","policy":"p"},"outcome":{"status":"dispatched"},"idempotency":{"operation_id":"op-x","payload_digest":"sha256:` + strings.Repeat("a", 64) + `"}}`
 	if err := os.WriteFile(path, []byte(line+"\n"), 0o644); err != nil {
 		t.Fatal(err)

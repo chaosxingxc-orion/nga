@@ -27,7 +27,7 @@ func TestDocstringFamilyEnumerationPinned(t *testing.T) {
 	}
 	// per-file phrase lists: the two docstrings are hand-synced prose, not
 	// literal copies — each is pinned to its own actual wording, covering
-	// all eight families (R15 m-1: the first version covered 3/8)
+	// all nine families (R15 m-1: the first version covered 3/8; R19 split transition DAG out as its own)
 	goPhrases := []string{
 		"strictly increasing",                 // seq family
 		"one payload digest per operation",    // digest stability

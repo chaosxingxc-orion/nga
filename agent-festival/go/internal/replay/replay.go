@@ -288,7 +288,7 @@ func Replay(c *Case) (*ReplayReport, error) {
 		rep.Detail = fmt.Sprintf("recomputation diverged at event %d — recomputed %d events, record has %d", rep.DivergenceAt, len(recomputed), len(c.RecordedEvents))
 	}
 
-	// conformance: does the RECORD itself pass the eight families? Judged
+	// conformance: does the RECORD itself pass the nine families? Judged
 	// through the RAW recorded documents — never a typed re-projection.
 	if c.RecordedRawDoc == nil {
 		return nil, fmt.Errorf("case %q carries no raw recorded view — the conformance arm refuses to judge a laundered projection (load via LoadCase)", c.CaseID)

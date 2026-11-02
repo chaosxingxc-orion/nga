@@ -14,7 +14,7 @@ import java.util.Set;
 /**
  * Ledger checker — JSON Schema phase plus the nine cross-event rule families
  * JSON Schema cannot express, mirroring schema/ledger.py (the Python oracle)
- * family by family. These rules are governance semantics (the six-piece
+ * family by family (the section headers below number RULE METHODS, eleven of them — the seq family carries three methods and the literal gate rides it). These rules are governance semantics (the six-piece
  * domain), i.e. the legal self-build zone; the generic machinery (parsing,
  * schema evaluation, regex) all rides industry libraries.
  *
