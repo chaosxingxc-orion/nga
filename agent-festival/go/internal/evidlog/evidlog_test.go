@@ -2,6 +2,7 @@ package evidlog
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -732,25 +733,51 @@ func TestTruncationBlindSpot(t *testing.T) {
 	}
 }
 
-// TestUTF8GateFieldCoverage locks the UTF-8 gate's field table to the Entry
-// struct's string fields (R12 登记项① 完整性锁 / R13 B-m5): a future string
-// field added to Entry without a gate row would silently reopen the
-// laundered-write hole through it. Reflection walks the struct; the gate
-// table is asserted to cover exactly the string fields.
+// TestUTF8GateFieldCoverage pins the UTF-8 write-side gate through the REAL
+// Append, per field (R14 A-M1, adopt's TestRequestUTF8ScanIsComplete form):
+// reflection walks the Entry struct's string fields and drives each field
+// individually with an invalid-UTF-8 value through Append — the gate must
+// refuse with EVIDLOG.INVALID_ENTRY naming THAT field. This is a two-way
+// lock the previous literal-map comparison was not: a gate row dropped from
+// the production slice makes its field's probe pass silently-green→RED
+// (the A-position mutation reproduced: deleting the result_ref row kept
+// the whole suite green); a new Entry string field without a gate row has
+// no probe naming it → the reflection loop fails to find its refusal.
 func TestUTF8GateFieldCoverage(t *testing.T) {
-	gate := map[string]bool{
-		"tool": true, "selector": true, "caller": true, "at": true, "result_ref": true,
-	}
 	ety := reflect.TypeOf(Entry{})
-	structFields := map[string]bool{}
 	for i := 0; i < ety.NumField(); i++ {
 		f := ety.Field(i)
-		if f.Type.Kind() == reflect.String {
-			structFields[strings.Split(f.Tag.Get("json"), ",")[0]] = true
+		if f.Type.Kind() != reflect.String {
+			continue
+		}
+		name := strings.Split(f.Tag.Get("json"), ",")[0]
+		path := filepath.Join(t.TempDir(), "evid.jsonl")
+		l, err := Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		entry := Entry{Tool: "t", Selector: "s", Caller: "c", At: "a"}
+		reflect.ValueOf(&entry).Elem().Field(i).SetString("ba\xffnk")
+		if err := l.Append(entry); err == nil {
+			t.Fatalf("field %s: invalid-UTF-8 value passed the write-side gate — laundered into the durable form", name)
+		} else if !strings.Contains(err.Error(), "EVIDLOG.INVALID_ENTRY") {
+			t.Fatalf("field %s: refusal lacks the neutral key: %v", name, err)
+		} else if !strings.Contains(err.Error(), fmt.Sprintf("field %q", name)) {
+			t.Fatalf("field %s: refusal does not name the offending field: %v", name, err)
 		}
 	}
-	if !reflect.DeepEqual(gate, structFields) {
-		t.Fatalf("UTF-8 gate field coverage broken:\ngate  %v\nEntry %v", sortedKeys(gate), sortedKeys(structFields))
+}
+
+// TestZeroValueLogAppendRefused pins the NOT_OPEN guard (R14 A-m2: the
+// guard had no test — deleting it and the opened field kept the suite
+// green, and a zero-value Log's first Append would emit Seq=1, violating
+// dense-from-0 and bricking the file for the next Open).
+func TestZeroValueLogAppendRefused(t *testing.T) {
+	l := &Log{}
+	if err := l.Append(Entry{Tool: "t", Selector: "s", Caller: "c", At: "a"}); err == nil {
+		t.Fatal("zero-value Log accepted an Append — first entry would be Seq=1, violating dense-from-0")
+	} else if !strings.Contains(err.Error(), "EVIDLOG.NOT_OPEN") {
+		t.Fatalf("refusal lacks the neutral key: %v", err)
 	}
 }
 

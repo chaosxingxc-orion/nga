@@ -40,12 +40,27 @@ def manifest() -> str:
     lines.append(f"| 全仓合计（含密钥库） | {all_total} |")
     return "\n".join(lines)
 
+def unknown_dirs() -> list[str]:
+    """Directories under schema/examples/ that FAMILIES does not know — a
+    new fixture family must register here or the 全仓合计 row silently
+    stops being a whole-repo count (R14 B-m2: the manifest was blind to
+    new sibling directories; --check stayed green with 205 files on disk
+    vs 203 in the manifest)."""
+    known = set(FAMILIES) | {"valid", "invalid", "envelopes", "keys"}  # family dirs + the base-corpus faces manifest() counts separately
+    actual = {d.name for d in Path("schema/examples").iterdir() if d.is_dir()}
+    return sorted(actual - known)
+
 def check() -> int:
     doc = DOC.read_text()
     # Delimited parse (R4 m-1): the manifest slot lives between the
     # corpus-manifest comment and the next section header. A stale SECOND
     # block anywhere else — byte-identical or with drifted counts (the probe
     # that beat the previous substring check) — must count as drift too.
+    unknown = unknown_dirs()
+    if unknown:
+        print(f"[manifest] FAIL: unknown fixture directories under schema/examples/ (not in FAMILIES): "
+              f"{', '.join(unknown)} — register the family in FAMILIES or the whole-repo row is a lie")
+        return 1
     m = re.search(r"<!-- corpus-manifest:.*?-->\n(.*?)(?=\n## )", doc, re.S)
     if not m:
         print(f"[manifest] FAIL: no corpus-manifest block found in {DOC} — "

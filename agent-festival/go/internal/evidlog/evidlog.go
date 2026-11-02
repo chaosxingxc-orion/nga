@@ -314,7 +314,12 @@ func CheckCoverage(log *Log, decl Declaration) CoverageReport {
 	return rep
 }
 
-// CheckDoc validates an evidlog document against the schema.
+// CheckDoc validates an evidlog document against the schema. It REWRITES
+// entries[].seq in the caller's map in place (integer-literal and in-domain
+// integral-float normalization); ledger.Errors deep-copies instead — the
+// divergence is deliberate and registered in
+// docs/conformance-fixture-format.md §三 (R13 F3 / R14 A-m3: a validator
+// that mutates its caller's document must say so at the code site).
 func CheckDoc(doc map[string]any) []string {
 	if err := schema.Validate(doc); err != nil {
 		return []string{"schema: " + err.Error()}
