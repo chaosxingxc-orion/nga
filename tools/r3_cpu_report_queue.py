@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Ordered, detached CPU selection reporting; never claims devices or reads tests.
 
-Only successfully released inference jobs become ready. A lost worker without a
+Full report jobs require successfully released inference. Explicit main-metric
+diagnostics use only their separately committed phase and never grant full-run
+qualification or release. A lost worker without a
 terminal is a repair condition, never permission to duplicate CPU execution.
 
 New Track KT report jobs may opt into terminal_gate="full_posttrain_v1" with
@@ -78,7 +80,8 @@ def event_paths(doc):
     paths = doc.get('event_wake_paths', [])
     require(isinstance(paths, list) and len(paths) <= 256, 'invalid event wake paths')
     allowed = {'EXIT.json', 'ENGINEERING_EVAL_EXIT.json', 'TRAIN_EXIT.json',
-               'EVAL_COMPLETE.track_kt.json', 'RELEASE.json', 'SUPERVISOR_DONE.json'}
+               'EVAL_COMPLETE.track_kt.json', 'RELEASE.json', 'SUPERVISOR_DONE.json',
+               'MAIN_METRIC_COMPLETE.json'}
     result = [safe_absolute(p) for p in paths]
     require(len(set(result)) == len(result) and all(p.name in allowed for p in result),
             'duplicate or unsupported wake terminal')
@@ -191,7 +194,10 @@ def verify(path, pin):
     prechecks = [j for j in jobs if j.get('kind') == 'k0_prechecks']
     pt_reports = [j for j in jobs if j.get('kind') == 'pt_r0_report']
     qo_reports = [j for j in jobs if j.get('kind') == 'qo_diagnostic']
-    require(len(reports) + len(comparisons) + len(external_comparisons) + len(r0_reports) + len(prechecks) + len(pt_reports) + len(qo_reports) == len(jobs), 'unknown CPU job kind')
+    main_metrics = [j for j in jobs if j.get('kind') == 'main_metric_diagnostic']
+    require(len(reports) + len(comparisons) + len(external_comparisons) + len(r0_reports) + len(prechecks) + len(pt_reports) + len(qo_reports) + len(main_metrics) == len(jobs), 'unknown CPU job kind')
+    for job in main_metrics:
+        main_metric_contract(path, doc, job)
     for job in external_comparisons:
         verify_external_comparison(path, job)
     if qo_reports:
@@ -275,6 +281,114 @@ def safe_absolute(value):
             and not value.startswith('//') and not any(p.is_symlink() for p in (path, *path.parents)),
             'absolute nonsymlink evidence path required')
     return path
+
+
+MAIN_METRIC_FLAGS = dict(diagnostic_only=True, scientific_acceptance=False,
+                         candidate_selection_allowed=False, test_read=False,
+                         resources_released=False)
+MAIN_METRIC_COUNTS = {'decision-v7/dev/clean': 1264, 'transfer-v4/dev/clean': 656}
+
+
+def exact_json(left, right):
+    return json.dumps(left, sort_keys=True, allow_nan=False) == json.dumps(right, sort_keys=True, allow_nan=False)
+
+
+def main_metric_contract(path, doc, job):
+    """Pinned diagnostic interface, not admission of a real model/execution."""
+    require(set(job) == {'id','kind','contract','contract_sha256','eval_out','output'},
+            'main metric job fields differ')
+    config = doc['main_metric_diagnostic']
+    require(set(config) == {'tool','tool_sha256'}, 'main metric consumer config differs')
+    inputs = {}
+    def bound(ref):
+        require(isinstance(ref,dict) and set(ref)=={'path','sha256'}, 'main metric reference differs')
+        p = safe_absolute(ref['path']); h = ref['sha256']
+        require(isinstance(h,str) and re.fullmatch('[0-9a-f]{64}',h)
+                and sha(p)==h, 'main metric dependency changed')
+        inputs[str(p)] = h
+        return p
+    tool = bound({'path':config['tool'],'sha256':config['tool_sha256']})
+    require(tool.name == 'r3_main_metric_phase.py', 'main metric tool differs')
+    contract_path = bound({'path':job['contract'],'sha256':job['contract_sha256']})
+    c = load(contract_path)
+    require(c.get('schema')=='r3-main-metric-contract-v1'
+            and exact_json(c.get('flags'),MAIN_METRIC_FLAGS), 'main metric contract scope differs')
+    require(type(c.get('attempt')) is int and c['attempt']>0, 'main metric attempt differs')
+    require(c['phase_implementation']=={'path':str(tool),'sha256':config['tool_sha256']},
+            'main metric implementation differs')
+    root = safe_absolute(job['eval_out'])
+    require(c['evaluation_out']==str(root), 'main metric evaluation differs')
+    output = safe_absolute(job['output'])
+    require(output==path.parent/'diagnostics'/job['id']/'main_metric_diagnostic.json'
+            and not output.is_relative_to(root), 'main metric output must be external queue diagnostic')
+    for name in ('evaluation_plan','execution','producer'):
+        bound(c[name])
+    require(set(c['libraries'])=={'core','store','population'}, 'main metric libraries differ')
+    for ref in list(c['libraries'].values())+list(c['files'].values()):
+        bound(ref)
+    require(set(c['populations'])==set(MAIN_METRIC_COUNTS), 'main metric populations differ')
+    for label,n in MAIN_METRIC_COUNTS.items():
+        entry=c['populations'][label]; p=bound(entry['input'])
+        require(type(entry['n']) is int and entry['n']==n and p.name=='dev.jsonl'
+                and p.parent.name==label.split('/')[0], 'main metric partition differs')
+    header=c['header_identity']
+    require(header['arm'] in ('K0','K1','K1-QO','K1-PT','K2')
+            and header['primary_input_mode']==('drop' if header['arm']=='K1-QO' else 'full'),
+            'main metric input mode differs')
+    require(isinstance(header.get('model'),dict) and header['model'].get('sha256')
+            and isinstance(header.get('scorer'),dict), 'main metric model/scorer missing')
+    return c,inputs
+
+
+def main_metric_inputs(path, doc, job):
+    c,inputs = main_metric_contract(path,doc,job)
+    root = safe_absolute(job['eval_out']); marker=root/'MAIN_METRIC_COMPLETE.json'
+    if not marker.exists():
+        return None
+    safe_absolute(str(marker))
+    marker_pin=sha(marker); v=load(marker)
+    require(v.get('schema')=='r3-main-metric-complete-v1'
+            and v.get('contract_sha256')==job['contract_sha256']
+            and type(v.get('attempt')) is int and v['attempt']==c['attempt'],
+            'main metric marker identity differs')
+    require(exact_json({k:v.get(k) for k in MAIN_METRIC_FLAGS},MAIN_METRIC_FLAGS),
+            'main metric marker scope differs')
+    require(exact_json({k:v['header'].get(k) for k in c['header_identity']},c['header_identity']),
+            'main metric marker header differs')
+    require(v['header'].get('limit',0)==0 and set(v['header']['partitions'])=={'dev','calibration'}
+            and set(v['header']['stages'].split(','))=={'k_score','t_score'},
+            'main metric producer population differs')
+    require(set(v['snapshots'])==set(MAIN_METRIC_COUNTS), 'main metric snapshots incomplete')
+    for label,e in v['snapshots'].items():
+        suite=label.split('/')[0]; dest=root/'main_metric_phase'/(suite+'.jsonl')
+        expected={'data':dest,'snapshot_receipt':Path(str(dest)+'.receipt.json'),
+                  'original_receipt':root/'main_metric_phase'/(suite+'.original-receipt.json')}
+        for key,p in expected.items():
+            ref=e[key]
+            require(ref.get('path')==str(p) and sha(safe_absolute(str(p)))==ref.get('sha256'),
+                    'main metric snapshot differs')
+            inputs[str(p)]=ref['sha256']
+    require(sha(marker)==marker_pin, 'main metric marker changed during observation')
+    inputs[str(marker)]=marker_pin
+    return inputs
+
+
+def validate_main_metric_output(report, path, doc, job, started_inputs):
+    require(started_inputs is not None
+            and main_metric_inputs(path,doc,job)==started_inputs,
+            'main metric inputs changed during execution')
+    c,_=main_metric_contract(path,doc,job)
+    marker=str(Path(job['eval_out'])/'MAIN_METRIC_COMPLETE.json')
+    require(report.get('schema')=='r3-main-metric-diagnostic-v1'
+            and exact_json({k:report.get(k) for k in MAIN_METRIC_FLAGS},MAIN_METRIC_FLAGS)
+            and report.get('contract_sha256')==job['contract_sha256']
+            and report.get('marker')=={'path':marker,'sha256':started_inputs[marker]}
+            and report.get('primary_input_mode')==c['header_identity']['primary_input_mode'],
+            'main metric output scope or identity differs')
+    require(set(report['partitions'])==set(MAIN_METRIC_COUNTS)
+            and all(type(report['partitions'][k]['n']) is int
+                    and report['partitions'][k]['n']==n for k,n in MAIN_METRIC_COUNTS.items()),
+            'main metric output population differs')
 
 
 def external_report(ref, check_terminal=True):
@@ -563,6 +677,8 @@ def comparison_dependencies(job):
 
 
 def job_ready(path, doc, job):
+    if job.get('kind') == 'main_metric_diagnostic':
+        return 'ready' if main_metric_inputs(path,doc,job) is not None else 'waiting_main_metric'
     if job.get('kind') == 'external_comparison':
         states = [external_report(ref)[1] for ref in external_comparison_refs(job)]
         return 'comparison_blocked' if 'comparison_blocked' in states else (
@@ -635,6 +751,10 @@ def comparison_role_arguments(jobs, candidate_count=2):
 
 
 def report_command(doc, job):
+    if job.get('kind') == 'main_metric_diagnostic':
+        return [sys.executable, '-P', doc['main_metric_diagnostic']['tool'],
+                '--contract', job['contract'], '--sha256', job['contract_sha256'],
+                '--output', job['output']]
     if job.get('kind') == 'external_comparison':
         config = doc['comparison']
         outputs = []
@@ -715,10 +835,13 @@ def worker(path, pin, job_id):
     if job.get('kind') == 'external_comparison':
         verify_external_comparison(path, job)
         Path(job['output']).parent.mkdir(parents=True, exist_ok=True)
+    if job.get('kind') == 'main_metric_diagnostic':
+        Path(job['output']).parent.mkdir(parents=True, exist_ok=True)
     command = report_command(doc, job)
     started_inputs = ({external_report(ref)[0]: sha(external_report(ref)[0])
                        for ref in external_comparison_refs(job)}
-                      if job.get('kind') == 'external_comparison' else None)
+                      if job.get('kind') == 'external_comparison' else
+                      main_metric_inputs(path,doc,job) if job.get('kind') == 'main_metric_diagnostic' else None)
     rc, process = 125, None
     try:
         with (root / 'report.log').open('ab', buffering=0) as log:
@@ -734,7 +857,10 @@ def worker(path, pin, job_id):
                 rc = 128 - rc
             if rc == 0:
                 report = load(job['output'])
-                if job.get('kind') == 'qo_diagnostic':
+                if job.get('kind') == 'main_metric_diagnostic':
+                    verify(path,pin)
+                    validate_main_metric_output(report,path,doc,job,started_inputs)
+                elif job.get('kind') == 'qo_diagnostic':
                     validate_qo_output(report, job)
                 elif job.get('kind') == 'external_comparison':
                     validate_external_comparison_output(report, job, started_inputs)
@@ -773,7 +899,8 @@ def worker(path, pin, job_id):
             process.wait()
         atomic(root / 'EXIT.json', {'exit_code': rc, 'utc_seconds': time.time(),
                'output_sha256': sha(job['output']) if rc == 0 else None,
-               'scientific_acceptance': False})
+               'scientific_acceptance': False, **({'diagnostic_inputs': started_inputs,
+                **MAIN_METRIC_FLAGS} if job.get('kind')=='main_metric_diagnostic' else {})})
     return rc
 
 
@@ -784,6 +911,10 @@ def observe(path, pin, job, doc=None):
         end = load(terminal)
         if end['exit_code'] == 0:
             require(sha(job['output']) == end['output_sha256'], 'completed report changed')
+            if job.get('kind') == 'main_metric_diagnostic':
+                require(doc is not None and exact_json({k:end.get(k) for k in MAIN_METRIC_FLAGS},MAIN_METRIC_FLAGS),
+                        'main metric terminal scope differs')
+                validate_main_metric_output(load(job['output']),path,doc,job,end.get('diagnostic_inputs'))
         return {'status': 'done' if end['exit_code'] == 0 else 'report_failed', 'exit_code': end['exit_code']}
     receipt = root / 'WORKER.json'
     if receipt.exists():
