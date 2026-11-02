@@ -6,6 +6,7 @@ Device operations use the separately reviewed isolated launcher/resource adapter
 Uncertain starts are never replayed. Each chip advances independently.
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import fcntl
 import hashlib
 import json
@@ -58,14 +59,26 @@ def source(path, pin):
 def atomic(path, value):
     path = Path(path)
     temp = path.with_suffix('.pending')
-    with temp.open('w') as f:
+    fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+    os.fchmod(fd, 0o644)
+    with os.fdopen(fd, 'w') as f:
         json.dump(value, f, indent=2, sort_keys=True); f.write('\n'); f.flush(); os.fsync(f.fileno())
     temp.replace(path)
+    sync_directory(path.parent)
+
+
+def sync_directory(path):
+    fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try: os.fsync(fd)
+    finally: os.close(fd)
 
 
 def exclusive(path, value):
-    with Path(path).open('x') as f:
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    os.fchmod(fd, 0o644)
+    with os.fdopen(fd, 'w') as f:
         json.dump(value, f, indent=2, sort_keys=True); f.write('\n'); f.flush(); os.fsync(f.fileno())
+    sync_directory(Path(path).parent)
 
 
 def process_matches(receipt):
@@ -124,7 +137,12 @@ def plan(job, reviewed=True):
     require(p.get('schema') == 'r3-formal-k1-plan-v1' and p.get('control_arm') is None
             and p.get('test_read') is False and p.get('scientific_acceptance') is False,
             'exact Base K1 train-only scope required')
-    require((p['seed'], p['chip']) in ((2, 1), (3, 4)) and p['chip'] == job['chip']
+    if any(k in p for k in ('formal_schedule','formal_schedule_sha256','formal_role')):
+        source(p['launcher'],p['files'][p['launcher']]).formal_target_identity(p)
+        require(job.get('formal_role')==p['formal_role'] and job.get('formal_schedule_sha256')==p['formal_schedule_sha256'], 'successor role binding differs')
+    else:
+        require((p['seed'], p['chip']) in ((2, 1), (3, 4)), 'legacy plan ownership differs')
+    require(p['chip'] == job['chip']
             and p['out'] == str(Path(job['plan']).parent), 'plan ownership differs')
     require(job['attempt'] == 1 and type(job['attempt']) is int, 'fresh attempt1 only')
     if reviewed:
@@ -136,19 +154,26 @@ def plan(job, reviewed=True):
 
 def verify(path, pin, reviewed=True):
     d = load(path, pin)
-    require(d['schema'] == 'r3-formal-train-successor-v2' and d['test_read'] is False
+    require(d['schema'] in ('r3-formal-train-successor-v2', 'r3-formal-train-successor-v3') and d['test_read'] is False
             and d['scientific_acceptance'] is False, 'queue scope differs')
     require(d['controller'] == str(Path(__file__).absolute()), 'controller path differs')
     content(d['controller'], d['controller_sha256'])
     for f, h in d['bindings'].items():
         content(f, h)
     jobs = d['jobs']
-    require(jobs and all(len({j[k] for j in jobs}) == len(jobs) for k in ('id', 'plan', 'chip')),
+    unique = ('id', 'plan', 'chip') if d['schema'].endswith('v2') else ('id', 'plan')
+    require(jobs and all(len({j[k] for j in jobs}) == len(jobs) for k in unique),
             'empty or duplicate jobs')
+    if d['schema'].endswith('v3'):
+        verify_wave(d, reviewed)
     for j in jobs:
         require(isinstance(j['id'], str) and j['id'] and
                 all(c.isalnum() or c in '-_' for c in j['id']), 'unsafe job ID')
         p = plan(j, reviewed=reviewed)
+        if 'previous_training' in j:
+            require(d['schema'].endswith('v3') and 'previous_execution' not in j, 'training dependency requires v3')
+            training_binding(j, p)
+            continue
         prior = load(j['previous_execution'], j['previous_execution_sha256'])
         require(prior.get('schema') == 'r3-engineering-posttrain-execution-v1'
                 and prior['chip'] == j['chip'] and prior['out'] == str(Path(j['previous_execution']).parent)
@@ -158,6 +183,68 @@ def verify(path, pin, reviewed=True):
             content(f, h)
         content(prior['spec'], prior['spec_sha256'])
     return d
+
+
+def training_binding(job, target):
+    ref = job['previous_training']
+    p = load(ref['plan'], ref['plan_raw_sha256'])
+    require(identity(p) == ref['plan_sha256'] and p.get('test_read') is False
+            and p.get('scientific_acceptance') is False and p.get('control_arm') is None,
+            'training predecessor scope/identity differs')
+    require(p.get('schema') in ('r3-formal-k1-plan-v1', 'r3-engineering-k1-plan-v1')
+            and p['chip'] == job['chip'] and p['out'] == str(Path(ref['plan']).parent)
+            and p['out'] != target['out'], 'training predecessor placement differs')
+    for k in ('launcher', 'adapter', 'driver'):
+        content(p[k], p['files'][p[k]])
+    return p
+
+
+def verify_wave(d, reviewed=True):
+    """Four roles, one common reviewed schedule, explicit per-chip FIFO edges."""
+    require(type(d.get('poll_interval_seconds')) is int and d['poll_interval_seconds'] >= 600,
+            'v3 polling must be at least600 seconds')
+    schedule = load(d['formal_schedule'], d['formal_schedule_sha256'])
+    require(d['bindings'].get(d['formal_schedule']) == d['formal_schedule_sha256'], 'wave binding missing')
+    jobs = d['jobs']; by = {j['id']:j for j in jobs}
+    roles = {j.get('formal_role'):j for j in jobs}
+    require(len(jobs) == len(roles) == 4 and set(roles) ==
+            {'primary_s2','primary_s3','samechip_s2','diffchip_s2'}, 'four exact training roles required')
+    plans = {j['id']:plan(j, reviewed=reviewed) for j in jobs}
+    require(len({p['out'] for p in plans.values()}) == 4 and
+            len({p['container'] for p in plans.values()}) == 4, 'duplicate output/container')
+    nodes = {n['id']:n for n in schedule['nodes']}
+    for j in jobs:
+        p=plans[j['id']]; role=j['formal_role']
+        require(p['formal_schedule'] == d['formal_schedule'] and
+                p['formal_schedule_sha256'] == j['formal_schedule_sha256'] == d['formal_schedule_sha256'],
+                'mixed wave schedule')
+        # A new queue must never depend on a launcher which only checks outside claim lock.
+        launcher = source(p['launcher'], p['files'][p['launcher']])
+        require(getattr(launcher, 'SUCCESSOR_CLAIM_GUARD_VERSION', None) == 1,
+                'v3 requires reviewed launcher claim-guard integration')
+        require(p.get('successor_guard',{}).get('controller') == d['controller']
+                and p['files'].get(d['controller']) == d['controller_sha256'], 'claim guard controller pin differs')
+        if role.startswith('primary_'):
+            require(j.get('depends_on') is None, 'primary must have external predecessor')
+        else:
+            previous_role = 'primary_s2' if role == 'samechip_s2' else 'primary_s3'
+            prior=roles[previous_role]; ref=j.get('previous_training',{})
+            require(j.get('depends_on') == prior['id'] and prior['chip'] == j['chip'], 'within-chip predecessor differs')
+            require(ref == {k:prior[k] for k in ('plan','plan_sha256','plan_raw_sha256')},
+                    'training edge exact plan differs')
+            require(nodes[role]['depends_on'] == [previous_role+'_release'], 'schedule edge differs')
+        guard=p['successor_guard']
+        if 'previous_training' in j:
+            require(guard.get('previous_training') == j['previous_training'], 'training claim guard edge differs')
+        else:
+            require(guard.get('previous_execution') == j.get('previous_execution') and
+                    guard.get('previous_execution_sha256') == j.get('previous_execution_sha256'), 'evaluation claim guard edge differs')
+    # Manifest order is execution order per chip, not an incidental caller choice.
+    for chip in {j['chip'] for j in jobs}:
+        lane=[j for j in jobs if j['chip']==chip]
+        require(len(lane)==2 and lane[0]['formal_role'].startswith('primary_') and
+                lane[1].get('depends_on')==lane[0]['id'], 'per-chip FIFO order differs')
+    return plans
 
 
 def authorize(path, pin, queue_pin, doc):
@@ -309,6 +396,8 @@ def evaluator_lineage(p, spec, launcher, snap):
 
 
 def predecessor(job, resource):
+    if 'previous_training' in job:
+        return training_predecessor(job, resource)
     path = Path(job['previous_execution']); root = path.parent
     snap = Snapshot(); p = snap.read(path, job['previous_execution_sha256'])
     marker = root/'ENGINEERING_EVAL_EXIT.json'
@@ -363,6 +452,59 @@ def predecessor(job, resource):
                 release_path=str(attempt/'RELEASE.json'), free_entry=free)
 
 
+def training_predecessor(job, resource):
+    """Successful TRAIN_EXIT plus retained generation, claim/release and final manifest.
+
+    This is operational handoff evidence. Scientific/DEV eligibility is separate.
+    """
+    target=plan(job); p=training_binding(job,target); ref=job['previous_training'];root=Path(p['out'])
+    marker=root/'TRAIN_EXIT.json'
+    if not marker.exists(): return None
+    snap=Snapshot();snap.raw(ref['plan'],ref['plan_raw_sha256'])
+    for f,h in p['files'].items():snap.raw(f,h)
+    end=snap.read(marker);receipt=snap.read(root/'SUPERVISOR_RECEIPT.json');cmd=receipt['command']
+    require(cmd[:3]==[sys.executable,'-P',p['launcher']] and cmd[3:6]==['supervise','--plan',ref['plan']]
+            and cmd[6:8]==['--sha256',ref['plan_sha256']] and cmd[8]=='--attempt'
+            and cmd[9].isdigit(), 'training supervisor identity differs')
+    n=int(cmd[9]);require(n>0 and type(end.get('attempt')) is int, 'training attempt invalid')
+    if end['attempt']<n:return None
+    require(end['attempt']==n,'training terminal attempt differs')
+    if 'successor_guard' in p:
+        require(len(cmd)==12 and cmd[10]=='--precondition-sha256','training guard command missing')
+        pre=snap.read(root/'SUCCESSOR_PRECONDITION.json',cmd[11])
+        require(pre['job']['plan']==ref['plan'] and pre['job']['plan_sha256']==ref['plan_sha256'], 'predecessor own claim binding differs')
+    else:require(len(cmd)==10,'unexpected training supervisor arguments')
+    a=root/'attempts'/str(n)
+    if not (a/'RELEASE.json').exists():return None
+    if p['schema']=='r3-formal-k1-plan-v1' and not (a/'SUPERVISOR_DONE.json').exists():return None
+    require(snap.read(a/'EXIT.json')==end,'training terminal disagreement')
+    release=snap.read(a/'RELEASE.json');claim=snap.read(a/'CLAIM.json')
+    launch=snap.read(a/'LAUNCH_RECEIPT.json');spec=snap.read(a/'LAUNCH_SPEC.json')
+    launcher=source(p['launcher'],p['files'][p['launcher']]);command=launcher.docker_command(p,ref['plan'],n)
+    actual=resource.docker_inspect(p['container']+'-a'+str(n))
+    require(actual and actual['Id']==launch['id']==release['container_id']
+            and launch['plan_sha256']==spec['plan_sha256']==ref['plan_sha256']
+            and spec['command']==command and launch['image']==p['image_sha256'],'training launch identity differs')
+    retained(command,p['image_sha256'],actual,resource)
+    codes=[end['exit_code'],end.get('container_exit_code',end['exit_code']),release['exit_code'],actual['State']['ExitCode']]
+    if p['schema']=='r3-formal-k1-plan-v1':
+        done=snap.read(a/'SUPERVISOR_DONE.json');require(done.get('scientific_acceptance') is False,'training done scope differs');codes.append(done['exit_code'])
+    require(actual['State']['Status'] in ('exited','dead') and all(type(x) is int and x==0 for x in codes), 'training predecessor failed')
+    free=ownership(p,claim,release,a/'RELEASE.json',actual)
+    if 'successor_guard' in p:
+        require(release.get('claim_sha256')==snap.hashes[str(a/'CLAIM.json')] and
+                claim['successor_precondition']['precondition_sha256']==cmd[11], 'training claim generation differs')
+    manifest=snap.read(root/'manifest.json')
+    require(manifest['summary']['final_step']==3116 and manifest['total_steps']==3116
+            and manifest['args']['seed']==p['seed'] and manifest['args']['out']==p['out'], 'training final trajectory incomplete')
+    for rel in ('adapter/adapter_model.safetensors','adapter/adapter_config.json','ckpt/step_003116.pt'):
+        snap.raw(root/rel)
+    require(not process_matches(receipt),'training predecessor supervisor still live')
+    snap.recheck()
+    return dict(container_id=actual['Id'],attempt=n,run=p['run'],hashes=snap.hashes,
+                release_path=str(a/'RELEASE.json'),free_entry=free)
+
+
 def competitors(entries):
     snap = Snapshot()
     for entry in entries:
@@ -379,9 +521,12 @@ def claim_precondition(p, plan_pin, precondition_pin, allocation, resource):
     value = snap.read(Path(p['out'])/'SUCCESSOR_PRECONDITION.json', precondition_pin)
     job = value['job']; expected = value['evidence']; guard = p['successor_guard']
     require(identity(p) == plan_pin == job['plan_sha256'] and p == plan(job), 'guard plan differs')
-    require(job['previous_execution'] == guard['previous_execution']
-            and job['previous_execution_sha256'] == guard['previous_execution_sha256']
-            and value['competitors'] == guard['competitors'], 'guard predecessor/competitors differ')
+    if 'previous_training' in job:
+        require(job['previous_training'] == guard.get('previous_training'), 'guard training predecessor differs')
+    else:
+        require(job['previous_execution'] == guard.get('previous_execution')
+                and job['previous_execution_sha256'] == guard.get('previous_execution_sha256'), 'guard predecessor differs')
+    require(value['competitors'] == guard['competitors'], 'guard competitors differ')
     prior = predecessor(job, resource)
     require(prior is not None and prior == expected['previous'], 'predecessor evidence changed at claim')
     free = [x for x in allocation['free'] if x['chip'] == p['chip']]
@@ -478,7 +623,8 @@ def tick(job, authorization, state_root):
     # Actual reviewed=True validator (no --unreviewed); stdout belongs to normal durable log.
     command = [sys.executable, '-P', p['launcher'], 'verify', '--plan', job['plan'], '--sha256', job['plan_sha256']]
     with (state_root/(job['id']+'.verify.log')).open('ab') as log:
-        subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT, timeout=1800)
+        subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT, timeout=1800,
+                       env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'))
     plan(job)
     evidence = ready(job, p, resource, authorization)  # Re-observe after expensive CPU validation.
     if evidence['status'] != 'eligible':
@@ -491,11 +637,14 @@ def tick(job, authorization, state_root):
     exclusive(intent_path, {'job': job, 'evidence': evidence, 'precondition_sha256': precondition_pin,
                             'command': command, 'utc_seconds': time.time()})
     with (state_root/(job['id']+'.launch.log')).open('ab') as log:
-        subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT, timeout=1800)
+        subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT, timeout=1800,
+                       env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'))
     return {'status': 'launch_requested', 'previous': evidence['previous']}
 
 
 def cycle(doc, authorization, state_root):
+    if doc.get('schema') == 'r3-formal-train-successor-v3':
+        return wave_cycle(doc, authorization, state_root)
     states = {}
     for job in doc['jobs']:
         if job['id'] not in authorization['allowed_jobs']:
@@ -507,10 +656,63 @@ def cycle(doc, authorization, state_root):
     return states
 
 
+def wave_lane(jobs, authorization, state_root):
+    states={};blocked=None
+    for job in jobs:
+        if job['id'] not in authorization['allowed_jobs']:
+            states[job['id']]={'status':'deferred_by_root'};blocked=job['id'];continue
+        if blocked:
+            states[job['id']]={'status':'waiting_queue_predecessor','job':blocked};continue
+        try:states[job['id']]=tick(job,authorization,state_root)
+        except Exception as error:states[job['id']]={'status':'observation_or_launch_uncertain','error':str(error)[:300]}
+        if states[job['id']]['status']!='completed':blocked=job['id']
+    return states
+
+
+def wave_cycle(doc, authorization, state_root):
+    """One concurrent observation cycle, also used by bounded CPU tests."""
+    chips=sorted({j['chip'] for j in doc['jobs']})
+    with ThreadPoolExecutor(max_workers=len(chips)) as pool:
+        futures=[pool.submit(wave_lane,[j for j in doc['jobs'] if j['chip']==chip],authorization,state_root) for chip in chips]
+        result={}
+        for future in futures:result.update(future.result())
+    return result
+
+
+def watch_wave(path, pin, apath, apin, initial):
+    """Persistent chip lanes have independent clocks; aggregation never gates them."""
+    root=path.parent;mutex=threading.Lock();stop=threading.Event()
+    states={j['id']:{'status':'not_yet_observed'} for j in initial['jobs']};errors={}
+    def lane(chip):
+        try:
+            while not stop.is_set():
+                d=verify(path,pin);a=authorize(apath,apin,pin,d)
+                jobs=[j for j in d['jobs'] if j['chip']==chip]
+                values=wave_lane(jobs,a,root)
+                with mutex:states.update(values)
+                if all(x['status'] in ('completed','deferred_by_root') for x in values.values()):return
+                stop.wait(d['poll_interval_seconds'])
+        except Exception as error:
+            with mutex:errors[str(chip)]=str(error)[:300]
+    threads=[threading.Thread(target=lane,args=(chip,),daemon=True) for chip in sorted({j['chip'] for j in initial['jobs']})]
+    for thread in threads:thread.start()
+    while any(t.is_alive() for t in threads):
+        with mutex:value={'utc_seconds':time.time(),'jobs':dict(states),'lane_errors':dict(errors),'scientific_acceptance':False,'test_read':False}
+        atomic(root/'digest.json',value);atomic(root/'heartbeat.json',value)
+        # Machine-only heartbeat aggregation; no Docker/model polling here.
+        stop.wait(min(15, initial['poll_interval_seconds']))
+    with mutex:value={'utc_seconds':time.time(),'jobs':dict(states),'lane_errors':dict(errors),'scientific_acceptance':False,'test_read':False}
+    atomic(root/'digest.json',value)
+    atomic(root/'EXIT.json',dict(value,exit_code=int(bool(errors) or any(x['status'] not in ('completed','deferred_by_root') for x in states.values()))))
+
+
 def watch(path, pin, apath, apin):
     root = path.parent
     with (root/'watch.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        initial=verify(path,pin)
+        if initial['schema']=='r3-formal-train-successor-v3':
+            return watch_wave(path,pin,apath,apin,initial)
         stop = threading.Event()
         def heartbeat():
             while not stop.is_set():
@@ -528,7 +730,7 @@ def watch(path, pin, apath, apin):
             if all(x['status'] in ('completed', 'failed_released', 'deferred_by_root') for x in states.values()):
                 stop.set()
                 atomic(root/'EXIT.json', dict(value, exit_code=int(any(x['status']=='failed_released' for x in states.values())))); return
-            time.sleep(30)
+            time.sleep(d.get('poll_interval_seconds', 30))
 
 
 def main():
@@ -563,7 +765,7 @@ def main():
             print('ALREADY_LIVE'); return
         exclusive(path.parent/'SERVICE_START_INTENT.json', {'command': command, 'utc_seconds': time.time()})
         with (path.parent/'service.log').open('ab') as log:
-            p = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+            p = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, start_new_session=True, env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'))
         atomic(rp, {'pid': p.pid, 'command': command})
         atomic(path.parent/'RELAUNCH.json', {'command': [x if x != 'watch' else 'start' for x in command],
                                           'rule': 'live service idempotent; absent/uncertain service requires repair'})

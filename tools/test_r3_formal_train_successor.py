@@ -550,4 +550,118 @@ class FailclosedStartTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,'independent PASS'):S.plan(self.job)
 
 
+class TrainingPredecessorTests(SuccessorTests):
+    def training_fixture(self):
+        self.finish_parent();self.completed_successor()
+        write(self.out/'manifest.json',dict(summary={'final_step':3116},total_steps=3116,args={'seed':2,'out':str(self.out)}))
+        for rel in ('adapter/adapter_model.safetensors','adapter/adapter_config.json','ckpt/step_003116.pt'):
+            p=self.out/rel;p.parent.mkdir(exist_ok=True);p.write_bytes(b'synthetic-complete-artifact')
+        self.child=dict(id='samechip',chip=1,previous_training={k:self.job[k] for k in ('plan','plan_sha256','plan_raw_sha256')})
+        self.target={'out':str(self.root/'next')}
+        self.patch(S,'plan',return_value=self.target)
+
+    def test_training_predecessor_requires_complete_retained_lineage(self):
+        self.training_fixture();result=S.training_predecessor(self.child,R)
+        self.assertEqual(result['container_id'],'formal-id');self.assertGreater(len(result['hashes']),12)
+        self.assertIn(str(self.out/'ckpt/step_003116.pt'),result['hashes'])
+
+    def test_training_predecessor_incomplete_or_failed_blocks(self):
+        self.training_fixture();a=self.out/'attempts/1';done=(a/'SUPERVISOR_DONE.json').read_bytes();(a/'SUPERVISOR_DONE.json').unlink()
+        self.assertIsNone(S.training_predecessor(self.child,R));(a/'SUPERVISOR_DONE.json').write_bytes(done)
+        write(self.out/'TRAIN_EXIT.json',dict(exit_code=1,attempt=1));write(a/'EXIT.json',dict(exit_code=1,attempt=1))
+        with self.assertRaisesRegex(RuntimeError,'predecessor failed'):S.training_predecessor(self.child,R)
+
+    def test_training_predecessor_wrong_generation_and_final_step(self):
+        self.training_fixture();self.formal_actual['Id']='replacement'
+        with self.assertRaisesRegex(RuntimeError,'launch identity'):S.training_predecessor(self.child,R)
+        self.formal_actual['Id']='formal-id';p=self.out/'manifest.json';v=json.loads(p.read_bytes());v['summary']['final_step']=3115;write(p,v)
+        with self.assertRaisesRegex(RuntimeError,'trajectory incomplete'):S.training_predecessor(self.child,R)
+
+    def test_training_predecessor_wrong_plan_pin_refused(self):
+        self.training_fixture();self.child['previous_training']['plan_raw_sha256']='0'*64
+        with self.assertRaisesRegex(RuntimeError,'content changed'):S.training_predecessor(self.child,R)
+
+
+class WaveQueueTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name)
+        self.jobs=[];self.plans={};self.schedule=self.root/'schedule.json';nodes=[]
+        for role,seed,chip in [('primary_s2',2,1),('primary_s3',3,2),('samechip_s2',2,1),('diffchip_s2',2,2)]:
+            out=self.root/role;out.mkdir();j=dict(id=role,formal_role=role,chip=chip,plan=str(out/'plan.json'),plan_sha256=role+'canonical',plan_raw_sha256=role+'raw')
+            if role.startswith('primary_'):j.update(previous_execution='/prior'+str(chip),previous_execution_sha256='e'*64)
+            else:
+                prior=self.jobs[0 if role=='samechip_s2' else 1];j.update(depends_on=prior['id'],previous_training={k:prior[k] for k in ('plan','plan_sha256','plan_raw_sha256')})
+            self.jobs.append(j);nodes.append(dict(id=role,depends_on=([j['depends_on']+'_release'] if 'depends_on' in j else [])))
+        write(self.schedule,dict(nodes=nodes));h=pin(self.schedule)
+        self.doc=dict(schema='r3-formal-train-successor-v3',jobs=self.jobs,formal_schedule=str(self.schedule),formal_schedule_sha256=h,poll_interval_seconds=600,controller=S.__file__,controller_sha256=pin(S.__file__),bindings={str(self.schedule):h})
+        for j in self.jobs:
+            j['formal_schedule_sha256']=h
+            guard={k:v for k,v in j.items() if k.startswith('previous_')};guard['controller']=S.__file__
+            self.plans[j['id']]=dict(formal_schedule=str(self.schedule),formal_schedule_sha256=h,out=str(Path(j['plan']).parent),container=j['id'],launcher='/fixture/launcher',files={'/fixture/launcher':'p',S.__file__:pin(S.__file__)},successor_guard=guard)
+        self.a={'allowed_jobs':[j['id'] for j in self.jobs]}
+
+    def verify(self):
+        with patch.object(S,'plan',side_effect=lambda j,**k:self.plans[j['id']]),patch.object(S,'source',return_value=types.SimpleNamespace(SUCCESSOR_CLAIM_GUARD_VERSION=1)):
+            return S.verify_wave(self.doc)
+
+    def test_two_lanes_exact_edges_accept(self):self.assertEqual(len(self.verify()),4)
+
+    def test_wrong_role_mixedwave_duplicate_output_and_edges_refused(self):
+        for mutation in ('edge','wave','output','order'):
+            with self.subTest(mutation=mutation):
+                oldd=copy.deepcopy(self.doc);oldp=copy.deepcopy(self.plans)
+                if mutation=='edge':self.jobs[2]['depends_on']='primary_s3'
+                if mutation=='wave':self.plans['samechip_s2']['formal_schedule_sha256']='wrong'
+                if mutation=='output':self.plans['samechip_s2']['out']=self.plans['primary_s2']['out']
+                if mutation=='order':self.doc['jobs']=[self.jobs[2],self.jobs[0],self.jobs[1],self.jobs[3]]
+                with self.assertRaises(RuntimeError):self.verify()
+                self.doc=oldd;self.jobs=self.doc['jobs'];self.plans=oldp
+
+    def test_launcher_without_claim_guard_refused(self):
+        with patch.object(S,'plan',side_effect=lambda j,**k:self.plans[j['id']]),patch.object(S,'source',return_value=types.SimpleNamespace()):
+            with self.assertRaisesRegex(RuntimeError,'claim-guard'):S.verify_wave(self.doc)
+
+    def test_lanes_parallel_and_child_waits_uncertain(self):
+        import threading
+        barrier=threading.Barrier(2);calls=[]
+        def tick(j,*args):
+            calls.append(j['id'])
+            if j['formal_role'].startswith('primary_'):barrier.wait(timeout=2)
+            return {'status':'observation_or_launch_uncertain' if j['id']=='primary_s2' else 'completed'}
+        with patch.object(S,'tick',side_effect=tick):v=S.wave_cycle(self.doc,self.a,self.root)
+        self.assertNotIn('samechip_s2',calls);self.assertIn('diffchip_s2',calls)
+        self.assertEqual(v['samechip_s2']['status'],'waiting_queue_predecessor')
+
+    def test_failed_and_deferred_predecessor_never_start_child(self):
+        for status in ('failed_released','needs_repair'):
+            with patch.object(S,'tick',return_value={'status':status}) as tick:
+                v=S.wave_cycle(self.doc,self.a,self.root)
+            self.assertEqual(tick.call_count,2);self.assertEqual(v['diffchip_s2']['status'],'waiting_queue_predecessor')
+        a={'allowed_jobs':['samechip_s2','diffchip_s2']}
+        with patch.object(S,'tick') as tick:S.wave_cycle(self.doc,a,self.root)
+        tick.assert_not_called()
+
+    def test_persistent_fast_chip_repolls_while_other_chip_is_validating(self):
+        import threading
+        fast_second=threading.Event();counts={1:0,2:0};doc=copy.deepcopy(self.doc);doc['poll_interval_seconds']=0.01
+        def tick(j,*args):
+            if j['id']=='primary_s2':
+                self.assertTrue(fast_second.wait(2),'slow chip must not block fast next cycle')
+            if j['id']=='primary_s3':
+                counts[2]+=1
+                if counts[2]==1:return {'status':'training'}
+                fast_second.set()
+            return {'status':'completed'}
+        with patch.object(S,'verify',return_value=doc),patch.object(S,'authorize',return_value=self.a),patch.object(S,'tick',side_effect=tick):
+            S.watch_wave(self.root/'queue.json','pin',self.root/'authority.json','pin',doc)
+        self.assertGreaterEqual(counts[2],2);self.assertEqual(json.loads((self.root/'EXIT.json').read_bytes())['exit_code'],0)
+
+    def test_writers_readable_restrictive_umask(self):
+        old=os.umask(0o077)
+        try:
+            for fn in (S.atomic,S.exclusive):
+                p=self.root/fn.__name__;fn(p,{'ok':True});self.assertEqual(p.stat().st_mode&0o777,0o644)
+        finally:os.umask(old)
+
+
 if __name__=='__main__':unittest.main()

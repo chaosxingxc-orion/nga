@@ -57,7 +57,10 @@ def identity(plan):
 def atomic(path, value):
     path = Path(path)
     tmp = path.with_suffix(path.suffix + '.tmp')
-    tmp.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
+    with tmp.open('w') as stream:
+        os.fchmod(stream.fileno(), 0o644)
+        stream.write(json.dumps(value, indent=2, sort_keys=True) + '\n')
+        stream.flush(); os.fsync(stream.fileno())
     os.replace(tmp, path)
 
 
@@ -132,7 +135,12 @@ def formal_target_identity(p):
     chips = p.get('formal_chips')
     require(isinstance(chips, list) and len(chips) == 2 and len(set(chips)) == 2
             and all(type(x) is int and 0 <= x < 8 for x in chips), 'formal chip binding differs')
-    require(p['chip'] == chips[p['seed'] - 2], 'formal seed/chip binding differs')
+    if any(k in p for k in ('formal_schedule','formal_schedule_sha256','formal_role')):
+        helper_path=Path(__file__).with_name('r3_formal_roles.py')
+        require(p.get('files',{}).get(str(helper_path))==sha(helper_path),'role verifier not pinned')
+        source_module(helper_path,'formal_roles').validate_plan(p)
+    else:
+        require(p['chip'] == chips[p['seed'] - 2], 'formal seed/chip binding differs')
     evaluation = p.get('evaluation', {})
     require(evaluation.get('test_requires_separate_final_ticket') is True,
             'separate final test ticket required')
@@ -289,7 +297,10 @@ def adapter(p, op, attempt, container):
         cmd += ['--owner', owner, '--purpose', f"{p.get('arm', 'k1')} seed {p['seed']}; train only", '--proof', str(attempt / 'CLAIM.json')]
     else:
         cmd += ['--container', container, '--claim', str(attempt / 'CLAIM.json'), '--proof', str(attempt / (op.upper() + '.json'))]
-    subprocess.run(cmd, check=True)
+    if op == 'release':
+        receipt=load(attempt/'LAUNCH_RECEIPT.json')
+        cmd += ['--container-id', receipt['id']]
+    subprocess.run(cmd, check=True, timeout=300)
 
 
 def docker_command(p, plan_path, attempt_no):

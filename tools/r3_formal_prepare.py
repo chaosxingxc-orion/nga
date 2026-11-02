@@ -63,7 +63,10 @@ def formal_control_container(out, control_arm, seed):
     return f'nga-r3-formal-{control_arm.lower()}-s{seed}-{suffix}'
 
 
-def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False, fresh_prechecks=None, fresh_prechecks_sha256=None, training_evidence=None, training_evidence_sha256=None, resume_plan=None, resume_plan_sha256=None, control_arm=None, resume_reconstruction=None, resume_reconstruction_sha256=None, reconstruction_target=None, reconstruction_target_sha256=None, formal_chips=(1, 4)):
+def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='k1', shared=False, validate_shared=False, fresh_prechecks=None, fresh_prechecks_sha256=None, training_evidence=None, training_evidence_sha256=None, resume_plan=None, resume_plan_sha256=None, control_arm=None, resume_reconstruction=None, resume_reconstruction_sha256=None, reconstruction_target=None, reconstruction_target_sha256=None, formal_chips=(1, 4), formal_schedule=None, formal_schedule_sha256=None, formal_role=None):
+    role_binding=any(x is not None for x in (formal_schedule,formal_schedule_sha256,formal_role))
+    if role_binding and (engineering or control_arm or not all((formal_schedule,formal_schedule_sha256,formal_role))):
+        raise ValueError('complete formal Base role binding required')
     control = control_settings(control_arm, engineering=engineering, model=model, seed=seed,
                                arm=arm, shared=shared, validate_shared=validate_shared, formal=not engineering)
     if arm not in ('k1', 'k2'):
@@ -168,6 +171,18 @@ def prepare(out, seed, chip, engineering=False, model=MODEL, stop_after=0, arm='
             'evaluation': {'seeds': [2, 3], 'decision_dev_min': .80, 'transfer_dev_min': .60,
                            'max_k0_regression_pp': 1.0, 'test_requires_separate_final_ticket': True},
             'engineering_evidence': str(BASE / 'r3_runs/formal_k1_prechecks_20261031/V12_REVERIFICATION.json'), 'engineering_evidence_scope': 'retrospective CPU recomputation; not independent Astra acceptance'}
+    if role_binding:
+        helper_path=tool_dir/'r3_formal_roles.py'
+        shutil.copy2(ROOT/'tools/r3_formal_roles.py',helper_path)
+        helper=source_module(helper_path,'formal_roles')
+        schedule=Path(formal_schedule).absolute()
+        if helper.sha(schedule)!=formal_schedule_sha256: raise ValueError('schedule changed')
+        doc=json.loads(schedule.read_text());nodes=helper.validate_schedule(doc)
+        plan.update(formal_schedule=str(schedule),formal_schedule_sha256=formal_schedule_sha256,formal_role=formal_role)
+        plan['container']=nodes[formal_role]['container']
+        plan['evaluation']['candidate_for_adoption']=nodes[formal_role]['candidate_for_seed_mean']
+        plan['files'].update({str(helper_path):sha(helper_path),str(schedule):formal_schedule_sha256})
+        helper.validate_plan(plan)
     if control:
         plan.update(control_arm=control_arm, control=control)
         plan['evaluation'].update(control_arm=control_arm, primary_input_mode=control['primary_input_mode'],
@@ -256,11 +271,31 @@ def main():
     ap.add_argument('--reconstruction-target-sha256')
     ap.add_argument('--control-arm', choices=('K1-QO','K1-PT'))
     ap.add_argument('--model')
+    ap.add_argument('--formal-schedule')
+    ap.add_argument('--formal-schedule-sha256')
+    ap.add_argument('--formal-role',choices=('primary_s2','primary_s3','samechip_s2','diffchip_s2'))
     ap.add_argument('--formal-chips', nargs=2, type=int, metavar=('CHIP_SEED2', 'CHIP_SEED3'), default=(1, 4),
                     help='formal chip pair; must be supplied from a live allocation snapshot and adapter claim, never edited in the plan')
     args = ap.parse_args()
     parent = Path(args.parent)
     model = Path(args.model) if args.model else (PT_MODEL if args.control_arm == 'K1-PT' else MODEL)
+    if any((args.formal_schedule,args.formal_schedule_sha256,args.formal_role)):
+        if not all((args.formal_schedule,args.formal_schedule_sha256,args.formal_role)) or args.engineering or args.control_arm:
+            raise ValueError('complete formal Base role arguments required')
+        helper=source_module(ROOT/'tools/r3_formal_roles.py','roles')
+        if helper.sha(args.formal_schedule)!=args.formal_schedule_sha256: raise ValueError('schedule changed')
+        schedule=json.loads(Path(args.formal_schedule).read_text());nodes=helper.validate_schedule(schedule)
+        node=nodes[args.formal_role]
+        if Path(node['out']).parent != parent.absolute(): raise ValueError('schedule output parent differs')
+        print(json.dumps(prepare(Path(node['out']),node['seed'],node['chip'],model=model,
+            fresh_prechecks=args.fresh_prechecks,fresh_prechecks_sha256=args.fresh_prechecks_sha256,
+            training_evidence=args.training_evidence,training_evidence_sha256=args.training_evidence_sha256,
+            resume_plan=args.resume_plan,resume_plan_sha256=args.resume_plan_sha256,
+            resume_reconstruction=args.resume_reconstruction,resume_reconstruction_sha256=args.resume_reconstruction_sha256,
+            reconstruction_target=args.reconstruction_target,reconstruction_target_sha256=args.reconstruction_target_sha256,
+            formal_chips=tuple(schedule['physical_chips']),formal_schedule=args.formal_schedule,
+            formal_schedule_sha256=args.formal_schedule_sha256,formal_role=args.formal_role),indent=2))
+        return
     seeds = (2,) if args.control_arm == 'K1-QO' else (2,3)
     print(json.dumps([prepare(parent / f'seed{seed}', seed, chip, args.engineering, model=model, control_arm=args.control_arm, fresh_prechecks=args.fresh_prechecks, fresh_prechecks_sha256=args.fresh_prechecks_sha256, training_evidence=args.training_evidence, training_evidence_sha256=args.training_evidence_sha256, resume_plan=args.resume_plan, resume_plan_sha256=args.resume_plan_sha256,
         resume_reconstruction=args.resume_reconstruction, resume_reconstruction_sha256=args.resume_reconstruction_sha256,

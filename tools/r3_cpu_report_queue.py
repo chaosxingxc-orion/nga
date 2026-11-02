@@ -244,6 +244,7 @@ def verify(path, pin):
                     job['terminal_gate'] == 'full_posttrain_v1', 'unsupported terminal gate')
             _, spec = strict_plan(job)
             verify_producer_mounts(doc, spec)
+            report_role_binding(job)
         require(re.fullmatch(r'[A-Za-z0-9_-]+', job['id']), 'unsafe job ID')
         require(Path(job['output']).is_absolute(), 'absolute output required')
         if job.get('kind', 'report') == 'report':
@@ -587,6 +588,52 @@ def job_ready(path, doc, job):
     return 'ready'
 
 
+def report_role_binding(job):
+    """Derive authority only from the queue-pinned exact evaluation plan."""
+    if job.get('terminal_gate') != 'full_posttrain_v1':
+        require('formal_role_binding' not in job, 'formal roles require exact producer gate')
+        return None
+    _, spec = strict_plan(job)
+    binding = spec.get('formal_role_binding')
+    if binding is None:
+        require(not spec.get('training_variant', {}).get('formal_role_identity'), 'formal role binding missing')
+        return None
+    require(binding.get('schema') == 'r3-selection-role-binding-v1', 'formal role binding schema differs')
+    for key in ('training_plan','schedule','helper'):
+        path=safe_absolute(binding[key]); pin=binding[key+'_sha256']
+        require(isinstance(pin,str) and re.fullmatch('[0-9a-f]{64}',pin) and
+                spec['files'].get(str(path))==pin and sha(path)==pin, 'formal role dependency differs')
+    require(binding['training_plan']==str(Path(spec['training'])/'plan.json') and
+            binding['training_plan_sha256']==spec['training_variant']['training_plan_sha256'],
+            'formal training binding differs')
+    return dict(binding,evaluation_plan=job['plan'],evaluation_plan_sha256=job['plan_sha256'])
+
+
+def external_role_job(ref):
+    # Recheck the externally supplied queue pin at the point authority is read.
+    raw=safe_absolute(ref['queue']).read_bytes()
+    require(hashlib.sha256(raw).hexdigest()==ref['queue_sha256'],'external role queue changed')
+    doc=json.loads(raw)
+    matches=[j for j in doc['jobs'] if j['id']==ref['job']]
+    require(len(matches)==1,'external role job differs')
+    return matches[0]
+
+
+def comparison_role_arguments(jobs, candidate_count=2):
+    bindings={j['output']:b for j in jobs if (b:=report_role_binding(j)) is not None}
+    if not bindings:return []
+    args=['--role-bindings-json',json.dumps(bindings,sort_keys=True)]
+    candidates=jobs[:candidate_count]
+    require(all(j['output'] in bindings for j in candidates),'mixed formal candidate authority')
+    pins={bindings[j['output']]['schedule_sha256'] for j in candidates}
+    require(len(pins)==1,'candidate wave differs');args+=['--expected-schedule-sha256',pins.pop()]
+    if len(jobs)>3:
+        incumbent=jobs[3:];require(all(j['output'] in bindings for j in incumbent),'mixed incumbent authority')
+        pins={bindings[j['output']]['schedule_sha256'] for j in incumbent}
+        require(len(pins)==1,'incumbent wave differs');args+=['--incumbent-schedule-sha256',pins.pop()]
+    return args
+
+
 def report_command(doc, job):
     if job.get('kind') == 'external_comparison':
         config = doc['comparison']
@@ -599,7 +646,9 @@ def report_command(doc, job):
                 '--baseline', outputs[2], '--frozen-code-dir', str(Path(doc['closure']) / 'r3_code'),
                 '--selector', config['selector'], '--selector-sha256', config['selector_sha256'],
                 '--report-tool', doc['report_tool'], '--report-tool-sha256', doc['report_tool_sha256'],
-                '--output', job['output']]
+                '--output', job['output']] + comparison_role_arguments([
+                    external_role_job(ref)
+                    for ref in external_comparison_refs(job)])
     if job.get('kind') == 'qo_diagnostic':
         config = doc['qo_diagnostic']
         return [sys.executable, '-P', config['tool'], '--candidate',
@@ -639,9 +688,12 @@ def report_command(doc, job):
         if job.get('r0_report'):
             command += ['--r0-run', by_id[job['r0_report']]['eval_out'],
                         '--r0-execution-sha256', doc['r0_report']['execution_sha256']]
-        return command
+        return command + comparison_role_arguments([by_id[x] for x in
+            job['candidate']+[job['baseline']]+job.get('incumbent',[])])
+    binding=report_role_binding(job)
     return [sys.executable, '-P', doc['report_tool'], '--run', str(Path(job['eval_out']) / 'results'),
-            '--frozen-code-dir', str(Path(doc['closure']) / 'r3_code'), '--output', job['output']]
+            '--frozen-code-dir', str(Path(doc['closure']) / 'r3_code'), '--output', job['output']] + (
+                ['--role-binding-json',json.dumps(binding,sort_keys=True)] if binding else [])
 
 
 def worker_command(path, pin, job_id):

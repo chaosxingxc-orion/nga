@@ -19,7 +19,10 @@ def utc():
 
 def atomic(path, value):
     tmp = path.with_suffix(path.suffix + '.tmp')
-    tmp.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
+    with tmp.open('w') as stream:
+        os.fchmod(stream.fileno(), 0o644)
+        stream.write(json.dumps(value, indent=2, sort_keys=True) + '\n')
+        stream.flush(); os.fsync(stream.fileno())
     os.replace(tmp, path)
 
 

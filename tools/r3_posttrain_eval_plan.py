@@ -55,6 +55,14 @@ def prepare(training, closure, out):
     if plan.get('stop_after') or manifest.get('summary',{}).get('final_step')!=3116:
         return {'status':'not_complete_training','reason':'probe or missing final 3116-step summary'}
     evaluation_arm=semantic_arm(plan,manifest)
+    role_identity=None
+    if any(k in plan for k in ('formal_schedule','formal_schedule_sha256','formal_role')):
+        import types
+        helper=Path(plan['launcher']).with_name('r3_formal_roles.py')
+        if plan['files'].get(str(helper))!=sha(helper): raise RuntimeError('role verifier changed')
+        module=types.ModuleType('roles');module.__file__=str(helper)
+        exec(compile(helper.read_bytes(),str(helper),'exec',dont_inherit=True),module.__dict__)
+        role_identity=module.validate_plan(plan)
     adapter=training/'adapter'
     required=[adapter/'adapter_config.json',adapter/'adapter_model.safetensors']
     if not all(p.is_file() for p in required):raise RuntimeError('successful training lacks complete adapter')
@@ -93,6 +101,15 @@ def prepare(training, closure, out):
           'image_sha256':plan['image_sha256'],'network':'none','test_read':False,
           'scientific_acceptance':False,'execution_review':'PENDING','chip_assignment':'PENDING',
           'scope':config.get('scope','Track K dev/calibration; Track T selection evidence still required')}
+    if role_identity:
+        spec['training_variant']['formal_role_identity']=role_identity
+        files[str(training/'plan.json')]=sha(training/'plan.json')
+        files[plan['formal_schedule']]=plan['formal_schedule_sha256']
+        files[str(helper)]=sha(helper)
+        spec['formal_role_binding']={'schema':'r3-selection-role-binding-v1',
+            'training_plan':str(training/'plan.json'),'training_plan_sha256':sha(training/'plan.json'),
+            'schedule':plan['formal_schedule'],'schedule_sha256':plan['formal_schedule_sha256'],
+            'helper':str(helper),'helper_sha256':sha(helper)}
     out.mkdir(parents=True,exist_ok=True)
     with (out/'plan.json').open('x') as f:json.dump(spec,f,indent=2);f.write('\n')
     return {'status':'prepared','plan':str(out/'plan.json'),'sha256':sha(out/'plan.json')}

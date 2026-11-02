@@ -175,6 +175,38 @@ class CPUQueueTests(unittest.TestCase):
                 Q.tick(self.path, self.pin, doc)
                 self.assertEqual(spawn.call_count, int(status in ('reporting', 'orphan_child_live')))
 
+    def test_formal_role_authority_passed_from_exact_producer_spec(self):
+        self.strict_fixture()
+        plan=Path(self.job['plan']);spec=Q.load(plan);training=self.root/'training'
+        paths={'training_plan':training/'plan.json','schedule':self.root/'schedule.json','helper':self.root/'role.py'}
+        for path in paths.values():self.write(path,{'fixture':True})
+        binding={'schema':'r3-selection-role-binding-v1'}
+        for key,path in paths.items():binding[key]=str(path);binding[key+'_sha256']=Q.sha(path)
+        spec.update(training=str(training),training_variant={'training_plan_sha256':binding['training_plan_sha256']},formal_role_binding=binding,files={str(path):Q.sha(path) for path in paths.values()})
+        # Strict plan verification has separate real execution fixtures; this checks propagation.
+        with patch.object(Q,'strict_plan',return_value=({},spec)):
+            command=Q.report_command(self.doc,self.job)
+            actual=json.loads(command[command.index('--role-binding-json')+1])
+            self.assertEqual(actual['evaluation_plan_sha256'],self.job['plan_sha256'])
+            self.assertEqual(actual['helper_sha256'],binding['helper_sha256'])
+            command=Q.comparison_role_arguments([self.job,self.job,dict(self.job,terminal_gate=None)])
+            self.assertEqual(command[command.index('--expected-schedule-sha256')+1],binding['schedule_sha256'])
+            paths['helper'].write_text('changed')
+            with self.assertRaisesRegex(RuntimeError,'dependency differs'):Q.report_role_binding(self.job)
+
+    def test_external_role_authority_rechecks_queue_pin(self):
+        path=self.root/'external.json';self.write(path,{'jobs':[self.job]})
+        ref={'queue':str(path),'queue_sha256':Q.sha(path),'job':self.job['id']}
+        self.assertEqual(Q.external_role_job(ref),self.job)
+        self.write(path,{'jobs':[dict(self.job,formal_role='primary_s2')]})
+        with self.assertRaisesRegex(RuntimeError,'queue changed'):Q.external_role_job(ref)
+
+    def test_registered_formal_spec_cannot_silently_use_legacy(self):
+        self.strict_fixture()
+        spec={'training_variant':{'formal_role_identity':{'role':'primary_s2'}}}
+        with patch.object(Q,'strict_plan',return_value=({},spec)):
+            with self.assertRaisesRegex(RuntimeError,'binding missing'):Q.report_role_binding(self.job)
+
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
         self.root=Path(self.tmp.name);self.path=self.root/'queue.json';self.pin='pin'

@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import copy
 from pathlib import Path
 import sys
 import tempfile
@@ -66,11 +67,53 @@ class ReportTests(Evidence):
     def save_receipt(self):
         write(self.run / 'SCORING_RECEIPT.track_kt.json', self.receipt)
 
-    def rebuild(self, track=None):
+    def rebuild(self, track=None, role_binding=None):
         with patch.object(E, 'rebuild_track_t', return_value=track or {'cells': {'selection': {}}, 'question70': {}}) as t:
-            result = R.rebuild(self.run, self.kev, self.root, (C, E, D, PC, self.v))
+            result = R.rebuild(self.run, self.kev, self.root, (C, E, D, PC, self.v), role_binding)
             t.assert_called_once_with(str(self.run), 'r3', data_root=str(self.root), selection_only=True)
             return result
+
+    def formal_binding_fixture(self):
+        schedule=self.root/'schedule.json';write(schedule,{'fixture':True})
+        role={'role':'primary_s2','seed':2,'schedule_sha256':R.sha(schedule),'candidate_for_adoption':True}
+        helper=self.root/'trusted-role-helper.py'
+        helper.write_text('def validate_plan(p):\n    return '+repr(role)+'\n')
+        # Fixture helper isolates consumer trust binding; real validator has its own tests.
+        plan=self.train/'plan.json';write(plan,{'formal_role':'primary_s2','formal_schedule':str(schedule),'formal_schedule_sha256':R.sha(schedule)})
+        binding={'schema':'r3-selection-role-binding-v1','training_plan':str(plan),'training_plan_sha256':R.sha(plan),'schedule':str(schedule),'schedule_sha256':R.sha(schedule),'helper':str(helper),'helper_sha256':R.sha(helper)}
+        ev=self.run.parent/'plan.json';write(ev,{'training':str(self.train),'adapter':str(self.adapter),'command':['runner','--out',str(self.run)],'training_variant':{'seed':2,'training_plan_sha256':R.sha(plan),'formal_role_identity':role},'formal_role_binding':binding,'files':{str(plan):R.sha(plan),str(self.train/'manifest.json'):R.sha(self.train/'manifest.json'),str(helper):R.sha(helper)}})
+        return dict(binding,evaluation_plan=str(ev),evaluation_plan_sha256=R.sha(ev))
+
+    def test_external_role_binding_rebuilds_and_missing_plan_fails_closed(self):
+        binding=self.formal_binding_fixture();result=self.rebuild(role_binding=binding)
+        self.assertEqual(result['selection_evidence']['formal_role_identity']['role'],'primary_s2')
+        (self.train/'plan.json').unlink()
+        with self.assertRaises((ValueError,FileNotFoundError)):self.rebuild(role_binding=binding)
+        with self.assertRaisesRegex(ValueError,'external role binding'):self.rebuild()
+
+    def test_unbound_adjacent_plan_and_self_pinned_helper_cannot_execute(self):
+        marker=self.root/'ATTACK_EXECUTED';helper=self.root/'attacker.py'
+        helper.write_text('from pathlib import Path\nPath('+repr(str(marker))+').touch()\ndef validate_plan(p): return {}\n')
+        write(self.train/'plan.json',{'formal_role':'diffchip_s2','launcher':str(self.root/'launcher.py'),'files':{str(helper):R.sha(helper)}})
+        with self.assertRaisesRegex(ValueError,'external role binding'):self.rebuild()
+        self.assertFalse(marker.exists())
+        # Legacy path never imports this helper, even after hostile adjacent data disappears.
+        (self.train/'plan.json').unlink();result=self.rebuild()
+        self.assertNotIn('formal_role_identity',result['selection_evidence'])
+        self.assertFalse(marker.exists())
+
+    def test_external_role_binding_rejects_mutated_helper_and_producer(self):
+        binding=self.formal_binding_fixture()
+        for field in ('evaluation_plan_sha256','training_plan_sha256','helper_sha256','schedule_sha256'):
+            changed=copy.deepcopy(binding);changed[field]='0'*64
+            with self.subTest(field=field),self.assertRaises(ValueError):self.rebuild(role_binding=changed)
+        helper=Path(binding['helper']);helper.write_text(helper.read_text()+'#changed')
+        with self.assertRaisesRegex(ValueError,'helper changed'):self.rebuild(role_binding=binding)
+
+    def test_rehashed_wrong_producer_association_refused(self):
+        binding=self.formal_binding_fixture();ev=Path(binding['evaluation_plan']);d=R.load(ev)
+        d['adapter']=str(self.root/'other-adapter');write(ev,d);binding['evaluation_plan_sha256']=R.sha(ev)
+        with self.assertRaisesRegex(ValueError,'association differs'):self.rebuild(role_binding=binding)
 
     def test_real_provenance_and_population_rebuilt_without_writing_full_report(self):
         previous = (self.run / 'report.json').read_bytes()

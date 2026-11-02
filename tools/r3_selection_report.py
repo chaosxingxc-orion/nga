@@ -111,7 +111,65 @@ def modules(code_dir, manifest_pin=None):
                                     'prechecks_r3', 'variants_r3'))
 
 
-def rebuild(run, kev_dir, data_root, deps):
+def pinned_json(path, pin):
+    path = Path(path)
+    require(path.is_absolute() and not any(p.is_symlink() for p in (path, *path.parents)),
+            'unsafe role binding path')
+    raw = path.read_bytes()
+    require(isinstance(pin, str) and len(pin) == 64 and hashlib.sha256(raw).hexdigest() == pin,
+            'external role binding changed')
+    return json.loads(raw)
+
+
+def attach_formal_role(identity, run, header, binding):
+    """Authority is a caller-pinned binding, never an adjacent self-attestation.
+
+    Adjacent metadata can only trigger refusal. Genuine old reports retain the
+    legacy path, which cannot manufacture a formal identity. A registered formal
+    consumer must keep supplying its binding even if producer files disappear.
+    """
+    training = Path(identity['training_manifest']).parent if 'training_manifest' in identity else None
+    if binding is None:
+        for path in ([training/'plan.json'] if training else []) + [run.parent/'plan.json']:
+            if path.exists():
+                doc = load(path)
+                require(not any(k in doc for k in ('formal_schedule','formal_role','formal_role_binding'))
+                        and not doc.get('training_variant', {}).get('formal_role_identity'),
+                        'formal producer requires external role binding')
+        return
+    require(header['arm'] == 'K1' and training is not None, 'formal role requires K1 training')
+    require(binding.get('schema') == 'r3-selection-role-binding-v1', 'role binding schema differs')
+    ev = pinned_json(binding['evaluation_plan'], binding['evaluation_plan_sha256'])
+    plan_path = Path(binding['training_plan'])
+    require(plan_path == training/'plan.json' and ev['training'] == str(training)
+            and ev['adapter'] == identity['adapter_path']
+            and ev['training_variant']['seed'] == identity['seed']
+            and ev['training_variant']['training_plan_sha256'] == binding['training_plan_sha256'],
+            'formal producer training association differs')
+    require(ev['command'][ev['command'].index('--out')+1] == str(run), 'formal producer output differs')
+    plan = pinned_json(plan_path, binding['training_plan_sha256'])
+    require(plan['formal_schedule'] == binding['schedule'] and
+            plan['formal_schedule_sha256'] == binding['schedule_sha256'], 'formal schedule binding differs')
+    pinned_json(binding['schedule'], binding['schedule_sha256'])
+    helper = Path(binding['helper'])
+    require(ev.get('formal_role_binding') == {k:v for k,v in binding.items()
+            if k not in ('evaluation_plan','evaluation_plan_sha256')}, 'evaluation role authority differs')
+    require(ev['files'].get(str(plan_path)) == binding['training_plan_sha256'] and
+            ev['files'].get(str(training/'manifest.json')) == identity['training_manifest_sha256'] and
+            ev['files'].get(str(helper)) == binding['helper_sha256'], 'producer role dependencies unbound')
+    require(helper.is_absolute() and not any(p.is_symlink() for p in (helper,*helper.parents)), 'unsafe role helper')
+    raw = helper.read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == binding['helper_sha256'], 'external role helper changed')
+    module = types.ModuleType('formal_roles'); module.__file__ = str(helper)
+    exec(compile(raw,str(helper),'exec',dont_inherit=True),module.__dict__)
+    role = module.validate_plan(plan)
+    require(role == ev['training_variant']['formal_role_identity'] and role['seed'] == identity['seed']
+            and role['schedule_sha256'] == binding['schedule_sha256'], 'producer role identity differs')
+    identity['formal_role_identity'] = role
+    identity['formal_training_plan_sha256'] = binding['training_plan_sha256']
+
+
+def rebuild(run, kev_dir, data_root, deps, role_binding=None):
     C, E, D, PC, V = deps
     run, kev_dir, data_root = map(Path, (run, kev_dir, data_root))
     receipt_path = run / 'SCORING_RECEIPT.track_kt.json'
@@ -127,6 +185,7 @@ def rebuild(run, kev_dir, data_root, deps):
     evidence = E.verify_run(str(run), receipt)
     identity = E.train_identity(receipt) if h['arm'] != 'K0' else {
         'arm': 'K0', 'model_path': h['model']['path'], 'model_sha256': h['model']['sha256']}
+    attach_formal_role(identity, run, h, role_binding)
     if h['arm'] in ('K1-QO','K1-PT'):
         control=h['arm'];base=Path(h['model']['base_path']).name
         require(h.get('primary_input_mode')==('drop' if control=='K1-QO' else 'full'),
@@ -218,8 +277,10 @@ def main():
     p.add_argument('--kev-dir', default='/mnt/cephfs/xingchao/experiments/jev/KEV')
     p.add_argument('--data-root', default='/mnt/cephfs/xingchao/experiments/jev')
     p.add_argument('--output')
+    p.add_argument('--role-binding-json', help='JSON authority supplied by externally pinned consumer queue')
     a = p.parse_args()
-    result = rebuild(a.run, a.kev_dir, a.data_root, modules(a.frozen_code_dir))
+    result = rebuild(a.run, a.kev_dir, a.data_root, modules(a.frozen_code_dir),
+                     json.loads(a.role_binding_json) if a.role_binding_json else None)
     out = Path(a.output) if a.output else Path(a.run) / 'selection_report.json'
     require(out.name != 'report.json', 'do not replace full report.json')
     require(not out.exists(), 'selection output already exists')

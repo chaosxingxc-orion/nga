@@ -8,6 +8,7 @@ Formal launch review, R0 eligibility and test authorization remain separate.
 import argparse
 import importlib.util
 import json
+import re
 from pathlib import Path
 import sys
 
@@ -28,7 +29,7 @@ def canonical(value):
     return json.dumps(value, sort_keys=True, allow_nan=False, separators=(',', ':'))
 
 
-def verified_report(path, report_tool, deps, kev_dir, data_root):
+def verified_report(path, report_tool, deps, kev_dir, data_root, role_binding=None):
     path = Path(path).resolve()
     require(path.name == 'selection_report.json', 'selection report required')
     stored = report_tool.load(path)
@@ -36,12 +37,30 @@ def verified_report(path, report_tool, deps, kev_dir, data_root):
             stored.get('scientific_acceptance') is False, 'report scope differs')
     # Recompute rather than trusting saved metrics, keys, training manifests or
     # receipt hashes. This reruns producer, weight and population verification.
-    actual = report_tool.rebuild(path.parent, kev_dir, data_root, deps)
+    actual = report_tool.rebuild(path.parent, kev_dir, data_root, deps, role_binding) if role_binding is not None else report_tool.rebuild(path.parent, kev_dir, data_root, deps)
     require(canonical(stored) == canonical(actual), 'saved report differs from verified readouts')
     return actual
 
 
-def compare(candidate, baseline, E, S, incumbent=None, r0_gating=None):
+def candidate_roles(reports, expected_schedule_sha256=None):
+    roles=[r['selection_evidence'].get('formal_role_identity') for r in reports]
+    if not any(x is not None for x in roles):
+        require(expected_schedule_sha256 is None, 'expected formal wave missing from reports')
+        return
+    require(isinstance(expected_schedule_sha256,str) and re.fullmatch('[0-9a-f]{64}',expected_schedule_sha256),
+            'external expected formal wave required')
+    require(len(roles)==2 and all(isinstance(x,dict) for x in roles),'mixed formal role provenance')
+    require({r['selection_evidence']['seed'] for r in reports}=={2,3} and
+            all(x.get('candidate_for_adoption') is True and
+                type(x.get('seed')) is int and x['seed']==r['selection_evidence']['seed'] and
+                x.get('role')=='primary_s'+str(x['seed']) and
+                x.get('schedule_sha256')==expected_schedule_sha256 for x,r in zip(roles,reports)),
+            'auxiliary, swapped or mixed-wave candidate refused')
+
+
+def compare(candidate, baseline, E, S, incumbent=None, r0_gating=None, expected_schedule_sha256=None, incumbent_schedule_sha256=None):
+    candidate_roles(candidate, expected_schedule_sha256)
+    if incumbent:candidate_roles(incumbent, incumbent_schedule_sha256)
     E.validate_seed_reports(candidate)
     require(baseline['header']['arm'] == 'K0' and
             baseline['header']['model']['kind'] == 'checkpoint', 'untuned K0 required')
@@ -126,6 +145,9 @@ def main():
     p.add_argument('--kev-dir', default='/mnt/cephfs/xingchao/experiments/jev/KEV')
     p.add_argument('--data-root', default='/mnt/cephfs/xingchao/experiments/jev')
     p.add_argument('--output', required=True)
+    p.add_argument('--role-bindings-json')
+    p.add_argument('--expected-schedule-sha256')
+    p.add_argument('--incumbent-schedule-sha256')
     args = p.parse_args()
     import hashlib
     for path, pin in [(args.selector, args.selector_sha256), (args.report_tool, args.report_tool_sha256)]:
@@ -134,13 +156,16 @@ def main():
     deps = R.modules(args.frozen_code_dir)
     S = module(args.selector, 'development_selector')
     require(S.C is deps[0] and S.E is deps[1], 'selector dependencies escaped verified closure')
-    load = lambda path: verified_report(path, R, deps, args.kev_dir, args.data_root)
+    bindings=json.loads(args.role_bindings_json) if args.role_bindings_json else {}
+    require(set(bindings)<=set(args.candidate+[args.baseline]+(args.incumbent or [])), 'unrelated role binding')
+    load = lambda path: verified_report(path, R, deps, args.kev_dir, args.data_root, bindings.get(path))
     candidates = [load(path) for path in args.candidate]
     baseline = load(args.baseline)
     incumbents = [load(path) for path in args.incumbent] if args.incumbent else None
     require(bool(args.r0_run) == bool(args.r0_execution_sha256), 'R0 run and external execution pin required together')
     gate = deps[1].load_r0_gating(args.r0_run, expected_execution_sha256=args.r0_execution_sha256) if args.r0_run else None
-    result = compare(candidates, baseline, deps[1], S, incumbents, gate)
+    result = compare(candidates, baseline, deps[1], S, incumbents, gate,
+                     args.expected_schedule_sha256, args.incumbent_schedule_sha256)
     result['inputs'] = {str(Path(path).resolve()): R.sha(path)
         for path in args.candidate + [args.baseline] + (args.incumbent or [])}
     if args.r0_run:
