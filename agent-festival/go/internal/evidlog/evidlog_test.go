@@ -115,34 +115,52 @@ func TestDurableSeqGapRejected(t *testing.T) {
 	}
 }
 
-// TestNullLineRejected pins the phantom-entry face (R3 M1): a bare `null`
-// line unmarshals into a zero-value Entry without error, and a
-// `{"seq":1}`-style fragment parses cleanly while still being a phantom —
-// both must be rejected mid-file with EVIDLOG.NON_OBJECT_LINE; at the
-// torn-tail position (EOF, no newline) the loader tolerates them as tail
-// garbage.
+// TestNullLineRejected pins the classification ladder at the mid-file
+// position, per case and per EXPECTED KEY (R7: the previous loop asserted
+// one key for every case, so the TYPE_MISMATCH arm could be deleted and the
+// suite stayed green — each arm of the dispatch now has its own pin).
+// Legal-JSON-but-not-an-entry shapes (bare null, array, scalar, fragment
+// objects, missing/null/empty required strings) reject with
+// EVIDLOG.NON_OBJECT_LINE; object rows whose field types mismatch the Entry
+// shape ("seq":"x", "tool":123) reject with EVIDLOG.TYPE_MISMATCH. At the
+// torn-tail position (EOF, no newline) all of them are tolerated as tail
+// garbage (pinned by TestTornNullToleratedAtLoad).
 func TestNullLineRejected(t *testing.T) {
 	l1, _ := json.Marshal(Entry{Seq: 0, Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"})
 	l2, _ := json.Marshal(Entry{Seq: 1, Tool: "bureau.q", Selector: "subj=x", Caller: "s2", At: "2026-11-01T10:01:00Z"})
-	cases := map[string][]byte{
-		"array line":        append(append(append([]byte{}, l1...), '\n', '[', '1', ',', '2', ']', '\n'), l2...),
-		"scalar line":       append(append(append([]byte{}, l1...), '\n', '4', '2', '\n'), l2...),
-		"bare null":         append(append(append([]byte{}, l1...), '\n', 'n', 'u', 'l', 'l', '\n'), l2...),
-		"fragment with seq": append(append(append(append([]byte{}, l1...), '\n', '{', '"', 's', 'e', 'q', '"', ':', '9', '}', '\n'), l2...), '\n'),
-		"missing caller":    append(append(append([]byte{}, l1...), '\n', '{', '"', 's', 'e', 'q', '"', ':', '1', ',', '"', 't', 'o', 'o', 'l', '"', ':', '"', 'x', '"', ',', '"', 'a', 't', '"', ':', '"', 'y', '"', '}', '\n')),
-		"missing selector":  append(append(append([]byte{}, l1...), '\n', '{', '"', 's', 'e', 'q', '"', ':', '1', ',', '"', 't', 'o', 'o', 'l', '"', ':', '"', 'x', '"', ',', '"', 'c', 'a', 'l', 'l', 'e', 'r', '"', ':', '"', 's', '"', ',', '"', 'a', 't', '"', ':', '"', 'y', '"', '}', '\n')),
-		"null caller":       append(append(append([]byte{}, l1...), '\n', '{', '"', 's', 'e', 'q', '"', ':', '1', ',', '"', 't', 'o', 'o', 'l', '"', ':', '"', 'x', '"', ',', '"', 's', 'e', 'l', 'e', 'c', 't', 'o', 'r', '"', ':', '"', 'r', '"', ',', '"', 'c', 'a', 'l', 'l', 'e', 'r', '"', ':', 'n', 'u', 'l', 'l', ',', '"', 'a', 't', '"', ':', '"', 'y', '"', '}', '\n')),
-		"empty selector":    append(append(append([]byte{}, l1...), '\n', '{', '"', 's', 'e', 'q', '"', ':', '1', ',', '"', 't', 'o', 'o', 'l', '"', ':', '"', 'x', '"', ',', '"', 's', 'e', 'l', 'e', 'c', 't', 'o', 'r', '"', ':', '"', '"', ',', '"', 'c', 'a', 'l', 'l', 'e', 'r', '"', ':', '"', 's', '"', ',', '"', 'a', 't', '"', ':', '"', 'y', '"', '}', '\n')),
+	cases := []struct {
+		name string
+		line []byte
+		want string // expected neutral key
+	}{
+		{"bare null", []byte(`null`), "EVIDLOG.NON_OBJECT_LINE"},
+		{"array line", []byte(`[1,2]`), "EVIDLOG.NON_OBJECT_LINE"},
+		{"scalar line", []byte(`42`), "EVIDLOG.NON_OBJECT_LINE"},
+		{"fragment with seq", []byte(`{"seq":9}`), "EVIDLOG.NON_OBJECT_LINE"},
+		{"missing caller", []byte(`{"seq":1,"tool":"x","selector":"r","at":"y"}`), "EVIDLOG.NON_OBJECT_LINE"},
+		{"missing selector", []byte(`{"seq":1,"tool":"x","caller":"s","at":"y"}`), "EVIDLOG.NON_OBJECT_LINE"},
+		{"null caller", []byte(`{"seq":1,"tool":"x","selector":"r","caller":null,"at":"y"}`), "EVIDLOG.NON_OBJECT_LINE"},
+		{"empty selector", []byte(`{"seq":1,"tool":"x","selector":"","caller":"s","at":"y"}`), "EVIDLOG.NON_OBJECT_LINE"},
+		{"null seq", []byte(`{"seq":null,"tool":"x","selector":"r","caller":"s","at":"y"}`), "EVIDLOG.NON_OBJECT_LINE"},
+		{"seq type mismatch", []byte(`{"seq":"x","tool":"x","selector":"r","caller":"s","at":"y"}`), "EVIDLOG.TYPE_MISMATCH"},
+		{"tool type mismatch", []byte(`{"seq":1,"tool":123,"selector":"r","caller":"s","at":"y"}`), "EVIDLOG.TYPE_MISMATCH"},
 	}
-	for name, body := range cases {
+	for _, tc := range cases {
 		path := filepath.Join(t.TempDir(), "evid.jsonl")
-		if err := os.WriteFile(path, append(body, '\n'), 0o644); err != nil {
+		var body []byte
+		body = append(body, l1...)
+		body = append(body, '\n')
+		body = append(body, tc.line...)
+		body = append(body, '\n')
+		body = append(body, l2...)
+		body = append(body, '\n')
+		if err := os.WriteFile(path, body, 0o644); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := Open(path); err == nil {
-			t.Fatalf("%s: phantom line absorbed into the audit record", name)
-		} else if !strings.Contains(err.Error(), "EVIDLOG.NON_OBJECT_LINE") {
-			t.Fatalf("%s: rejection lacks the neutral key: %v", name, err)
+			t.Fatalf("%s: phantom line absorbed into the audit record", tc.name)
+		} else if !strings.Contains(err.Error(), tc.want) {
+			t.Fatalf("%s: got %v, want key %s", tc.name, err, tc.want)
 		}
 	}
 }

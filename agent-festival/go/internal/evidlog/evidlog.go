@@ -286,8 +286,8 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 			// Valid JSON is a different audit fact from unparseable bytes —
 			// classify by dynamic type (R6 m1: the map-typed probe mislabeled
 			// arrays/scalars as unparseable, splitting them from `null` which
-			// the doc==nil branch below calls NOT_AN_OBJECT): an object is a
-			// field-type mismatch, any other valid JSON is simply not an
+			// the doc==nil branch below calls NON_OBJECT_LINE): an object is
+			// a field-type mismatch, any other valid JSON is simply not an
 			// entry object (ledger/load.go precedent).
 			var anyProbe any
 			if json.Unmarshal(line, &anyProbe) == nil {
@@ -352,11 +352,23 @@ func entryShapeError(doc map[string]any) (string, string) {
 		if !has {
 			return k, "without"
 		}
-		if k != "seq" {
-			s, isStr := v.(string)
-			if !isStr || s == "" {
+		if k == "seq" {
+			// seq must be a NUMBER (json.Number on the reader's UseNumber
+			// path, float64 on Append's probe path). A JSON null would
+			// otherwise unmarshal into a silent Seq=0 and enter coverage
+			// accounting as a legal entry — the phantom doctrine does not
+			// allow that normalization (R7).
+			switch v.(type) {
+			case float64, json.Number:
+				// ok
+			default:
 				return k, "empty-or-null"
 			}
+			continue
+		}
+		s, isStr := v.(string)
+		if !isStr || s == "" {
+			return k, "empty-or-null"
 		}
 	}
 	return "", ""
