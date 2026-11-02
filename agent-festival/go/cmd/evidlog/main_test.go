@@ -12,7 +12,7 @@ import (
 // A-m4: this was the one family pair missing the cross-reference).
 func TestEvidlogSuiteGreenAndCounted(t *testing.T) {
 	buf := suite.Capture(func() { run() })
-	if !strings.Contains(buf, "[evidlog] 2 must-accept + 5 must-reject, 0 failures") {
+	if !strings.Contains(buf, "[evidlog] 1 must-accept + 6 must-reject, 0 failures") {
 		t.Fatalf("evidlog summary wrong:\n%s", buf)
 	}
 	if !strings.Contains(buf, "ALL GREEN") {

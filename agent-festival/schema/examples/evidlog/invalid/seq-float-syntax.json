@@ -16,5 +16,6 @@
       "at": "2026-11-01T10:01:00Z"
     }
   ],
-  "_expect": "ACCEPT: seq written in float syntax (0.0 / 1.0) — integer-valued doubles inside the exact domain are legal seqs under the same double charter the event ledger pins (ledger/seq-float-syntax.json, R5 M-3); the typed re-parse must normalize them instead of forking the dual validators' verdicts."
+  "_expect": "REJECT: seq written in float syntax (0.0 / 1.0) — integer literals only in the counter domain (user ruling 2026-11-02: no float math in this package). The old charter accepted integer-valued float syntax inside ±2^53; retired.",
+  "_expect_match": "EVIDLOG.SEQ_FLOAT_SYNTAX"
 }

@@ -88,10 +88,10 @@ func LoadDocument(path string) ([]ParsedLine, error) {
 	return ParseLines(raw)
 }
 
-// decodeUseNumber parses one line into a raw map with UseNumber, so integers
-// survive the map domain exactly: float64 rounding is monotonic and never
-// hides a decreasing pair — what it breaks is the other direction, the false
-// rejection of legal consecutive seqs crossing 2^53.
+// decodeUseNumber parses one line into a raw map with UseNumber (R16 数值域
+// 章程): integers survive as json.Number so the literal gate stays decidable
+// and exact — a plain float64 map would fold 2^53-adjacent integers and make
+// 0.0 indistinguishable from 0.
 func decodeUseNumber(line []byte) (map[string]any, error) {
 	dec := json.NewDecoder(bytes.NewReader(line))
 	dec.UseNumber()

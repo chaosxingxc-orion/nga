@@ -3,7 +3,8 @@
 
 Ledger documents: JSON Schema + the cross-event rules JSON Schema cannot
 express — eight families: arbitration_seq strictly increasing (+int64
-domain, +float syntax beyond ±2^53 rejected by rule), one payload digest
+domain, +integer-literal-only — float syntax rejected by rule per the
+2026-11-02 ruling), one payload digest
 per operation (15 B4), idempotency presence (bidirectional: every
 non-conflict event carries it, and a conflict carrying it is rejected —
 the loser's digest never enters the registry), the idem-identity key
@@ -12,10 +13,12 @@ crossing the event-type boundary, the grant pin riding the adopted event
 only, effect events carrying the adopted pin's attribution triple, and the
 single-writer event-sequence grammar (each operation opens with exactly
 one adopted event and its effect events follow the machine's transition
-DAG). Input discipline: documents come in as exact-decoded maps
-(json.loads int/float) — a Go caller feeding a float64-decoded map loses
-three rules silently (monotonicity at 2^53, the float-syntax-beyond rule,
-integral-float normalization). Aggregation contract: the code-rule families
+DAG). Input discipline: documents come in as literal-preserving decoded maps
+(json.loads: int for integer literals, float for float syntax) — the
+integer-literal rule keys off exactly that. A Go caller must decode with
+UseNumber (json.Number.Int64 = the same literal check). The
+normalization layer and its copy-mutation contract are retired with the
+float charter (2026-11-02 ruling). Aggregation contract: the code-rule families
 aggregate in the same order on both sides; both checkers short-circuit at
 the schema, and the Go checker additionally short-circuits at the
 float-syntax and typed-view-parse points where this oracle appends and
@@ -89,16 +92,22 @@ def ledger_errors(doc: dict) -> list[str]:
             errs.append(f"[LEDGER.DIGEST_CHANGED_UNDER_KEY] events: operation_id {op!r} carries payload_digest {dig!r} "
                         f"but an earlier event recorded {seen[op]!r} — changed payload under the same key")
         seen[op] = dig
-    # cross-event rule: arbitration_seq in float syntax beyond ±2^53 — the
-    # value a parser recovers depends on its float rounding (Python's
-    # float() folds odd values past 2^53), so the document has no
-    # parser-independent value; both validators reject by rule (mirrors Go)
+    # cross-event rule: arbitration_seq must be an integer LITERAL
+    # (user ruling 2026-11-02: this package does no float math — the counter
+    # domain is machine-written int64; json.loads yields float exactly for
+    # float-syntax literals, so isinstance int == literal check; mirrors Go's
+    # json.Number.Int64 rejection — the old charter accepted integer-valued
+    # float syntax inside ±2^53 by JCS analogy; retired: JCS governs the
+    # signature payload only, never the counter)
     for i, e in enumerate(doc["events"]):
         seq = e["arbitration_seq"]
-        if isinstance(seq, float) and seq == int(seq) and abs(seq) > 2 ** 53:
-            errs.append(f"[LEDGER.SEQ_FLOAT_BEYOND_EXACT] events/{i}: arbitration_seq {seq!r} uses float syntax beyond the "
-                        f"exact-representation domain (±2^53) — the value a parser recovers "
-                        f"depends on its float rounding, not on the document")
+        if isinstance(seq, float):
+            errs.append(f"[LEDGER.SEQ_FLOAT_SYNTAX] events/{i}: arbitration_seq {seq!r} is not an integer literal — "
+                        f"the counter domain is machine-written int64; this package does no "
+                        f"float math (user ruling 2026-11-02)")
+        if isinstance(seq, int) and (seq > INT64_MAX or seq < -(2 ** 63)):
+            errs.append(f"[LEDGER.SEQ_INT64_OVERFLOW] events/{i}: arbitration_seq {seq} exceeds the int64 domain — "
+                        f"the machine's counter domain; such a document is not machine-writable")
 
     # cross-event rule: status families never cross the event-type boundary
     # (adoption events carry adopted/reused/conflict, effect events carry
@@ -280,20 +289,6 @@ def check_lockstep() -> list[str]:
     return errs
 
 
-def check_odd_twin_bytes() -> list[str]:
-    """Byte-level pin on the odd-twin fixture (R2 M3): the literal
-    9007199254740993.0 must survive at the BYTE level. Both it and the even
-    twin fold to the same float64, so every parsed assertion is identity-blind
-    — this fixture silently regressed ..993.0→..992.0 once with the whole
-    suite green. The Go twin lives in ledger_test.go (TestOddFloatTwinPinsFoldedDomain)."""
-    p = HERE / "examples" / "ledger" / "valid" / "seq-odd-float-twin.json"
-    raw = p.read_bytes()
-    if b'"arbitration_seq": 9007199254740993.0' not in raw:
-        return [f"odd-twin byte pin lost: the raw literal 9007199254740993.0 is gone "
-                f"from {p.name} — the folding semantics are unpinned"]
-    return []
-
-
 def main() -> int:
     ex = HERE / "examples" / "ledger"
     bad = _suite.run_suite("ledger", ex / "valid", ex / "invalid", ledger_errors)
@@ -301,10 +296,10 @@ def main() -> int:
     # corpus that shrank without its pin rebased must fail here too
     n_valid = len(list((ex / "valid").glob("*.json")))
     n_invalid = len(list((ex / "invalid").glob("*.json")))
-    if (n_valid, n_invalid) != (10, 26):
-        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 10+26 (corpus count changed?)")
+    if (n_valid, n_invalid) != (8, 28):
+        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 8+28 (corpus count changed?)")
         bad += 1
-    for e in check_status_lockstep() + check_lockstep() + check_odd_twin_bytes():
+    for e in check_status_lockstep() + check_lockstep():
         print(f"[ledger] FAIL {e}")
         bad += 1
     if bad == 0:

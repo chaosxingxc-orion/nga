@@ -1,10 +1,8 @@
 package ledger
 
 import (
-	"bytes"
 	"encoding/json"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -71,6 +69,10 @@ func TestErrorsDoesNotMutateInput(t *testing.T) {
 	if SchemaPath == "" {
 		t.Fatal("event-ledger schema not found")
 	}
+	// R16: the mutation contract retired with the normalization layer; the
+	// test now pins both faces of the integer-literal ruling — a float-syntax
+	// doc is REJECTED by rule, and Errors still never mutates the caller's
+	// map (structural purity: no copy, no rewrite).
 	doc := map[string]any{
 		"ledger_version": "0.1.0",
 		"events": []any{
@@ -95,8 +97,12 @@ func TestErrorsDoesNotMutateInput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if errs := Errors(doc); len(errs) > 0 {
-		t.Fatalf("clean doc rejected: %v", errs)
+	errs := Errors(doc)
+	if len(errs) == 0 {
+		t.Fatal("float-syntax seq accepted — the integer-literal ruling regressed")
+	}
+	if !strings.Contains(errs[0], "LEDGER.SEQ_FLOAT_SYNTAX") {
+		t.Fatalf("rejection lacks the neutral key: %v", errs[0])
 	}
 	after, err := json.Marshal(doc)
 	if err != nil {
@@ -104,37 +110,5 @@ func TestErrorsDoesNotMutateInput(t *testing.T) {
 	}
 	if string(before) != string(after) {
 		t.Fatalf("Errors mutated its input:\nbefore %s\nafter  %s", before, after)
-	}
-}
-
-// TestOddFloatTwinPinsFoldedDomain pins the FOLDING semantics of the declared
-// float64 judgment domain (E4, RFC 8785 precedent — zcode golden-vector form):
-// the float-syntax literal 9007199254740993.0 (2^53+1) is NOT representable in
-// float64 and is judged as its even twin 9007199254740992. Both domains accept
-// this fixture's sequence — by different routes (float64 via folding, exact via
-// ..993.0 < ..994). The domain-divergence faces are pinned by the rejection-side
-// fixtures (float-beyond-2^53 and int64-overflow), not by this one.
-func TestOddFloatTwinPinsFoldedDomain(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join(filepath.Dir(SchemaPath), "examples", "ledger", "valid", "seq-odd-float-twin.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Byte-level pin: this fixture silently regressed ..993.0→..992.0 once and
-	// the whole suite stayed green, because both literals fold to the same
-	// float64 and every parsed assertion is identity-blind. The odd literal
-	// must survive at the BYTE level — any writer that "rounds" it at
-	// serialization time fails here, before any parser can fold it.
-	if !strings.Contains(string(raw), `"arbitration_seq": 9007199254740993.0`) {
-		t.Fatalf("odd-twin byte pin lost: the raw literal 9007199254740993.0 is gone from seq-odd-float-twin.json — the folding semantics are unpinned")
-	}
-	var doc map[string]any
-	dec := json.NewDecoder(bytes.NewReader(raw))
-	dec.UseNumber()
-	if err := dec.Decode(&doc); err != nil {
-		t.Fatal(err)
-	}
-	delete(doc, "_expect")
-	if errs := Errors(doc); len(errs) > 0 {
-		t.Fatalf("odd-float-twin rejected in the folded domain: %v", errs)
 	}
 }

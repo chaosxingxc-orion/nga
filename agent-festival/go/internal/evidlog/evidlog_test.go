@@ -680,16 +680,12 @@ func TestSeqGapRejected(t *testing.T) {
 	}
 }
 
-// TestTruncationBlindSpot pins the real blind spot the R12 double-blank
-// outer round found: the previous fractional-seq pin was vacuous (both
-// reviewers independently proved deleting the Trunc check kept the suite
-// green — the case's e.Seq=1 was rejected by the plain continuity arm
-// either way). The REAL blind spot needs the view's next write to be 2, so
-// a truncated int(1.5)=1 satisfies lastSeq+1==e.Seq: the log holds
-// [seq0, seq1], a foreign writer REPLACES the last line with a 1.5-seq
-// line, and the stale view appends e.Seq=2. Without the Trunc check this
-// is a false success that bricks the next Open; with it, lastDurableSeq
-// reports !ok and the precise arm refuses.
+// TestTruncationBlindSpot pins the Append gate's rejection of float-syntax
+// foreign lines (R16 数值域章程; born in R12 as the truncation blind spot,
+// rebuilt R13, narrowed to the literal-gate form R16): the log holds
+// [seq0, seq1], a foreign writer REPLACES the last line with a
+// float-syntax twin (1.5 / 1e0), and the stale view's Append (e.Seq=2)
+// must refuse — lastDurableSeq reports !ok for any non-integer literal.
 func TestTruncationBlindSpot(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "evid.jsonl")
 	l, err := Open(path)
@@ -702,17 +698,17 @@ func TestTruncationBlindSpot(t *testing.T) {
 	if err := l.Append(Entry{Tool: "bureau.q", Selector: "subj=x", Caller: "s2", At: "2026-11-01T10:01:00Z"}); err != nil {
 		t.Fatal(err) // l.seq is now 1 — the next Append allocates e.Seq=2
 	}
-	// foreign writer replaces the seq=1 line with a non-integer-literal
-	// twin — two forms below: fractional (1.5) and exponent-notation
-	// integral (1e0, carrying the last seq's VALUE so the float64+Trunc
-	// mutation would satisfy the arithmetic and false-succeed). None of
-	// them is a literal this package's writer can emit, so none is a legal
-	// durable seq (Int64 rejects both classes — R12 matrix-verified).
+	// foreign writer replaces the seq=1 line with a float-syntax twin —
+	// two forms below: fractional (1.5) and exponent-notation integral
+	// (1e0, carrying the last seq's VALUE so a weakened gate that accepted
+	// float syntax would satisfy the arithmetic and false-succeed). R16
+	// 数值域章程: no float syntax is a legal durable seq — Int64 rejects
+	// both classes.
 	first, _ := json.Marshal(Entry{Seq: 0, Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"})
 	// The exponent-notation form must carry the VALUE of the last seq (1e0
-	// = 1) so the float64+Trunc mutation would satisfy the arithmetic and
-	// false-succeed — a mismatched value would be rejected by the plain
-	// continuity arm either way (the exact vacuity BOTH reviewers found).
+	// = 1) so a weakened gate accepting float syntax would false-succeed —
+	// a mismatched value would be rejected by the plain continuity arm
+	// either way (the vacuity form BOTH blank reviewers found in R12).
 	for _, tail := range []string{
 		`{"seq":1.5,"tool":"frac.q","selector":"f","caller":"s2","at":"x"}`,
 		`{"seq":1e0,"tool":"exp.q","selector":"e","caller":"s2","at":"x"}`,
@@ -793,37 +789,6 @@ func TestSeqExhaustionRefuses(t *testing.T) {
 		t.Fatal("Append wrapped the seq domain — the loader would reject the writer's own file")
 	} else if !strings.Contains(err.Error(), "EVIDLOG.SEQ_EXHAUSTED") {
 		t.Fatalf("exhaustion refusal lacks the neutral key: %v", err)
-	}
-}
-
-// TestCheckDocPlainDecodeArm pins the float64-input arm of
-// normalizeSeqDomain (R15 B-2): a plain-decoded map (no UseNumber — the
-// cross-language consumer's natural form) must get the same neutral keys
-// and the same in-place normalization a UseNumber decode gets, for the
-// in-domain and the beyond-domain faces alike.
-func TestCheckDocPlainDecodeArm(t *testing.T) {
-	build := func(seq any) map[string]any {
-		return map[string]any{
-			"evidlog_version": "0.1.0",
-			"entries": []any{
-				map[string]any{"seq": seq, "tool": "bank.fetch", "selector": "acct=1", "caller": "s2", "at": "2026-11-01T10:00:00Z"},
-				map[string]any{"seq": 1.0, "tool": "bureau.q", "selector": "subj=x", "caller": "s2", "at": "2026-11-01T10:01:00Z"},
-			},
-		}
-	}
-	// in-domain float64: passes AND is normalized in place (0.0 → int64(0))
-	doc := build(0.0)
-	if errs := CheckDoc(doc); len(errs) != 0 {
-		t.Fatalf("in-domain plain-decoded seq rejected: %v", errs)
-	}
-	if v, ok := doc["entries"].([]any)[0].(map[string]any)["seq"].(int64); !ok || v != 0 {
-		t.Fatalf("plain-decoded in-domain seq not normalized in place: %T %v", doc["entries"].([]any)[0].(map[string]any)["seq"], doc["entries"].([]any)[0].(map[string]any)["seq"])
-	}
-	// beyond-domain float64: same neutral key as the UseNumber form
-	doc = build(9007199254740994.0)
-	errs := CheckDoc(doc)
-	if len(errs) == 0 || !strings.Contains(errs[0], "EVIDLOG.SEQ_FLOAT_BEYOND_EXACT") {
-		t.Fatalf("beyond-domain plain-decoded seq: got %v, want EVIDLOG.SEQ_FLOAT_BEYOND_EXACT", errs)
 	}
 }
 

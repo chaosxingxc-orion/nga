@@ -28,7 +28,7 @@
         ],
         "properties": {
           "seq": {
-            "description": "Monotonic per-log sequence, allocated by the log writer (codex rollout form). In-band — makes coverage checking a pure density function.",
+            "description": "Monotonic per-log sequence, allocated by the log writer (codex rollout form). In-band — makes coverage checking a pure density function. Integer LITERAL only, enforced by the checker rules on both oracle sides ([LEDGER.SEQ_FLOAT_SYNTAX] / [EVIDLOG.SEQ_FLOAT_SYNTAX]) — JSON Schema cannot express this (pattern matches strings only, and its integer type accepts 1.0 by value), so the literal-domain rule lives in code, keyed neutrally (user ruling 2026-11-02: this package does no float math — machine counter domain).",
             "type": "integer",
             "minimum": 0
           },

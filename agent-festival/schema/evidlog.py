@@ -18,20 +18,21 @@ def evidlog_errors(doc: dict) -> list[str]:
             for e in v.iter_errors(doc)]
     if errs:
         return errs
-    # code rule: a float-syntax seq beyond the exact domain (±2^53) is
-    # rejected — the recovered value depends on parser rounding, not on the
-    # document (mirrors the Go checker's normalizeSeqDomain domain gate;
-    # integer-valued doubles INSIDE the domain stay legal — R13 B-M1, the
-    # double charter the event ledger pins)
+    # code rule: seq must be an integer LITERAL (user ruling 2026-11-02:
+    # this package does no float math — the counter domain is machine-written
+    # int64; json.loads yields float exactly for float-syntax literals, so
+    # isinstance int == literal check; mirrors Go's json.Number.Int64
+    # rejection — the old ±2^53 sub-domain charter retired with the
+    # normalization)
     for i, e in enumerate(doc["entries"]):
-        if isinstance(e["seq"], int) and (e["seq"] < -(2 ** 63) or e["seq"] > 2 ** 63 - 1):
-            errs.append(f"[EVIDLOG.SEQ_INT64_OVERFLOW] entries/{i}: seq {e['seq']} exceeds the int64 "
-                        f"domain — the writer's counter domain; such a document is not machine-writable")
+        if isinstance(e["seq"], float):
+            errs.append(f"[EVIDLOG.SEQ_FLOAT_SYNTAX] entries/{i}: seq {e['seq']!r} is not an integer literal — "
+                        f"the counter domain is machine-written int64; this package does no "
+                        f"float math (user ruling 2026-11-02)")
             return errs
-        if isinstance(e["seq"], float) and (e["seq"] < -(2 ** 53) or e["seq"] > 2 ** 53):
-            errs.append(f"[EVIDLOG.SEQ_FLOAT_BEYOND_EXACT] entries/{i}: seq {e['seq']!r} uses float "
-                        f"syntax beyond the exact-representation domain (±2^53) — the value a parser "
-                        f"recovers depends on its float rounding, not on the document")
+        if isinstance(e["seq"], int) and (e["seq"] > 2 ** 63 - 1 or e["seq"] < -(2 ** 63)):
+            errs.append(f"[EVIDLOG.SEQ_INT64_OVERFLOW] entries/{i}: seq {e['seq']} exceeds the int64 domain — "
+                        f"the writer's counter domain; such a document is not machine-writable")
             return errs
     # code rule: in-band seq must be dense and increasing (writer-allocated —
     # a gap is a foreign writer or a dropped entry; mirrors the Go checker)
@@ -52,8 +53,8 @@ def main() -> int:
     n_invalid = len(list((ex / "invalid").glob("*.json")))
     # D93 count-floor (the Go twin lives in cmd/evidlog/main_test.go — R13
     # A-m4: this was the one family pair missing the cross-reference).
-    if (n_valid, n_invalid) != (2, 5):
-        print(f"[evidlog] FAIL corpus count {n_valid}+{n_invalid} != pinned 2+5 (corpus count changed?)")
+    if (n_valid, n_invalid) != (1, 6):
+        print(f"[evidlog] FAIL corpus count {n_valid}+{n_invalid} != pinned 1+6 (corpus count changed?)")
         bad += 1
     return 1 if bad else 0
 

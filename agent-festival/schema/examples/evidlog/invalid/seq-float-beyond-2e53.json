@@ -9,6 +9,6 @@
       "at": "2026-11-01T10:00:00Z"
     }
   ],
-  "_expect": "REJECT: seq uses float syntax beyond the exact-representation domain (±2^53) — the value a parser recovers depends on its float rounding, not on the document (same domain rule and neutral-key family the event ledger pins as LEDGER.SEQ_FLOAT_BEYOND_EXACT); integer-valued doubles INSIDE the domain remain legal (see valid/seq-float-syntax).",
-  "_expect_match": "EVIDLOG.SEQ_FLOAT_BEYOND_EXACT"
+  "_expect": "REJECT: seq 9007199254740994.0 uses float syntax — integer literals only (user ruling 2026-11-02). The literal gate rejects ALL float syntax uniformly; the beyond-±2^53 sub-domain rule retired with the charter.",
+  "_expect_match": "EVIDLOG.SEQ_FLOAT_SYNTAX"
 }

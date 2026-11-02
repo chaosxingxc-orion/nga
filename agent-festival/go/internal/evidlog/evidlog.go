@@ -143,8 +143,13 @@ func (l *Log) Append(e Entry) error {
 	// from the guilty call, with the log bricked in between. The writer and
 	// the reader run the SAME shape table (requiredEntryKeys via
 	// entryShapeError); one table, both consumers, no drift.
+	// UseNumber probe (R16 数值域章程): the shape gate's seq check reads
+	// json.Number — a plain decode would hand it float64 and the literal
+	// arm would go undecidable.
 	var probe map[string]any
-	if err := json.Unmarshal(line, &probe); err != nil {
+	pdec := json.NewDecoder(bytes.NewReader(line))
+	pdec.UseNumber()
+	if err := pdec.Decode(&probe); err != nil {
 		l.seq--
 		return err
 	}
@@ -327,27 +332,26 @@ func CheckCoverage(log *Log, decl Declaration) CoverageReport {
 	return rep
 }
 
-// CheckDoc validates an evidlog document against the schema. It REWRITES
-// entries[].seq in the caller's map in place (integer-literal and in-domain
-// integral-float normalization); ledger.Errors deep-copies instead — the
-// divergence is deliberate and registered in
-// docs/conformance-fixture-format.md §三 (R13 F3 / R14 A-m3: a validator
-// that mutates its caller's document must say so at the code site).
+// CheckDoc validates an evidlog document against the schema. It never
+// mutates the caller's map (the in-place normalization rewrite and its
+// divergence from ledger.Errors retired with the float charter —
+// R16/user ruling 2026-11-02: no float math in this package).
+// INPUT CONTRACT: the map must come from a literal-preserving decode
+// (Go json.Decoder.UseNumber / Python json.loads — what the suite loader
+// and both oracles use). A plain-decoded map (float64 for every number)
+// cannot distinguish 0.0 from 0 at any rule downstream — the seq
+// literal gate is undecidable there; verdicts are contracted for the
+// literal-preserving decode form only.
 func CheckDoc(doc map[string]any) []string {
 	if err := schema.Validate(doc); err != nil {
 		return []string{"schema: " + err.Error()}
 	}
-	// Float-syntax integral seqs (0.0 / 1.0) pass the schema (integer-valued
-	// doubles, the same double charter the event ledger pins) but would fail
-	// the typed re-parse below, forking the dual validators' verdicts on the
-	// same document — normalize them into the int domain first (R13 B-M1;
-	// mirror of ledger.normalizeIntegralNumbers, R5 M-3; the copy is
-	// deliberate: evidlog does not import ledger, cross-sync duty is
-	// declared in docs/conformance-fixture-format.md §三).
-	// Beyond ±2^53 the float syntax is NOT normalized: the value a parser
-	// recovers depends on its float rounding — rejected with the same
-	// neutral-key family the ledger uses.
-	if errs := normalizeSeqDomain(doc); len(errs) > 0 {
+	// Integer-literal domain (R16, user ruling 2026-11-02: this package
+	// does no float math): seq must be an Int64-parseable literal — the
+	// machine counter domain. Float syntax (0.0 / 1e0, integer-valued or
+	// not, any magnitude) is rejected by rule on both oracles; the
+	// normalization layer and the ±2^53 sub-domain charter are retired.
+	if errs := floatSyntaxRejection(doc); len(errs) > 0 {
 		return errs
 	}
 	// in-band density: seq must be dense and increasing (writer-allocated)
@@ -368,78 +372,33 @@ func CheckDoc(doc map[string]any) []string {
 	return nil
 }
 
-// normalizeSeqDomain walks the document's entries and converts each
-// float-syntax integral seq into an int64 (in place). A seq whose float
-// value lies beyond the exact domain (±2^53) is rejected instead —
-// normalizing it would fold 2^53+1 onto 2^53 and make the verdict depend
-// on parser rounding. Only the "seq" key of entries is touched: this is a
-// seq-domain rule, not a general number policy. The seq value may arrive
-// as json.Number (UseNumber decode — what the suite loader and both
-// oracles use) OR as float64 (a plain decode — R15 B-2: a cross-language
-// consumer calling CheckDoc on a plain-decoded map got a density-misfiled
-// rejection for the same value that a UseNumber decode keys correctly;
-// the double-type arm mirrors entryShapeError's seq switch so the neutral
-// key is the decode-independent contract for the FLOAT-SYNTAX domain —
-// plain decode cannot know the original literal's syntax, so an
-// integer-syntax value beyond ±2^53 keys differently between decodes
-// (density key vs this key; the VERDICT still agrees — both reject —
-// per the aggregate contract; R15 inner M3 declares this seam).
-func normalizeSeqDomain(doc map[string]any) []string {
-	entries, ok := doc["entries"].([]any)
-	if !ok {
-		return nil
-	}
+// floatSyntaxRejection rejects any entries[].seq that is not an
+// Int64-parseable integer literal (user ruling 2026-11-02: no float math
+// in this package — the counter domain is machine-written int64; 0.0,
+// 1e0, 1.5 reject uniformly, magnitude irrelevant).
+func floatSyntaxRejection(doc map[string]any) []string {
+	entries, _ := doc["entries"].([]any)
+	var errs []string
 	for idx, raw := range entries {
-		m, ok := raw.(map[string]any)
+		em, _ := raw.(map[string]any)
+		if em == nil {
+			continue
+		}
+		n, ok := em["seq"].(json.Number)
 		if !ok {
 			continue
 		}
-		var n json.Number
-		var f64 float64
-		isNum, isF64 := false, false
-		switch v := m["seq"].(type) {
-		case json.Number:
-			n, isNum = v, true
-		case float64:
-			f64, isF64 = v, true
-		}
-		if isF64 {
-			if f64 != math.Trunc(f64) {
-				continue // fractional — let the schema/typed parse reject it
+		if _, err := n.Int64(); err != nil {
+			// syntax guard: integer syntax beyond int64 is the typed
+			// domain's rejection; float syntax is the literal gate's
+			if strings.ContainsAny(n.String(), ".eE") {
+				errs = append(errs, fmt.Sprintf("[EVIDLOG.SEQ_FLOAT_SYNTAX] entries/%d: seq %s is not an integer literal — the counter domain is machine-written int64; this package does no float math (user ruling 2026-11-02)", idx, n.String()))
+			} else {
+				errs = append(errs, fmt.Sprintf("[EVIDLOG.SEQ_INT64_OVERFLOW] entries/%d: seq %s exceeds the int64 domain — the writer's counter domain; such a document is not machine-writable", idx, n.String()))
 			}
-			if f64 < -(1<<53) || f64 > 1<<53 {
-				// syntax-neutral wording: a plain-decoded value carries no
-				// literal syntax — the key is the contract, not the prose
-				// (R15 inner M3)
-				return []string{fmt.Sprintf("[EVIDLOG.SEQ_FLOAT_BEYOND_EXACT] entries/%d: seq %v is beyond the exact-representation domain (±2^53) — the value a parser recovers depends on its float rounding, not on the document", idx, f64)}
-			}
-			m["seq"] = int64(f64)
-			continue
 		}
-		if !isNum {
-			continue
-		}
-		if iv, err := n.Int64(); err == nil {
-			m["seq"] = iv // integer literal — exact
-			continue
-		}
-		// syntax guard (R13 F2, the ledger twin carries it — a copy that
-		// dropped it mislabeled integer-literal overflows as "float
-		// syntax"): integer syntax beyond int64 is the typed domain's
-		// rejection; float syntax beyond ±2^53 is the rounding domain's.
-		if !strings.ContainsAny(n.String(), ".eE") {
-			return []string{fmt.Sprintf("[EVIDLOG.SEQ_INT64_OVERFLOW] entries/%d: seq %s exceeds the int64 domain — the writer's counter domain; such a document is not machine-writable", idx, n.String())}
-		}
-		f, err := n.Float64()
-		if err != nil || f != math.Trunc(f) {
-			continue // fractional — let the schema/typed parse reject it
-		}
-		if f < -(1<<53) || f > 1<<53 {
-			return []string{fmt.Sprintf("[EVIDLOG.SEQ_FLOAT_BEYOND_EXACT] entries/%d: seq %s uses float syntax beyond the exact-representation domain (±2^53) — the value a parser recovers depends on its float rounding, not on the document", idx, n.String())}
-		}
-		m["seq"] = int64(f)
 	}
-	return nil
+	return errs
 }
 
 // parsedLine is one accepted durable line. Unlike ledger.ParsedLine it does
@@ -592,15 +551,13 @@ func entryShapeError(doc map[string]any) (string, string) {
 			return k, "without"
 		}
 		if k == "seq" {
-			// seq must be a NUMBER (json.Number on the reader's UseNumber
-			// path, float64 on Append's probe path). A JSON null would
-			// otherwise unmarshal into a silent Seq=0 and enter coverage
-			// accounting as a legal entry — the phantom doctrine does not
-			// allow that normalization (R7).
-			switch v.(type) {
-			case float64, json.Number:
-				// ok
-			default:
+			// seq must be a NUMBER, and with R16's UseNumber discipline on
+			// both consumer paths (loadLines and Append's probe) that is
+			// always json.Number — the float64 arm is retired with the
+			// float charter. A JSON null would otherwise unmarshal into a
+			// silent Seq=0 and enter coverage accounting as a legal entry —
+			// the phantom doctrine does not allow that normalization (R7).
+			if _, isNum := v.(json.Number); !isNum {
 				return k, "empty-or-null"
 			}
 			continue
@@ -625,8 +582,10 @@ func conformantLine(line []byte) bool {
 	if json.Unmarshal(line, &e) != nil {
 		return false
 	}
+	cdec := json.NewDecoder(bytes.NewReader(line))
+	cdec.UseNumber() // R16: the shape gate reads json.Number
 	var doc map[string]any
-	if json.Unmarshal(line, &doc) != nil || doc == nil {
+	if cdec.Decode(&doc) != nil || doc == nil {
 		return false
 	}
 	k, _ := entryShapeError(doc)
@@ -636,17 +595,10 @@ func conformantLine(line []byte) bool {
 // lastDurableSeq extracts the seq of the last non-empty line in the durable
 // form (ok=false when no such line exists or the line carries no integer
 // seq — the caller refuses on !ok). Used by Append's seq-continuity
-// re-check (R11). The line is decoded with UseNumber and the seq must be
-// Int64-parseable: only an integer LITERAL (the only form this package's
-// writer emits, and the only form the loader accepts) is a legal durable
-// state — fractional (1.5) and exponent-notation (1e2) literals are !ok
-// (R12: the float64/Trunc form accepted 1e2 and folded 2^53+1, both now
-// closed; both blank reviewers flagged the 1e2 hole independently).
-// Honest pin boundary (R13 A-m2): the truncation blind spot table pins the
-// fractional (1.5) and exponent-integral (1e0) faces; the 2^53-fold face
-// (a plain big literal like 9007199254740993 under a float64 regression)
-// has NO pin — reachable only after ~9e15 appended lines, physically
-// impossible; the current Int64 decode is exact by construction.
+// re-check (R11). UseNumber + Int64: only an integer LITERAL (the only
+// form this package's writer emits) is a legal durable state; any float
+// syntax is !ok (R16 数值域章程). Int64 decoding is exact for the whole
+// int64 domain — no folding, no 2^53 boundary.
 func lastDurableSeq(existing []byte) (int, bool) {
 	for start := len(existing); start > 0; {
 		end := start
