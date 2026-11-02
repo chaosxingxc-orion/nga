@@ -83,7 +83,10 @@ class Lifecycle(unittest.TestCase):
         old=dict(self.observed,Name='/bench-a1',HostConfig={'AutoRemove':False})
         replacement={'Id':'new','Name':'/bench-a1','State':{'Status':'running','ExitCode':0},
                      'HostConfig':{'AutoRemove':False,'Devices':[{'PathOnHost':'/dev/davinci3'}]}}
-        def run(cmd,**kwargs):return subprocess.CompletedProcess(cmd,0,'new' if cmd[:3]==['docker','ps','-aq'] else '', '')
+        def run(cmd,**kwargs):
+            output = 'new' if cmd[:3]==['docker','ps','-aq'] else (
+                json.dumps([replacement]) if cmd[:2]==['docker','inspect'] else '')
+            return subprocess.CompletedProcess(cmd,0,output,'')
         # Initial observation, supervisor verification, release entry, then the
         # inventory sees a different live generation under the identical name.
         with patch.object(resource,'docker_inspect',side_effect=[old,old,old,replacement]),patch.object(L.subprocess,'run',side_effect=run):

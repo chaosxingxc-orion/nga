@@ -184,14 +184,41 @@ def docker_inspect(name):
     rows = json.loads(p.stdout); return rows[0] if rows else None
 
 def live_chip_conflict(chip, own_name):
-    p = subprocess.run(["docker", "ps", "-aq"], capture_output=True, text=True, check=False)
+    # Batch the *complete* inventory rather than dropping created/restarting
+    # containers or relying on a status filter that could race a restart. Keep
+    # the retained target's separate generation checks in release().
+    p = subprocess.run(["docker", "ps", "-aq", "--no-trunc"], capture_output=True,
+                       text=True, check=False, timeout=30)
     if p.returncode: raise RuntimeError("docker ps failed")
-    for cid in p.stdout.split():
-        d = docker_inspect(cid)
-        if d is None:
-            raise RuntimeError('Container disappeared during device inventory; retry observation')
-        if (own_name and d.get("Name", "").lstrip("/") == own_name) or d.get("State", {}).get("Status") in ("exited", "dead"): continue
-        if any(x.get("PathOnHost") == f"/dev/davinci{chip}" for x in d.get("HostConfig", {}).get("Devices") or []): return True
+    ids = p.stdout.split()
+    if len(ids) != len(set(ids)):
+        raise RuntimeError('duplicate container in device inventory')
+    for start in range(0, len(ids), 128):
+        batch = ids[start:start + 128]
+        observed = subprocess.run(["docker", "inspect", *batch], capture_output=True,
+                                  text=True, check=False, timeout=30)
+        if observed.returncode:
+            raise RuntimeError('Docker inventory observation uncertain: ' + observed.stderr[:200])
+        rows = json.loads(observed.stdout)
+        if (not isinstance(rows, list) or len(rows) != len(batch)
+                or not all(isinstance(d, dict) for d in rows)
+                or sorted(d.get('Id', '') for d in rows) != sorted(batch)):
+            raise RuntimeError('Docker inventory identities differ; retry observation')
+        for d in rows:
+            state, host = d.get('State'), d.get('HostConfig')
+            if not isinstance(state, dict) or not isinstance(host, dict):
+                raise RuntimeError('incomplete Docker inventory observation')
+            status = state.get('Status')
+            if status not in ('created', 'running', 'paused', 'restarting', 'removing', 'exited', 'dead'):
+                raise RuntimeError('unknown Docker inventory state')
+            devices = host.get('Devices')
+            if devices is not None and (not isinstance(devices, list) or not all(
+                    isinstance(x, dict) and isinstance(x.get('PathOnHost'), str) for x in devices)):
+                raise RuntimeError('invalid Docker inventory device bindings')
+            if (own_name and d.get("Name", "").lstrip("/") == own_name) or status in ("exited", "dead"):
+                continue
+            if any(x['PathOnHost'] == f"/dev/davinci{chip}" for x in devices or []):
+                return True
     return False
 
 def release(args):

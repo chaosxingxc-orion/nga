@@ -12,6 +12,91 @@ m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
 
 class AdapterTests(unittest.TestCase):
+    def inventory_row(self, identifier, status='exited', chip=1):
+        return {'Id':identifier, 'Name':'/'+identifier, 'State':{'Status':status},
+                'HostConfig':{'Devices':[{'PathOnHost':f'/dev/davinci{chip}'}]}}
+
+    def test_481_containers_use_four_inspect_batches_and_one_listing(self):
+        ids=[f'{i:064x}' for i in range(481)]
+        calls=[]
+        def run(command, **kwargs):
+            calls.append(command); self.assertEqual(kwargs['timeout'],30)
+            if command[:2]==['docker','ps']:
+                self.assertIn('--no-trunc',command)
+                return subprocess.CompletedProcess(command,0,'\n'.join(ids),'')
+            self.assertLessEqual(len(command[2:]),128)
+            return subprocess.CompletedProcess(command,0,json.dumps([
+                self.inventory_row(i, 'running' if i==ids[-1] else 'exited', chip=2)
+                for i in command[2:]]),'')
+        with mock.patch.object(m.subprocess,'run',side_effect=run):
+            self.assertFalse(m.live_chip_conflict(1,None))
+        self.assertEqual(len(calls),5)
+        self.assertEqual([len(c)-2 for c in calls[1:]],[128,128,128,97])
+
+    def test_inventory_nonterminal_states_all_hold_device(self):
+        for status in ('created','running','paused','restarting','removing'):
+            with self.subTest(status=status), mock.patch.object(m.subprocess,'run',side_effect=[
+                subprocess.CompletedProcess([],0,'id',''),
+                subprocess.CompletedProcess([],0,json.dumps([self.inventory_row('id',status)]),'')]):
+                self.assertTrue(m.live_chip_conflict(1,None))
+
+    def test_complete_release_481_inventory_keeps_three_rechecks_bounded(self):
+        m.claim(self.args());proof=self.root/'release.json'
+        ids=[f'{i:064x}' for i in range(481)];calls=[]
+        target=self.inventory_row(ids[0]);target['Name']='/ctr'
+        target['State']['ExitCode']=0;target['HostConfig']['AutoRemove']=False
+        def run(command,**kwargs):
+            calls.append(command)
+            if command[:2]==['docker','ps']:
+                return subprocess.CompletedProcess(command,0,'\n'.join(ids),'')
+            rows=[target] if command[2:]==['ctr'] else [
+                target if i==ids[0] else self.inventory_row(i,chip=2) for i in command[2:]]
+            return subprocess.CompletedProcess(command,0,json.dumps(rows),'')
+        with mock.patch.object(m.subprocess,'run',side_effect=run):
+            m.release(self.args(container='ctr',container_id=ids[0],claim=str(self.root/'proof.json'),proof=str(proof)))
+        self.assertEqual(len(calls),19)
+        self.assertEqual(sum(c[:2]==['docker','ps'] for c in calls),3)
+        self.assertEqual(sum(c==['docker','inspect','ctr'] for c in calls),4)
+        self.assertEqual(json.loads(proof.read_text())['container_id'],ids[0])
+        self.assertEqual([x['chip'] for x in json.loads(self.alloc.read_text())['free']],[1,4])
+
+    def test_release_uncertain_batch_never_frees_chip(self):
+        m.claim(self.args());before=self.alloc.read_bytes();proof=self.root/'release.json'
+        old={'Id':'old','HostConfig':{'AutoRemove':False},'State':{'Status':'exited','ExitCode':0}}
+        with mock.patch.object(m,'docker_inspect',return_value=old), mock.patch.object(m.subprocess,'run',side_effect=[
+                subprocess.CompletedProcess([],0,'gone',''),
+                subprocess.CompletedProcess([],1,'','No such object: gone')]):
+            with self.assertRaisesRegex(RuntimeError,'observation uncertain'):
+                m.release(self.args(container='ctr',container_id='old',claim=str(self.root/'proof.json'),proof=str(proof)))
+        self.assertEqual(self.alloc.read_bytes(),before);self.assertFalse(proof.exists())
+
+    def test_inventory_uncertainty_and_wrong_id_fail_closed(self):
+        for response in [subprocess.CompletedProcess([],1,'','daemon unavailable'),
+                         subprocess.CompletedProcess([],0,'[]',''),
+                         subprocess.CompletedProcess([],0,json.dumps([self.inventory_row('replacement')]),''),
+                         subprocess.CompletedProcess([],0,json.dumps([{'Id':'id'}]),'')]:
+            with self.subTest(response=response), mock.patch.object(m.subprocess,'run',side_effect=[
+                subprocess.CompletedProcess([],0,'id',''), response]):
+                with self.assertRaises(RuntimeError):m.live_chip_conflict(1,None)
+        with mock.patch.object(m.subprocess,'run',return_value=subprocess.CompletedProcess([],1,'','daemon unavailable')):
+            with self.assertRaisesRegex(RuntimeError,'docker ps failed'):m.live_chip_conflict(1,None)
+
+    def test_release_late_live_conflict_leaves_ledger_unchanged(self):
+        m.claim(self.args());before=self.alloc.read_bytes();proof=self.root/'release.json'
+        old={'Id':'old','HostConfig':{'AutoRemove':False},'State':{'Status':'exited','ExitCode':0}}
+        listings=0
+        def run(command,**kwargs):
+            nonlocal listings
+            if command[:2]==['docker','ps']:
+                listings+=1
+                return subprocess.CompletedProcess(command,0,'late' if listings==3 else '','')
+            return subprocess.CompletedProcess(command,0,json.dumps([self.inventory_row('late','running')]),'')
+        with mock.patch.object(m,'docker_inspect',return_value=old), mock.patch.object(m.subprocess,'run',side_effect=run):
+            with self.assertRaisesRegex(RuntimeError,'live container still owns device'):
+                m.release(self.args(container='ctr',container_id='old',claim=str(self.root/'proof.json'),proof=str(proof)))
+        self.assertEqual(self.alloc.read_bytes(),before)
+        self.assertFalse(proof.exists());self.assertTrue(proof.with_suffix('.json.intent').exists())
+
     def test_legacy_reclaim_requires_bound_terminal_and_unchanged_owner(self):
         marker = self.root / 'DONE'; marker.write_text('rc=0 utc=fixture\n')
         entry = json.loads(self.alloc.read_text())['allocation'][0]
@@ -53,10 +138,10 @@ class AdapterTests(unittest.TestCase):
                 m.docker_inspect('c')
 
     def test_inventory_disappearance_blocks_release(self):
-        with mock.patch.object(m.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, 'container-id', '')):
-            with mock.patch.object(m, 'docker_inspect', return_value=None):
-                with self.assertRaises(RuntimeError):
-                    m.live_chip_conflict(1, 'ours')
+        with mock.patch.object(m.subprocess, 'run', side_effect=[
+                subprocess.CompletedProcess([],0,'container-id',''),
+                subprocess.CompletedProcess([],1,'[]','No such object')]):
+            with self.assertRaises(RuntimeError):m.live_chip_conflict(1,'ours')
 
     def setUp(self):
         self.t = tempfile.TemporaryDirectory(); self.addCleanup(self.t.cleanup)
@@ -129,7 +214,9 @@ class AdapterTests(unittest.TestCase):
         old={'Id':'old','Name':'/ctr','HostConfig':{'AutoRemove':False},'State':{'Status':'exited','ExitCode':0}}
         new={'Id':'new','Name':'/ctr','HostConfig':{'AutoRemove':False,'Devices':[{'PathOnHost':'/dev/davinci1'}]},'State':{'Status':'running','ExitCode':0}}
         args=self.args(container='ctr',container_id='old',claim=str(self.root/'proof.json'),proof=str(proof))
-        with mock.patch.object(m,'docker_inspect',side_effect=[old,new]),mock.patch.object(m.subprocess,'run',return_value=subprocess.CompletedProcess([],0,'new','')):
+        with mock.patch.object(m,'docker_inspect',return_value=old),mock.patch.object(m.subprocess,'run',side_effect=[
+                subprocess.CompletedProcess([],0,'new',''),
+                subprocess.CompletedProcess([],0,json.dumps([new]),'')]):
             with self.assertRaisesRegex(RuntimeError,'live container still owns device'):m.release(args)
         self.assertEqual(self.alloc.read_bytes(),before);self.assertFalse(proof.exists())
 
