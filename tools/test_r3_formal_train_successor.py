@@ -801,4 +801,122 @@ class WaveFailureTerminationTests(WaveQueueTests):
         self.assertEqual(end['jobs']['diffchip_s2']['status'],'completed')
 
 
+class CollaborationReviewTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name)
+        self.generation=self.root/'generation';self.generation.mkdir();self.out=self.generation/'primary_s2';self.out.mkdir()
+        self.evidence=self.root/'parent-observations';self.evidence.mkdir()
+        self.p=dict(out=str(self.out),formal_schedule=str(self.generation/'SCHEDULE.json'),
+            successor_guard={'controller':S.__file__},review_policy=S.COLLAB_REVIEW_POLICY,
+            review_authority={'parent_agent_id':'/root','producer_agent_id':'/root/producer'},
+            review_path=str(self.out/'ASTRA_REVIEW.json'),review_sha256='PENDING')
+        self.h=S.identity(self.p);self.agent='/root/independent_reviewer'
+        self.paths={n:self.evidence/(n+'.json') for n in ('dispatch','task','completion','report','result','observation','envelope')}
+        self.prepared=self.generation/'PRIMARY-PREPARED.json'
+        write(self.prepared,dict(controller=S.__file__,jobs=[dict(plan=str(self.out/'plan.json'),plan_sha256=self.h,plan_raw_sha256=self.h)]))
+        self.plans=[dict(path=str(self.out/'plan.json'),canonical_sha256=self.h,prepared_raw_sha256=self.h)]
+        self.docs=dict(
+            dispatch=dict(schema='parent-observed-collaboration-dispatch-v1',tool='collaboration.spawn_agent',
+                observer_agent_id='/root',agent_id=self.agent,requested_model='gpt-6-astra',model_override_explicit=True,observed_at='2026-11-02T00:00:00Z'),
+            task=dict(schema='parent-observed-collaboration-task-v1',tool='collaboration.followup_task',
+                observer_agent_id='/root',agent_id=self.agent,scope=S.REVIEW_SCOPE,plans=self.plans,observed_at='2026-11-02T00:01:00Z'),
+            report=dict(verdict='PASS',scope=S.REVIEW_SCOPE,reviewer_agent_id=self.agent,approved_canonical_plan_sha256=[self.h],created_utc='2026-11-02T00:02:00Z'),
+            result=dict(schema='parent-observed-collaboration-result-v1',observer_agent_id='/root',agent_id=self.agent,
+                scope=S.REVIEW_SCOPE,returned_text='SYNTHETIC TEST ONLY: independent review completed',observed_at='2026-11-02T00:03:00Z'),
+            completion=dict(schema='parent-observed-collaboration-completion-v1',observer_agent_id='/root',agent_id=self.agent,
+                status='completed',scope=S.REVIEW_SCOPE,observed_at='2026-11-02T00:03:00Z'),
+            observation=dict(schema='parent-observed-collaboration-review-v1',observer_agent_id='/root',producer_agent_id='/root/producer',reviewer_agent_id=self.agent,
+                status='completed',scope=S.REVIEW_SCOPE,backend_runtime_attestation=False,os_process_exit_attested=False,activation_authorized=False,
+                plans=self.plans,observed_at='2026-11-02T00:04:00Z'),
+            envelope=dict(schema=S.COLLAB_REVIEW_POLICY,scope=S.REVIEW_SCOPE,requested_model='gpt-6-astra',reviewer_agent_id=self.agent,
+                authenticator_identity='/root',backend_runtime_attestation=False,os_process_exit_attested=False,activation_authorized=False,
+                plans=self.plans,authenticated_at='2026-11-02T00:05:00Z'))
+        self.seal()
+
+    def ref(self,path):return dict(path=str(path),sha256=pin(path))
+
+    def seal(self):
+        d=self.docs;q=self.ref(self.prepared);write(self.paths['dispatch'],d['dispatch'])
+        d['task'].update(original_dispatch=self.ref(self.paths['dispatch']),prepared_queue=q);write(self.paths['task'],d['task'])
+        d['report']['prepared_queue']=q;write(self.paths['report'],d['report']);report=self.ref(self.paths['report'])
+        d['result']['review_report']=report;write(self.paths['result'],d['result']);result=self.ref(self.paths['result'])
+        d['completion'].update(review_task=self.ref(self.paths['task']),review_report=report,worker_result=result);write(self.paths['completion'],d['completion'])
+        d['observation'].update(original_dispatch=self.ref(self.paths['dispatch']),review_task=self.ref(self.paths['task']),completion=self.ref(self.paths['completion']),review_report=report,worker_result=result,prepared_queue=q)
+        write(self.paths['observation'],d['observation'])
+        d['envelope'].update(parent_observation=self.ref(self.paths['observation']),review_report=report,worker_result=result,prepared_queue=q)
+        write(self.paths['envelope'],d['envelope'])
+        self.p['review_path']=str(self.paths['envelope']);self.p['review_sha256']=pin(self.paths['envelope'])
+
+    def test_collaboration_completed_without_os_exit_accepts(self):
+        S.verify_review(self.p,self.h)
+        self.assertNotIn('worker_exit_code',self.docs['envelope'])
+        # Actual attachment puts the envelope in the plan directory; external observations remain outside.
+        target=self.out/'ASTRA_REVIEW.json';target.write_bytes(self.paths['envelope'].read_bytes())
+        self.p['review_path']=str(target);S.verify_review(self.p,self.h)
+
+    def test_rehashed_missing_or_mismatched_authority_scope_agent_model_refuses(self):
+        original=copy.deepcopy(self.docs)
+        cases=[('dispatch','requested_model','other'),('dispatch','model_override_explicit',False),
+            ('dispatch','tool','collaboration.followup_task'),('dispatch','agent_id','/root/unrelated'),
+            ('task','agent_id','/root/unrelated'),('task','scope','source-only'),
+            ('completion','status','running'),('completion','status','errored'),('completion','agent_id','/root/producer'),
+            ('observation','observer_agent_id','/root/producer'),('observation','producer_agent_id','someone-else'),
+            ('observation','status',None),('envelope','reviewer_agent_id','/root/producer'),
+            ('envelope','authenticator_identity','/root/producer'),('envelope','os_process_exit_attested',True),
+            ('envelope','backend_runtime_attestation',True),('envelope','worker_exit_code',0),
+            ('report','verdict','BLOCK'),('report','scope','source-only'),('result','returned_text','')]
+        for name,key,value in cases:
+            self.docs=copy.deepcopy(original);self.docs[name][key]=value;self.seal()
+            with self.subTest(name=name,key=key),self.assertRaises(RuntimeError):S.verify_review(self.p,self.h)
+        self.docs=original;self.seal()
+
+    def test_wrong_prepared_and_canonical_pins_reject_even_rehashed(self):
+        d=json.loads(self.prepared.read_bytes());d['jobs'][0]['plan_raw_sha256']='0'*64;write(self.prepared,d);self.seal()
+        with self.assertRaisesRegex(RuntimeError,'plan pins'):S.verify_review(self.p,self.h)
+        d['jobs'][0]['plan_raw_sha256']=d['jobs'][0]['plan_sha256']='0'*64;write(self.prepared,d);self.seal()
+        with self.assertRaisesRegex(RuntimeError,'plan pins'):S.verify_review(self.p,self.h)
+
+    def test_artifact_hash_drift_and_missing_completion_refuse(self):
+        original=self.paths['completion'].read_bytes();self.paths['completion'].write_bytes(original+b'\n')
+        with self.assertRaisesRegex(RuntimeError,'content changed'):S.verify_review(self.p,self.h)
+        self.paths['completion'].write_bytes(original)
+        self.docs['observation']['completion']={'path':str(self.paths['completion']),'sha256':'0'*64}
+        write(self.paths['observation'],self.docs['observation'])
+        self.docs['envelope']['parent_observation']=self.ref(self.paths['observation']);write(self.paths['envelope'],self.docs['envelope'])
+        self.p['review_sha256']=pin(self.paths['envelope'])
+        with self.assertRaisesRegex(RuntimeError,'content changed'):S.verify_review(self.p,self.h)
+
+    def test_chronology_and_missing_timezone_refuse(self):
+        original=copy.deepcopy(self.docs)
+        for name,key,value in [('task','observed_at','2026-11-01T23:59:00Z'),
+                              ('report','created_utc','2026-11-02T00:06:00Z'),
+                              ('completion','observed_at','2026-11-02T00:01:00Z'),
+                              ('envelope','authenticated_at','2026-11-02T00:05:00')]:
+            self.docs=copy.deepcopy(original);self.docs[name][key]=value;self.seal()
+            with self.subTest(name=name),self.assertRaises(RuntimeError):S.verify_review(self.p,self.h)
+
+    def test_self_owned_observation_receipt_refused(self):
+        target=self.generation/'observation.json';target.write_bytes(self.paths['observation'].read_bytes())
+        self.docs['envelope']['parent_observation']=self.ref(target);write(self.paths['envelope'],self.docs['envelope']);self.p['review_sha256']=pin(self.paths['envelope'])
+        with self.assertRaisesRegex(RuntimeError,'producer generation'):S.verify_review(self.p,self.h)
+
+    def test_parent_observation_and_prepared_refs_are_externally_pinned(self):
+        original=copy.deepcopy(self.docs)
+        for key in ('parent_observation','prepared_queue','review_report','worker_result'):
+            d=copy.deepcopy(original['envelope']);d[key]['sha256']='f'*64
+            write(self.paths['envelope'],d);self.p['review_sha256']=pin(self.paths['envelope'])
+            with self.subTest(key=key),self.assertRaises(RuntimeError):S.verify_review(self.p,self.h)
+        self.docs=original;self.seal()
+
+    def test_report_from_other_agent_and_missing_plan_inventory_refuse(self):
+        self.docs['report']['reviewer_agent_id']='/root/unrelated';self.seal()
+        with self.assertRaisesRegex(RuntimeError,'PASS/result'):S.verify_review(self.p,self.h)
+        self.docs['report']['reviewer_agent_id']=self.agent;self.docs['task']['plans']=[];self.seal()
+        with self.assertRaisesRegex(RuntimeError,'exact plan pins'):S.verify_review(self.p,self.h)
+
+    def test_original_policy_still_requires_os_exit(self):
+        self.p['review_policy']=S.REVIEW_POLICY
+        with self.assertRaisesRegex(RuntimeError,'parent review policy'):S.verify_review(self.p,self.h)
+
+
 if __name__=="__main__": unittest.main()

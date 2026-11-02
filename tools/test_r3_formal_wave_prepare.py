@@ -84,7 +84,7 @@ class StageTests(unittest.TestCase):
     code_by_relative_path={r:codepin for r in ('train_r3.py','build_kev_sft.py','kev_aug.py','r0_code/prompt.py')},external_predecessors=predecessors,target_root=str(self.root))
   self.closure=self.base/'closure';self.closure.mkdir();write(self.closure/'manifest.json',dict(data={},code={},mounts=[],command_template=['python3','--arm','K1','--adapter','<COMPLETED_ADAPTER>','--out','<FRESH_EVAL_OUTPUT>'],evaluation_profile='track_kt'))
   self.req=dict(schema='r3-formal-wave-request-v1',repository=str(self.repo),target_root=str(self.root),source_sha256={r:P.sha(self.repo/r) for r in P.SOURCE_NAMES},
-    review_policy=P.POLICY,poll_interval_seconds=600,schedule=self.schedule,inputs={'fresh_k0_prechecks':str(self.model/'config.json'),'fresh_k0_prechecks_sha256':P.sha(self.model/'config.json')},closure={'path':str(self.closure/'manifest.json'),'sha256':P.sha(self.closure/'manifest.json')})
+    review_policy=getattr(self,'requested_policy',P.POLICY),review_authority={'parent_agent_id':'/root','producer_agent_id':'/root/producer'},poll_interval_seconds=600,schedule=self.schedule,inputs={'fresh_k0_prechecks':str(self.model/'config.json'),'fresh_k0_prechecks_sha256':P.sha(self.model/'config.json')},closure={'path':str(self.closure/'manifest.json'),'sha256':P.sha(self.closure/'manifest.json')})
   self.request=self.base/'request.json';write(self.request,self.req);P.freeze(str(self.request),P.sha(self.request))
   self.config=self.root/'WAVE.json';self.pin=P.sha(self.config)
 
@@ -173,5 +173,38 @@ class StageTests(unittest.TestCase):
   self.assertEqual(before,P.sha(self.root/'primary_s2/plan.json'))
   P.prepare_stage(str(self.config),self.pin,'aux')
   self.assertEqual(P.load(self.root/'samechip_s2/plan.json')['successor_guard']['previous_training']['plan_raw_sha256'],before)
+
+
+class CollaborationStageTests(unittest.TestCase):
+ def setUp(self):
+  self.requested_policy=P.COLLAB_POLICY;StageTests.setUp(self)
+
+ def collab_reviews(self,stage):
+  bundle=self.root/'stages'/(stage.upper()+'-PREPARED.json');b=P.load(bundle);directory=self.base/(stage+'-collaboration');directory.mkdir()
+  ref=lambda p:dict(path=str(p),sha256=P.sha(p));q=ref(bundle);scope='exact-formal-train-only-readiness-no-activation';agent='/root/astra_review'
+  plans=[dict(path=j['plan'],canonical_sha256=j['plan_sha256'],prepared_raw_sha256=j['plan_raw_sha256']) for j in b['jobs']]
+  dispatch=directory/'dispatch.json';write(dispatch,dict(schema='parent-observed-collaboration-dispatch-v1',tool='collaboration.spawn_agent',observer_agent_id='/root',agent_id=agent,requested_model='gpt-6-astra',model_override_explicit=True,observed_at='2026-11-02T00:00:00Z',synthetic=True))
+  task=directory/'task.json';write(task,dict(schema='parent-observed-collaboration-task-v1',tool='collaboration.followup_task',observer_agent_id='/root',agent_id=agent,scope=scope,original_dispatch=ref(dispatch),prepared_queue=q,plans=plans,observed_at='2026-11-02T00:01:00Z',synthetic=True))
+  report=directory/'report.json';write(report,dict(verdict='PASS',scope=scope,reviewer_agent_id=agent,prepared_queue=q,approved_canonical_plan_sha256=[j['canonical_sha256'] for j in plans],created_utc='2026-11-02T00:02:00Z',synthetic=True))
+  result=directory/'result.json';write(result,dict(schema='parent-observed-collaboration-result-v1',observer_agent_id='/root',agent_id=agent,scope=scope,review_report=ref(report),returned_text='SYNTHETIC CPU FIXTURE ONLY',observed_at='2026-11-02T00:03:00Z'))
+  complete=directory/'complete.json';write(complete,dict(schema='parent-observed-collaboration-completion-v1',observer_agent_id='/root',agent_id=agent,status='completed',scope=scope,review_task=ref(task),review_report=ref(report),worker_result=ref(result),observed_at='2026-11-02T00:03:00Z',synthetic=True))
+  observation=directory/'observation.json';write(observation,dict(schema='parent-observed-collaboration-review-v1',observer_agent_id='/root',producer_agent_id='/root/producer',reviewer_agent_id=agent,status='completed',scope=scope,backend_runtime_attestation=False,os_process_exit_attested=False,activation_authorized=False,original_dispatch=ref(dispatch),review_task=ref(task),completion=ref(complete),review_report=ref(report),worker_result=ref(result),prepared_queue=q,plans=plans,observed_at='2026-11-02T00:04:00Z',synthetic=True))
+  envelope=directory/'envelope.json';write(envelope,dict(schema=P.COLLAB_POLICY,scope=scope,requested_model='gpt-6-astra',reviewer_agent_id=agent,authenticator_identity='/root',backend_runtime_attestation=False,os_process_exit_attested=False,activation_authorized=False,parent_observation=ref(observation),review_report=ref(report),worker_result=ref(result),prepared_queue=q,plans=plans,authenticated_at='2026-11-02T00:05:00Z',synthetic=True))
+  injection=directory/'injection.json';write(injection,dict(schema='r3-authenticated-review-injection-v1',config_sha256=self.pin,stage=stage,reviews={j['id']:ref(envelope) for j in b['jobs']},synthetic=True));return injection
+
+ def test_new_policy_two_stage_attachment_preserves_primary(self):
+  P.prepare_stage(str(self.config),self.pin,'primary')
+  for r in P.PRIMARY:
+   p=P.load(self.root/r/'plan.json');self.assertEqual(p['review_policy'],P.COLLAB_POLICY);self.assertEqual(p['review_authority'],self.req['review_authority'])
+  ticket=self.collab_reviews('primary');P.attach(str(self.config),self.pin,'primary',str(ticket),P.sha(ticket));before={r:P.sha(self.root/r/'plan.json') for r in P.PRIMARY}
+  P.prepare_stage(str(self.config),self.pin,'aux');ticket=self.collab_reviews('aux');P.attach(str(self.config),self.pin,'aux',str(ticket),P.sha(ticket))
+  P.finalize(str(self.config),self.pin);self.assertEqual(before,{r:P.sha(self.root/r/'plan.json') for r in P.PRIMARY})
+  self.assertTrue(all(v=='review_attached' for v in P.validate(str(self.config),self.pin)['roles'].values()))
+
+ def test_missing_or_self_authority_rejected_before_freeze(self):
+  request=copy.deepcopy(self.req);request['target_root']=str(self.base/'new-wave');request['schedule']=copy.deepcopy(self.schedule)
+  request['review_authority']={'parent_agent_id':'/root','producer_agent_id':'/root'};path=self.base/'badrequest.json';write(path,request)
+  with self.assertRaisesRegex(ValueError,'authority separation'):P.freeze(str(path),P.sha(path))
+  self.assertFalse((self.base/'new-wave').exists())
 
 if __name__=='__main__':unittest.main()

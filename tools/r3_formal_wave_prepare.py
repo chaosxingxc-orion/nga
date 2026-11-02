@@ -18,6 +18,7 @@ import types
 ROLES=('primary_s2','primary_s3','samechip_s2','diffchip_s2')
 PRIMARY=ROLES[:2]; AUX=ROLES[2:]
 POLICY='requested-astra-parent-pinned-v1'
+COLLAB_POLICY='requested-astra-collaboration-parent-pinned-v2'
 TOOL_NAMES=('r3_formal_wave_prepare.py','r3_formal_wave_handoff.py','r3_formal_prepare.py',
  'r3_formal_train_successor.py','r3_formal_roles.py','r3_formal_launcher.py','r3_formal_driver.py',
  'r3_resource_adapter.py','r3_fresh_prechecks.py','r3_training_evidence.py',
@@ -71,8 +72,14 @@ def freeze(request,pin):
     repo=safe(d['repository']);root=safe(d['target_root'])
     require(not root.exists(),'fresh generation required')
     require(set(d['source_sha256'])==set(SOURCE_NAMES),'exact preparation source closure required')
-    require(d['review_policy']==POLICY and type(d['poll_interval_seconds']) is int
+    require(d['review_policy'] in (POLICY,COLLAB_POLICY) and type(d['poll_interval_seconds']) is int
             and d['poll_interval_seconds']>=600,'review policy/cadence differs')
+    if d['review_policy']==COLLAB_POLICY:
+        authority=d.get('review_authority',{})
+        require(set(authority)=={'parent_agent_id','producer_agent_id'}
+                and all(isinstance(x,str) and x for x in authority.values())
+                and authority['parent_agent_id']!=authority['producer_agent_id'],
+                'parent/producer authority separation required')
     for rel,h in d['source_sha256'].items():require(sha(repo/rel)==h,'source changed: '+rel)
     schedule=d['schedule'];roles=module(repo/'tools/r3_formal_roles.py',d['source_sha256']['tools/r3_formal_roles.py'])
     nodes=roles.validate_schedule(schedule)
@@ -93,8 +100,9 @@ def freeze(request,pin):
     config=dict(schema='r3-formal-staged-wave-v1',root=str(root),source_root=str(source),
         source_files={str(source/rel):h for rel,h in d['source_sha256'].items()},
         schedule={'path':str(root/'SCHEDULE.json'),'sha256':sha(root/'SCHEDULE.json')},
-        inputs=d['inputs'],closure=d['closure'],review_policy=POLICY,
+        inputs=d['inputs'],closure=d['closure'],review_policy=d['review_policy'],
         poll_interval_seconds=d['poll_interval_seconds'],test_read=False,scientific_acceptance=False,launch_authorized=False)
+    if d['review_policy']==COLLAB_POLICY:config['review_authority']=dict(d['review_authority'])
     write(root/'WAVE.json',config)
     return {'config':str(root/'WAVE.json'),'sha256':sha(root/'WAVE.json'),'status':'source_frozen_no_plans'}
 
@@ -154,7 +162,9 @@ def prepare_stage(path,pin,stage):
         node=nodes[role];producer.prepare(out,node['seed'],node['chip'],formal_chips=tuple(schedule['physical_chips']),
             formal_schedule=d['schedule']['path'],formal_schedule_sha256=d['schedule']['sha256'],formal_role=role,
             successor_guard=str(g),successor_guard_sha256=sha(g),**inputs)
-        p=load(out/'plan.json');p['review_policy']=d['review_policy'];write(out/'plan.json',p,replace=True)
+        p=load(out/'plan.json');p['review_policy']=d['review_policy']
+        if d['review_policy']==COLLAB_POLICY:p['review_authority']=dict(d['review_authority'])
+        write(out/'plan.json',p,replace=True)
         identity=s.identity(p);require(identity==sha(out/'plan.json'),'pending canonical/raw differ')
         (out/'CANONICAL_PLAN_SHA256').write_text(identity+'\n')
         launch=f"ssh npu 'python3.12 -P {p['launcher']} start --plan {out}/plan.json --sha256 {identity}'"

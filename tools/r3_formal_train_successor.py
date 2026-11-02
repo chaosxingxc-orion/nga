@@ -91,7 +91,104 @@ def process_matches(receipt):
 
 
 REVIEW_POLICY = 'requested-astra-parent-pinned-v1'
+COLLAB_REVIEW_POLICY = 'requested-astra-collaboration-parent-pinned-v2'
 REVIEW_SCOPE = 'exact-formal-train-only-readiness-no-activation'
+
+
+def verify_collaboration_review(p, pin, review):
+    """Parent-observed tool transport, not an OS exit or provider attestation.
+
+    The plan pins parent/producer identities before review. The external parent
+    authenticates the observation receipt and actual tool events; self-consistent
+    hashes alone cannot establish who wrote any of these artifacts.
+    """
+    from datetime import datetime
+    authority=p.get('review_authority',{})
+    parent=authority.get('parent_agent_id');producer=authority.get('producer_agent_id')
+    agent=review.get('reviewer_agent_id')
+    require(isinstance(parent,str) and parent and isinstance(producer,str) and producer
+            and parent!=producer and isinstance(agent,str) and agent
+            and agent not in (parent,producer), 'collaboration authority separation differs')
+    require(review.get('schema')==COLLAB_REVIEW_POLICY and review.get('scope')==REVIEW_SCOPE
+            and review.get('requested_model')=='gpt-6-astra'
+            and review.get('authenticator_identity')==parent
+            and review.get('backend_runtime_attestation') is False
+            and review.get('os_process_exit_attested') is False
+            and review.get('activation_authorized') is False
+            and 'worker_exit_code' not in review and 'worker_terminal' not in review,
+            'collaboration review transport differs')
+    protected=Path(p['formal_schedule']).parent if p.get('formal_schedule') else Path(p['out'])
+    def artifact(ref):
+        require(isinstance(ref,dict) and set(ref)=={'path','sha256'},'collaboration artifact ref differs')
+        path=Path(ref['path'])
+        require(not path.is_relative_to(protected) and not path.is_relative_to(Path(p['out'])),
+                'parent/reviewer evidence inside producer generation')
+        return json.loads(content(path,ref['sha256']))
+    def timestamp(value):
+        require(isinstance(value,str),'collaboration timestamp missing')
+        try: result=datetime.fromisoformat(value.replace('Z','+00:00'))
+        except ValueError: raise RuntimeError('collaboration timestamp malformed')
+        require(result.tzinfo is not None,'collaboration timestamp must include timezone')
+        return result
+    observation=artifact(review.get('parent_observation'))
+    require(observation.get('schema')=='parent-observed-collaboration-review-v1'
+            and observation.get('observer_agent_id')==parent
+            and observation.get('producer_agent_id')==producer
+            and observation.get('reviewer_agent_id')==agent
+            and observation.get('status')=='completed' and observation.get('scope')==REVIEW_SCOPE
+            and observation.get('backend_runtime_attestation') is False
+            and observation.get('os_process_exit_attested') is False
+            and observation.get('activation_authorized') is False,
+            'collaboration parent observation differs')
+    dispatch=artifact(observation.get('original_dispatch'))
+    task=artifact(observation.get('review_task'))
+    completion=artifact(observation.get('completion'))
+    report=artifact(review.get('review_report'));result=artifact(review.get('worker_result'))
+    require(dispatch.get('schema')=='parent-observed-collaboration-dispatch-v1'
+            and dispatch.get('tool')=='collaboration.spawn_agent'
+            and dispatch.get('observer_agent_id')==parent and dispatch.get('agent_id')==agent
+            and dispatch.get('requested_model')=='gpt-6-astra'
+            and dispatch.get('model_override_explicit') is True,
+            'original explicit model dispatch lineage differs')
+    require(task.get('schema')=='parent-observed-collaboration-task-v1'
+            and task.get('tool') in ('collaboration.spawn_agent','collaboration.followup_task')
+            and task.get('observer_agent_id')==parent and task.get('agent_id')==agent
+            and task.get('scope')==REVIEW_SCOPE
+            and task.get('original_dispatch')==observation['original_dispatch'],
+            'exact review task lineage differs')
+    require(completion.get('schema')=='parent-observed-collaboration-completion-v1'
+            and completion.get('observer_agent_id')==parent and completion.get('agent_id')==agent
+            and completion.get('status')=='completed' and completion.get('scope')==REVIEW_SCOPE
+            and completion.get('review_task')==observation['review_task']
+            and completion.get('review_report')==observation.get('review_report')==review['review_report']
+            and completion.get('worker_result')==observation.get('worker_result')==review['worker_result'],
+            'collaboration completion/result binding differs')
+    prepared_ref=review.get('prepared_queue')
+    require(task.get('prepared_queue')==observation.get('prepared_queue')==prepared_ref,
+            'collaboration prepared input differs')
+    prepared=load(prepared_ref['path'],prepared_ref['sha256'])
+    require(prepared.get('controller')==p['successor_guard']['controller'],'review queue controller differs')
+    jobs=prepared.get('jobs',[])
+    require(jobs and len({j['plan'] for j in jobs})==len(jobs),'prepared plan inventory differs')
+    expected=[dict(path=j['plan'],canonical_sha256=j['plan_sha256'],prepared_raw_sha256=j['plan_raw_sha256']) for j in jobs]
+    require(all(x['canonical_sha256']==x['prepared_raw_sha256'] for x in expected)
+            and dict(path=str(Path(p['out'])/'plan.json'),canonical_sha256=pin,prepared_raw_sha256=pin) in expected
+            and task.get('plans')==observation.get('plans')==review.get('plans')==expected,
+            'collaboration exact plan pins differ')
+    require(report.get('verdict')=='PASS' and report.get('scope')==REVIEW_SCOPE
+            and report.get('reviewer_agent_id')==agent
+            and report.get('prepared_queue')==prepared_ref
+            and report.get('approved_canonical_plan_sha256')==[x['canonical_sha256'] for x in expected]
+            and result.get('schema')=='parent-observed-collaboration-result-v1'
+            and result.get('observer_agent_id')==parent and result.get('agent_id')==agent
+            and result.get('scope')==REVIEW_SCOPE and result.get('review_report')==review['review_report']
+            and isinstance(result.get('returned_text'),str) and result['returned_text'],
+            'independent collaboration PASS/result differs')
+    times=[timestamp(dispatch.get('observed_at')),timestamp(task.get('observed_at')),
+           timestamp(report.get('created_utc')),timestamp(completion.get('observed_at')),
+           timestamp(observation.get('observed_at')),timestamp(review.get('authenticated_at'))]
+    require(times==sorted(times) and timestamp(result.get('observed_at'))<=times[4]
+            and timestamp(result.get('observed_at'))>=times[2], 'collaboration chronology differs')
 
 
 def verify_review(p, pin):
@@ -101,6 +198,8 @@ def verify_review(p, pin):
     The producer must never create the real parent envelope or approval.
     """
     review = load(p['review_path'], p['review_sha256'])
+    if p.get('review_policy') == COLLAB_REVIEW_POLICY:
+        return verify_collaboration_review(p,pin,review)
     if p.get('review_policy') != REVIEW_POLICY:
         require('review_policy' not in p, 'unknown review policy')
         require(review.get('approved_plan_sha256') == pin and review.get('verdict') == 'PASS'
