@@ -34,7 +34,7 @@ public final class Main {
         FORMAT_DOC_CLAIMS.put("ledger", new int[] {8, 28});
         FORMAT_DOC_CLAIMS.put("adoption", new int[] {2, 5});
         FORMAT_DOC_CLAIMS.put("judgment", new int[] {2, 19});
-        FORMAT_DOC_CLAIMS.put("release", new int[] {2, 9}); // the PRE-E1 header claim, kept as the stale-detection probe (E1 fixed the doc to 3+14) // the PRE-E1 header claim, kept as the stale-detection probe (E1 fixed the doc to 3+14)
+        FORMAT_DOC_CLAIMS.put("release", new int[] {2, 9}); // the PRE-E1 header claim, kept as the stale-detection probe (E1 fixed the doc to 3+14)
     }
 
     public static void main(String[] args) throws Exception {
@@ -152,7 +152,7 @@ public final class Main {
         System.out.println("total actual = " + total
                 + "   (format-doc machine manifest now carries the live counts; the 2+9 probe column above is the pre-E1 historical claim kept deliberately to prove this detector can see staleness — E1 already healed the doc)");
         if (total != 205) {
-            System.out.println("COUNT-FAIL: total drifted from the 200 pinned by this spike");
+            System.out.println("COUNT-FAIL: total drifted from the 205 pinned by this spike");
             bad++;
         }
         return bad;

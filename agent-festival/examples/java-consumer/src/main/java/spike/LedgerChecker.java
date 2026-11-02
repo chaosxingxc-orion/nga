@@ -19,7 +19,7 @@ import java.util.Set;
  * schema evaluation, regex) all rides industry libraries.
  *
  * <p>Wrong-reason alignment: rule messages carry the corpus's guard phrases
- * ({@code strictly increasing}, {@code int64}, {@code float syntax},
+ * ({@code strictly increasing}, {@code int64}, {@code SEQ_FLOAT_SYNTAX},
  * {@code bypass write}, {@code transition}, {@code second adopted}, ...).
  * Which of those phrases are language-neutral field tokens vs English prose
  * pinned to the reference implementations' wording is quantified by
@@ -34,9 +34,6 @@ public final class LedgerChecker {
             Set.of("dispatched", "unresolved", "completed", "failed");
     private static final BigInteger INT64_MAX =
             BigInteger.valueOf(9_223_203_685_477_5807L);
-    /** 2^53 as BigInteger — the exact-representation domain boundary. */
-    private static final BigInteger TWO_POW_53 =
-            BigInteger.valueOf(9_007_199_254_740_992L);
 
     private final SchemaChecker schemaPhase;
 
@@ -117,16 +114,13 @@ public final class LedgerChecker {
         }
     }
 
-    // -- family 4: float syntax beyond ±2^53 has no parser-independent value -
-    // RULE DOMAIN NOTE (spike finding): both reference oracles decide this rule
-    // in the float64 domain — Go evaluates n.Float64() (the json.Number text
-    // parsed through float64, so 9007199254740993.0 folds to exactly 2^53 and
-    // is NOT "beyond"), Python evaluates the parsed double likewise. A Java
-    // consumer that instead compares the EXACT decimal value (BigDecimal)
-    // diverges on odd float twins: 9007199254740993.0 would be rejected. The
-    // comparison below therefore mirrors the float64 decision domain, while
-    // the message prints whatever the decode arm preserved (folded double or
-    // exact decimal — a message-value face difference, not a verdict one).
+    // -- family 4 (R16 数值域章程 v2): integer literals only — no float math -
+    // The v1 ±2^53 sub-domain NOTE retired with the charter (it described the
+    // folded-double decision domain, which no longer exists: the reference
+    // oracles now read the LITERAL — Go json.Number.Int64(), Python
+    // isinstance(int) — and reject all float syntax uniformly; the message
+    // prints whatever the decode arm preserved, a message-value face
+    // difference only).
 
     private void ruleFloatSyntax(List<ObjectNode> events, List<String> errs) {
         // R16 数值域章程 v2 (user ruling 2026-11-02): this package does no
