@@ -106,7 +106,7 @@ func (l *Log) Append(e Entry) error {
 			// of silently destroying evidence bytes — repairing the tail is
 			// a human decision on an audit record (R3 M2).
 			l.seq--
-			return fmt.Errorf("[EVIDLOG.TORN_TAIL_BLOCKED] %s: the durable form ends in an unparseable torn tail (tolerated at Open) — appending would turn it into a mid-file line and brick the log; repair the tail first", l.path)
+			return fmt.Errorf("[EVIDLOG.TORN_TAIL_BLOCKED] %s: the durable form ends in a skipped torn tail (unparseable bytes or a phantom shape) — appending would turn it into a mid-file line and brick the log; repair the tail first", l.path)
 		}
 		existing, err := os.ReadFile(l.path)
 		if err != nil && !os.IsNotExist(err) {
@@ -270,13 +270,15 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 			continue
 		}
 		// The boundary: only the final line WITHOUT a trailing newline is a
-		// torn tail (interrupted last write) and is tolerated. Any unparseable
-		// line BEFORE the EOF position is rejected — silently skipping it
-		// would shrink the coverage CheckCoverage accounts for and turn a
-		// completeness verdict green on an incomplete record. The same holds
-		// for lines that PARSE but are not entry objects (a bare `null`
-		// unmarshals into a zero-value phantom entry) or entries without a
-		// seq — a durable line is an entry or the file is not loadable.
+		// torn tail (interrupted last write) and is tolerated. Any line
+		// BEFORE the EOF position that is not a conformant entry is rejected
+		// — unparseable bytes, valid JSON that is not an entry object,
+		// field-type mismatches, and everything entryShapeError guards
+		// (missing keys, empty/null strings, non-numeric seq) — silently
+		// skipping any of them would shrink the coverage CheckCoverage
+		// accounts for and turn a completeness verdict green on an
+		// incomplete record. A durable line is an entry or the file is not
+		// loadable.
 		tornTail := i == len(raw)
 		var e Entry
 		if json.Unmarshal(line, &e) != nil {
@@ -307,7 +309,8 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 			// Defensively unreachable: the Entry unmarshal above already
 			// proved the line is valid JSON (an object or null), and both
 			// decode cleanly here. If this ever fires it means the decode
-			// paths diverged — treat it as the mid-file disease it would be.
+			// paths diverged — non-torn it is the mid-file disease; at the
+			// torn position it is tail garbage like any other.
 			if tornTail {
 				return lines, true, nil
 			}
@@ -325,12 +328,14 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 		// shared gate; R8 fixed this declaration after the seq-type check
 		// made the old "required + minLength only" text false). pattern
 		// (at's timestamp shape) and additionalProperties:false stay
-		// envelope-face-only. Non-integer seq LITERALS never reach this gate
-		// — "seq":1e2 / 1.5 fail the Entry decode upstream as TYPE_MISMATCH;
-		// what the gate's number check actually guards is the null→Seq=0
-		// normalization. A `{"seq":1}`-style object that parses cleanly is
-		// still a phantom: it would enter the audit record and silently pass
-		// the density rule (R3 M1, phantom family).
+		// envelope-face-only. On the READER path, non-integer seq LITERALS
+		// never reach this gate — "seq":1e2 / 1.5 fail the Entry decode
+		// upstream as TYPE_MISMATCH; the gate's number check guards the
+		// null→Seq=0 normalization. On the WRITER path (Append's probe is
+		// marshal-of-Entry) seq is integral by construction, so the literal
+		// question does not arise there. A `{"seq":1}`-style object that
+		// parses cleanly is still a phantom: it would enter the audit record
+		// and silently pass the density rule (R3 M1, phantom family).
 		if key, why := entryShapeError(doc); key != "" {
 			if tornTail {
 				return lines, true, nil
@@ -350,8 +355,8 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 // both consumers, so neither side can drift from the other (R5 F1). It
 // checks required-key presence, non-empty string values, and that seq is a
 // NUMBER (the schema ride scope is declared at the loadLines call site —
-// R8: the "presence + strings only" wording here went false when the
-// seq-type check landed). Mechanically locked to
+// R8: the wording "required-key presence and non-empty string values only"
+// went false when the seq-type check landed). Mechanically locked to
 // schema/evidlog.schema.json's required list and the Entry struct's json
 // tags by TestRequiredKeysLockstep (R4 M-1: the loader table drifted from
 // the schema once — selector was missing while the comment claimed
