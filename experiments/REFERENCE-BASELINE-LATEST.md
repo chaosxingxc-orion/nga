@@ -10,6 +10,18 @@ Coverage correction — 2026-11-02: the 38 units above are model × dataset unit
 
 Execution status and dataset-admission progress are maintained in the Wiki. Fixed reference-model TEST evaluation can proceed per admitted panel; final evaluation of newly trained candidates follows DEV selection and a frozen TEST plan. Training progress is not a reference TEST metric.
 
+
+## BEV public TEST increment — local protocol, 2026-11-02
+
+These two additional fixed-base panels are separate from the historical 38-unit reference matrix. Dataset `avbiswas/bev-decision`, configuration `numeric_temporal`, public `test`: 3,329 rows, 6,518 questions, 24 duplicate requests retained. This is `bev-local-typed-exact-release-test-v1`, not native AnyJev's default 46,320-question task or Tacit readout. Exact counts and report pins are in [REFERENCE-BEV-PUBLIC-INCREMENT-2026-11-02.json](REFERENCE-BEV-PUBLIC-INCREMENT-2026-11-02.json).
+
+| Model | All correct/n | Accuracy | Choice | Noul | Score | Score index MAE | Normalized error |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Qwen3.5-0.8B-Base | 2847/6518 | 43.679% | 1307/3002, 43.538% | 1353/2835, 47.725% | 187/681, 27.460% | 1.157122 | 0.362580 |
+| Qwen3.5-2B-Base | 3311/6518 | 50.798% | 1514/3002, 50.433% | 1618/2835, 57.072% | 179/681, 26.285% | 1.352423 | 0.426456 |
+
+Both have 6,518 valid predictions, with score errors over all 681 score questions. The 2B overall accuracy increases by 7.118748 percentage points, while score accuracy and both ordinal errors worsen. No training gain, decision consistency, significance or candidate eligibility follows. The 2B report was independently reconstructed by an inherited-model child and again by the parent (6,568 evidence pins verified); explicit additional Astra confirmation has not produced a review artifact. The earlier 0.8B independent review remains unchanged. Runtime, runner, host and CPU terminal receipts all report exit 0.
+
 ## Evidence and reading conventions
 
 - [REFERENCE-BASELINE-MATRIX-2026-10-31.json](REFERENCE-BASELINE-MATRIX-2026-10-31.json) — SHA256 `03459facf6f86a919e10d9a0acef413b89c5a5d4ffd232352260722b05d0266e`.

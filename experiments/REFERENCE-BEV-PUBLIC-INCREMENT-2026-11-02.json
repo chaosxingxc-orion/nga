@@ -1,0 +1,123 @@
+{
+  "schema": "nga-bev-public-baseline-increment-v1",
+  "date": "2026-11-02",
+  "dataset": "avbiswas/bev-decision",
+  "config": "numeric_temporal",
+  "split": "test",
+  "rows": 3329,
+  "questions": 6518,
+  "duplicates_retained": 24,
+  "entries": [
+    {
+      "model": "Qwen/Qwen3.5-0.8B-Base",
+      "protocol": "bev-local-typed-exact-release-test-v1",
+      "metrics": {
+        "all": {
+          "n": 6518,
+          "correct": 2847,
+          "accuracy": 0.43679042651119976,
+          "valid_predictions": 6518,
+          "outcomes": {
+            "ok": 6518
+          }
+        },
+        "choice": {
+          "n": 3002,
+          "correct": 1307,
+          "accuracy": 0.4353764157228514,
+          "valid_predictions": 3002,
+          "outcomes": {
+            "ok": 3002
+          }
+        },
+        "noul": {
+          "n": 2835,
+          "correct": 1353,
+          "accuracy": 0.47724867724867726,
+          "valid_predictions": 2835,
+          "outcomes": {
+            "ok": 2835
+          }
+        },
+        "score": {
+          "n": 681,
+          "correct": 187,
+          "accuracy": 0.2745961820851689,
+          "valid_predictions": 681,
+          "outcomes": {
+            "ok": 681
+          },
+          "valid_prediction_index_mae": 1.15712187958884,
+          "mae_denominator": 681,
+          "valid_prediction_normalized_error": 0.3625795398923157,
+          "full_denominator": 681,
+          "failure_count": 0,
+          "failure_penalty": 1.0,
+          "normalized_error_with_failure_penalty": 0.3625795398923157
+        }
+      },
+      "report": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/bev_public_test_08b_20261102_v5/cpu-bind-order-v1/report.json",
+      "report_sha256": "c23b44791454b9c9471772f0c33ebbf8c0eaede1088e511322ab733e7686bf88"
+    },
+    {
+      "model": "Qwen/Qwen3.5-2B-Base",
+      "protocol": "bev-local-typed-exact-release-test-v1",
+      "metrics": {
+        "all": {
+          "n": 6518,
+          "correct": 3311,
+          "accuracy": 0.5079779073335379,
+          "valid_predictions": 6518,
+          "outcomes": {
+            "ok": 6518
+          }
+        },
+        "choice": {
+          "n": 3002,
+          "correct": 1514,
+          "accuracy": 0.5043304463690873,
+          "valid_predictions": 3002,
+          "outcomes": {
+            "ok": 3002
+          }
+        },
+        "noul": {
+          "n": 2835,
+          "correct": 1618,
+          "accuracy": 0.5707231040564373,
+          "valid_predictions": 2835,
+          "outcomes": {
+            "ok": 2835
+          }
+        },
+        "score": {
+          "n": 681,
+          "correct": 179,
+          "accuracy": 0.26284875183553597,
+          "valid_predictions": 681,
+          "outcomes": {
+            "ok": 681
+          },
+          "valid_prediction_index_mae": 1.3524229074889869,
+          "mae_denominator": 681,
+          "valid_prediction_normalized_error": 0.4264561918746941,
+          "full_denominator": 681,
+          "failure_count": 0,
+          "failure_penalty": 1.0,
+          "normalized_error_with_failure_penalty": 0.4264561918746941
+        }
+      },
+      "report": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/bev_public_test_2b_20261102_v1/cpu/report.json",
+      "report_sha256": "2cfa38ed7035f2735074b7ad131a26178ed30b13867d2e7fe7bb0851eac4a699"
+    }
+  ],
+  "native_reproduction": false,
+  "training_gain_claim": false,
+  "scientific_acceptance": false,
+  "review_scope": "0.8B prior independent Astra; 2B actual independent inherited-model result reconstruction, explicit Astra confirmation pending.",
+  "limitations": [
+    "Distinct from native AnyJev default46320 panel.",
+    "Descriptive same-population model-size comparison; ordinal accuracy and errors worsen for2B.",
+    "No statistical significance or trained-candidate eligibility claim."
+  ]
+}
