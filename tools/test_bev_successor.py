@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 import hashlib
+import subprocess
 
 spec=importlib.util.spec_from_file_location('bev_successor',Path(__file__).with_name('bev_successor.py'))
 S=importlib.util.module_from_spec(spec);spec.loader.exec_module(S)
@@ -57,6 +58,31 @@ class SuccessorTests(unittest.TestCase):
         with patch.object(S,'validate_next',return_value=(self.entry,self.next)):
             with self.assertRaises(TimeoutError):S.tick(self.c,self.plan,observe)
             self.assertEqual(S.tick(self.c,self.plan,lambda a:self.fail('replayed'))['status'],'needs_reconciliation')
+    def test_remote_deadlines_distinguish_start_from_inspect(self):
+        commands = [(['docker','inspect','oldid'], 60),
+                    (['/usr/bin/python3.12','-B','-P','/fixed/entry.py','start',
+                      '--config','/entry.json','--config-sha256','b'*64], 300)]
+        for command, deadline in commands:
+            with self.subTest(command=command), patch.object(S.subprocess,'run',
+                    return_value=subprocess.CompletedProcess([],0,'{}','')) as run:
+                self.assertEqual(S.remote(command), {})
+                self.assertEqual(run.call_args.kwargs['timeout'], deadline)
+    def test_real_remote_timeout_leaves_intent_and_never_replays(self):
+        self.ready()
+        def run(command, **kwargs):
+            if 'docker inspect' in command[-1]:
+                self.assertEqual(kwargs['timeout'],60)
+                return subprocess.CompletedProcess(command,0,json.dumps([self.actual]),'')
+            self.assertEqual(kwargs['timeout'],300)
+            raise subprocess.TimeoutExpired(command,kwargs['timeout'])
+        with patch.object(S,'validate_next',return_value=(self.entry,self.next)), \
+                patch.object(S.subprocess,'run',side_effect=run) as calls:
+            with self.assertRaises(subprocess.TimeoutExpired):S.tick(self.c,self.plan,S.remote)
+            count=calls.call_count
+            self.assertTrue((self.out/'START_INTENT.json').exists())
+            self.assertFalse((self.out/'START_RETURN.json').exists())
+            self.assertEqual(S.tick(self.c,self.plan,S.remote)['status'],'needs_reconciliation')
+            self.assertEqual(calls.call_count,count)
     def test_success_delegates_cpu_once_without_second_npu(self):
         self.ready();calls=[]
         def observe(a):

@@ -28,7 +28,12 @@ SCHEMA = 'nga-bev-successor-v1'
 
 
 def remote(args):
-    r = subprocess.run(['ssh', 'npu', shlex.join(args)], capture_output=True, text=True, timeout=60)
+    # Starting the fixed entrypoint revalidates model bytes before returning.
+    # Large models can exceed the observation deadline while the remote launch
+    # continues. A longer bound does not make a timeout safe to replay.
+    is_start = len(args) >= 5 and args[1:3] == ['-B', '-P'] and args[4] == 'start'
+    timeout = 300 if is_start else 60
+    r = subprocess.run(['ssh', 'npu', shlex.join(args)], capture_output=True, text=True, timeout=timeout)
     E.require(r.returncode == 0, 'remote observation uncertain: ' + r.stderr[-500:])
     return json.loads(r.stdout)
 
