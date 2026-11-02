@@ -210,7 +210,8 @@ func TestRequiredKeysLockstep(t *testing.T) {
 		Properties struct {
 			Entries struct {
 				Items struct {
-					Required []string `json:"required"`
+					Properties map[string]json.RawMessage `json:"properties"`
+					Required   []string                   `json:"required"`
 				} `json:"items"`
 			} `json:"entries"`
 		} `json:"properties"`
@@ -221,6 +222,22 @@ func TestRequiredKeysLockstep(t *testing.T) {
 	schemaKeys := map[string]bool{}
 	for _, k := range schemaDoc.Properties.Entries.Items.Required {
 		schemaKeys[k] = true
+	}
+	// Fourth face (R5 F2): the OPTIONAL surface — schema properties must
+	// equal the Entry struct's FULL json tag set (including omitempty). A
+	// Go field the schema lacks, or a schema property no Go field writes,
+	// is the same drift family, silent because nothing consumes either side.
+	propKeys := map[string]bool{}
+	for k := range schemaDoc.Properties.Entries.Items.Properties {
+		propKeys[k] = true
+	}
+	allTags := map[string]bool{}
+	ety := reflect.TypeOf(Entry{})
+	for i := 0; i < ety.NumField(); i++ {
+		allTags[strings.Split(ety.Field(i).Tag.Get("json"), ",")[0]] = true
+	}
+	if !reflect.DeepEqual(propKeys, allTags) {
+		t.Fatalf("optional-surface lockstep broken:\nschema properties %v\nEntry json tags %v", sortedKeys(propKeys), sortedKeys(allTags))
 	}
 	loaderKeys := map[string]bool{}
 	for _, k := range requiredEntryKeys {
@@ -250,6 +267,37 @@ func sortedKeys(m map[string]bool) []string {
 	}
 	sort.Strings(ks)
 	return ks
+}
+
+// TestAppendRejectsUnwritableEntry pins the writer-side shape gate (R5 F1):
+// an entry the loader would reject (empty Tool, or the zero value) must fail
+// at the Append that produced it — not at the next Open, far from the guilty
+// call, with the log bricked in between. After refusals the writer still
+// works and the file stays loadable and dense.
+func TestAppendRejectsUnwritableEntry(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "evid.jsonl")
+	l, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "", Selector: "s", Caller: "c", At: "a"}); err == nil {
+		t.Fatal("Append accepted an entry the loader would reject — the log is bricked at the next Open")
+	} else if !strings.Contains(err.Error(), "EVIDLOG.INVALID_ENTRY") {
+		t.Fatalf("refusal lacks the neutral key: %v", err)
+	}
+	if err := l.Append(Entry{}); err == nil {
+		t.Fatal("zero-value entry accepted")
+	}
+	if err := l.Append(Entry{Tool: "t", Selector: "s=1", Caller: "s2", At: "z"}); err != nil {
+		t.Fatalf("valid append refused after gate rejections: %v", err)
+	}
+	l2, err := Open(path)
+	if err != nil {
+		t.Fatalf("file not loadable after gate refusals: %v", err)
+	}
+	if es := l2.Entries(); len(es) != 1 || es[0].Seq != 0 {
+		t.Fatalf("unexpected entries after refusals: %+v", es)
+	}
 }
 
 // TestCoverageTornTailNotGreen pins the verdict face of the torn-tail

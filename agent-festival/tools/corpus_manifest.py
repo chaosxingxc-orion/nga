@@ -59,10 +59,11 @@ def check() -> int:
               f"section header).")
         return 1
     # Sentinel count, not full-block count: a stale second block with DRIFTED
-    # counts (the probe that beat the substring check) never equals
-    # manifest(), but every manifest-shaped table carries the generator-only
-    # label 增长族合计 — a second occurrence is a duplicate, equal or not.
-    n = doc.count("| 增长族合计 |")
+    # counts or OLD-STYLE LABELS (R5 F4 probe — "| 增长族合计（非密钥库）|"
+    # beat the exact-label sentinel) never equals manifest(), but every
+    # manifest-shaped table starts some total row with the generator's 增长族
+    # label prefix — a second occurrence is a duplicate, equal or not.
+    n = len(re.findall(r"^\| 增长族合计[^\n]*$", doc, re.M))
     if n > 1:
         print(f"[manifest] FAIL: {n} manifest-shaped tables in {DOC} (sentinel "
               f"增长族合计 seen {n} times) — a duplicate/stale block exists "

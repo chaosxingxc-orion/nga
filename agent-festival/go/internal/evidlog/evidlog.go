@@ -84,6 +84,20 @@ func (l *Log) Append(e Entry) error {
 		l.seq--
 		return err
 	}
+	// Writer-side shape gate (R5 F1): a line the loader would reject must
+	// fail HERE, at the Append that produced it — not at the next Open, far
+	// from the guilty call, with the log bricked in between. The writer and
+	// the reader run the SAME shape table (requiredEntryKeys via
+	// entryShapeError); one table, both consumers, no drift.
+	var probe map[string]any
+	if err := json.Unmarshal(line, &probe); err != nil {
+		l.seq--
+		return err
+	}
+	if key, why := entryShapeError(probe); key != "" {
+		l.seq--
+		return fmt.Errorf("[EVIDLOG.INVALID_ENTRY] Append refuses: entry's %q is %s — a line the loader would reject must not enter the durable form", key, map[string]string{"without": "missing", "empty-or-null": "empty or null"}[why])
+	}
 	if l.path != "" {
 		if l.tornTail {
 			// The loader tolerated this file's unparseable tail by skipping
@@ -269,6 +283,13 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 			if tornTail {
 				return lines, true, nil
 			}
+			// Valid JSON with a field-type mismatch (e.g. "seq":"x") is a
+			// different audit fact from unparseable bytes — name it as such
+			// (ledger/load.go precedent: "valid JSON but not an event").
+			probe := map[string]any{}
+			if json.Unmarshal(line, &probe) == nil {
+				return nil, false, fmt.Errorf("[EVIDLOG.TYPE_MISMATCH] %s: line at byte offset %d is valid JSON but not an entry (field type mismatch) — evidence coverage must not silently shrink", path, lineStart)
+			}
 			return nil, false, fmt.Errorf("[EVIDLOG.MIDFILE_UNPARSEABLE] %s: unparseable line at byte offset %d (before EOF) — evidence coverage must not silently shrink", path, lineStart)
 		}
 		doc := map[string]any{}
@@ -286,51 +307,56 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 			}
 			return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d is %q, not an entry object — a phantom entry must not enter the audit record", path, lineStart, string(line))
 		}
-		// Shape: a durable line must carry every required Entry field —
-		// seq/tool/selector/caller/at (the envelope schema's required set)
-		// with the string fields non-empty non-null strings (the schema's
-		// minLength:1; a present-but-null key would otherwise become an
-		// empty-string phantom). A `{"seq":1}`-style object that parses
-		// cleanly is still a phantom: it would enter the audit record and
-		// silently pass the density rule (R3 M1, phantom family). The key
-		// set is mechanically locked to the schema by
-		// TestRequiredKeysLockstep (R4 M-1: the loader table drifted from
-		// the schema once — selector was missing while the comment claimed
-		// equality).
-		badKey := ""
-		badWhy := ""
-		for _, k := range requiredEntryKeys {
-			v, has := doc[k]
-			if !has {
-				badKey, badWhy = k, "without"
-				break
-			}
-			if k != "seq" {
-				s, isStr := v.(string)
-				if !isStr || s == "" {
-					badKey, badWhy = k, "empty-or-null"
-					break
-				}
-			}
-		}
-		if badKey != "" {
+		// Shape: the durable face rides the schema's required set and its
+		// minLength:1 — and NOTHING else (R5 F5 declares the ride scope
+		// here, at the single shared gate): pattern (at's timestamp shape)
+		// and additionalProperties:false stay envelope-face-only. A
+		// `{"seq":1}`-style object that parses cleanly is still a phantom:
+		// it would enter the audit record and silently pass the density
+		// rule (R3 M1, phantom family).
+		if key, why := entryShapeError(doc); key != "" {
 			if tornTail {
 				return lines, true, nil
 			}
-			if badWhy == "without" {
-				return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d is an object without %q — a durable line is a full entry (seq/tool/selector/caller/at), not a fragment", path, lineStart, badKey)
+			if why == "without" {
+				return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d is an object without %q — a durable line is a full entry (seq/tool/selector/caller/at), not a fragment", path, lineStart, key)
 			}
-			return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d has an empty or null %q — the envelope schema's minLength:1 rides the durable face too", path, lineStart, badKey)
+			return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d has an empty or null %q — the envelope schema's minLength:1 rides the durable face too", path, lineStart, key)
 		}
 		lines = append(lines, parsedLine{Raw: line, Doc: doc, Event: e})
 	}
 	return lines, tornTail, nil
 }
 
-// requiredEntryKeys is the durable face's entry-shape contract, mechanically
-// locked to schema/evidlog.schema.json's required list and the Entry struct's
-// json tags by TestRequiredKeysLockstep. Order matches the schema's required
-// list; "seq" is the only non-string key (writer-allocated int).
+// entryShapeError is the durable face's entry-shape contract, shared by the
+// writer (Append's pre-write gate) and the reader (loadLines) — one table,
+// both consumers, so neither side can drift from the other (R5 F1). It
+// checks required-key presence and non-empty string values only; the schema
+// ride scope is declared at the loadLines call site. Mechanically locked to
+// schema/evidlog.schema.json's required list and the Entry struct's json
+// tags by TestRequiredKeysLockstep (R4 M-1: the loader table drifted from
+// the schema once — selector was missing while the comment claimed
+// equality). Returns ("", "") when the shape is conformant; otherwise the
+// offending key and "without" | "empty-or-null".
+func entryShapeError(doc map[string]any) (string, string) {
+	for _, k := range requiredEntryKeys {
+		v, has := doc[k]
+		if !has {
+			return k, "without"
+		}
+		if k != "seq" {
+			s, isStr := v.(string)
+			if !isStr || s == "" {
+				return k, "empty-or-null"
+			}
+		}
+	}
+	return "", ""
+}
+
+// requiredEntryKeys is the shape table above; order matches the schema's
+// required list (descriptive — the lockstep compares sets); "seq" is the
+// only non-string key (writer-allocated int).
 var requiredEntryKeys = []string{"seq", "tool", "selector", "caller", "at"}
 
 func contains(hay []string, needle string) bool {
