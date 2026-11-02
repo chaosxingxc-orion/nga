@@ -607,21 +607,6 @@ func TestAppendRechecksEvolvingTail(t *testing.T) {
 	} else if !strings.Contains(err.Error(), "EVIDLOG.STALE_SEQ") {
 		t.Fatalf("erase-face refusal lacks the neutral key: %v", err)
 	}
-	// truncation-preserving fractional seq (R11 inner MINOR-1): a foreign
-	// 1.5-seq line used to truncate to 1 and pass the continuity arm when
-	// the view's next write was 2 — lastDurableSeq must report !ok for
-	// non-integer seq so the precise !ok arm fires.
-	if err := os.WriteFile(path, cleanOpenState, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, append(mustRead(t, path), []byte(`{"seq":1.5,"tool":"frac.q","selector":"f","caller":"s2","at":"x"}`+"\n")...), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := l.Append(Entry{Tool: "t", Selector: "s=2", Caller: "s2", At: "z"}); err == nil {
-		t.Fatal("fractional foreign seq passed the continuity arm via truncation")
-	} else if !strings.Contains(err.Error(), "EVIDLOG.STALE_SEQ") {
-		t.Fatalf("fractional-seq refusal lacks the neutral key: %v", err)
-	}
 	// legal face: a CONFORMANT last line without a newline survives splicing
 	// — reset the file to the clean Open-time content first (the garbage
 	// tail above would fuse with the appended line into one diseased line,
@@ -682,5 +667,58 @@ func TestSeqGapRejected(t *testing.T) {
 	errs := CheckDoc(doc)
 	if len(errs) == 0 {
 		t.Fatal("seq gap accepted at doc level")
+	}
+}
+
+// TestTruncationBlindSpot pins the real blind spot the R12 double-blank
+// outer round found: the previous fractional-seq pin was vacuous (both
+// reviewers independently proved deleting the Trunc check kept the suite
+// green — the case's e.Seq=1 was rejected by the plain continuity arm
+// either way). The REAL blind spot needs the view's next write to be 2, so
+// a truncated int(1.5)=1 satisfies lastSeq+1==e.Seq: the log holds
+// [seq0, seq1], a foreign writer REPLACES the last line with a 1.5-seq
+// line, and the stale view appends e.Seq=2. Without the Trunc check this
+// is a false success that bricks the next Open; with it, lastDurableSeq
+// reports !ok and the precise arm refuses.
+func TestTruncationBlindSpot(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "evid.jsonl")
+	l, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "bureau.q", Selector: "subj=x", Caller: "s2", At: "2026-11-01T10:01:00Z"}); err != nil {
+		t.Fatal(err) // l.seq is now 1 — the next Append allocates e.Seq=2
+	}
+	// foreign writer replaces the seq=1 line with a non-integer-literal
+	// twin — two forms below: fractional (1.5) and exponent-notation
+	// integral (1e0, carrying the last seq's VALUE so the float64+Trunc
+	// mutation would satisfy the arithmetic and false-succeed). None of
+	// them is a literal this package's writer can emit, so none is a legal
+	// durable seq (Int64 rejects both classes — R12 matrix-verified).
+	first, _ := json.Marshal(Entry{Seq: 0, Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"})
+	// The exponent-notation form must carry the VALUE of the last seq (1e0
+	// = 1) so the float64+Trunc mutation would satisfy the arithmetic and
+	// false-succeed — a mismatched value would be rejected by the plain
+	// continuity arm either way (the exact vacuity BOTH reviewers found).
+	for _, tail := range []string{
+		`{"seq":1.5,"tool":"frac.q","selector":"f","caller":"s2","at":"x"}`,
+		`{"seq":1e0,"tool":"exp.q","selector":"e","caller":"s2","at":"x"}`,
+	} {
+		var body []byte
+		body = append(body, first...)
+		body = append(body, '\n')
+		body = append(body, tail...)
+		body = append(body, '\n')
+		if err := os.WriteFile(path, body, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := l.Append(Entry{Tool: "t", Selector: "s=2", Caller: "s2", At: "z"}); err == nil {
+			t.Fatalf("foreign seq %s passed the continuity arm — false success bricking the next Open", tail)
+		} else if !strings.Contains(err.Error(), "EVIDLOG.STALE_SEQ") {
+			t.Fatalf("foreign seq %s: refusal lacks the neutral key: %v", tail, err)
+		}
 	}
 }

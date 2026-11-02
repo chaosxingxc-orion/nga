@@ -1662,3 +1662,36 @@ func TestStaleInstanceWriteRejected(t *testing.T) {
 		t.Fatalf("stale write leaked into the durable form: op-c=%v", s)
 	}
 }
+
+// TestEraseFaceStaleWriteRejected pins the erase face of the
+// ADOPT.STALE_WRITER gate (R12 B-F5, same family as evidlog's erase pin):
+// a foreign truncation to zero bytes after Open, then the stale instance's
+// write must be REFUSED — the bare len>0 form of the gate (the exact
+// disease R11 inner MAJOR-1 removed from evidlog) would let a stale event
+// write itself in as the new first line, silently erasing op-a's audit
+// data from the rebuilt file.
+func TestEraseFaceStaleWriteRejected(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-a", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	if err := os.WriteFile(path, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	o := m.Adopt(testRequest("op-b", digestB, pinGrants()))
+	if o.Status != "rejected" {
+		t.Fatalf("stale write onto an erased file succeeded with %q — false success resetting the ledger base", o.Status)
+	}
+	if !strings.Contains(o.Detail, "ADOPT.STALE_WRITER") {
+		t.Fatalf("erase-face refusal lacks the neutral key: %q", o.Detail)
+	}
+	// the refusal must leave the erased file ALONE (0 bytes): the bare
+	// len>0 gate form would have rebuilt it from the stale event alone,
+	// silently dropping op-a's audit data
+	if raw, err := os.ReadFile(path); err != nil {
+		t.Fatal(err)
+	} else if len(raw) != 0 {
+		t.Fatalf("erased file silently rebuilt from the stale write — %d bytes of stale-only ledger", len(raw))
+	}
+}

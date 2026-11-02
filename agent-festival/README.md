@@ -51,18 +51,9 @@ go run ./cmd/validate         # 契约/信封/密钥库三套件（对 ../schema
 go run ./cmd/compose          # 执行图合成套件（10+36 夹具+11 守卫）
 go run ./cmd/sign             # 再生全部信封语料（换新密钥，需整批提交）
 ```
+（包结构与依赖红线以 `cd go && go list ./...` 为单一真源——20 包：
+9 cmd 入口 + 11 internal 库；schema/ 9 个 schema 文件 + 200 夹具）
+```
 
 Python oracle 侧：`pip install -r ../schema/requirements.txt` 后
 `python3 ../schema/validate.py` / `../schema/compose.py`。
-
-## 目录
-
-```text
-agent-festival/
-|-- go/                     # Go 机器基座
-|   |-- internal/rfc8785/   # JCS 规范化（cyberphone + 本地差分对照）
-|   |-- internal/validate/  # 契约/信封/密钥库校验（双引擎 fail-closed）
-|   |-- internal/compose/   # 图合成+⊆准入+预算切分
-|   `-- cmd/{validate,compose,sign}/
-`-- schema/                 # 9 schema + 200 夹具 + Python 冻结 oracle
-```

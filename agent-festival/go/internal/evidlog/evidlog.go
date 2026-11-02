@@ -23,7 +23,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"unicode/utf8"
@@ -53,8 +52,10 @@ type Entry struct {
 // ONE Log instance per file. entries/tornTail are the Open-time view — a
 // foreign writer's appends WHILE a Log is open are outside the contract:
 // CheckCoverage's verdict reflects that Open-time snapshot (skipped bytes
-// and later-added lines are not in it), and Append only re-checks the
-// torn-tail byte shape of the current file, not its full content.
+// and later-added lines are not in it), and Append re-checks only the
+// current file's tail byte shape and the last line's seq continuity, not
+// its full content (R12: the seq-continuity re-check joined the tail
+// re-check — this contract line follows it).
 type Log struct {
 	entries  []Entry
 	seq      int
@@ -166,10 +167,11 @@ func (l *Log) Append(e Entry) error {
 		// non-empty file OR any e.Seq above 0 (an emptied file plus a
 		// non-fresh view is the erase face of the same disease — R11 inner
 		// MAJOR-1). Honest boundary: the gate is necessary, not sufficient —
-		// a foreign line that PRESERVES the seq arithmetic (a duplicate of
-		// the current last seq, or a truncation-preserving fractional seq
-		// like 1.5 with the next view at 2) passes arithmetic inspection
-		// and is left to the next Open's checks to catch.
+		// a foreign line that PRESERVES the seq arithmetic (an
+		// integer-literal duplicate of the current last seq) passes
+		// arithmetic inspection and is left to the next Open's checks to
+		// catch. Fractional and exponent-notation literals (1.5, 1e0) are
+		// refused outright by lastDurableSeq (UseNumber/Int64 — R12).
 		if len(existing) > 0 || e.Seq > 0 {
 			lastSeq, ok := lastDurableSeq(existing)
 			if !ok {
@@ -258,12 +260,14 @@ func CheckCoverage(log *Log, decl Declaration) CoverageReport {
 	for _, e := range log.Entries() {
 		k := e.Tool + "|" + e.Selector
 		logHas[k] = true
-		if e.Tool == decl.QueriedTool && !contains(decl.ExcludedSelectors, e.Selector) {
-			// entry covered by the declaration's positive claim
+		// entries on the DECLARED tool are exempt from the other-tool
+		// accounting either way: the positive claim covers only
+		// decl.Selector itself — a same-tool entry with a DIFFERENT
+		// selector is not covered here; the hidden-exclusion pass below
+		// is what flags it (R12: this used to be two dominated branches
+		// whose first comment claimed the positive claim covered them).
+		if e.Tool == decl.QueriedTool {
 			continue
-		}
-		if e.Tool == decl.QueriedTool && contains(decl.ExcludedSelectors, e.Selector) {
-			continue // covered by the exclusion record
 		}
 		rep.Unaccounted = append(rep.Unaccounted, k)
 	}
@@ -496,9 +500,14 @@ func conformantLine(line []byte) bool {
 }
 
 // lastDurableSeq extracts the seq of the last non-empty line in the durable
-// form (ok=false when no such line exists or the line carries no numeric
+// form (ok=false when no such line exists or the line carries no integer
 // seq — the caller refuses on !ok). Used by Append's seq-continuity
-// re-check (R11).
+// re-check (R11). The line is decoded with UseNumber and the seq must be
+// Int64-parseable: only an integer LITERAL (the only form this package's
+// writer emits, and the only form the loader accepts) is a legal durable
+// state — fractional (1.5) and exponent-notation (1e2) literals are !ok
+// (R12: the float64/Trunc form accepted 1e2 and folded 2^53+1, both now
+// closed; both blank reviewers flagged the 1e2 hole independently).
 func lastDurableSeq(existing []byte) (int, bool) {
 	for start := len(existing); start > 0; {
 		end := start
@@ -508,23 +517,17 @@ func lastDurableSeq(existing []byte) (int, bool) {
 		if len(line) == 0 {
 			continue
 		}
+		dec := json.NewDecoder(bytes.NewReader(line))
+		dec.UseNumber()
 		var doc map[string]any
-		if json.Unmarshal(line, &doc) != nil || doc == nil {
+		if dec.Decode(&doc) != nil || doc == nil {
 			return 0, false
 		}
-		// plain Unmarshal produces float64 for numbers (json.Number would
-		// need UseNumber, which this path does not use) — the json.Number
-		// case below was dead code and is gone (R11 inner MINOR-3).
-		// A non-integer seq (1.5 / 1e2 literals are the only way one gets
-		// here — the loader rejects them upstream) is never a legal durable
-		// state: report !ok so the caller's precise arm fires instead of a
-		// silently truncated comparison (R11 inner MINOR-1 — the
-		// truncation-preserving blind spot).
-		if f, isNum := doc["seq"].(float64); isNum {
-			if f != math.Trunc(f) {
-				return 0, false
+		if n, isNum := doc["seq"].(json.Number); isNum {
+			if iv, err := n.Int64(); err == nil {
+				return int(iv), true
 			}
-			return int(f), true
+			return 0, false // 1.5, 1e2 — Int64 rejects both
 		}
 		return 0, false
 	}

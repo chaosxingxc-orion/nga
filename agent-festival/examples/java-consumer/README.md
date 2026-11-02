@@ -12,7 +12,7 @@ the conformance interface defined in [docs/conformance-fixture-format.md](../../
 
 ```sh
 cd examples/java-consumer
-./run.sh          # clean rebuild + full corpus, rc=0 on all-green
+./run.sh          # incremental rebuild + full corpus, rc=0 on all-green
 ```
 
 ## Status (2026-11-01)
