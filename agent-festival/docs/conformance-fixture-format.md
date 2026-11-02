@@ -1,6 +1,6 @@
 # Conformance 夹具格式与跨语言消费指南
 
-> 目的：本仓 200 件 JSON 夹具（全仓含密钥库；增长族 146 件——三种口径见机生成清单）是**可执行行为规格**（executable behavior spec），不是静态测试数据。本文定义夹具格式、钉子纪律、双 oracle lockstep 模式，以及任何语言（包括 NGA Java SDK）如何消费同一批夹具做 conformance 验证。这是 issue #1 碰撞回应提议 1（"95 夹具升格跨语言 conformance 基准"）的落地说明。
+> 目的：本仓 203 件 JSON 夹具（全仓含密钥库；增长族 149 件——三种口径见机生成清单）是**可执行行为规格**（executable behavior spec），不是静态测试数据。本文定义夹具格式、钉子纪律、双 oracle lockstep 模式，以及任何语言（包括 NGA Java SDK）如何消费同一批夹具做 conformance 验证。这是 issue #1 碰撞回应提议 1（"95 夹具升格跨语言 conformance 基准"）的落地说明。
 >
 > 先例：langgraph 的 checkpoint-conformance 套件、本仓 Python/Go 双 oracle（17+5 轮空白审查验证）——"夹具即规范"已被三方独立到达。
 
@@ -13,7 +13,7 @@
 | `schema/examples/judgment/{valid,invalid}` | 判断规格文档 | 2 + 19 |
 | `schema/examples/release/{valid,invalid}` | 发布清单文档 | 3 + 14 |
 | `schema/examples/replay/{valid,invalid}` | 重放用例文档（件6） | 8 + 7 |
-| `schema/examples/evidlog/{valid,invalid}` | 取证日志文档（件7 spike） | 1 + 3 |
+| `schema/examples/evidlog/{valid,invalid}` | 取证日志文档（件7 spike） | 2 + 5 |
 | `schema/examples/compose/{valid,invalid}` | 执行图（基座件1） | 10 + 36 |
 | `schema/examples/{valid,invalid,envelopes,keys}` | 基座契约/信封/密钥库 | 其余 |
 
@@ -31,11 +31,10 @@
 | `release` | 3 + 14 |
 | `replay` | 8 + 7 |
 | `compose` | 10 + 36 |
-| `evidlog` | 1 + 3 |
-| 增长族合计 | 146 |
+| `evidlog` | 2 + 5 |
+| 增长族合计 | 149 |
 | 基座契约/信封 | 50 |
-| 全仓合计（含密钥库） | 200 |
-
+| 全仓合计（含密钥库） | 203 |
 ## 二、夹具的钉子语法
 
 每个夹具是一份带内嵌钉的 JSON 文档：
@@ -63,8 +62,11 @@
 
 | 侧 | 验证器 | 运行方式 |
 |---|---|---|
-| Python | `schema/{ledger,adoption,judgment,release}.py`（jsonschema）+ 共享 harness `_suite.py` | `python3 schema/<name>.py` |
-| Go | `cmd/{ledger,adopt,judgment,release}`（santhosh+regexp2 经 internal/schemalib）+ 共享 runner `internal/suite` | `go run ./cmd/<name>` |
+| Python | `schema/{ledger,adoption,judgment,release,replay,compose,evidlog}.py`（jsonschema）+ 共享 harness `_suite.py` | `python3 schema/<name>.py` |
+| Go | `cmd/{ledger,adopt,judgment,release,replay,compose,evidlog}`（santhosh+regexp2 经 internal/schemalib）+ 共享 runner `internal/suite` | `go run ./cmd/<name>` |
+
+（上表枚举以机生成 manifest 的七族为准——R13 B-m2：手写四族表曾把 evidlog/replay/compose 三族隐身。）
+**归一化规则同步义务（R13 F3）**：evidlog.normalizeSeqDomain 与 ledger.normalizeIntegralNumbers 是有意独立拷贝（evidlog 不 import ledger）——范围不同（evidlog 只归一 entries[].seq；ledger 全树）且 ledger 的 CheckDoc 对调用方 doc 做深拷贝保护而 evidlog 原地突变（各自合同）。同族语义漂移由共享夹具族（seq-float-syntax / seq-float-beyond-2e53 的双侧同命）钉住，非人工同步。
 
 **判定域声明（0.2.0 合同文本，RFC 8785 规范级先例）**：浮点语法的 arbitration_seq 以 **float64 判定域**判定（RFC 8785 把数域钉为 ES double），不以精确十进制判定。奇数孪生夹具 seq-odd-float-twin 钉住折损语义：字面量 9007199254740993.0（2^53+1，float64 不可精确表示）被判定域读取为偶数孪生 ..992——序列 [..991, ..993.0(读作 ..992), ..994] 在两域均严格递增但**经不同路径**；两域的判决分叉面由 float-beyond-2^53（float64 域拒、精确域不拒此规则）与 int64-overflow（typed 域拒）两个拒绝侧夹具各自钉住。
 关键纪律：
@@ -76,6 +78,7 @@
 ## 四、跨语言消费（NGA Java SDK 接入方式）
 
 **错误匹配的规范面（E3 处方，2026-11-02 落地）**：`[LEDGER.*]` 中性键是错误匹配的规范面，英文文本是兼容层——键与文本的稳定面以仓内双 oracle 为准。sunset 条款：0.2.0 各族键钉全迁后，短语钉收卷。
+**缓存边界（R13 立法）**：Go 测试缓存键只覆盖测试二进制+参数+环境，不含运行时读的夹具/文档——夹具或 manifest 的改动在裸 `go test ./...` 暖缓存下静默过门。机械门只在 `-count=1`/冷缓存/CI 下承重；本仓规范用法一律带 `-count=1`。
 
 消费方（任何语言 X）需要实现的全部接口：
 

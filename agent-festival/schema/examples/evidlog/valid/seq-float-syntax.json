@@ -1,0 +1,20 @@
+{
+  "evidlog_version": "0.1.0",
+  "entries": [
+    {
+      "seq": 0.0,
+      "tool": "bank.fetch",
+      "selector": "acct=1",
+      "caller": "s2",
+      "at": "2026-11-01T10:00:00Z"
+    },
+    {
+      "seq": 1.0,
+      "tool": "bureau.q",
+      "selector": "subj=x",
+      "caller": "s2",
+      "at": "2026-11-01T10:01:00Z"
+    }
+  ],
+  "_expect": "ACCEPT: seq written in float syntax (0.0 / 1.0) — integer-valued doubles inside the exact domain are legal seqs under the same double charter the event ledger pins (ledger/seq-float-syntax.json, R5 M-3); the typed re-parse must normalize them instead of forking the dual validators' verdicts."
+}

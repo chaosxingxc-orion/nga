@@ -23,8 +23,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/openjiuwen/agent-festival/go/internal/schemalib"
@@ -103,10 +105,31 @@ func (l *Log) Append(e Entry) error {
 	// fields ride, including the optional ResultRef — everything that ends
 	// up as durable bytes must be byte-representable (adopt's R5 BLOCKER
 	// doctrine: the gate rejects what it cannot byte-represent).
-	for name, s := range map[string]string{"tool": e.Tool, "selector": e.Selector, "caller": e.Caller, "at": e.At, "result_ref": e.ResultRef} {
-		if !utf8.ValidString(s) {
-			return fmt.Errorf("[EVIDLOG.INVALID_ENTRY] Append refuses: field %q is not valid UTF-8 — the json encoder would launder it to U+FFFD and the durable form would diverge from the caller's copy", name)
+	// Ordered slice, not a map (R13 B-m5 / R12 登记项①): Go map iteration is
+	// randomized, so a multi-field violation would report a nondeterministic
+	// field name — the report, not the verdict, must be reproducible. The
+	// field set is mechanically locked to the Entry struct by
+	// TestUTF8GateFieldCoverage below.
+	for _, f := range []struct {
+		name string
+		val  string
+	}{
+		{"tool", e.Tool},
+		{"selector", e.Selector},
+		{"caller", e.Caller},
+		{"at", e.At},
+		{"result_ref", e.ResultRef},
+	} {
+		if !utf8.ValidString(f.val) {
+			return fmt.Errorf("[EVIDLOG.INVALID_ENTRY] Append refuses: field %q is not valid UTF-8 — the json encoder would launder it to U+FFFD and the durable form would diverge from the caller's copy", f.name)
 		}
+	}
+	// Counter exhaustion (R13 B-m4, mirroring adopt's seqExhausted): the
+	// writer never wraps — a wrapped seq would emit a file the loader's
+	// density rule immediately rejects (the writer writing a file its own
+	// loader refuses).
+	if l.seq == math.MaxInt64 {
+		return fmt.Errorf("[EVIDLOG.SEQ_EXHAUSTED] Append refuses: the writer-allocated seq domain is full — refusing to write rather than wrap")
 	}
 	l.seq++
 	e.Seq = l.seq
@@ -256,8 +279,9 @@ func CheckCoverage(log *Log, decl Declaration) CoverageReport {
 	if log.tornTail {
 		rep.TornTail = true
 	}
+	entries := log.entries
 	logHas := map[string]bool{}
-	for _, e := range log.Entries() {
+	for _, e := range entries {
 		k := e.Tool + "|" + e.Selector
 		logHas[k] = true
 		// entries on the DECLARED tool are exempt from the other-tool
@@ -275,7 +299,9 @@ func CheckCoverage(log *Log, decl Declaration) CoverageReport {
 		rep.Missing = append(rep.Missing, decl.QueriedTool+"|"+decl.Selector)
 	}
 	// exclusion honesty: a claimed exclusion with log entries outside the list is a hidden exclusion
-	for _, e := range log.Entries() {
+	// (entries hoisted to one call above — R13 A-m5: the second call was a
+	// pure recompute)
+	for _, e := range entries {
 		if e.Tool == decl.QueriedTool && e.Selector != decl.Selector && !contains(decl.ExcludedSelectors, e.Selector) {
 			rep.Unaccounted = append(rep.Unaccounted, e.Tool+"|"+e.Selector)
 		}
@@ -293,6 +319,19 @@ func CheckDoc(doc map[string]any) []string {
 	if err := schema.Validate(doc); err != nil {
 		return []string{"schema: " + err.Error()}
 	}
+	// Float-syntax integral seqs (0.0 / 1.0) pass the schema (integer-valued
+	// doubles, the same double charter the event ledger pins) but would fail
+	// the typed re-parse below, forking the dual validators' verdicts on the
+	// same document — normalize them into the int domain first (R13 B-M1;
+	// mirror of ledger.normalizeIntegralNumbers, R5 M-3; the copy is
+	// deliberate: evidlog does not import ledger, cross-sync duty is
+	// declared in docs/conformance-fixture-format.md §三).
+	// Beyond ±2^53 the float syntax is NOT normalized: the value a parser
+	// recovers depends on its float rounding — rejected with the same
+	// neutral-key family the ledger uses.
+	if errs := normalizeSeqDomain(doc); len(errs) > 0 {
+		return errs
+	}
 	// in-band density: seq must be dense and increasing (writer-allocated)
 	var d struct {
 		Entries []Entry `json:"entries"`
@@ -307,6 +346,49 @@ func CheckDoc(doc map[string]any) []string {
 			return []string{fmt.Sprintf("entries/%d: seq %d breaks the dense writer-allocated sequence (want %d) — a gap or a foreign writer", i, e.Seq, prev+1)}
 		}
 		prev = e.Seq
+	}
+	return nil
+}
+
+// normalizeSeqDomain walks the document's entries and converts each
+// float-syntax integral seq into an int64 (in place). A seq whose float
+// value lies beyond the exact domain (±2^53) is rejected instead —
+// normalizing it would fold 2^53+1 onto 2^53 and make the verdict depend
+// on parser rounding. Only the "seq" key of entries is touched: this is a
+// seq-domain rule, not a general number policy.
+func normalizeSeqDomain(doc map[string]any) []string {
+	entries, ok := doc["entries"].([]any)
+	if !ok {
+		return nil
+	}
+	for idx, raw := range entries {
+		m, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		n, ok := m["seq"].(json.Number)
+		if !ok {
+			continue
+		}
+		if iv, err := n.Int64(); err == nil {
+			m["seq"] = iv // integer literal — exact
+			continue
+		}
+		// syntax guard (R13 F2, the ledger twin carries it — a copy that
+		// dropped it mislabeled integer-literal overflows as "float
+		// syntax"): integer syntax beyond int64 is the typed domain's
+		// rejection; float syntax beyond ±2^53 is the rounding domain's.
+		if !strings.ContainsAny(n.String(), ".eE") {
+			return []string{fmt.Sprintf("[EVIDLOG.SEQ_INT64_OVERFLOW] entries/%d: seq %s exceeds the int64 domain — the writer's counter domain; such a document is not machine-writable", idx, n.String())}
+		}
+		f, err := n.Float64()
+		if err != nil || f != math.Trunc(f) {
+			continue // fractional — let the schema/typed parse reject it
+		}
+		if f < -(1<<53) || f > 1<<53 {
+			return []string{fmt.Sprintf("[EVIDLOG.SEQ_FLOAT_BEYOND_EXACT] entries/%d: seq %s uses float syntax beyond the exact-representation domain (±2^53) — the value a parser recovers depends on its float rounding, not on the document", idx, n.String())}
+		}
+		m["seq"] = int64(f)
 	}
 	return nil
 }
@@ -354,7 +436,10 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 		// non-numeric seq) — silently skipping any of them would shrink the
 		// coverage CheckCoverage accounts for and turn a completeness
 		// verdict green on an incomplete record. A durable line is an entry
-		// or the file is not loadable.
+		// or the file is not loadable. Empty lines (zero-byte segments
+		// anywhere in the file, including mid-file) are skipped and heal
+		// away — the same exemption the ledger loader declares
+		// (ledger/load.go precedent; R13 B-m1).
 		atEOF := i == len(raw)
 		// valid UTF-8 comes FIRST (ledger/load.go precedent, completed here
 		// after evidlog rode only the JSON-classification arm of it — R9
@@ -508,6 +593,11 @@ func conformantLine(line []byte) bool {
 // state — fractional (1.5) and exponent-notation (1e2) literals are !ok
 // (R12: the float64/Trunc form accepted 1e2 and folded 2^53+1, both now
 // closed; both blank reviewers flagged the 1e2 hole independently).
+// Honest pin boundary (R13 A-m2): the truncation blind spot table pins the
+// fractional (1.5) and exponent-integral (1e0) faces; the 2^53-fold face
+// (a plain big literal like 9007199254740993 under a float64 regression)
+// has NO pin — reachable only after ~9e15 appended lines, physically
+// impossible; the current Int64 decode is exact by construction.
 func lastDurableSeq(existing []byte) (int, bool) {
 	for start := len(existing); start > 0; {
 		end := start

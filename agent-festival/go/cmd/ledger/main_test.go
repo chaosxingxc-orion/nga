@@ -29,6 +29,11 @@ func TestLedgerSuiteGreenAndCounted(t *testing.T) {
 // recur; every other mechanical gate in this repo lives in go test by D93
 // house convention). The generator resolves schema/examples relative to its
 // cwd, so the subprocess runs from the repo root.
+// CACHE BOUNDARY (R13 A-M1): Go's test cache key covers the test binary,
+// args and env — NOT files read at runtime. Fixture/docs-only changes leave
+// a warm cache green ("ok (cached)") on a bare `go test ./...`; the gate
+// (and every fixture-reading pin) is live only under -count=1 / a cold
+// cache / CI. The README's canonical usage carries -count=1.
 func TestManifestCheckGate(t *testing.T) {
 	root, err := filepath.Abs(filepath.Join("..", "..", ".."))
 	if err != nil {

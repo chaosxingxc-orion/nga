@@ -1,0 +1,14 @@
+{
+  "evidlog_version": "0.1.0",
+  "entries": [
+    {
+      "seq": 9007199254740994.0,
+      "tool": "bank.fetch",
+      "selector": "acct=1",
+      "caller": "s2",
+      "at": "2026-11-01T10:00:00Z"
+    }
+  ],
+  "_expect": "REJECT: seq uses float syntax beyond the exact-representation domain (±2^53) — the value a parser recovers depends on its float rounding, not on the document (same domain rule and neutral-key family the event ledger pins as LEDGER.SEQ_FLOAT_BEYOND_EXACT); integer-valued doubles INSIDE the domain remain legal (see valid/seq-float-syntax).",
+  "_expect_match": "EVIDLOG.SEQ_FLOAT_BEYOND_EXACT"
+}

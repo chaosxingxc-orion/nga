@@ -2,6 +2,7 @@ package evidlog
 
 import (
 	"encoding/json"
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -322,6 +323,14 @@ func TestAppendRejectsUnwritableEntry(t *testing.T) {
 	}
 	if err := l.Append(Entry{}); err == nil {
 		t.Fatal("zero-value entry accepted")
+	}
+	// dual-field violation (R13 F5): the ordered-slice form must report
+	// the FIRST field deterministically — a map-iteration regression would
+	// flip between "tool" and "selector" run to run
+	if err := l.Append(Entry{Tool: "ba\xffnk", Selector: "se\xfflect", Caller: "c", At: "a"}); err == nil {
+		t.Fatal("dual-field invalid-UTF-8 entry accepted")
+	} else if !strings.Contains(err.Error(), `field "tool"`) {
+		t.Fatalf("dual-field violation did not report the first field: %v", err)
 	}
 	// invalid UTF-8 (R9 F1 write side): the json encoder would launder it to
 	// U+FFFD, making the durable form diverge from the caller's copy — the
@@ -720,5 +729,40 @@ func TestTruncationBlindSpot(t *testing.T) {
 		} else if !strings.Contains(err.Error(), "EVIDLOG.STALE_SEQ") {
 			t.Fatalf("foreign seq %s: refusal lacks the neutral key: %v", tail, err)
 		}
+	}
+}
+
+// TestUTF8GateFieldCoverage locks the UTF-8 gate's field table to the Entry
+// struct's string fields (R12 登记项① 完整性锁 / R13 B-m5): a future string
+// field added to Entry without a gate row would silently reopen the
+// laundered-write hole through it. Reflection walks the struct; the gate
+// table is asserted to cover exactly the string fields.
+func TestUTF8GateFieldCoverage(t *testing.T) {
+	gate := map[string]bool{
+		"tool": true, "selector": true, "caller": true, "at": true, "result_ref": true,
+	}
+	ety := reflect.TypeOf(Entry{})
+	structFields := map[string]bool{}
+	for i := 0; i < ety.NumField(); i++ {
+		f := ety.Field(i)
+		if f.Type.Kind() == reflect.String {
+			structFields[strings.Split(f.Tag.Get("json"), ",")[0]] = true
+		}
+	}
+	if !reflect.DeepEqual(gate, structFields) {
+		t.Fatalf("UTF-8 gate field coverage broken:\ngate  %v\nEntry %v", sortedKeys(gate), sortedKeys(structFields))
+	}
+}
+
+// TestSeqExhaustionRefuses pins the counter-domain guard (R13 B-m4): at
+// MaxInt64 the writer refuses instead of wrapping — a wrapped seq would
+// emit a file the loader's density rule immediately rejects.
+func TestSeqExhaustionRefuses(t *testing.T) {
+	l := open(t)
+	l.seq = math.MaxInt64
+	if err := l.Append(Entry{Tool: "t", Selector: "s", Caller: "c", At: "a"}); err == nil {
+		t.Fatal("Append wrapped the seq domain — the loader would reject the writer's own file")
+	} else if !strings.Contains(err.Error(), "EVIDLOG.SEQ_EXHAUSTED") {
+		t.Fatalf("exhaustion refusal lacks the neutral key: %v", err)
 	}
 }
