@@ -1,0 +1,13 @@
+{
+  "schema": "nga-experiment-entrypoint-v1",
+  "kind": "bev-dev-v1",
+  "plan": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/bev_dev_2b_20261102_v1/plan.json",
+    "sha256": "92189cdae8e1f4138f38dc6a72042ece06ca1f646395cb7102e990cc7673a42f"
+  },
+  "review": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/bev_dev_2b_review_20261102_v1.json",
+    "sha256": "c0c17f0d7d40a1db55c860752bd8270420acaabd8306e50af1bbe0078ff2307d"
+  },
+  "attempt": 1
+}
