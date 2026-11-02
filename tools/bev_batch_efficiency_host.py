@@ -47,6 +47,9 @@ def review(plan_path,pin,review_path,review_pin):
             require(sha(item['path'])==item['sha256'] and r.get('hashes',{}).get(item['path'])==item['sha256'],
                     'dependency outside exact review')
     require(r.get('expected_commands') == {str(a):expected_command(d,plan_path,pin,a) for a in r.get('attempts',[])}, 'exact launch commands not reviewed')
+    if 'successor_guard' in d:
+        e=d['successor_guard']['controller']
+        require(sha(e['path'])==e['sha256'] and r.get('hashes',{}).get(e['path'])==e['sha256'],'guard controller outside review')
     return runner(d).verify(plan_path,pin)
 
 
@@ -90,6 +93,9 @@ def supervise(args):
         claim=adapter+['claim','--alloc',plan['allocation'],'--run',plan['run'],'--chip',str(plan['chip']),
                       '--owner','BEV length-bucket DEV probe','--purpose','72 fixed TRAIN-derived DEV requests; exact outer-length-bucket equivalence and timing',
                       '--proof',str(host/'CLAIM.json')]
+        if 'successor_guard' in plan:
+            require(args.precondition == str(out/'SUCCESSOR_PRECONDITION.json') and sha(args.precondition)==args.precondition_sha256,'precondition binding differs')
+            claim += ['--plan',args.plan,'--plan-sha256',args.sha256,'--precondition-sha256',args.precondition_sha256]
         subprocess.run(claim,check=True,capture_output=True,timeout=30)
         R.atomic(host/'LAUNCH_SPEC.json',{'command':command,'plan_sha256':args.sha256})
         result=subprocess.run(command,capture_output=True,text=True,timeout=60)
@@ -97,6 +103,8 @@ def supervise(args):
             R.atomic(host/'LAUNCH_UNCERTAIN.json',{'rc':result.returncode,'stderr':result.stderr[-1000:]})
             raise ValueError('launch failed; retain claim for reconciliation')
         actual=inspect(name)
+        expected_runner=command[command.index(plan['image_sha256'])+1:]
+        require(actual and actual['Config']['Cmd']==expected_runner,'actual runner command differs')
         require(actual and actual['Image']==plan['image_sha256'] and not actual['HostConfig'].get('AutoRemove'),'launched container binding differs')
         R.atomic(host/'LAUNCH_RECEIPT.json',{'container_id':actual['Id'],'plan_sha256':args.sha256,'command':actual['Config']['Cmd']})
         while True:
@@ -127,6 +135,9 @@ def start(args):
         host=out/'host_attempts'/str(args.attempt);host.mkdir(parents=True,exist_ok=False)
         command=[sys.executable,'-B','-P',str(Path(__file__).resolve()),'supervise','--plan',args.plan,
                  '--sha256',args.sha256,'--review',args.review,'--review-sha256',args.review_sha256,'--attempt',str(args.attempt)]
+        if 'successor_guard' in plan:
+            require(args.precondition == str(out/'SUCCESSOR_PRECONDITION.json') and sha(args.precondition)==args.precondition_sha256,'precondition binding differs')
+            command += ['--precondition',args.precondition,'--precondition-sha256',args.precondition_sha256]
         R.atomic(host/'START_INTENT.json',{'command':command,'utc_seconds':time.time()})
         with (host/'supervisor.log').open('ab') as log:
             p=subprocess.Popen(command,stdin=subprocess.DEVNULL,stdout=log,stderr=subprocess.STDOUT,
@@ -138,7 +149,7 @@ def start(args):
 def main():
     p=argparse.ArgumentParser();p.add_argument('op',choices=['start','supervise']);p.add_argument('--plan',required=True)
     p.add_argument('--sha256',required=True);p.add_argument('--review',required=True);p.add_argument('--review-sha256',required=True)
-    p.add_argument('--attempt',type=int,default=1);args=p.parse_args()
+    p.add_argument('--attempt',type=int,default=1);p.add_argument('--precondition');p.add_argument('--precondition-sha256');args=p.parse_args()
     try: return start(args) if args.op=='start' else supervise(args)
     except BaseException as error:
         if args.op=='supervise':
