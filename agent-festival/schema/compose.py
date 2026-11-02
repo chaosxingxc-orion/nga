@@ -419,8 +419,8 @@ def compose_errors(doc: dict) -> tuple[list[str], dict | None]:
 
 def load(path: Path):
     """(doc, _expect_match, _expect_composed, parse_error). Integer domain: json parses integers natively;
-    NaN / Infinity are rejected at the schema's integer-type face (json.loads admits them; the schema does not — R19: the hardened loader is a bare json.loads); a non-integral float reaches dec()
-    and raises for a schema-level story. The 50-digit lossless-parse era ended with the decimal domain.
+    NaN / Infinity are rejected at the schema's integer-type face (json.loads admits them; the schema does not — R19: the hardened loader is a bare json.loads); a non-integral float is rejected at the schema's integer-type face
+    (it never reaches dec()). The 50-digit lossless-parse era ended with the decimal domain.
 
     R19 B-M1: rides the shared hardened loader (_suite.load_extras) — the
     V28 F-1 wrong-typed-pin LOUD semantics now structurally reach this

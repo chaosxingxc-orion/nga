@@ -29,24 +29,26 @@ func TestDocstringFamilyEnumerationPinned(t *testing.T) {
 	// literal copies — each is pinned to its own actual wording, covering
 	// all nine families (R15 m-1: the first version covered 3/8; R19 split transition DAG out as its own)
 	goPhrases := []string{
-		"strictly increasing",                 // seq family
-		"one payload digest per operation",    // digest stability
-		"never enters the registry",           // idempotency presence, bidirectional
-		"idempotency.operation_id equals",     // key coupling
-		"never cross the event-type boundary", // status families
-		"rides the adopted event only",        // grant pin placement
-		"attribution triple",                  // effect attribution
-		"exactly one adopted adoption event",  // single-writer grammar
+		"strictly increasing",                        // seq family
+		"one payload digest per operation",           // digest stability
+		"never enters the registry",                  // idempotency presence, bidirectional
+		"idempotency.operation_id equals",            // key coupling
+		"never cross the event-type boundary",        // status families
+		"rides the adopted event only",               // grant pin placement
+		"attribution triple",                         // effect attribution
+		"exactly one adopted adoption event",         // single-writer grammar
+		"machine's own transition DAG in file order", // transition DAG (R19: split as family 8 — the count's source-of-truth face)
 	}
 	pyPhrases := []string{
-		"strictly increasing",                // seq family
-		"one payload digest",                 // digest stability
-		"never enters the registry",          // idempotency presence, bidirectional
-		"idem-identity key",                  // key coupling
-		"crossing the event-type boundary",   // status families
-		"grant pin riding the adopted event", // grant pin placement
-		"attribution triple",                 // effect attribution
-		"one adopted event",                  // grammar (the docstring wraps the line)
+		"strictly increasing",                           // seq family
+		"one payload digest",                            // digest stability
+		"never enters the registry",                     // idempotency presence, bidirectional
+		"idem-identity key",                             // key coupling
+		"crossing the event-type boundary",              // status families
+		"grant pin riding the adopted event",            // grant pin placement
+		"attribution triple",                            // effect attribution
+		"one adopted event",                             // grammar (the docstring wraps the line)
+		"effect events follow the machine's transition", // transition DAG (R19 family 8, non-wrapping substring)
 	}
 	for _, phrase := range goPhrases {
 		if !strings.Contains(string(goSrc), phrase) {
