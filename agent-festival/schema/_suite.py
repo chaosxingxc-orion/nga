@@ -21,7 +21,20 @@ _PIN_RE = re.compile(r'"_expect_match"\s*:\s*"([^"]*)"')
 
 
 def load(path: Path):
-    """(doc, expect_match, error).
+    """(doc, expect_match, error). See load_extras — this is the
+    single-extra (wrong-reason pin) face of it."""
+    doc, match, _, err = load_extras(path)
+    return doc, match, err
+
+
+def load_extras(path: Path, extra_keys: tuple = ()):
+    """(doc, expect_match, extras, error).
+
+    The hardened loader every oracle family rides (R19 B-M1: compose now
+    rides it too — its inline loader never received the V28 F-1
+    wrong-typed-pin LOUD semantics). extra_keys pop additional pinned
+    faces (e.g. compose's _expect_composed) with the SAME hardening:
+    a wrong-typed extra fails loud instead of downgrading to "absent".
 
     error is either a parse failure (doc is None; the pin, if any, is still
     best-effort extracted from the raw text — the base's LoadFixture does the
@@ -33,12 +46,19 @@ def load(path: Path):
         doc = json.loads(raw)
     except json.JSONDecodeError as e:
         m = _PIN_RE.search(raw)
-        return None, (m.group(1) if m else None), f"document rejected at parse: {e}"
+        return None, (m.group(1) if m else None), {}, f"document rejected at parse: {e}"
     doc.pop("_expect", None)  # descriptive only
     match = doc.pop("_expect_match", None)
     if match is not None and not isinstance(match, str):
-        return doc, None, f"_expect_match must be a string, got {type(match).__name__}"
-    return doc, match, None
+        return doc, None, {}, f"_expect_match must be a string, got {type(match).__name__}"
+    extras = {}
+    for k in extra_keys:
+        v = doc.pop(k, None)
+        if v is not None and not isinstance(v, dict):
+            return doc, None, {}, f"{k} must be an object, got {type(v).__name__}"
+        if v is not None:
+            extras[k] = v
+    return doc, match, extras, None
 
 
 def run_suite(label: str, valid_dir: Path, invalid_dir: Path, errors) -> int:

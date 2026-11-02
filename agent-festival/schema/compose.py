@@ -48,6 +48,7 @@ Usage:  python3 schema/compose.py            # run the example suite
 import decimal
 import json
 import sys
+import _suite
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -419,8 +420,15 @@ def compose_errors(doc: dict) -> tuple[list[str], dict | None]:
 def load(path: Path):
     """(doc, _expect_match, _expect_composed, parse_error). Integer domain: json parses integers natively;
     NaN / Infinity are a parse-level rejection (validate.reject_constant); a non-integral float reaches dec()
-    and raises for a schema-level story. The 50-digit lossless-parse era ended with the decimal domain."""
-    return load_json(path)
+    and raises for a schema-level story. The 50-digit lossless-parse era ended with the decimal domain.
+
+    R19 B-M1: rides the shared hardened loader (_suite.load_extras) — the
+    V28 F-1 wrong-typed-pin LOUD semantics now structurally reach this
+    family (the Go twin's WithLoader form; the inline runner never had it).
+    """
+    doc, match, extras, err = _suite.load_extras(path, ("_expect_composed",))
+    composed = extras.get("_expect_composed")
+    return doc, match, composed, err
 
 
 def composed_mismatches(composed: dict, expected: dict) -> list[str]:
@@ -473,6 +481,12 @@ def run_suite(valid_dir: Path, invalid_dir: Path) -> int:
         bad += bool(errs)
     for f in invalid:
         doc, match, _, parse_error = load(f)
+        if doc is not None and parse_error:
+            # wrong-typed pin (doc parsed, pin unreadable) — the V28 F-1
+            # face: FAIL loud, never a silent PASS (mirrors _suite.run_suite)
+            print(f"[compose] FAIL must-reject {f.name}  ({parse_error} — an unreadable pin cannot verify the rejection)")
+            bad += 1
+            continue
         errs = [parse_error] if parse_error else compose_errors(doc)[0]
         if not errs:
             print(f"[compose] FAIL must-reject {f.name}  (was accepted!)")

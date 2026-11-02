@@ -2,7 +2,7 @@
 """Validate event-ledger fixtures (piece 4 oracle).
 
 Ledger documents: JSON Schema + the cross-event rules JSON Schema cannot
-express — eight families: arbitration_seq strictly increasing (+int64
+express — nine families: arbitration_seq strictly increasing (+int64
 domain, +integer-literal-only — float syntax rejected by rule per the
 2026-11-02 ruling), one payload digest
 per operation (15 B4), idempotency presence (bidirectional: every

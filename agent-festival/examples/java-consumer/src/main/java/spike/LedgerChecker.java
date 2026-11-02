@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Ledger checker — JSON Schema phase plus the eight cross-event rule families
+ * Ledger checker — JSON Schema phase plus the nine cross-event rule families
  * JSON Schema cannot express, mirroring schema/ledger.py (the Python oracle)
  * family by family. These rules are governance semantics (the six-piece
  * domain), i.e. the legal self-build zone; the generic machinery (parsing,
@@ -44,7 +44,7 @@ public final class LedgerChecker {
 
     /**
      * Full check: schema first (short-circuit, as the Python oracle does),
-     * then the eight cross-event families.
+     * then the nine cross-event families.
      *
      * @param doc stripped ledger document
      * @return error lines, empty when the document conforms

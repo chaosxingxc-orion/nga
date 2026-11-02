@@ -18,7 +18,7 @@ cd examples/java-consumer
 ## Status (2026-11-01)
 
 81/81 fixtures green in both arms (default-double and exact-BigDecimal), 66/66 wrong-reason pins hit (R16 数值域章程 v2 缝合后)
-wrong-reason pins hit, loader hardening self-checks pass. Zero Go dependencies —
+loader hardening self-checks pass. Zero Go dependencies —
 this is the Java ecosystem consuming the corpus with industry libraries only.
 
 **Honest boundary** (per the collision report): this spike was written by the
