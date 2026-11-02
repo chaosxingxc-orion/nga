@@ -139,7 +139,8 @@ def verify(path, pin):
         if 'terminal_gate' in job:
             require(job.get('kind', 'report') == 'report' and
                     job['terminal_gate'] == 'full_posttrain_v1', 'unsupported terminal gate')
-            strict_plan(job)
+            _, spec = strict_plan(job)
+            verify_producer_mounts(doc, spec)
         require(re.fullmatch(r'[A-Za-z0-9_-]+', job['id']), 'unsafe job ID')
         require(Path(job['output']).is_absolute(), 'absolute output required')
         if job.get('kind', 'report') == 'report':
@@ -278,6 +279,18 @@ def validate_pt_output(report, doc, job):
             and proof.get('config_sha256') == doc['pt_r0_report']['config_sha256']
             and proof.get('r0_source_reconstructed') is True, 'PT output scope or binding differs')
 
+
+
+def verify_producer_mounts(doc, spec):
+    producer = doc.get('producer_closure')
+    require(isinstance(producer, dict), 'strict producer closure required')
+    root = safe_absolute(producer.get('path'))
+    expected = {str(root / name) for name in ('r3_code', 'r0_code')}
+    mounts = spec.get('code_mounts', [])
+    require(len(mounts) == 2 and {m.get('source') for m in mounts} == expected and
+            all(m.get('readonly') is True and m.get('destination') ==
+                '/mnt/cephfs/xingchao/experiments/jev/' + Path(m['source']).name for m in mounts),
+            'declared producer closure differs from actual code mounts')
 
 
 def strict_plan(job):

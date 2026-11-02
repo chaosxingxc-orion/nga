@@ -127,6 +127,19 @@ class CPUQueueTests(unittest.TestCase):
             with self.assertRaises(InterruptedError): Q.watch(self.path,self.pin)
             sleep.assert_called_once_with(600)
 
+    def test_strict_producer_must_match_both_actual_readonly_mounts(self):
+        doc={'producer_closure':{'path':'/frozen/current'}}
+        spec={'code_mounts':[{'source':'/frozen/current/'+name,
+                             'destination':'/mnt/cephfs/xingchao/experiments/jev/'+name,
+                             'readonly':True} for name in ('r3_code','r0_code')]}
+        Q.verify_producer_mounts(doc,spec)
+        doc['producer_closure']['path']='/frozen/old-valid-but-unrelated'
+        with self.assertRaisesRegex(RuntimeError,'actual code mounts'): Q.verify_producer_mounts(doc,spec)
+        doc['producer_closure']['path']='/frozen/current'
+        spec['code_mounts'][0]['readonly']=False
+        with self.assertRaisesRegex(RuntimeError,'actual code mounts'): Q.verify_producer_mounts(doc,spec)
+        with self.assertRaisesRegex(RuntimeError,'closure required'): Q.verify_producer_mounts({},spec)
+
     def test_prechecks_wait_for_hash_bound_baseline_and_run_real_child(self):
         job={'id':'prechecks','kind':'k0_prechecks','baseline':'one','model':'/model',
              'output':str(self.root/'fresh/K0_PRECHECKS.json')}
