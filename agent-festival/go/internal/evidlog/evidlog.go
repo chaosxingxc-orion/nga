@@ -356,8 +356,11 @@ func CheckCoverage(log *Log, decl Declaration) CoverageReport {
 // (Go json.Decoder.UseNumber / Python json.loads — what the suite loader
 // and both oracles use). A plain-decoded map (float64 for every number)
 // cannot distinguish 0.0 from 0 at any rule downstream — the seq
-// literal gate is undecidable there; verdicts are contracted for the
-// literal-preserving decode form only.
+// literal gate is undecidable there and FAILS OPEN (returns clean) on
+// contract-breaking input; verdicts are contracted for the
+// literal-preserving decode form only (replay's numbersSurvived chose
+// fail-loud — the hardness asymmetry is deliberate: replay's raw doc
+// feeds the conformance arm, these feed one-shot validation).
 func CheckDoc(doc map[string]any) []string {
 	if err := schema.Validate(doc); err != nil {
 		return []string{"schema: " + err.Error()}
@@ -521,7 +524,8 @@ func loadLines(path string) ([]parsedLine, bool, error) {
 			return nil, false, fmt.Errorf("[EVIDLOG.NON_OBJECT_LINE] %s: line at byte offset %d is %q, not an entry object — a phantom entry must not enter the audit record", path, lineStart, string(line))
 		}
 		// Shape: the durable face rides the schema's required set, its
-		// minLength:1 on the string fields, and seq's type:integer — and
+		// minLength:1 on the REQUIRED string fields (result_ref is
+		// envelope-only), and seq's type:integer — and
 		// NOTHING else (R5 F5 declares the ride scope here, at the single
 		// shared gate; R8 fixed this declaration after the seq-type check
 		// made the old "required + minLength only" text false). pattern

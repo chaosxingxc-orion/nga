@@ -63,7 +63,7 @@ public final class LedgerChecker {
         }
         ruleMonotonicSeq(events, errs);
         ruleDigestPerOperation(events, errs);
-        ruleFloatSyntaxBeyond2e53(events, errs);
+        ruleFloatSyntax(events, errs);
         ruleStatusFamilies(events, errs);
         ruleGrantPinRidesAdopted(events, errs);
         ruleTransitionDag(events, errs);
@@ -128,20 +128,19 @@ public final class LedgerChecker {
     // the message prints whatever the decode arm preserved (folded double or
     // exact decimal — a message-value face difference, not a verdict one).
 
-    private void ruleFloatSyntaxBeyond2e53(List<ObjectNode> events, List<String> errs) {
+    private void ruleFloatSyntax(List<ObjectNode> events, List<String> errs) {
+        // R16 数值域章程 v2 (user ruling 2026-11-02): this package does no
+        // float math — integer LITERALS are the only writable seq form. The
+        // v1 ±2^53 sub-domain rule retired with the charter (JCS governs the
+        // signature payload only, never the counter).
         for (int i = 0; i < events.size(); i++) {
             JsonNode seq = events.get(i).path("arbitration_seq");
             if (!seq.isFloatingPointNumber()) {
                 continue;
             }
-            double d = seq.doubleValue();
-            boolean integral = d == Math.rint(d) && !Double.isInfinite(d);
-            boolean beyond = d > TWO_POW_53.doubleValue() || d < -TWO_POW_53.doubleValue();
-            if (integral && beyond) {
-                errs.add("[LEDGER.SEQ_FLOAT_BEYOND_EXACT] events/" + i + ": arbitration_seq " + seq + " uses float syntax "
-                        + "beyond the exact-representation domain (±2^53) — the value a parser "
-                        + "recovers depends on its float rounding, not on the document");
-            }
+            errs.add("[LEDGER.SEQ_FLOAT_SYNTAX] events/" + i + ": arbitration_seq " + seq + " is not an integer literal — "
+                    + "the counter domain is machine-written int64; this package does no "
+                    + "float math (user ruling 2026-11-02)");
         }
     }
 

@@ -182,7 +182,8 @@ type Document struct {
 // json.Decoder.UseNumber (R16 数值域章程): the integer-literal gate keys
 // off json.Number — on a plain float64 map every number arrives as
 // float64 and the literal check is undecidable (0.0 is indistinguishable
-// from 0). One input discipline (the suite loader and the adopt machine's
+// from 0) and FAILS OPEN on such contract-breaking input. One input
+// discipline (the suite loader and the adopt machine's
 // line decoder both keep it; future callers — the replay reader — must
 // too).
 func Errors(doc map[string]any) []string {
