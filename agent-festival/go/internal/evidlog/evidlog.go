@@ -189,21 +189,30 @@ func (l *Log) Append(e Entry) error {
 		// last durable seq must be exactly e.Seq-1; the guard fires on a
 		// non-empty file OR any e.Seq above 0 (an emptied file plus a
 		// non-fresh view is the erase face of the same disease — R11 inner
-		// MAJOR-1). Honest boundary: the gate is necessary, not sufficient —
+		// MAJOR-1). A whitespace-only file with a FRESH view (e.Seq==0) is
+		// the loader's empty log — same semantics as a zero-byte file — and
+		// passes (R15 B-1: the !ok arm used to refuse it forever, a
+		// fail-closed availability loss with no audit payoff: the loader
+		// heals empty lines away, so there is nothing to protect). Honest
+		// boundary: the gate is necessary, not sufficient —
 		// a foreign line that PRESERVES the seq arithmetic (an
 		// integer-literal duplicate of the current last seq) passes
 		// arithmetic inspection and is left to the next Open's checks to
 		// catch. Fractional and exponent-notation literals (1.5, 1e0) are
 		// refused outright by lastDurableSeq (UseNumber/Int64 — R12).
 		if len(existing) > 0 || e.Seq > 0 {
-			lastSeq, ok := lastDurableSeq(existing)
-			if !ok {
-				l.seq--
-				return fmt.Errorf("[EVIDLOG.STALE_SEQ] %s: append refused — the durable form's last line carries no numeric seq (empty or diseased file); repair the file before appending", l.path)
-			}
-			if lastSeq+1 != e.Seq {
-				l.seq--
-				return fmt.Errorf("[EVIDLOG.STALE_SEQ] %s: append refused — the durable form's last seq is %d but this instance is about to write %d; the Open-time view is stale (foreign or stale-instance write). Re-Open to absorb the file, then decide", l.path, lastSeq, e.Seq)
+			if len(bytes.TrimSpace(existing)) == 0 && e.Seq == 0 {
+				// whitespace-only + fresh view — the loader's empty log
+			} else {
+				lastSeq, ok := lastDurableSeq(existing)
+				if !ok {
+					l.seq--
+					return fmt.Errorf("[EVIDLOG.STALE_SEQ] %s: append refused — the durable form's last line carries no numeric seq (empty or diseased file); repair the file before appending", l.path)
+				}
+				if lastSeq+1 != e.Seq {
+					l.seq--
+					return fmt.Errorf("[EVIDLOG.STALE_SEQ] %s: append refused — the durable form's last seq is %d but this instance is about to write %d; the Open-time view is stale (foreign or stale-instance write). Re-Open to absorb the file, then decide", l.path, lastSeq, e.Seq)
+				}
 			}
 		}
 		var next []byte
@@ -360,7 +369,13 @@ func CheckDoc(doc map[string]any) []string {
 // value lies beyond the exact domain (±2^53) is rejected instead —
 // normalizing it would fold 2^53+1 onto 2^53 and make the verdict depend
 // on parser rounding. Only the "seq" key of entries is touched: this is a
-// seq-domain rule, not a general number policy.
+// seq-domain rule, not a general number policy. The seq value may arrive
+// as json.Number (UseNumber decode — what the suite loader and both
+// oracles use) OR as float64 (a plain decode — R15 B-2: a cross-language
+// consumer calling CheckDoc on a plain-decoded map got a density-misfiled
+// rejection for the same value that a UseNumber decode keys correctly;
+// the double-type arm mirrors entryShapeError's seq switch so the neutral
+// key is the decode-independent contract, per conformance §四).
 func normalizeSeqDomain(doc map[string]any) []string {
 	entries, ok := doc["entries"].([]any)
 	if !ok {
@@ -371,8 +386,26 @@ func normalizeSeqDomain(doc map[string]any) []string {
 		if !ok {
 			continue
 		}
-		n, ok := m["seq"].(json.Number)
-		if !ok {
+		var n json.Number
+		var f64 float64
+		isNum, isF64 := false, false
+		switch v := m["seq"].(type) {
+		case json.Number:
+			n, isNum = v, true
+		case float64:
+			f64, isF64 = v, true
+		}
+		if isF64 {
+			if f64 != math.Trunc(f64) {
+				continue // fractional — let the schema/typed parse reject it
+			}
+			if f64 < -(1<<53) || f64 > 1<<53 {
+				return []string{fmt.Sprintf("[EVIDLOG.SEQ_FLOAT_BEYOND_EXACT] entries/%d: seq %v uses float syntax beyond the exact-representation domain (±2^53) — the value a parser recovers depends on its float rounding, not on the document", idx, f64)}
+			}
+			m["seq"] = int64(f64)
+			continue
+		}
+		if !isNum {
 			continue
 		}
 		if iv, err := n.Int64(); err == nil {

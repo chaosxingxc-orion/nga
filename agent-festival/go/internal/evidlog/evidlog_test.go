@@ -795,3 +795,62 @@ func TestSeqExhaustionRefuses(t *testing.T) {
 		t.Fatalf("exhaustion refusal lacks the neutral key: %v", err)
 	}
 }
+
+// TestCheckDocPlainDecodeArm pins the float64-input arm of
+// normalizeSeqDomain (R15 B-2): a plain-decoded map (no UseNumber — the
+// cross-language consumer's natural form) must get the same neutral keys
+// and the same in-place normalization a UseNumber decode gets, for the
+// in-domain and the beyond-domain faces alike.
+func TestCheckDocPlainDecodeArm(t *testing.T) {
+	build := func(seq any) map[string]any {
+		return map[string]any{
+			"evidlog_version": "0.1.0",
+			"entries": []any{
+				map[string]any{"seq": seq, "tool": "bank.fetch", "selector": "acct=1", "caller": "s2", "at": "2026-11-01T10:00:00Z"},
+				map[string]any{"seq": 1.0, "tool": "bureau.q", "selector": "subj=x", "caller": "s2", "at": "2026-11-01T10:01:00Z"},
+			},
+		}
+	}
+	// in-domain float64: passes AND is normalized in place (0.0 → int64(0))
+	doc := build(0.0)
+	if errs := CheckDoc(doc); len(errs) != 0 {
+		t.Fatalf("in-domain plain-decoded seq rejected: %v", errs)
+	}
+	if v, ok := doc["entries"].([]any)[0].(map[string]any)["seq"].(int64); !ok || v != 0 {
+		t.Fatalf("plain-decoded in-domain seq not normalized in place: %T %v", doc["entries"].([]any)[0].(map[string]any)["seq"], doc["entries"].([]any)[0].(map[string]any)["seq"])
+	}
+	// beyond-domain float64: same neutral key as the UseNumber form
+	doc = build(9007199254740994.0)
+	errs := CheckDoc(doc)
+	if len(errs) == 0 || !strings.Contains(errs[0], "EVIDLOG.SEQ_FLOAT_BEYOND_EXACT") {
+		t.Fatalf("beyond-domain plain-decoded seq: got %v, want EVIDLOG.SEQ_FLOAT_BEYOND_EXACT", errs)
+	}
+}
+
+// TestWhitespaceOnlyFileAppend pins the whitespace-only + fresh-view arm
+// (R15 B-1): a file of only blank lines is the loader's EMPTY log (empty
+// lines heal away) — a fresh Open's first Append must treat it exactly
+// like a zero-byte file, not refuse it forever with a diseased-file
+// message. The erase-with-junk + stale-view refusal stays pinned by
+// TestAppendRechecksEvolvingTail.
+func TestWhitespaceOnlyFileAppend(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "evid.jsonl")
+	if err := os.WriteFile(path, []byte("\n\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	l, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(l.Entries()) != 0 {
+		t.Fatalf("whitespace-only file loaded entries: %d", len(l.Entries()))
+	}
+	if err := l.Append(Entry{Tool: "t", Selector: "s=1", Caller: "c", At: "a"}); err != nil {
+		t.Fatalf("fresh view's first append onto a whitespace-only file refused (loader semantics = empty log, same as zero bytes): %v", err)
+	}
+	if l2, err := Open(path); err != nil {
+		t.Fatalf("file not loadable after the append: %v", err)
+	} else if len(l2.Entries()) != 1 || l2.Entries()[0].Seq != 0 {
+		t.Fatalf("unexpected entries: %+v", l2.Entries())
+	}
+}

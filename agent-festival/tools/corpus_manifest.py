@@ -50,6 +50,28 @@ def unknown_dirs() -> list[str]:
     actual = {d.name for d in Path("schema/examples").iterdir() if d.is_dir()}
     return sorted(actual - known)
 
+def strayed_files() -> list[str]:
+    """Every .json under schema/examples/ that the counted faces do NOT
+    enumerate (R15 A-1/B-3, the complementary faces of the R14 accident
+    family: nested subdirectories under a known family, loose files at any
+    level). The family and base rows glob ONE level; a fixture landing
+    anywhere else is committed, looks alive, and validates nothing — both
+    oracles consume the same single-level globs. The whole-repo row is now
+    a true per-file reconciliation: rglob total == enumerated total and
+    every file is on an enumerated face."""
+    root = Path("schema/examples")
+    enumerated: set[Path] = set()
+    for fam in FAMILIES:
+        base = root / fam
+        enumerated.update((base / "valid").glob("*.json"))
+        enumerated.update((base / "invalid").glob("*.json"))
+    enumerated.update(root.glob("valid/*.json"))
+    enumerated.update(root.glob("invalid/*.json"))
+    enumerated.update(root.glob("envelopes/**/*.json"))
+    enumerated.update(root.glob("keys/**/*.json"))
+    actual = set(root.rglob("*.json"))
+    return sorted(str(p) for p in actual - enumerated)
+
 def check() -> int:
     doc = DOC.read_text()
     # Delimited parse (R4 m-1): the manifest slot lives between the
@@ -60,6 +82,12 @@ def check() -> int:
     if unknown:
         print(f"[manifest] FAIL: unknown fixture directories under schema/examples/ (not in FAMILIES): "
               f"{', '.join(unknown)} — register the family in FAMILIES or the whole-repo row is a lie")
+        return 1
+    strayed = strayed_files()
+    if strayed:
+        print(f"[manifest] FAIL: fixture files not on any counted face (nested or loose — the "
+              f"single-level globs never see them, both oracles included): {', '.join(strayed)} — "
+              f"move the file onto a valid/invalid face or remove it")
         return 1
     m = re.search(r"<!-- corpus-manifest:.*?-->\n(.*?)(?=\n## )", doc, re.S)
     if not m:
