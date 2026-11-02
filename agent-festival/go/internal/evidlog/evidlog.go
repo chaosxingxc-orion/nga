@@ -47,11 +47,19 @@ type Entry struct {
 }
 
 // Log is an in-memory evidence log; Open attaches the durable form.
+//
+// Single-instance contract (R10 MAJOR-1, mirroring adopt.Machine): at most
+// ONE Log instance per file. entries/tornTail are the Open-time view — a
+// foreign writer's appends WHILE a Log is open are outside the contract:
+// CheckCoverage's verdict reflects that Open-time snapshot (skipped bytes
+// and later-added lines are not in it), and Append only re-checks the
+// torn-tail byte shape of the current file, not its full content.
 type Log struct {
 	entries  []Entry
 	seq      int
 	path     string
 	tornTail bool // the durable form's tail was skipped at load — Append must refuse
+	opened   bool // Open only: a zero-value &Log{} never reaches the durable form (R10 m3 — the composite literal is legal outside the package, and a zero seq would violate dense-from-0)
 }
 
 // Open loads (or starts) the durable form at path.
@@ -62,6 +70,7 @@ func Open(path string) (*Log, error) {
 		return nil, err
 	}
 	l.tornTail = tornTail
+	l.opened = true
 	// The durable face runs the SAME density contract as the envelope face
 	// (CheckDoc): writer-allocated seqs are dense from 0. A byte-clean file
 	// with a dropped line is exactly the "incomplete record" the coverage
@@ -78,6 +87,12 @@ func Open(path string) (*Log, error) {
 
 // Append records one call (writer-allocated seq, temp+rename atomic).
 func (l *Log) Append(e Entry) error {
+	if !l.opened {
+		// R10 m3: &Log{} is legal outside the package, but a zero seq would
+		// emit Seq=1 on the first entry and violate dense-from-0. Open is
+		// the only constructor.
+		return fmt.Errorf("[EVIDLOG.NOT_OPEN] Append on a Log that never went through Open — Open is the only constructor")
+	}
 	// Writer-side UTF-8 gate (R9 F1), BEFORE any marshal: Go's json encoder
 	// silently launders invalid UTF-8 to U+FFFD, so a laundered write would
 	// make the durable form differ from what the caller holds in memory.
@@ -127,6 +142,19 @@ func (l *Log) Append(e Entry) error {
 		if err != nil && !os.IsNotExist(err) {
 			l.seq--
 			return err
+		}
+		// Byte-level torn-tail re-check (R10 MAJOR-1 face B): l.tornTail is
+		// Open-time memory and the file may have evolved since (a foreign
+		// writer's aborted append). A final line without a newline survives
+		// the splice below only if it is a conformant entry; anything else
+		// would become a mid-file disease line — refuse while it is still
+		// the writer's own fault, not the next Open's mystery.
+		if len(existing) > 0 && existing[len(existing)-1] != '\n' {
+			tail := existing[bytes.LastIndexByte(existing, '\n')+1:]
+			if !conformantLine(tail) {
+				l.seq--
+				return fmt.Errorf("[EVIDLOG.TORN_TAIL_BLOCKED] %s: the durable form now ends in a torn tail the Open-time view did not see — appending would brick the log; repair the tail first", l.path)
+			}
 		}
 		var next []byte
 		if len(existing) > 0 {
@@ -188,6 +216,8 @@ type CoverageReport struct {
 // must have a matching entry (差集告警); exclusions are checked in reverse —
 // every log entry in the excluded domain must be listed, or the exclusion
 // hid something. In-band seqs make both sides pure set/density functions.
+// The verdict reflects the Open-time view (see the Log contract): an
+// out-of-band foreign append after Open is not in it — one Log per file.
 func CheckCoverage(log *Log, decl Declaration) CoverageReport {
 	rep := CoverageReport{OK: true}
 	// A tolerated torn tail means the record is provably incomplete — the
@@ -418,6 +448,26 @@ func entryShapeError(doc map[string]any) (string, string) {
 		}
 	}
 	return "", ""
+}
+
+// conformantLine reports whether a raw line would survive loadLines intact —
+// the same ladder (UTF-8, entry decode, object shape, entryShapeError) with
+// no torn-tail tolerance. Used by Append's byte-level re-check on a final
+// line without a newline (R10 MAJOR-1 face B).
+func conformantLine(line []byte) bool {
+	if !utf8.Valid(line) {
+		return false
+	}
+	var e Entry
+	if json.Unmarshal(line, &e) != nil {
+		return false
+	}
+	var doc map[string]any
+	if json.Unmarshal(line, &doc) != nil || doc == nil {
+		return false
+	}
+	k, _ := entryShapeError(doc)
+	return k == ""
 }
 
 // requiredEntryKeys is the shape table above; order matches the schema's

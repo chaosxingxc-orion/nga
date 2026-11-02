@@ -46,9 +46,9 @@ typed 节点可表达的图 schema）；NGA 的语义轴（判断规格/采纳�
 ```bash
 cd agent-festival/go
 
-go test ./... -count=1        # 六包全测（含 JCS 差分、报警支柱、守卫电池）
+go test ./... -count=1        # 20 包全测（含 JCS 差分、报警支柱、守卫电池）
 go run ./cmd/validate         # 契约/信封/密钥库三套件（对 ../schema/examples）
-go run ./cmd/compose          # 执行图合成套件（9+32 夹具+5 守卫）
+go run ./cmd/compose          # 执行图合成套件（10+36 夹具+11 守卫）
 go run ./cmd/sign             # 再生全部信封语料（换新密钥，需整批提交）
 ```
 
@@ -64,5 +64,5 @@ agent-festival/
 |   |-- internal/validate/  # 契约/信封/密钥库校验（双引擎 fail-closed）
 |   |-- internal/compose/   # 图合成+⊆准入+预算切分
 |   `-- cmd/{validate,compose,sign}/
-`-- schema/                 # 三 schema + 200 夹具 + Python 冻结 oracle
+`-- schema/                 # 9 schema + 200 夹具 + Python 冻结 oracle
 ```

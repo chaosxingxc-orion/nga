@@ -12,7 +12,11 @@ import (
 
 func open(t *testing.T) *Log {
 	t.Helper()
-	return &Log{seq: -1, path: filepath.Join(t.TempDir(), "evid.jsonl")}
+	l, err := Open(filepath.Join(t.TempDir(), "evid.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return l
 }
 
 // TestDenseAppend covers Open→Append→reopen with the durable form and the
@@ -521,6 +525,82 @@ func TestCoverageMissingAndHiddenExclusion(t *testing.T) {
 	rep = CheckCoverage(l, Declaration{QueriedTool: "bank.fetch", Selector: "acct=1"})
 	if rep.OK {
 		t.Fatal("OK=true with unaccounted entries — the bidirectional OK semantics regressed")
+	}
+}
+
+// TestCoverageOtherToolUnaccounted pins the other-tool face of the coverage
+// diff (R10 m2: the Unaccounted branch for entries OUTSIDE the declared tool
+// had no pin — deleting it kept the suite green, yet an investigator
+// querying a DIFFERENT tool than declared is the core coverage-audit
+// scenario).
+func TestCoverageOtherToolUnaccounted(t *testing.T) {
+	l := open(t)
+	l.Append(Entry{Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"})
+	l.Append(Entry{Tool: "credit-bureau.query", Selector: "subj=9", Caller: "s2", At: "2026-11-01T10:01:00Z"})
+	rep := CheckCoverage(l, Declaration{QueriedTool: "bank.fetch", Selector: "acct=1"})
+	if rep.OK {
+		t.Fatal("other-tool query not flagged — the coverage audit is blind to undeclared tools")
+	}
+	found := false
+	for _, u := range rep.Unaccounted {
+		if strings.Contains(u, "credit-bureau.query") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("Unaccounted lacks the other-tool entry: %+v", rep)
+	}
+}
+
+// TestAppendRechecksEvolvingTail pins the byte-level torn-tail re-check
+// (R10 MAJOR-1 face B): tornTail is Open-time memory; a foreign writer may
+// append unparseable tail bytes AFTER Open. The Append must refuse — the
+// splice would brick the next Open, and the refusal must happen while it is
+// still this writer's own decision. A conformant no-newline last line (the
+// legal face) still appends fine.
+func TestAppendRechecksEvolvingTail(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "evid.jsonl")
+	l, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "2026-11-01T10:00:00Z"}); err != nil {
+		t.Fatal(err)
+	}
+	cleanOpenState := mustRead(t, path) // the Open-time content, for the legal face below
+	// foreign aborted append AFTER Open: l.tornTail is false (Open-time)
+	if err := os.WriteFile(path, append(mustRead(t, path), []byte(`{"seq":`)...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "t", Selector: "s=1", Caller: "s2", At: "z"}); err == nil {
+		t.Fatal("Append spliced over an evolved torn tail — the log is bricked at the next Open")
+	} else if !strings.Contains(err.Error(), "EVIDLOG.TORN_TAIL_BLOCKED") {
+		t.Fatalf("evolved-tail refusal lacks the neutral key: %v", err)
+	}
+	// legal face: a CONFORMANT last line without a newline survives splicing
+	// — reset the file to the clean Open-time content first (the garbage
+	// tail above would fuse with the appended line into one diseased line,
+	// which the gate correctly refuses), then append through a FRESH Open:
+	// the single-instance contract keeps the stale l out of the file after
+	// foreign evolution (its seq no longer knows about the good line).
+	if err := os.WriteFile(path, cleanOpenState, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	good, _ := json.Marshal(Entry{Seq: 1, Tool: "bureau.q", Selector: "subj=x", Caller: "s2", At: "2026-11-01T10:01:00Z"})
+	if err := os.WriteFile(path, append(mustRead(t, path), good...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	l4, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l4.Append(Entry{Tool: "t", Selector: "s=2", Caller: "s2", At: "z"}); err != nil {
+		t.Fatalf("conformant no-newline last line refused: %v", err)
+	}
+	if l3, err := Open(path); err != nil {
+		t.Fatalf("reopened log rejected after legal-face append: %v", err)
+	} else if len(l3.Entries()) != 3 {
+		t.Fatalf("unexpected entries: %d", len(l3.Entries()))
 	}
 }
 
