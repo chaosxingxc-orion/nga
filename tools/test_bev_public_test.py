@@ -281,4 +281,95 @@ class PackageTests(unittest.TestCase):
         del self.cpuconfig['files'][self.plan['inputs']['requests']['path']];self.write(self.cp,self.cpuconfig)
         with self.assertRaisesRegex(ValueError,'coverage'):self.C.verify_config(self.cp,E.digest(self.cp))
 
+    def compatibility_fixture(self):
+        # Temporary test evidence only; never an actual independent approval.
+        host,actual,remote=self.lifecycle_fixture()
+        newroot=self.root/'compatibility';newroot.mkdir()
+        newconsumer=newroot/'consume.py';newconsumer.write_bytes(self.consumer.read_bytes())
+        new=C.module(newconsumer,'fixture_compatibility_cpu')
+        config=copy.deepcopy(self.cpuconfig);config.pop('_verified_config_sha256')
+        config['compatibility']=dict(kind='docker_bind_order_only',original_config=self.pin(self.cp),
+                                    original_consumer=self.pin(self.consumer),original_review=self.pin(self.rp))
+        for p in (self.cp,self.rp,newconsumer):config['files'][str(p)]=E.digest(p)
+        cp=newroot/'config.json';self.write(cp,config)
+        verified=new.verify_config(cp,E.digest(cp))
+        review=dict(schema='bev-public-cpu-compatibility-review-v1',verdict='PASS',consumption_authorized=True,
+                    scientific_acceptance=False,candidate_selection_allowed=False,scope='public_release_test',
+                    compatibility_kind='docker_bind_order_only',plan_sha256=config['plan_sha256'],
+                    cpu_config_sha256=E.digest(cp),consumer_sha256=E.digest(newconsumer),
+                    original=config['compatibility'],hashes=dict(config['files']),test_fixture_only=True)
+        rp=newroot/'TEST_ONLY_REVIEW.json';self.write(rp,review)
+        return new,verified,rp,review,host,actual,remote
+
+    def test_bind_reordering_passes_but_cli_order_is_fixed(self):
+        host,actual,remote=self.lifecycle_fixture()
+        actual['HostConfig']['Binds'].reverse()
+        with mock.patch.object(self.C,'remote_json',side_effect=remote):
+            self.assertIsNotNone(self.C.lifecycle(self.cpuconfig,self.plan))
+            spec=C.load(host/'LAUNCH_SPEC.json');positions=[i+1 for i,x in enumerate(spec['command']) if x=='-v']
+            a,b=positions[:2];spec['command'][a],spec['command'][b]=spec['command'][b],spec['command'][a]
+            self.write(host/'LAUNCH_SPEC.json',spec)
+            with self.assertRaisesRegex(ValueError,'launch prefix'):self.C.lifecycle(self.cpuconfig,self.plan)
+
+    def test_bind_extra_duplicate_missing_different_and_mount_mutations_reject(self):
+        host,actual,remote=self.lifecycle_fixture();original=copy.deepcopy(actual)
+        mutations=[lambda x:x['HostConfig']['Binds'].append('/gold:/gold:ro'),
+                   lambda x:x['HostConfig']['Binds'].append(x['HostConfig']['Binds'][0]),
+                   lambda x:x['HostConfig']['Binds'].__setitem__(1,x['HostConfig']['Binds'][0]),
+                   lambda x:x['HostConfig']['Binds'].pop(),
+                   lambda x:x['HostConfig']['Binds'].__setitem__(0,'/different:/different:ro'),
+                   lambda x:x['HostConfig'].update(Binds=None),
+                   lambda x:x['HostConfig'].update(Mounts=[{'Target':'/extra'}]),
+                   lambda x:x['Mounts'][0].update(Mode='rw'),
+                   lambda x:x['Mounts'][0].update(RW=True),
+                   lambda x:x['Mounts'][0].update(Propagation='shared')]
+        with mock.patch.object(self.C,'remote_json',side_effect=remote):
+            for i,mutate in enumerate(mutations):
+                with self.subTest(mutation=i):
+                    actual.clear();actual.update(copy.deepcopy(original));mutate(actual)
+                    with self.assertRaises((ValueError,RuntimeError)):self.C.lifecycle(self.cpuconfig,self.plan)
+
+    def test_compatibility_requires_separate_admission_and_preserves_both_reviews(self):
+        new,d,rp,review,host,actual,remote=self.compatibility_fixture()
+        with self.assertRaisesRegex(ValueError,'compatibility review required'):new.consume(d)
+        new.admit_compatibility(d,rp,E.digest(rp));actual['HostConfig']['Binds'].reverse()
+        with mock.patch.object(new,'remote_json',side_effect=remote):
+            result=new.consume(d)
+            self.assertEqual(result['metrics']['all']['n'],6518)
+            self.assertEqual(result['inputs'][str(rp)],E.digest(rp))
+            self.assertEqual(result['inputs'][str(self.rp)],E.digest(self.rp))
+            self.assertEqual(result['inputs'][str(self.cp)],E.digest(self.cp))
+            self.assertEqual(result['plan_sha256'],self.cpuconfig['plan_sha256'])
+            self.assertFalse(result['scientific_acceptance'])
+            rp.write_text('{}')
+            with self.assertRaisesRegex(ValueError,'review hash'):new.consume(d)
+
+    def test_compatibility_rejects_wrong_admission_identity_scope_and_coverage(self):
+        new,d,rp,review,*_=self.compatibility_fixture()
+        for field,value in [('schema','unknown'),('verdict','FAIL'),('consumption_authorized',False),
+                            ('scientific_acceptance',True),('candidate_selection_allowed',True),
+                            ('scope','train_derived_dev'),('compatibility_kind','anything'),
+                            ('cpu_config_sha256','0'*64),('consumer_sha256','0'*64),
+                            ('plan_sha256','0'*64),('original',{}),('hashes',{})]:
+            with self.subTest(field=field):
+                changed=copy.deepcopy(review);changed[field]=value;self.write(rp,changed)
+                with self.assertRaises(ValueError):new.admit_compatibility(d,rp,E.digest(rp))
+
+    def test_compatibility_preserves_original_contract_and_launch_review(self):
+        new,d,rp,review,host,actual,remote=self.compatibility_fixture()
+        for field,value in [('plan_sha256','0'*64),('gold',str(self.root/'other.jsonl')),
+                            ('poll_interval_seconds',1),('scope','train_derived_dev')]:
+            with self.subTest(field=field):
+                changed=copy.deepcopy(d);changed[field]=value
+                with self.assertRaisesRegex(ValueError,'original CPU contract'):new.compatibility_inputs(changed)
+        changed=copy.deepcopy(d);del changed['files'][str(self.consumer)]
+        with self.assertRaisesRegex(ValueError,'pin coverage'):new.compatibility_inputs(changed)
+        new.admit_compatibility(d,rp,E.digest(rp))
+        # Even byte-identical launch review moved to another path is not the original receipt.
+        other=self.root/'other-review.json';other.write_bytes(self.rp.read_bytes())
+        for name in ('START_INTENT.json','SERVICE.json'):
+            value=C.load(host/name);value['command'][10]=str(other);self.write(host/name,value)
+        with mock.patch.object(new,'remote_json',side_effect=remote):
+            with self.assertRaisesRegex(ValueError,'original launch review'):new.consume(d)
+
 if __name__=='__main__':unittest.main()

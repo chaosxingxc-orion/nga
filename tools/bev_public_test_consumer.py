@@ -87,12 +87,57 @@ def verify_config(path,pin):
         for item in plan[group].values():require(d['files'].get(item['path'])==item['sha256'],'CPU dependency coverage differs')
     R=module(plan['code']['runner']['path'],'public_test_cpu_runner')
     R.verify(d['plan'],d['plan_sha256'])
-    require(Path(d['gold']).parent==Path(path).parent and not Path(d['gold']).is_relative_to(Path(d['plan']).parent),'gold placement differs')
+    if 'compatibility' in d:
+        original=compatibility_inputs(d)
+        require(d['gold']==original['gold'],'compatibility gold path differs')
+    else:
+        require(Path(d['gold']).parent==Path(path).parent,'gold placement differs')
+    require(not Path(d['gold']).is_relative_to(Path(d['plan']).parent),'gold enters inference package')
     requests=[json.loads(x) for x in Path(plan['inputs']['requests']['path']).read_text().splitlines()]
     gold=[json.loads(x) for x in Path(d['gold']).read_text().splitlines()]
     population(requests,gold,6518)
     require(dict(collections.Counter(g['type'] for g in gold))==plan['expected_by_type'],'gold type population differs')
     d['_verified_config_sha256']=pin
+    return d
+
+
+def compatibility_inputs(d):
+    c=d['compatibility']
+    require(set(c)=={'kind','original_config','original_consumer','original_review'}
+            and c['kind']=='docker_bind_order_only','unsupported CPU compatibility scope')
+    values={}
+    for key in ('original_config','original_consumer','original_review'):
+        ref=c[key];require(set(ref)=={'path','sha256'} and d['files'].get(ref['path'])==ref['sha256'],'compatibility pin coverage differs')
+        if key=='original_consumer':require(sha(ref['path'])==ref['sha256'],'compatibility dependency changed')
+        else:
+            values[key],observed=snapshot(ref['path'])
+            require(observed==ref['sha256'],'compatibility dependency changed')
+    original=values['original_config'];review=values['original_review']
+    require('compatibility' not in original and original.get('schema')==d['schema'],'compatibility chain unsupported')
+    for key in ('plan','plan_sha256','gold','scope','scientific_acceptance','test_read','candidate_selection_allowed','poll_interval_seconds'):
+        require(original.get(key)==d.get(key),'original CPU contract differs: '+key)
+    require(original['files'].get(c['original_consumer']['path'])==c['original_consumer']['sha256'],'original consumer binding differs')
+    require(all(d['files'].get(p)==h for p,h in original['files'].items()),'original CPU files not preserved')
+    require(review.get('activation_authorized') is True and review.get('scope')=='public_release_test'
+            and review.get('scientific_acceptance') is False and review.get('candidate_selection_allowed') is False
+            and review.get('approved_plan_sha256')==d['plan_sha256']
+            and review.get('cpu_config_sha256')==c['original_config']['sha256']
+            and review.get('consumer_sha256')==c['original_consumer']['sha256'],'original CPU admission differs')
+    return original
+
+
+def admit_compatibility(d,path,pin):
+    require('compatibility' in d,'compatibility admission without compatibility config')
+    compatibility_inputs(d);review,observed=snapshot(path);require(observed==pin,'compatibility review hash differs')
+    require(review.get('schema')=='bev-public-cpu-compatibility-review-v1' and review.get('verdict')=='PASS'
+            and review.get('consumption_authorized') is True and review.get('scientific_acceptance') is False
+            and review.get('candidate_selection_allowed') is False and review.get('scope')=='public_release_test'
+            and review.get('compatibility_kind')=='docker_bind_order_only','CPU compatibility admission differs')
+    require(review.get('plan_sha256')==d['plan_sha256'] and review.get('cpu_config_sha256')==d['_verified_config_sha256']
+            and review.get('consumer_sha256')==d['files'][str(Path(__file__).resolve())]
+            and review.get('original')==d['compatibility'],'CPU compatibility identity differs')
+    require(all(review.get('hashes',{}).get(p)==h for p,h in d['files'].items()),'CPU compatibility review coverage differs')
+    d['_compatibility_review']={'path':str(path),'sha256':pin}
     return d
 
 def snapshot(path):
@@ -127,8 +172,13 @@ def review_lineage(d,plan,attempt,start,service):
             and review.get('candidate_selection_allowed') is False
             and review.get('approved_plan_sha256')==d['plan_sha256'] and attempt in review.get('attempts',[]),
             'original activation review differs')
-    require(review.get('deployment_suitable') is True and review.get('cpu_config_sha256')==d.get('_verified_config_sha256')
-            and review.get('consumer_sha256')==d['files'][str(Path(__file__).resolve())],
+    expected_config=d.get('_verified_config_sha256');expected_consumer=d['files'][str(Path(__file__).resolve())]
+    if 'compatibility' in d:
+        c=d['compatibility'];compatibility_inputs(d)
+        require(str(path)==c['original_review']['path'] and pin==c['original_review']['sha256'],'original launch review differs')
+        expected_config=c['original_config']['sha256'];expected_consumer=c['original_consumer']['sha256']
+    require(review.get('deployment_suitable') is True and review.get('cpu_config_sha256')==expected_config
+            and review.get('consumer_sha256')==expected_consumer,
             'original CPU review differs')
     require(review.get('hashes',{}).get(d['plan'])==d['plan_sha256'],'original review plan coverage differs')
     for group in ('code','inputs','model_files'):
@@ -183,7 +233,11 @@ def effective_container(plan,d,attempt,spec,launch,actual,image,daemon):
     require(actual.get('Args')==effective[1:],'effective process arguments differ')
     expected_devices=[{'PathOnHost':x,'PathInContainer':x,'CgroupPermissions':'rwm'} for x in devices]
     require(host.get('Devices')==expected_devices,'exact device map differs')
-    require(host.get('Binds')==binds and not host.get('Mounts'),'exact host bind configuration differs')
+    observed_binds=host.get('Binds')
+    require(isinstance(observed_binds,list) and all(isinstance(x,str) for x in observed_binds)
+            and len(observed_binds)==len(set(observed_binds))
+            and len(binds)==len(set(binds)) and collections.Counter(observed_binds)==collections.Counter(binds)
+            and not host.get('Mounts'),'exact host bind configuration differs')
     mounts=actual.get('Mounts')
     require(isinstance(mounts,list) and len(mounts)==len(binds),'mount inventory differs')
     expected={}
@@ -282,11 +336,16 @@ def lifecycle(d,plan):
     return c,pins
 
 def consume(d):
+    compatibility_pins={}
+    if 'compatibility' in d:
+        admission=d.get('_compatibility_review');require(isinstance(admission,dict),'CPU compatibility review required')
+        admit_compatibility(d,admission['path'],admission['sha256'])
+        compatibility_pins[admission['path']]=admission['sha256']
     plan,observed=snapshot(d['plan']);require(observed==d['plan_sha256'],'plan mismatch')
     require(plan['schema']=='bev-public-test-plan-v1' and plan['test_read'] is True and plan['scientific_acceptance'] is False,'plan scope differs')
     ready=lifecycle(d,plan)
     if ready is None:return None
-    complete,pins=ready
+    complete,pins=ready;pins.update(compatibility_pins)
     requests=[json.loads(x) for x in Path(plan['inputs']['requests']['path']).read_text().splitlines()]
     gold=[json.loads(x) for x in Path(d['gold']).read_text().splitlines()]
     ids=population(requests,gold,6518);require(ids==load(plan['inputs']['ids']['path']),'ordered population differs')
@@ -309,7 +368,9 @@ def consume(d):
     return {'schema':'bev-public-test-cpu-result-v1','protocol':'bev-local-typed-exact-release-test-v1','scope':'public_release_test','metrics':metrics,'flags':flags(metrics),'plan_sha256':d['plan_sha256'],'inputs':{**d['files'],**pins},'scientific_acceptance':False,'test_read':True,'native_reproduction':False,'limitations':['No TEST-label-fitted oracle or model selection.','Public release TEST under local protocol; no native-reproduction, consistency or training-gain claim.','Full inference requires all6518 successful outputs; pure scoring preserves failed predictions in denominator but failed lifecycle yields no accepted result.','Small-cell warning30 is descriptive monitoring only, not a scientific threshold.']}
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--config',required=True);ap.add_argument('--sha256',required=True);ap.add_argument('--once',action='store_true');a=ap.parse_args();path=Path(a.config);root=path.parent
+    ap=argparse.ArgumentParser();ap.add_argument('--config',required=True);ap.add_argument('--sha256',required=True);ap.add_argument('--once',action='store_true')
+    ap.add_argument('--compatibility-review');ap.add_argument('--compatibility-review-sha256')
+    a=ap.parse_args();path=Path(a.config);root=path.parent
     with (root/'consumer.lock').open('a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         if (root/'EXIT.json').exists():
@@ -317,7 +378,12 @@ def main():
                 and sha(root/'report.json')==e['report_sha256'],'prior terminal requires review');return
         try:
             while True:
-                d=verify_config(path,a.sha256);value=consume(d)
+                d=verify_config(path,a.sha256)
+                if 'compatibility' in d:
+                    require(a.compatibility_review and a.compatibility_review_sha256,'independent CPU compatibility review required')
+                    admit_compatibility(d,a.compatibility_review,a.compatibility_review_sha256)
+                else:require(not a.compatibility_review and not a.compatibility_review_sha256,'unexpected compatibility review')
+                value=consume(d)
                 atomic(root/'digest.json',{'utc_seconds':time.time(),'status':'done' if value else 'waiting_inference','scientific_acceptance':False})
                 if value is not None:
                     atomic(root/'report.json',value);atomic(root/'EXIT.json',{'exit_code':0,'report_sha256':sha(root/'report.json'),'config_sha256':a.sha256,'scientific_acceptance':False});return
