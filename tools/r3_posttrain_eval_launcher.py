@@ -139,22 +139,65 @@ def allowed_data_files(spec):
     return files
 
 
+def control_training_command(plan):
+    """Recover control objective from canonical recorded argv."""
+    command = plan.get('command')
+    require(isinstance(command, list) and all(type(x) is str for x in command)
+            and command[:3] == ['python3', '-P', '/workspace/train_r3.py'],
+            'control producer training command differs')
+    # Reject every noncanonical option, including argparse short aliases,
+    # equals forms, duplicates, and stray positional tokens.
+    valued = {
+        '--out', '--arm', '--seed', '--model-path', '--epochs', '--total-steps',
+        '--stop-after', '--lr', '--lora-r', '--lora-alpha', '--lora-dropout',
+        '--expect-pairs', '--kernel', '--micro-tokens', '--max-len',
+        '--save-every', '--symbol-file', '--symbol-n', '--limit-rows', '--device',
+    }
+    switches = {'--grad-ckpt', '--full-logits', '--drop-state', '--no-merge'}
+    parsed = {}
+    i = 3
+    while i < len(command):
+        flag = command[i]
+        require(flag in valued or flag in switches,
+                'unknown or noncanonical control training flag: ' + flag)
+        require(flag not in parsed, 'duplicate control training flag: ' + flag)
+        if flag in switches:
+            parsed[flag] = True
+            i += 1
+        else:
+            require(i + 1 < len(command) and not command[i + 1].startswith('-'),
+                    'missing or ambiguous control training value: ' + flag)
+            parsed[flag] = command[i + 1]
+            i += 2
+    objective = parsed.get('--arm')
+    require(objective == 'k1' and plan.get('arm', objective) == objective,
+            'control training objective differs')
+    require(type(plan.get('seed')) is int and parsed.get('--seed') == str(plan['seed']),
+            'control command seed differs')
+    require(parsed.get('--model-path') == plan['model'], 'control command model differs')
+    return command
+
 def verify_control_manifest(spec):
     if is_baseline(spec):return
     arm=spec['training_variant']['arm'].upper()
     training=Path(spec['training']);manifest=load(training/'manifest.json');args=manifest.get('args',{})
-    looks_control=arm in ('K1-QO','K1-PT') or args.get('drop_state') or spec['model']==R0_MODEL
+    path=training/'plan.json'
+    plan=load(path) if path.exists() else {}
+    looks_control=(arm in ('K1-QO','K1-PT') or args.get('drop_state') or spec['model']==R0_MODEL
+                   or plan.get('control_arm') is not None or '--drop-state' in plan.get('command', []))
     if not looks_control:return
     require(arm in ('K1-QO','K1-PT'),'control cannot be relabeled generic training')
-    path=training/'plan.json';require(str(path) in spec['files'] and sha(path)==spec['training_variant']['training_plan_sha256'],
+    require(str(path) in spec['files'] and sha(path)==spec['files'][str(path)]
+                                     ==spec['training_variant']['training_plan_sha256'],
                                      'control training plan unbound')
     plan=load(path)
-    require(plan.get('control_arm')==arm and plan.get('arm')=='k1' and manifest.get('arm')=='k1' and args.get('arm')=='k1',
+    command=control_training_command(plan)
+    require(plan.get('control_arm')==arm and manifest.get('arm')=='k1' and args.get('arm')=='k1',
             'control training objective or identity differs')
     require(spec['model']==plan['model']==manifest.get('model_path')==args.get('model_path'), 'control model differs')
-    require(type(args.get('seed')) is int and args['seed']==plan.get('seed')==spec['training_variant'].get('seed'),
+    require(type(args.get('seed')) is int and type(spec['training_variant'].get('seed')) is int
+            and args['seed']==plan.get('seed')==spec['training_variant'].get('seed'),
             'control seed differs')
-    command=plan.get('command',[])
     if arm=='K1-QO':
         require(spec['model']==R0_MODEL+'-Base' and args['seed']==2 and args.get('drop_state') is True
                 and command.count('--drop-state')==1,'QO requires Base seed2 and dropped training state')

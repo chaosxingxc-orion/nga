@@ -56,7 +56,7 @@ class PTR0(unittest.TestCase):
         for name in ('adapter_config.json', 'adapter_model.safetensors'):
             (adapter / name).write_text('{}')
         plan = {'arm': 'k1', 'control_arm': 'K1-PT', 'seed': 3, 'model': str(self.model),
-                'command': ['train'], 'image_sha256': L.IMAGE,
+                'command': ['python3', '-P', '/workspace/train_r3.py', '--arm', 'k1', '--seed', '3', '--model-path', str(self.model)], 'image_sha256': L.IMAGE,
                 'files': {str(p): L.sha(p) for p in self.model.iterdir()}}
         manifest = {'arm': 'k1', 'model_path': str(self.model), 'summary': {'final_step': 3116},
                     'args': {'arm': 'k1', 'model_path': str(self.model), 'seed': 3, 'drop_state': False}}

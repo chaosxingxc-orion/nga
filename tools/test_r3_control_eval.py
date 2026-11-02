@@ -13,7 +13,7 @@ P=module('r3_posttrain_eval_plan');L=module('r3_posttrain_eval_launcher')
 class ControlEval(unittest.TestCase):
  def fixture(self,arm='K1-QO',seed=2):
   model=P.BASE_MODEL if arm=='K1-QO' else P.PT_MODEL
-  plan={'control_arm':arm,'arm':'k1','seed':seed,'model':model,'command':['train']+(['--drop-state'] if arm=='K1-QO' else [])}
+  plan={'control_arm':arm,'arm':'k1','seed':seed,'model':model,'command':['python3','-P','/workspace/train_r3.py','--arm','k1','--seed',str(seed),'--model-path',model]+(['--drop-state'] if arm=='K1-QO' else [])}
   manifest={'arm':'k1','model_path':model,'args':{'arm':'k1','model_path':model,'seed':seed,'drop_state':arm=='K1-QO'}}
   return plan,manifest
  def test_completed_control_identity_and_original_primary_mode(self):
