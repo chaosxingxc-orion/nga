@@ -175,6 +175,9 @@ def verify(path, pin, reviewed=True):
             training_binding(j, p)
             continue
         prior = load(j['previous_execution'], j['previous_execution_sha256'])
+        if prior.get('schema') == 'bev-dev-plan-v1':
+            bev_binding(j, prior)
+            continue
         require(prior.get('schema') == 'r3-engineering-posttrain-execution-v1'
                 and prior['chip'] == j['chip'] and prior['out'] == str(Path(j['previous_execution']).parent)
                 and prior['out'] != p['out'] and prior.get('test_read') is False
@@ -400,6 +403,8 @@ def predecessor(job, resource):
         return training_predecessor(job, resource)
     path = Path(job['previous_execution']); root = path.parent
     snap = Snapshot(); p = snap.read(path, job['previous_execution_sha256'])
+    if p.get('schema') == 'bev-dev-plan-v1':
+        return bev_predecessor(job, p, resource, snap)
     marker = root/'ENGINEERING_EVAL_EXIT.json'
     if not marker.exists():
         return None
@@ -450,6 +455,132 @@ def predecessor(job, resource):
     snap.recheck()
     return dict(container_id=actual['Id'], attempt=n, run=p['run'], hashes=snap.hashes,
                 release_path=str(attempt/'RELEASE.json'), free_entry=free)
+
+
+def bev_binding(job, p):
+    """A BEV predecessor is operational evidence, never a formal candidate."""
+    require(p.get('schema') == 'bev-dev-plan-v1' and p.get('test_read') is False
+            and p.get('scientific_acceptance') is False and p.get('source_split') == 'train_derived_dev'
+            and p.get('chip') == job['chip'] and p.get('chips') == 1
+            and p.get('out') == str(Path(job['previous_execution']).parent/'output')
+            and p.get('selection') == 'all_registered_dev_ids'
+            and type(p.get('expected_questions')) is int and p['expected_questions'] == 6516,
+            'BEV predecessor scope/placement differs')
+    for group in ('code', 'inputs'):
+        require(isinstance(p.get(group), dict) and p[group], 'BEV pin inventory missing')
+        for entry in p[group].values(): content(entry['path'], entry['sha256'])
+    require(set(p['inputs']) == {'ids','requests'}, 'BEV input inventory differs')
+    return p
+
+
+def bev_predecessor(job, p, resource, snap):
+    """Consume BEV runner + host terminals and the exact retained release generation.
+
+    This checks completed execution and resource lineage, not accuracy or native
+    TEST qualification. Missing terminal/release waits; malformed evidence fails.
+    """
+    bev_binding(job, p); root=Path(p['out']); complete=root/'COMPLETE.json'
+    def attempts():
+        found=[]
+        for folder in (root/'host_attempts',root/'attempts'):
+            if folder.exists():
+                for path in folder.iterdir():
+                    require(path.is_dir() and not path.is_symlink() and path.name.isdecimal()
+                            and int(path.name)>0 and str(int(path.name))==path.name, 'BEV attempt inventory differs')
+                    found.append(str(path))
+        return sorted(found)
+    inventory=attempts()
+    if not inventory: return None
+    n=max(int(Path(x).name) for x in inventory)
+    host=root/'host_attempts'/str(n); a=root/'attempts'/str(n)
+    if not all(x.is_file() for x in (host/'EXIT.json',host/'RELEASE.json',a/'EXIT.json')):
+        observed=[snap.read(x) for x in (host/'EXIT.json',a/'EXIT.json') if x.is_file()]
+        if any(type(x.get('exit_code')) is int and x['exit_code']!=0 for x in observed):
+            return dict(status='needs_reconciliation',reason='failed BEV attempt lacks full terminal/release evidence',attempt=n)
+        return None
+    end=snap.read(complete) if complete.exists() else None
+    for group in ('code','inputs'):
+        for entry in p[group].values(): snap.raw(entry['path'],entry['sha256'])
+    pin=job['previous_execution_sha256']; terminal=snap.read(a/'EXIT.json'); final=snap.read(host/'EXIT.json')
+    require(terminal.get('attempt')==n and terminal.get('plan_sha256')==pin
+            and terminal.get('scientific_acceptance') is False
+            and final.get('runner_terminal_matches') is True
+            and final.get('scientific_acceptance') is False, 'BEV terminal binding differs')
+    launch=snap.read(host/'LAUNCH_RECEIPT.json'); spec=snap.read(host/'LAUNCH_SPEC.json')
+    release=snap.read(host/'RELEASE.json'); claim=snap.read(host/'CLAIM.json'); service=snap.read(host/'SERVICE.json')
+    start=snap.read(host/'START_INTENT.json');cmd=service['command']
+    prefix=[sys.executable,'-B','-P',p['code']['host']['path'],'supervise','--plan',job['previous_execution'],'--sha256',pin,'--review']
+    require(cmd[:10]==prefix and len(cmd)==15 and cmd[11]=='--review-sha256'
+            and cmd[13:]==['--attempt',str(n)] and start['command']==cmd,
+            'BEV supervisor identity differs')
+    review=snap.read(cmd[10],cmd[12]);require(review.get('approved_plan_sha256')==pin
+            and review.get('activation_authorized') is True and review.get('scientific_acceptance') is False,
+            'BEV original execution review differs')
+    actual=resource.docker_inspect(p['container']+'-a'+str(n))
+    require(actual and actual['Id']==launch['container_id']==release['container_id']==final['container_id']
+            and actual['State']['Status']=='exited', 'BEV retained generation differs')
+    codes=[terminal.get('exit_code'),final.get('exit_code'),final.get('container_exit_code'),
+           release.get('exit_code'),actual['State']['ExitCode']]
+    require(all(type(x) is int for x in codes) and len(set(codes))==1
+            and release.get('scientific_acceptance') is False, 'BEV predecessor exit codes differ')
+    expected=['python3','-B','-P',p['code']['runner']['path'],'run','--plan',job['previous_execution'],
+              '--sha256',pin,'--attempt',str(n)]
+    image=resource.image_inspect(p['image_sha256']);command=spec['command'];ix=command.index(p['image_sha256'])
+    require(command[ix+1:]==expected and actual['Config']['Cmd']==expected==launch['command']
+            and actual['Config']['Entrypoint']==image.get('Config',{}).get('Entrypoint')
+            and launch['plan_sha256']==spec['plan_sha256']==pin
+            and command[:3]==['docker','run','-d'] and '--rm' not in command
+            and command[command.index('--name')+1]==p['container']+'-a'+str(n)
+            and actual['Name']=='/'+p['container']+'-a'+str(n), 'BEV retained command differs')
+    before=command[3:ix];options={};i=0
+    while i<len(before):
+        key=before[i];require(key in ('--name','--network','--shm-size','--ulimit','--device','-v','-e')
+                               and i+1<len(before),'BEV unexpected Docker option')
+        options.setdefault(key,[]).append(before[i+1]);i+=2
+    require(options.get('--name')==[p['container']+'-a'+str(n)] and options.get('--network')==['none']
+            and options.get('--shm-size')==['16g'] and options.get('--ulimit')==['memlock=-1:-1','stack=67108864:67108864']
+            and options.get('-e')==[k+'='+v for k,v in p['environment'].items()], 'BEV launch options differ')
+    device_paths=['/dev/davinci_manager','/dev/devmm_svm','/dev/hisi_hdc','/dev/davinci'+str(p['chip'])]
+    require(options.get('--device')==device_paths and sorted((x['PathOnHost'],x['PathInContainer'],x['CgroupPermissions']) for x in actual['HostConfig']['Devices'])==sorted((x,x,'rwm') for x in device_paths),'BEV devices differ')
+    binds=options.get('-v',[]); expected_binds=['/usr/local/Ascend/driver:/usr/local/Ascend/driver:ro']+[
+        x['source']+':'+x['destination']+(':ro' if x['readonly'] else '') for x in p['mounts']]
+    optional=[x+':'+x+':ro' for x in ('/usr/local/sbin','/etc/ascend_install.info')]
+    require(binds[:len(expected_binds)]==expected_binds and all(x in optional for x in binds[len(expected_binds):])
+            and len(set(binds))==len(binds) and sorted(actual['HostConfig'].get('Binds') or [])==sorted(binds),'BEV bind declaration differs')
+    expected_mounts=[]
+    for b in binds:
+        parts=b.split(':');require(len(parts) in (2,3) and (len(parts)==2 or parts[2]=='ro'),'BEV bind mode differs')
+        expected_mounts.append((parts[0],parts[1],len(parts)==2))
+    require(sorted(expected_mounts)==sorted((x['Source'],x['Destination'],x['RW']) for x in actual['Mounts'])
+            and all(x['Type']=='bind' and x.get('Propagation','rprivate')=='rprivate' for x in actual['Mounts']), 'BEV effective mounts differ')
+    hostconfig=actual['HostConfig'];require(hostconfig.get('ShmSize')==16*1024**3
+        and len(hostconfig.get('Ulimits',[]))==2 and {x['Name']:(x['Soft'],x['Hard']) for x in hostconfig['Ulimits']}=={'memlock':(-1,-1),'stack':(67108864,67108864)},'BEV limits differ')
+    # Shared policy rejects Binds for --mount launchers. Here exact -v binds were checked above.
+    policy=dict(actual,HostConfig=dict(hostconfig,Binds=None))
+    resource.verify_effective_policy(policy,image,p['environment'])
+    free=ownership(p,claim,release,host/'RELEASE.json',actual)
+    require(not process_matches(service),'BEV supervisor still live')
+    require(attempts()==inventory, 'BEV attempt inventory changed')
+    snap.recheck()
+    if codes[0]!=0:
+        require(end is None or end.get('attempt')!=n, 'failed BEV attempt has conflicting completion')
+        return dict(status='predecessor_failed',attempt=n,exit_code=codes[0],container_id=actual['Id'],
+                    run=p['run'],hashes=snap.hashes,release_path=str(host/'RELEASE.json'))
+    if end is None or end.get('attempt')!=n:
+        return dict(status='needs_reconciliation',reason='successful BEV terminal lacks matching COMPLETE',attempt=n)
+    require(end.get('schema')=='bev-dev-completion-v1' and end.get('plan_sha256')==pin
+            and end.get('rows')==6516 and end.get('outcomes')=={'ok':6516}
+            and len(end.get('items',{}))==6516 and end.get('scientific_acceptance') is False
+            and end.get('test_read') is False, 'BEV completion identity differs')
+    ids=snap.read(p['inputs']['ids']['path'],p['inputs']['ids']['sha256'])
+    require(isinstance(ids,list) and len(ids)==len(set(ids))==6516 and all(isinstance(x,str) for x in ids)
+            and set(end['items'])=={digest(x.encode())+'.json' for x in ids}
+            and all(isinstance(h,str) and len(h)==64 and all(c in '0123456789abcdef' for c in h)
+                    for h in end['items'].values()),'BEV completion inventory differs')
+    require(type(end.get('exit_code')) is int and end['exit_code']==0, 'BEV completion exit differs')
+    snap.recheck()
+    return dict(container_id=actual['Id'],attempt=n,run=p['run'],hashes=snap.hashes,
+                release_path=str(host/'RELEASE.json'),free_entry=free)
 
 
 def training_predecessor(job, resource):
@@ -528,7 +659,7 @@ def claim_precondition(p, plan_pin, precondition_pin, allocation, resource):
                 and job['previous_execution_sha256'] == guard.get('previous_execution_sha256'), 'guard predecessor differs')
     require(value['competitors'] == guard['competitors'], 'guard competitors differ')
     prior = predecessor(job, resource)
-    require(prior is not None and prior == expected['previous'], 'predecessor evidence changed at claim')
+    require(prior is not None and 'status' not in prior and prior == expected['previous'], 'predecessor evidence changed at claim')
     free = [x for x in allocation['free'] if x['chip'] == p['chip']]
     require(not any(x['chip'] == p['chip'] for x in allocation['allocation'])
             and free == [expected['free_entry']] == [prior['free_entry']], 'free predecessor generation changed at claim')
@@ -543,6 +674,8 @@ def ready(job, p, resource, authorization):
     prior = predecessor(job, resource)
     if prior is None:
         return {'status': 'waiting_previous_release_and_supervisor_done'}
+    if 'status' in prior:
+        return prior
     competitors(authorization['competitors'][job['id']])
     allocation_raw = resource.read_bytes(p['allocation'])
     allocation = json.loads(allocation_raw); resource.validate_doc(allocation)
@@ -656,16 +789,20 @@ def cycle(doc, authorization, state_root):
     return states
 
 
+WAVE_FAILURES = frozenset(('failed_released','predecessor_failed','blocked_by_failed_predecessor'))
+WAVE_TERMINALS = WAVE_FAILURES | frozenset(('completed','deferred_by_root'))
+
 def wave_lane(jobs, authorization, state_root):
-    states={};blocked=None
+    states={};blocked=None;failed=False
     for job in jobs:
         if job['id'] not in authorization['allowed_jobs']:
             states[job['id']]={'status':'deferred_by_root'};blocked=job['id'];continue
         if blocked:
-            states[job['id']]={'status':'waiting_queue_predecessor','job':blocked};continue
+            states[job['id']]={'status':'blocked_by_failed_predecessor' if failed else 'waiting_queue_predecessor','job':blocked};continue
         try:states[job['id']]=tick(job,authorization,state_root)
         except Exception as error:states[job['id']]={'status':'observation_or_launch_uncertain','error':str(error)[:300]}
-        if states[job['id']]['status']!='completed':blocked=job['id']
+        if states[job['id']]['status']!='completed':
+            blocked=job['id'];failed=states[job['id']]['status'] in WAVE_FAILURES
     return states
 
 
@@ -690,7 +827,7 @@ def watch_wave(path, pin, apath, apin, initial):
                 jobs=[j for j in d['jobs'] if j['chip']==chip]
                 values=wave_lane(jobs,a,root)
                 with mutex:states.update(values)
-                if all(x['status'] in ('completed','deferred_by_root') for x in values.values()):return
+                if all(x['status'] in WAVE_TERMINALS for x in values.values()):return
                 stop.wait(d['poll_interval_seconds'])
         except Exception as error:
             with mutex:errors[str(chip)]=str(error)[:300]

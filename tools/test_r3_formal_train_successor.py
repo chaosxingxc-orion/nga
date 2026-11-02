@@ -636,7 +636,8 @@ class WaveQueueTests(unittest.TestCase):
         for status in ('failed_released','needs_repair'):
             with patch.object(S,'tick',return_value={'status':status}) as tick:
                 v=S.wave_cycle(self.doc,self.a,self.root)
-            self.assertEqual(tick.call_count,2);self.assertEqual(v['diffchip_s2']['status'],'waiting_queue_predecessor')
+                self.assertEqual(tick.call_count,2);self.assertEqual(v['diffchip_s2']['status'],
+                    'blocked_by_failed_predecessor' if status=='failed_released' else 'waiting_queue_predecessor')
         a={'allowed_jobs':['samechip_s2','diffchip_s2']}
         with patch.object(S,'tick') as tick:S.wave_cycle(self.doc,a,self.root)
         tick.assert_not_called()
@@ -664,4 +665,140 @@ class WaveQueueTests(unittest.TestCase):
         finally:os.umask(old)
 
 
-if __name__=='__main__':unittest.main()
+
+
+
+class BevPredecessorTests(unittest.TestCase):
+    setUp=SuccessorTests.setUp
+    patch=SuccessorTests.patch
+    inspect=SuccessorTests.inspect
+    seal_plan=SuccessorTests.seal_plan
+    lineage=SuccessorTests.lineage
+
+    def bev(self):
+        root=self.previous/'output';root.mkdir();host=root/'host_attempts/1'
+        ids=[str(i) for i in range(6516)];write(self.previous/'ids.json',ids)
+        (self.previous/'requests.jsonl').write_text('fixture requests')
+        p=dict(schema='bev-dev-plan-v1',chip=1,chips=1,out=str(root),run='bev-prior',allocation=str(self.alloc),
+               container='parent',source_split='train_derived_dev',selection='all_registered_dev_ids',expected_questions=6516,
+               test_read=False,scientific_acceptance=False,image_sha256=E.IMAGE,environment={'PYTHONDONTWRITEBYTECODE':'1'},mounts=[],
+               code={'runner':{'path':S.__file__,'sha256':pin(S.__file__)},'host':{'path':L.__file__,'sha256':pin(L.__file__)}},
+               inputs={k:{'path':str(self.previous/n),'sha256':pin(self.previous/n)} for k,n in [('ids','ids.json'),('requests','requests.jsonl')]})
+        write(self.execution,p);h=pin(self.execution);self.job['previous_execution_sha256']=h
+        expected=['python3','-B','-P',S.__file__,'run','--plan',str(self.execution),'--sha256',h,'--attempt','1']
+        devices=['/dev/davinci_manager','/dev/devmm_svm','/dev/hisi_hdc','/dev/davinci1']
+        binds=['/usr/local/Ascend/driver:/usr/local/Ascend/driver:ro']
+        command=['docker','run','-d','--name','parent-a1','--network','none','--shm-size','16g',
+                 '--ulimit','memlock=-1:-1','--ulimit','stack=67108864:67108864']
+        for x in devices:command+=['--device',x]
+        for x in binds:command+=['-v',x]
+        command+=['-e','PYTHONDONTWRITEBYTECODE=1',E.IMAGE]+expected
+        self.actual=observed(command,'parent-id');self.actual['Config']['Entrypoint']=None
+        self.actual['HostConfig'].update(ShmSize=16*1024**3,Binds=binds)
+        self.actual['Mounts']=[dict(Source='/usr/local/Ascend/driver',Destination='/usr/local/Ascend/driver',RW=False,Type='bind',Propagation='rprivate')]
+        self.lineage(p,host,self.actual)
+        write(root/'COMPLETE.json',dict(schema='bev-dev-completion-v1',plan_sha256=h,attempt=1,exit_code=0,rows=6516,
+              outcomes={'ok':6516},items={S.digest(x.encode())+'.json':'a'*64 for x in ids},scientific_acceptance=False,test_read=False))
+        write(root/'attempts/1/EXIT.json',dict(exit_code=0,attempt=1,plan_sha256=h,scientific_acceptance=False))
+        write(host/'EXIT.json',dict(exit_code=0,container_exit_code=0,runner_terminal_matches=True,container_id='parent-id',scientific_acceptance=False))
+        write(host/'LAUNCH_RECEIPT.json',dict(container_id='parent-id',plan_sha256=h,command=expected))
+        write(host/'LAUNCH_SPEC.json',dict(command=command,plan_sha256=h))
+        review=self.previous/'bev-review.json';write(review,dict(approved_plan_sha256=h,activation_authorized=True,scientific_acceptance=False))
+        cmd=[sys.executable,'-B','-P',L.__file__,'supervise','--plan',str(self.execution),'--sha256',h,
+             '--review',str(review),'--review-sha256',pin(review),'--attempt','1']
+        write(host/'SERVICE.json',dict(pid=2147483647,command=cmd));write(host/'START_INTENT.json',dict(command=cmd))
+        self.bev_plan=p;self.bev_root=root;self.bev_host=host
+        return p
+
+    def test_actual_shape_success(self):
+        self.bev();v=S.predecessor(self.job,R)
+        self.assertEqual(v['container_id'],'parent-id');self.assertEqual(v['run'],'bev-prior')
+        self.assertEqual(v['free_entry']['chip'],1)
+
+    def test_missing_completion_or_release_waits(self):
+        self.bev();(self.bev_host/'RELEASE.json').unlink();self.assertIsNone(S.predecessor(self.job,R))
+        (self.bev_root/'COMPLETE.json').unlink();self.assertIsNone(S.predecessor(self.job,R))
+
+    def test_wrong_plan_pin_rejects(self):
+        self.bev();self.job['previous_execution_sha256']='0'*64
+        with self.assertRaisesRegex(RuntimeError,'content changed'):S.predecessor(self.job,R)
+
+    def test_wrong_chip_and_scope_reject(self):
+        self.bev()
+        for field,value in [('chip',2),('test_read',True),('source_split','test')]:
+            p=dict(self.bev_plan,**{field:value})
+            with self.subTest(field=field),self.assertRaises(RuntimeError):S.bev_binding(self.job,p)
+
+    def test_wrong_container_and_live_reject(self):
+        self.bev();original=copy.deepcopy(self.actual)
+        for field,value in [('Id','replacement'),('State',dict(original['State'],Status='running')),('Name','/wrong')]:
+            self.actual=copy.deepcopy(original);self.actual[field]=value
+            with self.subTest(field=field),self.assertRaises(RuntimeError):S.predecessor(self.job,R)
+
+    def test_wrong_terminal_release_and_population_reject(self):
+        self.bev()
+        cases=[(self.bev_host/'EXIT.json','runner_terminal_matches',False),
+               (self.bev_host/'RELEASE.json','container_id','replacement'),
+               (self.bev_host/'RELEASE.json','exit_code',1),
+               (self.bev_root/'attempts/1/EXIT.json','plan_sha256','0'*64),
+               (self.bev_root/'COMPLETE.json','rows',6515),
+               (self.bev_root/'COMPLETE.json','items',{})]
+        for path,field,value in cases:
+            old=path.read_bytes();doc=json.loads(old);doc[field]=value;write(path,doc)
+            with self.subTest(field=field),self.assertRaises(RuntimeError):S.predecessor(self.job,R)
+            path.write_bytes(old)
+
+    def test_mount_and_command_tamper_reject(self):
+        self.bev();original=copy.deepcopy(self.actual)
+        self.actual['HostConfig']['Binds'].append('/secret:/secret:ro')
+        with self.assertRaises(RuntimeError):S.predecessor(self.job,R)
+        self.actual=copy.deepcopy(original);self.actual['Config']['Cmd'][-1]='2'
+        with self.assertRaises(RuntimeError):S.predecessor(self.job,R)
+
+
+    def fail_bev(self):
+        self.bev();(self.bev_root/'COMPLETE.json').unlink()
+        for path in (self.bev_host/'EXIT.json',self.bev_host/'RELEASE.json',self.bev_root/'attempts/1/EXIT.json'):
+            d=json.loads(path.read_bytes());d['exit_code']=1
+            if path==self.bev_host/'EXIT.json':d['container_exit_code']=1
+            write(path,d)
+        self.actual['State']['ExitCode']=1
+
+    def test_failed_bev_without_complete_is_explicit_terminal(self):
+        self.fail_bev();v=S.predecessor(self.job,R)
+        self.assertEqual(v['status'],'predecessor_failed');self.assertEqual(v['exit_code'],1)
+        self.assertNotIn('free_entry',v)
+        with patch.object(S,'predecessor',return_value=v),patch.object(S,'competitors',side_effect=AssertionError('must not claim')):
+            self.assertEqual(S.ready(self.job,self.p,R,self.a),v)
+
+    def test_failed_bev_requires_release_and_matching_generation(self):
+        self.fail_bev();release=self.bev_host/'RELEASE.json';old=release.read_bytes();release.unlink()
+        self.assertEqual(S.predecessor(self.job,R)['status'],'needs_reconciliation')
+        release.write_bytes(old);self.actual['Id']='replacement'
+        with self.assertRaisesRegex(RuntimeError,'generation'):S.predecessor(self.job,R)
+
+    def test_newer_attempt_never_uses_stale_complete(self):
+        self.bev();(self.bev_root/'host_attempts/2').mkdir()
+        self.assertIsNone(S.predecessor(self.job,R))
+
+    def test_successful_terminal_without_complete_needs_reconciliation(self):
+        self.bev();(self.bev_root/'COMPLETE.json').unlink()
+        self.assertEqual(S.predecessor(self.job,R)['status'],'needs_reconciliation')
+
+
+class WaveFailureTerminationTests(WaveQueueTests):
+    def test_failed_lane_terminates_other_lane_finishes(self):
+        counts={1:0,2:0};doc=dict(self.doc,poll_interval_seconds=0.001)
+        def tick(j,*args):
+            counts[j['chip']]+=1
+            if j['chip']==1:return {'status':'predecessor_failed'}
+            return {'status':'training' if counts[2]==1 else 'completed'}
+        with patch.object(S,'verify',return_value=doc),patch.object(S,'authorize',return_value=self.a),patch.object(S,'tick',side_effect=tick):
+            S.watch_wave(self.root/'queue.json','pin',self.root/'authority.json','pin',doc)
+        end=json.loads((self.root/'EXIT.json').read_bytes())
+        self.assertEqual(end['exit_code'],1);self.assertEqual(counts[1],1)
+        self.assertEqual(end['jobs']['samechip_s2']['status'],'blocked_by_failed_predecessor')
+        self.assertEqual(end['jobs']['diffchip_s2']['status'],'completed')
+
+
+if __name__=="__main__": unittest.main()
