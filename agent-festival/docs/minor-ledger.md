@@ -17,4 +17,9 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 
 ## R21 起新增记账
 
-（本轮起追加）
+| # | 位置 | 内容 | 可达性 | 来源 |
+|---|---|---|---|---|
+| L8 | go/internal/validate/validate.go:952（LoadFixture 裸 json.Unmarshal，compose 族经 WithLoader 骑此面） | 解码纪律双轨：章程全称条款「解码必须 UseNumber」存在未豁免违反面——七族唯 compose 骑非合规 loader。今日零后果（bounds schema 上限 2^53-1 恰为折叠边界，域内折叠精确/超域折叠后仍超上限双侧同拒）；开窗条件=待裁①转 literal-only（字面量门在 float64 map 不可判定）或新增无 2^53 上限数值域（2^53+1 Py 精确/Go 折叠成 2^53 判决分叉）。修法挂待裁①落笔时同步（WithLoader 换 UseNumber）或章程显式登记「base loader=已知违例面」 | 趋零可达（双条件才开窗） | R21 外环 MINOR-1 |
+| L9 | go/internal/evidlog/evidlog.go:240 + go/internal/adopt/adopt.go:475 | durable 文件权限位静默翻转：os.CreateTemp 恒 0600 + rename 整文件替换丢原 0644 权限位——一个 Append 即触发（探针实测），审计记录消费方组/他者读预期静默失效。修法（两包一次）：CreateTemp 后 os.Chmod(tmp, 原 mode 或 0644&^umask) | 本地构造 | R21 外环 MINOR-2 |
+
+（singularity R21 判定记录：六分叉——F1 差分生成器为下一杠杆推荐、F4 文法层严格性为待裁①同步收编、F6 单源代码生成按框架价值否决；无可达奇点，当前框架仍为正确收敛框架。全记录见外环 R21 报告 Part II。）
