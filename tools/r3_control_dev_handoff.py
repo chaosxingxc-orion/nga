@@ -226,6 +226,9 @@ def invocation(binding,path,pin):
     command=[python,'-B','-P',binding['controller'],'watch','--config',str(path),'--sha256',pin]
     log=root/'watch.log'
     detached='mkdir -p '+shlex.quote(str(root))+' && nohup '+shlex.join(command)+' >> '+shlex.quote(str(log))+' 2>&1 < /dev/null &'
+    if 'service' in binding['deployment']:
+        ref=binding['deployment']['service'];raw(ref['path'],ref['sha256'])
+        detached=shlex.join([python,'-B','-P',ref['path'],'start','--config',str(path),'--sha256',pin])
     return dict(command=command,detached_command=detached,durable_log=str(log),terminal=str(root/'EXIT.json'),
                 heartbeat=str(root/'heartbeat.json'),exclusive_identity=str(root/'watch.lock'),
                 relaunch_policy='Use exact detached command only after reconciling absent live watcher; terminal or uncertain prepare intent requires new reviewed generation.')

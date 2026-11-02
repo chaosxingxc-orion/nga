@@ -6,8 +6,8 @@ It has no resource claim, container, inference launch, adoption or TEST operatio
 Exact independent review and parent authorization must precede production use.
 
 The immutable prepared configuration is
-`.local/preparations/control-dev-handoff-20261102-v4/CONFIG.json`, with its pin in
-`CONFIG-PIN.json`. V1/v2/v3 remain preparation history. This generation has not been
+`.local/preparations/control-dev-handoff-20261102-v5/CONFIG.json`, with its pin in
+`CONFIG-PIN.json`. V1-v3 remain preparation history; v4 failed during launch and is preserved. This generation has not been
 started; `ACTUAL-INSPECT.json` is a read-only inspection of current controls.
 
 ## Exact existing inputs
@@ -123,3 +123,32 @@ missing/mutated predecessor inventory, wrong control claim and omitted explicit
 external prerequisite check. The actual PT seed3 claim's 76 predecessor hashes
 pass the new saved-proof validator. This read-only check is not an independent
 retained-container observation or campaign completion.
+
+## V5 deployment correction — prepared, not deployed
+
+V4's plain nohup command returned success but did not survive tool-session cleanup;
+there is no evidence of a watcher startup. Preserve v4 package and empty durable
+log. Static source/provenance acceptance did not establish process survival.
+
+V5 retains all prerequisite logic and adds r3_control_dev_service.py as an exact
+pinned CPU bootstrap. LAUNCH.sh calls its start operation. An exclusive start
+lock writes START_INTENT before invoking /usr/bin/nohup /usr/bin/setsid --fork,
+with stdin DEVNULL and stdout/stderr on durable Ceph. Existing intents or service
+state cannot replay. A second detached bootstrap lock, exact argv and source
+checks precede SERVICE.json, which records PID, /proc start ticks, and session.
+The bootstrap records initialization failures in EXIT.json. A duplicate bootstrap
+rejects without writing a false terminal over a live process.
+
+Run LAUNCH.sh only after v5 independent review and parent acceptance, then run
+VERIFY.sh in a separate tool invocation. Verify requires the same live PID/start
+ticks/argv/session plus digest and heartbeat no older than cadence+120s. Start
+returns start_requested_not_verified, never running. VERIFY.sh surfaces terminal
+states separately. No replay after an intent: reconcile and prepare a new reviewed
+generation instead. DEPLOY-RELAUNCH and watcher RELAUNCH name these exact commands.
+
+Exact v5 config pin: d43660da28a5e3798b02869ee8db609788bae5f5eb7de091cc81efd0efd3c8ee.
+The package is .local/preparations/control-dev-handoff-20261102-v5.
+Real read-only inspection remains WAIT for all three controls. An isolated harmless
+dummy exercised this exact bootstrap and survived across tool calls with a
+verified PID/session/argv and digest; it is not a real watcher or campaign run.
+No production watcher was launched by preparation.
