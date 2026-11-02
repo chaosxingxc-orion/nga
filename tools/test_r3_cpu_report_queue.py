@@ -2,6 +2,10 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import subprocess
+import signal
+import sys
+import time
 import unittest
 from unittest.mock import Mock, patch
 
@@ -10,6 +14,129 @@ Q=importlib.util.module_from_spec(s);s.loader.exec_module(Q)
 
 
 class CPUQueueTests(unittest.TestCase):
+    def test_actual_serial_worker_completion_starts_next_job_without_poll_delay(self):
+        jobs = [dict(self.job, id=name, output=str(self.root/(name+'.json')))
+                for name in ('one', 'two')]
+        doc = dict(self.doc, jobs=jobs, poll_interval_seconds=600,
+                   event_wake_paths=[str(Q.workdir(self.path,j)/'EXIT.json') for j in jobs])
+        script = ('import json,sys,time,hashlib;from pathlib import Path;'
+                  'r=Path(sys.argv[1]);o=Path(sys.argv[2]);'
+                  '(r/"executions").open("a").write("once\\n");time.sleep(0.05);'
+                  'o.write_text("{}");p=r/"EXIT.pending";'
+                  'p.write_text(json.dumps({"exit_code":0,"output_sha256":'
+                  'hashlib.sha256(o.read_bytes()).hexdigest()}));p.replace(r/"EXIT.json")')
+        compile(script, '<serial completion fixture>', 'exec')
+        def command(path, pin, identifier):
+            job = next(j for j in jobs if j['id']==identifier)
+            return [sys.executable,'-B','-P','-c',script,
+                    str(Q.workdir(path,job)),job['output']]
+        children = []
+        original = subprocess.Popen
+        def start(*args, **kwargs):
+            child = original(*args, **kwargs); children.append(child); return child
+        before = time.monotonic()
+        def deadline(signum, frame):
+            raise TimeoutError('serial event integration exceeded 5 seconds')
+        previous_handler = signal.signal(signal.SIGALRM, deadline)
+        previous_timer = signal.setitimer(signal.ITIMER_REAL, 5)
+        try:
+            with patch.object(Q,'verify',return_value=doc), \
+                    patch.object(Q,'job_ready',return_value='ready'), \
+                    patch.object(Q,'worker_command',side_effect=command), \
+                    patch.object(Q.subprocess,'Popen',side_effect=start):
+                Q.watch(self.path,self.pin)
+                Q.watch(self.path,self.pin)
+            self.assertLess(time.monotonic()-before,5)
+            self.assertEqual(len(children),2)
+            for j in jobs:
+                r=Q.workdir(self.path,j)
+                self.assertEqual((r/'executions').read_text(),'once\n')
+                self.assertEqual(Q.load(r/'EXIT.json')['output_sha256'],Q.sha(j['output']))
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            signal.signal(signal.SIGALRM, previous_handler)
+            if previous_timer[0]:
+                signal.setitimer(signal.ITIMER_REAL, *previous_timer)
+            for child in children:
+                if child.poll() is None: child.terminate()
+                child.wait(timeout=3)
+
+    def test_two_real_process_completions_wake_without_duplicate_workers(self):
+        paths = [self.root/name/'EXIT.json' for name in ('first', 'second')]
+        for p in paths: p.parent.mkdir()
+        wake = Q.CompletionWake(paths)
+        self.addCleanup(wake.close)
+        self.assertIsNotNone(wake.fd, 'Linux inotify required for integration test')
+        # Start two real producers, both blocked on private stdin until observed.
+        script = ('import sys,json;from pathlib import Path;sys.stdin.readline();'
+                  'p=Path(sys.argv[1]);t=p.with_suffix(".pending");'
+                  't.write_text(json.dumps({"exit_code":0}));t.replace(p)')
+        children = [subprocess.Popen([sys.executable, '-B', '-P', '-c', script, str(p)],
+                                    stdin=subprocess.PIPE, text=True) for p in paths]
+        try:
+            for child in children:
+                child.stdin.write('finish\n'); child.stdin.flush()
+                self.assertEqual(wake.wait(3), 'completion_hint')
+                self.assertEqual(child.wait(timeout=3), 0)
+            self.assertTrue(all(Q.load(p)['exit_code'] == 0 for p in paths))
+            # The hint does not reset existing worker receipts or start intents.
+            with patch.object(Q, 'observe', return_value={'status':'reporting','pid':55}), \
+                    patch.object(Q.subprocess, 'Popen') as launch:
+                Q.tick(self.path, self.pin, self.doc)
+                Q.tick(self.path, self.pin, self.doc)
+            launch.assert_not_called()
+        finally:
+            for child in children:
+                child.stdin.close()
+                if child.poll() is None: child.terminate()
+                child.wait(timeout=3)
+
+    def test_stale_terminal_and_unrelated_files_do_not_spin(self):
+        terminal = self.root/'EXIT.json'; terminal.write_text('{}')
+        wake = Q.CompletionWake([terminal]); self.addCleanup(wake.close)
+        (self.root/'heartbeat.json').write_text('{}')
+        self.assertEqual(wake.wait(0.03), 'poll_timeout')
+        self.assertEqual(wake.wait(0.03), 'poll_timeout')
+
+    def test_missing_ancestor_creation_wakes_then_terminal_is_watched(self):
+        terminal = self.root/'jobs'/'one'/'EXIT.json'
+        wake = Q.CompletionWake([terminal])
+        try:
+            terminal.parent.mkdir(parents=True)
+            self.assertEqual(wake.wait(1), 'completion_hint')
+        finally: wake.close()
+        wake = Q.CompletionWake([terminal]); self.addCleanup(wake.close)
+        terminal.write_text('{}')
+        self.assertEqual(wake.wait(1), 'completion_hint')
+
+    def test_event_unavailable_preserves_poll_fallback(self):
+        with patch.object(Q.ctypes, 'CDLL', side_effect=OSError('unsupported')):
+            wake = Q.CompletionWake([self.root/'EXIT.json'])
+        self.assertEqual(wake.mode, 'event_unavailable_poll_fallback')
+        with patch.object(Q.time, 'sleep') as sleep:
+            self.assertEqual(wake.wait(600), 'poll_timeout')
+        sleep.assert_called_once_with(600)
+
+    def test_event_configuration_refuses_unbounded_and_nonterminal_paths(self):
+        for value in ('bad', ['relative/EXIT.json'], [str(self.root/'run.log')],
+                      [str(self.root/'EXIT.json')]*2):
+            with self.subTest(value=value), self.assertRaises(RuntimeError):
+                Q.event_paths({'event_wake_paths':value})
+
+    def test_watch_rechecks_gates_after_event_and_closes_listener(self):
+        wake = Mock(mode='filesystem_events_with_poll_fallback')
+        wake.wait.return_value = 'completion_hint'
+        self.doc['event_wake_paths'] = [str(self.root/'EXIT.json')]
+        with patch.object(Q, 'verify', return_value=self.doc) as verify, \
+                patch.object(Q, 'CompletionWake', return_value=wake), \
+                patch.object(Q, 'tick', side_effect=[{'one':{'status':'waiting_inference'}},
+                                                    {'one':{'status':'done'}}]) as tick:
+            Q.watch(self.path, self.pin)
+        self.assertEqual(verify.call_count, 2)
+        self.assertEqual(tick.call_count, 2)
+        wake.wait.assert_called_once_with(600)
+        self.assertEqual(wake.close.call_count, 2)
+
     def test_parallel_limit_rejects_unbounded_or_noninteger_settings(self):
         self.assertEqual(Q.parallel_limit({}), 1)
         for value in (0, -1, 9, True, 2.0, '2', None):

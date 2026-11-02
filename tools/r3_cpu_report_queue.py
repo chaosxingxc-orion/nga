@@ -8,15 +8,21 @@ New Track KT report jobs may opt into terminal_gate="full_posttrain_v1" with
 plan/plan_sha256 and execution/execution_sha256 bindings. This requires scoring,
 supervisor and retained host-175 Docker closure before reporting. Existing frozen
 queues retain their original gate. poll_interval_seconds defaults to 600 and may
-only be increased. Configuration verification is not scientific acceptance.
+only be increased. Optional event_wake_paths lists absolute terminal paths whose
+filesystem notifications request an earlier normal tick; polling remains the
+fallback and no event grants readiness. Configuration verification is not
+scientific acceptance.
 """
 import argparse
+import ctypes
 import fcntl
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import select
+import struct
 import subprocess
 import sys
 import time
@@ -67,10 +73,93 @@ def parallel_limit(doc):
     return limit
 
 
+def event_paths(doc):
+    """Explicit terminal hints only. They never establish readiness or identity."""
+    paths = doc.get('event_wake_paths', [])
+    require(isinstance(paths, list) and len(paths) <= 256, 'invalid event wake paths')
+    allowed = {'EXIT.json', 'ENGINEERING_EVAL_EXIT.json', 'TRAIN_EXIT.json',
+               'EVAL_COMPLETE.track_kt.json', 'RELEASE.json', 'SUPERVISOR_DONE.json'}
+    result = [safe_absolute(p) for p in paths]
+    require(len(set(result)) == len(result) and all(p.name in allowed for p in result),
+            'duplicate or unsupported wake terminal')
+    return result
+
+
+class CompletionWake:
+    """Linux filesystem notifications; missed/remote events retain timed fallback.
+
+    Register before observing jobs, then drain only notifications for terminal
+    paths (or the missing ancestor required to reach one). No signals/PID access,
+    no writes to the observed directories, and no trusted notification payload.
+    CephFS events from other clients may not propagate: timeout remains essential.
+    """
+    def __init__(self, paths):
+        self.fd = None
+        self.names = {}
+        self.mode = 'poll_only'
+        if not paths:
+            return
+        try:
+            libc = ctypes.CDLL(None, use_errno=True)
+            libc.inotify_init1.argtypes = [ctypes.c_int]
+            libc.inotify_init1.restype = ctypes.c_int
+            libc.inotify_add_watch.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_uint32]
+            libc.inotify_add_watch.restype = ctypes.c_int
+            fd = libc.inotify_init1(os.O_NONBLOCK | os.O_CLOEXEC)
+            if fd < 0:
+                raise OSError(ctypes.get_errno(), 'inotify_init1')
+            self.fd = fd
+            for target in paths:
+                target = safe_absolute(str(target))
+                parent, child = target.parent, target.name
+                while not parent.is_dir():
+                    child, parent = parent.name, parent.parent
+                # close-write, moved-to, create, delete-self, move-self
+                wd = libc.inotify_add_watch(fd, os.fsencode(parent), 0x8 | 0x80 | 0x100 | 0x400 | 0x800)
+                if wd < 0:
+                    raise OSError(ctypes.get_errno(), 'inotify_add_watch')
+                self.names.setdefault(wd, set()).add(os.fsencode(child))
+            self.mode = 'filesystem_events_with_poll_fallback'
+        except (OSError, AttributeError):
+            self.close()
+            self.mode = 'event_unavailable_poll_fallback'
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self):
+        if self.fd is not None:
+            os.close(self.fd)
+            self.fd = None
+
+    def wait(self, seconds):
+        if self.fd is None:
+            time.sleep(seconds)
+            return 'poll_timeout'
+        deadline = time.monotonic() + seconds
+        while True:
+            remaining = max(0, deadline - time.monotonic())
+            if not select.select([self.fd], [], [], remaining)[0]:
+                return 'poll_timeout'
+            try:
+                raw = os.read(self.fd, 65536)
+            except BlockingIOError:
+                continue
+            offset = 0
+            while offset + 16 <= len(raw):
+                wd, mask, _, size = struct.unpack_from('iIII', raw, offset)
+                name = raw[offset + 16:offset + 16 + size].rstrip(b'\0')
+                offset += 16 + size
+                # Queue overflow / deleted watch also requests normal revalidation.
+                if mask & (0x4000 | 0x8000 | 0x400 | 0x800) or name in self.names.get(wd, ()):
+                    return 'completion_hint'
+
+
 def verify(path, pin):
     require(sha(path) == pin, 'queue manifest changed')
     doc = load(path)
     parallel_limit(doc)
+    event_paths(doc)
     interval = doc.get('poll_interval_seconds', 600)
     require(type(interval) is int and interval >= 600, 'CPU polling interval must be at least 600 seconds')
     require(doc['schema'] == 'r3-cpu-report-queue-v1' and doc['test_read'] is False
@@ -693,14 +782,18 @@ def watch(path, pin):
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         while True:
             doc = verify(path, pin)
-            states = tick(path, pin, doc)
-            digest = {'utc_seconds': time.time(), 'jobs': states, 'scientific_acceptance': False}
-            atomic(path.parent / 'digest.json', digest)
-            # An inference failure can still receive an operator-authorized
-            # retry. Keep observing it so later success is not left unreported.
-            if all(x['status'] in ('done', 'report_failed') for x in states.values()):
-                atomic(path.parent / 'DONE.json', digest); return
-            time.sleep(doc.get('poll_interval_seconds', 600))
+            wake = CompletionWake(event_paths(doc))
+            try:
+                states = tick(path, pin, doc)
+                digest = {'utc_seconds': time.time(), 'jobs': states, 'scientific_acceptance': False,
+                          'wake_mode': wake.mode}
+                atomic(path.parent / 'digest.json', digest)
+                # A notification never bypasses verify/observe or dependency checks.
+                if all(x['status'] in ('done', 'report_failed') for x in states.values()):
+                    atomic(path.parent / 'DONE.json', digest); return
+                wake.wait(doc.get('poll_interval_seconds', 600))
+            finally:
+                wake.close()
 
 
 def main():
