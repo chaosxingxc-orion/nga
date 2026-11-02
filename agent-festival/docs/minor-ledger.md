@@ -7,13 +7,13 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 
 | # | 位置 | 内容 | 来源 |
 |---|---|---|---|
-| L1 | examples/java-consumer/README.md:4,20 | 83→81 算术错+「wrong-reason pins hit」残句重复 | R18 内环 m1/m2（fa18315 算术错，81 才是真数） |
-| L2 | examples/java-consumer/src/main/java/spike/Main.java:37 | FORMAT_DOC_CLAIMS release 行尾注释同文双写 | R18 内环 m3 |
-| L3 | examples/java-consumer/src/main/java/spike/Main.java:155 | COUNT-FAIL 消息钉值 200 未随比较值改 205 | R18 内环 m4 |
-| L4 | examples/java-consumer/src/main/java/spike/LedgerChecker.java:120-129 | family-4 节头 v1 ±2^53 NOTE 未随章程重写（与 R16 新注释互斥） | R18 内环 m5a |
-| L5 | examples/java-consumer/src/main/java/spike/LedgerChecker.java:37-39 | TWO_POW_53 孤儿字段（唯一消费者已退役） | R18 内环 m6 |
-| L6 | schema/replay.py:4-5 | docstring「drives ONLY from schema」全称残句（与 R16 字面量门矛盾） | R19 内环二 m1 |
-| L7 | schema/compose.py:423 | 尾句「non-integral float reaches dec() and raises」与行为不符（3.5 在 schema integer 面即拒） | R19 内环二预存注记 |
+| L1 | examples/java-consumer/README.md:4,20 | 83→81 算术错已修 [RETIRED R22]；「wrong-reason pins hit」断句残留仍活（fa18315 只补前缀未删孤儿短语） | R18 内环 m1/m2 |
+| L2 | examples/java-consumer/src/main/java/spike/Main.java:37 | ~~FORMAT_DOC_CLAIMS release 行尾注释同文双写~~ [RETIRED R22] | R18 内环 m3；清偿=fa18315（注释重复已删） |
+| L3 | examples/java-consumer/src/main/java/spike/Main.java:155 | ~~COUNT-FAIL 消息钉值 200 未随比较值改 205~~ [RETIRED R22] | R18 内环 m4；清偿=fa18315（消息已 205，R22 内环复核） |
+| L4 | examples/java-consumer/src/main/java/spike/LedgerChecker.java:120-129 | ~~family-4 节头 v1 ±2^53 NOTE~~ [RETIRED R22] | R18 内环 m5a；清偿=fa18315（R16 章程重写已落地，R22 复核） |
+| L5 | examples/java-consumer/src/main/java/spike/LedgerChecker.java:37-39 | ~~TWO_POW_53 孤儿字段~~ [RETIRED R22] | R18 内环 m6；清偿=fa18315（grep=0，R22 复核） |
+| L6 | schema/replay.py:4-5 | ~~docstring「drives ONLY from schema」残句~~ [RETIRED R22] | R19 内环二 m1；清偿=34ef349（R17 已修，R22 复核） |
+| L7 | schema/compose.py:423 | ~~尾句「non-integral float reaches dec() and raises」~~ [RETIRED R22] | R19 内环二预存注记；清偿=d4bdc48（R19 回修已改「never reaches dec()」，R22 复核） |
 
 ## R21 起新增记账
 
@@ -22,4 +22,8 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 | L8 | go/internal/validate/validate.go:952（LoadFixture 裸 json.Unmarshal，compose 族经 WithLoader 骑此面） | 解码纪律双轨：章程全称条款「解码必须 UseNumber」存在未豁免违反面——七族唯 compose 骑非合规 loader。今日零后果（bounds schema 上限 2^53-1 恰为折叠边界，域内折叠精确/超域折叠后仍超上限双侧同拒）；开窗条件=待裁①转 literal-only（字面量门在 float64 map 不可判定）或新增无 2^53 上限数值域（2^53+1 Py 精确/Go 折叠成 2^53 判决分叉）。修法挂待裁①落笔时同步（WithLoader 换 UseNumber）或章程显式登记「base loader=已知违例面」 | 趋零可达（双条件才开窗） | R21 外环 MINOR-1 |
 | L9 | go/internal/evidlog/evidlog.go:240 + go/internal/adopt/adopt.go:475 | durable 文件权限位静默翻转：os.CreateTemp 恒 0600 + rename 整文件替换丢原 0644 权限位——一个 Append 即触发（探针实测），审计记录消费方组/他者读预期静默失效。修法（两包一次）：CreateTemp 后 os.Chmod(tmp, 原 mode 或 0644&^umask) | 本地构造 | R21 外环 MINOR-2 |
 
-（singularity R21 判定记录：六分叉——F1 差分生成器为下一杠杆推荐、F4 文法层严格性为待裁①同步收编、F6 单源代码生成按框架价值否决；无可达奇点，当前框架仍为正确收敛框架。全记录见外环 R21 报告 Part II。）
+| L10 | schema/_suite.py + go/internal/validate/validate.go | 双 oracle invalid 面 wrong-typed `_expect_composed` 行为分叉（Py LOUD 拒/Go 静默收——同一语料一红一绿套件判决分叉；valid 面双侧一致响亮）。修法：Go suite.Run invalid 循环镜像 extra-key 响亮面，或登记 strict-side-wins forced divergence | 本地构造（语料零存在） | R22 外环 MINOR-1 |
+| L11 | schema/compose.py:56 | 死 import（`from validate import load as load_json`——唯一消费者已被 _suite.load_extras 薄壳替代）。修法=删行 | 趋零可达 | R22 外环 MINOR-3 |
+| L12 | schema/compose.py:73-75 | dec() docstring 引已废除的「double charter」为现行依据（现行登记=待裁①）。修法=改引待裁① | 趋零可达 | R22 外环 MINOR-4 |
+
+（singularity R21/R22 两轮判定一致：无可达奇点；R22 新增最强候选=F-A 输入契约结构化（LiteralDoc newtype，最便宜关闭 L8 窗口）+F-B 生产者包含性（writer ⊆ checker 闭包钉）；R21-F1 差分生成器维持首选杠杆。全记录见外环 R21/R22 报告 Part II。）六分叉——F1 差分生成器为下一杠杆推荐、F4 文法层严格性为待裁①同步收编、F6 单源代码生成按框架价值否决；无可达奇点，当前框架仍为正确收敛框架。全记录见外环 R21 报告 Part II。）
