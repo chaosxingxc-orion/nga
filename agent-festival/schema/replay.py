@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Validate replay-case fixtures (piece 6 oracle, Python side — FORMAT ONLY: schema + the R16 charter numeric-literal rule, the one charter-sourced format rule; see replay_errors).
 
-Per the collision ruling (E): the Python oracle drives ONLY from the
-machine-readable replay-case.schema.json (schema-as-source). Any behavioral
+Per the collision ruling (E): the Python oracle drives from the
+machine-readable replay-case.schema.json plus the one charter-sourced
+format rule named above (schema-as-source). Any behavioral
 judgment on the Python side would be a second implementation of the replay
 engine smuggling in through the format layer — the behavior face is Go
 单侧 (internal/replay drives the production state machine; see the piece-6

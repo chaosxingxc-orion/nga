@@ -883,7 +883,8 @@ func TestForeignDuplicateSeqPassesGate(t *testing.T) {
 	}
 	l.Append(Entry{Tool: "bank.fetch", Selector: "acct=1", Caller: "s2", At: "a"})
 	l.Append(Entry{Tool: "bureau.q", Selector: "subj=x", Caller: "s2", At: "b"})
-	// foreign writer appends a duplicate of the last line (integer literal)
+	// foreign writer duplicates the whole file (the tail now ends in a
+	// duplicated last seq — the arithmetic-preserving form)
 	if err := os.WriteFile(path, append(mustRead(t, path), mustRead(t, path)...), 0o644); err != nil {
 		t.Fatal(err)
 	}
