@@ -488,8 +488,13 @@ def run_suite(valid_dir: Path, invalid_dir: Path) -> int:
         return compose_errors(doc)[0]
 
     bad = _suite.run_suite("compose", valid_dir, invalid_dir, compose_errors_list,
-                           valid_phase=compose_valid_phase)
+                           valid_phase=compose_valid_phase,
+                           extra_keys=("_expect_composed",))
     valid = sorted(valid_dir.glob("*.json"))
+    if not valid:
+        # empty-corpus guard (R20 inner m-5): keep the D93 count-floor
+        # reachable instead of crashing on valid[0]
+        return bad
     return bad + run_guard_suite(valid[0])
 
 

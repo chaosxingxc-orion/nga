@@ -80,10 +80,10 @@ def _default_valid_phase(label: str, valid, errors) -> int:
     return bad
 
 
-def run_suite(label: str, valid_dir: Path, invalid_dir: Path, errors, valid_phase=None) -> int:
+def run_suite(label: str, valid_dir: Path, invalid_dir: Path, errors, valid_phase=None, extra_keys: tuple = ()) -> int:
     """Run the two-phase suite; returns the failure count (0 = green).
 
-    valid_phase (R20 A-2, the Go twin's WithLoader form): optional callable
+    valid_phase (R20 A-2, the Go twin's post-loop analog in cmd/compose): optional callable
     (sorted valid paths) -> failure count replacing the default
     must-accept loop — for the one family whose valid face carries extra
     pinned assertions (compose's _expect_composed). The INVALID loop is
@@ -101,7 +101,7 @@ def run_suite(label: str, valid_dir: Path, invalid_dir: Path, errors, valid_phas
     else:
         bad = _default_valid_phase(label, valid, errors)
     for f in invalid:
-        doc, match, err = load(f)
+        doc, match, _, err = load_extras(f, extra_keys)
         name = f.name
         if doc is not None and err:
             # the DOCUMENT parsed; the error is a malformed pin. An unreadable
