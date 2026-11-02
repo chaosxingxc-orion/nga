@@ -13,14 +13,19 @@ Execution status and dataset-admission progress are maintained in the Wiki. Fixe
 
 ## BEV public TEST increment — local protocol, 2026-11-02
 
-These two additional fixed-base panels are separate from the historical 38-unit reference matrix. Dataset `avbiswas/bev-decision`, configuration `numeric_temporal`, public `test`: 3,329 rows, 6,518 questions, 24 duplicate requests retained. This is `bev-local-typed-exact-release-test-v1`, not native AnyJev's default 46,320-question task or Tacit readout. Exact counts and report pins are in [REFERENCE-BEV-PUBLIC-INCREMENT-2026-11-02.json](REFERENCE-BEV-PUBLIC-INCREMENT-2026-11-02.json).
+These three additional fixed-base panels are separate from the historical 38-unit reference matrix. Dataset `avbiswas/bev-decision`, configuration `numeric_temporal`, public `test`: 3,329 rows, 6,518 questions, 24 duplicate requests retained. This is `bev-local-typed-exact-release-test-v1`, not native AnyJev's default 46,320-question task or Tacit readout. Exact counts and report pins for 0.8B/2B are in [REFERENCE-BEV-PUBLIC-INCREMENT-2026-11-02.json](REFERENCE-BEV-PUBLIC-INCREMENT-2026-11-02.json); the additive 4B report is pinned below.
 
 | Model | All correct/n | Accuracy | Choice | Noul | Score | Score index MAE | Normalized error |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Qwen3.5-0.8B-Base | 2847/6518 | 43.679% | 1307/3002, 43.538% | 1353/2835, 47.725% | 187/681, 27.460% | 1.157122 | 0.362580 |
 | Qwen3.5-2B-Base | 3311/6518 | 50.798% | 1514/3002, 50.433% | 1618/2835, 57.072% | 179/681, 26.285% | 1.352423 | 0.426456 |
+| Qwen3.5-4B-Base | 3734/6518 | 57.288% | 1676/3002, 55.829% | 1838/2835, 64.832% | 220/681, 32.305% | 1.217327 | 0.389868 |
 
-Both have 6,518 valid predictions, with score errors over all 681 score questions. The 2B overall accuracy increases by 7.118748 percentage points, while score accuracy and both ordinal errors worsen. No training gain, decision consistency, significance or candidate eligibility follows. The 2B report was independently reconstructed by an inherited-model child and again by the parent (6,568 evidence pins verified); explicit additional Astra confirmation has not produced a review artifact. The earlier 0.8B independent review remains unchanged. Runtime, runner, host and CPU terminal receipts all report exit 0.
+All three have 6,518 valid predictions, with score errors over all 681 score questions. The 2B overall accuracy increases by 7.118748 percentage points versus 0.8B, while score accuracy and both ordinal errors worsen. The 4B overall accuracy increases by 6.489721 percentage points versus 2B and 13.608469 versus 0.8B. All three type accuracies improve versus 2B; both ordinal errors improve versus 2B but remain worse than 0.8B. No training gain, decision consistency, significance or candidate eligibility follows.
+
+The 2B report was independently reconstructed by an inherited-model child and again by the parent (6,568 evidence pins verified). The 4B independent inherited-model review reconstructed the complete report, verified 6,561 provenance pins and rebuilt all requests/gold from the original parquet; request/gold bytes match both smaller baselines. Explicit additional Astra confirmation has not produced a review artifact; the earlier 0.8B independent review remains unchanged. Runtime, runner, host and CPU terminal receipts all report exit 0. The retained 4B Docker exited at 2026-11-02 15:57:46 UTC.
+
+4B exact report: `/mnt/cephfs/xingchao/experiments/jev/r3_runs/bev_public_test_4b_20261102_v1/cpu/report.json`, SHA256 `2a399cf5e72c01ef97e007bff711cda776dc11c205c308d98c09fc16cf1c61c0`. Score index MAE is `1.2173274596182084`; normalized error is `0.3898678414096919`, including the full-denominator failure-penalty formulation because failure count is zero. This dated addition preserves the earlier readings and historical 38-unit coverage count.
 
 ## Evidence and reading conventions
 
