@@ -53,7 +53,6 @@ go run ./cmd/sign             # 再生全部信封语料（换新密钥，需整
 ```
 （包结构与依赖红线以 `cd go && go list ./...` 为单一真源——20 包：
 9 cmd 入口 + 11 internal 库；schema/ 9 个 schema 文件 + 200 夹具）
-```
 
 Python oracle 侧：`pip install -r ../schema/requirements.txt` 后
 `python3 ../schema/validate.py` / `../schema/compose.py`。
