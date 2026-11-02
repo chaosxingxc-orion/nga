@@ -31,6 +31,102 @@ class CPUQueueTests(unittest.TestCase):
         self.write(root/'execution.json',{'run':'run','chip':1,'launcher':'/frozen/launcher.py'})
         self.write(root/'SUPERVISOR_RECEIPT.json',{'command':['python','-P','/frozen/launcher.py','supervise','--plan',str(root/'execution.json'),'--sha256',Q.sha(root/'execution.json'),'--attempt','2']})
 
+    def strict_fixture(self):
+        self.inference_ready()
+        root = Path(self.job['eval_out']); attempt = root/'attempts/2'
+        self.job.update(terminal_gate='full_posttrain_v1', output=str(root/'results/selection_report.json'))
+        spec = {'evaluation_profile':'track_kt','test_read':False,'scientific_acceptance':False,
+                'image_sha256':'sha256:image'}
+        self.write(root/'plan.json',spec)
+        execution = Q.load(root/'execution.json')
+        execution.update(spec=str(root/'plan.json'),spec_sha256=Q.sha(root/'plan.json'),out=str(root),
+                         test_read=False,scientific_acceptance=False,container='fixture')
+        self.write(root/'execution.json',execution)
+        for key in ('plan','execution'):
+            self.job[key] = str(root/(key+'.json'))
+            self.job[key+'_sha256'] = Q.sha(self.job[key])
+        end = {'attempt':2,'exit_code':0,'scientific_acceptance':False}
+        self.write(root/'ENGINEERING_EVAL_EXIT.json',end); self.write(attempt/'EXIT.json',end)
+        self.write(attempt/'SUPERVISOR_DONE.json',{'exit_code':0,'scientific_acceptance':False})
+        self.write(root/'results/EVAL_COMPLETE.track_kt.json',{'exit_code':0})
+        self.write(attempt/'LAUNCH_RECEIPT.json',{'id':'a'*64,'image':'sha256:image',
+                                               'sha256':self.job['execution_sha256']})
+        release = Q.load(attempt/'RELEASE.json'); release['container_id']='a'*64
+        self.write(attempt/'RELEASE.json',release)
+        self.write(root/'SUPERVISOR_RECEIPT.json',{'command':['python','-P','/frozen/launcher.py','supervise',
+            '--plan',self.job['execution'],'--sha256',self.job['execution_sha256'],'--attempt','2']})
+        return {'Id':'a'*64,'Name':'/fixture-a2','Image':'sha256:image','HostConfig':{'AutoRemove':False},
+                'Config':{'Cmd':['-P','/frozen/launcher.py','drive','--plan',self.job['execution'],
+                                '--sha256',self.job['execution_sha256'],'--attempt','2']},
+                'State':{'Status':'exited','Running':False,'ExitCode':0}}
+
+    def test_strict_gate_waits_for_each_missing_terminal_without_ssh(self):
+        for rel, expected in [('attempts/2/RELEASE.json','waiting_release'),
+                              ('attempts/2/SUPERVISOR_DONE.json','waiting_supervisor'),
+                              ('results/EVAL_COMPLETE.track_kt.json','waiting_scoring_terminal')]:
+            with self.subTest(rel=rel):
+                self.strict_fixture(); (Path(self.job['eval_out'])/rel).unlink()
+                with patch.object(Q.subprocess,'check_output') as inspect:
+                    self.assertEqual(Q.ready(self.job),expected); inspect.assert_not_called()
+
+    def test_strict_gate_checks_real_container_terminal(self):
+        actual=self.strict_fixture()
+        with patch.object(Q.subprocess,'check_output',return_value=json.dumps([actual])) as inspect:
+            self.assertEqual(Q.ready(self.job),'ready')
+            self.assertEqual(inspect.call_args.kwargs['timeout'],30)
+        actual['State'].update(Status='running',Running=True)
+        with patch.object(Q.subprocess,'check_output',return_value=json.dumps([actual])):
+            self.assertEqual(Q.ready(self.job),'waiting_container_terminal')
+
+    def test_strict_gate_rejects_replacement_and_exit_disagreement(self):
+        for part,key,value in [('root','Id','b'*64),('root','Image','wrong'),
+                               ('State','ExitCode',1),('State','OOMKilled',True),
+                               ('State','Error','runtime error'),('HostConfig','AutoRemove',True),
+                               ('Config','Cmd',[])]:
+            with self.subTest(part=part,key=key):
+                actual=self.strict_fixture()
+                (actual if part=='root' else actual[part])[key]=value
+                with patch.object(Q.subprocess,'check_output',return_value=json.dumps([actual])):
+                    with self.assertRaises(RuntimeError): Q.ready(self.job)
+
+    def test_strict_transport_timeout_blocks_spawn_without_marking_inference_failed(self):
+        self.strict_fixture()
+        with patch.object(Q.subprocess,'check_output',side_effect=Q.subprocess.TimeoutExpired('ssh',30)), \
+                patch.object(Q.subprocess,'Popen') as spawn:
+            states=Q.tick(self.path,self.pin,self.doc)
+            self.assertEqual(states['one']['status'],'observation_uncertain'); spawn.assert_not_called()
+
+    def test_strict_gate_rejects_boolean_exit_and_stale_pins(self):
+        for rel in ['results/EVAL_COMPLETE.track_kt.json','attempts/2/SUPERVISOR_DONE.json']:
+            self.strict_fixture(); p=Path(self.job['eval_out'])/rel
+            marker=Q.load(p); marker['exit_code']=False; self.write(p,marker)
+            with self.assertRaises(RuntimeError): Q.ready(self.job)
+        self.strict_fixture(); Path(self.job['plan']).write_text('{}')
+        with self.assertRaisesRegex(RuntimeError,'binding differs'): Q.ready(self.job)
+
+    def test_strict_failed_attempt_needs_closure_but_not_success_scoring_marker(self):
+        actual=self.strict_fixture();root=Path(self.job['eval_out'])
+        for rel in ['ENGINEERING_EVAL_EXIT.json','attempts/2/EXIT.json',
+                    'attempts/2/RELEASE.json','attempts/2/SUPERVISOR_DONE.json']:
+            p=root/rel; value=Q.load(p);value['exit_code']=7;self.write(p,value)
+        (root/'results/EVAL_COMPLETE.track_kt.json').unlink()
+        actual['State']['ExitCode']=7
+        with patch.object(Q.subprocess,'check_output',return_value=json.dumps([actual])):
+            self.assertEqual(Q.ready(self.job),'inference_failed')
+
+    def test_strict_scoring_error_with_zero_exit_is_rejected(self):
+        self.strict_fixture()
+        self.write(Path(self.job['eval_out'])/'results/EVAL_COMPLETE.track_kt.json',
+                   {'exit_code':0,'error':'incomplete scoring'})
+        with self.assertRaisesRegex(RuntimeError,'scoring terminal differs'): Q.ready(self.job)
+
+    def test_watch_uses_ten_minute_default(self):
+        with patch.object(Q,'verify',return_value=self.doc), \
+                patch.object(Q,'tick',return_value={'one':{'status':'waiting_inference'}}), \
+                patch.object(Q.time,'sleep',side_effect=InterruptedError) as sleep:
+            with self.assertRaises(InterruptedError): Q.watch(self.path,self.pin)
+            sleep.assert_called_once_with(600)
+
     def test_prechecks_wait_for_hash_bound_baseline_and_run_real_child(self):
         job={'id':'prechecks','kind':'k0_prechecks','baseline':'one','model':'/model',
              'output':str(self.root/'fresh/K0_PRECHECKS.json')}

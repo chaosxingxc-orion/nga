@@ -3,6 +3,12 @@
 
 Only successfully released inference jobs become ready. A lost worker without a
 terminal is a repair condition, never permission to duplicate CPU execution.
+
+New Track KT report jobs may opt into terminal_gate="full_posttrain_v1" with
+plan/plan_sha256 and execution/execution_sha256 bindings. This requires scoring,
+supervisor and retained host-175 Docker closure before reporting. Existing frozen
+queues retain their original gate. poll_interval_seconds defaults to 600 and may
+only be increased. Configuration verification is not scientific acceptance.
 """
 import argparse
 import fcntl
@@ -54,6 +60,8 @@ def process_matches(receipt, proc_root=Path('/proc')):
 def verify(path, pin):
     require(sha(path) == pin, 'queue manifest changed')
     doc = load(path)
+    interval = doc.get('poll_interval_seconds', 600)
+    require(type(interval) is int and interval >= 600, 'CPU polling interval must be at least 600 seconds')
     require(doc['schema'] == 'r3-cpu-report-queue-v1' and doc['test_read'] is False
             and doc['scientific_acceptance'] is False, 'queue scope differs')
     require(doc['controller'] == str(Path(__file__).resolve()) and
@@ -128,6 +136,10 @@ def verify(path, pin):
     for key in ('output',):
         require(len({j[key] for j in jobs}) == len(jobs), 'duplicate ' + key)
     for job in jobs:
+        if 'terminal_gate' in job:
+            require(job.get('kind', 'report') == 'report' and
+                    job['terminal_gate'] == 'full_posttrain_v1', 'unsupported terminal gate')
+            strict_plan(job)
         require(re.fullmatch(r'[A-Za-z0-9_-]+', job['id']), 'unsafe job ID')
         require(Path(job['output']).is_absolute(), 'absolute output required')
         if job.get('kind', 'report') == 'report':
@@ -268,7 +280,76 @@ def validate_pt_output(report, doc, job):
 
 
 
+def strict_plan(job):
+    """Pin a new post-training consumer without changing legacy queues."""
+    root = safe_absolute(job['eval_out'])
+    for key, filename in (('execution', 'execution.json'), ('plan', 'plan.json')):
+        require(job.get(key) == str(root / filename) and
+                sha(root / filename) == job.get(key + '_sha256'), 'strict ' + key + ' binding differs')
+    execution = load(root / 'execution.json')
+    spec = load(root / 'plan.json')
+    require(execution.get('spec') == str(root / 'plan.json') and
+            execution.get('spec_sha256') == job['plan_sha256'] and
+            execution.get('out') == str(root), 'strict producer specification differs')
+    require(execution.get('test_read') is False and execution.get('scientific_acceptance') is False and
+            spec.get('test_read') is False and spec.get('scientific_acceptance') is False and
+            spec.get('evaluation_profile') == 'track_kt', 'strict producer scope differs')
+    require(job['output'] == str(root / 'results/selection_report.json'), 'strict report output differs')
+    return execution, spec
+
+
+def full_posttrain_ready(job, number, end):
+    execution, spec = strict_plan(job)
+    root = Path(job['eval_out']); attempt = root / 'attempts' / str(number)
+    require(type(end.get('exit_code')) is int and end.get('scientific_acceptance') is False,
+            'strict terminal scope differs')
+    done = attempt / 'SUPERVISOR_DONE.json'
+    if not done.exists():
+        return 'waiting_supervisor'
+    completed = load(done)
+    require(type(completed.get('exit_code')) is int and completed['exit_code'] == end['exit_code'] and
+            completed.get('scientific_acceptance') is False, 'supervisor terminal differs')
+    if end['exit_code'] == 0:
+        marker = root / 'results/EVAL_COMPLETE.track_kt.json'
+        if not marker.exists():
+            return 'waiting_scoring_terminal'
+        scoring = load(marker)
+        require(type(scoring.get('exit_code')) is int and scoring['exit_code'] == 0 and
+                not scoring.get('error'),
+                'scoring terminal differs')
+    launch = load(attempt / 'LAUNCH_RECEIPT.json')
+    require(launch.get('sha256') == job['execution_sha256'] and
+            launch.get('image') == spec.get('image_sha256'), 'strict launch binding differs')
+    container = launch['id']
+    require(isinstance(container, str) and re.fullmatch('[0-9a-f]{64}', container),
+            'invalid retained container ID')
+    # Only after file closure; never read logs or infer death from a timeout.
+    raw = subprocess.check_output(['ssh', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10',
+                                   'npu', 'docker', 'inspect', container], text=True, timeout=30)
+    inspected = json.loads(raw)
+    require(isinstance(inspected, list) and len(inspected) == 1, 'retained container observation differs')
+    actual = inspected[0]
+    expected_command = ['-P', execution['launcher'], 'drive', '--plan', job['execution'],
+                        '--sha256', job['execution_sha256'], '--attempt', str(number)]
+    require(actual.get('Id') == container and
+            actual.get('Name') == '/' + execution['container'] + '-a' + str(number) and
+            actual.get('Image') == spec['image_sha256'] and
+            actual.get('HostConfig', {}).get('AutoRemove') is False and
+            actual.get('Config', {}).get('Cmd') == expected_command, 'retained container binding differs')
+    state = actual.get('State', {})
+    if state.get('Status') in ('running', 'created', 'restarting', 'paused'):
+        return 'waiting_container_terminal'
+    require(state.get('Status') in ('exited', 'dead') and state.get('Running') is False and
+            type(state.get('ExitCode')) is int and state['ExitCode'] == end['exit_code'] and
+            (end['exit_code'] != 0 or (not state.get('OOMKilled') and not state.get('Error'))),
+            'retained container terminal differs')
+    return 'ready' if end['exit_code'] == 0 else 'inference_failed'
+
+
 def ready(job):
+    if 'terminal_gate' in job:
+        require(job['terminal_gate'] == 'full_posttrain_v1', 'unsupported terminal gate')
+        strict_plan(job)
     root = Path(job['eval_out'])
     terminal = root / 'ENGINEERING_EVAL_EXIT.json'
     if not terminal.exists():
@@ -312,6 +393,8 @@ def ready(job):
     if not (root / 'attempts' / str(number) / 'RELEASE.json').exists():
         return 'waiting_release'
     released(number, end)
+    if job.get('terminal_gate') == 'full_posttrain_v1':
+        return full_posttrain_ready(job, number, end)
     return 'ready' if end['exit_code'] == 0 else 'inference_failed'
 
 
@@ -521,7 +604,7 @@ def watch(path, pin):
             # retry. Keep observing it so later success is not left unreported.
             if all(x['status'] in ('done', 'report_failed') for x in states.values()):
                 atomic(path.parent / 'DONE.json', digest); return
-            time.sleep(15)
+            time.sleep(doc.get('poll_interval_seconds', 600))
 
 
 def main():
