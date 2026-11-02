@@ -50,6 +50,18 @@ The independent lane continues; aggregate failure is published only after every
 lane reaches a terminal state. Offline `verify` still checks all jobs. Supervisors
 verify their own job, so another lane's corrupted files cannot prevent startup.
 
+The v3 host repair explicitly records `host_dependencies` as plan-bound source
+path, immutable copy, SHA-256 and affected job IDs. A missing original dependency
+is deployed with exactly the plan-pinned bytes; an existing different file is
+never overwritten. Host verification checks both copies before the affected job.
+`evaluation_interfaces` binds the specific legacy predecessor execution and
+launcher hashes to `legacy-command-results-v1`. Only that exact historical
+launcher receives the declared output-directory adapter, derived from its own
+reproduced `expected_command`; there is no attribute fallback or mutable checkout
+substitution. Read-only validation on host175 must verify both actual predecessor
+interfaces and completed prerequisite lineage before new activation. Frozen v2
+failure evidence is retained, and its terminal controller is never restarted.
+
 Evidence lives under config `state_root`: `SERVICE.json`, `START_INTENT` per job,
 `STATE.json`, `heartbeat.json`, `digest.md`, `RELAUNCH.json`, durable supervisor
 logs and `EXIT.json`. Training's own supervisor receipt, retained container,

@@ -139,6 +139,37 @@ class IdentityTests(unittest.TestCase):
         f.write_bytes(C.canonical(c))
         with self.assertRaisesRegex(RuntimeError,'pin changed'):C.verify_config(f,pin)
 
+    def test_exact_legacy_evaluator_interface_from_predecessor_plan(self):
+        c=copy.deepcopy(self.c);prior=c['jobs'][2]['previous'];e=C.load(prior['path'],prior['sha256'])
+        binding=dict(execution={'path':prior['path'],'sha256':prior['sha256']},
+                     launcher={'path':e['launcher'],'sha256':e['tools'][e['launcher']]},contract='legacy-command-results-v1')
+        c['evaluation_interfaces']=[binding];h=C.helper(c)
+        launcher=h.source(e['launcher'],e['tools'][e['launcher']]);spec=C.load(e['spec'],e['spec_sha256'])
+        self.assertEqual(launcher.result_directory(spec,e['out']),Path(e['out'])/'results')
+        bad=copy.deepcopy(spec);bad['command'][bad['command'].index('--out')+1]='/tmp/unbound'
+        with self.assertRaisesRegex(RuntimeError,'command differs'):launcher.result_directory(bad,e['out'])
+        c['evaluation_interfaces'][0]['launcher']['sha256']='0'*64
+        with self.assertRaisesRegex(RuntimeError,'pin/contract'):C.helper(c).source(e['launcher'],e['tools'][e['launcher']])
+
+    def test_configured_host_dependency_missing_changed_and_exact(self):
+        c=copy.deepcopy(self.c);j=copy.deepcopy(c['jobs'][0]);plan=C.load(j['plan'])
+        original=next(x for x in plan['files'] if x.startswith('/home/'))
+        raw=C.content(original,plan['files'][original]);deployed=self.root/'host.py';frozen=self.root/'frozen.py';frozen.write_bytes(raw)
+        plan['files'][str(deployed)]=plan['files'][original];p=self.root/'plan.json';p.write_bytes(C.canonical(plan))
+        j.update(plan=str(p),raw_sha256=C.digest(p.read_bytes()))
+        c['host_dependencies']=[dict(path=str(deployed),source=str(frozen),sha256=C.digest(raw),jobs=[j['id']])]
+        with self.assertRaises(FileNotFoundError):C.verify_deployment(c,j)
+        deployed.write_bytes(raw);C.verify_deployment(c,j)
+        deployed.write_text('changed')
+        with self.assertRaisesRegex(RuntimeError,'pin changed'):C.verify_deployment(c,j)
+
+    def test_legacy_adapter_never_applies_to_modern_launcher(self):
+        c=copy.deepcopy(self.c);prior=c['jobs'][0]['previous'];e=C.load(prior['path'],prior['sha256'])
+        c['evaluation_interfaces']=[dict(execution={'path':prior['path'],'sha256':prior['sha256']},
+                                        launcher={'path':e['launcher'],'sha256':e['tools'][e['launcher']]},contract='legacy-command-results-v1')]
+        with self.assertRaisesRegex(RuntimeError,'legacy evaluator interface differs'):
+            C.helper(c).source(e['launcher'],e['tools'][e['launcher']])
+
 
 class WatchIsolationTests(unittest.TestCase):
     setUp = IdentityTests.setUp

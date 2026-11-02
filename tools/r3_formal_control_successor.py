@@ -82,7 +82,43 @@ def save(path, value, exclusive=False):
 
 def helper(config):
     require(config['helper']['sha256'] == ACCEPTED_HELPER, 'unaccepted lifecycle helper')
-    return source(config['helper'])
+    h = source(config['helper'])
+    interfaces = config.get('evaluation_interfaces', [])
+    original_source = h.source
+    def bound_source(path, pin):
+        module = original_source(path, pin)
+        matches = [x for x in interfaces if x['launcher']['path'] == str(path)]
+        if matches:
+            require(len(matches) == 1, 'ambiguous evaluator interface')
+            binding = matches[0]
+            require(binding['launcher']['sha256'] == pin and
+                    binding['contract'] == 'legacy-command-results-v1', 'evaluator interface pin/contract differs')
+            # This is an explicit adapter for a pinned historical interface,
+            # never feature detection or fallback to a mutable newer launcher.
+            require('result_directory' not in module.__dict__, 'legacy evaluator interface differs')
+            def result_directory(spec, out):
+                command = module.expected_command(spec, Path(out))
+                require(command == spec['command'] and command.count('--out') == 1,
+                        'legacy evaluator command differs')
+                result = Path(command[command.index('--out') + 1])
+                require(result == Path(out)/'results', 'legacy evaluator output contract differs')
+                return result
+            module.result_directory = result_directory
+        return module
+    h.source = bound_source
+    return h
+
+
+def verify_deployment(c, job):
+    """Explicit external-path dependency; deployment never rewrites a plan."""
+    p = load(job['plan'], job['raw_sha256'])
+    for dependency in c.get('host_dependencies', []):
+        require(set(dependency) == {'path', 'source', 'sha256', 'jobs'}, 'host dependency fields differ')
+        if job['id'] not in dependency['jobs']:
+            continue
+        require(p['files'].get(dependency['path']) == dependency['sha256'], 'host dependency not plan-bound')
+        require(content(dependency['source'], dependency['sha256']) ==
+                content(dependency['path'], dependency['sha256']), 'deployed host dependency differs')
 
 
 def tools_for(plan):
@@ -131,6 +167,13 @@ def verify_controller(path, pin):
     require(jobs[1]['previous'] == {'kind': 'control', 'job': 'qo_seed2'} and
             all(jobs[i]['previous']['kind'] == 'evaluation' for i in (0, 2)), 'FIFO edges differ')
     require(len({j['plan'] for j in jobs}) == 3, 'plan alias')
+    for binding in c.get('evaluation_interfaces', []):
+        require(set(binding) == {'execution', 'launcher', 'contract'} and
+                binding['contract'] == 'legacy-command-results-v1', 'evaluation interface declaration differs')
+        prior = [j['previous'] for j in jobs if j['previous']['kind'] == 'evaluation' and
+                 j['previous']['path'] == binding['execution']['path'] and
+                 j['previous']['sha256'] == binding['execution']['sha256']]
+        require(len(prior) == 1, 'evaluation interface is not predecessor-bound')
     end = load(c['reviewed_terminal']['path'], c['reviewed_terminal']['sha256'])
     result = load(c['reviewed_result']['path'], c['reviewed_result']['sha256'])
     require(end['exit_code'] == 0 and end['result_sha256'] == c['reviewed_result']['sha256'] and
@@ -140,6 +183,7 @@ def verify_controller(path, pin):
 
 
 def verify_job(c, j):
+    verify_deployment(c, j)
     p = checked_plan(j)
     require(p['allocation'] == c['allocation'], 'allocation differs')
     result = load(c['reviewed_result']['path'], c['reviewed_result']['sha256'])
@@ -156,6 +200,12 @@ def verify_job(c, j):
         require(e['schema'] == 'r3-engineering-posttrain-execution-v1' and
                 e['chip'] == j['chip'] and e['test_read'] is False and
                 e['scientific_acceptance'] is False, 'evaluation predecessor differs')
+        for binding in c.get('evaluation_interfaces', []):
+            if binding['execution']['path'] == prior['path']:
+                require(e['launcher'] == binding['launcher']['path'] and
+                        e['tools'][e['launcher']] == binding['launcher']['sha256'], 'evaluation source binding differs')
+                # Authenticate the adapted interface even before a terminal exists.
+                helper(c).source(e['launcher'], e['tools'][e['launcher']])
     for f, h in j['fresh_files'].items():
         content(Path(p['out']) / f, h)
     return p
