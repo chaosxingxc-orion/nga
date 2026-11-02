@@ -364,12 +364,30 @@ func TestDurableAcceptsExtraFieldLine(t *testing.T) {
 	if len(l2.Entries()) != 2 {
 		t.Fatalf("unexpected entries: %d", len(l2.Entries()))
 	}
-	// the same content reorganized as an envelope document IS rejected by
-	// the envelope face — the two faces intentionally disagree on this shape
-	doc := map[string]any{"evidlog_version": "0.1.0", "entries": []any{
-		json.RawMessage(l1), json.RawMessage(extra),
-	}}
-	if errs := CheckDoc(doc); len(errs) == 0 {
+	// The same content reorganized as an envelope document IS rejected by
+	// the envelope face — the two faces intentionally disagree on this
+	// shape. Construction must be plain decoded JSON values (R9 inner
+	// review: json.RawMessage's underlying []byte makes the v6 validator
+	// reject ANY document, so the old pin was vacuous — it passed even with
+	// additionalProperties:false deleted from the schema). Two directions:
+	// the clean twin must PASS (attribute the rejection to the extra field,
+	// not to a broken construction) and the extra-field doc must FAIL.
+	envelope := func(entries ...json.RawMessage) map[string]any {
+		raw, err := json.Marshal(map[string]any{"evidlog_version": "0.1.0", "entries": entries})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var doc map[string]any
+		if err := json.Unmarshal(raw, &doc); err != nil {
+			t.Fatal(err)
+		}
+		return doc
+	}
+	clean := []byte(`{"seq":1,"tool":"bureau.q","selector":"subj=x","caller":"s2","at":"2026-11-01T10:01:00Z"}`)
+	if errs := CheckDoc(envelope(json.RawMessage(l1), clean)); len(errs) != 0 {
+		t.Fatalf("clean envelope twin rejected — construction broken, pin vacuous: %v", errs)
+	}
+	if errs := CheckDoc(envelope(json.RawMessage(l1), extra)); len(errs) == 0 {
 		t.Fatal("envelope face accepted an extra-field document — additionalProperties:false disappeared")
 	}
 }

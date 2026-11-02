@@ -86,9 +86,9 @@ func (l *Log) Append(e Entry) error {
 	// fields ride, including the optional ResultRef — everything that ends
 	// up as durable bytes must be byte-representable (adopt's R5 BLOCKER
 	// doctrine: the gate rejects what it cannot byte-represent).
-	for _, s := range []string{e.Tool, e.Selector, e.Caller, e.At, e.ResultRef} {
+	for name, s := range map[string]string{"tool": e.Tool, "selector": e.Selector, "caller": e.Caller, "at": e.At, "result_ref": e.ResultRef} {
 		if !utf8.ValidString(s) {
-			return fmt.Errorf("[EVIDLOG.INVALID_ENTRY] Append refuses: a string field is not valid UTF-8 — the json encoder would launder it to U+FFFD and the durable form would diverge from the caller's copy")
+			return fmt.Errorf("[EVIDLOG.INVALID_ENTRY] Append refuses: field %q is not valid UTF-8 — the json encoder would launder it to U+FFFD and the durable form would diverge from the caller's copy", name)
 		}
 	}
 	l.seq++
