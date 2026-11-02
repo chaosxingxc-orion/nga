@@ -741,8 +741,9 @@ func TestTruncationBlindSpot(t *testing.T) {
 // lock the previous literal-map comparison was not: a gate row dropped from
 // the production slice makes its field's probe pass silently-green→RED
 // (the A-position mutation reproduced: deleting the result_ref row kept
-// the whole suite green); a new Entry string field without a gate row has
-// no probe naming it → the reflection loop fails to find its refusal.
+// the whole suite green); a new Entry string field without a gate row
+// gets a probe naming it whose Append is ACCEPTED → the loop fails red
+// at the acceptance branch.
 func TestUTF8GateFieldCoverage(t *testing.T) {
 	ety := reflect.TypeOf(Entry{})
 	for i := 0; i < ety.NumField(); i++ {
@@ -770,12 +771,13 @@ func TestUTF8GateFieldCoverage(t *testing.T) {
 
 // TestZeroValueLogAppendRefused pins the NOT_OPEN guard (R14 A-m2: the
 // guard had no test — deleting it and the opened field kept the suite
-// green, and a zero-value Log's first Append would emit Seq=1, violating
-// dense-from-0 and bricking the file for the next Open).
+// green; a zero-value Log's first Append would emit Seq=1, violating
+// dense-from-0 in the in-memory view (the durable form is never reached
+// — the zero value's path is empty, per the Log contract).
 func TestZeroValueLogAppendRefused(t *testing.T) {
 	l := &Log{}
 	if err := l.Append(Entry{Tool: "t", Selector: "s", Caller: "c", At: "a"}); err == nil {
-		t.Fatal("zero-value Log accepted an Append — first entry would be Seq=1, violating dense-from-0")
+		t.Fatal("zero-value Log accepted an Append — first entry would be Seq=1, violating dense-from-0 in the in-memory view")
 	} else if !strings.Contains(err.Error(), "EVIDLOG.NOT_OPEN") {
 		t.Fatalf("refusal lacks the neutral key: %v", err)
 	}
