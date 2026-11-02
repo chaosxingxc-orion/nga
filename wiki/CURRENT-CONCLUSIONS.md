@@ -7,7 +7,7 @@ Coverage correction — v10, 2026-11-02: the dataset choice is being widened fro
 
 ## Current position
 
-D1 reference reporting is closed for the registered test matrix: 36 of 38 model-by-dataset combinations have results; Open-Jev-2B×JEVal and Open-Jev-9B×JEVal remain `blocked/null`. Test metrics are preserved by task formula, temperature, hard/soft target and effective denominator. Formal Jev training has not started. The three-step Qwen3.5-0.8B NPU preflight proves only the training path and guarded resource handoff; it is not a training result or a test-set result.
+D1 reference reporting is closed for the registered test matrix: 36 of 38 model-by-dataset combinations have results; Open-Jev-2B×JEVal and Open-Jev-9B×JEVal remain `blocked/null`. Test metrics are preserved by task formula, temperature, hard/soft target and effective denominator. Formal K1 v15 training for Qwen3.5-0.8B completed for seeds 2 and 3 with exit 0, but scientific acceptance is still false. The detached DEV/calibration/Track-T evaluation is now running on host 175; it is not a test-set result and does not authorize TEST.
 
 The engineering constraints are fixed: NPU work consumes a per-chip FIFO queue; CPU scoring, independent checks, baseline locking, Astra review and report refresh run asynchronously in an ordered lane. The controller has regression tests, but a production queue and ready manifest are not deployed, so current continuous NPU saturation must not be claimed.
 
