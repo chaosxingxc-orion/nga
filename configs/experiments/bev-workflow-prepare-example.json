@@ -1,0 +1,15 @@
+{
+  "chip": 6,
+  "container": "nga-bev-configured-example-v1",
+  "root": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/bev_configured_example_v1",
+  "run": "r3_runs/bev_configured_example_v1",
+  "schema": "nga-bev-workflow-prepare-v1",
+  "template_cpu": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/bev_dev_2b_cpu_20261102_v1/config.json",
+    "sha256": "120b48a5e0b935da93ac9ae7051a2a2173c3ed49cfcf0afb05289947acf9cf73"
+  },
+  "template_plan": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/bev_dev_2b_20261102_v1/plan.json",
+    "sha256": "92189cdae8e1f4138f38dc6a72042ece06ca1f646395cb7102e990cc7673a42f"
+  }
+}
