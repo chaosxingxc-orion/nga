@@ -1,0 +1,78 @@
+{
+  "ledger_version": "0.1.0",
+  "events": [
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 0,
+      "identity": {
+        "business_request_id": "br-a003",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-credit-3"
+      },
+      "versions": {
+        "evidence": "ev-3",
+        "rule": "rule-v1",
+        "model": "m-1",
+        "readout": "r-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "adopted",
+        "detail": "fixture"
+      },
+      "accountability": {
+        "session": "sess-1",
+        "skill": "skill-credit",
+        "role": "employee"
+      },
+      "idempotency": {
+        "operation_id": "op-credit-3",
+        "payload_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://credit/a3",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        },
+        {
+          "kind": "tool",
+          "selector": "tool://credit-transfer",
+          "actions": [
+            "execute"
+          ],
+          "effect": "irreversible"
+        }
+      ]
+    },
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 1,
+      "identity": {
+        "business_request_id": "br-a003",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-credit-3"
+      },
+      "versions": {
+        "evidence": "ev-3",
+        "rule": "rule-v1",
+        "model": "m-1",
+        "readout": "r-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "conflict",
+        "detail": "fixture"
+      },
+      "accountability": {
+        "session": "sess-2",
+        "skill": "skill-credit",
+        "role": "employee"
+      }
+    }
+  ],
+  "_expect": "ACCEPT: two requests under the same key with DIFFERENT payloads — the recorded arbitration order shows one adopted, one conflict (12 s2); the loser's digest never enters the registry (its event carries no idempotency), which is what distinguishes this from the invalid same-key-different-digest (a registered digest flipped). A same-key same-digest concurrent race collapses to adopted+reused — the ledger cannot distinguish concurrent from sequential arrival; only the arbitration order is recorded."
+}

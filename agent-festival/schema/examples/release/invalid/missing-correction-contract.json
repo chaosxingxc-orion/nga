@@ -1,0 +1,46 @@
+{
+  "release_version": "0.1.0",
+  "release_id": "rel-x-1",
+  "agent_identity": "agent://team-x/agent-x",
+  "references": {
+    "model_versions": [
+      "model:m@1.0.0"
+    ],
+    "readout_versions": [
+      "readout:r@1.0.0"
+    ],
+    "semantic_specifications": [
+      "judgment:q@1.0.0"
+    ],
+    "adoption_specifications": [
+      "adoption:p@0.1.0"
+    ],
+    "capability_definitions": [],
+    "workflow_definitions": [],
+    "graph_definitions": [],
+    "context_policies": [],
+    "controller_contracts": [],
+    "enforcement_contracts": []
+  },
+  "rollout": {
+    "new_tasks": "all new tasks",
+    "in_flight": "complete-under-pinned-definitions"
+  },
+  "rollback": {
+    "new_work_routing": "route back",
+    "active_work_handling": "complete under pinned"
+  },
+  "evidence": {
+    "version_compatibility": [
+      "compat:1"
+    ],
+    "policy_conformance": [
+      "conf:1"
+    ],
+    "business_improvement": [
+      "metric:1"
+    ]
+  },
+  "_expect": "REJECT: §5 'External effects require their business correction/compensation contract' — a rollback without the correction reference promises an undo it cannot deliver (a confirmed credit registration cannot be undone)",
+  "_expect_match": "external_effect_correction"
+}

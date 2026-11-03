@@ -1,0 +1,20 @@
+{
+  "_expect": "REJECT at load: subject_of names a kid that has no key; a dangling binding is a typo, not a policy",
+  "_expect_match": "unknown kid",
+  "keys": [
+    {
+      "alg": "ES256",
+      "crv": "P-256",
+      "kid": "publisher-2026-09",
+      "kty": "EC",
+      "use": "sig",
+      "x": "EGndUsGKDmUNRHwmyvzP3XK5_AIc10sdTXgPgO9dJVY",
+      "y": "MmMCZnd4cXydp3xj2sLod7O3xp7AtvGbIMK753IGxzQ"
+    }
+  ],
+  "subject_of": {
+    "publsher-2026-09": [
+      "doc-extractor"
+    ]
+  }
+}

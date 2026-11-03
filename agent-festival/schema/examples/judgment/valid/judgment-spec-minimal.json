@@ -1,0 +1,60 @@
+{
+  "judgment_version": "0.1.0",
+  "question": {
+    "question_id": "q-boolean-gate",
+    "spec_version": "1.0.0"
+  },
+  "conventions": {
+    "terms": [
+      {
+        "name": "flag",
+        "definition": "a boolean input signal"
+      }
+    ],
+    "reference_time": "evaluation instant",
+    "time_window": "no window — point evaluation",
+    "evidence_sources": [
+      "the flag service's declaration"
+    ]
+  },
+  "levels": [
+    {
+      "name": "verdict",
+      "definition": "the categorical gate outcome",
+      "type": "nominal"
+    },
+    {
+      "name": "priority",
+      "definition": "queue priority for follow-up",
+      "type": "ordinal"
+    }
+  ],
+  "rules": [
+    {
+      "precedence": 0,
+      "coverage": "flag true passes"
+    }
+  ],
+  "resolution": {
+    "on_missing_evidence": "record a semantic issue for the owner",
+    "on_undefined_rule": "apply no rule; record a semantic issue"
+  },
+  "examples": [
+    {
+      "kind": "boundary",
+      "case": "flag absent",
+      "expected": "on_missing_evidence — not a failure"
+    }
+  ],
+  "scope": {
+    "supported": "a single boolean gate"
+  },
+  "ownership": {
+    "owner": "team-a",
+    "review_authority": "review-board",
+    "effective_scope": "team-a services",
+    "change_rationale": "initial publication"
+  },
+  "_expect": "ACCEPT: minimal form — absent: term unit, rule exceptions, impacted_links (the optional-absence paths); carried: nominal + ordinal levels and change_rationale (the vocabulary positives); spec_version is not optional — identity and version are inseparable per §6",
+  "candidate_set": "stackable"
+}

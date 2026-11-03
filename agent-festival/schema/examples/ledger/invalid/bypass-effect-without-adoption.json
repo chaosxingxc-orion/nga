@@ -1,0 +1,73 @@
+{
+  "ledger_version": "0.1.0",
+  "events": [
+    {
+      "event_type": "effect",
+      "arbitration_seq": 0,
+      "identity": {
+        "business_request_id": "br-a001",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-credit-1"
+      },
+      "versions": {
+        "evidence": "ev-1",
+        "rule": "rule-credit-v3",
+        "model": "kev-9b",
+        "readout": "readout-v2",
+        "policy": "policy-adopt-v1"
+      },
+      "outcome": {
+        "status": "dispatched",
+        "detail": "fixture"
+      },
+      "idempotency": {
+        "operation_id": "op-credit-1",
+        "payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 1,
+      "identity": {
+        "business_request_id": "br-a001",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-credit-1"
+      },
+      "versions": {
+        "evidence": "ev-1",
+        "rule": "rule-credit-v3",
+        "model": "kev-9b",
+        "readout": "readout-v2",
+        "policy": "policy-adopt-v1"
+      },
+      "outcome": {
+        "status": "adopted",
+        "detail": "fixture"
+      },
+      "idempotency": {
+        "operation_id": "op-credit-1",
+        "payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://credit/a1",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        },
+        {
+          "kind": "tool",
+          "selector": "tool://credit-transfer",
+          "actions": [
+            "execute"
+          ],
+          "effect": "irreversible"
+        }
+      ]
+    }
+  ],
+  "_expect": "REJECT: an effect event before its adoption event is a bypass write — the adopt state machine is the single writer, and effects only exist downstream of an adoption (order matters, not just presence)",
+  "_expect_match": "LEDGER.ILLEGAL_TRANSITION"
+}

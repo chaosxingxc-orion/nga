@@ -1,0 +1,42 @@
+{
+  "judgment_version": "0.1.0",
+  "question": {
+    "question_id": "q-x",
+    "spec_version": "1.0.0"
+  },
+  "levels": [
+    {
+      "name": "l",
+      "definition": "d",
+      "type": "boolean"
+    }
+  ],
+  "candidate_set": "exclusive",
+  "rules": [
+    {
+      "precedence": 0,
+      "coverage": "c"
+    }
+  ],
+  "resolution": {
+    "on_missing_evidence": "record issue",
+    "on_undefined_rule": "record issue"
+  },
+  "examples": [
+    {
+      "kind": "boundary",
+      "case": "c",
+      "expected": "e"
+    }
+  ],
+  "scope": {
+    "supported": "s"
+  },
+  "ownership": {
+    "owner": "o",
+    "review_authority": "r",
+    "effective_scope": "e"
+  },
+  "_expect": "REJECT: §6.1's first bullet — terms, units, evidence sources, reference time, time window — has nowhere to live; a specification without conventions is all predicate and no vocabulary",
+  "_expect_match": "conventions"
+}

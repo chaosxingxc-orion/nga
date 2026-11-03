@@ -1,0 +1,51 @@
+{
+  "judgment_version": "0.1.0",
+  "question": {
+    "question_id": "q-x",
+    "spec_version": "1.0.0"
+  },
+  "conventions": {
+    "terms": [
+      {
+        "name": "t",
+        "definition": "d"
+      }
+    ],
+    "evidence_sources": [
+      "the source of record"
+    ],
+    "reference_time": "now",
+    "time_window": "none"
+  },
+  "levels": [
+    {
+      "name": "l",
+      "definition": "d",
+      "type": "boolean"
+    }
+  ],
+  "candidate_set": "exclusive",
+  "rules": [
+    {
+      "precedence": 0,
+      "coverage": "c"
+    }
+  ],
+  "examples": [
+    {
+      "kind": "boundary",
+      "case": "c",
+      "expected": "e"
+    }
+  ],
+  "scope": {
+    "supported": "s"
+  },
+  "ownership": {
+    "owner": "o",
+    "review_authority": "r",
+    "effective_scope": "e"
+  },
+  "_expect": "REJECT: without the resolution section, missing evidence and undefined rules fall to silent defaults — the exact §6.1 'not automatically a negative business answer' failure the field exists to stop",
+  "_expect_match": "resolution"
+}

@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-festival.local/schema/release/0.1.0",
+  "title": "Release Manifest — draft 0.1.0",
+  "description": "Piece 5 of the growth layer: the version-continuity link (agent identity → release manifest → task/run and decision revisions → operation attempts/outcomes → reviewed case/evaluation → candidate and subsequent release — proposal §6 linking structure). The manifest consists of references to independently managed artifacts — it is NOT a single deployment unit. A rollback can change routing for new work or trigger explicit handling of active work; it cannot undo a confirmed external registration; external effects require their business correction/compensation contract; live permission revocation still applies — version pinning cannot preserve revoked rights (proposal §6 change table, §7, §9, M05 — §7 carries the compensation-contract semantics). A release can be technically compatible and still fail business acceptance: version compatibility, policy conformance, and measured business improvement are separate evidence (legacy v0.2 §5 semantics, retained). Provenance (dual anchor): semantics per the current proposal §6/§7/§9 and M05; formerly NGA v0.2 (13号) §5 (superseded by the 2026-10-31 consolidation). 'Proposed' — an evidence-track probe answer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "release_version",
+    "release_id",
+    "agent_identity",
+    "references",
+    "rollout",
+    "rollback",
+    "evidence"
+  ],
+  "properties": {
+    "release_version": {
+      "description": "§5's linking structure names the release manifest as its own link — the format version of this artifact (distinct from the referenced specification versions).",
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "release_id": {
+      "description": "The manifest's own identity in the linking chain (candidate and subsequent release are distinct links).",
+      "type": "string",
+      "minLength": 1
+    },
+    "agent_identity": {
+      "description": "§5 'agent identity → release manifest' — the head of the linking structure.",
+      "type": "string",
+      "minLength": 1
+    },
+    "references": {
+      "description": "§5 'A release manifest references the compatible model/readout versions, semantic and adoption specifications, capability/workflow/graph definitions, context policies, and relevant controller/enforcement contracts.' The four version/spec pins are the manifest's core (minItems 1); the definition/policy/contract categories may be empty — presence of the key is the explicit declaration, and only RELEVANT contracts are referenced.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_versions",
+        "readout_versions",
+        "semantic_specifications",
+        "adoption_specifications",
+        "capability_definitions",
+        "workflow_definitions",
+        "graph_definitions",
+        "context_policies",
+        "controller_contracts",
+        "enforcement_contracts"
+      ],
+      "properties": {
+        "model_versions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "readout_versions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "semantic_specifications": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "adoption_specifications": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "capability_definitions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "workflow_definitions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "graph_definitions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "context_policies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "controller_contracts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "enforcement_contracts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "rollout": {
+      "description": "Rollout policy must state which new tasks receive a release and what happens to in-flight work. Drift register: the current proposal §6 states the in-flight choice as open prose ('preserve versions or admit a hold/migration/reevaluation') — 'reevaluation' is a fourth word beyond this schema's three-value closed enum; festival keeps the enum and rejects an invented fourth mode pending an upstream ruling (issue #1 collision response L4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "new_tasks",
+        "in_flight"
+      ],
+      "properties": {
+        "new_tasks": {
+          "description": "Which new tasks receive this release — a stated policy, not a default.",
+          "type": "string",
+          "minLength": 1
+        },
+        "in_flight": {
+          "description": "§5's three named choices for in-flight work. Live permission revocation still applies where required — version pinning cannot preserve revoked rights.",
+          "type": "string",
+          "enum": [
+            "complete-under-pinned-definitions",
+            "explicit-state-migration",
+            "hold-and-revise"
+          ]
+        }
+      }
+    },
+    "rollback": {
+      "description": "§5 'A rollback can change routing for new work or trigger explicit handling of active work. It cannot undo a confirmed credit registration. External effects require their business correction/compensation contract.'",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "new_work_routing",
+        "active_work_handling",
+        "external_effect_correction"
+      ],
+      "properties": {
+        "new_work_routing": {
+          "type": "string",
+          "minLength": 1
+        },
+        "active_work_handling": {
+          "type": "string",
+          "minLength": 1
+        },
+        "external_effect_correction": {
+          "description": "The business correction/compensation contract reference for external effects — required because a rollback cannot undo them.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "evidence": {
+      "description": "§5 'A release can be technically compatible and still fail business acceptance. Keep version compatibility, policy conformance, and measured business improvement as separate evidence.' Three distinct fields, none substituting another.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version_compatibility",
+        "policy_conformance",
+        "business_improvement"
+      ],
+      "properties": {
+        "version_compatibility": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "policy_conformance": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "business_improvement": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

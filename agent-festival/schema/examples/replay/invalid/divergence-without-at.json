@@ -1,0 +1,87 @@
+{
+  "case_version": "0.1.0",
+  "case_id": "x",
+  "steps": [
+    {
+      "op": "adopt",
+      "request": {
+        "adoption_version": "0.1.0",
+        "identity": {
+          "business_request_id": "br-t",
+          "evaluation_revision": "er-1",
+          "operation_id": "op-x"
+        },
+        "versions": {
+          "evidence": "ev-1",
+          "rule": "r-1",
+          "model": "m-1",
+          "readout": "ro-1",
+          "policy": "p-1"
+        },
+        "payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "grants_at_decision": [
+          {
+            "kind": "data",
+            "selector": "ledger://t",
+            "actions": [
+              "read"
+            ],
+            "effect": "none"
+          }
+        ],
+        "accountability": {
+          "session": "s-1",
+          "skill": "sk-1",
+          "role": "employee"
+        }
+      }
+    }
+  ],
+  "recorded_events": [
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 0,
+      "identity": {
+        "business_request_id": "br-t",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-x"
+      },
+      "versions": {
+        "evidence": "ev-1",
+        "rule": "r-1",
+        "model": "m-1",
+        "readout": "ro-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "adopted",
+        "detail": "record"
+      },
+      "idempotency": {
+        "operation_id": "op-x",
+        "payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "accountability": {
+        "session": "s-1",
+        "skill": "sk-1",
+        "role": "employee"
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://t",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "fidelity": "divergence",
+    "conformance": "pass"
+  },
+  "_expect": "REJECT: a divergence verdict must LOCATE — a boolean divergence is the anti-pattern the priors forbid (family b: the diff must locate, not just detect)",
+  "_expect_match": "divergence_at"
+}

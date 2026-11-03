@@ -1,0 +1,35 @@
+{
+  "_expect": "ACCEPT: effects.level irreversible with every requires effect none — the side effect is on a resource the agent owns, not on a caller grant; the validator only enforces level >= worst(requires), never ==",
+  "contract_version": "0.1.0",
+  "subject": {
+    "id": "ledger-poster",
+    "version": "2.0.0"
+  },
+  "provides": [
+    {
+      "skill_id": "post-ledger-entry",
+      "description": "Append an entry to the agent's own ledger"
+    }
+  ],
+  "requires": [
+    {
+      "resource": {
+        "kind": "data",
+        "selector": "s3://tenant-{tenant}/approved/*.json"
+      },
+      "actions": [
+        "read"
+      ],
+      "effect": "none",
+      "purpose": "entries to post"
+    }
+  ],
+  "effects": {
+    "level": "irreversible",
+    "compensation": "manual"
+  },
+  "bounds": {
+    "max_downstream_calls": 1,
+    "max_seconds": 30
+  }
+}

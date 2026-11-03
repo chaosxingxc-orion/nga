@@ -1,0 +1,163 @@
+{
+  "case_version": "0.1.0",
+  "case_id": "tamper-a",
+  "steps": [
+    {
+      "op": "adopt",
+      "request": {
+        "adoption_version": "0.1.0",
+        "identity": {
+          "business_request_id": "br-t",
+          "evaluation_revision": "er-1",
+          "operation_id": "op-t"
+        },
+        "versions": {
+          "evidence": "ev-1",
+          "rule": "r-1",
+          "model": "m-1",
+          "readout": "ro-1",
+          "policy": "p-1"
+        },
+        "payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "grants_at_decision": [
+          {
+            "kind": "data",
+            "selector": "ledger://t",
+            "actions": [
+              "read"
+            ],
+            "effect": "none"
+          }
+        ],
+        "accountability": {
+          "session": "s-1",
+          "skill": "sk-1",
+          "role": "employee"
+        }
+      }
+    },
+    {
+      "op": "dispatch",
+      "op_id": "op-t",
+      "grants": [
+        {
+          "kind": "data",
+          "selector": "ledger://t",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        }
+      ]
+    },
+    {
+      "op": "mark_completed",
+      "op_id": "op-t"
+    }
+  ],
+  "recorded_events": [
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 0,
+      "identity": {
+        "business_request_id": "br-t",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-t"
+      },
+      "versions": {
+        "evidence": "ev-1",
+        "rule": "r-1",
+        "model": "m-1",
+        "readout": "ro-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "adopted",
+        "detail": "record"
+      },
+      "idempotency": {
+        "operation_id": "op-t",
+        "payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://t",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        }
+      ],
+      "accountability": {
+        "session": "s-1",
+        "skill": "sk-1",
+        "role": "employee"
+      }
+    },
+    {
+      "event_type": "effect",
+      "arbitration_seq": 1,
+      "identity": {
+        "business_request_id": "br-t",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-t"
+      },
+      "versions": {
+        "evidence": "ev-1",
+        "rule": "r-1",
+        "model": "m-1",
+        "readout": "ro-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "dispatched",
+        "detail": "record"
+      },
+      "idempotency": {
+        "operation_id": "op-t",
+        "payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "accountability": {
+        "session": "s-1",
+        "skill": "sk-1",
+        "role": "employee"
+      }
+    },
+    {
+      "event_type": "effect",
+      "arbitration_seq": 2,
+      "identity": {
+        "business_request_id": "br-t",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-t"
+      },
+      "versions": {
+        "evidence": "ev-1",
+        "rule": "r-1",
+        "model": "m-1",
+        "readout": "ro-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "failed",
+        "detail": "record"
+      },
+      "idempotency": {
+        "operation_id": "op-t",
+        "payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "accountability": {
+        "session": "s-1",
+        "skill": "sk-1",
+        "role": "employee"
+      }
+    }
+  ],
+  "expected": {
+    "fidelity": "divergence",
+    "conformance": "pass",
+    "divergence_at": 2
+  },
+  "_expect": "family (a): the record's conclusion was tampered (completed→failed — itself a legal transition, so conformance still passes) — a pure playback would match, only recomputation diverges (the anti-playback pin)"
+}

@@ -1,0 +1,55 @@
+{
+  "judgment_version": "0.1.0",
+  "question": {
+    "question_id": "q-x",
+    "spec_version": "1.0.0"
+  },
+  "conventions": {
+    "terms": [
+      {
+        "name": "t",
+        "definition": "d"
+      }
+    ],
+    "evidence_sources": [
+      "the source of record"
+    ],
+    "reference_time": "now",
+    "time_window": "none"
+  },
+  "levels": [
+    {
+      "name": "l",
+      "definition": "d",
+      "type": "categorical"
+    }
+  ],
+  "candidate_set": "exclusive",
+  "rules": [
+    {
+      "precedence": 0,
+      "coverage": "c"
+    }
+  ],
+  "resolution": {
+    "on_missing_evidence": "record issue",
+    "on_undefined_rule": "record issue"
+  },
+  "examples": [
+    {
+      "kind": "boundary",
+      "case": "c",
+      "expected": "e"
+    }
+  ],
+  "scope": {
+    "supported": "s"
+  },
+  "ownership": {
+    "owner": "o",
+    "review_authority": "r",
+    "effective_scope": "e"
+  },
+  "_expect": "REJECT: the level-type vocabulary is boolean | nominal | ordinal (§6's current model proposal) — an invented type forks the calibration surface",
+  "_expect_match": "levels/0/type"
+}

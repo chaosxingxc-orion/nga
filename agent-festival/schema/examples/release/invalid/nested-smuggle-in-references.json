@@ -1,0 +1,48 @@
+{
+  "release_version": "0.1.0",
+  "release_id": "rel-x-1",
+  "agent_identity": "agent://team-x/agent-x",
+  "references": {
+    "model_versions": [
+      "model:m@1.0.0"
+    ],
+    "readout_versions": [
+      "readout:r@1.0.0"
+    ],
+    "semantic_specifications": [
+      "judgment:q@1.0.0"
+    ],
+    "adoption_specifications": [
+      "adoption:p@0.1.0"
+    ],
+    "capability_definitions": [],
+    "workflow_definitions": [],
+    "graph_definitions": [],
+    "context_policies": [],
+    "controller_contracts": [],
+    "enforcement_contracts": [],
+    "authority_hint": "auto-approve under 100k"
+  },
+  "rollout": {
+    "new_tasks": "all new tasks in the pilot region",
+    "in_flight": "complete-under-pinned-definitions"
+  },
+  "rollback": {
+    "new_work_routing": "route back",
+    "active_work_handling": "complete under pinned",
+    "external_effect_correction": "contract://x/correction"
+  },
+  "evidence": {
+    "version_compatibility": [
+      "compat:1"
+    ],
+    "policy_conformance": [
+      "conf:1"
+    ],
+    "business_improvement": [
+      "metric:1"
+    ]
+  },
+  "_expect": "REJECT: the closed-contract guard applies at EVERY object node — a smuggled authority field inside references is the nested-additionalProperties class (the grant/pin lesson, applied to the release family)",
+  "_expect_match": "authority_hint"
+}
