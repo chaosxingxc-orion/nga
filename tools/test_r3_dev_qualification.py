@@ -279,7 +279,7 @@ class EvaluationRuntime(unittest.TestCase):
         self.put(self.root/'attempts/1/LAUNCH_RECEIPT.json',{'id':'cid','image':self.api.evaluation.IMAGE,'sha256':ex['sha256']})
         terminal={'exit_code':0,'attempt':1,'scientific_acceptance':False};self.put(self.root/'ENGINEERING_EVAL_EXIT.json',terminal);self.put(self.root/'attempts/1/EXIT.json',terminal);self.put(self.root/'attempts/1/SUPERVISOR_DONE.json',{'exit_code':0})
         self.observations={'container':self.put(self.root/'container.json',[self.actual]),'image':self.put(self.root/'image.json',[{'Id':self.api.evaluation.IMAGE,'Config':{'Env':[]}}]),'daemon':self.put(self.root/'daemon.json',{'DefaultRuntime':'runc','CgroupVersion':'2'})}
-        resource=Path(P.__file__).with_name('r3_resource_adapter.py');self.files[str(resource)]=P.sha(resource)
+        resource=Path(json.loads((P.LEGACY.parent/'production-dev-qualification-20261103-v5/CONFIG.json').read_text())['resource_validator']['path']);self.files[str(resource)]=P.sha(resource)
         self.b={'files':self.files,'resource_validator':{'path':str(resource),'sha256':self.files[str(resource)]}}
         self.decision={'execution_sha256':ex['sha256'],'evaluation_observations':self.observations}
     def put(self,p,d):

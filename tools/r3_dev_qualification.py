@@ -57,10 +57,67 @@ def module(path, pin):
     return obj
 
 
+# Prospective v6 compatibility: exact reviewed pairs only. The report still
+# executes the old strict, whole-population provenance consumer.
+SOURCE_COMPATIBILITY = {
+    'provenance_r3': ('5eb8da079f0af3d04ca1c3172258c29320490b0b53d7800f2331b2f5735a8cd2',
+                      'b87c7f42ff39eca3bd5d92a14c3ddffdb8a4a92ee28cd5e736328392d97877c9'),
+    'testlock_r3': ('eed0662f925c154c90036679945ea74b9083043b8da1b545df3e85b89b54cffc',
+                    '9b9b85220c493ee301c9bcdb7fd74d036e8cb1ed442500923f9ac41a3698cbba'),
+}
+K0_HELPER_SHA = '24f45b298f53d07df3e20c76e97ca2ce88c6e6736e5043bbca8a887d48cba771'
+K0_EVIDENCE_SHA = 'fc4f3ecb75850761c3fcb87b3e5c0ed2bccba3d1a94b3889e12dc848e3135fa7'
+K0_CONFIG = LEGACY.parent/'production-dev-qualification-20261103-v5/CONFIG.json'
+K0_CAPTURES = LEGACY.parent/'member-runtime-capture-20261103-v1'
+K0_EXECUTIONS = {
+    'fcfe5b4bde340497712ea79a045b02ddac1270b0f19c9d9eb623c46ab660c2df': 'k0_base',
+    '4261e76402ff9b61fee41c98067fcecdaddb7af9a2b28964ea6d2a2203b2441b': 'k0_instruct',
+}
+
+
+def compatible_source(name, consumer, producer):
+    return producer == consumer or SOURCE_COMPATIBILITY.get(name) == (consumer, producer)
+
+
 def legacy():
     q = module(LEGACY/'consumer.py', LEGACY_SHA)
     q.evaluation_lineage = evaluation_lineage
+    # Modify precisely the reviewed equality predicate in a verified original
+    # function; neither the legacy files nor its strict provenance are changed.
+    raw = (LEGACY/'consumer.py').read_bytes()
+    require(hashlib.sha256(raw).hexdigest() == LEGACY_SHA, 'legacy report source changed')
+    source = raw.decode()
+    old = "producer_names[name]['sha256']==e['sha256']"
+    require(source.count(old) == 1, 'legacy source compatibility site differs')
+    source = source.replace(old, "compatible_source(name,e['sha256'],producer_names[name]['sha256'])")
+    node = next(x for x in ast.parse(source).body if isinstance(x, ast.FunctionDef) and x.name == 'report')
+    q.compatible_source = compatible_source
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])),
+                 str(LEGACY/'consumer.py'), 'exec'), q.__dict__)
     return q
+
+
+def k0_ownership(execution, claim, release, claim_pin, release_path, actual, files, execution_pin):
+    name = K0_EXECUTIONS.get(execution_pin)
+    require(name is not None, 'unsupported legacy K0 execution')
+    directory = Path(__file__).resolve().parent
+    ep, hp = directory/'r3_k0_legacy_release_evidence.py', directory/'r3_k0_legacy_release_compat.py'
+    require(files.get(str(ep)) == K0_EVIDENCE_SHA and files.get(str(hp)) == K0_HELPER_SHA,
+            'K0 compatibility sources unbound')
+    evidence = module(ep, K0_EVIDENCE_SHA)
+    raw = hp.read_bytes(); require(hashlib.sha256(raw).hexdigest() == K0_HELPER_SHA, 'K0 helper changed')
+    tree = ast.parse(raw)
+    imports = [x for x in tree.body if isinstance(x, ast.ImportFrom) and x.module == 'tools']
+    require(len(imports) == 1 and len(imports[0].names) == 1
+            and imports[0].names[0].name == 'r3_k0_legacy_release_evidence'
+            and imports[0].names[0].asname == 'E', 'K0 evidence import differs')
+    tree.body.remove(imports[0])
+    ns = {'__name__': 'pinned_k0_compatibility', '__file__': str(hp), 'E': evidence}
+    exec(compile(tree, str(hp), 'exec'), ns)
+    result = ns['verify'](K0_CONFIG, K0_CAPTURES/name/'CAPTURE.json', name,
+        execution=execution, claim=claim, release=release, claim_pin=claim_pin,
+        release_path=release_path, actual=actual)
+    return result['timing']
 
 
 def actual_arm(plan):
@@ -651,6 +708,10 @@ def evaluation_runtime(entry,decision,bundle,api):
     require(launch['id']==actual['Id'] and launch['image']==actual['Image'] and launch['sha256']==files[entry['execution']],'evaluation launch receipt differs')
     done=q.bound(a/'SUPERVISOR_DONE.json',files);require(type(done.get('exit_code')) is int and done['exit_code']==0,'evaluation supervisor not complete')
     claim=q.bound(a/'CLAIM.json',files);release=q.bound(a/'RELEASE.json',files)
+    if files[entry['execution']] in K0_EXECUTIONS:
+        require(entry['arm'] == 'K0' and 'plan' not in entry, 'legacy K0 role differs')
+        return k0_ownership(p,claim,release,files[str(a/'CLAIM.json')],a/'RELEASE.json',actual,
+                            files,files[entry['execution']])
     return ownership(p,claim,release,files[str(a/'CLAIM.json')],a/'RELEASE.json',actual)
 
 
