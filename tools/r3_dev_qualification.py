@@ -149,6 +149,38 @@ def label(plan):
     return control
 
 
+def training_lineage(entry, rep, bundle, api):
+    """Bind control arguments to the pinned producer plan, retaining legacy checks.
+
+    The legacy validator caller predates controls. Give that call a private API
+    view; do not mutate a shared validator or rewrite any frozen evidence.
+    """
+    plan = api.Q.bound(entry['plan'], bundle['files'])
+    identity = label(plan)
+    require(entry.get('arm') == identity, 'training member control identity differs')
+    control = plan.get('control_arm')
+    mode = 'drop' if control == 'K1-QO' else 'full'
+    if control is None:
+        require(not plan.get('control') and
+                plan.get('evaluation', {}).get('control_arm') is None and
+                plan.get('evaluation', {}).get('primary_input_mode', 'full') == 'full',
+                'unlabelled training control metadata')
+    for key, expected in (('control_arm', control), ('input_mode', mode),
+                          ('primary_input_mode', mode)):
+        for source in (entry, plan):
+            require(key not in source or source[key] == expected,
+                    'training control argument differs: '+key)
+    expected_args = (plan['training_evidence'], plan['training_evidence_sha256'],
+                     plan['code'], plan['model'], plan['train_file'], plan['image_sha256'])
+    def validate(*args, **kwargs):
+        require(args == expected_args and not kwargs, 'legacy training call differs')
+        return api.training.validate(*args, control_arm=control, input_mode=mode)
+    scoped = copy.copy(api)
+    scoped.training = types.SimpleNamespace(validate=validate)
+    return api.Q.training_lineage(dict(entry, arm=actual_arm(plan).upper()),
+                                  rep, bundle, scoped)
+
+
 def evaluation_lineage(entry, bundle, api):
     """Same legacy checks, with explicit semantic-control/actual objective binding."""
     q = api.Q; files = bundle['files']; execution = q.bound(entry['execution'], files)
@@ -756,10 +788,7 @@ def member(name,entry,decision,bundle,api):
         rep=q.report(entry,context,api)
     finally:api.R=old_R
     if plan:
-        # Actual trainer objective is k1 for both controls. Legacy numerical report
-        # remains unchanged; this view only selects its unchanged training checks.
-        view=dict(entry,arm=actual_arm(plan).upper())
-        q.training_lineage(view,rep,context,api)
+        training_lineage(entry,rep,context,api)
     return {'report':rep,'training':train,'evaluation':ev}
 
 
