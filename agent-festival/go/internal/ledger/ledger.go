@@ -351,11 +351,17 @@ func Errors(doc map[string]any) []string {
 		op := e.Identity.OperationID
 		if e.EventType == "adoption" && e.Outcome.Status == "adopted" {
 			pins[op] = pin{identity: e.Identity, versions: e.Versions, accountability: e.Accountability}
-		} else if e.EventType == "effect" {
+		} else if e.EventType == "effect" || e.EventType == "control" {
+			// E3 propagation fix (R6 M-1, 2026-11-04): control events carry
+			// the pin too (refuse() stamps the operation's full
+			// identity/versions/accountability) — a refusal record with a
+			// FORGED attribution would launder a fake principal into the
+			// audit trail through the very channel the effect rule guards;
+			// the same divergence check applies.
 			if p, has := pins[op]; has {
 				if e.Identity != p.identity || e.Versions != p.versions ||
 					!accountabilityEqual(e.Accountability, p.accountability) {
-					errs = append(errs, fmt.Sprintf("[LEDGER.ATTRIBUTION_DIVERGENCE] events/%d: effect event's attribution (identity/versions/accountability) differs from the adopted pin for operation %q — the machine stamps the winner's pin on every effect event; a divergence is a bypass write, not a machine transition", i, op))
+					errs = append(errs, fmt.Sprintf("[LEDGER.ATTRIBUTION_DIVERGENCE] events/%d: %s event's attribution (identity/versions/accountability) differs from the adopted pin for operation %q — the machine stamps the winner's pin on every effect and control event; a divergence is a bypass write, not a machine transition", i, e.EventType, op))
 				}
 			}
 		}

@@ -8,7 +8,7 @@
 
 | 目录 | 内容 | 计数（D93 双侧钉） |
 |---|---|---|
-| `schema/examples/ledger/{valid,invalid}` | 事件账本文档 | 9 + 31 |
+| `schema/examples/ledger/{valid,invalid}` | 事件账本文档 | 9 + 33 |
 | `schema/examples/adoption/{valid,invalid}` | 采纳请求文档 | 2 + 5 |
 | `schema/examples/judgment/{valid,invalid}` | 判断规格文档 | 2 + 19 |
 | `schema/examples/release/{valid,invalid}` | 发布清单文档 | 3 + 14 |
@@ -25,16 +25,16 @@
      verify with python3 tools/corpus_manifest.py --check (rc=1 on drift) -->
 | 族 | valid + invalid |
 |---|---|
-| `ledger` | 9 + 31 |
+| `ledger` | 9 + 33 |
 | `adoption` | 2 + 5 |
 | `judgment` | 2 + 19 |
 | `release` | 3 + 14 |
 | `replay` | 8 + 9 |
 | `compose` | 10 + 36 |
 | `evidlog` | 1 + 6 |
-| 增长族合计 | 155 |
+| 增长族合计 | 157 |
 | 基座契约/信封 | 50 |
-| 全仓合计（含密钥库） | 209 |
+| 全仓合计（含密钥库） | 211 |
 ## 二、夹具的钉子语法
 
 每个夹具是一份带内嵌钉的 JSON 文档：

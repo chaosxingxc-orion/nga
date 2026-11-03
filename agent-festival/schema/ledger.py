@@ -156,24 +156,31 @@ def ledger_errors(doc: dict) -> list[str]:
     state: dict[str, str] = {}
     for i, e in enumerate(doc["events"]):
         op = e["identity"]["operation_id"]
-        if e["event_type"] != "adoption":
-            status = e["outcome"]["status"]
-            from_state = state.get(op, "")
-            if status == "dispatched":
-                if from_state != "adopted":
-                    errs.append(not_a_transition(i, op, "dispatched", from_state))
-                state[op] = "dispatched"
-            elif status == "unresolved":
-                if from_state not in ("adopted", "dispatched"):
-                    errs.append(not_a_transition(i, op, "unresolved", from_state))
-                state[op] = "unresolved"
-            elif status in ("completed", "failed"):
-                if from_state not in ("dispatched", "unresolved"):
-                    errs.append(not_a_transition(i, op, status, from_state))
-                state[op] = status
+        # R6 M-2 fix (2026-11-04): guard aligned to the Go checker's shape —
+        # ONLY effect events run the transition switch; every non-effect
+        # (adoption, control) records facts without transitioning, and only
+        # adoption+adopted pins the state. The old != "adoption" guard let a
+        # control event with an effect-family status drive state changes here
+        # that Go's checker does not make — the error sets forked across the
+        # two oracles on the same document, breaking the aggregate contract.
+        if e["event_type"] != "effect":
+            if e["outcome"].get("status") == "adopted":
+                state[op] = "adopted"
             continue
-        if e["outcome"].get("status") == "adopted":
-            state[op] = "adopted"
+        status = e["outcome"]["status"]
+        from_state = state.get(op, "")
+        if status == "dispatched":
+            if from_state != "adopted":
+                errs.append(not_a_transition(i, op, "dispatched", from_state))
+            state[op] = "dispatched"
+        elif status == "unresolved":
+            if from_state not in ("adopted", "dispatched"):
+                errs.append(not_a_transition(i, op, "unresolved", from_state))
+            state[op] = "unresolved"
+        elif status in ("completed", "failed"):
+            if from_state not in ("dispatched", "unresolved"):
+                errs.append(not_a_transition(i, op, status, from_state))
+            state[op] = status
     # cross-event rule: idempotency presence — the machine writes
     # idempotency on every event except conflict (the loser's digest never
     # enters the registry); an adopted/reused/effect event without it is a
@@ -212,22 +219,26 @@ def ledger_errors(doc: dict) -> list[str]:
                         f"machine transition")
 
     # cross-event rule: attribution consistency — the machine stamps the
-    # winner's identity/versions/accountability pin on every effect event;
-    # a divergence is a bypass write that forges the audit trail and
-    # pollutes the piece-6 replay correlation keys (mirrors the Go checker;
-    # checked only where an adopted pin exists — effect-before-adoption is
-    # already the grammar's designed exception)
+    # winner's identity/versions/accountability pin on every effect AND
+    # control event; a divergence is a bypass write that forges the audit
+    # trail and pollutes the piece-6 replay correlation keys (mirrors the
+    # Go checker; checked only where an adopted pin exists —
+    # effect/control-before-adoption is already the grammar's designed
+    # exception). R6 M-1 fix (2026-11-04): control events carry the pin too
+    # (refuse() stamps the operation's full attribution) — a refusal record
+    # with a FORGED attribution launders a fake principal into the audit
+    # trail through the very channel the effect rule guards.
     pins: dict[str, tuple] = {}
     for i, e in enumerate(doc["events"]):
         op = e["identity"]["operation_id"]
         if e["event_type"] == "adoption" and e.get("outcome", {}).get("status") == "adopted":
             pins[op] = (e["identity"], e["versions"], e.get("accountability"))
-        elif e["event_type"] == "effect" and op in pins:
+        elif e["event_type"] in ("effect", "control") and op in pins:
             if (e["identity"], e["versions"], e.get("accountability")) != pins[op]:
-                errs.append(f"[LEDGER.ATTRIBUTION_DIVERGENCE] events/{i}: effect event's attribution (identity/versions/"
+                errs.append(f"[LEDGER.ATTRIBUTION_DIVERGENCE] events/{i}: {e['event_type']} event's attribution (identity/versions/"
                             f"accountability) differs from the adopted pin for operation "
                             f"{op!r} — the machine stamps the winner's pin on every effect "
-                            f"event; a divergence is a bypass write, not a machine transition")
+                            f"and control event; a divergence is a bypass write, not a machine transition")
 
     # cross-event rule: the single-writer event-sequence grammar — each
     # operation opens with exactly one adopted adoption event, and every
@@ -316,8 +327,8 @@ def main() -> int:
     # corpus that shrank without its pin rebased must fail here too
     n_valid = len(list((ex / "valid").glob("*.json")))
     n_invalid = len(list((ex / "invalid").glob("*.json")))
-    if (n_valid, n_invalid) != (9, 31):
-        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 9+31 (corpus count changed?)")
+    if (n_valid, n_invalid) != (9, 33):
+        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 9+33 (corpus count changed?)")
         bad += 1
     for e in check_status_lockstep() + check_lockstep():
         print(f"[ledger] FAIL {e}")

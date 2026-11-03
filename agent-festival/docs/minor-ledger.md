@@ -50,3 +50,11 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - L20（minor，登记）：evidlog 的写拒绝（断尾/STALE_SEQ）不落任何记录——其对象语义不同（记录 S2 行为而非机器闸门），不属 E3 同类；若未来需要「evidlog 写拒绝审计」，另立裁决。
 - L21（minor，不修）：e2e S1 替身的规则集是部分面（上带窗口清洁面/带间 on_undefined 未入场景）——T0 场景扩展项。
 - L22（minor，登记）：e2e S1 替身与 judgment-spec-credit 夹具同源于 08/10 出处但各自成文——P3 夹具修正落地时须同步去替身注释的「pending」标注。
+
+## R6 空白终审记账（2026-11-04，2M 已修，minor L23-L26 积累不修）
+
+- L23（minor，不修）：t1Spec 宣称「exactly the semantics the T0 stand-in embodies」在 C8 输入类失实——替身先查缺证（on_missing_evidence），t1Spec 优先级 0 压缺证（deny）；两 S1 实现的优先序分歧+等价宣称不实（与 L21 的「部分面」不同面）。
+- L24（minor，不修）：replay fail-loud 网（replay.go:459 匹配「ledger append failed」）未覆盖 E3 refuse 写路径（报文为「(refusal not recorded: …)」）——mid-run I/O 故障可被当合法拒收以 divergence 收场；commit 路径有 TestScratchWriteFailureIsLoud 而 refuse 路径无对称探针。
+- L25（minor，不修）：EVENT_BEFORE_ADOPTION 非 adoption 分支报文硬编码「effect event」——control 前置时报文错标（码位/行为正确，L18 同族）。
+- L26（minor，不修）：T1 harness 每调用 180s×2 尝试×12 用例最坏 72min ≫ go test 默认 600s——launch 命令未带 -timeout（我们手动跑时带了 15m；命令文档补齐即可）。
+- **singularity 登记（族复发≥2 触发，未启动）**：「事件类型词表增长×手镜像规则位点传播不完整」族在本增量两次复发（M-1 attribution 漏+M-2 transition 分叉）——E3 需同步传播每侧 ~8 个手镜像位点，实际漏 2。结构方向候选：①每侧「event_type×规则家族」分派表（漏传播不可表达）②规则位点 parity 网从 schema 原子扩展到规则枚举。按律结构转移自身引入缺陷（~30% 先例），若启动须转移后全强度外环+证伪器再生。
