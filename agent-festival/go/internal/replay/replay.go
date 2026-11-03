@@ -82,27 +82,34 @@ type InspectReport struct {
 	Path        string
 	Events      []ledger.Event
 	States      map[string]string // operation id -> the STATUS-TAIL projection of its last event (includes the fact words reused/conflict — not the machine state; Recover reports that)
-	Gaps        []string          // ledger.Errors over the record
+	Gaps        []string          // ledger.Errors over the record, plus a torn-tail line when the durable form ends in external damage
 	ByOperation map[string][]ledger.Event
+	TornTail    bool // the durable form ended in an unparseable torn tail (external damage): the projection is the complete machine history — the machine refuses writes post-damage — but the file itself is damaged and must be repaired before any machine write
 }
 
 // Inspect is mode 1: historical inspection — reconstruct retained history
 // and expose missing evidence; no live effects, no recomputation. It is a
 // projection reducer (second implementation by design).
 //
-// Known blind spot (inherited from the piece-4 boundary, declared here):
-// a TORN TAIL — an unparseable remnant at EOF — is skipped by the loader,
-// so neither the projection nor Gaps sees it; a record whose newest events
-// live in the torn remnant projects to its prefix silently. Closing this
-// belongs to the loader (piece 4), not to this projection.
+// Torn-tail surface (audit-loop R1, closing the declared blind spot): a
+// torn tail — an unparseable remnant at EOF — is reported by the loader
+// (P1-2) and SURFACED here (TornTail field + a Gaps line), so an
+// inspector reading a damaged record gets the damage signal instead of a
+// silent green. Under the unified doctrine the prefix projection is
+// semantically complete (the machine refuses all writes post-damage, so
+// nothing after the tear is machine-written) — the signal is about the
+// FILE's integrity, not the history's completeness.
 func Inspect(path string) (*InspectReport, error) {
-	lines, _, err := ledger.LoadDocument(path)
+	lines, torn, err := ledger.LoadDocument(path)
 	if err != nil {
 		return nil, err
 	}
-	r := &InspectReport{Path: path, States: map[string]string{}, ByOperation: map[string][]ledger.Event{}}
+	r := &InspectReport{Path: path, States: map[string]string{}, ByOperation: map[string][]ledger.Event{}, TornTail: torn}
 	if len(lines) == 0 {
-		return r, nil // no record: nothing to project, no gaps to expose
+		if torn {
+			r.Gaps = append(r.Gaps, "torn tail at EOF: the durable form ends in an unparseable remnant (external damage) — repair before any machine write")
+		}
+		return r, nil // no record: nothing to project
 	}
 	doc := map[string]any{"ledger_version": ledger.Version}
 	events := make([]any, 0, len(lines))
@@ -111,6 +118,9 @@ func Inspect(path string) (*InspectReport, error) {
 	}
 	doc["events"] = events
 	r.Gaps = ledger.Errors(doc)
+	if torn {
+		r.Gaps = append(r.Gaps, "torn tail at EOF: the durable form ends in an unparseable remnant (external damage) — the projection is the complete machine history (writes are refused post-damage), but the file must be repaired before any machine write")
+	}
 	for _, l := range lines {
 		r.Events = append(r.Events, l.Event)
 		op := l.Event.Identity.OperationID
@@ -380,6 +390,7 @@ type RecoverReport struct {
 	Path       string
 	States     map[string]string
 	Unresolved []string // operations awaiting reconciliation, with their exits
+	TornTail   bool     // the durable form ended in a torn tail (external damage): the machine is loaded read-only — every mutation is refused until repair and re-Open (audit-loop R1: the recovery tool must not report a damaged record as a healthy one)
 }
 
 // Recover is mode 4: live recovery — restore the machine from the durable
@@ -394,7 +405,7 @@ func Recover(path string) (*RecoverReport, error) {
 	if err != nil {
 		return nil, err
 	}
-	rep := &RecoverReport{Path: path, States: map[string]string{}, Unresolved: []string{}}
+	rep := &RecoverReport{Path: path, States: map[string]string{}, Unresolved: []string{}, TornTail: m.TornTail()}
 	seen := map[string]bool{}
 	for _, l := range lines {
 		op := l.Event.Identity.OperationID

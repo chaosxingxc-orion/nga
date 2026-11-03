@@ -800,3 +800,68 @@ func TestReportSelfDescription(t *testing.T) {
 		t.Fatalf("ReplayReport.Recorded = %d events, want the record carried for audit", len(rep.Recorded))
 	}
 }
+
+// TestInspectSurfacesTornTail is the audit-loop R1 probe for the closed
+// blind spot: a torn tail (external damage) must reach the inspector —
+// TornTail set AND a Gaps line naming it — instead of a silent green.
+// The projection itself stays the prefix (semantically complete under the
+// unified doctrine: the machine refuses writes post-damage).
+func TestInspectSurfacesTornTail(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m, err := adopt.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := "sha256:" + strings.Repeat("a", 64)
+	if o := m.Adopt(&adopt.Request{
+		AdoptionVersion:  "0.1.0",
+		Identity:         ledger.Identity{BusinessRequestID: "br-t", OperationID: "op-torn"},
+		Versions:         ledger.Versions{Evidence: "e", Rule: "r", Model: "m", Readout: "ro", Policy: "p"},
+		PayloadDigest:    digest,
+		GrantsAtDecision: []ledger.Grant{{Kind: "data", Selector: "s", Actions: []string{"read"}, Effect: "none"}},
+	}); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	// external damage: an unparseable remnant at EOF, no trailing newline
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.WriteString(`{"event_type":"eff`); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	rep, err := Inspect(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !rep.TornTail {
+		t.Fatal("Inspect.TornTail = false, want true — the damage signal must reach the inspector (audit-loop R1)")
+	}
+	found := false
+	for _, g := range rep.Gaps {
+		if strings.Contains(g, "torn tail") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("no Gaps line names the torn tail — an inspector would read this damaged record as green: %v", rep.Gaps)
+	}
+	// the projection is still the prefix: the op's state projects normally
+	if rep.States["op-torn"] != "adopted" {
+		t.Fatalf("projection state = %q, want adopted (prefix projection)", rep.States["op-torn"])
+	}
+
+	// Recover reports the same damage (the recovery tool must not present a
+	// damaged record as a healthy one)
+	rrep, err := Recover(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !rrep.TornTail {
+		t.Fatal("RecoverReport.TornTail = false, want true (audit-loop R1)")
+	}
+}
