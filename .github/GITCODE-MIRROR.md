@@ -1,5 +1,17 @@
 # GitHub / GitCode collaboration
 
+## Current collaboration entry points
+
+| Purpose | GitHub | GitCode |
+| --- | --- | --- |
+| Current expert implementation | [PR #2](https://github.com/chaosxingxc-orion/nga/pull/2) | [MR #2](https://gitcode.com/xingchao_ml/nga/merge_requests/2) |
+| Earlier implementation and architecture replies | [PR #3](https://github.com/chaosxingxc-orion/nga/pull/3) | [MR #1](https://gitcode.com/xingchao_ml/nga/merge_requests/1) |
+| Architecture discussion | [Issue #1](https://github.com/chaosxingxc-orion/nga/issues/1) | [Issue #1](https://gitcode.com/xingchao_ml/nga/issues/1) |
+
+Use ordinary comments on either linked object. The counterpart will retain your
+name and source link. The two expert requests remain drafts on GitHub until
+maintainers finish their review; synchronization is not implementation acceptance.
+
 GitHub `chaosxingxc-orion/nga` is the final integration repository. Both teams can
 develop, open requests and discuss changes on their own platform. GitCode
 `xingchao_ml/nga` is no longer a destructive mirror.
@@ -54,6 +66,11 @@ executed or used as workflow scripts.
 ## Recovery and limits
 
 Inspect failed runs, correct expired credentials or divergent refs, then rerun.
+GitHub's per-run token cannot introduce historical workflow-file changes. For
+such an initial import, a maintainer with workflow permission must first push the
+verified source SHA to the reserved counterpart branch, then rerun reconciliation.
+This was required for the initial MR #1/#2 imports. Subsequent ordinary updates
+use the existing automated token; no personal credential was stored in Actions.
 Do not start a competing reverse full mirror. Labels, assignees, milestones,
 approval votes, attachments, releases and LFS objects are outside this bridge.
 Closed states are reported; closing a request never authorizes an automatic merge
