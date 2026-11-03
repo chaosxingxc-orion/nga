@@ -96,7 +96,7 @@ type InspectReport struct {
 // live in the torn remnant projects to its prefix silently. Closing this
 // belongs to the loader (piece 4), not to this projection.
 func Inspect(path string) (*InspectReport, error) {
-	lines, err := ledger.LoadDocument(path)
+	lines, _, err := ledger.LoadDocument(path)
 	if err != nil {
 		return nil, err
 	}
@@ -390,7 +390,7 @@ func Recover(path string) (*RecoverReport, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot recover from durable form: %v", err)
 	}
-	lines, err := ledger.LoadDocument(path)
+	lines, _, err := ledger.LoadDocument(path)
 	if err != nil {
 		return nil, err
 	}

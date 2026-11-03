@@ -20,10 +20,12 @@
 // as its durable form: each event is one line, and the file is replaced
 // atomically (write the full new content to a temp file, rename over — a
 // crash leaves the old or the new file, never a half-written one). A torn
-// tail line from an earlier partial write is skipped when loading, so
-// recovery resumes at the last complete event boundary. Because the event
-// file is the machine's only durable state, the pinned grants and the
-// winner's identity/versions/accountability ride the adoption event;
+// tail from external damage is remembered, not healed: the machine refuses
+// every mutation until the file is manually repaired and re-Opened (the
+// torn-tail doctrine, unified with evidlog — P1-2, 2026-11-03). Because
+// the event file is the machine's only durable state, the pinned grants
+// and the winner's identity/versions/accountability ride the adoption
+// event;
 // otherwise the crash would silently void the revocation check or fork the
 // post-recovery event stream. The durability contract is process-crash
 // level: rename atomicity holds across a killed process, but power-loss
@@ -99,10 +101,11 @@ type Outcome struct {
 // (contract-external use; a crashed process leaves at most one live
 // instance, and restart goes through Open again).
 type Machine struct {
-	mu   sync.Mutex
-	ops  map[string]*opState // keyed by operation_id
-	seq  int64               // last arbitration sequence written (0-based)
-	path string              // append-only JSONL file ("" = in-memory only)
+	mu       sync.Mutex
+	ops      map[string]*opState // keyed by operation_id
+	seq      int64               // last arbitration sequence written (0-based)
+	path     string              // append-only JSONL file ("" = in-memory only)
+	tornTail bool                // the durable form ended in a torn tail at Open time (external damage)
 }
 
 // seqExhausted reports whether the arbitration counter's int64 domain has
@@ -129,32 +132,37 @@ type opState struct {
 }
 
 // Open loads (or starts) the durable form at path. A torn tail — an
-// unparseable remnant at EOF without a trailing newline — is skipped: a
-// conservative compatibility boundary for externally-damaged files (under
-// the machine's own temp+rename protocol a crash leaves the old or the new
-// file, never a partial line; the tolerated shape can only come from
-// outside). Events end at the last complete line; anything non-parseable
+// unparseable remnant at EOF without a trailing newline — is skipped in
+// the load projection but REMEMBERED, not healed: TornTail() reports it
+// and every mutating call refuses until the file is manually repaired and
+// re-Opened. Events end at the last complete line; anything non-parseable
 // elsewhere fails the open.
-// TORN-TAIL DOCTRINE, DELIBERATE DIVERGENCE (R9 F2 ruling record): this
-// package HEALS — a rewrite rebuilds the file from parsed lines, so the
-// remnant bytes disappear without a trace. evidlog does the opposite
-// (remember + refuse writes + coverage refuses green) because an evidence
-// log's skipped bytes may hold unaccounted queries. Here the machine's
-// event file is its only durable state and the state machine itself is the
-// self-repairing check: a lost tail re-derives to the pre-write state, the
-// transition table rejects any replay the lost line would have made
-// illegal, and a re-dispatch of an external effect is exactly the 14-A5
-// unresolved first-class case the machine already models. Healing here is
-// lossy-but-safe; do NOT port evidlog's doctrine over, and do NOT port
-// healing into evidlog.
+// TORN-TAIL DOCTRINE, unified with evidlog (P1-2, 2026-11-03, retiring the
+// R9 F2 "heals / lossy-but-safe" divergence): remember + refuse. Under the
+// machine's own temp+rename protocol a crash leaves the old or the new
+// file, never a partial line, so the tolerated shape can only come from
+// OUTSIDE — and external damage is exactly the case where the machine must
+// not guess what was lost. A lost dispatch line is an unrecorded,
+// re-issuable execution permit: the retired doctrine's safety argument
+// ("a re-dispatch is exactly the 14-A5 unresolved case the machine already
+// models") was falsified by the external review probe — after healing,
+// Open re-derives to adopted and Dispatch legally returns "dispatched"
+// AGAIN, and the 14-A5 protection (caller-asserted MarkUnresolved) can
+// never fire because the damage signal was swallowed. Healing would also
+// erase the evidence: the rewrite-from-parsed-lines dropped the remnant
+// bytes before any human looked. The append path re-checks the bytes at
+// write time, so out-of-band damage between Open and write is caught too.
+// Manual repair is the only recovery: fix or truncate the file outside,
+// then re-Open. Do NOT reintroduce healing on either side of this pair.
 // The loaded lines are checked BEFORE any state is absorbed: a file this
 // machine did not write fails the open (see checkLoaded).
 func Open(path string) (*Machine, error) {
 	m := &Machine{ops: map[string]*opState{}, seq: -1, path: path}
-	lines, err := ledger.LoadDocument(path)
+	lines, torn, err := ledger.LoadDocument(path)
 	if err != nil {
 		return nil, err
 	}
+	m.tornTail = torn
 	if err := m.checkLoaded(lines); err != nil {
 		return nil, err
 	}
@@ -162,6 +170,16 @@ func Open(path string) (*Machine, error) {
 		m.replayEvent(&lines[i].Event)
 	}
 	return m, nil
+}
+
+// TornTail reports whether the durable form ended in an unparseable torn
+// tail at Open time (external damage). While true the machine is
+// read-only: every mutation is refused until the file is repaired and the
+// machine is re-Opened (see the torn-tail doctrine on Open).
+func (m *Machine) TornTail() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.tornTail
 }
 
 // checkLoaded runs the RAW line documents — what is on disk, byte for byte —
@@ -319,6 +337,15 @@ func (m *Machine) Adopt(req *Request) Outcome {
 func (m *Machine) Dispatch(op string, liveGrants []ledger.Grant) Outcome {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	// The torn-tail gate comes FIRST (P1-2): a damaged durable form may
+	// have lost the dispatch line of this very operation — re-issuing the
+	// execution permit on a guess ("probably never dispatched") is the
+	// falsified lossy-but-safe posture. No state change, no external
+	// effect, until repair and re-Open.
+	if m.tornTail {
+		return Outcome{Status: "rejected",
+			Detail: fmt.Sprintf("durable form %s ends in a torn tail (external damage): no state change and no execution permission until the file is repaired and the machine is re-Opened", m.path)}
+	}
 	st, ok := m.ops[op]
 	if !ok || st.state != StateAdopted {
 		return Outcome{Status: "rejected", Detail: fmt.Sprintf("operation %q is not in the adopted state", op)}
@@ -406,7 +433,7 @@ func (m *Machine) commit(st *opState, to State, detail string) Outcome {
 func (m *Machine) Events() ([]ledger.Event, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	lines, err := ledger.LoadDocument(m.path)
+	lines, _, err := ledger.LoadDocument(m.path)
 	if err != nil {
 		return nil, err
 	}
@@ -420,9 +447,9 @@ func (m *Machine) Events() ([]ledger.Event, error) {
 // append writes one event as a JSON line. The write is atomic at file scope:
 // the full new content (the parsed complete lines + this line) goes to a
 // temp file in the same directory, which is then renamed over the target —
-// a crash leaves either the old or the new file. A torn tail left by
-// whatever crashed earlier is thereby healed away on the next successful
-// append.
+// a crash leaves either the old or the new file. A torn tail, if present,
+// never reaches the rewrite: the write-time re-check inside refuses the
+// append first, so the damaged bytes survive for manual repair (P1-2).
 func (m *Machine) append(ev *ledger.Event) error {
 	if m.path == "" {
 		return nil
@@ -436,27 +463,36 @@ func (m *Machine) append(ev *ledger.Event) error {
 		return err
 	}
 	// rebuild from the parser's boundary definition, byte for byte: the
-	// durable unit is the parsed complete line, so a torn tail is crash
-	// residue and drops away, while a final complete line without a trailing
-	// newline survives (the loader accepts it; the rewrite must not delete
-	// what the loader accepted — R2 BLOCKER). Concatenating onto raw bytes
-	// instead would fuse a torn tail and the new line into one unparseable
-	// line.
-	parsed, err := ledger.ParseLines(existing)
+	// durable unit is the parsed complete line, so a final complete line
+	// without a trailing newline survives (the loader accepts it; the
+	// rewrite must not delete what the loader accepted — R2 BLOCKER).
+	// A torn tail never reaches this rebuild: the write-time re-check
+	// below refuses first, so damaged bytes are never erased. Concatenating
+	// onto raw bytes instead would fuse a torn tail and the new line into
+	// one unparseable line.
+	parsed, tornNow, err := ledger.ParseLines(existing)
 	if err != nil {
 		return err
+	}
+	// Write-time torn-tail re-check (P1-2, the adopt-side twin of
+	// evidlog's R10 face-B byte re-check): the Open-time flag is a view,
+	// the bytes are the truth — out-of-band damage between Open and this
+	// write is caught here, and refusing here is what guarantees the
+	// rebuild above never erases damaged evidence.
+	if tornNow {
+		return fmt.Errorf("[ADOPT.TORN_TAIL] %s: append refused — the durable form ends in an unparseable torn tail (externally damaged file); repair the file, then re-Open", m.path)
 	}
 	// Write-time seq-continuity gate (R11 MAJOR — the counterpart of
 	// evidlog's R10 face-B re-check): the Open-time view may be stale after
 	// an out-of-band or stale-instance write. Under the machine's
 	// strictly-increasing seq the last parsed event must be exactly this
 	// event's predecessor — every legal path (14-A5 crash-recovery
-	// re-Open, torn-tail healing, a surviving no-newline complete line)
-	// passes by construction; the ONLY thing this gate can reject is a
-	// write whose view of the file is stale, and it fails HERE, in the
-	// guilty caller, instead of emitting a false success that poisons the
-	// file for the next Open (probes: sequential stale write, stale double
-	// dispatch — both silently "succeeded" pre-gate).
+	// re-Open, a surviving no-newline complete line) passes by
+	// construction; the ONLY thing this gate can reject is a write whose
+	// view of the file is stale, and it fails HERE, in the guilty caller,
+	// instead of emitting a false success that poisons the file for the
+	// next Open (probes: sequential stale write, stale double dispatch —
+	// both silently "succeeded" pre-gate).
 	want := int64(0)
 	if len(parsed) > 0 {
 		want = parsed[len(parsed)-1].Event.ArbitrationSeq + 1
@@ -484,21 +520,37 @@ func (m *Machine) append(ev *ledger.Event) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	// Whole-file replace keeps the durable file's permission bits
-	// (minor-ledger L9, the evidlog twin): os.CreateTemp is 0600, so a bare
-	// rename would silently flip a 0644 ledger to 0600 and group/other audit
-	// readers would lose access on the first Adopt. First durable write (no
-	// file yet) gets 0644 — os.Chmod bypasses umask by design, so this is
-	// exact 0644 under any umask: audit readability is the recorded L9
-	// umask ruling (2026-11-03), not an oversight.
-	mode := os.FileMode(0o644)
-	if info, err := os.Stat(m.path); err == nil {
-		mode = info.Mode().Perm()
+	// Whole-file replace keeps the durable file's permission bits and
+	// never widens them (P1-1, 2026-11-03 external review, overturning the
+	// L14 first-write-0644 ruling): an existing file keeps the operator's
+	// exact mode, and a first durable write keeps os.CreateTemp's
+	// owner-only 0600. os.Chmod bypasses umask by design, so a 0644
+	// default silently widened visibility past what a umask 077 deployment
+	// asked for — wider audit readability is a deployment decision
+	// (explicit chmod or config), never a component default.
+	mode, err := durableMode(m.path)
+	if err != nil {
+		return err
 	}
 	if err := os.Chmod(tmp.Name(), mode); err != nil {
 		return err
 	}
 	return os.Rename(tmp.Name(), m.path)
+}
+
+// durableMode returns the permission mode a whole-file replace should
+// carry: the existing file's exact bits, or owner-only 0600 for a file
+// that does not exist yet. Any other Stat failure is an error, not a
+// silent new-file default (P1-1).
+func durableMode(path string) (os.FileMode, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return 0o600, nil
+		}
+		return 0, err
+	}
+	return info.Mode().Perm(), nil
 }
 
 // checkRequest validates the request's document form against

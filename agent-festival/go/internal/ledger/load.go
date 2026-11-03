@@ -21,20 +21,22 @@ type ParsedLine struct {
 
 // ParseLines returns the parsed lines of a JSONL byte stream, or an error
 // naming a line that is not a machine write. The boundary rule: a complete
-// line parses in BOTH views. Two forms of non-event content are tolerated: a
-// torn tail — an unparseable remnant at EOF WITHOUT a trailing newline (a
-// conservative compatibility boundary for externally-damaged files; under
-// the machine's own temp+rename protocol a crash leaves the old or the new
-// file, never a partial line) — and empty lines (zero-byte segments
-// anywhere, carrying no audit data, healing away on rewrite). Any other
-// unparseable line (mid-file, or newline-terminated), or a line whose JSON
-// parses but whose fields do not fit the event type, is a bypass or
-// corruption: an append-only audit ledger must not silently drop (and a
-// rewrite must not silently erase) audit data — it fails. This is the ONE
-// boundary definition for the durable form — the loader, the load-time
-// checker, and the append-path rewrite all consume it.
-func ParseLines(raw []byte) ([]ParsedLine, error) {
+// line parses in BOTH views. Two forms of non-event content are tolerated,
+// and a torn tail is REPORTED (P1-2, 2026-11-03 doctrine convergence): the
+// torn tail — an unparseable remnant at EOF WITHOUT a trailing newline (an
+// externally damaged file; under the machine's own temp+rename protocol a
+// crash leaves the old or the new file, never a partial line) — sets the
+// returned flag so callers can refuse mutations instead of healing over
+// damage. Empty lines (zero-byte segments anywhere) carry no audit data.
+// Any other unparseable line (mid-file, or newline-terminated), or a line
+// whose JSON parses but whose fields do not fit the event type, is a
+// bypass or corruption: an append-only audit ledger must not silently
+// drop (and a rewrite must not silently erase) audit data — it fails.
+// This is the ONE boundary definition for the durable form — the loader,
+// the load-time checker, and the append-path rewrite all consume it.
+func ParseLines(raw []byte) ([]ParsedLine, bool, error) {
 	var lines []ParsedLine
+	torn := false
 	lineStart := 0
 	for i := 0; i <= len(raw); i++ {
 		if i != len(raw) && raw[i] != '\n' {
@@ -53,9 +55,10 @@ func ParseLines(raw []byte) ([]ParsedLine, error) {
 		// provably not a machine write.
 		if !utf8.Valid(line) {
 			if atEOF {
-				continue // torn tail: tolerated at EOF without a newline
+				torn = true
+				continue // torn tail: tolerated at EOF without a newline, reported via the flag
 			}
-			return nil, fmt.Errorf("durable form line is not valid UTF-8 — a bypass or corrupted write, not machine output (Go's json decoder would launder it to U+FFFD)")
+			return nil, false, fmt.Errorf("durable form line is not valid UTF-8 — a bypass or corrupted write, not machine output (Go's json decoder would launder it to U+FFFD)")
 		}
 		var ev Event
 		typedOK := json.Unmarshal(line, &ev) == nil
@@ -65,25 +68,28 @@ func ParseLines(raw []byte) ([]ParsedLine, error) {
 			continue
 		}
 		if atEOF && docErr != nil {
-			continue // torn tail: crash residue, tolerated at EOF only
+			torn = true
+			continue // torn tail: externally damaged remnant at EOF only, reported via the flag
 		}
 		if docErr != nil {
-			return nil, fmt.Errorf("durable form has an unparseable line where no torn tail can be (not the last byte range) — a bypass or corrupted write, not machine output")
+			return nil, false, fmt.Errorf("durable form has an unparseable line where no torn tail can be (not the last byte range) — a bypass or corrupted write, not machine output")
 		}
-		return nil, fmt.Errorf("durable form line is valid JSON but not an event (field type mismatch) — a bypass or corrupted write, not machine output")
+		return nil, false, fmt.Errorf("durable form line is valid JSON but not an event (field type mismatch) — a bypass or corrupted write, not machine output")
 	}
-	return lines, nil
+	return lines, torn, nil
 }
 
-// LoadDocument reads a durable-form file into its parsed lines. A missing
-// file is an empty document (a fresh machine's state), any other error fails.
-func LoadDocument(path string) ([]ParsedLine, error) {
+// LoadDocument reads a durable-form file into its parsed lines, plus
+// whether the byte stream ended in a torn tail (external damage — the
+// caller decides what to refuse on it). A missing file is an empty
+// document (a fresh machine's state), any other error fails.
+func LoadDocument(path string) ([]ParsedLine, bool, error) {
 	raw, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
-		return nil, nil
+		return nil, false, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	return ParseLines(raw)
 }

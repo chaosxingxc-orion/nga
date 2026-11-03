@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -936,5 +937,47 @@ func TestAppendPreservesDurableMode(t *testing.T) {
 		t.Fatal(err)
 	} else if got := info.Mode().Perm(); got != 0o640 {
 		t.Fatalf("Append clobbered the operator's mode: got %o, want 640 — the Stat branch degenerated to a hardcoded 0644", got)
+	}
+}
+
+// TestFirstWriteOwnerOnlyUnderUmask077 is P1-1's permanent probe for this
+// package (the evidlog twin of adopt's TestFirstWriteOwnerOnlyUnderUmask077,
+// adapted from xingchao's MR #2 review probe): a component must not widen
+// visibility past the deployment's umask — under umask 077 the first
+// durable write stays owner-only. The pre-fix code Chmod'ed new files to
+// 0644 unconditionally (os.Chmod bypasses umask by design), silently
+// overriding the operator's expressed policy.
+func TestFirstWriteOwnerOnlyUnderUmask077(t *testing.T) {
+	old := syscall.Umask(0o077)
+	defer syscall.Umask(old)
+	path := filepath.Join(t.TempDir(), "evid.jsonl")
+	l, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "bank.history", Selector: "customer=synthetic", Caller: "s2", At: "2026-11-02T10:00:00Z"}); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got&0o077 != 0 {
+		t.Fatalf("mode=%04o under umask 077; expected owner-only default — the component widened visibility past the deployment's umask (P1-1)", got)
+	}
+}
+
+// TestDurableModeStatErrorFailsLoud is P1-1's second probe (the evidlog
+// twin): a Stat failure that is not "file does not exist" must surface as
+// an error, not silently fall back to a new-file default. A file-as-parent
+// path (ENOTDIR) is the portable trigger.
+func TestDurableModeStatErrorFailsLoud(t *testing.T) {
+	dir := t.TempDir()
+	blocker := filepath.Join(dir, "blocker")
+	if err := os.WriteFile(blocker, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := durableMode(filepath.Join(blocker, "evid.jsonl")); err == nil {
+		t.Fatal("durableMode returned nil error for a non-not-exist Stat failure — a silent new-file default would mask it (P1-1)")
 	}
 }

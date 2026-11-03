@@ -257,16 +257,20 @@ func (l *Log) Append(e Entry) error {
 			l.seq--
 			return err
 		}
-		// Whole-file replace keeps the durable file's permission bits
-		// (minor-ledger L9): os.CreateTemp is 0600, so a bare rename would
-		// silently flip a 0644 log to 0600 and group/other audit readers
-		// would lose access on the first Append. First durable write (no
-		// file yet) gets 0644 — os.Chmod bypasses umask by design, so this
-		// is exact 0644 under any umask: audit readability is the recorded
-		// L9 umask ruling (2026-11-03), not an oversight.
-		mode := os.FileMode(0o644)
-		if info, err := os.Stat(l.path); err == nil {
-			mode = info.Mode().Perm()
+		// Whole-file replace keeps the durable file's permission bits and
+		// never widens them (P1-1, 2026-11-03 external review, overturning
+		// the L14 first-write-0644 ruling — the adopt-side twin holds the
+		// same doctrine): an existing file keeps the operator's exact mode,
+		// and a first durable write keeps os.CreateTemp's owner-only 0600.
+		// os.Chmod bypasses umask by design, so a 0644 default silently
+		// widened visibility past what a umask 077 deployment asked for —
+		// wider audit readability is a deployment decision (explicit chmod
+		// or config), never a component default. A Stat failure other than
+		// not-exist is an error, not a silent new-file default.
+		mode, err := durableMode(l.path)
+		if err != nil {
+			l.seq--
+			return err
 		}
 		if err := os.Chmod(tmp.Name(), mode); err != nil {
 			l.seq--
@@ -280,6 +284,22 @@ func (l *Log) Append(e Entry) error {
 	}
 	l.entries = append(l.entries, e)
 	return nil
+}
+
+// durableMode returns the permission mode a whole-file replace should
+// carry: the existing file's exact bits, or owner-only 0600 for a file
+// that does not exist yet. Any other Stat failure is an error, not a
+// silent new-file default (P1-1, the adopt-side twin holds the same
+// helper and doctrine).
+func durableMode(path string) (os.FileMode, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return 0o600, nil
+		}
+		return 0, err
+	}
+	return info.Mode().Perm(), nil
 }
 
 // Entries returns a COPY of the log's entries (R16 B-M1, adopt's

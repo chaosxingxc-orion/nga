@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 
 	"github.com/openjiuwen/agent-festival/go/internal/ledger"
@@ -179,29 +180,40 @@ func TestChangedPayloadSameKey(t *testing.T) {
 	}
 }
 
-// TestCrashRecoveryTornTail is 14-A5 counterexample two: a crash mid-write
-// leaves a torn tail line; reopening resumes at the last complete event
-// boundary, and the grants pinned at adoption survive the crash (they ride
-// the event) so the 14-A4 revocation check is NOT vacuous after recovery.
+// TestCrashRecoveryTornTail is 14-A5 counterexample two, rewritten under the
+// unified torn-tail doctrine (P1-2, 2026-11-03): an externally damaged file
+// (a torn tail — under the machine's own temp+rename protocol a crash can
+// never leave one) is loaded read-only. TornTail() reports the damage, the
+// projection resumes at the last complete event boundary, and the grants
+// pinned at adoption survive (they ride the event) so the 14-A4 check is
+// NOT vacuous — but NO mutation and NO execution permission is granted
+// until the file is manually repaired and the machine re-Opened. The old
+// doctrine's final act ("the next append heals the torn tail away") is the
+// falsified posture: a torn tail that swallowed a dispatch line must never
+// re-arm the execution permit (xingchao's MR #2 probe).
 func TestCrashRecoveryTornTail(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "adopt.jsonl")
 	m := mustOpen(t, path)
 	if o := m.Adopt(testRequest("op-t3", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q, want adopted", o.Status)
 	}
-	// simulate the crash: a half-written line from a lost append race
+	// simulate external damage: a torn tail (a half-written line can only
+	// come from outside under the machine's temp+rename protocol)
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	torn := append(raw, []byte(`{"event_type":"effect","arbitration_seq":1,"ide`)...)
-	if err := os.WriteFile(path, torn, 0o644); err != nil {
+	if err := os.WriteFile(path, torn, 0o600); err != nil {
 		t.Fatal(err)
 	}
 
 	m2 := mustOpen(t, path)
 	if m2.State("op-t3") != StateAdopted {
-		t.Fatalf("recovered state = %q, want adopted (torn tail skipped)", m2.State("op-t3"))
+		t.Fatalf("recovered state = %q, want adopted (torn tail skipped in projection)", m2.State("op-t3"))
+	}
+	if !m2.TornTail() {
+		t.Fatal("TornTail() = false, want true — the machine must remember the damage")
 	}
 	events, err := m2.Events()
 	if err != nil {
@@ -210,28 +222,81 @@ func TestCrashRecoveryTornTail(t *testing.T) {
 	if len(events) != 1 {
 		t.Fatalf("recovered events = %d, want 1 (torn tail excluded)", len(events))
 	}
-	// the pinned grants survived: a revoked live set is still rejected after recovery
-	if o := m2.Dispatch("op-t3", []ledger.Grant{pinGrants()[0]}); o.Status != "rejected" {
-		t.Fatalf("dispatch after recovery with revoked grants = %q, want rejected (pin survived)", o.Status)
+	// the covering live set is REFUSED, not dispatched: the torn tail may
+	// have swallowed this very operation's dispatch line — re-issuing the
+	// execution permit on a guess is the falsified lossy-but-safe posture
+	if o := m2.Dispatch("op-t3", pinGrants()); o.Status != "rejected" {
+		t.Fatalf("dispatch on torn tail = %q, want rejected — no execution permission on a damaged durable form: %s", o.Status, o.Detail)
 	}
-	// and the covering live set passes; the next append heals the torn tail away
-	if o := m2.Dispatch("op-t3", pinGrants()); o.Status != "dispatched" {
-		t.Fatalf("dispatch after recovery = %q, want dispatched: %s", o.Status, o.Detail)
+	// evidence preservation: the damaged bytes survive byte-for-byte —
+	// the old heal doctrine erased them on the next append
+	rawAfter, _ := os.ReadFile(path)
+	if !bytes.Equal(torn, rawAfter) {
+		t.Fatal("file bytes changed under a torn-tail machine — the machine must not rewrite (erase) damaged evidence")
 	}
-	raw2, _ := os.ReadFile(path)
-	if len(raw2) == 0 || raw2[len(raw2)-1] != '\n' {
-		t.Fatalf("file not healed to event boundaries: tail byte %q", raw2[len(raw2)-1])
+	// every mutator is refused, not just Dispatch
+	if o := m2.MarkUnresolved("op-t3"); o.Status != "rejected" {
+		t.Fatalf("MarkUnresolved on torn tail = %q, want rejected: %s", o.Status, o.Detail)
 	}
-	// sequence numbering continues from the last complete event, not from 0
-	if o := m2.MarkUnresolved("op-t3"); o.Status != "unresolved" {
+	// manual repair: drop the torn tail outside the machine, then re-Open.
+	// The pinned grants survived the whole episode (they ride the adoption
+	// event): a revoked live set is still rejected after repair.
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	m3 := mustOpen(t, path)
+	if m3.TornTail() {
+		t.Fatal("TornTail() still true after repair and re-Open")
+	}
+	if o := m3.Dispatch("op-t3", []ledger.Grant{pinGrants()[0]}); o.Status != "rejected" {
+		t.Fatalf("dispatch after repair with revoked grants = %q, want rejected (pin survived)", o.Status)
+	}
+	// the covering live set now passes; sequence numbering continues from
+	// the last complete event, not from 0
+	if o := m3.Dispatch("op-t3", pinGrants()); o.Status != "dispatched" {
+		t.Fatalf("dispatch after repair = %q, want dispatched: %s", o.Status, o.Detail)
+	}
+	if o := m3.MarkUnresolved("op-t3"); o.Status != "unresolved" {
 		t.Fatalf("mark unresolved = %q, want unresolved: %s", o.Status, o.Detail)
 	}
-	events, _ = m2.Events()
+	events, _ = m3.Events()
 	if len(events) != 3 {
-		t.Fatalf("events after recovery writes = %d, want 3", len(events))
+		t.Fatalf("events after repair = %d, want 3", len(events))
 	}
 	if events[1].ArbitrationSeq != 1 || events[2].ArbitrationSeq != 2 {
 		t.Fatalf("recovered sequence numbering wrong: %d %d", events[1].ArbitrationSeq, events[2].ArbitrationSeq)
+	}
+}
+
+// TestAppendRefusesOutOfBandTornTail is the write-time face of the torn-tail
+// doctrine (P1-2, the adopt-side twin of evidlog's R10 face-B byte
+// re-check): damage that lands BETWEEN Open and write — the Open-time flag
+// is false, the bytes are the truth — is caught at append time, and the
+// refusal is what guarantees the rewrite never erases damaged evidence.
+func TestAppendRefusesOutOfBandTornTail(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-oob", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q, want adopted", o.Status)
+	}
+	// out-of-band damage after Open: the flag is false, only the write-time
+	// byte re-check can catch it
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.WriteString(`{"event_type":"eff`); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if o := m.Adopt(testRequest("op-oob2", digestA, pinGrants())); o.Status != "rejected" {
+		t.Fatalf("adopt after out-of-band torn tail = %q, want rejected: %s", o.Status, o.Detail)
+	}
+	// the machine is still a usable reader: state and events are intact
+	if m.State("op-oob") != StateAdopted {
+		t.Fatalf("state after refused write = %q, want adopted", m.State("op-oob"))
 	}
 }
 
@@ -1734,5 +1799,44 @@ func TestAdoptPreservesDurableMode(t *testing.T) {
 		t.Fatal(err)
 	} else if got := info.Mode().Perm(); got != 0o640 {
 		t.Fatalf("Adopt clobbered the operator's mode: got %o, want 640 — the Stat branch degenerated to a hardcoded 0644", got)
+	}
+}
+
+// TestFirstWriteOwnerOnlyUnderUmask077 is P1-1's permanent probe (adapted
+// from xingchao's MR #2 review probe TestNGAReviewFirstWrite): a component
+// must not widen visibility past the deployment's umask — under umask 077
+// the first durable write stays owner-only. The pre-fix code Chmod'ed new
+// files to 0644 unconditionally (os.Chmod bypasses umask by design), which
+// silently overrode the operator's expressed policy; the fix keeps
+// CreateTemp's owner-only 0600, so this holds under ANY umask.
+func TestFirstWriteOwnerOnlyUnderUmask077(t *testing.T) {
+	old := syscall.Umask(0o077)
+	defer syscall.Umask(old)
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-umask", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q, want adopted", o.Status)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got&0o077 != 0 {
+		t.Fatalf("mode=%04o under umask 077; expected owner-only default — the component widened visibility past the deployment's umask (P1-1)", got)
+	}
+}
+
+// TestDurableModeStatErrorFailsLoud is P1-1's second probe: a Stat failure
+// that is not "file does not exist" must surface as an error, not silently
+// fall back to a new-file default. A file-as-parent path (ENOTDIR) is the
+// portable trigger.
+func TestDurableModeStatErrorFailsLoud(t *testing.T) {
+	dir := t.TempDir()
+	blocker := filepath.Join(dir, "blocker")
+	if err := os.WriteFile(blocker, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := durableMode(filepath.Join(blocker, "adopt.jsonl")); err == nil {
+		t.Fatal("durableMode returned nil error for a non-not-exist Stat failure — a silent new-file default would mask it (P1-1)")
 	}
 }
