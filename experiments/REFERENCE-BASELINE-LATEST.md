@@ -1,6 +1,6 @@
 # Reference baseline — latest results
 
-Restored and synchronized: **2026-11-01 UTC**. This is the current repository entry point for reference test/OOD metrics. It consolidates the frozen matrix and its accepted additive results without changing historical readings. The [GitHub Wiki](https://github.com/chaosxingxc-orion/nga/wiki/Current-Conclusions) maintains the wider four-dimensional conclusions, current engineering status and next steps. Process records remain local and are archived every three days.
+Restored: **2026-11-01 UTC**; latest additive result update: **2026-11-03 UTC**. This is the current repository entry point for reference test/OOD metrics. It consolidates the frozen matrix and its accepted additive results without changing historical readings. The [GitHub Wiki](https://github.com/chaosxingxc-orion/nga/wiki/Current-Conclusions) maintains the wider four-dimensional conclusions, current engineering status and next steps. Process records remain local and are archived every three days.
 
 **Coverage: 36 of the fixed 38 model × dataset units have results; 2 remain blocked with null metrics.** The base matrix has 58 protocol panels over 30 units (Kev 15, Nimble 7, Typed Decisions 6, Open-Jev original test 2). The increment adds four JEVal units and two Open-Jev OOD units. Temperature variants and full/release masks are separate panels, not additional model × dataset units. This is the agreed reference scope, not a complete cross-product of every model and every dataset.
 
@@ -11,21 +11,28 @@ Coverage correction — 2026-11-02: the 38 units above are model × dataset unit
 Execution status and dataset-admission progress are maintained in the Wiki. Fixed reference-model TEST evaluation can proceed per admitted panel; final evaluation of newly trained candidates follows DEV selection and a frozen TEST plan. Training progress is not a reference TEST metric.
 
 
-## BEV public TEST increment — local protocol, 2026-11-02
+## BEV public TEST increment — local protocol, updated 2026-11-03
 
-These three additional fixed-base panels are separate from the historical 38-unit reference matrix. Dataset `avbiswas/bev-decision`, configuration `numeric_temporal`, public `test`: 3,329 rows, 6,518 questions, 24 duplicate requests retained. This is `bev-local-typed-exact-release-test-v1`, not native AnyJev's default 46,320-question task or Tacit readout. Exact counts and report pins for 0.8B/2B are in [REFERENCE-BEV-PUBLIC-INCREMENT-2026-11-02.json](REFERENCE-BEV-PUBLIC-INCREMENT-2026-11-02.json); the additive 4B report is pinned below.
+These four additional fixed-base panels are separate from the historical 38-unit reference matrix. Dataset `avbiswas/bev-decision`, configuration `numeric_temporal`, public `test`: 3,329 rows, 6,518 questions, 24 duplicate requests retained. This is `bev-local-typed-exact-release-test-v1`, not native AnyJev's default 46,320-question task or Tacit readout. Exact counts and report pins for all four sizes are in [REFERENCE-BEV-PUBLIC-INCREMENT-2026-11-03.json](REFERENCE-BEV-PUBLIC-INCREMENT-2026-11-03.json). The preceding [0.8B/2B snapshot](REFERENCE-BEV-PUBLIC-INCREMENT-2026-11-02.json) remains unchanged. Four model sizes do not mean four independent datasets.
 
 | Model | All correct/n | Accuracy | Choice | Noul | Score | Score index MAE | Normalized error |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Qwen3.5-0.8B-Base | 2847/6518 | 43.679% | 1307/3002, 43.538% | 1353/2835, 47.725% | 187/681, 27.460% | 1.157122 | 0.362580 |
 | Qwen3.5-2B-Base | 3311/6518 | 50.798% | 1514/3002, 50.433% | 1618/2835, 57.072% | 179/681, 26.285% | 1.352423 | 0.426456 |
 | Qwen3.5-4B-Base | 3734/6518 | 57.288% | 1676/3002, 55.829% | 1838/2835, 64.832% | 220/681, 32.305% | 1.217327 | 0.389868 |
+| Qwen3.5-9B-Base | 3980/6518 | 61.062% | 1838/3002, 61.226% | 1888/2835, 66.596% | 254/681, 37.298% | 0.963289 | 0.309227 |
 
-All three have 6,518 valid predictions, with score errors over all 681 score questions. The 2B overall accuracy increases by 7.118748 percentage points versus 0.8B, while score accuracy and both ordinal errors worsen. The 4B overall accuracy increases by 6.489721 percentage points versus 2B and 13.608469 versus 0.8B. All three type accuracies improve versus 2B; both ordinal errors improve versus 2B but remain worse than 0.8B. No training gain, decision consistency, significance or candidate eligibility follows.
+All four have 6,518 valid predictions, with score errors over all 681 score questions. The 2B overall accuracy increases by 7.118748 percentage points versus 0.8B, while score accuracy and both ordinal errors worsen. The 4B overall accuracy increases by 6.489721 percentage points versus 2B and 13.608469 versus 0.8B. All three type accuracies improve versus 2B; both ordinal errors improve versus 2B but remain worse than 0.8B. No training gain, decision consistency, significance or candidate eligibility follows.
 
 The 2B report was independently reconstructed by an inherited-model child and again by the parent (6,568 evidence pins verified). The 4B independent inherited-model review reconstructed the complete report, verified 6,561 provenance pins and rebuilt all requests/gold from the original parquet; request/gold bytes match both smaller baselines. Explicit additional Astra confirmation has not produced a review artifact; the earlier 0.8B independent review remains unchanged. Runtime, runner, host and CPU terminal receipts all report exit 0. The retained 4B Docker exited at 2026-11-02 15:57:46 UTC.
 
 4B exact report: `/mnt/cephfs/xingchao/experiments/jev/r3_runs/bev_public_test_4b_20261102_v1/cpu/report.json`, SHA256 `2a399cf5e72c01ef97e007bff711cda776dc11c205c308d98c09fc16cf1c61c0`. Score index MAE is `1.2173274596182084`; normalized error is `0.3898678414096919`, including the full-denominator failure-penalty formulation because failure count is zero. This dated addition preserves the earlier readings and historical 38-unit coverage count.
+
+2026-11-03 additive result: 9B improves overall accuracy by **3.774164 percentage points versus 4B**, 10.263885 versus 2B and 17.382633 versus 0.8B. All three type accuracies improve versus each smaller baseline; its score MAE and normalized error are also lower than each. This does not make the smaller-size ordinal-error series monotonic or establish statistical significance.
+
+The 9B independent inherited-model review exactly reconstructed the complete CPU report, verified 6,563 provenance/lifecycle pins and rebuilt all 3,329 source rows / 6,518 questions from the original parquet. Requests and gold are byte-identical across all four models; all predictions are valid, with zero failures and the same 24 retained duplicate requests. This is an actual independent result review, **not an Astra/Fable review**. Runner, host and CPU completion evidence agree; the retained Docker exited successfully at 2026-11-02 19:09:53 UTC and resource release was verified. No scientific acceptance or trained-candidate qualification is granted.
+
+9B report: `/mnt/cephfs/xingchao/experiments/jev/r3_runs/bev_public_test_9b_20261102_v1/cpu/report.json`, SHA256 `a8b0e3adc00714e58364c747f21c3a9c59405c1510a224014e1b635ffeb7f8a2`. Exact score MAE: `0.9632892804698973`; normalized error: `0.30922662750856583`, denominator 681. Historical readings and the separate 38-unit coverage count are unchanged.
 
 ## Evidence and reading conventions
 
