@@ -261,7 +261,9 @@ func (l *Log) Append(e Entry) error {
 		// (minor-ledger L9): os.CreateTemp is 0600, so a bare rename would
 		// silently flip a 0644 log to 0600 and group/other audit readers
 		// would lose access on the first Append. First durable write (no
-		// file yet) gets 0644.
+		// file yet) gets 0644 — os.Chmod bypasses umask by design, so this
+		// is exact 0644 under any umask: audit readability is the recorded
+		// L9 umask ruling (2026-11-03), not an oversight.
 		mode := os.FileMode(0o644)
 		if info, err := os.Stat(l.path); err == nil {
 			mode = info.Mode().Perm()

@@ -923,4 +923,18 @@ func TestAppendPreservesDurableMode(t *testing.T) {
 	if got := info.Mode().Perm(); got != 0o644 {
 		t.Fatalf("Append flipped the durable mode: got %o, want 644 — audit readers silently lost access", got)
 	}
+	// second face: a NON-0644 existing mode must be preserved too — this is
+	// what kills the "hardcode 0644" degenerate form of the fix (the Stat
+	// branch is the only thing keeping an operator's chmod 0640 sticky).
+	if err := os.Chmod(path, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "t", Selector: "s=3", Caller: "s2", At: "c"}); err != nil {
+		t.Fatal(err)
+	}
+	if info, err = os.Stat(path); err != nil {
+		t.Fatal(err)
+	} else if got := info.Mode().Perm(); got != 0o640 {
+		t.Fatalf("Append clobbered the operator's mode: got %o, want 640 — the Stat branch degenerated to a hardcoded 0644", got)
+	}
 }
