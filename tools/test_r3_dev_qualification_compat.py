@@ -18,7 +18,7 @@ class Compatibility(unittest.TestCase):
   src=(Q.LEGACY/'consumer.py').read_text()
   old=next(x for x in ast.parse(src).body if isinstance(x,ast.FunctionDef) and x.name=='report')
   self.assertEqual(q.report.__code__.co_filename,str(Q.LEGACY/'consumer.py'))
-  self.assertIn('compatible_source',q.report.__code__.co_names)
+  self.assertIn('report_compatible_source',q.report.__code__.co_names)
   for name in ('evaluation_lineage','verified_report','bound','exact'):
    self.assertIn(name,q.report.__code__.co_names)
   self.assertNotIn('selected_files',q.report.__code__.co_names)

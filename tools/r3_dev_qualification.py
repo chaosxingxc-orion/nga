@@ -79,6 +79,131 @@ def compatible_source(name, consumer, producer):
     return producer == consumer or SOURCE_COMPATIBILITY.get(name) == (consumer, producer)
 
 
+# These additional pairs are NOT general source compatibility. They apply only
+# inside report() for two audited raw-only executions and their exact closure.
+K0_RAW_SOURCE_PAIRS = {
+    'selection_evidence_r3': ('26f4fed70b3817b2c37550df766ea3cfa1ae8d78c03fa832c59e5c0d2a927787',
+                              '655444d945b9e4d9570186a1b86f78338a36eef5c2552dfb3596812b0df4f38a'),
+    'track_t_r3': ('52a6d21e2901136f9d98adb4b28ca768f5627124115c3e4e90fef39ab5cc7295',
+                   '834e872593f9bc6013f1d4131e33bfabb0194ac618abd66052be177a67217127'),
+}
+K0_RAW_SPECS = {
+    'fcfe5b4bde340497712ea79a045b02ddac1270b0f19c9d9eb623c46ab660c2df':
+        '2d1c171cd8b4bdcdeca4fbbe23fcb04c91e62d792eb54715e1115a1c2c369139',
+    '4261e76402ff9b61fee41c98067fcecdaddb7af9a2b28964ea6d2a2203b2441b':
+        '59872034731a8fe8f372a397c287037a045a024e3391bcb302705afcdcc25aed',
+}
+K0_RAW_CLOSURE_SHA = '69ec7d7c78df080eff6645393a00c6ab3b485fd16e5f99a5c347dc866354b64a'
+K0_CURRENT_PLAN = Path('/mnt/cephfs/xingchao/experiments/jev/r3_runs/k0_current_identity_execution_20261103_v7/HOST-PLAN.json')
+K0_CURRENT_PLAN_SHA = '84c4880a8f93f8de1c5c9b576ff0b267e404fcf7a39f157420797c59da92e091'
+
+
+def report_compatible_source(name, consumer, producer, entry, bundle, spec):
+    if compatible_source(name, consumer, producer):
+        return True
+    if K0_RAW_SOURCE_PAIRS.get(name) != (consumer, producer):
+        return False
+    files = bundle['files']
+    execution_pin = files.get(entry.get('execution'))
+    if (entry.get('arm') != 'K0' or 'plan' in entry or execution_pin not in K0_RAW_SPECS
+            or files.get(entry.get('producer_manifest')) != K0_RAW_CLOSURE_SHA):
+        return False
+    # report() already authenticated both documents with bound(); recheck their
+    # exact bytes here so a caller cannot substitute an unbound in-memory spec.
+    if sha(entry['execution']) != execution_pin or sha(entry['producer_manifest']) != K0_RAW_CLOSURE_SHA:
+        return False
+    execution = json.loads(Path(entry['execution']).read_bytes())
+    pin = K0_RAW_SPECS[execution_pin]
+    if execution.get('spec_sha256') != pin or files.get(execution.get('spec')) != pin or sha(execution['spec']) != pin:
+        return False
+    if canonical(spec) != canonical(json.loads(Path(execution['spec']).read_bytes())):
+        return False
+    cmd = spec.get('command', [])
+    for flag, value in (('--arm','K0'), ('--stages','k_score,t_score'), ('--partitions','dev,calibration')):
+        if cmd.count(flag) != 1 or cmd[cmd.index(flag)+1:cmd.index(flag)+2] != [value]:
+            return False
+    return spec.get('evaluation_profile') == 'track_kt' and spec.get('adapter') is None
+
+
+def k0_identity_acceptance(name, entry, identity, files, q):
+    """Bind an independently adjudicated *current* control, never any PASS JSON."""
+    require(identity.get('schema') == 'r3-k0-current-identity-acceptance-v1'
+            and identity.get('verdict') == 'PASS' and identity.get('scientific_acceptance') is False
+            and identity.get('test_read') is False and identity.get('independent_reconstruction') is True
+            and identity.get('lifecycle_verified') is True
+            and isinstance(identity.get('reviewer'),str) and bool(identity['reviewer'].strip()),
+            'current K0 identity acceptance scope differs')
+    plan_ref = {'path':str(K0_CURRENT_PLAN),'sha256':K0_CURRENT_PLAN_SHA}
+    require(identity.get('control_plan') == plan_ref,'current K0 control plan differs')
+    plan = refdoc(plan_ref, files, q)
+    attempt = identity.get('attempt')
+    require(type(attempt) is int and attempt in (1,2),'current K0 attempt differs')
+    root = Path(plan['out']); cpu = root/'cpu'/str(attempt); host = root/'host_attempts'/str(attempt)
+    def doc(path): return q.bound(str(path),files)
+    summary = doc(cpu/'report.json'); complete = doc(cpu/'COMPLETE.json')
+    runtime = doc(root/'attempts'/str(attempt)/'report.json')
+    release = doc(host/'RELEASE.json'); claim = doc(host/'CLAIM.json')
+    require(identity.get('controls_report') == {'path':str(cpu/'report.json'),'sha256':files[str(cpu/'report.json')]},
+            'current K0 controls report differs')
+    for path in (cpu/'EXIT.json', root/'cpu'/('host-'+str(attempt))/'EXIT.json',
+                 root/'attempts'/str(attempt)/'EXIT.json'):
+        terminal = doc(path)
+        require(type(terminal.get('exit_code')) is int and terminal['exit_code']==0
+                and type(terminal.get('attempt')) is int and terminal['attempt']==attempt
+                and terminal.get('plan_sha256')==K0_CURRENT_PLAN_SHA
+                and terminal.get('scientific_acceptance') is False,'current K0 terminal differs')
+    ht = doc(host/'EXIT.json')
+    require(type(ht.get('exit_code')) is int and ht['exit_code']==0
+            and type(ht.get('container_exit_code')) is int and ht['container_exit_code']==0
+            and ht.get('runner_terminal_matches') is True and ht.get('scientific_acceptance') is False,
+            'current K0 host terminal differs')
+    require(release.get('schema')=='r3-resource-release-v1' and type(release.get('exit_code')) is int
+            and release['exit_code']==0 and release.get('scientific_acceptance') is False
+            and release.get('claim_sha256')==files[str(host/'CLAIM.json')]
+            and release.get('run')==claim.get('run')==plan['run']
+            and type(release.get('chip')) is int and type(claim.get('chip')) is int
+            and release['chip']==claim['chip']==plan['chip']
+            and release.get('container_id')==ht.get('container_id')
+            and release.get('container')==plan['container']+'-a'+str(attempt),'current K0 release differs')
+    require(complete.get('plan_sha256')==K0_CURRENT_PLAN_SHA
+            and type(complete.get('exit_code')) is int and complete['exit_code']==0
+            and complete.get('scientific_acceptance') is False
+            and complete.get('report_sha256')==files[str(cpu/'report.json')],'current K0 COMPLETE differs')
+    require(summary.get('schema')=='r3-k0-current-complete-v1'
+            and summary.get('plan_sha256')==K0_CURRENT_PLAN_SHA
+            and type(summary.get('attempt')) is int and summary['attempt']==attempt
+            and summary.get('scientific_acceptance') is False and summary.get('test_read') is False
+            and canonical(summary.get('controls'))==canonical({'c32_cells':10,'own_pass':10,'counterpart_fail':10})
+            and summary.get('npureport_sha256')==files[str(root/'attempts'/str(attempt)/'report.json')]
+            and summary.get('release_sha256')==files[str(host/'RELEASE.json')], 'current K0 summary differs')
+    sample = refdoc(plan['sample'],files,q)
+    require(identity.get('sample_sha1')==summary.get('sample_sha1')==runtime.get('sample_sha1')==sample['sample_sha1']
+            and runtime.get('schema')=='r3-k0-current-control-report-v1'
+            and runtime.get('verdict')=='VERIFIED' and runtime.get('own_failures')==[]
+            and runtime.get('cross_passes')==[] and runtime.get('plan_sha256')==K0_CURRENT_PLAN_SHA
+            and type(runtime.get('attempt')) is int and runtime['attempt']==attempt
+            and runtime.get('scientific_acceptance') is False and runtime.get('test_read') is False,
+            'current K0 numerical control generation differs')
+    targets = {key:{k:value[k] for k in ('execution','report','model')} for key,value in plan['targets'].items()}
+    require(set(runtime.get('identity',{}))==set(targets)
+            and all(runtime['identity'][key].get('sha256')==target['model']['sha256'] for key,target in targets.items()),
+            'current K0 runtime model identity differs')
+    require(identity.get('targets')==targets and set(summary.get('reports',{}))==set(targets),
+            'current K0 acceptance targets differ')
+    for key,target in targets.items():
+        result=summary['reports'][key]
+        require(result.get('execution_sha256')==target['execution']['sha256']
+                and result.get('report_sha256')==target['report']['sha256']
+                and result.get('canonical_json_identical') is True
+                and result.get('selection_only_strict_consumer') is True,
+                'current K0 strict report binding differs')
+    target=targets[name.removeprefix('k0_')]
+    require(target['execution']=={'path':entry['execution'],'sha256':files[entry['execution']]}
+            and target['report']=={'path':entry['report'],'sha256':files[entry['report']]}
+            and target['model']==entry['model'],'current K0 member differs')
+    return {'plan_sha256':K0_CURRENT_PLAN_SHA,'attempt':attempt,'controls_report_sha256':files[str(cpu/'report.json')]}
+
+
 def legacy():
     q = module(LEGACY/'consumer.py', LEGACY_SHA)
     q.evaluation_lineage = evaluation_lineage
@@ -89,9 +214,9 @@ def legacy():
     source = raw.decode()
     old = "producer_names[name]['sha256']==e['sha256']"
     require(source.count(old) == 1, 'legacy source compatibility site differs')
-    source = source.replace(old, "compatible_source(name,e['sha256'],producer_names[name]['sha256'])")
+    source = source.replace(old, "report_compatible_source(name,e['sha256'],producer_names[name]['sha256'],entry,bundle,spec)")
     node = next(x for x in ast.parse(source).body if isinstance(x, ast.FunctionDef) and x.name == 'report')
-    q.compatible_source = compatible_source
+    q.report_compatible_source = report_compatible_source
     exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])),
                  str(LEGACY/'consumer.py'), 'exec'), q.__dict__)
     return q
@@ -765,7 +890,7 @@ def member(name,entry,decision,bundle,api):
         require(decision.get('decision')=='ADMIT_EXACT_FROZEN_K0_SOURCE'
                 and decision.get('checkpoint_revision_and_scorer_applicable') is True,'K0 applicability not independently adjudicated')
         identity=refdoc(decision.get('identity_control_acceptance'),files,q)
-        require(identity.get('verdict') in ('PASS','PASS_WITH_SCOPE') or identity.get('status')=='PASS','K0 identity-control acceptance absent')
+        k0_identity_acceptance(name,entry,identity,files,q)
     ev=evaluation_runtime(entry,decision,bundle,api)
     if train:require(train['finish']<=ev['start'],'evaluation predates training completion')
     # Current role-aware producer adds role identity to selection_evidence. Use its
