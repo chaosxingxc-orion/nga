@@ -26,4 +26,12 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 | L11 | schema/compose.py:56 | ~~死 import（`from validate import load as load_json`）~~ [RETIRED 2026-11-03]（删行，compose 套件 10+36 复绿） | 趋零可达 | R22 外环 MINOR-3 |
 | L12 | schema/compose.py:73-75 | ~~dec() docstring 引已废除的「double charter」~~ [RETIRED 2026-11-03]（改引待裁①登记=docs/conformance-fixture-format.md） | 趋零可达 | R22 外环 MINOR-4 |
 
+## 增量内环记账（2026-11-03，单空白位 4-lens+singularity 审 6a6cb38+4b86b70——0B/0M/2m/1NIT，无可达奇点）
+
+| # | 位置 | 内容 | 可达性 | 来源 |
+|---|---|---|---|---|
+| L13 | docs/conformance-fixture-format.md:73 | 待裁登记①括注成死描述：仍声称「compose.py docstring 引旧 charter」——该症状已被 L12 清偿（6a6cb38），邻接文件登记未同步。修法=括注改「compose.py docstring 已改引本登记（2026-11-03）」。本批修复的交叉文件收尾缝 | 文本面 | 增量内环 MINOR-1 |
+| L14 | go/internal/evidlog/evidlog.go:266-272 + go/internal/adopt/adopt.go:493-499 | 首写 mode=0644 硬编码绕过 umask（os.Chmod 不施 umask）：umask 077 部署上取证文件静默 world-readable（修复前该面=CreateTemp 0600）。属有意裁决（commit message 明示 0644）但裁决未显式登记。修法=代码注释/台账登记「首写不受 umask 约束」或改 0o666&^umask（需 syscall.Umask 探测） | 本地构造（限限制性 umask 主机） | 增量内环 MINOR-2 |
+| L15 | go/internal/evidlog/evidlog_test.go:911-926 + go/internal/adopt/adopt_test.go:1701-1724 | L9 探针只钉 0644→0644 面：「Stat 读现存 mode」分支 mutation-survivable（把 Stat 分支退化成恒 0644 硬编码，双探针仍绿——管理员 chmod 0640 的保持面无人钉；主病面剥 Chmod 块双红已验证）。修法=探针中 chmod 0640 再断言保持（两行/包） | 本地构造（需变异） | 增量内环 NIT-1 |
+
 （singularity R21/R22 两轮判定一致：无可达奇点；R22 新增最强候选=F-A 输入契约结构化（LiteralDoc newtype，最便宜关闭 L8 窗口）+F-B 生产者包含性（writer ⊆ checker 闭包钉）；R21-F1 差分生成器维持首选杠杆。全记录见外环 R21/R22 报告 Part II。）六分叉——F1 差分生成器为下一杠杆推荐、F4 文法层严格性为待裁①同步收编、F6 单源代码生成按框架价值否决；无可达奇点，当前框架仍为正确收敛框架。全记录见外环 R21 报告 Part II。）
