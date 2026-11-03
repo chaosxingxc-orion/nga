@@ -113,3 +113,11 @@ GEPA+singularity 双探索（语言方向 × 最大解锁角度）——建议�
 - **13 号**：C4 排序契约设计注记（宿主单调修订序为唯一真源，机器双时点消费同序快照；验收挂制品 B）。
 - **回归终态**：go -race 20 包全绿、Python 八组+自检+manifest 全绿。三组变异自证：durableMode 退化→保持面双红；撤 append 闸→MarkUnresolved 静默成功红；撤 CONTROL_IDEM_FORBIDDEN→钉夹具红。
 - **待口令**：推送 MR !2（head 将从 baca2dd 前进到 151a39f；对方承诺修复+探针+回归后进入复核）。本批未含：授信夹具语义修正（P3，挂业务座位+pending-confirmation，另行批）。
+
+---
+
+## 2026-11-03 夜末：T0+T1 双层交付（Go）
+
+- **T0**（internal/e2e 九场景，commit 含 R4 审核轮）：模型替身全链路=§11.B 八场景+happy path；变异自证（否决窗口化→三红）；R4 净轮→R2/R3/R4=3 连 0B/0M，session goal 3 连口径闭环（14 号日志）。
+- **T1**（t1_llm_test.go，已备未启）：真 LLM S1 单点测试 harness——七用例（干净授信/窗口外否决反例/缺证/两组改述一致性对/带间开放/窗口内锚）、预注册硬门（harness fail-loud+C1/C2/C3/C7+一致性对；C6 无门首测）、双门已验（默认 Skip 指路/启用缺环境 Fatal）。**launch 键=用户**（一条命令在文件头注释，密钥从 provider_config.json 读不回显）。首次启动兼 harness 自身集成测试（传输/解析硬失败即响）。
+- 端点：gptplus5 glm-5.3-flash（本会话八项烟测过）；anthropic-messages 协议；max_tokens 4096（glm 恒开 thinking）。
