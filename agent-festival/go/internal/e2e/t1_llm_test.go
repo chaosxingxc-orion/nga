@@ -33,6 +33,23 @@ package e2e
 // The readout prints every case's expected/got verdict, the model's stated
 // reason, latency and attempts — the full auditable record (won-face AND
 // failure-face both logged; no aggregate hides a case).
+//
+// RUN 2 pre-registration (frozen BEFORE the re-run, 2026-11-03; the run-1
+// gate set is preserved in git history c696542 — raising a bar after
+// seeing results is legitimate ONLY as this explicit new registration):
+// the run-1 baseline (7/7, archived impl-2026-11-01/15-t1-readout.md)
+// justifies the raise — C6 (between-bands) is PROMOTED to a hard bar per
+// the documented candidate; five NEW cases probe what run 1 never did:
+// precedence interactions (C8 veto beats missing evidence; C12 veto
+// beats the lower band), the lower band itself (C9), a third rephrase
+// extending the load-bearing case's consistency pair to a TRIPLE (C11),
+// and the exact-cutoff boundary (C10). Hard bars = every case whose
+// expected verdict follows UNAMBIGUOUSLY from the written spec (all
+// seven originals, C8, C9, C11, C12); report-only = the exact-cutoff
+// face (C10), a convention edge never measured — the next raise
+// candidate. Cross-run repeatability is enforced by the same hard bars:
+// correct verdicts ARE the run-1 verdicts, so repeat-correctness is the
+// stability claim under test.
 
 import (
 	"bytes"
@@ -125,7 +142,10 @@ entire payment history there is not a single overdue entry, including a clean la
 - asset valuation report: present and valid
 - payment history on record: no overdue entries at any time
 - recent six months: no overdue`,
-		expected: "on_undefined_rule", hardBar: false, // reported without a bar: first measurement
+		// RUN 2: promoted to a hard bar per the run-1 candidate — the
+		// baseline measurement (7/7, archived readout) is what makes the
+		// raise a re-registration rather than a guess
+		expected: "on_undefined_rule", hardBar: true,
 	},
 	{
 		id: "C7-in-window-veto",
@@ -134,6 +154,58 @@ entire payment history there is not a single overdue entry, including a clean la
 - asset valuation report: present and valid
 - payment history on record: one obligation was overdue for 3.5 months, 5 months ago (inside the recent window); no other overdue entries
 - recent six months: the overdue above occurred in this window`,
+		expected: "deny", hardBar: true,
+	},
+	{
+		// RUN 2 — precedence interaction run 1 never probed: the veto is
+		// precedence 0, so a historical severe overdue denies even when the
+		// asset report is missing (the gap discipline does not shield the veto)
+		id: "C8-veto-beats-missing-evidence",
+		dossier: `EVIDENCE DOSSIER (sealed):
+- declared net assets: unknown — the asset valuation report could not be retrieved
+- payment history on record: one obligation was overdue for 4 months, 3 years ago; no other overdue entries`,
+		expected: "deny", hardBar: true,
+	},
+	{
+		// RUN 2 — the lower band, never individually measured in run 1
+		id: "C9-lower-band",
+		dossier: `EVIDENCE DOSSIER (sealed):
+- declared net assets: 0.5 (millions of USD)
+- asset valuation report: present and valid
+- payment history on record: no overdue entries at any time
+- recent six months: no overdue`,
+		expected: "grant-10000", hardBar: true,
+	},
+	{
+		// RUN 2 — the exact-cutoff boundary: a convention edge never
+		// measured; REPORTED WITHOUT a bar (the next raise candidate — a
+		// bar on an unmeasured edge would be a guess, not a registration)
+		id: "C10-exact-cutoff",
+		dossier: `EVIDENCE DOSSIER (sealed):
+- declared net assets: 30 (millions of USD) — exactly at the upper cutoff
+- asset valuation report: present and valid
+- payment history on record: no overdue entries at any time
+- recent six months: no overdue`,
+		expected: "on_undefined_rule", hardBar: false,
+	},
+	{
+		// RUN 2 — a third rephrase of C2: the load-bearing case's
+		// consistency evidence extends from a pair to a TRIPLE
+		id: "C11-rephrase-of-C2-again",
+		dossier: `EVIDENCE DOSSIER (sealed) — same applicant, second restatement:
+The applicant's declared net asset value is 35 million USD with a valid valuation report on
+file. The recent six months are clean, and the entire payment history holds a single blemish:
+one obligation, settled two years back, spent four months past due.`,
+		expected: "deny", hardBar: true,
+	},
+	{
+		// RUN 2 — precedence interaction: the veto beats the lower band too
+		id: "C12-veto-beats-lower-band",
+		dossier: `EVIDENCE DOSSIER (sealed):
+- declared net assets: 0.5 (millions of USD)
+- asset valuation report: present and valid
+- payment history on record: one obligation was overdue for 5 months, 18 months ago; no other overdue entries
+- recent six months: no overdue`,
 		expected: "deny", hardBar: true,
 	},
 }
@@ -277,13 +349,28 @@ func TestT1RealLLMS1(t *testing.T) {
 			t.Errorf("T1 hard bar FAILED: %s expected %q, got %q (reason: %s)", c.id, c.expected, results[c.id].got, truncate(results[c.id].reason, 200))
 		}
 	}
-	// consistency pairs: same facts, rephrased — same verdict
-	for _, pair := range [][2]string{{"C1-clean-grant", "C5-rephrase-of-C1"}, {"C2-window-outside-veto", "C4-rephrase-of-C2"}} {
-		a, b := results[pair[0]].got, results[pair[1]].got
-		if a == "" || b == "" || a != b {
-			t.Errorf("T1 consistency pair FAILED: %s vs %s → %q vs %q (same facts must yield the same verdict)", pair[0], pair[1], a, b)
+	// consistency groups: same facts, rephrased — same verdict. RUN 2
+	// extends the load-bearing case's group from a pair to a TRIPLE
+	// (C2/C4/C11); the clean-grant pair stays (C1/C5)
+	for _, group := range [][]string{
+		{"C1-clean-grant", "C5-rephrase-of-C1"},
+		{"C2-window-outside-veto", "C4-rephrase-of-C2", "C11-rephrase-of-C2-again"},
+	} {
+		first := results[group[0]].got
+		ok := first != ""
+		for _, id := range group[1:] {
+			if results[id].got == "" || results[id].got != first {
+				ok = false
+			}
+		}
+		if !ok {
+			verdicts := make([]string, len(group))
+			for i, id := range group {
+				verdicts[i] = fmt.Sprintf("%s=%q", id, results[id].got)
+			}
+			t.Errorf("T1 consistency group FAILED: %s (same facts must yield the same verdict)", strings.Join(verdicts, ", "))
 		} else {
-			t.Logf("[T1] consistency pair OK: %s ≡ %s → %q", pair[0], pair[1], a)
+			t.Logf("[T1] consistency group OK: %s ≡ %q", strings.Join(group, " ≡ "), first)
 		}
 	}
 	// the readout: every case, both faces logged, nothing hidden
@@ -293,9 +380,10 @@ func TestT1RealLLMS1(t *testing.T) {
 			correct++
 		}
 	}
-	t.Logf("[T1] READOUT: %d/%d verdicts correct; hard-bar cases %s; pair members logged above; "+
-		"C6 (between-bands, expected %q) is reported WITHOUT a pre-registered bar (first measurement)",
-		correct, len(t1Cases), "enforced", "on_undefined_rule")
+	t.Logf("[T1] READOUT: %d/%d verdicts correct; hard-bar cases enforced (RUN 2 re-registration: "+
+		"C6 promoted; C8/C9/C11/C12 added); C10 (exact-cutoff, expected %q) is reported WITHOUT "+
+		"a bar — the next raise candidate (an unmeasured edge is not a bar)",
+		correct, len(t1Cases), "on_undefined_rule")
 }
 
 func firstNonEmpty(s, fallback string) string {
