@@ -4,11 +4,12 @@ package e2e
 // run is started by the USER (never the agent). Everything is prepared to
 // "ready to fly": one command, fail-loud gates, pre-registered criteria.
 //
-// Launch command (user executes; the key is read from the provider config
-// without echoing it):
+// Launch (user executes — fill the three variables from YOUR provider
+// setup; the operator's local runbook holds the concrete values, they are
+// deliberately NOT in this repository):
 //
-//	T1_LLM=1 T1_ENDPOINT=https://az.gptplus5.com T1_MODEL=glm-5.3-flash \
-//	T1_API_KEY=$(python3 -c "import json;print(json.load(open('$HOME/.zcode/v2/provider_config.json'))['config']['providerConfigRules']['providerRules'][4]['config']['access']['apiKey'])") \
+//	T1_LLM=1 T1_ENDPOINT=<your anthropic-messages endpoint> \
+//	T1_MODEL=<model id> T1_API_KEY=<the key> \
 //	go test -count=1 -run TestT1RealLLMS1 -v ./internal/e2e/
 //
 // Gates (pre-registered BEFORE the first run — freeze the standard, then
