@@ -1,64 +1,72 @@
-name: Sync GitCode mirror
-
+name: NGA cross-platform collaboration
 on:
   push:
-    branches: ['**']
-    tags: ['**']
-  create:
-  delete:
+    branches: [main, 'github/**']
+    tags: ['v*']
+  issues:
+    types: [opened, edited, closed, reopened]
+  issue_comment:
+    types: [created, edited]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+  pull_request_review_comment:
+    types: [created, edited]
+  # Execute trusted main only, never the PR head.
+  pull_request_target:
+    types: [opened, edited, synchronize, closed, reopened, ready_for_review]
   workflow_dispatch:
+  repository_dispatch:
+    types: [gitcode-collaboration]
   schedule:
-    - cron: '7,22,37,52 * * * *'
-
+    - cron: '3-58/5 * * * *'
 permissions:
-  contents: read
-
-# Serialize all refs. Each run fetches the current source, not its event SHA.
+  contents: write
+  issues: write
+  pull-requests: write
 concurrency:
-  group: gitcode-mirror
+  group: nga-cross-platform-collaboration
   cancel-in-progress: false
-
 jobs:
   sync:
     if: github.repository == 'chaosxingxc-orion/nga'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
-      - name: Check mirror credential
-        env:
-          GITCODE_TOKEN: ${{ secrets.GITCODE_TOKEN }}
-        run: |
-          if [ -z "$GITCODE_TOKEN" ]; then
-            echo '::error::Add the GITCODE_TOKEN repository secret before running this workflow.'
-            exit 1
-          fi
-
-      - name: Read synchronization code from main
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Read trusted synchronization code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: main
           persist-credentials: false
-
-      - name: Check mirror behavior without network credentials
-        run: python3 -I .github/scripts/test_sync_gitcode.py
-
-      - name: Synchronize and verify branches and tags
+      - name: Test safe synchronization and bridge contracts
+        run: |
+          python3 -I .github/scripts/test_sync_gitcode.py
+          python3 -I .github/scripts/test_collaboration_bridge.py
+      - name: Reconcile code and attributed discussions
         env:
+          GH_TOKEN: ${{ github.token }}
           GITCODE_TOKEN: ${{ secrets.GITCODE_TOKEN }}
           GIT_TERMINAL_PROMPT: '0'
         shell: bash
         run: |
           set -euo pipefail
-          askpass=$(mktemp "$RUNNER_TEMP/gitcode-askpass.XXXXXX")
+          test -n "$GITCODE_TOKEN" || { echo '::error::GITCODE_TOKEN is missing'; exit 1; }
+          askpass=$(mktemp "$RUNNER_TEMP/nga-askpass.XXXXXX")
           trap 'rm -f "$askpass"' EXIT
           cat > "$askpass" <<'ASKPASS'
           #!/bin/sh
           case "$1" in
-            *"Username for 'https://gitcode.com'"*|*"Username for 'https://gitcode.com/"*) printf '%s\n' 'xingchao_ml' ;;
-            *"Password for 'https://xingchao_ml@gitcode.com'"*|*"Password for 'https://xingchao_ml@gitcode.com/"*) printf '%s\n' "$GITCODE_TOKEN" ;;
+            *"Username for 'https://github.com"*) printf '%s\n' 'x-access-token' ;;
+            *"Password for 'https://x-access-token@github.com"*) printf '%s\n' "$GH_TOKEN" ;;
+            *"Username for 'https://gitcode.com"*) printf '%s\n' 'xingchao_ml' ;;
+            *"Password for 'https://xingchao_ml@gitcode.com"*) printf '%s\n' "$GITCODE_TOKEN" ;;
             *) exit 1 ;;
           esac
           ASKPASS
           chmod 700 "$askpass"
           export GIT_ASKPASS="$askpass"
           python3 -I .github/scripts/sync_gitcode.py
+          python3 -I .github/scripts/collaboration_bridge.py | tee "$RUNNER_TEMP/nga-bridge-result.txt"
+          cat "$RUNNER_TEMP/nga-bridge-result.txt" >> "$GITHUB_STEP_SUMMARY"
+      - name: Failure guidance
+        if: failure()
+        run: echo '::error::Sync failed. Inspect the failed step and rerun after correcting authentication or branch divergence. No force push, deletion or merge is performed.'

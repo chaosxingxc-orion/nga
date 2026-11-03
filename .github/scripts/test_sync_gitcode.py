@@ -43,9 +43,9 @@ class MirrorTests(unittest.TestCase):
                    "tag", "-a", "v1", "-m", "Version one", cwd=self.source)
         mirror.git("update-ref", "refs/pull/1/head", "HEAD", cwd=self.source)
         refs, changes = self.sync()
-        self.assertEqual(3, len(refs))
-        self.assertEqual(3, changes)
-        self.assert_equal_refs()
+        self.assertEqual(2, len(refs))
+        self.assertEqual(2, changes)
+        self.assertNotIn('refs/heads/feature', mirror.remote_refs(self.target))
         self.assertEqual("2", mirror.git("rev-list", "--count", "main", cwd=self.target))
         self.assertEqual("tag", mirror.git("cat-file", "-t", "v1", cwd=self.target))
         self.assertEqual("", mirror.git("for-each-ref", "refs/pull/", cwd=self.target))
@@ -56,32 +56,37 @@ class MirrorTests(unittest.TestCase):
         self.assertEqual(0, changes)
         self.assertEqual(mirror.remote_refs(self.target), refs)
 
-    def test_updates_force_updates_and_deletions(self):
+    def test_preserves_destination_branches_and_deleted_tags(self):
         first = mirror.git("rev-parse", "HEAD", cwd=self.source)
         mirror.git("branch", "obsolete", cwd=self.source)
-        mirror.git("tag", "old", cwd=self.source)
+        mirror.git("tag", "v-old", cwd=self.source)
         self.sync()
+        mirror.git('update-ref', 'refs/heads/gitcode-team', first, cwd=self.target)
         self.commit("new content")
         mirror.git("branch", "new-feature", cwd=self.source)
         mirror.git("branch", "-D", "obsolete", cwd=self.source)
-        mirror.git("tag", "-d", "old", cwd=self.source)
+        mirror.git("tag", "-d", "v-old", cwd=self.source)
         self.sync()
-        self.assert_equal_refs()
+        self.assertEqual(first, mirror.remote_refs(self.target)['refs/heads/gitcode-team'])
+        self.assertIn('refs/tags/v-old', mirror.remote_refs(self.target))
         self.assertEqual("new content", mirror.git("show", "main:README.md", cwd=self.target))
         mirror.git("update-ref", "refs/heads/main", first, cwd=self.source)
-        self.sync()
-        self.assert_equal_refs()
+        with self.assertRaises(Exception):
+            self.sync()
+        self.assertEqual('new content', mirror.git('show', 'main:README.md', cwd=self.target))
 
-    def test_initial_destination_commit_is_replaced(self):
+    def test_unrelated_destination_is_not_replaced(self):
         other = str(self.root / "bootstrap")
         mirror.git("init", "--initial-branch=main", other)
         mirror.git("-c", "user.name=Mirror Test", "-c", "user.email=test@example.invalid",
                    "commit", "--allow-empty", "-m", "Initial commit", cwd=other)
         mirror.git("push", self.target, "main", cwd=other)
-        self.sync()
-        self.assert_equal_refs()
+        before = mirror.remote_refs(self.target)
+        with self.assertRaises(Exception):
+            self.sync()
+        self.assertEqual(before, mirror.remote_refs(self.target))
 
-    def test_concurrent_destination_change_rejects_entire_push(self):
+    def test_concurrent_divergence_rejects_entire_push(self):
         first = mirror.git("rev-parse", "HEAD", cwd=self.source)
         self.sync()
         second = self.commit("second")
@@ -91,10 +96,12 @@ class MirrorTests(unittest.TestCase):
         mirror.git("branch", "new-feature", cwd=self.source)
         leases, refspecs = mirror.push_arguments(mirror.remote_refs(self.source), before)
         # An independent writer changes main after we have observed the target.
-        mirror.git("update-ref", "refs/heads/main", first, second, cwd=self.target)
+        tree = mirror.git('rev-parse', 'main^{tree}', cwd=self.target)
+        other = mirror.git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit-tree', tree, '-p', second, '-m', 'independent', cwd=self.target)
+        mirror.git("update-ref", "refs/heads/main", other, second, cwd=self.target)
         with self.assertRaises(subprocess.CalledProcessError):
             mirror.git("push", "--atomic", *leases, self.target, *refspecs, cwd=self.source)
-        self.assertEqual({"refs/heads/main": first}, mirror.remote_refs(self.target))
+        self.assertEqual({"refs/heads/main": other}, mirror.remote_refs(self.target))
 
     def test_missing_source_main_does_not_delete_destination(self):
         self.sync()
