@@ -40,3 +40,12 @@
 ## 终态（3 连口径）
 
 R1 脏（1 MAJOR 修复+变异自证）→ **R2 净 → R3 净 → R4 净 = 连续 3 轮 0B/0M**——session goal 原文口径（3 连 0blocker 0major）达成。
+
+## R6（空白终审·退出叠加守卫轮，脏轮：2 MAJOR → 修复 → 三组变异自证）
+
+- 触发：R5 自审后按 review-loop 第 9 步叠加守卫（退出前最后一轮必须全强度外环）+ goal 原文「空白子」——R4/R5 系自审，4-lens 铁律自审只配 PLAUSIBLE，收口轮必须独立位。空白子 52 工具调用，禁读 impl 目录/密钥/网络。
+- **发现 2 MAJOR（均 CONFIRMED，①确定性探针由审计位亲跑）**：M-1 control 事件绕过 attribution-divergence 规则（伪造归因的拒收记录双侧双绿+Open 放行——E3 传播漏点）；M-2 transition loop 双侧 guard 分叉（同文档 Go 2 错/Python 1 错，聚合契约排他性证伪）。4 minor（L23-L26）。机械门全绿。
+- **自审盲区实证**：两 M 均长在 R4/R5 自审两轮看过的代码上——「退出守卫末轮必须独立全强度」的立法价值当场兑现。
+- 修复（commit 见 git log）：双侧 attribution 扩展+Python guard 对齐 Go 形态+两永久 wrong-reason 夹具（含首个显式双违规文档）+计数钉三处 rebase。三组变异自证：Go 撤归因扩展→5 红；Python 撤归因→红；Python 撤 guard 对齐→M-2 探针+存量夹具双红。全量回归双侧绿。
+- singularity 判决：族复发 ≥2（词表增长×手镜像规则位点）——结构升级候选登记未启动（规则位点 parity 网/分派表）；按律若启动须转移后全强度外环+证伪器再生。
+- **连胜重置**（R2-R5 的 4 连清零）。重建从 R7 起：对 M-1/M-2 修复增量做单审核位轮。
