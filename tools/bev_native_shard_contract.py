@@ -41,12 +41,13 @@ def require_int(value, minimum=0):
     require(type(value) is int and value >= minimum, 'exact integer required')
 
 
-def request_identity(request, ordinal):
-    require(type(request.get('i')) is int and request['i'] == ordinal, 'global ordinal differs')
+def request_identity(request, ordinal, source_indices=None):
+    source_i=ordinal if source_indices is None else source_indices[ordinal]
+    require(type(request.get('i')) is int and request['i'] == source_i, 'global ordinal differs')
     require('y' not in request and 'gold' not in request, 'gold in inference request')
     require(type(request.get('qid')) is str and type(request.get('request_sha256')) is str,
             'request identity missing')
-    return dict(i=ordinal, qid=request['qid'], request_sha256=request['request_sha256'],
+    return dict(i=source_i, qid=request['qid'], request_sha256=request['request_sha256'],
                 input_sha256=digest(request))
 
 
@@ -109,6 +110,10 @@ def validate(contract):
             and contract.get('execution_authorized') is False
             and contract.get('numerical_equivalence_verified') is False, 'authority forbidden')
     b = contract['binding']; n = b['global_count']; require_int(n, 2)
+    if b.get('source_kind')=='native_dev72':
+        require(n==72 and type(b.get('source_indices')) is list and len(b['source_indices'])==72 and len(set(b['source_indices']))==72 and all(type(x) is int and x>=0 for x in b['source_indices']),'DEV72 source identities differ')
+        require(b.get('test_read') is False,'DEV72 TEST scope forbidden')
+    else:require('source_kind' not in b and 'source_indices' not in b,'unknown source kind')
     require(type(b['shard_count']) is int and b['shard_count'] == 2
             and b['strategy'] == 'contiguous_equal_count', 'sharding policy differs')
     require(all(b.get(k) is False for k in ('execution_authorized', 'scientific_acceptance',
@@ -145,7 +150,7 @@ def merge_population(contract, request_rows, shard_results):
     """
     b = validate(contract); n = b['global_count']
     require(len(request_rows) == n and len(shard_results) == 2, 'partial population')
-    identities = [request_identity(row, i) for i, row in enumerate(request_rows)]
+    identities = [request_identity(row, i, b.get('source_indices')) for i, row in enumerate(request_rows)]
     require(digest(identities) == b['global_request_identities_sha256'], 'request bytes changed')
     merged = {}
     for sid, (manifest, result) in enumerate(zip(contract['shards'], shard_results)):
@@ -174,6 +179,27 @@ def merge_population(contract, request_rows, shard_results):
                 scientific_acceptance=False, execution_authorized=False,
                 complete=False, lifecycle_verified=False, numerical_equivalence_verified=False)
 
+
+def build_dev72(parent_ref, requests_ref, model_sha256, execution_ref):
+    """Keep original selected input identities; shard position never rewrites i."""
+    parent=ref_read(parent_ref);execution=ref_read(execution_ref)
+    require(execution.get('schema')=='bev-native-dev-host-v1' and execution.get('probe_plan')==parent_ref and execution.get('test_read') is False and execution.get('scientific_acceptance') is False,'DEV execution source differs')
+    require(parent.get('schema')=='bev-native-dev-probe-v1' and parent.get('test_read') is False and parent.get('scientific_acceptance') is False and parent.get('activation_authorized') is False,'DEV source scope differs')
+    require(parent.get('source_split')=='train_derived_dev' and parent.get('tolerance')==0 and type(parent['tolerance']) is int,'DEV source protocol differs')
+    doc=ref_read(parent['inputs']);items=doc['items']
+    require(doc.get('test_read') is False and doc.get('selection')=='first24 per native kind in TRAIN order; no model outputs','DEV selection differs')
+    require(len(items)==72 and [digest(x) for x in items]==parent['ordered_input_sha256'],'DEV population differs')
+    path=Path(requests_ref['path']);require(path.is_absolute() and not any(x.is_symlink() for x in [path,*path.parents]) and '..' not in path.parts,'unsafe DEV requests');require(file_sha(path)==requests_ref['sha256'],'DEV requests changed')
+    rows=[json.loads(line) for line in path.read_text().splitlines()];require(rows==items and digest(rows)==digest(items),'DEV requests transformed')
+    require(all(set(x)=={'schema','i','qid','request_sha256','input_ids','rendered_prompt','labels','label_ids','options','kind'} and x['schema']=='bev-native-input-v1' for x in items),'DEV input fields differ')
+    indices=[x['i'] for x in items];identities=[request_identity(x,i,indices) for i,x in enumerate(items)]
+    model_files={v['path']:v['sha256'] for v in parent['model_files'].values()}
+    require(digest(model_files)==model_sha256,'DEV model differs')
+    b=dict(parent_population=parent_ref,inputs=requests_ref,model_sha256=model_sha256,contract_sha256=execution_ref['sha256'],source_protocol_binding_sha256=parent_ref['sha256'],source_execution=execution_ref,global_count=72,ordered_inputs_sha256=digest(items),global_request_identities_sha256=digest(identities),shard_count=2,strategy='contiguous_equal_count',execution_authorized=False,scientific_acceptance=False,candidate_test_authority=False,source_kind='native_dev72',source_indices=indices,test_read=False)
+    shards=[]
+    for sid in (0,1):
+        ids=list(range(sid*36,(sid+1)*36));shards.append(dict(b,schema='bev-native-shard-manifest-v1',shard_id=sid,global_ordinals=ids,ordinals_sha256=digest(ids),assigned_count=36,input_tokens=sum(len(items[i]['input_ids']) for i in ids),assigned_request_identities_sha256=digest([identities[i] for i in ids])))
+    out=dict(schema='bev-native-shard-population-v1',binding=b,shards=shards,scientific_acceptance=False,execution_authorized=False,numerical_equivalence_verified=False);validate(out);return out
 
 def main():
     parser = argparse.ArgumentParser()

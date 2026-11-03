@@ -90,14 +90,20 @@ def _safe_ref(ref):
     return path
 
 
-def load_population(population_ref, shard_id):
+def load_population(population_ref, shard_id, contract=None):
     """Authenticate fixed population bytes and its actual parent/input sources."""
-    from tools import bev_native_shard_contract as S
+    if contract is None:
+        from tools import bev_native_shard_contract as S
+    else:S=contract
     population_path = _safe_ref(population_ref)
     population = read_json(population_path)
     binding = S.validate(population)
     require(type(shard_id) is int and shard_id in (0, 1), "shard id differs")
     parent = read_json(_safe_ref(binding["parent_population"]))
+    if binding.get('source_kind')=='native_dev72':
+        expected=S.build_dev72(binding['parent_population'],binding['inputs'],binding['model_sha256'],binding['source_execution'])
+        require(digest(population)==digest(expected),'DEV72 population/source differs')
+        return population,binding,population['shards'][shard_id],population_path
     require(parent.get("schema") == "bev-native-panel-host-v1"
             and parent.get("scope") == "public_fixed_base_test", "parent population scope differs")
     for k in ("scientific_acceptance", "candidate_test_authority", "candidate_selection_allowed"):
@@ -123,7 +129,7 @@ def load_requests(binding):
         for ordinal, line in enumerate(stream):
             require(line.endswith("\n") and line.strip(), "torn request row")
             row = strict_loads(line)
-            require(type(row.get("i")) is int and row["i"] == ordinal,
+            require(type(row.get("i")) is int and row["i"] == binding.get("source_indices",list(range(binding["global_count"])))[ordinal],
                     "request global ordinal differs")
             require("y" not in row and "gold" not in row, "gold in inference request")
             ids = row.get("input_ids")
@@ -135,7 +141,7 @@ def load_requests(binding):
     # Recompute the same canonical ordered identity used by the builder.
     canonical = []
     for ordinal, row in enumerate(rows):
-        canonical.append({"i": ordinal, "qid": row["qid"],
+        canonical.append({"i": row["i"], "qid": row["qid"],
                           "request_sha256": row["request_sha256"],
                           "input_sha256": digest(row)})
     require(digest(canonical) == binding["global_request_identities_sha256"],
@@ -146,7 +152,7 @@ def load_requests(binding):
 def _record_identity(request, prediction, ordinal, model_sha256, contract_sha256):
     require(type(prediction) is dict and "y" not in prediction and "gold" not in prediction,
             "prediction contains gold")
-    require(type(prediction.get("i")) is int and prediction["i"] == ordinal and prediction.get("qid") == request["qid"],
+    require(type(prediction.get("i")) is int and prediction["i"] == request["i"] and prediction.get("qid") == request["qid"],
             "prediction identity differs")
     require(prediction.get("request_sha256") == request["request_sha256"],
             "prediction request binding differs")
@@ -180,7 +186,7 @@ def _load_item(path, request, ordinal, model_sha256, contract_sha256):
     return record["prediction"]
 
 
-def _run_locked(population_ref, shard_id, output, predictor, validator, *, attempt=1, metadata=lambda: {}):
+def _run_locked(population_ref, shard_id, output, predictor, validator, *, attempt=1, metadata=lambda: {}, contract=None):
     """Run a resumable shard using a caller-owned model adapter.
 
     ``predictor(request)`` must return a prediction carrying the request identity;
@@ -190,9 +196,9 @@ def _run_locked(population_ref, shard_id, output, predictor, validator, *, attem
     revalidated and reused. Abrupt death without EXIT requires host reconciliation.
     """
     require(type(attempt) is int and attempt >= 1, "attempt must be positive exact integer")
-    population, binding, shard, population_path = load_population(population_ref, shard_id)
+    population, binding, shard, population_path = load_population(population_ref, shard_id, contract)
     requests = load_requests(binding)
-    identities = [{"i": i, "qid": r["qid"], "request_sha256": r["request_sha256"],
+    identities = [{"i": r["i"], "qid": r["qid"], "request_sha256": r["request_sha256"],
                    "input_sha256": digest(r)} for i, r in enumerate(requests)]
     for manifest in population["shards"]:
         require(digest([identities[i] for i in manifest["global_ordinals"]])
@@ -301,7 +307,7 @@ def _run_locked(population_ref, shard_id, output, predictor, validator, *, attem
         raise
 
 
-def run_shard(population_ref, shard_id, output, predictor, validator, *, attempt=1, metadata=lambda: {}):
+def run_shard(population_ref, shard_id, output, predictor, validator, *, attempt=1, metadata=lambda: {}, contract=None):
     """CPU-testable execution core; caller supplies independently bound arithmetic validator.
 
     No NPU/model loading, launch permission or numerical equivalence is implied.
@@ -344,7 +350,7 @@ def run_shard(population_ref, shard_id, output, predictor, validator, *, attempt
             else:
                 write_json(identity_path, identity)
             return _run_locked(population_ref, shard_id, output, predictor, validator,
-                               attempt=attempt, metadata=metadata)
+                               attempt=attempt, metadata=metadata, contract=contract)
         except BaseException as exc:
             if not (attempt_root / "EXIT.json").exists():
                 frames = [{"file": Path(f.filename).name, "line": f.lineno, "function": f.name}
