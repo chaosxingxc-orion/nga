@@ -7,6 +7,7 @@ CAPTURE=BASE/'profile_async_smoke_20261103_v4'
 CAPTURE_PIN='b1770ee475a977b2b56534e2e68f555cfc14d0cb144059e1c4db53533c83693f'
 PROFILER_PIN='1a04902572383b74a401449e73929b2c4ce728d6c81bb59341876b03c7a82168'
 EXPORTS=('kernel_details.csv','operator_details.csv','step_trace_time.csv')
+HOST_DRIVER_MOUNTS=frozenset(('/usr/local/Ascend/driver','/usr/local/sbin','/etc/ascend_install.info'))
 EVIDENCE=('attempts/1/EXIT.json','attempts/1/RAW-MANIFEST.json','attempts/1/report.json','host_attempts/1/EXIT.json','host_attempts/1/CLAIM.json','host_attempts/1/RELEASE.json','host_attempts/1/LAUNCH_RECEIPT.json','cpu/host_attempts/1/EXIT.json','cpu/attempts/1/EXIT.json')
 def require(ok,why):
     if not ok:raise ValueError(why)
@@ -36,7 +37,7 @@ def verify(path,pin,raw=True):
     require(d['schema']=='r3-profile-cpu-continuation-v1' and d['capture_plan']==str(CAPTURE/'HOST-PLAN.json') and d['capture_plan_sha256']==CAPTURE_PIN,'capture identity differs')
     require(sha(d['capture_plan'])==CAPTURE_PIN,'original plan changed');old=read(d['capture_plan'])
     require(d['runtime']['path']==str(Path(__file__).resolve()) and sha(__file__)==d['runtime']['sha256'],'continuation runtime differs')
-    require(d['package']=='profile_cpu_continuation_20261103_v3' and d['out']==str(BASE/d['package']/'output') and str(path)==str(BASE/d['package']/'PLAN.json'),'continuation paths differ')
+    require(d['package']=='profile_cpu_continuation_20261103_v4' and d['out']==str(BASE/d['package']/'output') and str(path)==str(BASE/d['package']/'PLAN.json'),'continuation paths differ')
     require(d['max_process_number']==4 and type(d['max_process_number']) is int and d['poll_seconds']==600,'parser policy differs')
     require(all(d[k] is False for k in ['scientific_acceptance','test_read','coverage_adjudicated']),'scope differs')
     required=dict(old['files']);required.update({d['capture_plan']:CAPTURE_PIN,d['runtime']['path']:d['runtime']['sha256']})
@@ -54,9 +55,11 @@ def verify(path,pin,raw=True):
 def command(d,path,pin):
     old=read(d['capture_plan']);c=['docker','run','-d','--pull=never','--name',d['container'],'--network=none','--shm-size','16g']
     for k,v in sorted(d['environment'].items()):c+=['-e',k+'='+v]
-    for x in old['mounts']:c+=['--mount','type=bind,src='+x['source']+',dst='+x['destination']+',readonly']
+    # Device-free CANN export must use the image toolkit, not host driver libraries.
+    mounts=[x for x in old['mounts'] if x['source'] not in HOST_DRIVER_MOUNTS and x['destination'] not in HOST_DRIVER_MOUNTS]
+    for x in mounts:c+=['--mount','type=bind,src='+x['source']+',dst='+x['destination']+',readonly']
     # Only the continuation output is writable. Old capture and failed parser stay read-only.
-    mounted={x['destination'] for x in old['mounts']}
+    mounted={x['destination'] for x in mounts}
     for f in [d['capture_plan'],d['runtime']['path'],str(path)]:
         if f in mounted:continue
         c+=['--mount','type=bind,src='+f+',dst='+f+',readonly']

@@ -34,6 +34,16 @@ class Tests(unittest.TestCase):
   C.put(r/'parse/EXIT.json',{'exit_code':0,'plan_sha256':'p','capture_plan_sha256':C.CAPTURE_PIN,'scientific_acceptance':False})
   report={'schema':'r3-profile-cpu-continuation-report-v1','plan_sha256':'p','capture_plan_sha256':C.CAPTURE_PIN,'raw_manifest_sha256':'raw','exports':C.csv_evidence(r/'parse/trace/ASCEND_PROFILER_OUTPUT'),'scientific_acceptance':False,'test_read':False,'coverage_adjudicated':False};C.put(r/'parse/report.json',report)
   return d,{'raw':'/old/trace'}
+ def test_host_driver_bundle_excluded_only(self):
+  d={'capture_plan':'/old/plan','environment':{},'container':'c','out':'/new/output','runtime':{'path':'/new/code.py'},'image':'image'}
+  mounts=[{'source':p,'destination':p} for p in C.HOST_DRIVER_MOUNTS]+[{'source':'/old/output','destination':'/old/output'},{'source':'/model','destination':'/model'}]
+  with patch.object(C,'read',return_value={'mounts':mounts}):cmd=C.command(d,'/new/plan','pin')
+  actual=[cmd[i+1] for i,x in enumerate(cmd) if x=='--mount']
+  for p in C.HOST_DRIVER_MOUNTS:self.assertFalse(any('src='+p+',' in x or 'dst='+p+',' in x for x in actual))
+  self.assertIn('type=bind,src=/old/output,dst=/old/output,readonly',actual)
+  self.assertIn('type=bind,src=/model,dst=/model,readonly',actual)
+  self.assertEqual([x for x in actual if not x.endswith(',readonly')],['type=bind,src=/new/output,dst=/new/output'])
+  for flag in ('--device','--privileged','--rm'):self.assertNotIn(flag,cmd)
  def test_foreign_generation_bool_and_exports_rejected(self):
   for variant in ['valid','terminal','bool','report','raw','export','scope']:
    with self.subTest(variant=variant),tempfile.TemporaryDirectory() as x:
