@@ -49,3 +49,16 @@ R1 脏（1 MAJOR 修复+变异自证）→ **R2 净 → R3 净 → R4 净 = 连�
 - 修复（commit 见 git log）：双侧 attribution 扩展+Python guard 对齐 Go 形态+两永久 wrong-reason 夹具（含首个显式双违规文档）+计数钉三处 rebase。三组变异自证：Go 撤归因扩展→5 红；Python 撤归因→红；Python 撤 guard 对齐→M-2 探针+存量夹具双红。全量回归双侧绿。
 - singularity 判决：族复发 ≥2（词表增长×手镜像规则位点）——结构升级候选登记未启动（规则位点 parity 网/分派表）；按律若启动须转移后全强度外环+证伪器再生。
 - **连胜重置**（R2-R5 的 4 连清零）。重建从 R7 起：对 M-1/M-2 修复增量做单审核位轮。
+
+## R7（连胜重建 1/3——M-1/M-2 修复增量轮，净）
+
+- 前置门：全量双侧绿（-race 20 包+Py 八组+manifest）；测试面恒积累（invalid 夹具 31→33）。
+- 4-lens：Simplicity（最小条件扩展零新机制）✓；Consistency（**8/8 镜像位点传播完整**——status-family/control-idem/transition-guard 双侧同形态/attribution 双侧/grammar/grants/lockstep-union/needs-idem 免除+反向禁令，机械 grep 逐位核验）✓；Bearing（三组变异红+两永久 wrong-reason 夹具+三处计数钉）✓；Fidelity（注释引 R6 出处+双违规夹具如实声明）✓。
+- 判定：**0 BLOCKER / 0 MAJOR**。
+
+## R8（连胜重建 2/3——审计形态轮，净）
+
+- 机械门：全量 -race+Py+manifest（R7 门同跑）+未跑包补验（validate/compose/evidlog/judgment/release 5 包 ok）。
+- RECON：33 夹具双 oracle 消费（9+33/0 failures）+三处计数钉+全探针族存活。
+- M-2 家族残余扫：全部 loop 双侧形态对照——`== "adoption"` 位/EVENT_BEFORE 位/STATUS_FAMILY 位一致；Python 残余 `!= "adoption"` 仅存于修复注释（无害文档位）。变异重跑=本 diff 三组变异（已执行，结果落 bd583f5 提交信息）。
+- 判定：**0 BLOCKER / 0 MAJOR**。
