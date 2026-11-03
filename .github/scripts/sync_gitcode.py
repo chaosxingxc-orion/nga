@@ -1,4 +1,4 @@
-"""Mirror Git branches and tags, with leased updates and post-push verification."""
+"""Fast-forward owned refs only; never delete or overwrite team contributions."""
 
 import argparse
 import os
@@ -36,15 +36,18 @@ def remote_refs(url):
     return parse_refs(git("ls-remote", "--refs", url, "refs/heads/*", "refs/tags/*", timeout=60))
 
 
+def owned(ref):
+    return ref == 'refs/heads/main' or ref.startswith(('refs/heads/github/', 'refs/tags/v'))
+
+
 def push_arguments(source, target):
-    """Guard every changed ref against changes since the destination was read."""
-    leases, refspecs = [], []
-    for ref in sorted(source.keys() | target.keys()):
+    """Git enforces fast-forward branches and immutable existing tags."""
+    refspecs = []
+    for ref in sorted(r for r in source if owned(r)):
         if source.get(ref) == target.get(ref):
             continue
-        leases.append(f"--force-with-lease={ref}:{target.get(ref, '')}")
-        refspecs.append(f"{source.get(ref, '')}:{ref}")
-    return leases, refspecs
+        refspecs.append(f"{source[ref]}:{ref}")
+    return [], refspecs
 
 
 def sync_once(source_url, target_url):
@@ -55,23 +58,24 @@ def sync_once(source_url, target_url):
         print("Fetching the current GitHub branches and tags...", flush=True)
         git("fetch", "--atomic", "--no-tags", source_url,
             "+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*", cwd=repo)
-        source = parse_refs(git(
+        source = {r: s for r, s in parse_refs(git(
             "for-each-ref", "--format=%(objectname) %(refname)",
-            "refs/heads/", "refs/tags/", cwd=repo))
+            "refs/heads/", "refs/tags/", cwd=repo)).items() if owned(r)}
         if "refs/heads/main" not in source:
             raise RuntimeError("Source main is missing; refusing to modify the mirror.")
         print("Reading the GitCode branch and tag tips...", flush=True)
         target = remote_refs(target_url)
         leases, refspecs = push_arguments(source, target)
         if refspecs:
-            # Atomic pushes fail closed if the server cannot support them. No PR,
-            # backup, remote-tracking or provider-internal refs are mirrored.
+            # Atomic ordinary pushes fail closed on divergence or moved tags.
+            # Unowned destination refs are never overwritten or deleted.
             print(f"Pushing {len(refspecs)} ref updates to GitCode...", flush=True)
             git("push", "--atomic", *leases, target_url, *refspecs, cwd=repo)
         print("Verifying both repositories...", flush=True)
-        if remote_refs(target_url) != source:
+        target_after = remote_refs(target_url)
+        if any(target_after.get(r) != s for r, s in source.items()):
             raise RuntimeError("Destination refs differ from the fetched source snapshot.")
-        if remote_refs(source_url) != source:
+        if {r:s for r,s in remote_refs(source_url).items() if owned(r)} != source:
             raise RuntimeError("Source advanced during synchronization; retry with a fresh snapshot.")
         return source, len(refspecs)
 

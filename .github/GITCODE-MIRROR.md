@@ -1,74 +1,77 @@
-# GitCode mirror
+# GitHub / GitCode collaboration
 
-The canonical repository is [GitHub](https://github.com/chaosxingxc-orion/nga).
-[GitCode](https://gitcode.com/xingchao_ml/nga) is a one-way mirror. Make changes on
-GitHub; changes made directly on GitCode can be replaced by synchronization.
+## Current collaboration entry points
 
-## Synchronization contract
+| Purpose | GitHub | GitCode |
+| --- | --- | --- |
+| Current expert implementation | [PR #2](https://github.com/chaosxingxc-orion/nga/pull/2) | [MR #2](https://gitcode.com/xingchao_ml/nga/merge_requests/2) |
+| Earlier implementation and architecture replies | [PR #3](https://github.com/chaosxingxc-orion/nga/pull/3) | [MR #1](https://gitcode.com/xingchao_ml/nga/merge_requests/1) |
+| Architecture discussion | [Issue #1](https://github.com/chaosxingxc-orion/nga/issues/1) | [Issue #1](https://gitcode.com/xingchao_ml/nga/issues/1) |
 
-- GitHub pushes, branch/tag creation and deletion trigger the
-  [Sync GitCode mirror workflow](https://github.com/chaosxingxc-orion/nga/actions/workflows/sync-gitcode.yml).
-  A manual trigger is also available. A schedule at minutes 7, 22, 37 and 52 provides
-  catch-up for missed events and transient failures.
-- All branches, tags and reachable Git history are copied. Source ref rewrites and
-  deletions are reflected on GitCode. Provider-internal refs are excluded.
-- Runs are serialized. Each run fetches the latest source refs, applies changes
-  with explicit destination leases and an atomic push, then checks exact ref
-  equality against both repositories. A moving source or transient failure is
-  retried up to three times. An unsupported atomic push fails rather than silently
-  falling back to a partial update.
-- This is event-driven eventual synchronization, not a zero-latency or bounded-time
-  guarantee. Runner availability, network conditions, platform policies and token
-  expiry affect delivery. A green run records the exact verified `main` commit;
-  later source changes require another run.
-- The scope is Git content. Issues, pull requests, repository settings, secrets,
-  release attachments and external experiment/model data are not copied. No Git
-  LFS objects were present at setup; add and verify LFS transfer before introducing
-  LFS-managed data. Git submodule contents are separate repositories.
+Use ordinary comments on either linked object. The counterpart will retain your
+name and source link. The two expert requests remain drafts on GitHub until
+maintainers finish their review; synchronization is not implementation acceptance.
 
-## Credential and first setup
+GitHub `chaosxingxc-orion/nga` is the final integration repository. Both teams can
+develop, open requests and discuss changes on their own platform. GitCode
+`xingchao_ml/nga` is no longer a destructive mirror.
 
-1. In GitCode, create a personal access token with the permissions needed to push
-   `xingchao_ml/nga`. Use the narrowest available repository access and an expiry
-   compatible with the intended operation. See the
-   [official PAT guide](https://docs.gitcode.com/docs/help/home/user_center/security_management/user_pat/).
-2. Save it as **`GITCODE_TOKEN`** under GitHub repository Settings → Secrets and
-   variables → Actions → Repository secrets. Do not put the token in chat, source
-   files, remote URLs or command-line arguments.
-3. Run the workflow manually and check its result. A GitCode branch protection rule
-   may reject the initial replacement or later rewrites; inspect the rejection and
-   adjust only the mirror repository's relevant rule if needed.
+## Code and request ownership
 
-The initial GitCode repository contained only `README.md` (`# nga`) at commit
-`bf926147db12bb78aade8fe4fc04221f730009ab`. Before replacing that initialization,
-the setup workspace retained it at `refs/backup/gitcode-initial-main` and in
-`.git/gitcode-initial-main.bundle`. These local recovery copies are not mirrored.
+- GitHub `main`, `github/**` branches and `v*` tags synchronize to GitCode with
+  ordinary fast-forward / new-tag pushes only. Divergence fails visibly.
+- No branch or tag is automatically deleted. Existing tags are never replaced.
+- GitCode MRs import original commit IDs into GitHub `gitcode/mr-N`.
+  GitHub-native PRs project to GitCode `github/pr-N`. These namespaces are
+  bridge-owned; developers work on source branches or forks.
+- Counterpart requests start as drafts. The bridge never merges or approves them.
+  Final integration is on GitHub. A GitCode receipt reports GitHub status/head;
+  it does not falsely mark a GitCode request as merged.
+- Source rebases stop at the non-fast-forward check. Resolve deliberately while
+  preserving previous review history; do not enable unconditional force pushes.
+- MR #2 includes MR #1. Use #2 for current integration review; retain #1's
+  discussion and avoid independently squash-merging both requests.
 
-The workflow reads the GitCode token only from the encrypted GitHub secret and
-passes it to Git through a host-specific temporary credential prompt helper. It
-does not embed credentials in Git configuration. GitHub access is read-only, the
-checkout action is pinned to a commit, and no pull-request trigger uses the secret.
+## Discussions
 
-## Operation and recovery
+Source titles/descriptions/status are maintained in generated counterparts.
+Ordinary comments synchronize both ways with author, timestamp and source link.
+Edits update copies; deletions do not propagate. GitHub inline comments retain
+path/position/commit as ordinary GitCode comments. Review summaries never become
+approvals. Reserved `nga-bridge` markers prevent bounce loops and support recovery
+after interrupted writes. Do not remove markers or hand-edit generated bodies;
+write a new ordinary comment. Never put credentials in a discussion.
 
-- Check the workflow's result and summary for the verified commit. A failed run is
-  visible in GitHub Actions; personal notification delivery depends on the user's
-  GitHub notification settings. The schedule provides another attempt, not an
-  independent availability monitor.
-- For expired or exposed credentials, revoke the old GitCode token, update the
-  existing `GITCODE_TOKEN` secret and rerun the workflow.
-- For authentication or branch-protection failures, fix that cause and rerun.
-  Do not create a competing reverse mirror to work around a failure.
-- To compare the current branch/tag tips independently:
+## Automation
 
-  ```sh
-  git ls-remote --refs https://github.com/chaosxingxc-orion/nga.git 'refs/heads/*' 'refs/tags/*'
-  git ls-remote --refs https://gitcode.com/xingchao_ml/nga.git 'refs/heads/*' 'refs/tags/*'
-  ```
+Workflow: `.github/workflows/sync-gitcode.yml`. GitHub events trigger runs.
+GitCode changes are discovered by a five-minute scheduled reconciliation.
+GitHub can delay schedules: this is eventual sync, not a five-minute SLA.
+Use Run workflow for immediate catch-up. Runs are serialized; failures are
+visible in Actions and later runs retry from current platform state.
+Notification delivery follows GitHub user settings.
 
-- To pause synchronization, disable the workflow in GitHub Actions. This does not
-  delete GitCode content. Public-repository scheduled workflows may be disabled
-  after inactivity, so review workflow status when resuming work.
+The owner selected polling because no public webhook receiver is available.
+`repository_dispatch: gitcode-collaboration` is reserved for a later authenticated
+receiver; no GitCode webhook is configured. The receiver must validate provider
+credentials and repository/event scope, deduplicate deliveries, then authenticate
+separately to GitHub.
 
-References: [Git push leases and atomic updates](https://git-scm.com/docs/git-push),
-[GitHub workflow events and scheduling limits](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
+Existing `GITCODE_TOKEN` needs repository/code/discussion access. GitHub uses its
+per-run token with contents/issues/PR write and the repository setting permitting
+workflow-created PRs. Secrets are available only to trusted-main synchronization.
+Imported refs are fetched into temporary bare repositories: never checked out,
+executed or used as workflow scripts.
+
+## Recovery and limits
+
+Inspect failed runs, correct expired credentials or divergent refs, then rerun.
+GitHub's per-run token cannot introduce historical workflow-file changes. For
+such an initial import, a maintainer with workflow permission must first push the
+verified source SHA to the reserved counterpart branch, then rerun reconciliation.
+This was required for the initial MR #1/#2 imports. Subsequent ordinary updates
+use the existing automated token; no personal credential was stored in Actions.
+Do not start a competing reverse full mirror. Labels, assignees, milestones,
+approval votes, attachments, releases and LFS objects are outside this bridge.
+Closed states are reported; closing a request never authorizes an automatic merge
+or deletion on the other platform.
