@@ -67,7 +67,8 @@ def build_parser():
       help="files whose note is surfaced in the digest as one short line")
     a("--max-depth", type=int, default=4, help="directory depth below a root to look for runs (default 4)")
     a("--marker-names", default="DONE,FAILED,exit_code,EXIT_CODE,EVAL_COMPLETE.json,K0_COMPLETE.json,"
-      "EXIT,COMPLETE.json,FINISH_COMPLETE.json,evaluate-EXIT,evaluate-COMPLETE.json,inference-COMPLETE.json",
+      "EXIT,EXIT.json,ENGINEERING_EVAL_EXIT.json,EVAL_COMPLETE.track_kt.json,EVAL_COMPLETE.track_t_pt_r0.json,"
+      "COMPLETE.json,FINISH_COMPLETE.json,evaluate-EXIT,evaluate-COMPLETE.json,inference-COMPLETE.json",
       help="terminal marker file names (plain text or a JSON object with an integer exit_code)")
     a("--heartbeat-name", default="heartbeat.log")
     a("--log-globs", default="*.log,logs/*.log", help="log files in a run dir; also <rundir>.*log beside the dir")
@@ -472,6 +473,54 @@ def parse_heartbeat_line(line):
     return {"ts": ts, "done": done, "total": total, "counters": counters, "fields": fields, "perf": parse_perf_fields(rest)}
 
 
+JSON_HEARTBEAT = "heartbeat.json"
+JSON_HEARTBEAT_LIMIT = 64 << 10
+
+
+def read_json_heartbeat(path):
+    """One bounded snapshot. Invalid fields never become a fresh mtime heartbeat."""
+    try:
+        with open(path) as f:
+            raw = f.read(JSON_HEARTBEAT_LIMIT + 1)
+        if len(raw) > JSON_HEARTBEAT_LIMIT:
+            raise ValueError("oversize JSON heartbeat")
+        obj = json.loads(raw, parse_constant=lambda _: (_ for _ in ()).throw(ValueError("nonfinite JSON")))
+        if not isinstance(obj, dict):
+            raise ValueError("heartbeat is not an object")
+        ts = obj.get("utc_seconds")
+        if type(ts) not in (int, float) or not math.isfinite(ts) or ts <= 0:
+            raise ValueError("invalid utc_seconds")
+        done_keys = [k for k in ("completed", "completed_items", "completed_questions") if k in obj]
+        total_keys = [k for k in ("total", "total_items") if k in obj]
+        if len(done_keys) > 1 or len(total_keys) > 1:
+            raise ValueError("ambiguous progress fields")
+        done = obj[done_keys[0]] if done_keys else None
+        total = obj[total_keys[0]] if total_keys else None
+        if done is not None and (type(done) is not int or done < 0):
+            raise ValueError("invalid completed count")
+        if total is not None and (type(total) is not int or total <= 0 or done is None or done > total):
+            raise ValueError("invalid total")
+        if done is None and obj.get("state") not in ("runtime_alive", "control_scoring", "running", "created", "cpu_consuming", "offline_parsing"):
+            raise ValueError("unrecognized heartbeat state")
+        perf = None
+        if "questions_per_second_per_chip" in obj:
+            rate = obj["questions_per_second_per_chip"]
+            runtime = obj.get("runtime", obj)
+            if not isinstance(runtime, dict):
+                raise ValueError("invalid runtime")
+            chips, memory = runtime.get("chips"), runtime.get("reserved_gib")
+            if type(rate) not in (int, float) or not math.isfinite(rate) or rate < 0 or type(chips) is not int or chips <= 0:
+                raise ValueError("invalid per-chip throughput")
+            if memory is not None and (type(memory) not in (int, float) or not math.isfinite(memory) or memory < 0):
+                raise ValueError("invalid reserved memory")
+            perf = dict(tok_s=None, ex_s=rate, ex_unit="q", scope="chip", window=None,
+                        chips=chips, procs_on_chip=None, reserved_gib=memory, step_s=None, chip_id=None)
+        return dict(ts=ts, done=done, total=total, counters={}, fields={}, perf=perf,
+                    source=JSON_HEARTBEAT, snapshot=True, phase=obj.get("phase")), None
+    except (OSError, ValueError, TypeError) as e:
+        return None, "JSON heartbeat invalid: " + str(e)[:100]
+
+
 def read_tail(path, nbytes):
     with open(path, "rb") as f:
         size = f.seek(0, 2)
@@ -521,6 +570,12 @@ def summarize_progress(samples, rundir, cfg, declared=None, uniform=True):
     prog = {"done": None, "total": None, "percent": None, "rate_per_min": None, "window_s": None,
             "eta_utc": None, "note": None, "counters": None, "fields": None, "total_source": None,
             "eta_lo_utc": None, "eta_hi_utc": None, "left_s": None, "eta_quality": None, "uniform_cost": uniform}
+    snapshots = [s for s in samples if s.get("snapshot") and s["done"] is not None]
+    if snapshots:
+        # JSON snapshots have no comparable history, even if log counters exist.
+        samples = [snapshots[-1]]
+        uniform = False
+        prog["uniform_cost"] = False
     withdone = [s for s in samples if s["done"] is not None]
     if not withdone:
         prog["note"] = "heartbeat has no progress count"
@@ -714,7 +769,7 @@ def perf_dirs(d, depth):
     for lv in range(depth + 1):
         nxt = []
         for x in level:
-            if any(os.path.isfile(os.path.join(x, n)) for n in ("heartbeat.log", "perf.json", "progress.log")):
+            if any(os.path.isfile(os.path.join(x, n)) for n in ("heartbeat.log", JSON_HEARTBEAT, "perf.json", "progress.log")):
                 found.append(x)
             if lv < depth:
                 nxt.extend(_child_dirs(x))
@@ -746,6 +801,13 @@ def scan_sources(d, cfg, samples):
                     beats.append((rel, hb_ts, cfg.heartbeat_name))
                 if r:
                     cands.append(r)
+        jp = os.path.join(x, JSON_HEARTBEAT)
+        if x != d and os.path.isfile(jp):
+            js, _ = read_json_heartbeat(jp)
+            if js:
+                beats.append((rel, js["ts"], JSON_HEARTBEAT))
+                if js["perf"]:
+                    cands.append(_perf_rec(JSON_HEARTBEAT, js["ts"], **js["perf"]))
         pj = read_perf_json(os.path.join(x, "perf.json")) if os.path.isfile(os.path.join(x, "perf.json")) else None
         if pj:
             cands.append(pj)
@@ -1080,7 +1142,7 @@ def run_logs(d, cfg):
 
 def is_run_dir(d, entries, depth, cfg):
     names = {n for n, isdir in entries if not isdir}
-    strong = bool(names & set(cfg.markers)) or cfg.heartbeat_name in names
+    strong = bool(names & set(cfg.markers)) or cfg.heartbeat_name in names or JSON_HEARTBEAT in names
     if depth == 0:
         return strong
     if strong or cfg.report_name in names:
@@ -1106,7 +1168,7 @@ def discover(cfg, queued=None):
                 rid = os.path.basename(root) + ":" + rid
             if queued is not None and cfg.queued_files:
                 fn = {n for n, isdir in ents if not isdir}
-                if fn & set(cfg.queued_files) and not fn & set(cfg.markers) and cfg.heartbeat_name not in fn:
+                if fn & set(cfg.queued_files) and not fn & set(cfg.markers) and cfg.heartbeat_name not in fn and JSON_HEARTBEAT not in fn:
                     queued.append(rid)
             if is_run_dir(d, ents, depth, cfg):
                 seen.add(real)
@@ -1129,6 +1191,7 @@ REFERENCE_JSON_MARKERS = {"COMPLETE.json", "FINISH_COMPLETE.json", "evaluate-COM
 REFERENCE_SUCCESS_STATUS = {"COMPLETED_SCOPED", "COMPLETED_SCOPED_REVIEW_REQUIRED", "VERIFIED_HARDENED_SCOPED",
                             "VERIFIED_HARDENED_SCOPED_REVIEW_REQUIRED", "PREPARED_NOT_LAUNCHED"}
 REFERENCE_SUCCESS_STAGE = {"complete", "completed", "probe_completed", "prepared"}
+SCOPED_EVAL_MARKERS = {"ENGINEERING_EVAL_EXIT.json", "EVAL_COMPLETE.track_kt.json", "EVAL_COMPLETE.track_t_pt_r0.json"}
 MARKER_MAX_BYTES = 1 << 20
 
 
@@ -1137,7 +1200,7 @@ def parse_marker_content(content, name=None):
     bare integer) or a JSON object whose exit code is an integer under one of MARKER_JSON_KEYS (first present key wins). A JSON marker
     that holds exit code 0 together with a non-empty `error` is a contradiction, not a success."""
     txt = content.strip()
-    if name in REFERENCE_JSON_MARKERS and not txt.startswith("{"):
+    if name in REFERENCE_JSON_MARKERS | SCOPED_EVAL_MARKERS and not txt.startswith("{"):
         return None, None, "reference terminal marker must hold a JSON object"
     if txt.startswith("{"):
         try:
@@ -1155,6 +1218,28 @@ def parse_marker_content(content, name=None):
         utc = o.get("utc") if isinstance(o.get("utc"), str) else None
         if v == 0 and o.get("error"):
             return v, utc, "JSON marker holds %s 0 and a non-empty error field" % key
+        if name == "EXIT.json":
+            # EXIT is a common legacy marker: optional metadata is allowed, but
+            # explicitly contradictory codes/scope/status must never mean done.
+            if any(type(o[k]) is not int or o[k] != v for k in MARKER_JSON_KEYS if k in o):
+                return None, utc, "EXIT terminal exit codes conflict"
+            if "scientific_acceptance" in o and o["scientific_acceptance"] is not False:
+                return None, utc, "EXIT terminal scientific scope differs"
+            if v == 0:
+                for field, allowed in (("status", REFERENCE_SUCCESS_STATUS), ("stage", REFERENCE_SUCCESS_STAGE)):
+                    if field in o and (not isinstance(o[field], str) or o[field] not in allowed):
+                        return None, utc, "EXIT terminal has contradictory " + field
+        if name in SCOPED_EVAL_MARKERS:
+            if "schema" in o:
+                return None, utc, "unexpected schema for legacy engineering terminal"
+            if v == 0 and "status" in o and (not isinstance(o["status"], str) or o["status"] not in REFERENCE_SUCCESS_STATUS):
+                return None, utc, "engineering terminal is not a completed status"
+            if "scientific_acceptance" in o and o["scientific_acceptance"] is not False:
+                return None, utc, "engineering terminal scientific scope differs"
+            if name == "ENGINEERING_EVAL_EXIT.json" and (type(o.get("attempt")) is not int or o["attempt"] <= 0 or o.get("scientific_acceptance") is not False):
+                return None, utc, "engineering terminal generation/scope missing"
+            if any(type(o[k]) is not int or o[k] != v for k in MARKER_JSON_KEYS if k in o):
+                return None, utc, "engineering terminal exit codes conflict"
         if name in REFERENCE_JSON_MARKERS:
             # These are final task records, not STATUS.json or preflight markers. rc remains mandatory;
             # neither a filename nor a status string alone establishes execution success.
@@ -1454,12 +1539,25 @@ def read_heartbeat(d, cfg):
                 hb_ts, hb_src = os.path.getmtime(hbp), cfg.heartbeat_name + " mtime (no timestamped lines)"
         except OSError as e:
             notes.append("heartbeat unreadable: %s" % str(e)[:60])
+    jp = os.path.join(d, JSON_HEARTBEAT)
+    if os.path.isfile(jp):
+        js, err = read_json_heartbeat(jp)
+        if err:
+            notes.append(err)
+        if js:
+            samples.append(js)
+            samples.sort(key=lambda row: row["ts"])
+            progress = [row for row in samples if row["done"] is not None]
+            last = progress[-1] if progress else samples[-1]
+            hb_ts, hb_src = last["ts"], last.get("source", cfg.heartbeat_name)
     return samples, hb_ts, hb_src, notes
 
 
 def flat_stretch(samples):
     """The trailing run of heartbeat samples with an unchanged progress count, or None when there are fewer than 3 of them
     (one repeated value is just a slow moment). since = when that count was first seen."""
+    if any(x.get("snapshot") and x["done"] is not None for x in samples):
+        return None  # A snapshot cannot establish a same-source flat history.
     wd_ = [x for x in samples if x["done"] is not None]
     if len(wd_) < 3:
         return None
@@ -1511,7 +1609,7 @@ def refresh_cached(res, d, cfg, now):
     srcs = scan_sources(d, cfg, samples)
     if samples:
         res["progress"] = summarize_progress(samples, d, cfg, res.get("declared_total"), res.get("uniform_cost", True))
-    ts, src = live_timestamp(d, cfg, run_logs(d, cfg), hb_ts if samples else None, hb_src if samples else None, srcs)
+    ts, src = observation_timestamp(d, cfg, run_logs(d, cfg), samples, hb_ts if samples else None, hb_src if samples else None, srcs)
     if ts is not None and (samples or srcs[1]):
         res["heartbeat_epoch"], res["heartbeat_utc"], res["heartbeat_source"] = ts, iso(ts), src
         res["age_s"] = int(now - ts)
@@ -1538,6 +1636,18 @@ def live_timestamp(d, cfg, logs, hb_ts, hb_src, srcs):
     return run_liveness(d, cfg, hb_ts, hb_src, srcs)
 
 
+def observation_timestamp(d, cfg, logs, samples, hb_ts, hb_src, srcs, notes=None):
+    """Select the same progress/liveness authority in full and cached reads."""
+    ts, src = live_timestamp(d, cfg, logs, hb_ts, hb_src, srcs)
+    snapshots = [s for s in samples if s.get("snapshot") and s["done"] is not None]
+    if snapshots:
+        progress_ts = snapshots[-1]["ts"]
+        if notes is not None and ts is not None and ts > progress_ts:
+            notes.append("Newer process liveness does not replace the JSON progress timestamp")
+        return progress_ts, JSON_HEARTBEAT + " progress"
+    return ts, src
+
+
 def evaluate_run(run, cfg, states, now, prev=None):
     """prev: None in a one-shot pass; in --watch the previous result for this run ({} on the first read)."""
     d = run["path"]
@@ -1548,9 +1658,11 @@ def evaluate_run(run, cfg, states, now, prev=None):
     samples, hb_ts, hb_src, hb_notes = read_heartbeat(d, cfg)
     notes.extend(hb_notes)
     srcs = scan_sources(d, cfg, samples)
-    hb_ts, hb_src = live_timestamp(d, cfg, logs, hb_ts, hb_src, srcs)
+    hb_ts, hb_src = observation_timestamp(d, cfg, logs, samples, hb_ts, hb_src, srcs, notes)
     tier = resolve_tier(d, samples, cfg)
-    state, reason = classify(marker, problem, hb_ts, hb_src, bool(logs), now, cfg, os.path.isfile(hbp), stall=tier["stall_s"])
+    state, reason = classify(marker, problem, hb_ts, hb_src, bool(logs), now, cfg, os.path.isfile(hbp) or os.path.isfile(os.path.join(d, JSON_HEARTBEAT)), stall=tier["stall_s"])
+    if not marker and any(n.startswith("JSON heartbeat invalid:") for n in hb_notes) and not samples:
+        state, reason = "unknown", "JSON heartbeat invalid; file mtime is not progress"
     if tier["error"]:
         state, reason = "unknown", tier["error"]
     if marker and hb_ts and marker["exit_code"] is not None and hb_ts > marker["ts"] + tier["stall_s"]:
