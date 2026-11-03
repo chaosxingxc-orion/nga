@@ -5,7 +5,7 @@ from tools import bev_native_panel_runner as X, bev_native_runtime as N, bev_nat
 class Panel(unittest.TestCase):
     def test_fixed_base_config_identity(self):
         for mirror in ('/mnt/cephfs/xingchao/models/jev','/mnt/cephfs/xingchao/omni/models/jev'):
-            for size in ('0.8B','2B'):
+            for size in ('0.8B','2B','4B'):
                 self.assertEqual(X.fixed_base_name(mirror+'/Qwen__Qwen3.5-'+size+'-Base'),'Qwen3.5-'+size+'-Base')
         for path in ('/tmp/Qwen__Qwen3.5-2B-Base','/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B','/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base','/mnt/cephfs/xingchao/models/jev/../jev/Qwen__Qwen3.5-2B-Base'):
             with self.subTest(path=path),self.assertRaises(ValueError):X.fixed_base_name(path)

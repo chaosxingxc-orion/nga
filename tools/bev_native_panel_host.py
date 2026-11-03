@@ -29,7 +29,7 @@ def verify(path,pin):
     require(sha(path)==pin,'plan changed');d=read(path)
     require(d['host']['path']==str(Path(__file__).resolve()) and d['files'][d['host']['path']]==sha(__file__),'host differs')
     module(d['runtime']).verify(path,pin);require(d['poll_seconds']==600,'poll differs')
-    require(d['image_sha256'].startswith('sha256:') and type(d['chip']) is int and d['chip'] in (0,6,7),'device/image differs')
+    require(d['image_sha256'].startswith('sha256:') and type(d['chip']) is int and d['chip'] in (0,5,6,7),'device/image differs')
     return d
 def preflight(d):
     require(socket.gethostname()=='k8s-node1','wrong host')

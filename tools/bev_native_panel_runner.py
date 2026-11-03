@@ -29,12 +29,12 @@ def item_check(item, i, limit):
 def fixed_base_name(model):
     p=Path(model)
     require(str(p)==model and p.parent in (Path('/mnt/cephfs/xingchao/models/jev'),Path('/mnt/cephfs/xingchao/omni/models/jev')),'fixed base mirror differs')
-    require(p.name in ('Qwen__Qwen3.5-0.8B-Base','Qwen__Qwen3.5-2B-Base'),'fixed base family member differs')
+    require(p.name in ('Qwen__Qwen3.5-0.8B-Base','Qwen__Qwen3.5-2B-Base','Qwen__Qwen3.5-4B-Base'),'fixed base family member differs')
     return p.name.removeprefix('Qwen__')
 def verify(path,pin):
     require(sha(path)==pin,'plan changed');d=read(path)
     require(d['schema']=='bev-native-panel-host-v1' and d['scope'] in ('public_fixed_base_test','synthetic_long_dev'),'scope differs')
-    require(type(d['chip']) is int and d['chip'] in (0,6,7) and d['batch_size']==1 and type(d['batch_size']) is int and d['max_length']==8192,'chip/batch/length differs')
+    require(type(d['chip']) is int and d['chip'] in (0,5,6,7) and d['batch_size']==1 and type(d['batch_size']) is int and d['max_length']==8192,'chip/batch/length differs')
     require(d['scientific_acceptance'] is False and d['candidate_test_authority'] is False and d['candidate_selection_allowed'] is False,'candidate authority forbidden')
     require(d['test_read'] is (d['scope']=='public_fixed_base_test'),'public scope differs')
     require(d['poll_seconds']==600 and d['adapter'] is None,'poll/adapter differs')
