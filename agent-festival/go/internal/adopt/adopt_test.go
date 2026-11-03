@@ -260,11 +260,17 @@ func TestCrashRecoveryTornTail(t *testing.T) {
 		t.Fatalf("mark unresolved = %q, want unresolved: %s", o.Status, o.Detail)
 	}
 	events, _ = m3.Events()
-	if len(events) != 3 {
-		t.Fatalf("events after repair = %d, want 3", len(events))
+	// the revoked-grants refusal above is now recorded as a control event
+	// (E3) — the post-repair stream is adopted / control(rejected, 14-A4) /
+	// dispatched / unresolved
+	if len(events) != 4 {
+		t.Fatalf("events after repair = %d, want 4", len(events))
 	}
-	if events[1].ArbitrationSeq != 1 || events[2].ArbitrationSeq != 2 {
-		t.Fatalf("recovered sequence numbering wrong: %d %d", events[1].ArbitrationSeq, events[2].ArbitrationSeq)
+	if events[1].EventType != "control" || events[1].Outcome.Status != "rejected" {
+		t.Fatalf("events[1] = (%s, %s), want (control, rejected) — the 14-A4 refusal must be recorded", events[1].EventType, events[1].Outcome.Status)
+	}
+	if events[2].ArbitrationSeq != 2 || events[3].ArbitrationSeq != 3 {
+		t.Fatalf("recovered sequence numbering wrong: %d %d", events[2].ArbitrationSeq, events[3].ArbitrationSeq)
 	}
 }
 
@@ -331,9 +337,52 @@ func TestUnresolvedFirstClass(t *testing.T) {
 	for _, e := range events {
 		got = append(got, e.Outcome.Status)
 	}
-	want := []string{"adopted", "unresolved", "completed"}
+	// the two refusals above are now VISIBLE as control events (E3): a
+	// refusal record is a first-class persistent event, not a discarded
+	// return value — the chain keeps the fixture's transition shape with
+	// the two rejections recorded between
+	want := []string{"adopted", "unresolved", "rejected", "rejected", "completed"}
 	if fmt.Sprint(got) != fmt.Sprint(want) {
-		t.Fatalf("status chain = %v, want %v (the crash-unresolved-then-complete fixture shape)", got, want)
+		t.Fatalf("status chain = %v, want %v (the crash-unresolved-then-complete fixture shape, refusals recorded)", got, want)
+	}
+}
+
+// TestRefusalWritesControlEvent pins E3: a 14-A4 refusal is recorded as a
+// control event (an audit fact) without transitioning state or entering the
+// idempotency registry — a re-Open replays it as no state, and the covering
+// dispatch afterwards proceeds normally. Pre-E3 the signature guard fired
+// tracelessly: a host had no way to audit how many revoked-permission
+// attempts were blocked.
+func TestRefusalWritesControlEvent(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-ctl", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q, want adopted", o.Status)
+	}
+	if o := m.Dispatch("op-ctl", []ledger.Grant{pinGrants()[0]}); o.Status != "rejected" {
+		t.Fatalf("dispatch with revoked grants = %q, want rejected", o.Status)
+	} else if o.Event == nil || o.Event.EventType != "control" || o.Event.Outcome.Status != "rejected" {
+		t.Fatalf("refusal event = %+v, want a control/rejected event", o.Event)
+	}
+	// the refusal transitioned nothing: the op is still dispatchable
+	if m.State("op-ctl") != StateAdopted {
+		t.Fatalf("state after refusal = %q, want adopted — a control event is an audit fact, not a transition", m.State("op-ctl"))
+	}
+	if o := m.Dispatch("op-ctl", pinGrants()); o.Status != "dispatched" {
+		t.Fatalf("covering dispatch = %q, want dispatched: %s", o.Status, o.Detail)
+	}
+	// replay: the control event survives load and validation but projects
+	// to no state
+	m2 := mustOpen(t, path)
+	if m2.State("op-ctl") != StateDispatched {
+		t.Fatalf("replayed state = %q, want dispatched — the control event must not project", m2.State("op-ctl"))
+	}
+	events, _ := m2.Events()
+	if len(events) != 3 {
+		t.Fatalf("events = %d, want 3 (adopted, control, dispatched)", len(events))
+	}
+	if events[1].EventType != "control" {
+		t.Fatalf("events[1] = %s, want control", events[1].EventType)
 	}
 }
 

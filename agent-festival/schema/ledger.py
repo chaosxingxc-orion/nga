@@ -55,6 +55,10 @@ ADOPTION_SCHEMA = json.loads((HERE / "adoption.schema.json").read_text())
 # lockstep check makes the schema enum the enforced single source)
 ADOPT_STATUSES = {"adopted", "reused", "conflict"}
 EFFECT_STATUSES = {"dispatched", "unresolved", "completed", "failed"}
+# E3 (2026-11-03): control events record machine refusals on adopted
+# operations (14-A4 revocation rejection, illegal-transition rejection) —
+# audit facts that never transition state and never enter the registry
+CONTROL_STATUSES = {"rejected"}
 INT64_MAX = 9223372036854775807
 
 
@@ -114,13 +118,21 @@ def ledger_errors(doc: dict) -> list[str]:
     # value, so wrong-reason pins could not match on both validators
     for i, e in enumerate(doc["events"]):
         status = e.get("outcome", {}).get("status", "")
-        ok = status in (EFFECT_STATUSES if e["event_type"] == "effect" else ADOPT_STATUSES)
+        if e["event_type"] == "control":
+            ok = status in CONTROL_STATUSES
+        else:
+            ok = status in (EFFECT_STATUSES if e["event_type"] == "effect" else ADOPT_STATUSES)
         if not ok:
             # the label names the status's OWN family — that is the
             # vocabulary crossing being reported. (Empty and unknown-status
             # branches are unreachable: the schema's required outcome +
             # status enum constrain the value first.)
-            family = "adoption" if status in ADOPT_STATUSES else "effect"
+            if status in CONTROL_STATUSES:
+                family = "control"
+            elif status in ADOPT_STATUSES:
+                family = "adoption"
+            else:
+                family = "effect"
             errs.append(f"[LEDGER.STATUS_FAMILY] events/{i}: {e['event_type']} event carries the {family}-family status "
                         f"{status!r} — the status vocabulary never crosses the "
                         f"event-type boundary")
@@ -171,6 +183,14 @@ def ledger_errors(doc: dict) -> list[str]:
         status = e.get("outcome", {}).get("status", "")
         if e["event_type"] == "adoption" and status == "conflict" and e.get("idempotency"):
             errs.append(f"[LEDGER.CONFLICT_IDEM_FORBIDDEN] events/{i}: conflict event carries idempotency — the loser's digest "
+                        f"never enters the registry; carrying it is a bypass write, not a "
+                        f"machine transition")
+        # E3: a control event (a refusal record) carrying idempotency would
+        # register the attempted operation's digest without any adoption
+        # authority behind it — the same laundering the conflict rule above
+        # forbids (mirrors the Go checker)
+        if e["event_type"] == "control" and e.get("idempotency"):
+            errs.append(f"[LEDGER.CONTROL_IDEM_FORBIDDEN] events/{i}: control event carries idempotency — a refusal record "
                         f"never enters the registry; carrying it is a bypass write, not a "
                         f"machine transition")
         needs_idem = e["event_type"] == "effect" or status in ("adopted", "reused")
@@ -242,7 +262,7 @@ def check_status_lockstep() -> list[str]:
     makes the schema enum the enforced single source (R3 m-2).
     """
     enum = set(LEDGER_SCHEMA["$defs"]["event"]["properties"]["outcome"]["properties"]["status"]["enum"])
-    union = ADOPT_STATUSES | EFFECT_STATUSES
+    union = ADOPT_STATUSES | EFFECT_STATUSES | CONTROL_STATUSES
     if enum != union:
         return [f"status lockstep broken: schema enum {sorted(enum)} != checker families "
                 f"{sorted(union)}"]
@@ -296,8 +316,8 @@ def main() -> int:
     # corpus that shrank without its pin rebased must fail here too
     n_valid = len(list((ex / "valid").glob("*.json")))
     n_invalid = len(list((ex / "invalid").glob("*.json")))
-    if (n_valid, n_invalid) != (8, 28):
-        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 8+28 (corpus count changed?)")
+    if (n_valid, n_invalid) != (9, 31):
+        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 9+31 (corpus count changed?)")
         bad += 1
     for e in check_status_lockstep() + check_lockstep():
         print(f"[ledger] FAIL {e}")

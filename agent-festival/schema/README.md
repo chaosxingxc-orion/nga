@@ -94,6 +94,6 @@ festival 事件**事实态**（账本持久层，机器写）与 NGA 命令**结
 | conflict | conflict | 同形同层：同键异载冲突（两侧语义一致） |
 | dispatched / completed / failed | accepted / pending | 层差：festival 记效果生命周期事实；NGA 的 accepted/pending 是命令受理层报告，不入事实账本 |
 | unresolved | unresolved | 同形同层：结果未知一等态（两侧语义一致） |
-| —（永不入账本） | rejected | 分层铁律：rejected 是机器答案词汇，不是事实——账本只记已发生的事；07 若持久化 rejected 则与本分层冲突（待 NGA 明示 rejected 是否落盘） |
+| rejected（control 事件承载） | rejected | E3 修订（2026-11-03）：rejected 作为**控制面拒收事实**入账——14-A4 撤销拒收、非法转换拒收是已发生的控制事件（audit fact），承载于 control 事件类别，不转换状态、不入幂等注册表；它仍不是效果事实（dispatched/completed 才是），「机器想过什么」与「世界发生了什么」的分界依旧——拒收是机器**做过**的事 |
 
 分离理由：两套词汇的文法不相交——事实态由状态机守卫与九族跨事件规则校验（只含已发生的事），报告态含未发生的可能（pending/rejected）；若混入同一层，账本规则将无法区分「机器想过什么」与「世界发生了什么」。

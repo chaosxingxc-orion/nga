@@ -49,6 +49,9 @@ func TestStatusVocabularyLockstep(t *testing.T) {
 	for v := range EffectStatuses {
 		want[v] = true
 	}
+	for v := range ControlStatuses {
+		want[v] = true
+	}
 	if len(got) != len(want) {
 		t.Fatalf("status lockstep broken: schema enum %v != checker families %v", got, want)
 	}

@@ -348,11 +348,13 @@ func (m *Machine) Dispatch(op string, liveGrants []ledger.Grant) Outcome {
 	}
 	st, ok := m.ops[op]
 	if !ok || st.state != StateAdopted {
-		return Outcome{Status: "rejected", Detail: fmt.Sprintf("operation %q is not in the adopted state", op)}
+		if !ok {
+			return Outcome{Status: "rejected", Detail: fmt.Sprintf("operation %q is not in the adopted state", op)}
+		}
+		return m.refuse(st, fmt.Sprintf("operation %q is in the %s state — not adoptable for dispatch", op, st.state))
 	}
 	if !grantsCover(liveGrants, st.grants) {
-		return Outcome{Status: "rejected",
-			Detail: "live grant set no longer covers the grants pinned at decision time (revocation check, 14-A4)"}
+		return m.refuse(st, "live grant set no longer covers the grants pinned at decision time (revocation check, 14-A4)")
 	}
 	return m.commit(st, StateDispatched, "dispatched after the 14-A4 revocation check")
 }
@@ -371,8 +373,7 @@ func (m *Machine) MarkUnresolved(op string) Outcome {
 		return Outcome{Status: "rejected", Detail: fmt.Sprintf("operation %q is unknown", op)}
 	}
 	if st.state != StateAdopted && st.state != StateDispatched {
-		return Outcome{Status: "rejected",
-			Detail: fmt.Sprintf("operation %q is in the %s state; only adopted or dispatched operations can become unresolved", op, st.state)}
+		return m.refuse(st, fmt.Sprintf("operation %q is in the %s state; only adopted or dispatched operations can become unresolved", op, st.state))
 	}
 	return m.commit(st, StateUnresolved, "unresolved — outcome unknown, awaiting reconciliation")
 }
@@ -397,7 +398,7 @@ func (m *Machine) finish(op string, to State, detail string) Outcome {
 		return Outcome{Status: "rejected", Detail: fmt.Sprintf("operation %q is unknown", op)}
 	}
 	if st.state != StateDispatched && st.state != StateUnresolved {
-		return Outcome{Status: "rejected", Detail: fmt.Sprintf("operation %q is in the %s state; only dispatched or unresolved operations can finish", op, st.state)}
+		return m.refuse(st, fmt.Sprintf("operation %q is in the %s state; only dispatched or unresolved operations can finish", op, st.state))
 	}
 	return m.commit(st, to, detail)
 }
@@ -425,6 +426,38 @@ func (m *Machine) commit(st *opState, to State, detail string) Outcome {
 	st.state = to
 	m.seq = ev.ArbitrationSeq
 	return Outcome{Status: string(to), Event: ev}
+}
+
+// refuse records a control-plane refusal as a control event (E3,
+// 2026-11-03): the rejected attempt is an audit fact — the 14-A4
+// revocation rejection, an illegal-transition attempt — carrying the
+// operation's full identity/versions/accountability pin. Control events
+// never transition state (the checker's transition loop skips them) and
+// never enter the idempotency registry (CONTROL_IDEM_FORBIDDEN), so the
+// ledger gains the refusal record without touching replay or the
+// machine's own state. The pre-E3 hole: the 14-A4 revocation check was
+// the component's signature guard while every one of its firings was
+// traceless (a return value only — a host had no API to audit how many
+// revoked-permission attempts were blocked). Unknown-operation refusals
+// stay return-value-only: there is no identity to pin (the grammar
+// requires the full identity, and a control event precedes nothing).
+func (m *Machine) refuse(st *opState, detail string) Outcome {
+	if m.seqExhausted() {
+		return Outcome{Status: "rejected", Detail: detail}
+	}
+	ev := &ledger.Event{
+		EventType:      "control",
+		ArbitrationSeq: m.seq + 1,
+		Identity:       st.identity,
+		Versions:       st.versions,
+		Accountability: copyAccountability(st.accountability),
+		Outcome:        ledger.Outcome{Status: "rejected", Detail: detail},
+	}
+	if err := m.append(ev); err != nil {
+		return Outcome{Status: "rejected", Detail: detail + " (refusal not recorded: " + err.Error() + ")"}
+	}
+	m.seq = ev.ArbitrationSeq
+	return Outcome{Status: "rejected", Detail: detail, Event: ev}
 }
 
 // Events returns every complete event line currently in the durable form

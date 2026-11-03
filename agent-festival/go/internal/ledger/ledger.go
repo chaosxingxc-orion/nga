@@ -21,13 +21,18 @@ import (
 	"github.com/openjiuwen/agent-festival/go/internal/schemalib"
 )
 
-// AdoptStatuses / EffectStatuses are the status families. Package-level so
-// the lockstep test can compare them against the schema enum (the status
-// vocabulary exists as several copies — schema enum, these sets, the Python
-// sets, the machine's State constants — and the lockstep test is what makes
-// the schema enum the enforced single source, R3 m-2).
+// AdoptStatuses / EffectStatuses / ControlStatuses are the status families.
+// Package-level so the lockstep test can compare them against the schema
+// enum (the status vocabulary exists as several copies — schema enum, these
+// sets, the Python sets, the machine's State constants — and the lockstep
+// test is what makes the schema enum the enforced single source, R3 m-2).
+// ControlStatuses (E3, 2026-11-03): a control event records a machine
+// REFUSAL on an adopted operation (14-A4 revocation rejection,
+// illegal-transition rejection) — an audit fact that never transitions
+// state and never enters the idempotency registry.
 var AdoptStatuses = map[string]bool{"adopted": true, "reused": true, "conflict": true}
 var EffectStatuses = map[string]bool{"dispatched": true, "unresolved": true, "completed": true, "failed": true}
+var ControlStatuses = map[string]bool{"rejected": true}
 
 // User ruling 2026-11-02: this package does no float math — the seq domain
 // is a machine counter, and integer LITERALS are the only writable form.
@@ -232,8 +237,11 @@ func Errors(doc map[string]any) []string {
 	// status families, transitions, and the grants-on-effect rule
 	for i, e := range d.Events {
 		ok := AdoptStatuses[e.Outcome.Status]
-		if e.EventType == "effect" {
+		switch e.EventType {
+		case "effect":
 			ok = EffectStatuses[e.Outcome.Status]
+		case "control":
+			ok = ControlStatuses[e.Outcome.Status]
 		}
 		if !ok {
 			// the label names the status's OWN family — that is the
@@ -242,7 +250,9 @@ func Errors(doc map[string]any) []string {
 			// required outcome + status enum constrain the value before the
 			// typed view sees it.)
 			family := "effect"
-			if AdoptStatuses[e.Outcome.Status] {
+			if ControlStatuses[e.Outcome.Status] {
+				family = "control"
+			} else if AdoptStatuses[e.Outcome.Status] {
 				family = "adoption"
 			}
 			errs = append(errs, fmt.Sprintf("[LEDGER.STATUS_FAMILY] events/%d: %s event carries the %s-family status %q — the status vocabulary never crosses the event-type boundary", i, e.EventType, family, e.Outcome.Status))
@@ -300,6 +310,13 @@ func Errors(doc map[string]any) []string {
 	for i, e := range d.Events {
 		if e.EventType == "adoption" && e.Outcome.Status == "conflict" && e.Idempotency != nil {
 			errs = append(errs, fmt.Sprintf("[LEDGER.CONFLICT_IDEM_FORBIDDEN] events/%d: conflict event carries idempotency — the loser's digest never enters the registry; carrying it is a bypass write, not a machine transition", i))
+		}
+		// E3: a control event (a refusal record) carrying idempotency would
+		// register the ATTEMPTED operation's digest without any adoption
+		// authority behind it — the same laundering the conflict rule above
+		// forbids (the refusal is an audit fact, never a registry entry).
+		if e.EventType == "control" && e.Idempotency != nil {
+			errs = append(errs, fmt.Sprintf("[LEDGER.CONTROL_IDEM_FORBIDDEN] events/%d: control event carries idempotency — a refusal record never enters the registry; carrying it is a bypass write, not a machine transition", i))
 		}
 		needsIdem := e.EventType == "effect" || e.Outcome.Status == "adopted" || e.Outcome.Status == "reused"
 		if needsIdem && e.Idempotency == nil {
