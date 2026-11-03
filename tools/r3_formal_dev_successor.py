@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exact successful-training to DEV handoff; never grants scientific eligibility.
+"""Exact successful-training or successful-DEV to DEV handoff; never grants scientific eligibility.
 
 Only new prospective execution packages may opt into this guard. No running
 training plan is changed. The resource adapter calls claim_precondition twice
@@ -58,6 +58,9 @@ def binding(p):
     for path,h in p['tools'].items():require(sha(path)==h,'execution tool changed')
     spec=read(p['spec']);require(sha(p['spec'])==p['spec_sha256'],'spec changed')
     core=module(g['training_evidence'])
+    if g.get('predecessor_kind') == 'evaluation':
+        return evaluation_binding(p, spec, core)
+    require(g.get('predecessor_kind', 'training') == 'training', 'unknown predecessor kind')
     schedule=read(pinned(g['schedule']));ref=g['previous_training'];previous=core.load(ref['plan'],ref['plan_raw_sha256'])
     require(core.identity(previous)==ref['plan_sha256'] and previous['schema']=='r3-formal-k1-plan-v1'
             and previous.get('control_arm') is None and previous['test_read'] is False
@@ -76,8 +79,89 @@ def binding(p):
     return core,previous
 
 
+def normalized_spec(spec, original, actual_out, original_out):
+    """Only declared source-copy paths and two output argv operands may differ."""
+    value=json.loads(json.dumps(spec))
+    mounts={m['destination']:m for m in original['code_mounts']}
+    require(len(mounts)==len(original['code_mounts'])==len(value['code_mounts']), 'source mount count differs')
+    mapping={}
+    for m in value['code_mounts']:
+        require(m['destination'] in mounts, 'source mount destination differs')
+        old=mounts[m['destination']]
+        require({k:v for k,v in m.items() if k!='source'}=={k:v for k,v in old.items() if k!='source'}, 'source mount policy differs')
+        mapping[m['source']]=old['source'];m['source']=old['source']
+    files={}
+    for path,h in value['files'].items():
+        matches=[(a,b) for a,b in mapping.items() if Path(path).is_relative_to(a)]
+        require(len(matches)<=1, 'overlapping source mounts')
+        new=str(Path(matches[0][1])/Path(path).relative_to(matches[0][0])) if matches else path
+        require(new not in files, 'source alias collision');files[new]=h
+    value['files']=files
+    for flag,leaf in (('--out','results'),('--round-dir','identity')):
+        require(value['command'].count(flag)==1, 'output flag differs');i=value['command'].index(flag)+1
+        require(value['command'][i]==str(Path(actual_out)/leaf), 'actual output differs')
+        value['command'][i]=str(Path(original_out)/leaf)
+    require(value==original, 'predecessor changed beyond source/output relocation')
+    return value
+
+
+def evaluation_binding(p,spec,core):
+    g=p['successor_guard'];ref=g['previous_evaluation'];path=pinned(ref['execution']);previous=read(path)
+    launcher=module({'path':previous['launcher'],'sha256':previous['tools'][previous['launcher']]})
+    launcher.verify(path,ref['execution']['sha256'])
+    require(previous['out']==str(path.parent) and previous['test_read'] is False
+            and previous['scientific_acceptance'] is False,'previous evaluation scope differs')
+    schedule=read(pinned(g['schedule']));nodes={n['id']:n for n in schedule['nodes']}
+    node=nodes[g['target_node']];priornode=nodes[g['previous_role']+'_dev']
+    require(node['kind']==priornode['kind']=='dev_calibration_track_t_readout'
+            and node['depends_on']==[g['previous_role']+'_dev_release']
+            and node['training_id']==g['training_role'] and priornode['training_id']==g['previous_role']
+            and node['chip']==priornode['chip']==p['chip']==previous['chip'], 'registered evaluation edge differs')
+    prior_spec=read(previous['spec']);original_path=pinned(ref['original_spec']);original=read(original_path)
+    require(str(original_path)==str(Path(priornode['out'])/'plan.json'), 'original DEV location differs')
+    for current,role_name in ((spec,g['training_role']),(prior_spec,g['previous_role']),(original,g['previous_role'])):
+        identity=current['training_variant']['formal_role_identity']
+        require(identity['role']==role_name and identity['schedule_sha256']==g['schedule']['sha256']
+                and identity['chip']==p['chip'] and current['training']==nodes[role_name]['out'], 'evaluation role identity differs')
+    normalized_spec(prior_spec,original,previous['out'],priornode['out'])
+    derivation=read(pinned(ref['derivation']))
+    require(derivation['new_execution']==ref['execution']
+            and derivation['new_spec']=={'path':previous['spec'],'sha256':previous['spec_sha256']}, 'predecessor derivation differs')
+    return core,previous
+
+
+def evaluation_predecessor(p,resource,core,previous):
+    ref=p['successor_guard']['previous_evaluation'];root=Path(previous['out'])
+    # Formal roles are attempt1-only. A later directory/receipt is not a successful old generation.
+    attempts=root/'attempts'
+    if attempts.exists():
+        require(sorted(x.name for x in attempts.iterdir())==['1']
+                and (attempts/'1').is_dir() and not (attempts/'1').is_symlink(), 'unexpected evaluation attempts')
+    marker=root/'ENGINEERING_EVAL_EXIT.json'
+    if marker.exists():
+        end=read(marker)
+        require(type(end.get('attempt')) is int and end['attempt']==1
+                and type(end.get('exit_code')) is int and end['exit_code']==0
+                and end.get('scientific_acceptance') is False
+                and end.get('source')!='retained-container-exit', 'evaluation predecessor failed or synthetic')
+    evidence=core.predecessor({'previous_execution':ref['execution']['path'],
+                              'previous_execution_sha256':ref['execution']['sha256']},resource)
+    if evidence is None:return None
+    require(evidence['attempt']==1, 'wrong evaluation attempt')
+    claim=root/'attempts/1/CLAIM.json';release=read(root/'attempts/1/RELEASE.json')
+    require(release.get('claim_sha256')==sha(claim),'evaluation release claim binding differs')
+    if previous.get('successor_guard'):
+        pre=root/'SUCCESSOR_PRECONDITION.json';claim_doc=read(claim)
+        require(claim_doc['successor_precondition']['precondition_sha256']==sha(pre)
+                and read(pre)['execution_sha256']==ref['execution']['sha256'],'predecessor own claim binding differs')
+    require(not attempts.exists() or sorted(x.name for x in attempts.iterdir())==['1'], 'evaluation attempt inventory changed')
+    return evidence
+
+
 def predecessor(p,resource):
     core,previous=binding(p)
+    if p['successor_guard'].get('predecessor_kind') == 'evaluation':
+        return evaluation_predecessor(p,resource,core,previous)
     return core.training_predecessor_evidence(p['successor_guard']['previous_training'],previous,resource)
 
 
@@ -129,7 +213,7 @@ def tick(c,p,launcher):
         return {'status':'supervisor_live' if core.process_matches(r) else 'needs_repair','pid':r['pid']}
     require(not receipt.exists(),'target started outside guard')
     resource=launcher.resource_module(p);prior=predecessor(p,resource)
-    if prior is None:return {'status':'waiting_successful_training'}
+    if prior is None:return {'status':'waiting_successful_evaluation' if p.get('successor_guard',{}).get('predecessor_kind')=='evaluation' else 'waiting_successful_training'}
     allocation=resource.load(p['allocation']);resource.validate_doc(allocation)
     if any(x['chip']==p['chip'] for x in allocation['allocation']):return {'status':'waiting_resource'}
     require([x for x in allocation['free'] if x['chip']==p['chip']]==[prior['free_entry']], 'free lineage differs')
