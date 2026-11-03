@@ -125,9 +125,120 @@ def report_compatible_source(name, consumer, producer, entry, bundle, spec):
     return spec.get('evaluation_profile') == 'track_kt' and spec.get('adapter') is None
 
 
+def k0_continuation_evidence(identity, plan, attempt, files, q):
+    """Versioned CPU recovery adapter; exact external review remains the trust boundary."""
+    binding = identity.get('cpu_continuation')
+    require(type(binding) is dict and set(binding)=={'schema','config','operations','launch_review','actual_container'}
+            and binding['schema']=='r3-k0-cpu-continuation-binding-v1','K0 continuation binding differs')
+    config=refdoc(binding['config'],files,q); ops=refdoc(binding['operations'],files,q)
+    review=refdoc(binding['launch_review'],files,q); actual=refdoc(binding['actual_container'],files,q)
+    cp=binding['config']['sha256']; op=binding['operations']['sha256']
+    require(review.get('verdict')=='PASS_CPU_CONTINUATION_LAUNCH_ONLY'
+            and review.get('activation_authorized') is True and review.get('scientific_acceptance') is False
+            and review.get('test_read') is False and review.get('approved_config')==binding['config']
+            and review.get('approved_operations')==binding['operations'],'K0 continuation launch review differs')
+    require(config.get('schema')=='k0-cpu-continuation-v1' and config.get('original_plan')==identity['control_plan']
+            and type(config.get('npu_attempt')) is int and config['npu_attempt']==attempt
+            and config.get('scientific_acceptance') is False and config.get('test_read') is False,
+            'K0 continuation original generation differs')
+    require(ops.get('config_sha256')==cp and review.get('original_plan')==identity['control_plan'],
+            'K0 continuation operations generation differs')
+    # Independently bound review, configuration and bundle must cover identical source bytes.
+    for closure in (config.get('files'),ops.get('files')):
+        require(type(closure) is dict and bool(closure),'K0 continuation source closure absent')
+        for path,pin in closure.items():
+            require(files.get(path)==pin and sha(path)==pin,'K0 continuation dependency differs')
+    for key in ('runner','consumer'):
+        ref=config[key]
+        require(set(ref)=={'path','sha256'} and config['files'].get(ref['path'])==ref['sha256']
+                and review.get('source_and_input_pins',{}).get(ref['path'])==ref['sha256'],
+                'K0 continuation executable source unreviewed')
+    for path,pin in ops['files'].items():
+        require(review.get('source_and_input_pins',{}).get(path)==pin,'K0 continuation host closure unreviewed')
+    original=Path(plan['out']); cpu=Path(config['out']); host=Path(ops['host_output'])
+    for path in (cpu,host):
+        require(path.is_absolute() and '..' not in path.parts and str(path)==str(path.resolve())
+                and not path.is_relative_to(original) and path.parent==cpu.parent,
+                'K0 continuation output isolation differs')
+    require(cpu.name=='result' and host.name=='host' and ops.get('runtime_terminal')==str(cpu/'EXIT.json'),
+            'K0 continuation output contract differs')
+    predecessor={'path':str(original/'cpu'/str(attempt)/'EXIT.json'),
+                 'sha256':files.get(str(original/'cpu'/str(attempt)/'EXIT.json'))}
+    require(config.get('failed_cpu_terminal')==predecessor and predecessor['sha256']
+            and config['files'].get(predecessor['path'])==predecessor['sha256'],
+            'K0 continuation failed predecessor differs')
+    failed=refdoc(predecessor,files,q)
+    require(type(failed.get('exit_code')) is int and failed['exit_code']!=0
+            and type(failed.get('attempt')) is int and failed['attempt']==attempt
+            and failed.get('plan_sha256')==K0_CURRENT_PLAN_SHA and failed.get('scientific_acceptance') is False,
+            'K0 continuation predecessor was not failed')
+    def doc(path):return q.bound(str(path),files)
+    end=doc(cpu/'EXIT.json'); ht=doc(host/'EXIT.json'); receipt=doc(host/'LAUNCH_RECEIPT.json')
+    require(type(end.get('exit_code')) is int and end['exit_code']==0 and end.get('config_sha256')==cp
+            and end.get('original_plan_sha256')==K0_CURRENT_PLAN_SHA
+            and type(end.get('npu_attempt')) is int and end['npu_attempt']==attempt
+            and end.get('scientific_acceptance') is False,'K0 continuation runtime terminal differs')
+    require(type(ht.get('exit_code')) is int and ht['exit_code']==0
+            and ht.get('operations_sha256')==op and ht.get('scientific_acceptance') is False,
+            'K0 continuation host terminal differs')
+    command=ops.get('docker_command'); image=ops.get('image')
+    require(type(command) is list and command[:3]==['docker','run','-d'] and command.count(image)==1
+            and all(type(x) is str for x in command),'K0 continuation docker command differs')
+    require(not any(x in ('--rm','--privileged','--device') or x.startswith('--device=') for x in command),
+            'K0 continuation command exposes devices')
+    tail=['python3','-B','-P',config['runner']['path'],'--config',binding['config']['path'],'--sha256',cp]
+    require(command[command.index(image)+1:]==tail and receipt.get('command')==tail
+            and receipt.get('operations_sha256')==op,'K0 continuation command generation differs')
+    cid=receipt.get('container_id'); state=actual.get('State',{}); hc=actual.get('HostConfig',{})
+    require(type(cid) is str and len(cid)==64 and all(c in '0123456789abcdef' for c in cid)
+            and actual.get('Id')==cid and actual.get('Image')==image and actual.get('Config',{}).get('Cmd')==tail
+            and state.get('Status')=='exited' and state.get('Running') is False
+            and type(state.get('ExitCode')) is int and state['ExitCode']==0 and state.get('OOMKilled') is False,
+            'K0 continuation actual container differs')
+    release=doc(original/'host_attempts'/str(attempt)/'RELEASE.json')
+    require(moment(release['released_utc'])<=moment(state['StartedAt'])<=moment(state['FinishedAt']),
+            'K0 continuation started before NPU release')
+    require(not hc.get('Devices') and hc.get('Privileged') is False and hc.get('AutoRemove') is False
+            and hc.get('NetworkMode')=='none','K0 continuation CPU isolation differs')
+    require(command.count('--name')==1 and actual.get('Name')=='/'+command[command.index('--name')+1],
+            'K0 continuation container name differs')
+    declared_env={}
+    for i,token in enumerate(command):
+        if token=='-e':
+            key,value=command[i+1].split('=',1)
+            require(key not in declared_env,'duplicate K0 continuation environment')
+            declared_env[key]=value
+    actual_env=dict(x.split('=',1) for x in actual['Config']['Env'])
+    require(all(actual_env.get(k)==v for k,v in declared_env.items()),'K0 continuation environment differs')
+    mounts=[]
+    for i,token in enumerate(command):
+        if token=='--mount':
+            fields=command[i+1].split(','); m=dict(x.split('=',1) for x in fields if '=' in x)
+            require(m.get('type')=='bind','K0 continuation mount type differs')
+            mounts.append((m['src'],m['dst'],'readonly' not in fields))
+    require(sorted(mounts)==sorted((m['Source'],m['Destination'],m['RW']) for m in actual['Mounts'])
+            and all(m.get('Type')=='bind' and type(m.get('RW')) is bool for m in actual['Mounts'])
+            and [(src,dst) for src,dst,rw in mounts if rw]==[(str(cpu.parent),str(cpu.parent))],
+            'K0 continuation actual mounts differ')
+    summary=doc(cpu/'report.json'); complete=doc(cpu/'COMPLETE.json')
+    require(summary.get('schema')=='r3-k0-current-cpu-continuation-v1'
+            and summary.get('config_sha256')==cp and summary.get('original_plan_sha256')==K0_CURRENT_PLAN_SHA
+            and type(summary.get('npu_attempt')) is int and summary['npu_attempt']==attempt
+            and summary.get('independent_scoped_adjudication_pending') is True,
+            'K0 continuation report generation differs')
+    require(complete.get('config_sha256')==cp and type(complete.get('exit_code')) is int
+            and complete['exit_code']==0 and complete.get('scientific_acceptance') is False
+            and complete.get('report_sha256')==files.get(str(cpu/'report.json')),
+            'K0 continuation COMPLETE differs')
+    # Adapt verified fields in memory only; original report/terminal bytes stay normative.
+    summary=dict(summary,schema='r3-k0-current-complete-v1',plan_sha256=K0_CURRENT_PLAN_SHA,attempt=attempt)
+    complete=dict(complete,plan_sha256=K0_CURRENT_PLAN_SHA)
+    return cpu,summary,complete
+
+
 def k0_identity_acceptance(name, entry, identity, files, q):
     """Bind an independently adjudicated *current* control, never any PASS JSON."""
-    require(identity.get('schema') == 'r3-k0-current-identity-acceptance-v1'
+    require(identity.get('schema') in ('r3-k0-current-identity-acceptance-v1','r3-k0-current-identity-acceptance-v2')
             and identity.get('verdict') == 'PASS' and identity.get('scientific_acceptance') is False
             and identity.get('test_read') is False and identity.get('independent_reconstruction') is True
             and identity.get('lifecycle_verified') is True
@@ -140,13 +251,19 @@ def k0_identity_acceptance(name, entry, identity, files, q):
     require(type(attempt) is int and attempt in (1,2),'current K0 attempt differs')
     root = Path(plan['out']); cpu = root/'cpu'/str(attempt); host = root/'host_attempts'/str(attempt)
     def doc(path): return q.bound(str(path),files)
-    summary = doc(cpu/'report.json'); complete = doc(cpu/'COMPLETE.json')
+    continuation = identity['schema']=='r3-k0-current-identity-acceptance-v2'
+    if continuation:
+        cpu,summary,complete=k0_continuation_evidence(identity,plan,attempt,files,q)
+    else:
+        require('cpu_continuation' not in identity,'unexpected K0 continuation binding')
+        summary = doc(cpu/'report.json'); complete = doc(cpu/'COMPLETE.json')
     runtime = doc(root/'attempts'/str(attempt)/'report.json')
     release = doc(host/'RELEASE.json'); claim = doc(host/'CLAIM.json')
     require(identity.get('controls_report') == {'path':str(cpu/'report.json'),'sha256':files[str(cpu/'report.json')]},
             'current K0 controls report differs')
-    for path in (cpu/'EXIT.json', root/'cpu'/('host-'+str(attempt))/'EXIT.json',
-                 root/'attempts'/str(attempt)/'EXIT.json'):
+    terminals=[root/'attempts'/str(attempt)/'EXIT.json']
+    if not continuation:terminals += [cpu/'EXIT.json',root/'cpu'/('host-'+str(attempt))/'EXIT.json']
+    for path in terminals:
         terminal = doc(path)
         require(type(terminal.get('exit_code')) is int and terminal['exit_code']==0
                 and type(terminal.get('attempt')) is int and terminal['attempt']==attempt
