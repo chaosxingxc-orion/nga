@@ -7,14 +7,17 @@ training, inference, report producers or review agents, manufacture observations
 or grant scientific authority from file presence.
 
 The prepared immutable generation is
-`.local/preparations/production-dev-qualification-20261102-v3/CONFIG.json`;
+`.local/preparations/production-dev-qualification-20261103-v5/CONFIG.json`;
 `CONFIG-PIN.json` records SHA256
-`434bba6071c9ef5b6e649ee5fc5eef3db63ad4e20724c33a2ef414b93e964d7d`.
+`7215ac3bf4f088d4d6dae634017740d92a56c4c5a2872173c85d968b9563e6e0`.
 The generation includes byte-identical frozen source copies, `DERIVATION.json`,
-`INVOCATION.json`, actual `READINESS.json` / `READINESS-RECHECK.json` and
-`PARTIAL-RESULT.json`. V1 and V2 remain unchanged preparation history. V3 is
-prepared pending independent exact configuration review; preparation is not
-service activation. No watcher has been started.
+`INVOCATION.json`, actual `READINESS.json` and
+`PARTIAL-RESULT.json`. V1–V4 remain unchanged preparation history. V5 is
+independently reviewed for its exact CPU configuration: 389 checks passed,
+including all 227 immutable pins. The review used an inherited-model child,
+not Astra/Fable, and does not satisfy the explicit Astra activation condition.
+Preparation and configuration verification are not service activation. No
+qualification watcher has been started.
 
 ## Campaign and existing handoffs
 
@@ -28,22 +31,33 @@ full postrun collection, genuine driver and ownership receipts, externally
 authenticated container/image/daemon observations, complete DEV/calibration/Track
 T reports, raw reconstruction inventory, and independent campaign adjudication.
 
-V3 binds the actual PT seed3 execution directory at
+V5 retains the actual PT seed3 execution directory at
 `/mnt/cephfs/xingchao/experiments/jev/r3_runs/qualification_control_dev_execution_pt3_20261102_v1/evaluation`
-and the prepared formal primary seed2 directory at
-`/mnt/cephfs/xingchao/experiments/jev/r3_runs/qualification_formal_dev_execution_primary_s2_20261102_v1/evaluation`.
-Their original specs, derivation records, source-closure manifests, exact execution
-and CPU queue files are pinned. Prerequisite/event/report paths and future
-independent member-descriptor paths move together. The original V2 files and
-scientific rules are unchanged; no old terminal or report is copied into a new path.
+and the guarded formal primary seed2 directory at
+`/mnt/cephfs/xingchao/experiments/jev/r3_runs/qualification_formal_dev_execution_primary_s2_guarded_20261102_v4/evaluation`.
+It binds the three newly prepared and independently reviewed formal executions at
+`/mnt/cephfs/xingchao/experiments/jev/r3_runs/qualification_formal_dev_execution_{primary_s3,samechip_s2,diffchip_s2}_guarded_20261103_v1/evaluation`.
+The original handoff specs, generic and guarded derivations, source-closure
+manifests, unchanged source copies, exact execution/CPU queues, independent
+engineering reviews and activation records are pinned. All 68 V4 immutable
+references remain; V5 has 227 immutable references in total. These records bind
+engineering identity and do not grant scientific eligibility.
+
+Prerequisite, event, report and future independent member-descriptor paths move
+together. The four qualifier/service/report/queue sources are byte-identical to
+V4; nine members, 139 prerequisites, scheduling and scientific rules are unchanged.
+No old terminal or report is copied into a new path. The separate PT3 R0 B-4
+producer is not substituted for PT3's standard DEV and is not added as a new
+first-K1 prerequisite.
 
 QO seed2 and PT seed2 retain explicitly **unbound reservations** under
-`qualification_control_dev_prospective_20261102_v1/{qo_s2,pt_s2}`. Other unfinished
-formal roles also retain pending execution bindings. Their actual producers may
-require a later configuration generation; never rewrite this one. Primary seed2
-is prepared, not launched, and still requires the frozen samechip predecessor's
-successful terminal/release guard. PT seed3 is bound but its full report is pending.
-No member descriptor, complete campaign bundle or adjudication has been fabricated.
+`qualification_control_dev_prospective_20261102_v1/{qo_s2,pt_s2}`. Their future
+actual producers may require another configuration generation; never rewrite
+this one. primary_s2 and PT3 standard DEV reports are complete and independently
+reconstructed, but their full campaign member descriptors and admission remain
+pending. The new three-role execution bindings do not assert completion: live
+status remains in each producer's own terminal and runtime records. No member
+descriptor, complete campaign bundle or adjudication has been fabricated.
 
 Original K0 reports are present under `k0_current_rescore_20261031_v1/08b` and
 `instruct_k0_chip3_20261101_v1`. Their presence is not campaign admission: exact
@@ -64,12 +78,13 @@ successors because it has no device or producer operations.
 Run the generation's frozen controller with `verify` or `inspect`, supplying
 `--config ABSOLUTE_CONFIG --sha256 INDEPENDENT_CONFIG_PIN`. `inspect --output
 NEW_PATH` writes a presence-only WAIT/readiness report naming every missing
-member dependency. The V3 inspection names 139 prerequisites: 41 present and 98 missing at
-preparation. Both actual inspect and unchanged partial qualifier return WAIT/exit2.
-These counts are observations, not future invariants. The initial partial invocation
-with system Python failed before evaluation because NumPy was unavailable; it was
-rerun successfully in the existing CPU analysis environment without installing
-dependencies. `ENVIRONMENT-ATTEMPT.json` preserves that failure.
+member dependency. The V5 preparation inspection names 139 prerequisites:
+80 present and 59 missing. Both actual inspect and the unchanged partial qualifier
+return WAIT/exit2. File presence is not producer authentication or qualification.
+These counts are observations, not future invariants. The fixed CPU analysis
+environment executes all three verification commands; exact argv and exit codes
+are retained in V5 `INVOCATION.json`. Earlier V4 preparation and recheck counts
+remain historical evidence, not the current readiness state.
 
 `watch` also requires an independently supplied `--activation` and
 `--activation-sha256`. The activation must bind the exact config/controller and
