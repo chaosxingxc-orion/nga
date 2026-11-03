@@ -12,6 +12,11 @@ spec.loader.exec_module(b)
 
 
 class Tests(unittest.TestCase):
+    def test_gitcode_draft_title_does_not_create_an_update_loop(self):
+        self.assertTrue(b.matches_title({'title': '[WIP]generated', 'draft': True}, 'generated'))
+        self.assertTrue(b.matches_title({'title': 'generated'}, 'generated'))
+        self.assertFalse(b.matches_title({'title': 'changed', 'draft': True}, 'generated'))
+
     def test_api_and_pagination(self):
         api = b.API(b.GH, 'test-not-a-token')
         response = io.BytesIO(b'{"ok":true}')

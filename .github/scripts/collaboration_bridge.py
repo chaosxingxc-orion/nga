@@ -28,6 +28,13 @@ def marker(key):
     return f'{MARK}{key} -->'
 
 
+def matches_title(obj, title):
+    actual = obj.get('title') or ''
+    if obj.get('draft') and actual.startswith('[WIP]'):
+        actual = actual[5:]
+    return actual == title
+
+
 def origin_body(key, obj, url):
     status = 'merged' if obj.get('merged_at') else obj.get('state', 'open')
     return (f'{marker(key)}\nSource: {url}\nSource status: {status}\n'
@@ -177,7 +184,7 @@ def reconcile(gh, gc):
                 if dest is None:
                     dest = api.call('/pulls', 'POST', {'title': title, 'body': body, 'head': branch, 'base': 'main', 'draft': True})
                     targets.append(dest)
-                elif dest.get('body') != body or dest.get('title') != title:
+                elif dest.get('body') != body or not matches_title(dest, title):
                     api.call(f'/pulls/{number(dest["number"])}', 'PATCH', {'title': title, 'body': body})
                 gn, cn = (number(dest['number']), n) if source == 'gc' else (n, number(dest['number']))
                 sync_discussion(gh, gc, gn, cn, 'pulls')
