@@ -121,3 +121,12 @@ GEPA+singularity 双探索（语言方向 × 最大解锁角度）——建议�
 - **T0**（internal/e2e 九场景，commit 含 R4 审核轮）：模型替身全链路=§11.B 八场景+happy path；变异自证（否决窗口化→三红）；R4 净轮→R2/R3/R4=3 连 0B/0M，session goal 3 连口径闭环（14 号日志）。
 - **T1**（t1_llm_test.go，已备未启）：真 LLM S1 单点测试 harness——七用例（干净授信/窗口外否决反例/缺证/两组改述一致性对/带间开放/窗口内锚）、预注册硬门（harness fail-loud+C1/C2/C3/C7+一致性对；C6 无门首测）、双门已验（默认 Skip 指路/启用缺环境 Fatal）。**launch 键=用户**（一条命令在文件头注释，密钥从 provider_config.json 读不回显）。首次启动兼 harness 自身集成测试（传输/解析硬失败即响）。
 - 端点：gptplus5 glm-5.3-flash（本会话八项烟测过）；anthropic-messages 协议；max_tokens 4096（glm 恒开 thinking）。
+
+---
+
+## 2026-11-04：MR !2 已推送+正文全量重写（用户口令）
+
+- 推送：baca2dd..9903596 → fork feat/agent-festival-r16（十七笔新增提交，含 17 号报告补档）。
+- 正文 PATCH v2（4068 字）：三 P1 第一性修复叙述+E3+九轮审核循环（含 R6 自审盲区教训如实写明）+**旧正文四处表述校准**（on_evidence_gap 语态/无可达奇点被证伪修正/计数 190→211/R9 F2 退役）+T0/T1 两层验收+验证矩阵+合并请求（此前「修复落地前不请求合并」承诺解除）。
+- 发布坑记录：pulls PATCH 的即时响应缺 head 字段会 KeyError，实际生效——以 GET 复核为准（与评论端点同病）。
+- **MR !2 现等对方复核**；本地工作树净。待办外移：制品 A 草稿、P3 夹具修正、规则位点 parity 网候选战役。
