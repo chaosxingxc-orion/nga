@@ -58,6 +58,82 @@
         "sha256": "222bb7915b43f18088fa385c850b2f32b49dffc29680f170ebac9470de63a6ce"
       },
       "status": "independently_reconstructed"
+    },
+    {
+      "model": "Qwen3.5-2B-Base",
+      "model_manifest_sha256": "034f52ccb3d9c37438ee5ad882741b16bfa50ff63e79008d9fb48f4cc9469864",
+      "contract_sha256": "e5ab380a0869715df9bff5b6b03c41a7b6f5db028cfb07c12bf9ec3825872571",
+      "ordered_inputs_sha256": "43ed705e3af56064a35fc8498c561735e113bc1d5b8d3e9454551f24b72396dd",
+      "metrics": {
+        "n": 46320,
+        "correct": 26782,
+        "accuracy": 0.5781951640759931,
+        "by_type": {
+          "choice": {
+            "n": 18808,
+            "correct": 11139,
+            "accuracy": 0.5922479795831561,
+            "metric_origin": "NGA additive stratification"
+          },
+          "yes_no": {
+            "n": 17572,
+            "correct": 12668,
+            "accuracy": 0.720919644889597,
+            "metric_origin": "NGA additive stratification"
+          },
+          "score": {
+            "n": 9940,
+            "correct": 2975,
+            "accuracy": 0.2992957746478873,
+            "metric_origin": "NGA additive stratification"
+          }
+        },
+        "adaptive": "NOT_EVALUATED"
+      },
+      "runtime": {
+        "chips": 1,
+        "dtype": "float32",
+        "hf32": false,
+        "peak_reserved_gib": 9.099609375,
+        "reserved_gib": 9.099609375,
+        "torch": "2.10.0+cpu",
+        "torch_npu": "2.10.0.post7",
+        "transformers": "5.14.1"
+      },
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_2b_full_panel_20261103_v1/output/cpu/1/summary.json",
+        "sha256": "b345c196f58d4e3765a7f07534a77a1996cb603bd321aac928f1d68d178051a2"
+      },
+      "result_acceptance": {
+        "path": "/home/xingchao/workspace/nga/.local/reviews/native2b-full-result-independent-20261103-v1/ACCEPTANCE.json",
+        "sha256": "a471c915d8b1c741cf7948f55b8b8f8fe98ba6e9b4398862f6cfbae23cc11976"
+      },
+      "status": "independently_reconstructed",
+      "anomaly_diagnosis": {
+        "all_predictions_match_raw_argmax": true,
+        "choice_nonzero_predictions": 7343,
+        "choice_unique_raw_vectors": 18799,
+        "qid_extreme_groups": 515,
+        "qid_low_n_groups": 622,
+        "qid_extreme_or_low_n_union": 626,
+        "constant_gold_perfect_qids": [
+          "tool_selection",
+          "progress_look_around",
+          "progress_inventory"
+        ],
+        "low_n_domain_kind": "Software engineering and code / yes_no:6/6"
+      },
+      "preregistration_provenance": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_2b_full_panel_20261103_v1/INDEPENDENT-REVIEW.json",
+        "sha256": "4868ec228aed4095d5d7620b5c63a88e569041c6efef96ec9aa0ff5314405d0b",
+        "utc": "2026-11-03T06:31:29.458794+00:00",
+        "actual_run_started_at": "2026-11-03T06:34:17.18690702Z"
+      },
+      "separate_preregistration_draft_present": false,
+      "runtime_report": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_2b_full_panel_20261103_v1/output/attempts/1/report.json",
+        "sha256": "20092c820dc153fd762dcea75c00846c0c392601b1c73e0668ecd38a1379d9b7"
+      }
     }
   ],
   "boundaries": [
@@ -87,5 +163,6 @@
   "summary": {
     "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_full_panel_20261103_v3/output/cpu/1/summary.json",
     "sha256": "0c34c29b3bf5acd195db89202bb7c3d2f0f0c7b437051c9b0e4321bab47a315b"
-  }
+  },
+  "top_level_model_specific_metadata_scope": "0.8B original increment; 2B has explicit model-level contract, summary and anomaly fields"
 }

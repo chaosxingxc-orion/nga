@@ -41,12 +41,13 @@ This is a separate protocol and population from numeric_temporal above: avbiswas
 | Model | Correct/questions | Accuracy | Choice correct/n | Yes/no correct/n | Score exact correct/n | Adaptive |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | Qwen3.5-0.8B-Base | 24329/46320 | 52.524% | 9404/18808, 50.000% | 12100/17572, 68.860% | 2825/9940, 28.421% | NOT_EVALUATED |
+| Qwen3.5-2B-Base | 26782/46320 | 57.820% | 11139/18808, 59.225% | 12668/17572, 72.092% | 2975/9940, 29.930% | NOT_EVALUATED |
 
 Every committed record, identity/order, selected fp32 label-logit arithmetic, typed choice and automatic CPU summary was independently reconstructed; maximum arithmetic discrepancy0. Production stores selected label logits, so full-vocabulary finiteness is inference-attested rather than independently replayable from saved full vectors. This is a descriptive fixed-base TEST result, not training benefit, candidate selection or matched reproduction of vLLM top20/H100/Tacit trained weights. Upstream released-run exact revision lineage remains unknown.
 
 Choice accuracy exactly50% was investigated:3,582 predictions are nonzero, and18,799 distinct selected-logit vectors remain across18,808 questions; this is not a constant-zero fallback. Three perfect qid groups (779/779,61/61,60/60) have constant gold and predictions and do not establish discrimination.622 of699 qid groups have fewer than30 observations; these are descriptive flags, not new performance gates. Type, domain and qid strata are NGA additive diagnostics;18 domains do not mean18 independent datasets.
 
-The 2B/4B/9B complete-panel results remain pending their own terminal and independent acceptance. Do not derive a gain by subtracting this52.524% from the different6518-question protocol. Existing reference metrics and denominators are unchanged.
+The 2B complete-panel result is independently reconstructed: all46,320records, selected-label operands, identities, ordering and CPU report agree exactly. Its2,453additional correct decisions versus0.8B correspond to5.295769percentage points on this same panel; this is a fixed-base model comparison, not training gain or a significance claim. The4B/9B results remain pending their own completion and independent acceptance. Do not derive a gain by subtracting this52.524% from the different6518-question protocol. Existing reference metrics and denominators are unchanged.
 
 ## Evidence and reading conventions
 
