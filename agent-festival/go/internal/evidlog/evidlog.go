@@ -257,6 +257,19 @@ func (l *Log) Append(e Entry) error {
 			l.seq--
 			return err
 		}
+		// Whole-file replace keeps the durable file's permission bits
+		// (minor-ledger L9): os.CreateTemp is 0600, so a bare rename would
+		// silently flip a 0644 log to 0600 and group/other audit readers
+		// would lose access on the first Append. First durable write (no
+		// file yet) gets 0644.
+		mode := os.FileMode(0o644)
+		if info, err := os.Stat(l.path); err == nil {
+			mode = info.Mode().Perm()
+		}
+		if err := os.Chmod(tmp.Name(), mode); err != nil {
+			l.seq--
+			return err
+		}
 		if err := os.Rename(tmp.Name(), l.path); err != nil {
 			l.seq--
 			return err

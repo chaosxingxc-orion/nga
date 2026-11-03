@@ -53,7 +53,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from validate import REGISTRY, _schema_errors, bounds_errors, contract_errors, grant_errors  # noqa: E402
-from validate import load as load_json  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 GRAPH_SCHEMA = json.loads((HERE / "execution-graph.schema.json").read_text())
@@ -72,7 +71,8 @@ SAFE_INT_MAX = 9007199254740991
 
 def dec(x):
     """Integer amount from a JSON number. An integer-valued float like 3.0 is the integer 3 (JSON has one
-    number type; double charter). Finiteness is guaranteed upstream by validate.bounds_errors."""
+    number type; the bounds-domain float-syntax admission is pending ruling ①, see
+    docs/conformance-fixture-format.md). Finiteness is guaranteed upstream by validate.bounds_errors."""
     return int(x)
 
 

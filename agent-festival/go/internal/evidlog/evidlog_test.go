@@ -896,3 +896,31 @@ func TestForeignDuplicateSeqPassesGate(t *testing.T) {
 		t.Fatal("next Open accepted a duplicated-seq file — the fail-loud catch is gone")
 	}
 }
+
+// TestAppendPreservesDurableMode pins minor-ledger L9: the whole-file
+// replace (CreateTemp+Rename) must not flip the durable file's permission
+// bits — os.CreateTemp is 0600, so a bare splice silently took a 0644 log
+// to 0600 and group/other audit readers lost access on the first Append.
+func TestAppendPreservesDurableMode(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "evid.jsonl")
+	l, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "t", Selector: "s=1", Caller: "s2", At: "a"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(path, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.Append(Entry{Tool: "t", Selector: "s=2", Caller: "s2", At: "b"}); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got != 0o644 {
+		t.Fatalf("Append flipped the durable mode: got %o, want 644 — audit readers silently lost access", got)
+	}
+}

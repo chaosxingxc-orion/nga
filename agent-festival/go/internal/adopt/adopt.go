@@ -484,6 +484,18 @@ func (m *Machine) append(ev *ledger.Event) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
+	// Whole-file replace keeps the durable file's permission bits
+	// (minor-ledger L9, the evidlog twin): os.CreateTemp is 0600, so a bare
+	// rename would silently flip a 0644 ledger to 0600 and group/other audit
+	// readers would lose access on the first Adopt. First durable write (no
+	// file yet) gets 0644.
+	mode := os.FileMode(0o644)
+	if info, err := os.Stat(m.path); err == nil {
+		mode = info.Mode().Perm()
+	}
+	if err := os.Chmod(tmp.Name(), mode); err != nil {
+		return err
+	}
 	return os.Rename(tmp.Name(), m.path)
 }
 

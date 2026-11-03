@@ -1695,3 +1695,30 @@ func TestEraseFaceStaleWriteRejected(t *testing.T) {
 		t.Fatalf("erased file silently rebuilt from the stale write — %d bytes of stale-only ledger", len(raw))
 	}
 }
+
+// TestAdoptPreservesDurableMode pins minor-ledger L9 (the evidlog twin):
+// the whole-file replace (CreateTemp+Rename) must not flip the durable
+// file's permission bits — os.CreateTemp is 0600, so a bare Adopt silently
+// took a 0644 ledger to 0600 and group/other audit readers lost access.
+func TestAdoptPreservesDurableMode(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-mode-1", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("first adopt failed: %+v", o)
+	}
+	if err := os.Chmod(path, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// same key retries are recorded too (reused events Append as well), so
+	// one more call suffices to exercise the replace path
+	if o := m.Adopt(testRequest("op-mode-1", digestA, pinGrants())); o.Status != "reused" {
+		t.Fatalf("retry outcome changed: %+v", o)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got != 0o644 {
+		t.Fatalf("Adopt flipped the durable mode: got %o, want 644 — audit readers silently lost access", got)
+	}
+}
