@@ -107,9 +107,9 @@ class LifecycleRepair(unittest.TestCase):
   mounts=[c[i+1] for i,v in enumerate(c) if v=='--mount'];self.assertEqual([x for x in mounts if not x.endswith('readonly')],['type=bind,src=/output/cpu,dst=/output/cpu'])
  def test_record_grade_and_model_checks(self):
   from tools import r3_k0_current_identity_consume as C
-  d={'targets':{'base':{'model':{'path':'/model'}}}};z={'scorer':'scorer_r3.R3Scorer','mode':'rightpad','dtype':'float32','hf32':False,'token_budget':16384,'score_chunk_questions':32,'dedup':True,'render':'record_name','model_path':'/model','adapter':None,'record_grade':True,'record_grade_problems':[]}
+  d={'targets':{'base':{'model':{'path':'/model'}}}};z={'scorer':'scorer_r3.R3Scorer','mode':'rightpad','dtype':'float32','hf32':{'conv':False,'hf32':False,'matmul':False},'token_budget':16384,'score_chunk_questions':32,'dedup':True,'render':'record_name','model_path':'/model','adapter':None,'record_grade':True,'record_grade_problems':[]}
   C.record_grade(d,{'weights':'base','describe':z})
-  for k,v in [('model_path','/foreign'),('record_grade',False),('hf32',True),('score_chunk_questions',True),('token_budget',32),('adapter','/adapter')]:
+  for k,v in [('model_path','/foreign'),('record_grade',False),('hf32',True),('hf32',False),('hf32',{'conv':False,'hf32':False}),('hf32',{'conv':False,'hf32':False,'matmul':0}),('hf32',{'conv':False,'hf32':False,'matmul':True}),('score_chunk_questions',True),('token_budget',32),('adapter','/adapter')]:
    with self.subTest(k=k),self.assertRaises(ValueError):C.record_grade(d,{'weights':'base','describe':dict(z,**{k:v})})
 
 if __name__=='__main__':unittest.main()

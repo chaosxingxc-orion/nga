@@ -37,7 +37,7 @@ def verify_model_identity(d,report,U,cache_root):
         require(U.canonical(actual)==U.canonical(report['identity'][m]) and actual['sha256']==d['targets'][m]['model']['sha256'],'report/disk model identity differs')
 
 def record_grade(d,r):
-    z=r['describe'];require(z['scorer']=='scorer_r3.R3Scorer' and z['mode']=='rightpad' and z['dtype']=='float32' and z['hf32']is False,'scorer implementation differs')
+    z=r['describe'];require(z['scorer']=='scorer_r3.R3Scorer' and z['mode']=='rightpad' and z['dtype']=='float32' and type(z['hf32']) is dict and set(z['hf32'])=={'conv','hf32','matmul'} and all(v is False for v in z['hf32'].values()),'scorer implementation differs')
     require(integer(z['token_budget'],16384) and integer(z['score_chunk_questions'],32) and z['dedup']is True and z['render']=='record_name','scorer record path differs')
     require(z['model_path']==d['targets'][r['weights']]['model']['path'] and z['adapter']is None and z['record_grade']is True and z['record_grade_problems']==[],'record grade/weight identity differs')
 
