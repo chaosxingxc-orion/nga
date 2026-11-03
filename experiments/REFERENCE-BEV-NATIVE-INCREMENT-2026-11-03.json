@@ -1,0 +1,91 @@
+{
+  "schema": "nga-native-public-test-result-increment-v1",
+  "date": "2026-11-03",
+  "scope": "fixed_base_public_test_only",
+  "dataset": "avbiswas/bev-decision",
+  "configuration": "default",
+  "split": "test",
+  "source_rows": 24386,
+  "questions": 46320,
+  "semantic_duplicate_excess": 9,
+  "inputs_over4096_retained": 44,
+  "maximum_observed_tokens": 5296,
+  "engine": "Transformers full-label fp32 batch1 HF32 off max8192",
+  "metric_definition": "count(first_index == gold)/46320",
+  "type_breakdowns_origin": "NGA additive descriptive strata",
+  "models": [
+    {
+      "model": "Qwen3.5-0.8B-Base",
+      "model_manifest_sha256": "28783a11558cc6b99e9a045bae574d9c484fd3279572605268fd31f480b7e357",
+      "metrics": {
+        "n": 46320,
+        "correct": 24329,
+        "accuracy": 0.5252374784110535,
+        "by_type": {
+          "choice": {
+            "n": 18808,
+            "correct": 9404,
+            "accuracy": 0.5,
+            "metric_origin": "NGA additive stratification"
+          },
+          "yes_no": {
+            "n": 17572,
+            "correct": 12100,
+            "accuracy": 0.6885954928295015,
+            "metric_origin": "NGA additive stratification"
+          },
+          "score": {
+            "n": 9940,
+            "correct": 2825,
+            "accuracy": 0.28420523138833,
+            "metric_origin": "NGA additive stratification"
+          }
+        },
+        "adaptive": "NOT_EVALUATED"
+      },
+      "runtime": {
+        "chips": 1,
+        "dtype": "float32",
+        "hf32": false,
+        "peak_reserved_gib": 4.83203125,
+        "reserved_gib": 4.83203125,
+        "torch": "2.10.0+cpu",
+        "torch_npu": "2.10.0.post7",
+        "transformers": "5.14.1"
+      },
+      "result_acceptance": {
+        "path": "/home/xingchao/workspace/nga/.local/reviews/native08b-full-result-independent-20261103-v1/ACCEPTANCE.json",
+        "sha256": "222bb7915b43f18088fa385c850b2f32b49dffc29680f170ebac9470de63a6ce"
+      },
+      "status": "independently_reconstructed"
+    }
+  ],
+  "boundaries": [
+    "Compact label operands are fully reconstructed; full-vocabulary finiteness is inference-attested, full vectors not persisted.",
+    "Single fixed-base public TEST descriptive report only; no training gain, tuning permission, adaptive result or generalization claim.",
+    "Published vLLM top20/H100/Tacit trained-weight results remain separate protocol/weight columns.",
+    "Domain/qid/cardinality breakdowns are post-run descriptive NGA audit strata, not newly preregistered performance gates."
+  ],
+  "anomaly_diagnosis": {
+    "choice_exact_half_real_nonconstant": true,
+    "choice_nonzero_predictions": 3582,
+    "choice_unique_raw_vectors": 18799,
+    "qid_extreme_groups": 501,
+    "qid_extreme_n_ge30": 4,
+    "constant_gold_perfect_qids": [
+      "tool_selection",
+      "progress_inventory",
+      "progress_look_around"
+    ],
+    "low_n_domain_kind": "Software engineering and code / yes_no:3/6"
+  },
+  "scientific_acceptance": false,
+  "training_gain_established": false,
+  "candidate_selection_allowed": false,
+  "ordered_inputs_sha256": "43ed705e3af56064a35fc8498c561735e113bc1d5b8d3e9454551f24b72396dd",
+  "contract_sha256": "b17a55dc8ddf426f271fe4a511e9db11b0cd586cb198bba0a125f363828485e4",
+  "summary": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_full_panel_20261103_v3/output/cpu/1/summary.json",
+    "sha256": "0c34c29b3bf5acd195db89202bb7c3d2f0f0c7b437051c9b0e4321bab47a315b"
+  }
+}

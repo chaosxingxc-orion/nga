@@ -34,6 +34,20 @@ The 9B independent inherited-model review exactly reconstructed the complete CPU
 
 9B report: `/mnt/cephfs/xingchao/experiments/jev/r3_runs/bev_public_test_9b_20261102_v1/cpu/report.json`, SHA256 `a8b0e3adc00714e58364c747f21c3a9c59405c1510a224014e1b635ffeb7f8a2`. Exact score MAE: `0.9632892804698973`; normalized error: `0.30922662750856583`, denominator 681. Historical readings and the separate 38-unit coverage count are unchanged.
 
+## BEV default full TEST increment — native full-label, 2026-11-03
+
+This is a separate protocol and population from numeric_temporal above: avbiswas/bev-decision default public TEST, 24,386 source rows and 46,320 questions. Qwen3.5-0.8B-Base uses Transformers full-label fp32, batch1, HF32 off, maximum8192; all44 inputs above4096 and nine semantic duplicate requests are retained. The exact result record is [REFERENCE-BEV-NATIVE-INCREMENT-2026-11-03.json](REFERENCE-BEV-NATIVE-INCREMENT-2026-11-03.json).
+
+| Model | Correct/questions | Accuracy | Choice correct/n | Yes/no correct/n | Score exact correct/n | Adaptive |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Qwen3.5-0.8B-Base | 24329/46320 | 52.524% | 9404/18808, 50.000% | 12100/17572, 68.860% | 2825/9940, 28.421% | NOT_EVALUATED |
+
+Every committed record, identity/order, selected fp32 label-logit arithmetic, typed choice and automatic CPU summary was independently reconstructed; maximum arithmetic discrepancy0. Production stores selected label logits, so full-vocabulary finiteness is inference-attested rather than independently replayable from saved full vectors. This is a descriptive fixed-base TEST result, not training benefit, candidate selection or matched reproduction of vLLM top20/H100/Tacit trained weights. Upstream released-run exact revision lineage remains unknown.
+
+Choice accuracy exactly50% was investigated:3,582 predictions are nonzero, and18,799 distinct selected-logit vectors remain across18,808 questions; this is not a constant-zero fallback. Three perfect qid groups (779/779,61/61,60/60) have constant gold and predictions and do not establish discrimination.622 of699 qid groups have fewer than30 observations; these are descriptive flags, not new performance gates. Type, domain and qid strata are NGA additive diagnostics;18 domains do not mean18 independent datasets.
+
+The 2B/4B/9B complete-panel results remain pending their own terminal and independent acceptance. Do not derive a gain by subtracting this52.524% from the different6518-question protocol. Existing reference metrics and denominators are unchanged.
+
 ## Evidence and reading conventions
 
 - [REFERENCE-BASELINE-MATRIX-2026-10-31.json](REFERENCE-BASELINE-MATRIX-2026-10-31.json) — SHA256 `03459facf6f86a919e10d9a0acef413b89c5a5d4ffd232352260722b05d0266e`.
