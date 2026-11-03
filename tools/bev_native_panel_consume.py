@@ -60,7 +60,7 @@ def consume(path,pin,cpu_path,cpu_pin,attempt):
     X.require(completion['completed']==len(items) and type(completion['completed']) is int and completion['receipts_sha256']==N.digest(receipts) and completion['contract_sha256']==d['contract_sha256'] and completion['ordered_inputs_sha256']==d['ordered_inputs_sha256'] and completion['model_sha256']==d['model_sha256'],'completion differs')
     X.require(all(type(completion[k]) is int and completion[k]>=0 for k in ('computed','reused')) and completion['computed']+completion['reused']==len(items) and integer(completion['forwards_per_new_item'],1),'completion counts differ')
     result=join(items,prepared,gold,pred,contract,P,N)
-    result.update(schema='bev-native-panel-summary-v1',plan_sha256=pin,cpu_plan_sha256=cpu_pin,attempt=attempt,scope=d['scope'],model='Qwen3.5-0.8B-Base fixed checkpoint',engine='Transformers full-label fp32 b1 HF32 off',published_comparison='vLLM top20/H100/Tacit trained weights separate; upstream exact revision lineage unknown')
+    result.update(schema='bev-native-panel-summary-v1',plan_sha256=pin,cpu_plan_sha256=cpu_pin,attempt=attempt,scope=d['scope'],model=X.fixed_base_name(d['model'])+' fixed checkpoint',engine='Transformers full-label fp32 b1 HF32 off',published_comparison='vLLM top20/H100/Tacit trained weights separate; upstream exact revision lineage unknown')
     return result
 
 def worker(v):

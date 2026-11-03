@@ -26,10 +26,15 @@ def item_check(item, i, limit):
     require(type(item['input_ids']) is list and 0<len(item['input_ids'])<=limit and all(type(x) is int and x>=0 for x in item['input_ids']),'length/token differs')
     ids=item['label_ids'];require(type(ids) is list and len(ids)==len(set(ids))==len(item['options']) and len(ids)>=2 and all(type(x) is int and 0<=x<248320 for x in ids),'label ids differ')
     require(type(item['request_sha256']) is str and len(item['request_sha256'])==64,'request hash missing')
+def fixed_base_name(model):
+    p=Path(model)
+    require(str(p)==model and p.parent in (Path('/mnt/cephfs/xingchao/models/jev'),Path('/mnt/cephfs/xingchao/omni/models/jev')),'fixed base mirror differs')
+    require(p.name in ('Qwen__Qwen3.5-0.8B-Base','Qwen__Qwen3.5-2B-Base'),'fixed base family member differs')
+    return p.name.removeprefix('Qwen__')
 def verify(path,pin):
     require(sha(path)==pin,'plan changed');d=read(path)
     require(d['schema']=='bev-native-panel-host-v1' and d['scope'] in ('public_fixed_base_test','synthetic_long_dev'),'scope differs')
-    require(type(d['chip']) is int and d['chip'] in (0,7) and d['batch_size']==1 and type(d['batch_size']) is int and d['max_length']==8192,'chip/batch/length differs')
+    require(type(d['chip']) is int and d['chip'] in (0,6,7) and d['batch_size']==1 and type(d['batch_size']) is int and d['max_length']==8192,'chip/batch/length differs')
     require(d['scientific_acceptance'] is False and d['candidate_test_authority'] is False and d['candidate_selection_allowed'] is False,'candidate authority forbidden')
     require(d['test_read'] is (d['scope']=='public_fixed_base_test'),'public scope differs')
     require(d['poll_seconds']==600 and d['adapter'] is None,'poll/adapter differs')
@@ -53,7 +58,8 @@ def verify(path,pin):
     base=Path('/mnt/cephfs/xingchao/experiments/jev/r3_runs');out=Path(d['out'])
     require(out.is_relative_to(base) and out.name=='output' and d['run']=='r3_runs/'+out.parent.name and not any(p.is_symlink() for p in [out,*out.parents]),'output identity differs')
     require(d['allocation']==str(base.parent/'CHIP-ALLOCATION.json') and d['container'].startswith('nga-native-panel-') and all(c.isalnum() or c in '-_' for c in d['container']),'lifecycle differs')
-    if d['scope']=='public_fixed_base_test':require(d['count']==46320 and d['model']=='/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base','full fixed-base TEST only')
+    fixed_base_name(d['model'])
+    if d['scope']=='public_fixed_base_test':require(d['count']==46320,'full fixed-base TEST only')
     else:require(d['count']==3 and [len(x['input_ids']) for x in items]==[4097,5296,8192],'long DEV boundary panel differs')
     return d,L,N,items
 
