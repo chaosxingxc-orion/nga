@@ -25,8 +25,8 @@ class Report(unittest.TestCase):
         self.run = self.root/'run'; self.out=self.run/'results'
         self.readouts=self.out/'trackt/readouts'; self.readouts.mkdir(parents=True)
         self.training=self.root/'training'; self.training.mkdir(); self.data=self.root/'data'; self.data.mkdir()
-        self.write(self.training/'plan.json', {'control_arm':'K1-PT','arm':'k1','model':R.PT_MODEL,'seed':2,'command':['train']})
-        self.write(self.training/'manifest.json', {'args':{'drop_state':False},'total_steps':3116,'summary':{'final_step':3116}})
+        self.write(self.training/'plan.json', {'control_arm':'K1-PT','arm':'k1','model':R.PT_MODEL,'seed':2,'command':['python3','-P','/workspace/train_r3.py','--arm','k1','--seed','2','--model-path',R.PT_MODEL]})
+        self.write(self.training/'manifest.json', {'arm':'k1','args':{'arm':'k1','drop_state':False},'total_steps':3116,'summary':{'final_step':3116}})
         tasks={'T1':'a','T2':'b','T3':'c'}; sources=['typed-decisions','openjev-synth','akhilaaa3']
         manifest={'tasks':{d:{s:{} for s in sources if t!='T3' or s=='typed-decisions'} for t,d in tasks.items()}}
         self.rows={}; files={}
@@ -220,5 +220,22 @@ print('FROZEN_API_AND_SYNTHETIC_POPULATION_OK')
         self.assertEqual(lines[0]['verdict'],'not admissible')
         self.assertEqual((lines[0]['n_trained'],lines[0]['n_base']),(40,39))
         self.assertEqual((lines[0]['flip_n_pairs_trained'],lines[0]['flip_n_pairs_base']),(40,38))
+
+class FormalControlObjectiveTests(unittest.TestCase):
+    def plan(self):
+        return {'seed':3,'model':'/model','command':['python3','-P','/workspace/train_r3.py',
+                '--arm','k1','--seed','3','--model-path','/model']}
+
+    def test_formal_plan_without_duplicate_arm_is_supported(self):
+        self.assertEqual(R.control_objective(self.plan()),'k1')
+
+    def test_duplicate_alias_unknown_and_mismatch_reject(self):
+        variants=[]
+        for suffix in (['--arm','k1'],['--ar','k1'],['--unknown','x'],['--arm=k1']):
+            p=self.plan();p['command']+=suffix;variants.append(p)
+        for k,v in (('arm','k2'),('seed',True),('model','/other')):
+            p=self.plan();p[k]=v;variants.append(p)
+        for p in variants:
+            with self.subTest(plan=p),self.assertRaises(ValueError):R.control_objective(p)
 
 if __name__=='__main__':unittest.main()

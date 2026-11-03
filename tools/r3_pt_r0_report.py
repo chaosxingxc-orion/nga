@@ -124,6 +124,33 @@ def header_checks(receipt, contract, deps):
     return h
 
 
+def control_objective(plan):
+    """Read the recorded canonical argv; formal plans need no duplicate arm key."""
+    command = plan.get('command')
+    require(isinstance(command, list) and all(type(x) is str for x in command)
+            and command[:3] == ['python3', '-P', '/workspace/train_r3.py'],
+            'control training command differs')
+    valued = {'--out', '--arm', '--seed', '--model-path', '--epochs', '--total-steps',
+              '--stop-after', '--lr', '--lora-r', '--lora-alpha', '--lora-dropout',
+              '--expect-pairs', '--kernel', '--micro-tokens', '--max-len',
+              '--save-every', '--symbol-file', '--symbol-n', '--limit-rows', '--device'}
+    switches = {'--grad-ckpt', '--full-logits', '--drop-state', '--no-merge'}
+    parsed = {}; i = 3
+    while i < len(command):
+        flag = command[i]
+        require(flag in valued or flag in switches, 'unknown or noncanonical training flag')
+        require(flag not in parsed, 'duplicate training flag')
+        if flag in switches:
+            parsed[flag] = True; i += 1
+        else:
+            require(i + 1 < len(command) and not command[i + 1].startswith('-'), 'missing training value')
+            parsed[flag] = command[i + 1]; i += 2
+    require(parsed.get('--arm') == 'k1' and plan.get('arm', 'k1') == 'k1', 'training objective differs')
+    require(type(plan.get('seed')) is int and parsed.get('--seed') == str(plan['seed'])
+            and parsed.get('--model-path') == plan.get('model'), 'training argv identity differs')
+    return 'k1'
+
+
 def training_checks(receipt, contract, E):
     identity = E.train_identity(receipt)
     require(identity.get('arm') == 'K1-PT' and type(identity.get('seed')) is int
@@ -133,12 +160,13 @@ def training_checks(receipt, contract, E):
     require(path == Path(identity['training_manifest']).parent / 'plan.json'
             and sha(path) == descriptor['sha256'], 'control training plan unbound')
     plan = load(path)
-    require(plan.get('control_arm') == 'K1-PT' and plan.get('arm') == 'k1'
+    require(plan.get('control_arm') == 'K1-PT' and control_objective(plan) == 'k1'
             and plan.get('model') == PT_MODEL and type(plan.get('seed')) is int
             and plan['seed'] == identity['seed'] and '--drop-state' not in plan.get('command', []),
             'control training plan differs')
     manifest = load(identity['training_manifest'])
-    require(manifest.get('args', {}).get('drop_state') is False
+    require(manifest.get('arm') == manifest.get('args', {}).get('arm') == 'k1'
+            and manifest.get('args', {}).get('drop_state') is False
             and manifest.get('total_steps') == 3116
             and manifest.get('summary', {}).get('final_step') == 3116,
             'full PT training required')
