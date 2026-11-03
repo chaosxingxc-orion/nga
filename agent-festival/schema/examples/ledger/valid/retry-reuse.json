@@ -1,0 +1,82 @@
+{
+  "ledger_version": "0.1.0",
+  "events": [
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 0,
+      "identity": {
+        "business_request_id": "br-a002",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-credit-2"
+      },
+      "versions": {
+        "evidence": "ev-2",
+        "rule": "rule-v1",
+        "model": "m-1",
+        "readout": "r-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "adopted",
+        "detail": "fixture"
+      },
+      "accountability": {
+        "session": "sess-1",
+        "skill": "skill-credit",
+        "role": "employee"
+      },
+      "idempotency": {
+        "operation_id": "op-credit-2",
+        "payload_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://credit/a2",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        },
+        {
+          "kind": "tool",
+          "selector": "tool://credit-transfer",
+          "actions": [
+            "execute"
+          ],
+          "effect": "irreversible"
+        }
+      ]
+    },
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 1,
+      "identity": {
+        "business_request_id": "br-a002",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-credit-2"
+      },
+      "versions": {
+        "evidence": "ev-2",
+        "rule": "rule-v1",
+        "model": "m-1",
+        "readout": "r-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "reused",
+        "detail": "fixture"
+      },
+      "accountability": {
+        "session": "sess-1",
+        "skill": "skill-credit",
+        "role": "employee"
+      },
+      "idempotency": {
+        "operation_id": "op-credit-2",
+        "payload_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  ],
+  "_expect": "ACCEPT: a retry under the same operation_id + payload digest records a 'reused' outcome — repeated-request idempotence in the ledger; also the durable shape a concurrent same-key same-digest race collapses into (arrival order is recorded, concurrency is not)"
+}

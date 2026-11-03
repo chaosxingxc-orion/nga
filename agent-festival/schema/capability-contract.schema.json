@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-festival.local/schema/capability-contract/0.1.0",
+  "title": "Capability Contract (L3) — minimal viable schema, draft 0.1.0",
+  "description": "Machine-readable contract that puts what an agent DOES (provides) and what it NEEDS (requires) on equal footing. Design intent: every entry in `requires` is compilable into a scoped, short-lived capability token. In 0.1.0 compilability is approximated by negative hard gates (known-uncompilable forms are rejected); the compiler itself (contract -> permission policy) is P6 and not yet built. Anything that cannot be enforced at runtime belongs in `notes`, not in `requires`. See docs/adr/0001.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "subject", "provides", "requires", "effects", "bounds"],
+  "properties": {
+    "contract_version": {
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "subject": {
+      "description": "Which agent this contract describes. `id` is the A2A Agent Card `name` or an OASF record `name`; `version` is the agent version, not the contract version.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "card_url": { "type": "string", "format": "uri" }
+      }
+    },
+    "provides": {
+      "description": "What the agent can do. Each item points at an A2A skill id on the Agent Card (and optionally an OASF skill class) so that L4 candidate retrieval reuses existing skill taxonomies instead of inventing a new one.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["skill_id"],
+        "properties": {
+          "skill_id": { "type": "string", "minLength": 1, "description": "A2A AgentSkill.id" },
+          "oasf_skill": { "type": "string", "description": "OASF skill class name, e.g. natural_language_processing/summarization" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "requires": {
+      "description": "Grants the caller must be able to issue for this agent to run. Empty array is legal and means the agent needs nothing beyond the task input. HARD GATE: each item must name a concrete resource selector — a bare wildcard is rejected because it cannot be compiled into a bounded token.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/grant" }
+    },
+    "effects": {
+      "description": "Worst-case side-effect envelope of running this agent. `level` must be >= the highest `effect` declared in `requires` (checked by the validator, not expressible in JSON Schema).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level"],
+      "properties": {
+        "level": { "$ref": "#/$defs/effect_level" },
+        "compensation": {
+          "description": "How an irreversible or reversible effect can be undone. Required by the validator when level != none.",
+          "type": "string",
+          "enum": ["none", "manual", "automatic"]
+        }
+      }
+    },
+    "bounds": {
+      "description": "Upper limits the agent commits to per task. Each field is optional but the object is required so that 'no bounds declared' is an explicit, visible choice.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["amount", "unit"],
+          "properties": {
+            "amount": { "type": "integer", "minimum": 0, "maximum": 9007199254740991, "description": "Integer amount in the unit's smallest denomination (e.g. USD cents). Safe-integer ceiling keeps every language implementation exact." },
+            "unit": { "type": "string", "minLength": 1, "description": "e.g. USD, CNY, token, credit" }
+          }
+        },
+        "max_seconds": { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 },
+        "max_downstream_calls": { "type": "integer", "minimum": 0, "maximum": 9007199254740991, "description": "Upper bound on calls this agent makes to other agents/tools per task" },
+        "max_bytes_out": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+      }
+    },
+    "notes": {
+      "description": "Free text for anything that is true but NOT enforceable at runtime (e.g. 'works best on English input'). Never used by L3 enforcement or L4 filtering.",
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "effect_level": {
+      "type": "string",
+      "enum": ["none", "reversible", "irreversible"]
+    },
+    "grant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource", "actions", "effect"],
+      "properties": {
+        "resource": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "selector"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["data", "tool", "network", "agent", "secret"]
+            },
+            "selector": {
+              "description": "Concrete identifier of the resource: a URI / URI template for data, a tool name for tool, a host or host pattern for network, an agent id or capability query for agent, a secret name for secret. 0.1.0 accepts printable ASCII only (0x21-0x7E, no whitespace anywhere): URIs and hostnames are ASCII by construction (RFC 3986 percent-encoding, IDNA), and this is what keeps zero-width characters, BOMs and full-width look-alikes of '*' out of the wildcard check (round 16 second pass). A bare '*' and a percent-encoded '*' (%2A) are rejected here; validate.py additionally requires canonical percent-encoding (RFC 3986 §6.2.2: two uppercase hex digits, no escape for an unreserved character, escapes decode as UTF-8). Nothing ever decodes a selector (D40): the runtime normalizes request URIs to the same canonical encoded form and matches encoded against encoded, so '%EF%BC%8A' is a path segment that matches only itself and reads as an opaque escape, '%252A' is the literal text '%2A', and no percent-encoded look-alike of '*' can become a wildcard. `tool` and `secret` selectors are identifiers, not display names: MCP tool names, Kubernetes Secret names (DNS-1123) and AWS Secrets Manager names are all ASCII by rule, so the class applies to them too. Embedded globs and template variables ('s3://x/*.pdf', '{tenant}') are legal here and fall under the review gate until the 0.2.0 grammar (D32).",
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(?!\\*$)(?!.*%2[aA])[\\x21-\\x7E]+$"
+            }
+          }
+        },
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": ["read", "write", "execute", "delegate"]
+          }
+        },
+        "effect": { "$ref": "#/$defs/effect_level" },
+        "supplied_by": {
+          "description": "Who hands this grant to the node at run time. `caller` = the party invoking the node must hold and delegate it; `upstream` = a previous node in the execution graph produces it, so this node's own token omits it. `upstream` is a checked declaration, not a subtraction from the graph's requires: compose.py verifies that a supplier (source of an incoming edge, transitively) holds the same kind, selector and action at an effect at least as severe, and rejects the graph otherwise. The caller still has to hold the grant for the supplier. Absent means caller. The `default` keyword below is documentation only: JSON Schema validators do not fill defaults, so every consumer treats absence as caller explicitly.",
+          "type": "string",
+          "enum": ["caller", "upstream"],
+          "default": "caller"
+        },
+        "purpose": { "type": "string", "description": "Human-readable reason; not enforced" }
+      },
+      "allOf": [
+        {
+          "description": "Only `agent` resources can be delegated to; delegation of anything else is meaningless.",
+          "if": { "properties": { "actions": { "contains": { "const": "delegate" } } } },
+          "then": { "properties": { "resource": { "properties": { "kind": { "const": "agent" } } } } }
+        },
+        {
+          "description": "Read-only grants cannot claim side effects.",
+          "if": { "properties": { "actions": { "const": ["read"] } } },
+          "then": { "properties": { "effect": { "const": "none" } } }
+        }
+      ]
+    }
+  }
+}

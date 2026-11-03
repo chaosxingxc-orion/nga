@@ -1,0 +1,145 @@
+{
+  "case_version": "0.1.0",
+  "case_id": "race-b-first",
+  "steps": [
+    {
+      "op": "adopt",
+      "request": {
+        "adoption_version": "0.1.0",
+        "identity": {
+          "business_request_id": "br-t",
+          "evaluation_revision": "er-1",
+          "operation_id": "op-a"
+        },
+        "versions": {
+          "evidence": "ev-1",
+          "rule": "r-1",
+          "model": "m-1",
+          "readout": "ro-1",
+          "policy": "p-1"
+        },
+        "payload_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "grants_at_decision": [
+          {
+            "kind": "data",
+            "selector": "ledger://t",
+            "actions": [
+              "read"
+            ],
+            "effect": "none"
+          }
+        ],
+        "accountability": {
+          "session": "s-1",
+          "skill": "sk-1",
+          "role": "employee"
+        }
+      }
+    },
+    {
+      "op": "adopt",
+      "request": {
+        "adoption_version": "0.1.0",
+        "identity": {
+          "business_request_id": "br-t",
+          "evaluation_revision": "er-1",
+          "operation_id": "op-a"
+        },
+        "versions": {
+          "evidence": "ev-1",
+          "rule": "r-1",
+          "model": "m-1",
+          "readout": "ro-1",
+          "policy": "p-1"
+        },
+        "payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "grants_at_decision": [
+          {
+            "kind": "data",
+            "selector": "ledger://t",
+            "actions": [
+              "read"
+            ],
+            "effect": "none"
+          }
+        ],
+        "accountability": {
+          "session": "s-1",
+          "skill": "sk-1",
+          "role": "employee"
+        }
+      }
+    }
+  ],
+  "recorded_events": [
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 0,
+      "identity": {
+        "business_request_id": "br-t",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-a"
+      },
+      "versions": {
+        "evidence": "ev-1",
+        "rule": "r-1",
+        "model": "m-1",
+        "readout": "ro-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "adopted",
+        "detail": "record"
+      },
+      "idempotency": {
+        "operation_id": "op-a",
+        "payload_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://t",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        }
+      ],
+      "accountability": {
+        "session": "s-1",
+        "skill": "sk-1",
+        "role": "employee"
+      }
+    },
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 1,
+      "identity": {
+        "business_request_id": "br-t",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-a"
+      },
+      "versions": {
+        "evidence": "ev-1",
+        "rule": "r-1",
+        "model": "m-1",
+        "readout": "ro-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "conflict",
+        "detail": "record"
+      },
+      "accountability": {
+        "session": "s-1",
+        "skill": "sk-1",
+        "role": "employee"
+      }
+    }
+  ],
+  "expected": {
+    "fidelity": "match",
+    "conformance": "pass"
+  },
+  "_expect": "family (e): same inputs, second arrival carries a different digest — the loser is recorded as a conflict without idempotency; two legal arbitration outcomes, each pinned by its own case"
+}

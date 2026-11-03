@@ -1,0 +1,112 @@
+{
+  "_expect": "ACCEPT: a governance action (publishing a contract version) is an ordinary task: kind=data selectors under catalog:// and keystore://, write is reversible via withdraw-version, and the catalog admin's held grants cover it. No new resource kind is needed.",
+  "nodes": {
+    "catalog-publisher": {
+      "contract_version": "0.1.0",
+      "subject": {
+        "id": "catalog-publisher",
+        "version": "0.1.0",
+        "card_url": "https://agents.example.com/catalog-publisher/.well-known/agent-card.json"
+      },
+      "provides": [
+        {
+          "skill_id": "publish-contract-version",
+          "description": "Register a signed contract envelope as a new catalog version"
+        }
+      ],
+      "requires": [
+        {
+          "resource": {
+            "kind": "data",
+            "selector": "catalog://contracts/doc-extractor/versions"
+          },
+          "actions": [
+            "write"
+          ],
+          "effect": "reversible",
+          "purpose": "append a new version record; a version can be withdrawn, never rewritten"
+        },
+        {
+          "resource": {
+            "kind": "data",
+            "selector": "keystore://trusted/subject_of/doc-extractor"
+          },
+          "actions": [
+            "read"
+          ],
+          "effect": "none",
+          "purpose": "owner binding check before accepting the envelope"
+        }
+      ],
+      "effects": {
+        "level": "reversible",
+        "compensation": "automatic"
+      },
+      "bounds": {
+        "max_cost": {
+          "amount": 0,
+          "unit": "USD"
+        },
+        "max_seconds": 30,
+        "max_downstream_calls": 1
+      },
+      "notes": "Governance action expressed with the existing resource kinds only (round 19, E2)."
+    }
+  },
+  "edges": [],
+  "plan": {
+    "seq": [
+      "catalog-publisher"
+    ]
+  },
+  "caller_holds": [
+    {
+      "resource": {
+        "kind": "data",
+        "selector": "catalog://contracts/doc-extractor/versions"
+      },
+      "actions": [
+        "write"
+      ],
+      "effect": "reversible"
+    },
+    {
+      "resource": {
+        "kind": "data",
+        "selector": "keystore://trusted/subject_of/doc-extractor"
+      },
+      "actions": [
+        "read"
+      ],
+      "effect": "none"
+    }
+  ],
+  "_expect_composed": {
+    "effects": {
+      "level": "reversible",
+      "compensation": "automatic"
+    },
+    "bounds": {
+      "max_cost": {
+        "amount": 0,
+        "unit": "USD"
+      },
+      "max_downstream_calls": 1,
+      "max_seconds": 30
+    },
+    "requires": [
+      [
+        "data",
+        "catalog://contracts/doc-extractor/versions",
+        "write",
+        "reversible"
+      ],
+      [
+        "data",
+        "keystore://trusted/subject_of/doc-extractor",
+        "read",
+        "none"
+      ]
+    ]
+  }
+}

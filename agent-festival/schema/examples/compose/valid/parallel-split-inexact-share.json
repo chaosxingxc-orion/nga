@@ -1,0 +1,276 @@
+{
+  "_expect": "ACCEPT: parent 200 (cents), three children; 200 // 3 = 66 with remainder 2 dropped, so the three issued shares sum to 198 <= 200 and can never exceed the parent. Pinned so a ceiling/half-up mutation (share 67, sum 201 > 200) turns RED. max_downstream_calls 4 // 3 = 1 pins the integer floor (D22 rev: integer smallest denomination)",
+  "_expect_composed": {
+    "effects": {
+      "level": "none"
+    },
+    "bounds": {
+      "max_cost": {
+        "amount": 198,
+        "unit": "USD-cents"
+      },
+      "max_downstream_calls": 0,
+      "max_seconds": 60
+    },
+    "requires": [
+      [
+        "data",
+        "s3://tenant-{tenant}/inbox/*.pdf",
+        "read",
+        "none"
+      ],
+      [
+        "tool",
+        "ocr.tesseract",
+        "execute",
+        "none"
+      ]
+    ],
+    "shares": {
+      "extract-1": {
+        "max_cost": {
+          "amount": 66,
+          "unit": "USD-cents"
+        },
+        "max_downstream_calls": 1,
+        "max_seconds": 60
+      },
+      "extract-2": {
+        "max_cost": {
+          "amount": 66,
+          "unit": "USD-cents"
+        },
+        "max_downstream_calls": 1,
+        "max_seconds": 60
+      },
+      "extract-3": {
+        "max_cost": {
+          "amount": 66,
+          "unit": "USD-cents"
+        },
+        "max_downstream_calls": 1,
+        "max_seconds": 60
+      }
+    }
+  },
+  "nodes": {
+    "extract-1": {
+      "contract_version": "0.1.0",
+      "subject": {
+        "id": "doc-extractor",
+        "version": "1.4.0",
+        "card_url": "https://agents.example.com/doc-extractor/.well-known/agent-card.json"
+      },
+      "provides": [
+        {
+          "skill_id": "extract-fields",
+          "oasf_skill": "natural_language_processing/information_extraction",
+          "description": "Extract typed fields from PDF/DOCX contracts"
+        }
+      ],
+      "requires": [
+        {
+          "resource": {
+            "kind": "data",
+            "selector": "s3://tenant-{tenant}/inbox/*.pdf"
+          },
+          "actions": [
+            "read"
+          ],
+          "effect": "none",
+          "purpose": "source documents"
+        },
+        {
+          "resource": {
+            "kind": "tool",
+            "selector": "ocr.tesseract"
+          },
+          "actions": [
+            "execute"
+          ],
+          "effect": "none"
+        }
+      ],
+      "effects": {
+        "level": "none"
+      },
+      "bounds": {
+        "max_cost": {
+          "amount": 66,
+          "unit": "USD-cents"
+        },
+        "max_seconds": 60,
+        "max_downstream_calls": 0
+      },
+      "notes": "Accuracy degrades on scanned documents below 200 dpi."
+    },
+    "extract-2": {
+      "contract_version": "0.1.0",
+      "subject": {
+        "id": "doc-extractor",
+        "version": "1.4.0",
+        "card_url": "https://agents.example.com/doc-extractor/.well-known/agent-card.json"
+      },
+      "provides": [
+        {
+          "skill_id": "extract-fields",
+          "oasf_skill": "natural_language_processing/information_extraction",
+          "description": "Extract typed fields from PDF/DOCX contracts"
+        }
+      ],
+      "requires": [
+        {
+          "resource": {
+            "kind": "data",
+            "selector": "s3://tenant-{tenant}/inbox/*.pdf"
+          },
+          "actions": [
+            "read"
+          ],
+          "effect": "none",
+          "purpose": "source documents"
+        },
+        {
+          "resource": {
+            "kind": "tool",
+            "selector": "ocr.tesseract"
+          },
+          "actions": [
+            "execute"
+          ],
+          "effect": "none"
+        }
+      ],
+      "effects": {
+        "level": "none"
+      },
+      "bounds": {
+        "max_cost": {
+          "amount": 66,
+          "unit": "USD-cents"
+        },
+        "max_seconds": 60,
+        "max_downstream_calls": 0
+      },
+      "notes": "Accuracy degrades on scanned documents below 200 dpi."
+    },
+    "extract-3": {
+      "contract_version": "0.1.0",
+      "subject": {
+        "id": "doc-extractor",
+        "version": "1.4.0",
+        "card_url": "https://agents.example.com/doc-extractor/.well-known/agent-card.json"
+      },
+      "provides": [
+        {
+          "skill_id": "extract-fields",
+          "oasf_skill": "natural_language_processing/information_extraction",
+          "description": "Extract typed fields from PDF/DOCX contracts"
+        }
+      ],
+      "requires": [
+        {
+          "resource": {
+            "kind": "data",
+            "selector": "s3://tenant-{tenant}/inbox/*.pdf"
+          },
+          "actions": [
+            "read"
+          ],
+          "effect": "none",
+          "purpose": "source documents"
+        },
+        {
+          "resource": {
+            "kind": "tool",
+            "selector": "ocr.tesseract"
+          },
+          "actions": [
+            "execute"
+          ],
+          "effect": "none"
+        }
+      ],
+      "effects": {
+        "level": "none"
+      },
+      "bounds": {
+        "max_cost": {
+          "amount": 66,
+          "unit": "USD-cents"
+        },
+        "max_seconds": 60,
+        "max_downstream_calls": 0
+      },
+      "notes": "Accuracy degrades on scanned documents below 200 dpi."
+    }
+  },
+  "edges": [],
+  "plan": {
+    "par": [
+      "extract-1",
+      "extract-2",
+      "extract-3"
+    ]
+  },
+  "caller_holds": [
+    {
+      "resource": {
+        "kind": "data",
+        "selector": "s3://tenant-{tenant}/inbox/*.pdf"
+      },
+      "actions": [
+        "read"
+      ],
+      "effect": "none"
+    },
+    {
+      "resource": {
+        "kind": "tool",
+        "selector": "ocr.tesseract"
+      },
+      "actions": [
+        "execute"
+      ],
+      "effect": "none"
+    },
+    {
+      "resource": {
+        "kind": "agent",
+        "selector": "doc-extractor"
+      },
+      "actions": [
+        "delegate"
+      ],
+      "effect": "none"
+    },
+    {
+      "resource": {
+        "kind": "network",
+        "selector": "filings.regulator.gov"
+      },
+      "actions": [
+        "write"
+      ],
+      "effect": "irreversible"
+    },
+    {
+      "resource": {
+        "kind": "secret",
+        "selector": "regulator-api-key"
+      },
+      "actions": [
+        "read"
+      ],
+      "effect": "none"
+    }
+  ],
+  "parent_bounds": {
+    "max_cost": {
+      "amount": 200,
+      "unit": "USD-cents"
+    },
+    "max_seconds": 60,
+    "max_downstream_calls": 4
+  }
+}

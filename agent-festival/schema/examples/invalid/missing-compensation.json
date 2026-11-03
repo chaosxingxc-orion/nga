@@ -1,0 +1,32 @@
+{
+  "_expect": "REJECT (validator, not JSON Schema): effects.compensation is required when effects.level != none",
+  "_expect_match": "compensation is required",
+  "contract_version": "0.1.0",
+  "subject": {
+    "id": "no-undo-plan-agent",
+    "version": "1.0.0"
+  },
+  "provides": [
+    {
+      "skill_id": "update-crm"
+    }
+  ],
+  "requires": [
+    {
+      "resource": {
+        "kind": "network",
+        "selector": "crm.example.com"
+      },
+      "actions": [
+        "write"
+      ],
+      "effect": "reversible"
+    }
+  ],
+  "effects": {
+    "level": "reversible"
+  },
+  "bounds": {
+    "max_downstream_calls": 1
+  }
+}

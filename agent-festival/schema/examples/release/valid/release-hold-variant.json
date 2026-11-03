@@ -1,0 +1,58 @@
+{
+  "release_version": "0.1.0",
+  "release_id": "rel-credit-2026q4-2-hold",
+  "agent_identity": "agent://openjiuwen/credit-screener",
+  "references": {
+    "model_versions": [
+      "model:kev-9b@2.1.0"
+    ],
+    "readout_versions": [
+      "readout:credit-readout@1.3.0"
+    ],
+    "semantic_specifications": [
+      "judgment:q-credit-eligibility@1.0.0"
+    ],
+    "adoption_specifications": [
+      "adoption:policy-adopt-v1@0.3.0"
+    ],
+    "capability_definitions": [
+      "capability:doc-extractor@1.0.0"
+    ],
+    "workflow_definitions": [
+      "workflow:credit-evidence-collect@1.0.0"
+    ],
+    "graph_definitions": [
+      "graph:credit-a001@0.2.0"
+    ],
+    "context_policies": [
+      "context:pilot-region@1.0.0"
+    ],
+    "controller_contracts": [
+      "controller:adopt-gate@0.1.0"
+    ],
+    "enforcement_contracts": [
+      "enforcement:14-a4-revocation@0.1.0"
+    ]
+  },
+  "rollout": {
+    "new_tasks": "new tasks stay on rel-credit-2026q4-1 until the hold clears",
+    "in_flight": "hold-and-revise"
+  },
+  "rollback": {
+    "new_work_routing": "route new tasks back to rel-credit-2026q4-1",
+    "active_work_handling": "in-flight credit evaluations complete under the pinned v2 definitions; nothing is migrated mid-evaluation",
+    "external_effect_correction": "contract://credit/ledger-correction-v1 — the compensation contract for confirmed registrations"
+  },
+  "evidence": {
+    "version_compatibility": [
+      "compat-matrix:kev-9b@2.1.0-vs-readout@1.3.0"
+    ],
+    "policy_conformance": [
+      "conformance:adopt-policy-0.3-audit"
+    ],
+    "business_improvement": [
+      "metric:pilot-region-overdue-recall@2026q4"
+    ]
+  },
+  "_expect": "ACCEPT: the hold variant of the credit pilot's second release — identical references, rollback channels and evidence, with in_flight = hold-and-revise (the enum's remaining token gets its positive example; the three rollout tokens are now each carried by a valid fixture, so a misspelled or deleted member fails a must-accept on both validators)"
+}

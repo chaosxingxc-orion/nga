@@ -1,0 +1,31 @@
+{
+  "_expect": "REJECT: bare wildcard selector cannot be compiled into a bounded token (hard gate D8)",
+  "_expect_match": "resource/selector",
+  "contract_version": "0.1.0",
+  "subject": {
+    "id": "greedy-agent",
+    "version": "1.0.0"
+  },
+  "provides": [
+    {
+      "skill_id": "do-anything"
+    }
+  ],
+  "requires": [
+    {
+      "resource": {
+        "kind": "network",
+        "selector": "*"
+      },
+      "actions": [
+        "write"
+      ],
+      "effect": "irreversible"
+    }
+  ],
+  "effects": {
+    "level": "irreversible",
+    "compensation": "none"
+  },
+  "bounds": {}
+}

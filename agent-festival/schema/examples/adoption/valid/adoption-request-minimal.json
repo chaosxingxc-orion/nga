@@ -1,0 +1,24 @@
+{
+  "adoption_version": "0.1.0",
+  "identity": {
+    "business_request_id": "br-a002",
+    "operation_id": "op-credit-2"
+  },
+  "versions": {
+    "evidence": "ev-2",
+    "rule": "rule-credit-v3",
+    "model": "kev-9b",
+    "readout": "readout-v2",
+    "policy": "policy-adopt-v1"
+  },
+  "payload_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "grants_at_decision": [
+    {
+      "kind": "data",
+      "selector": "ledger://credit/a002",
+      "actions": ["read"],
+      "effect": "reversible"
+    }
+  ],
+  "_expect": "ACCEPT: minimal request — evaluation_revision and accountability are optional"
+}

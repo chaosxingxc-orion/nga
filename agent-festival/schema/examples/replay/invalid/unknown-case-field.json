@@ -1,0 +1,88 @@
+{
+  "case_version": "0.1.0",
+  "case_id": "x",
+  "case_level_smuggle": "the typed projection drops me",
+  "steps": [
+    {
+      "op": "adopt",
+      "request": {
+        "adoption_version": "0.1.0",
+        "identity": {
+          "business_request_id": "br-t",
+          "evaluation_revision": "er-1",
+          "operation_id": "op-x"
+        },
+        "versions": {
+          "evidence": "ev-1",
+          "rule": "r-1",
+          "model": "m-1",
+          "readout": "ro-1",
+          "policy": "p-1"
+        },
+        "payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "grants_at_decision": [
+          {
+            "kind": "data",
+            "selector": "ledger://t",
+            "actions": [
+              "read"
+            ],
+            "effect": "none"
+          }
+        ],
+        "accountability": {
+          "session": "s-1",
+          "skill": "sk-1",
+          "role": "employee"
+        }
+      }
+    }
+  ],
+  "recorded_events": [
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 0,
+      "identity": {
+        "business_request_id": "br-t",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-x"
+      },
+      "versions": {
+        "evidence": "ev-1",
+        "rule": "r-1",
+        "model": "m-1",
+        "readout": "ro-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "adopted",
+        "detail": "record"
+      },
+      "idempotency": {
+        "operation_id": "op-x",
+        "payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "accountability": {
+        "session": "s-1",
+        "skill": "sk-1",
+        "role": "employee"
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://t",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "fidelity": "match",
+    "conformance": "pass"
+  },
+  "_expect": "REJECT: the case document is a closed contract — an unknown top-level field must fail BOTH validators, not sneak past a typed-projection check on one side",
+  "_expect_match": "case_level_smuggle"
+}

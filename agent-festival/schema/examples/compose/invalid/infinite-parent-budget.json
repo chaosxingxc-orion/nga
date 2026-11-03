@@ -1,0 +1,198 @@
+{
+  "_expect": "REJECT at parse: Infinity is not a JSON number and not an integer amount; before round 16 P4-2 a NaN parent budget crashed the comparison in bounds_violations with decimal.InvalidOperation instead of rejecting",
+  "_expect_match": "not of type 'integer'",
+  "nodes": {
+    "doc-extractor": {
+      "contract_version": "0.1.0",
+      "subject": {
+        "id": "doc-extractor",
+        "version": "1.4.0",
+        "card_url": "https://agents.example.com/doc-extractor/.well-known/agent-card.json"
+      },
+      "provides": [
+        {
+          "skill_id": "extract-fields",
+          "oasf_skill": "natural_language_processing/information_extraction",
+          "description": "Extract typed fields from PDF/DOCX contracts"
+        }
+      ],
+      "requires": [
+        {
+          "resource": {
+            "kind": "data",
+            "selector": "s3://tenant-{tenant}/inbox/*.pdf"
+          },
+          "actions": [
+            "read"
+          ],
+          "effect": "none",
+          "purpose": "source documents"
+        },
+        {
+          "resource": {
+            "kind": "tool",
+            "selector": "ocr.tesseract"
+          },
+          "actions": [
+            "execute"
+          ],
+          "effect": "none"
+        }
+      ],
+      "effects": {
+        "level": "none"
+      },
+      "bounds": {
+        "max_cost": {
+          "amount": 5,
+          "unit": "USD"
+        },
+        "max_seconds": 60,
+        "max_downstream_calls": 0
+      },
+      "notes": "Accuracy degrades on scanned documents below 200 dpi."
+    },
+    "compliance-filer": {
+      "contract_version": "0.1.0",
+      "subject": {
+        "id": "compliance-filer",
+        "version": "0.9.2"
+      },
+      "provides": [
+        {
+          "skill_id": "file-regulatory-report",
+          "description": "Assemble and submit a regulatory filing"
+        }
+      ],
+      "requires": [
+        {
+          "resource": {
+            "kind": "agent",
+            "selector": "doc-extractor"
+          },
+          "actions": [
+            "delegate"
+          ],
+          "effect": "none",
+          "purpose": "field extraction is delegated; the caller must be able to grant doc-extractor's own requires transitively"
+        },
+        {
+          "resource": {
+            "kind": "data",
+            "selector": "s3://tenant-{tenant}/inbox/*.pdf"
+          },
+          "actions": [
+            "read"
+          ],
+          "effect": "none",
+          "supplied_by": "upstream"
+        },
+        {
+          "resource": {
+            "kind": "network",
+            "selector": "filings.regulator.gov"
+          },
+          "actions": [
+            "write"
+          ],
+          "effect": "irreversible",
+          "purpose": "submit filing"
+        },
+        {
+          "resource": {
+            "kind": "secret",
+            "selector": "regulator-api-key"
+          },
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        }
+      ],
+      "effects": {
+        "level": "irreversible",
+        "compensation": "manual"
+      },
+      "bounds": {
+        "max_cost": {
+          "amount": 200,
+          "unit": "USD"
+        },
+        "max_seconds": 600,
+        "max_downstream_calls": 3
+      }
+    }
+  },
+  "edges": [
+    [
+      "doc-extractor",
+      "compliance-filer"
+    ]
+  ],
+  "plan": {
+    "seq": [
+      "doc-extractor",
+      "compliance-filer"
+    ]
+  },
+  "caller_holds": [
+    {
+      "resource": {
+        "kind": "data",
+        "selector": "s3://tenant-{tenant}/inbox/*.pdf"
+      },
+      "actions": [
+        "read"
+      ],
+      "effect": "none"
+    },
+    {
+      "resource": {
+        "kind": "tool",
+        "selector": "ocr.tesseract"
+      },
+      "actions": [
+        "execute"
+      ],
+      "effect": "none"
+    },
+    {
+      "resource": {
+        "kind": "agent",
+        "selector": "doc-extractor"
+      },
+      "actions": [
+        "delegate"
+      ],
+      "effect": "none"
+    },
+    {
+      "resource": {
+        "kind": "network",
+        "selector": "filings.regulator.gov"
+      },
+      "actions": [
+        "write"
+      ],
+      "effect": "irreversible"
+    },
+    {
+      "resource": {
+        "kind": "secret",
+        "selector": "regulator-api-key"
+      },
+      "actions": [
+        "read"
+      ],
+      "effect": "none"
+    }
+  ],
+  "parent_bounds": {
+    "max_cost": {
+      "amount": "Infinity",
+      "unit": "USD"
+    },
+    "max_seconds": 700,
+    "max_downstream_calls": 5
+  }
+}

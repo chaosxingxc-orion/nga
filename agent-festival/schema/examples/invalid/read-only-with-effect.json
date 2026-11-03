@@ -1,0 +1,31 @@
+{
+  "_expect": "REJECT: actions == [read] cannot claim a side effect (grant allOf rule #2)",
+  "_expect_match": "effect: 'none' was expected",
+  "contract_version": "0.1.0",
+  "subject": {
+    "id": "overclaiming-reader",
+    "version": "1.0.0"
+  },
+  "provides": [
+    {
+      "skill_id": "x"
+    }
+  ],
+  "requires": [
+    {
+      "resource": {
+        "kind": "data",
+        "selector": "s3://tenant-{tenant}/inbox/*.pdf"
+      },
+      "actions": [
+        "read"
+      ],
+      "effect": "reversible"
+    }
+  ],
+  "effects": {
+    "level": "reversible",
+    "compensation": "automatic"
+  },
+  "bounds": {}
+}
