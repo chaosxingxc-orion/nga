@@ -1,0 +1,158 @@
+{
+  "schema": "nga-interface-dev-independent-review-v1",
+  "verdict": "PASS_PREPARATION_ONLY_NOT_EXECUTION_AUTHORITY",
+  "scope": "CPU/configuration review; no NPU launch, no TEST rows, no scientific numerical admission",
+  "reviewer": "Codex independent parent component reviewer; not named Astra",
+  "objective": "Verify the crossed candidate interface DEV package is internally bound and safely gated before numerical admission.",
+  "method": [
+    "Read HANDOFF, BUILD-RESULT and INDEX",
+    "Rehashed all eight plan files against INDEX pins",
+    "Inspected runtime/source guards for full-vocabulary checks, item resumability, 600-second cadence and pending numerical gate",
+    "Ran five CPU tests in pinned reviewer Python 3.12 environment",
+    "Parsed all package Python sources with AST"
+  ],
+  "plan_checks": [
+    {
+      "model": "08b",
+      "stage": "numerical",
+      "plan_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/large_candidate_interface_execution_20261104_v1/interface_numerical_08b_20261104_v1/PLAN.json",
+      "plan_sha256": "96ae9c20fe0a0f256007a3077af44abce568a557c3fc43458e40d08144b24b3f",
+      "index_pin_match": true,
+      "ready": false,
+      "scientific_acceptance": false,
+      "test_read": false,
+      "poll_seconds": 600,
+      "chip": 0,
+      "requests": 48,
+      "forwards": 144
+    },
+    {
+      "model": "08b",
+      "stage": "behavior",
+      "plan_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/large_candidate_interface_execution_20261104_v1/interface_behavior_08b_20261104_v1/PLAN.json",
+      "plan_sha256": "d3ba4f843e5b162821d1145854be74854707f118d79903db42751e44f051d6d7",
+      "index_pin_match": true,
+      "ready": false,
+      "scientific_acceptance": false,
+      "test_read": false,
+      "poll_seconds": 600,
+      "chip": 0,
+      "requests": 672,
+      "forwards": 672
+    },
+    {
+      "model": "2b",
+      "stage": "numerical",
+      "plan_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/large_candidate_interface_execution_20261104_v1/interface_numerical_2b_20261104_v1/PLAN.json",
+      "plan_sha256": "97647a3f493d5c0db42ecd6c5c71e01690e79de9dd99e88dbd253d8a3bde1997",
+      "index_pin_match": true,
+      "ready": false,
+      "scientific_acceptance": false,
+      "test_read": false,
+      "poll_seconds": 600,
+      "chip": 1,
+      "requests": 48,
+      "forwards": 144
+    },
+    {
+      "model": "2b",
+      "stage": "behavior",
+      "plan_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/large_candidate_interface_execution_20261104_v1/interface_behavior_2b_20261104_v1/PLAN.json",
+      "plan_sha256": "e82139d7c5df4c298dde42b4dcc0712374b137c5d35fb99942ea2d4c21c1481e",
+      "index_pin_match": true,
+      "ready": false,
+      "scientific_acceptance": false,
+      "test_read": false,
+      "poll_seconds": 600,
+      "chip": 1,
+      "requests": 672,
+      "forwards": 672
+    },
+    {
+      "model": "4b",
+      "stage": "numerical",
+      "plan_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/large_candidate_interface_execution_20261104_v1/interface_numerical_4b_20261104_v1/PLAN.json",
+      "plan_sha256": "891a8cd392de8b31eb8179488eaf94ed20ee82080e35bf43c2541ef4cd216543",
+      "index_pin_match": true,
+      "ready": false,
+      "scientific_acceptance": false,
+      "test_read": false,
+      "poll_seconds": 600,
+      "chip": 2,
+      "requests": 48,
+      "forwards": 144
+    },
+    {
+      "model": "4b",
+      "stage": "behavior",
+      "plan_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/large_candidate_interface_execution_20261104_v1/interface_behavior_4b_20261104_v1/PLAN.json",
+      "plan_sha256": "14c1131cc740158911836bd9fec820eb5286304ceda81b5bea31667adbd4597e",
+      "index_pin_match": true,
+      "ready": false,
+      "scientific_acceptance": false,
+      "test_read": false,
+      "poll_seconds": 600,
+      "chip": 2,
+      "requests": 672,
+      "forwards": 672
+    },
+    {
+      "model": "9b",
+      "stage": "numerical",
+      "plan_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/large_candidate_interface_execution_20261104_v1/interface_numerical_9b_20261104_v1/PLAN.json",
+      "plan_sha256": "34c3ff9bc7eaa8cd5dad7870e490a0837aa231f91ad579c82e3269b66c90adaf",
+      "index_pin_match": true,
+      "ready": false,
+      "scientific_acceptance": false,
+      "test_read": false,
+      "poll_seconds": 600,
+      "chip": 3,
+      "requests": 48,
+      "forwards": 144
+    },
+    {
+      "model": "9b",
+      "stage": "behavior",
+      "plan_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/large_candidate_interface_execution_20261104_v1/interface_behavior_9b_20261104_v1/PLAN.json",
+      "plan_sha256": "8fa81b0f2dbb35cb9743b10342c187f8abdfe975c5a4ff0a950ade6906526313",
+      "index_pin_match": true,
+      "ready": false,
+      "scientific_acceptance": false,
+      "test_read": false,
+      "poll_seconds": 600,
+      "chip": 3,
+      "requests": 672,
+      "forwards": 672
+    }
+  ],
+  "static_checks": {
+    "python_ast_parse": true,
+    "no_test_literal_in_code": true,
+    "prepare_only_resource_guard": true
+  },
+  "tests": {
+    "command": "env LD_LIBRARY_PATH=... PYTHONPATH=... python3.12 -P .local/preparations/large-candidate-interface-execution-20261104-v1/test_interface.py",
+    "passed": 5
+  },
+  "findings": {
+    "strengths": [
+      "All eight plans bind immutable configuration, model, protocol, source and output identity; all INDEX hashes match.",
+      "Behavior runtime refuses to proceed unless matching numerical admission has verdict PASS, 48 rows and 144 forwards.",
+      "Plans declare scientific_acceptance=false and test_read=false; no stale resource claim is accepted.",
+      "Runtime enforces 600-second poll cadence, full-vocabulary finite checks, exact candidate arithmetic and item-level resume.",
+      "CPU tests cover mappings, tie handling, malformed bindings, nonfinite logits and no-repeat resume."
+    ],
+    "blockers": [
+      "All four numerical plans are ready=false and have no real NPU numerical admission evidence.",
+      "Resource policies are preparation-only; fresh reviewed resource generation and lease binding are absent.",
+      "Independent methodological review, parent activation and prospective registration remain required.",
+      "Behavior plans cannot run before numerical gate is populated with exact evidence."
+    ]
+  },
+  "limitations": [
+    "Tests use synthetic logits/fixtures and do not prove Ascend execution or numerical equivalence.",
+    "No business accuracy or trained gain can follow from this package.",
+    "No named Astra review was performed by this reviewer."
+  ],
+  "next_gate": "Run detached retained numerical admission probes only after independent review, public preregistration and fresh resource binding; then independently verify result evidence before promoting behavior plans."
+}
