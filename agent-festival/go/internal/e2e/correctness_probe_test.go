@@ -337,6 +337,15 @@ func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
 //
 // This is registered as L23 in the minor ledger.
 func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
+	// POLARITY GUARD (review-loop R12): C8 asserts T0's CURRENT precedence
+	// order (report check before veto). When the P3 fixture correction
+	// lands AND the T0 stand-in is fixed to match (veto fires first), this
+	// test's claim (T0 = on_missing_evidence) is obsolete — rewrite to
+	// assert deny (T0 ≡ T1, contradiction resolved).
+	if p3FixtureCorrectionLanded {
+		t.Skip("E3-C8: P3 fixture correction landed — T0 stand-in precedence must be fixed to match; " +
+			"rewrite to assert T0 ≡ T1 (deny on C8, the L23 discrepancy is resolved)")
+	}
 	// C8 evidence: missing report AND a 4-month overdue 2 years ago
 	e := creditEvidence{
 		assetMillions:   35,

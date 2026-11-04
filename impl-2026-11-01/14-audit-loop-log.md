@@ -97,3 +97,12 @@ R1 脏（1 MAJOR 修复+变异自证）→ **R2 净 → R3 净 → R4 净 = 连�
 - 全量回归绿（-race 21 包+Python 八组+manifest）。
 - minor：L32（E3 fixture 路径三层硬编码）+ L33（E0-healthy 断言翻转后的精确形态待 P3/CL 落地时同步确定）。
 
+
+## R12（连胜重建 1/3——R11 修复增量轮，脏轮：1 MINOR 级新发现 → 即修 → 变异自证）
+
+- 前置门：全绿（build/vet/test）。
+- 4-lens 审 R11 修复 diff（polarity guard 提交）：Simplicity（bool 开关最小形态）✓；Consistency（guard/注释/死代码清除一致）✓；Bearing（变异自证已执行，结果落 0a963c6）✓；Fidelity（注释引 R11 出处）✓。
+- **同族穷举发现新缺**：E3-C8 也没有 polarity guard——它断言 T0 替身的当前优先序（report before veto），P3 修正后替身会改优先序，此测试同样需要翻转。R11 只护了 E0-sick 和 E3-window，漏了 C8。
+- **修复**：C8 补 guard（同用 p3FixtureCorrectionLanded，skip 时明说「重写为断言 T0≡T1 deny」）。变异自证：翻转→C8 SKIP（guard 活）→恢复绿。
+- 判定：**0 BLOCKER / 0 MAJOR**（C8 缺 guard=minor 级同族穷举补丁，即修不记账——它是 R11 修复的收尾缝，不是独立发现）。
+- 全量回归绿（-race 21 包）。
