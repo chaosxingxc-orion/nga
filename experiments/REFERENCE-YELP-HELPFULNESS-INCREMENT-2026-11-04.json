@@ -1,0 +1,1756 @@
+{
+  "schema": "nga-reference-yelp-helpfulness-increment-v1",
+  "status": "ACCEPTED_FIXED_BASE_TEST_RESULTS",
+  "date": "2026-11-04",
+  "model_family": "Qwen3.5 Base",
+  "models": [
+    "0.8B",
+    "2B",
+    "4B",
+    "9B"
+  ],
+  "source": "Praveenrajus/jev-bench derived release TEST",
+  "panels": [
+    "yelp5",
+    "helpsteer2_helpfulness"
+  ],
+  "cells": 8,
+  "rows_per_cell": 1000,
+  "protocol": "Transformers full-label fp32 batch1 HF32 off; five ordered levels; local ordinal formulas",
+  "metric_definitions": {
+    "accuracy": "mean(argmax restricted label probability == gold index)",
+    "argmax_mae": "mean(abs(argmax index - gold index))",
+    "expected_mae": "mean(abs(sum(k*p_k) - gold index))",
+    "rps_normalized": "mean(sum over k=0..3 ((sum_{j<=k}p_j) - 1[gold<=k])^2 / 4)"
+  },
+  "evidence": {
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_ordinal_results_20261104_v1/ACCEPTANCE.json": "c6468e9fd686ed9be7657938d29fefea3b6fdd5ce21c8451f6eb6b2a170b4d2f",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_ordinal_results_20261104_v1/DIAGNOSIS.json": "ced9ec673ea94703c9003484ec2516535e4a119305136612b48b1f213fa32bb8",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_ordinal_results_20261104_v1/RESULTS.json": "c656da8b84cd4a3ebb05a98beac0d5f632e51b34add97ccc58a86f14c0846de2",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_ordinal_results_20261104_v1/EXIT.json": "067433fa0e44fa7c77076544ae4ed95fb9eddfe2263871e2faa7a42b7ea2619c",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_ordinal_results_20261104_v1/SEAL-EXIT.json": "4adaeef0d823cd3d820b1065f59a9a74e5188877e1b7fee971622819f3411664",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_ordinal_results_20261104_v1/DIAGNOSTIC-EXIT.json": "097c1427b5facc3578a1352e1b4afc8cfbbf0a6ed3da0a04a9c75286da719b99",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_ordinal_results_20261104_v1/DIAGNOSTIC-RESULT.json": "67915d3b3439716664d9ae7a02f13e0d4b0fa15525db66564370e4a765726b28"
+  },
+  "verification": {
+    "original_complete_reconstruction_files": 24389,
+    "independent_rehash_union_files": 24395,
+    "additional_independent_rows_recomputed": 8000,
+    "parent_acceptance": true,
+    "named_astra_review": false,
+    "full_vocabulary_logits_persisted": false,
+    "model_forward_reexecuted": false,
+    "parent_rehashed_files": 24403,
+    "parent_review_scope": "Saved-result correctness and stated protocol boundaries; no named Astra or trained-candidate qualification"
+  },
+  "boundaries": [
+    "Derived release TEST, not asserted upstream hidden TEST.",
+    "NGA preregistered local ordinal formulas, not publisher endpoint/scorer equivalence.",
+    "Exact train/validation request overlap zero within this release; this does not establish original-source or pretraining cleanliness.",
+    "No training gain, statistical significance, invariance or trained-candidate TEST authority claimed.",
+    "Constant baselines describe this TEST population and are not learned held-out predictors."
+  ],
+  "results": [
+    {
+      "ordinal_metrics": {
+        "n": 1000,
+        "accuracy": 0.251,
+        "argmax_mae": 1.658,
+        "expected_mae": 1.2513731588723072,
+        "rps_normalized": 0.2340818197214367,
+        "metric_origin": "NGA preregistered local ordinal formulas; not publisher scorer equivalence"
+      },
+      "constant_diagnostic": {
+        "1 star: terrible experience, would not return.": {
+          "accuracy": 0.187,
+          "argmax_mae": 2.059,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "2 stars: poor, more negatives than positives.": {
+          "accuracy": 0.196,
+          "argmax_mae": 1.433,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "3 stars: average, mixed positives and negatives.": {
+          "accuracy": 0.191,
+          "argmax_mae": 1.199,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "4 stars: good, minor complaints at most.": {
+          "accuracy": 0.223,
+          "argmax_mae": 1.347,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "5 stars: excellent, glowing recommendation.": {
+          "accuracy": 0.203,
+          "argmax_mae": 1.941,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "4": 203,
+          "3": 223,
+          "2": 191,
+          "1": 196,
+          "0": 187
+        },
+        "predicted": {
+          "4": 729,
+          "2": 19,
+          "3": 247,
+          "0": 5
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        }
+      },
+      "job": "yelp5-08b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.251,
+        "correct": 251
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": 0.251,
+          "correct": 251,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "45604f63d85a4c2e01aa5ca6c7de071300f6ba96509927ee5f1f6993c496188a",
+      "plan_sha256": "5dd6e2996f398e8926995966cb6d72af81fe2e64f9a7f60975ed6022473e8990",
+      "source_sha256": "6e03b2dd07839b3c21fd2d0b3eeacf808d2507cfb72751bf6dc5249773470127",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [
+        "class_2 stars: poor, more negatives than positives."
+      ],
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "1 star: terrible experience, would not return.",
+        "2 stars: poor, more negatives than positives.",
+        "3 stars: average, mixed positives and negatives.",
+        "4 stars: good, minor complaints at most.",
+        "5 stars: excellent, glowing recommendation."
+      ],
+      "by_gold_class": {
+        "1 star: terrible experience, would not return.": {
+          "n": 187,
+          "correct": 4,
+          "accuracy": 0.0213903743315508
+        },
+        "2 stars: poor, more negatives than positives.": {
+          "n": 196,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "3 stars: average, mixed positives and negatives.": {
+          "n": 191,
+          "correct": 14,
+          "accuracy": 0.07329842931937172
+        },
+        "4 stars: good, minor complaints at most.": {
+          "n": 223,
+          "correct": 38,
+          "accuracy": 0.17040358744394618
+        },
+        "5 stars: excellent, glowing recommendation.": {
+          "n": 203,
+          "correct": 195,
+          "accuracy": 0.9605911330049262
+        }
+      },
+      "original_source_sha256": "1294cdc7681d1db2588059c3140cf66c53cbc3eed1c2e708800ce5d0491401dc"
+    },
+    {
+      "ordinal_metrics": {
+        "n": 1000,
+        "accuracy": 0.525,
+        "argmax_mae": 0.594,
+        "expected_mae": 0.5296342143845402,
+        "rps_normalized": 0.08553025126358357,
+        "metric_origin": "NGA preregistered local ordinal formulas; not publisher scorer equivalence"
+      },
+      "constant_diagnostic": {
+        "1 star: terrible experience, would not return.": {
+          "accuracy": 0.187,
+          "argmax_mae": 2.059,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "2 stars: poor, more negatives than positives.": {
+          "accuracy": 0.196,
+          "argmax_mae": 1.433,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "3 stars: average, mixed positives and negatives.": {
+          "accuracy": 0.191,
+          "argmax_mae": 1.199,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "4 stars: good, minor complaints at most.": {
+          "accuracy": 0.223,
+          "argmax_mae": 1.347,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "5 stars: excellent, glowing recommendation.": {
+          "accuracy": 0.203,
+          "argmax_mae": 1.941,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "4": 203,
+          "3": 223,
+          "2": 191,
+          "1": 196,
+          "0": 187
+        },
+        "predicted": {
+          "4": 215,
+          "2": 54,
+          "3": 315,
+          "0": 394,
+          "1": 22
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        }
+      },
+      "job": "yelp5-2b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.525,
+        "correct": 525
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": 0.525,
+          "correct": 525,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "7f356f812c2c1432a7fbfc2a86ccd8f145f2c0fae6df7c7fad524ab90ff0c15a",
+      "plan_sha256": "503689edaa1d23910a2787758bdb22429b8ffbe34af165688043ef62b5f8d469",
+      "source_sha256": "6e03b2dd07839b3c21fd2d0b3eeacf808d2507cfb72751bf6dc5249773470127",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "1 star: terrible experience, would not return.",
+        "2 stars: poor, more negatives than positives.",
+        "3 stars: average, mixed positives and negatives.",
+        "4 stars: good, minor complaints at most.",
+        "5 stars: excellent, glowing recommendation."
+      ],
+      "by_gold_class": {
+        "1 star: terrible experience, would not return.": {
+          "n": 187,
+          "correct": 183,
+          "accuracy": 0.9786096256684492
+        },
+        "2 stars: poor, more negatives than positives.": {
+          "n": 196,
+          "correct": 17,
+          "accuracy": 0.08673469387755102
+        },
+        "3 stars: average, mixed positives and negatives.": {
+          "n": 191,
+          "correct": 35,
+          "accuracy": 0.18324607329842932
+        },
+        "4 stars: good, minor complaints at most.": {
+          "n": 223,
+          "correct": 144,
+          "accuracy": 0.6457399103139013
+        },
+        "5 stars: excellent, glowing recommendation.": {
+          "n": 203,
+          "correct": 146,
+          "accuracy": 0.7192118226600985
+        }
+      },
+      "original_source_sha256": "1294cdc7681d1db2588059c3140cf66c53cbc3eed1c2e708800ce5d0491401dc"
+    },
+    {
+      "ordinal_metrics": {
+        "n": 1000,
+        "accuracy": 0.627,
+        "argmax_mae": 0.41,
+        "expected_mae": 0.44193171308468676,
+        "rps_normalized": 0.07522638876704871,
+        "metric_origin": "NGA preregistered local ordinal formulas; not publisher scorer equivalence"
+      },
+      "constant_diagnostic": {
+        "1 star: terrible experience, would not return.": {
+          "accuracy": 0.187,
+          "argmax_mae": 2.059,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "2 stars: poor, more negatives than positives.": {
+          "accuracy": 0.196,
+          "argmax_mae": 1.433,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "3 stars: average, mixed positives and negatives.": {
+          "accuracy": 0.191,
+          "argmax_mae": 1.199,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "4 stars: good, minor complaints at most.": {
+          "accuracy": 0.223,
+          "argmax_mae": 1.347,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "5 stars: excellent, glowing recommendation.": {
+          "accuracy": 0.203,
+          "argmax_mae": 1.941,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "4": 203,
+          "3": 223,
+          "2": 191,
+          "1": 196,
+          "0": 187
+        },
+        "predicted": {
+          "4": 318,
+          "2": 250,
+          "3": 123,
+          "1": 78,
+          "0": 231
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        }
+      },
+      "job": "yelp5-4b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.627,
+        "correct": 627
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": 0.627,
+          "correct": 627,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "0fd06f3ab41261aa7863d0ba195425bdea38b164d16b99b1f58731e2a4f7d405",
+      "plan_sha256": "2c21fc38a8e7230393c6c83fb5c8441d6635d748bfdab15b4fca42ca6ff21aaf",
+      "source_sha256": "6e03b2dd07839b3c21fd2d0b3eeacf808d2507cfb72751bf6dc5249773470127",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "1 star: terrible experience, would not return.",
+        "2 stars: poor, more negatives than positives.",
+        "3 stars: average, mixed positives and negatives.",
+        "4 stars: good, minor complaints at most.",
+        "5 stars: excellent, glowing recommendation."
+      ],
+      "by_gold_class": {
+        "1 star: terrible experience, would not return.": {
+          "n": 187,
+          "correct": 166,
+          "accuracy": 0.8877005347593583
+        },
+        "2 stars: poor, more negatives than positives.": {
+          "n": 196,
+          "correct": 60,
+          "accuracy": 0.30612244897959184
+        },
+        "3 stars: average, mixed positives and negatives.": {
+          "n": 191,
+          "correct": 131,
+          "accuracy": 0.6858638743455497
+        },
+        "4 stars: good, minor complaints at most.": {
+          "n": 223,
+          "correct": 79,
+          "accuracy": 0.3542600896860987
+        },
+        "5 stars: excellent, glowing recommendation.": {
+          "n": 203,
+          "correct": 191,
+          "accuracy": 0.9408866995073891
+        }
+      },
+      "original_source_sha256": "1294cdc7681d1db2588059c3140cf66c53cbc3eed1c2e708800ce5d0491401dc"
+    },
+    {
+      "ordinal_metrics": {
+        "n": 1000,
+        "accuracy": 0.608,
+        "argmax_mae": 0.438,
+        "expected_mae": 0.5142080604048654,
+        "rps_normalized": 0.08441186264356501,
+        "metric_origin": "NGA preregistered local ordinal formulas; not publisher scorer equivalence"
+      },
+      "constant_diagnostic": {
+        "1 star: terrible experience, would not return.": {
+          "accuracy": 0.187,
+          "argmax_mae": 2.059,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "2 stars: poor, more negatives than positives.": {
+          "accuracy": 0.196,
+          "argmax_mae": 1.433,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "3 stars: average, mixed positives and negatives.": {
+          "accuracy": 0.191,
+          "argmax_mae": 1.199,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "4 stars: good, minor complaints at most.": {
+          "accuracy": 0.223,
+          "argmax_mae": 1.347,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "5 stars: excellent, glowing recommendation.": {
+          "accuracy": 0.203,
+          "argmax_mae": 1.941,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "4": 203,
+          "3": 223,
+          "2": 191,
+          "1": 196,
+          "0": 187
+        },
+        "predicted": {
+          "4": 314,
+          "2": 224,
+          "3": 191,
+          "1": 104,
+          "0": 167
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        }
+      },
+      "job": "yelp5-9b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.608,
+        "correct": 608
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": 0.608,
+          "correct": 608,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "3f5467a39ae9d027a2b622fc0a2516a68c0aacf0e925eacbc404563fd4a6b57f",
+      "plan_sha256": "99667c6f3da5813686eb5d006dc4f3346a7aa0bd93b2f7bd12725a06b35e1b14",
+      "source_sha256": "6e03b2dd07839b3c21fd2d0b3eeacf808d2507cfb72751bf6dc5249773470127",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "1 star: terrible experience, would not return.",
+        "2 stars: poor, more negatives than positives.",
+        "3 stars: average, mixed positives and negatives.",
+        "4 stars: good, minor complaints at most.",
+        "5 stars: excellent, glowing recommendation."
+      ],
+      "by_gold_class": {
+        "1 star: terrible experience, would not return.": {
+          "n": 187,
+          "correct": 137,
+          "accuracy": 0.732620320855615
+        },
+        "2 stars: poor, more negatives than positives.": {
+          "n": 196,
+          "correct": 64,
+          "accuracy": 0.32653061224489793
+        },
+        "3 stars: average, mixed positives and negatives.": {
+          "n": 191,
+          "correct": 108,
+          "accuracy": 0.5654450261780105
+        },
+        "4 stars: good, minor complaints at most.": {
+          "n": 223,
+          "correct": 107,
+          "accuracy": 0.4798206278026906
+        },
+        "5 stars: excellent, glowing recommendation.": {
+          "n": 203,
+          "correct": 192,
+          "accuracy": 0.9458128078817734
+        }
+      },
+      "original_source_sha256": "1294cdc7681d1db2588059c3140cf66c53cbc3eed1c2e708800ce5d0491401dc"
+    },
+    {
+      "ordinal_metrics": {
+        "n": 1000,
+        "accuracy": 0.389,
+        "argmax_mae": 1.064,
+        "expected_mae": 0.9698568855424923,
+        "rps_normalized": 0.17108423646790968,
+        "metric_origin": "NGA preregistered local ordinal formulas; not publisher scorer equivalence"
+      },
+      "constant_diagnostic": {
+        "Not useful or helpful at all; completely missed the essence of what the user wanted.": {
+          "accuracy": 0.076,
+          "argmax_mae": 2.892,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.": {
+          "accuracy": 0.091,
+          "argmax_mae": 2.044,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for.": {
+          "accuracy": 0.116,
+          "argmax_mae": 1.378,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Mostly helpful and mainly aligned with what the user was looking for, but there is still some room for improvement.": {
+          "accuracy": 0.299,
+          "argmax_mae": 0.944,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Extremely helpful and completely aligned with the spirit of what the prompt was asking for.": {
+          "accuracy": 0.418,
+          "argmax_mae": 1.108,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "2": 116,
+          "3": 299,
+          "4": 418,
+          "1": 91,
+          "0": 76
+        },
+        "predicted": {
+          "4": 754,
+          "3": 246
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        }
+      },
+      "job": "helpsteer2_helpfulness-08b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.389,
+        "correct": 389
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": 0.389,
+          "correct": 389,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "ec2dcf85a1867d757bcbb9af0f87f7d860d6e5dfd2d5aab2ef7b21b9e9c4a6b5",
+      "plan_sha256": "3ac3f2b22f2de7bdf9497bff8f71f65152219866ed16e50d4c342b3bfe2c11d7",
+      "source_sha256": "d46b3756e8ebfb454305929f28e10c0c33f5e03d75d39df098e7f5df9c83cf01",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [
+        "class_Not useful or helpful at all; completely missed the essence of what the user wanted.",
+        "class_Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.",
+        "class_Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for."
+      ],
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "Not useful or helpful at all; completely missed the essence of what the user wanted.",
+        "Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.",
+        "Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for.",
+        "Mostly helpful and mainly aligned with what the user was looking for, but there is still some room for improvement.",
+        "Extremely helpful and completely aligned with the spirit of what the prompt was asking for."
+      ],
+      "by_gold_class": {
+        "Not useful or helpful at all; completely missed the essence of what the user wanted.": {
+          "n": 76,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.": {
+          "n": 91,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for.": {
+          "n": 116,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Mostly helpful and mainly aligned with what the user was looking for, but there is still some room for improvement.": {
+          "n": 299,
+          "correct": 72,
+          "accuracy": 0.2408026755852843
+        },
+        "Extremely helpful and completely aligned with the spirit of what the prompt was asking for.": {
+          "n": 418,
+          "correct": 317,
+          "accuracy": 0.7583732057416268
+        }
+      },
+      "original_source_sha256": "848367911dbbbc8cc4f198b5c324f339ee485caf49b7f94ed31e8e380ec4f37e"
+    },
+    {
+      "ordinal_metrics": {
+        "n": 1000,
+        "accuracy": 0.389,
+        "argmax_mae": 1.074,
+        "expected_mae": 0.9986989513091793,
+        "rps_normalized": 0.17526632439657558,
+        "metric_origin": "NGA preregistered local ordinal formulas; not publisher scorer equivalence"
+      },
+      "constant_diagnostic": {
+        "Not useful or helpful at all; completely missed the essence of what the user wanted.": {
+          "accuracy": 0.076,
+          "argmax_mae": 2.892,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.": {
+          "accuracy": 0.091,
+          "argmax_mae": 2.044,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for.": {
+          "accuracy": 0.116,
+          "argmax_mae": 1.378,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Mostly helpful and mainly aligned with what the user was looking for, but there is still some room for improvement.": {
+          "accuracy": 0.299,
+          "argmax_mae": 0.944,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Extremely helpful and completely aligned with the spirit of what the prompt was asking for.": {
+          "accuracy": 0.418,
+          "argmax_mae": 1.108,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "2": 116,
+          "3": 299,
+          "4": 418,
+          "1": 91,
+          "0": 76
+        },
+        "predicted": {
+          "4": 795,
+          "3": 202,
+          "0": 2,
+          "2": 1
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        }
+      },
+      "job": "helpsteer2_helpfulness-2b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.389,
+        "correct": 389
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": 0.389,
+          "correct": 389,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "ead269a072c6fef390b216da61b8677a21ed98d58cb949f4e72bc3553fe54d68",
+      "plan_sha256": "bbc0ca28f8159b01ef3bfd8962dcdc2cf4c30f8334c5ed1048ef0200837e60e2",
+      "source_sha256": "d46b3756e8ebfb454305929f28e10c0c33f5e03d75d39df098e7f5df9c83cf01",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [
+        "class_Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.",
+        "class_Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for."
+      ],
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "Not useful or helpful at all; completely missed the essence of what the user wanted.",
+        "Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.",
+        "Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for.",
+        "Mostly helpful and mainly aligned with what the user was looking for, but there is still some room for improvement.",
+        "Extremely helpful and completely aligned with the spirit of what the prompt was asking for."
+      ],
+      "by_gold_class": {
+        "Not useful or helpful at all; completely missed the essence of what the user wanted.": {
+          "n": 76,
+          "correct": 1,
+          "accuracy": 0.013157894736842105
+        },
+        "Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.": {
+          "n": 91,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for.": {
+          "n": 116,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Mostly helpful and mainly aligned with what the user was looking for, but there is still some room for improvement.": {
+          "n": 299,
+          "correct": 55,
+          "accuracy": 0.18394648829431437
+        },
+        "Extremely helpful and completely aligned with the spirit of what the prompt was asking for.": {
+          "n": 418,
+          "correct": 333,
+          "accuracy": 0.7966507177033493
+        }
+      },
+      "original_source_sha256": "848367911dbbbc8cc4f198b5c324f339ee485caf49b7f94ed31e8e380ec4f37e"
+    },
+    {
+      "ordinal_metrics": {
+        "n": 1000,
+        "accuracy": 0.377,
+        "argmax_mae": 0.94,
+        "expected_mae": 0.9608179821334968,
+        "rps_normalized": 0.1590675918674448,
+        "metric_origin": "NGA preregistered local ordinal formulas; not publisher scorer equivalence"
+      },
+      "constant_diagnostic": {
+        "Not useful or helpful at all; completely missed the essence of what the user wanted.": {
+          "accuracy": 0.076,
+          "argmax_mae": 2.892,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.": {
+          "accuracy": 0.091,
+          "argmax_mae": 2.044,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for.": {
+          "accuracy": 0.116,
+          "argmax_mae": 1.378,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Mostly helpful and mainly aligned with what the user was looking for, but there is still some room for improvement.": {
+          "accuracy": 0.299,
+          "argmax_mae": 0.944,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Extremely helpful and completely aligned with the spirit of what the prompt was asking for.": {
+          "accuracy": 0.418,
+          "argmax_mae": 1.108,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "2": 116,
+          "3": 299,
+          "4": 418,
+          "1": 91,
+          "0": 76
+        },
+        "predicted": {
+          "3": 670,
+          "4": 231,
+          "0": 63,
+          "2": 36
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        }
+      },
+      "job": "helpsteer2_helpfulness-4b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.377,
+        "correct": 377
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": 0.377,
+          "correct": 377,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "6b7ad194ce508427245e5e9f51ad04924813afb290cf4fe65f5303bbef03db53",
+      "plan_sha256": "c38e80e113b2331050071ecb8860418b7ce0c5fda28822ea80fe34eb9b11f45f",
+      "source_sha256": "d46b3756e8ebfb454305929f28e10c0c33f5e03d75d39df098e7f5df9c83cf01",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [
+        "class_Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way."
+      ],
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "Not useful or helpful at all; completely missed the essence of what the user wanted.",
+        "Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.",
+        "Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for.",
+        "Mostly helpful and mainly aligned with what the user was looking for, but there is still some room for improvement.",
+        "Extremely helpful and completely aligned with the spirit of what the prompt was asking for."
+      ],
+      "by_gold_class": {
+        "Not useful or helpful at all; completely missed the essence of what the user wanted.": {
+          "n": 76,
+          "correct": 23,
+          "accuracy": 0.3026315789473684
+        },
+        "Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.": {
+          "n": 91,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for.": {
+          "n": 116,
+          "correct": 4,
+          "accuracy": 0.034482758620689655
+        },
+        "Mostly helpful and mainly aligned with what the user was looking for, but there is still some room for improvement.": {
+          "n": 299,
+          "correct": 225,
+          "accuracy": 0.7525083612040134
+        },
+        "Extremely helpful and completely aligned with the spirit of what the prompt was asking for.": {
+          "n": 418,
+          "correct": 125,
+          "accuracy": 0.29904306220095694
+        }
+      },
+      "original_source_sha256": "848367911dbbbc8cc4f198b5c324f339ee485caf49b7f94ed31e8e380ec4f37e"
+    },
+    {
+      "ordinal_metrics": {
+        "n": 1000,
+        "accuracy": 0.377,
+        "argmax_mae": 0.956,
+        "expected_mae": 0.9222110106451296,
+        "rps_normalized": 0.1566068035265083,
+        "metric_origin": "NGA preregistered local ordinal formulas; not publisher scorer equivalence"
+      },
+      "constant_diagnostic": {
+        "Not useful or helpful at all; completely missed the essence of what the user wanted.": {
+          "accuracy": 0.076,
+          "argmax_mae": 2.892,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.": {
+          "accuracy": 0.091,
+          "argmax_mae": 2.044,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for.": {
+          "accuracy": 0.116,
+          "argmax_mae": 1.378,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Mostly helpful and mainly aligned with what the user was looking for, but there is still some room for improvement.": {
+          "accuracy": 0.299,
+          "argmax_mae": 0.944,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "Extremely helpful and completely aligned with the spirit of what the prompt was asking for.": {
+          "accuracy": 0.418,
+          "argmax_mae": 1.108,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "2": 116,
+          "3": 299,
+          "4": 418,
+          "1": 91,
+          "0": 76
+        },
+        "predicted": {
+          "4": 582,
+          "3": 352,
+          "1": 20,
+          "2": 43,
+          "0": 3
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        }
+      },
+      "job": "helpsteer2_helpfulness-9b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.377,
+        "correct": 377
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": 0.377,
+          "correct": 377,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "4808d63645f77f093d88884d472661926da675252f1baf908d7e07340ecca0b4",
+      "plan_sha256": "5581615093752629d2578751c3c7a10b5180946b57ba7a658a5336b03e7d08d5",
+      "source_sha256": "d46b3756e8ebfb454305929f28e10c0c33f5e03d75d39df098e7f5df9c83cf01",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "Not useful or helpful at all; completely missed the essence of what the user wanted.",
+        "Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.",
+        "Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for.",
+        "Mostly helpful and mainly aligned with what the user was looking for, but there is still some room for improvement.",
+        "Extremely helpful and completely aligned with the spirit of what the prompt was asking for."
+      ],
+      "by_gold_class": {
+        "Not useful or helpful at all; completely missed the essence of what the user wanted.": {
+          "n": 76,
+          "correct": 2,
+          "accuracy": 0.02631578947368421
+        },
+        "Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.": {
+          "n": 91,
+          "correct": 4,
+          "accuracy": 0.04395604395604396
+        },
+        "Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for.": {
+          "n": 116,
+          "correct": 3,
+          "accuracy": 0.02586206896551724
+        },
+        "Mostly helpful and mainly aligned with what the user was looking for, but there is still some room for improvement.": {
+          "n": 299,
+          "correct": 101,
+          "accuracy": 0.3377926421404682
+        },
+        "Extremely helpful and completely aligned with the spirit of what the prompt was asking for.": {
+          "n": 418,
+          "correct": 267,
+          "accuracy": 0.638755980861244
+        }
+      },
+      "original_source_sha256": "848367911dbbbc8cc4f198b5c324f339ee485caf49b7f94ed31e8e380ec4f37e"
+    }
+  ],
+  "diagnosis": [
+    {
+      "job": "yelp5-08b",
+      "n": 1000,
+      "flags": [
+        "class_2 stars: poor, more negatives than positives."
+      ],
+      "confusion_gold_by_prediction": [
+        [
+          4,
+          0,
+          0,
+          30,
+          153
+        ],
+        [
+          1,
+          0,
+          3,
+          101,
+          91
+        ],
+        [
+          0,
+          0,
+          14,
+          70,
+          107
+        ],
+        [
+          0,
+          0,
+          2,
+          38,
+          183
+        ],
+        [
+          0,
+          0,
+          0,
+          8,
+          195
+        ]
+      ],
+      "unique_logit_vectors": 1000,
+      "rendered_label_orders": [
+        [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ]
+      ],
+      "label_token_ids": [
+        [
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      ],
+      "bounded_examples": [
+        {
+          "i": 1,
+          "gold_index": 3,
+          "predicted_index": 2,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_yelp5_08b_successor_20261104_v1/output/items/000001/record.json",
+          "record_sha256": "de1d376423e6b7d68a5b253d5809cbe01ff9d8166e17da747b7ac01cf083aeed",
+          "label_values": [
+            18.546451568603516,
+            15.755799293518066,
+            20.327802658081055,
+            19.799589157104492,
+            20.087482452392578
+          ],
+          "request_sha256": "0f465b549e1b885fb1772c88dd7105afb37b85b82a4293ade9856ecf4c1e02e2"
+        },
+        {
+          "i": 2,
+          "gold_index": 2,
+          "predicted_index": 4,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_yelp5_08b_successor_20261104_v1/output/items/000002/record.json",
+          "record_sha256": "f52d1b8cc494e592ae22cfce070bfba502ce28a453c4fed485f302883dc89a70",
+          "label_values": [
+            18.678735733032227,
+            15.743952751159668,
+            18.307476043701172,
+            20.28002166748047,
+            20.750343322753906
+          ],
+          "request_sha256": "fe2f30cf73b3e146176269c799f45e745dbb802f4b876b2b5eaca9314ad81bbd"
+        },
+        {
+          "i": 3,
+          "gold_index": 1,
+          "predicted_index": 4,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_yelp5_08b_successor_20261104_v1/output/items/000003/record.json",
+          "record_sha256": "6367d8fadd107182b3e8f555c4255464399def20fa3b34bfdabd34a078059c51",
+          "label_values": [
+            19.00678253173828,
+            16.71479606628418,
+            18.51956558227539,
+            19.84480857849121,
+            19.919076919555664
+          ],
+          "request_sha256": "d186f53518853f801e16dcb2f318f5c3b75aed0b38dff841c7eaf39bd4cbbec4"
+        },
+        {
+          "i": 5,
+          "gold_index": 4,
+          "predicted_index": 3,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_yelp5_08b_successor_20261104_v1/output/items/000005/record.json",
+          "record_sha256": "375d50d9fd84b6bb664d5325d8297708417ae63591fe1dd2082a67214160839d",
+          "label_values": [
+            19.1224365234375,
+            16.266345977783203,
+            19.1879940032959,
+            20.195951461791992,
+            20.150745391845703
+          ],
+          "request_sha256": "a5761086b53a0c8169c4091fc2d95973af3d734512703f674ff918edd5873988"
+        },
+        {
+          "i": 8,
+          "gold_index": 0,
+          "predicted_index": 3,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_yelp5_08b_successor_20261104_v1/output/items/000008/record.json",
+          "record_sha256": "f27efe26eede7d5df6d80a7a247f89c625f1913120ae50b58c75a0b1caccea7a",
+          "label_values": [
+            19.02254867553711,
+            16.844547271728516,
+            18.478050231933594,
+            20.537137985229492,
+            20.320966720581055
+          ],
+          "request_sha256": "a6ed9dbe0ccb83ecd40d8207065d2350f59c80c8545507701c461c6b20e8bff8"
+        }
+      ],
+      "diagnosis": "Exact extreme/small-slice arithmetic verified from saved distinct output vectors and full confusion matrix. Retained source/candidate mapping was separately rebuilt. Descriptive behavior, not causal attribution to checkpoint/prompt, invariance success or training benefit.",
+      "test_protocol_changed": false
+    },
+    {
+      "job": "helpsteer2_helpfulness-08b",
+      "n": 1000,
+      "flags": [
+        "class_Not useful or helpful at all; completely missed the essence of what the user wanted.",
+        "class_Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.",
+        "class_Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for."
+      ],
+      "confusion_gold_by_prediction": [
+        [
+          0,
+          0,
+          0,
+          16,
+          60
+        ],
+        [
+          0,
+          0,
+          0,
+          29,
+          62
+        ],
+        [
+          0,
+          0,
+          0,
+          28,
+          88
+        ],
+        [
+          0,
+          0,
+          0,
+          72,
+          227
+        ],
+        [
+          0,
+          0,
+          0,
+          101,
+          317
+        ]
+      ],
+      "unique_logit_vectors": 1000,
+      "rendered_label_orders": [
+        [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ]
+      ],
+      "label_token_ids": [
+        [
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      ],
+      "bounded_examples": [
+        {
+          "i": 0,
+          "gold_index": 2,
+          "predicted_index": 4,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_helpsteer2_helpfulness_08b_successor_20261104_v1/output/items/000000/record.json",
+          "record_sha256": "515f415bc431c8f78c590d23e8545b08921e2b7c7dd4385596456970b3906999",
+          "label_values": [
+            19.95991325378418,
+            17.357837677001953,
+            17.115467071533203,
+            21.309499740600586,
+            21.421056747436523
+          ],
+          "request_sha256": "0c2fc28a4b038fea6c341d6b73129ba531c1dd7b7c98f5be1b9cdba34161accd"
+        },
+        {
+          "i": 1,
+          "gold_index": 3,
+          "predicted_index": 4,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_helpsteer2_helpfulness_08b_successor_20261104_v1/output/items/000001/record.json",
+          "record_sha256": "7165ca9fa6ad28141f692661c76e9a682778d960530c89bb6388c3287de8127a",
+          "label_values": [
+            19.661338806152344,
+            16.76976203918457,
+            16.585721969604492,
+            20.503864288330078,
+            21.30624771118164
+          ],
+          "request_sha256": "657e7ac5492dd384b2b50181862b4bdb70875e6d919c5274bc535a6316056c4d"
+        },
+        {
+          "i": 5,
+          "gold_index": 1,
+          "predicted_index": 4,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_helpsteer2_helpfulness_08b_successor_20261104_v1/output/items/000005/record.json",
+          "record_sha256": "a18a1a2eba0b6dab7c5e866620309508f61d0656057146837fa01ce448c5d2b1",
+          "label_values": [
+            19.783817291259766,
+            16.960908889770508,
+            16.57483673095703,
+            20.726978302001953,
+            20.74304962158203
+          ],
+          "request_sha256": "b0253c7fcc788bf3faf0d2b4ae8ce97d4454d0b5262d1f79aa36d90333dc5b67"
+        },
+        {
+          "i": 16,
+          "gold_index": 0,
+          "predicted_index": 4,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_helpsteer2_helpfulness_08b_successor_20261104_v1/output/items/000016/record.json",
+          "record_sha256": "891b1e5ea7d4b4d1aea5143f378e3a96a4e8d42eb7973e35e0f0bf55b61db961",
+          "label_values": [
+            20.13701057434082,
+            17.423816680908203,
+            16.770727157592773,
+            21.143829345703125,
+            21.252389907836914
+          ],
+          "request_sha256": "f2968aa9db9e449202fe80488c8773c096fcace943d68d9837dd1acdb74e3ff8"
+        },
+        {
+          "i": 32,
+          "gold_index": 4,
+          "predicted_index": 3,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_helpsteer2_helpfulness_08b_successor_20261104_v1/output/items/000032/record.json",
+          "record_sha256": "1cc9b3792ad1e2d1ee7cc1ff19428f0c3a7ba307b0e6020acb0bd955570abdf9",
+          "label_values": [
+            19.91191291809082,
+            17.458110809326172,
+            17.40521812438965,
+            21.114044189453125,
+            21.06516456604004
+          ],
+          "request_sha256": "fa13d2c23d641f31187f137aaff66538e595502a8722fd97681f0f1cb4d931e9"
+        }
+      ],
+      "diagnosis": "Exact extreme/small-slice arithmetic verified from saved distinct output vectors and full confusion matrix. Retained source/candidate mapping was separately rebuilt. Descriptive behavior, not causal attribution to checkpoint/prompt, invariance success or training benefit.",
+      "test_protocol_changed": false
+    },
+    {
+      "job": "helpsteer2_helpfulness-2b",
+      "n": 1000,
+      "flags": [
+        "class_Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way.",
+        "class_Partially helpful: misses the overall goal of the user's query in some way; did not fully satisfy what the user was looking for."
+      ],
+      "confusion_gold_by_prediction": [
+        [
+          1,
+          0,
+          0,
+          21,
+          54
+        ],
+        [
+          0,
+          0,
+          0,
+          23,
+          68
+        ],
+        [
+          0,
+          0,
+          0,
+          18,
+          98
+        ],
+        [
+          1,
+          0,
+          1,
+          55,
+          242
+        ],
+        [
+          0,
+          0,
+          0,
+          85,
+          333
+        ]
+      ],
+      "unique_logit_vectors": 1000,
+      "rendered_label_orders": [
+        [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ]
+      ],
+      "label_token_ids": [
+        [
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      ],
+      "bounded_examples": [
+        {
+          "i": 0,
+          "gold_index": 2,
+          "predicted_index": 4,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_helpsteer2_helpfulness_2b_successor_20261104_v1/output/items/000000/record.json",
+          "record_sha256": "d666daaf6f3cdf6965f7c4076c7de49ae0e4af85d3d001d7e1e53a47e2c76651",
+          "label_values": [
+            18.57518768310547,
+            17.813796997070312,
+            19.054906845092773,
+            21.200441360473633,
+            22.17875099182129
+          ],
+          "request_sha256": "0c2fc28a4b038fea6c341d6b73129ba531c1dd7b7c98f5be1b9cdba34161accd"
+        },
+        {
+          "i": 1,
+          "gold_index": 3,
+          "predicted_index": 4,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_helpsteer2_helpfulness_2b_successor_20261104_v1/output/items/000001/record.json",
+          "record_sha256": "392bd0331ec3fade00cfb1c74cbc0b7d8186b8a0d2c294189429f9e7aa8d5dce",
+          "label_values": [
+            17.732070922851562,
+            16.82147216796875,
+            18.63077735900879,
+            21.29011344909668,
+            22.15057945251465
+          ],
+          "request_sha256": "657e7ac5492dd384b2b50181862b4bdb70875e6d919c5274bc535a6316056c4d"
+        },
+        {
+          "i": 2,
+          "gold_index": 4,
+          "predicted_index": 3,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_helpsteer2_helpfulness_2b_successor_20261104_v1/output/items/000002/record.json",
+          "record_sha256": "203dd23db56bf20fd26a05682bbeed4b6cc9b095e7d49b22cc57ab4b94a9c629",
+          "label_values": [
+            20.795351028442383,
+            19.880529403686523,
+            21.010889053344727,
+            21.56528663635254,
+            21.358064651489258
+          ],
+          "request_sha256": "c05e1852e33d31afd02eeea204a035e53b1f11e60b52296dbdef522f0bc0f4c8"
+        },
+        {
+          "i": 5,
+          "gold_index": 1,
+          "predicted_index": 4,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_helpsteer2_helpfulness_2b_successor_20261104_v1/output/items/000005/record.json",
+          "record_sha256": "158130293d2fc920548202b21f35aad44bc68e59047d1137db41f74f85225904",
+          "label_values": [
+            19.306472778320312,
+            17.80441665649414,
+            18.90001106262207,
+            20.903343200683594,
+            21.712078094482422
+          ],
+          "request_sha256": "b0253c7fcc788bf3faf0d2b4ae8ce97d4454d0b5262d1f79aa36d90333dc5b67"
+        },
+        {
+          "i": 16,
+          "gold_index": 0,
+          "predicted_index": 4,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_helpsteer2_helpfulness_2b_successor_20261104_v1/output/items/000016/record.json",
+          "record_sha256": "8341e8f812ad6f032ca547f77ee026af03c8171cb681e86b48d1a91885c676cf",
+          "label_values": [
+            19.61871337890625,
+            19.14522933959961,
+            19.748157501220703,
+            21.478553771972656,
+            21.92173957824707
+          ],
+          "request_sha256": "f2968aa9db9e449202fe80488c8773c096fcace943d68d9837dd1acdb74e3ff8"
+        }
+      ],
+      "diagnosis": "Exact extreme/small-slice arithmetic verified from saved distinct output vectors and full confusion matrix. Retained source/candidate mapping was separately rebuilt. Descriptive behavior, not causal attribution to checkpoint/prompt, invariance success or training benefit.",
+      "test_protocol_changed": false
+    },
+    {
+      "job": "helpsteer2_helpfulness-4b",
+      "n": 1000,
+      "flags": [
+        "class_Borderline unhelpful: mostly does not capture what the user was looking for, but still usable and helpful in a small way."
+      ],
+      "confusion_gold_by_prediction": [
+        [
+          23,
+          0,
+          3,
+          38,
+          12
+        ],
+        [
+          7,
+          0,
+          10,
+          58,
+          16
+        ],
+        [
+          5,
+          0,
+          4,
+          87,
+          20
+        ],
+        [
+          6,
+          0,
+          10,
+          225,
+          58
+        ],
+        [
+          22,
+          0,
+          9,
+          262,
+          125
+        ]
+      ],
+      "unique_logit_vectors": 1000,
+      "rendered_label_orders": [
+        [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ]
+      ],
+      "label_token_ids": [
+        [
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      ],
+      "bounded_examples": [
+        {
+          "i": 0,
+          "gold_index": 2,
+          "predicted_index": 3,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_helpsteer2_helpfulness_4b_successor_20261104_v1/output/items/000000/record.json",
+          "record_sha256": "0ebc0dcb91157f395e1b2d5a029df68b209d40d4f7aa93cef6e5b639675b0831",
+          "label_values": [
+            19.107688903808594,
+            17.755924224853516,
+            18.73946762084961,
+            22.035730361938477,
+            21.730934143066406
+          ],
+          "request_sha256": "0c2fc28a4b038fea6c341d6b73129ba531c1dd7b7c98f5be1b9cdba34161accd"
+        },
+        {
+          "i": 5,
+          "gold_index": 1,
+          "predicted_index": 4,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_helpsteer2_helpfulness_4b_successor_20261104_v1/output/items/000005/record.json",
+          "record_sha256": "840a89d87024dac3064c99e773a05c991e66d2acbbcebd24ab011459e4ef626b",
+          "label_values": [
+            19.808074951171875,
+            18.47661781311035,
+            19.684995651245117,
+            20.934741973876953,
+            21.030757904052734
+          ],
+          "request_sha256": "b0253c7fcc788bf3faf0d2b4ae8ce97d4454d0b5262d1f79aa36d90333dc5b67"
+        },
+        {
+          "i": 10,
+          "gold_index": 4,
+          "predicted_index": 3,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_helpsteer2_helpfulness_4b_successor_20261104_v1/output/items/000010/record.json",
+          "record_sha256": "895f83d45ae4e694e52208d68dea4a11f0be56b10d615e6da6b68c801f39de83",
+          "label_values": [
+            19.036046981811523,
+            17.274538040161133,
+            17.56505584716797,
+            21.84972381591797,
+            21.612565994262695
+          ],
+          "request_sha256": "711f9633f0231ec3d5d3114eb7240e4d19f8ea20997541f45f2a920ae6c4afc2"
+        },
+        {
+          "i": 16,
+          "gold_index": 0,
+          "predicted_index": 3,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_helpsteer2_helpfulness_4b_successor_20261104_v1/output/items/000016/record.json",
+          "record_sha256": "2679093cc3d3c1a9b1c7051323fa8eaecbe687f31305561fcea20c3e7faa1ba8",
+          "label_values": [
+            20.23263931274414,
+            19.464908599853516,
+            20.48297882080078,
+            21.207927703857422,
+            21.010351181030273
+          ],
+          "request_sha256": "f2968aa9db9e449202fe80488c8773c096fcace943d68d9837dd1acdb74e3ff8"
+        },
+        {
+          "i": 30,
+          "gold_index": 3,
+          "predicted_index": 4,
+          "record_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_helpsteer2_helpfulness_4b_successor_20261104_v1/output/items/000030/record.json",
+          "record_sha256": "811eed9c332d0144a847fd36a2a0b01cfeda6936402cc81c51a4f5090d16e76d",
+          "label_values": [
+            19.72260093688965,
+            17.210153579711914,
+            18.007343292236328,
+            21.53580093383789,
+            21.874643325805664
+          ],
+          "request_sha256": "91e5d9a110a8a1c11fb0b04a4bf2298c1da73b8334bc8fcf059eef463e59e32d"
+        }
+      ],
+      "diagnosis": "Exact extreme/small-slice arithmetic verified from saved distinct output vectors and full confusion matrix. Retained source/candidate mapping was separately rebuilt. Descriptive behavior, not causal attribution to checkpoint/prompt, invariance success or training benefit.",
+      "test_protocol_changed": false
+    }
+  ],
+  "scientific_acceptance": false,
+  "candidate_test_authority": false,
+  "training_gain_claimed": false
+}

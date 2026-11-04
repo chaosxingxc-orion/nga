@@ -8,7 +8,7 @@ These are reference inference results. They do not establish an NGA training gai
 
 Coverage correction — 2026-11-02: the 38 units above are model × dataset units, not 38 independent datasets or a complete NxM. The latest v9 metadata audit covers 12 expansion sources, all `needs_review`, with zero newly admitted panels in that audit. Previous approximate source/panel targets are superseded as current coverage counts; source identity, native TEST, metric denominator and overlap must be established per panel. See the [current coverage plan](../proposal/24-dataset-coverage-expansion-v10-20261102.md) and [GitHub Wiki coverage conclusions](https://github.com/chaosxingxc-orion/nga/wiki/Dataset-Coverage). No new result is introduced by this correction.
 
-Current coverage snapshot (2026-11-04 14:36 UTC): the recent four-size Qwen extension has 72 inferred/scored cells across 18 panels, of which 64 have parent-accepted results. The remaining eight Yelp5/helpfulness cells have completed independent reconstruction/diagnosis but are not yet added to the accepted tables. Within the inventoried Jev-bench 22 panels, 10 panels × 4 sizes (40 cells) still lack completed inference. Neither this inventory nor the historical 38 units is the global Cartesian denominator. These counts do not amend any published metric.
+Current coverage snapshot (2026-11-04): the recent four-size Qwen extension has **72 inferred/scored and parent-accepted cells across 18 panels**, including the eight Yelp5/helpfulness cells after full independent reconstruction and diagnosis. Within the inventoried Jev-bench 22 panels, 10 panels × 4 sizes (40 cells) still lack completed inference. Neither this inventory nor the historical 38 units is the global Cartesian denominator. These counts do not amend any published metric.
 
 Execution status and dataset-admission progress are maintained in the Wiki. Fixed reference-model TEST evaluation can proceed per admitted panel; final evaluation of newly trained candidates follows DEV selection and a frozen TEST plan. Training progress is not a reference TEST metric.
 
@@ -436,3 +436,28 @@ Twelve additional fixed-base cells independently reconstructed. Parent rehashed1
 Grounded inputs yield higher observed StrategyQA accuracy for all four sizes, but this is input conditioning, not training gain, a significance result or paired invariance. Closed performance is not monotonic with size. Both views have333Yes/354No; constant-No354/687 is descriptive. Each has one exact released-train overlap, no validation overlap or internal duplicates.
 
 SST5 0.8B predicts highest level974/1000 times and next-highest26, giving zero recall for the firstthree levels. All1000savedlogitvectors differ; source mapping and independent formulas matched, so this is a real saved-output failure, not an aggregate formula error. Cause requires non-TEST controlled diagnosis. SST5 retains one train-overlapping request. Ordinal metrics use frozen local formulas; no native endpoint or original hidden-TEST equivalence is asserted.
+
+## Yelp5 / HelpSteer helpfulness — accepted fixed-base TEST, 2026-11-04
+
+Parent accepted after independent full reconstruction and additional 8,000-row arithmetic checks; 24,403 evidence/artifact fingerprints rechecked. Each cell uses 1,000 derived-release TEST rows. Models are fixed Qwen3.5 Base; this is not training gain.
+
+| Task / metric | 0.8B | 2B | 4B | 9B |
+| --- | ---: | ---: | ---: | ---: |
+| yelp5 accuracy | 25.1% | 52.5% | 62.7% | 60.8% |
+| yelp5 argmax index MAE | 1.658000 | 0.594000 | 0.410000 | 0.438000 |
+| yelp5 expected-index MAE | 1.251373 | 0.529634 | 0.441932 | 0.514208 |
+| yelp5 normalized RPS | 0.234082 | 0.085530 | 0.075226 | 0.084412 |
+| helpsteer2_helpfulness accuracy | 38.9% | 38.9% | 37.7% | 37.7% |
+| helpsteer2_helpfulness argmax index MAE | 1.064000 | 1.074000 | 0.940000 | 0.956000 |
+| helpsteer2_helpfulness expected-index MAE | 0.969857 | 0.998699 | 0.960818 | 0.922211 |
+| helpsteer2_helpfulness normalized RPS | 0.171084 | 0.175266 | 0.159068 | 0.156607 |
+
+Yelp5 4B exceeds 9B descriptively: accuracy 62.7% versus 60.8%, and lower values for all three ordinal errors. Yelp5 0.8B never predicts the two-star level; its two-star recall is 0/196. All 1,000 saved vectors are distinct; mapping and arithmetic checks passed.
+
+Helpfulness accuracy is 38.9% / 38.9% / 37.7% / 37.7%, below the descriptive constant-highest-level accuracy of 41.8%. The constant middle-high level (index 3) has MAE 0.944; 4B MAE 0.940 is slightly lower, while 9B/0.8B/2B are higher. These constants use this TEST population and are not learned held-out baselines.
+
+Helpfulness 0.8B predicts only levels 3/4 (246/754); the lowest three recalls are zero. 2B has zero recall at levels 1/2; 4B at level 1. Independently verified confusion matrices and 1,000 distinct vectors per flagged cell support observed behavior, without causal attribution to checkpoint versus prompt/readout.
+
+Both panels have zero exact TEST request overlap with this release train/validation and zero internal duplicate excess; original upstream split lineage remains unverified. Ordered levels, denominators and formulas are unchanged. Full-vocabulary vectors were not persisted; this review reconstructs saved selected logits, not fresh model forwards.
+
+Exact counts, formulas, diagnostics and evidence: [REFERENCE-YELP-HELPFULNESS-INCREMENT-2026-11-04.json](REFERENCE-YELP-HELPFULNESS-INCREMENT-2026-11-04.json).
