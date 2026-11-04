@@ -64,3 +64,25 @@ Routine monitoring remains scripted, at events or approximately 600 seconds,
 reading logs, heartbeat, progress, terminal and release records. CPU scoring and
 independent result reconstruction run asynchronously. Agents read bounded
 digests and investigate only pointed exceptions.
+
+## Shared-storage outages and recovery
+
+When Ceph cannot be read, a retained container's exact identity and Docker exit
+state can establish that the process stopped. They cannot establish the run's
+terminal-marker verdict, result completeness or resource-ledger release. Keep
+those facts separate in the latest report. An exited container is absent from
+`docker ps`; inspect the configured identity or retained containers before
+concluding that an experiment disappeared.
+
+Preserve frozen packages, dispatch intents and attempts during an outage. After
+storage access returns, reconcile terminal markers, the retained container's
+start/finish generation, committed item progress and resource ownership before
+resuming work. Do not replay an uncertain start or invent release evidence. A
+failed predecessor may unblock a release-only edge once authentic release is
+verified; a successor that requires successful training remains blocked.
+
+Monitoring has its own failure domain: a watcher whose code, digest and terminal
+all live on unavailable storage may provide no fresh status. Recovery work must
+verify the watcher process as well as its last digest. A host-local failure
+record and bounded external health signal are follow-up reliability work; this
+document does not claim those capabilities are deployed.
