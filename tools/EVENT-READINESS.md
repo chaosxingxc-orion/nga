@@ -94,6 +94,26 @@ Reusable operating rules:
 - A working queue cannot compensate for incomplete adapters or admission. Track
   preparation, review and launch latency independently to expose that bottleneck.
 
+## Reviewed dispatcher signal handling
+
+`reviewed_successor_dispatch_v2.py` applies the same lock-free signal mechanism
+to the execution dispatcher. The preparation queue fix does not fix a separate
+dispatcher process. Configuration schema, admission, resource checks, commands,
+launch intents and reconciliation remain unchanged. A separate heartbeat thread
+reports liveness; pass counters and completion timestamps report actual progress.
+
+Deploy only after the old dispatcher is verified terminal or explicitly reconciled.
+Preserve its configuration and durable launch state, and pin the new source in a
+new service generation. Do not send relay signals to the old Event-based dispatcher.
+An existing reviewed `--once` dispatch can supply a first wave while the persistent
+replacement is independently verified. No signal repair grants scientific approval
+or permits replay of an uncertain launch.
+
+Validation includes unchanged admission/dispatch AST, a real signal delivered
+while an Event lock is held, and a real child process launched exactly once across
+repeated wake signals. A slow synchronous verification can still delay the loop;
+the repair removes the signal-lock hazard, not all sources of dispatch latency.
+
 ## Host runtime configuration
 
 `experiment_entrypoint.py` v2 (`nga-experiment-entrypoint-v2`,
