@@ -342,3 +342,14 @@ Hard 9B is accepted at **9701/14479 = 67.000483%**, completing the four-size har
 | STS-B 2B | 21.6% | 1.620 | 1.049575596 | 0.170985528 |
 
 HelpSteer2 four-size evaluation is complete; every model remains below the descriptive constant-grade2 accuracy61.9% and above its MAE0.463. STS-B constant-grade3 accuracy20.3% / MAE1.322 shows why accuracy alone is insufficient: the small models exceed that accuracy but have worse argmax MAE. STS-B retains its four train/two validation exact-state overlaps. These are local ordinal formulas, not publisher inference/scorer equivalence or learned gains.
+
+## STS-B four-size TEST matrix completed — 2026-11-04
+
+The final 4B and 9B cells passed complete independent saved-result reconstruction (1,000 records each). Publication verification checked 4,082 remote and one local unique evidence-file hash. [Exact metrics and artifact pins](REFERENCE-STSB-COMPLETION-2026-11-04.json). Prior measured values and frozen formulas are unchanged.
+
+| Model | Correct / TEST rows | Accuracy | Argmax MAE | Expected-index MAE | Normalized RPS |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Qwen3.5-4B-Base | 424/1000 | 42.4% | 0.782 | 0.667237347 | 0.094263911 |
+| Qwen3.5-9B-Base | 438/1000 | 43.8% | 0.678 | 0.715295479 | 0.093595116 |
+
+Both exceed the descriptive constant-grade3 accuracy20.3% and improve on its MAE1.322. The 9B expected-index MAE is worse than 4B despite better accuracy, argmax MAE and RPS; scale does not improve every metric. All four sizes now have accepted local ordinal TEST results. Four train/two validation exact-state overlaps and one within-TEST repeated state remain in the original population. This is saved selected-logit arithmetic/provenance verification, not independent model-forward reproduction, Jevify endpoint/scorer equivalence, named Astra review or training benefit.

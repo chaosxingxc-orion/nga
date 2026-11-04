@@ -1,0 +1,194 @@
+{
+  "schema": "reference-stsb-completion-v1",
+  "date_utc": "2026-11-04",
+  "models": [
+    {
+      "result": {
+        "ordinal_metrics": {
+          "n": 1000,
+          "accuracy": 0.424,
+          "argmax_mae": 0.782,
+          "expected_mae": 0.6672373474450295,
+          "rps_normalized": 0.09426391070490123,
+          "metric_origin": "NGA preregistered local ordinal formulas; not publisher scorer equivalence"
+        },
+        "constant_diagnostic": {
+          "index": 3,
+          "accuracy": 0.203,
+          "argmax_mae": 1.322,
+          "scope": "descriptive TEST-population constant optimum for MAE, not learned held-out predictor"
+        },
+        "prediction_distribution": {
+          "gold": {
+            "0": 138,
+            "1": 132,
+            "2": 173,
+            "3": 203,
+            "4": 237,
+            "5": 117
+          },
+          "predicted": {
+            "0": 235,
+            "1": 240,
+            "2": 61,
+            "3": 30,
+            "4": 362,
+            "5": 72
+          }
+        },
+        "within_release_test_state_overlap": {
+          "train": 4,
+          "validation": 2
+        },
+        "job": "stsb-4b",
+        "verdict": "PASS_FULL_RESULT_REBUILD",
+        "metrics": {
+          "n": 1000,
+          "accuracy": 0.424,
+          "correct": 424
+        },
+        "by_type": {
+          "choice": {
+            "accuracy": null,
+            "correct": 0,
+            "metric_origin": "NGA additive stratification",
+            "n": 0
+          },
+          "score": {
+            "accuracy": 0.424,
+            "correct": 424,
+            "metric_origin": "NGA additive stratification",
+            "n": 1000
+          },
+          "yes_no": {
+            "accuracy": null,
+            "correct": 0,
+            "metric_origin": "NGA additive stratification",
+            "n": 0
+          }
+        },
+        "by_workflow": null,
+        "source_rows": 1000,
+        "full_population_rebuilt": 1000,
+        "physical_container_exit_verified": true,
+        "summary_sha256": "a5d22e7da0bc1977d7df2e363d1d00def7fc18ecaff66dfdb283e886e0a20c73",
+        "plan_sha256": "89ee47a2c206ac895c7945e135bd94ddcc3cbc4168b108dd51cfee940d665cb0",
+        "source_sha256": "9fa3b25f45ab9394c26c476fa2b40c960c257198d36709b4fb810646594bfb44",
+        "full_vocabulary_logits_persisted": false,
+        "model_forward_reexecuted": false,
+        "training_benefit_claimed": false,
+        "candidate_test_authority": false,
+        "named_astra_review": false,
+        "inference_equivalent_to_published_endpoint": false,
+        "suspicious_success_flags": []
+      },
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_stsb_4b_successor_20261104_v2/PLAN.json",
+        "sha256": "89ee47a2c206ac895c7945e135bd94ddcc3cbc4168b108dd51cfee940d665cb0"
+      },
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_stsb_4b_successor_20261104_v2/output/cpu/1/summary.json",
+        "sha256": "a5d22e7da0bc1977d7df2e363d1d00def7fc18ecaff66dfdb283e886e0a20c73"
+      }
+    },
+    {
+      "result": {
+        "ordinal_metrics": {
+          "n": 1000,
+          "accuracy": 0.438,
+          "argmax_mae": 0.678,
+          "expected_mae": 0.7152954788931811,
+          "rps_normalized": 0.09359511564345797,
+          "metric_origin": "NGA preregistered local ordinal formulas; not publisher scorer equivalence"
+        },
+        "constant_diagnostic": {
+          "index": 3,
+          "accuracy": 0.203,
+          "argmax_mae": 1.322,
+          "scope": "descriptive TEST-population constant optimum for MAE, not learned held-out predictor"
+        },
+        "prediction_distribution": {
+          "gold": {
+            "0": 138,
+            "1": 132,
+            "2": 173,
+            "3": 203,
+            "4": 237,
+            "5": 117
+          },
+          "predicted": {
+            "0": 126,
+            "1": 287,
+            "2": 54,
+            "3": 278,
+            "4": 226,
+            "5": 29
+          }
+        },
+        "within_release_test_state_overlap": {
+          "train": 4,
+          "validation": 2
+        },
+        "job": "stsb-9b",
+        "verdict": "PASS_FULL_RESULT_REBUILD",
+        "metrics": {
+          "n": 1000,
+          "accuracy": 0.438,
+          "correct": 438
+        },
+        "by_type": {
+          "choice": {
+            "accuracy": null,
+            "correct": 0,
+            "metric_origin": "NGA additive stratification",
+            "n": 0
+          },
+          "score": {
+            "accuracy": 0.438,
+            "correct": 438,
+            "metric_origin": "NGA additive stratification",
+            "n": 1000
+          },
+          "yes_no": {
+            "accuracy": null,
+            "correct": 0,
+            "metric_origin": "NGA additive stratification",
+            "n": 0
+          }
+        },
+        "by_workflow": null,
+        "source_rows": 1000,
+        "full_population_rebuilt": 1000,
+        "physical_container_exit_verified": true,
+        "summary_sha256": "21be274d8b9b4a7b591afe89daf628c4159f597bd8f1d5d794d5c2841b01a9b5",
+        "plan_sha256": "b7d3fd61c354eae730389f7ddd1e9f9cc819921d8c9e5205bd5d870d63187600",
+        "source_sha256": "9fa3b25f45ab9394c26c476fa2b40c960c257198d36709b4fb810646594bfb44",
+        "full_vocabulary_logits_persisted": false,
+        "model_forward_reexecuted": false,
+        "training_benefit_claimed": false,
+        "candidate_test_authority": false,
+        "named_astra_review": false,
+        "inference_equivalent_to_published_endpoint": false,
+        "suspicious_success_flags": []
+      },
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_stsb_9b_successor_20261104_v2/PLAN.json",
+        "sha256": "b7d3fd61c354eae730389f7ddd1e9f9cc819921d8c9e5205bd5d870d63187600"
+      },
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/nonbev_stsb_9b_successor_20261104_v2/output/cpu/1/summary.json",
+        "sha256": "21be274d8b9b4a7b591afe89daf628c4159f597bd8f1d5d794d5c2841b01a9b5"
+      }
+    }
+  ],
+  "independent_acceptance": {
+    "path": ".local/reviews/stsb-last-two-full-results-20261104-v1/ACCEPTANCE.json",
+    "sha256": "e64b4501a1f5e8e0532cabcfd07d68b378274d352d54433743d1e075830fb26e"
+  },
+  "root_check": {
+    "path": ".local/reviews/stsb-last-two-full-results-20261104-v1/ROOT-CHECK.json",
+    "sha256": "86cd7190e8c6d5355e4fa1bb7a7307c8529d6cb8073bac3d39176e43809c7579"
+  },
+  "training_benefit_claimed": false,
+  "named_astra_review": false
+}
