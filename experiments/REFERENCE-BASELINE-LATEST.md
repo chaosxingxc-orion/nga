@@ -307,7 +307,7 @@ Full saved-result reconstruction and parent evidence verification accepted three
 | hard_50k | Qwen3.5-2B-Base | 7688 / 14479 | 53.097590% |
 | skills | Qwen3.5-4B-Base | 7221 / 10316 | 69.998061% |
 
-The combined five-job review, including previously accepted Typed cells, reconstructed 43,274 saved records; parent verification checked 86,731 unique artifact pins. This does not represent new NPU computation. Skills retains 74 duplicate excess requests and 1,280 soft-label questions evaluated using their hard labels; soft-distribution metrics remain unevaluated. Hard score-type population is only 74 questions, so its strata are descriptive. These are fixed-base scale comparisons, not training gains or paired consistency.
+The combined five-job review, including previously accepted Typed cells, reconstructed 43,274 saved records; parent verification checked 86,731 unique artifact pins. This does not represent new NPU computation. Skills retains 74 duplicate excess requests and 1,280 soft-label questions evaluated using their hard labels; soft-distribution metrics are now reported in the separately labelled post-inference supplement below. Hard score-type population is only 74 questions, so its strata are descriptive. These are fixed-base scale comparisons, not training gains or paired consistency.
 
 ## Typed Decisions four-size matrix completed — 2026-11-04
 
@@ -539,3 +539,27 @@ Four 1,000-item cells were independently reconstructed with hard, soft-label and
 All four hard accuracies are below the descriptive constant no_hate 68.6%, and argmax MAE is worse than its 0.579. The 0.8B model predicts hate for all 1,000 items; 2B never predicts borderline. All saved score vectors, class ordering and zero/one recalls were checked. 4B leads accuracy/TVD; 9B leads MAE/RPS, so model-size benefit depends on the target metric. TEST mean-human controls are oracle diagnostics, not deployable baselines. Release train/validation exact request overlaps are zero; upstream and pretraining disjointness remain unknown. No training gain is claimed.
 
 [Exact results, confusion matrices and limitations](REFERENCE-MEASURING-INCREMENT-2026-11-04.json).
+
+## BEV skills soft targets — descriptive supplement, 2026-11-04
+
+This is a post-inference descriptive supplement, not retrospective preregistration or a selection signal. All41,264 existing saved records were independently audited; each model has exactly1,280 source soft targets (choice280, Noul659, score341). Parent rehashed82,579 evidence files. No NPU inference was repeated, hard-label metrics changed or inference cells added.
+
+| Type / metric | 0.8B Base | 2B Base | 4B Base | 9B Base |
+| --- | ---: | ---: | ---: | ---: |
+| choice TVD | 0.588671451 | 0.374661008 | 0.354847645 | 0.381284810 |
+| choice Soft Brier vector | 0.513868496 | 0.276242487 | 0.280899689 | 0.304140470 |
+| choice Soft CE nats | 1.901516824 | 1.397824523 | 1.480636981 | 1.486961149 |
+| noul TVD | 0.262084125 | 0.243557489 | 0.184752505 | 0.174146939 |
+| noul Soft Brier vector | 0.174980548 | 0.163492967 | 0.135013715 | 0.124743900 |
+| noul Soft CE nats | 0.619612490 | 0.604589577 | 0.592360390 | 0.564888551 |
+| noul Soft Brier scalar | 0.087490274 | 0.081746483 | 0.067506858 | 0.062371950 |
+| score TVD | 0.592788632 | 0.571100856 | 0.462679719 | 0.469017145 |
+| score Soft Brier vector | 0.551540409 | 0.582594084 | 0.414799388 | 0.391320995 |
+| score Soft CE nats | 1.618246304 | 1.584629303 | 1.354282549 | 1.288605623 |
+| score Soft RPS normalized | 0.231233146 | 0.229331544 | 0.132425493 | 0.117335822 |
+
+Means are question-weighted within type; no pooled cross-type headline. Source targets are not renormalized (maximum sum deviation about1e-6). Noul scalar and vector Brier are separately named; score RPS divides cumulative squared errors by K−1. Choice4B→9B hard accuracy improves while TVD/Brier/CE worsen; score9B improves Brier/CE/RPS but worsens TVD. Larger models do not improve every metric monotonically.
+
+0.8B predicts No on650/659 soft Noul questions and index0 on226/280 soft choice questions. All reconstructed probability vectors are distinct within each type/model; constant-index strata are retained and diagnosed, without assigning a semantic cause. Original74 duplicate full-panel requests remain. No training gain, significance, decision consistency or publisher-native probability endpoint claim follows.
+
+[Exact results, formulas, strata and diagnostics](REFERENCE-SKILLS-SOFT-SUPPLEMENT-2026-11-04.json).

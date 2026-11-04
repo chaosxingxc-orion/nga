@@ -1,0 +1,1181 @@
+{
+  "schema": "nga.reference.skills.soft.supplement.v1",
+  "date": "2026-11-04",
+  "statistical_status": "post_inference_descriptive_supplement",
+  "new_inference_cells": 0,
+  "models": [
+    {
+      "model": "08b",
+      "n_soft": 1280,
+      "by_type": {
+        "choice": {
+          "n": 280,
+          "hard_correct": 61,
+          "hard_accuracy": 0.21785714285714286,
+          "tvd": 0.5886714512323226,
+          "soft_brier_vector": 0.5138684958525344,
+          "soft_ce_nats": 1.9015168244777538,
+          "human_agreement": 0.2492852785714286,
+          "candidate_counts": {
+            "3": 140,
+            "7": 140
+          }
+        },
+        "noul": {
+          "n": 659,
+          "hard_correct": 436,
+          "hard_accuracy": 0.661608497723824,
+          "tvd": 0.2620841253479376,
+          "soft_brier_vector": 0.1749805477560995,
+          "soft_ce_nats": 0.6196124902797822,
+          "human_agreement": 0.6626053050075873,
+          "soft_brier_scalar": 0.08749027387804975,
+          "candidate_counts": {
+            "2": 659
+          }
+        },
+        "score": {
+          "n": 341,
+          "hard_correct": 90,
+          "hard_accuracy": 0.26392961876832843,
+          "tvd": 0.5927886319517642,
+          "soft_brier_vector": 0.5515404091877633,
+          "soft_ce_nats": 1.6182463044920392,
+          "human_agreement": 0.24884597947214074,
+          "soft_rps_normalized": 0.2312331462727218,
+          "candidate_counts": {
+            "3": 138,
+            "5": 203
+          }
+        }
+      },
+      "hard_full_correct": 4960,
+      "n_full": 10316,
+      "max_target_sum_error": 1.000000000139778e-06,
+      "qid_strata": {
+        "choice::event_probability": {
+          "n": 38,
+          "hard_correct": 14,
+          "hard_accuracy": 0.3684210526315789,
+          "tvd": 0.35947366539279463,
+          "soft_brier_vector": 0.21484518862196555,
+          "soft_ce_nats": 1.3389404956994855,
+          "human_agreement": 0.3679384736842105,
+          "type": "choice",
+          "qid": "event_probability",
+          "prediction_indices": [
+            0,
+            2
+          ]
+        },
+        "choice::expected_outcome": {
+          "n": 102,
+          "hard_correct": 10,
+          "hard_accuracy": 0.09803921568627451,
+          "tvd": 0.6081088992517077,
+          "soft_brier_vector": 0.6574409926390553,
+          "soft_ce_nats": 2.2685883976422576,
+          "human_agreement": 0.20211213725490196,
+          "type": "choice",
+          "qid": "expected_outcome",
+          "prediction_indices": [
+            0
+          ]
+        },
+        "choice::typical_emotion_group": {
+          "n": 140,
+          "hard_correct": 37,
+          "hard_accuracy": 0.2642857142857143,
+          "tvd": 0.636720709546071,
+          "soft_brier_vector": 0.4904291458706521,
+          "soft_ce_nats": 1.7867782532691459,
+          "human_agreement": 0.2514484142857143,
+          "type": "choice",
+          "qid": "typical_emotion_group",
+          "prediction_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        "noul::event_probability": {
+          "n": 194,
+          "hard_correct": 101,
+          "hard_accuracy": 0.520618556701031,
+          "tvd": 0.24432075055256422,
+          "soft_brier_vector": 0.16001471980527157,
+          "soft_ce_nats": 0.6918354465763131,
+          "human_agreement": 0.5506763917525773,
+          "soft_brier_scalar": 0.08000735990263579,
+          "type": "noul",
+          "qid": "event_probability",
+          "prediction_indices": [
+            1
+          ]
+        },
+        "noul::expected_outcome": {
+          "n": 246,
+          "hard_correct": 206,
+          "hard_accuracy": 0.8373983739837398,
+          "tvd": 0.23417647858149765,
+          "soft_brier_vector": 0.12543581212801821,
+          "soft_ce_nats": 0.5064118798698746,
+          "human_agreement": 0.8203956666666666,
+          "soft_brier_scalar": 0.0627179060640091,
+          "type": "noul",
+          "qid": "expected_outcome",
+          "prediction_indices": [
+            1
+          ]
+        },
+        "noul::typical_annotator_toxic": {
+          "n": 219,
+          "hard_correct": 129,
+          "hard_accuracy": 0.589041095890411,
+          "tvd": 0.30916803317828767,
+          "soft_brier_vector": 0.24389093856417535,
+          "soft_ce_nats": 0.6827910137469523,
+          "human_agreement": 0.5845129771689498,
+          "soft_brier_scalar": 0.12194546928208769,
+          "type": "noul",
+          "qid": "typical_annotator_toxic",
+          "prediction_indices": [
+            0,
+            1
+          ]
+        },
+        "score::typical_hatespeech": {
+          "n": 138,
+          "hard_correct": 48,
+          "hard_accuracy": 0.34782608695652173,
+          "tvd": 0.49687475530520336,
+          "soft_brier_vector": 0.5622441938976659,
+          "soft_ce_nats": 1.1206047527218375,
+          "human_agreement": 0.30815565942028983,
+          "soft_rps_normalized": 0.27399849701244217,
+          "type": "score",
+          "qid": "typical_hatespeech",
+          "prediction_indices": [
+            2
+          ]
+        },
+        "score::typical_insult": {
+          "n": 116,
+          "hard_correct": 38,
+          "hard_accuracy": 0.3275862068965517,
+          "tvd": 0.5649363537451714,
+          "soft_brier_vector": 0.4288088856429796,
+          "soft_ce_nats": 1.5238956561980233,
+          "human_agreement": 0.31883556896551724,
+          "soft_rps_normalized": 0.1224906940355747,
+          "type": "score",
+          "qid": "typical_insult",
+          "prediction_indices": [
+            3
+          ]
+        },
+        "score::typical_violence": {
+          "n": 87,
+          "hard_correct": 4,
+          "hard_accuracy": 0.04597701149425287,
+          "tvd": 0.7820642555056744,
+          "soft_brier_vector": 0.6982040234547555,
+          "soft_ce_nats": 2.533409630312657,
+          "human_agreement": 0.061449103448275866,
+          "soft_rps_normalized": 0.30838838831212,
+          "type": "score",
+          "qid": "typical_violence",
+          "prediction_indices": [
+            3
+          ]
+        }
+      },
+      "flags": [
+        {
+          "type": "choice",
+          "qid": "expected_outcome",
+          "n": 102,
+          "hard_accuracy": 0.09803921568627451,
+          "constant_index": true
+        },
+        {
+          "type": "noul",
+          "qid": "event_probability",
+          "n": 194,
+          "hard_accuracy": 0.520618556701031,
+          "constant_index": true
+        },
+        {
+          "type": "noul",
+          "qid": "expected_outcome",
+          "n": 246,
+          "hard_accuracy": 0.8373983739837398,
+          "constant_index": true
+        },
+        {
+          "type": "score",
+          "qid": "typical_hatespeech",
+          "n": 138,
+          "hard_accuracy": 0.34782608695652173,
+          "constant_index": true
+        },
+        {
+          "type": "score",
+          "qid": "typical_insult",
+          "n": 116,
+          "hard_accuracy": 0.3275862068965517,
+          "constant_index": true
+        },
+        {
+          "type": "score",
+          "qid": "typical_violence",
+          "n": 87,
+          "hard_accuracy": 0.04597701149425287,
+          "constant_index": true
+        }
+      ],
+      "post_inference_descriptive": true,
+      "training_gain": false,
+      "publisher_endpoint_equivalent": false,
+      "plan_sha256": "b290d414419af7dcf77da6a99e76dd28b66e2c58e3e9e28836da65f68ddfb751"
+    },
+    {
+      "model": "2b",
+      "n_soft": 1280,
+      "by_type": {
+        "choice": {
+          "n": 280,
+          "hard_correct": 119,
+          "hard_accuracy": 0.425,
+          "tvd": 0.3746610077825533,
+          "soft_brier_vector": 0.27624248719052913,
+          "soft_ce_nats": 1.397824523327908,
+          "human_agreement": 0.37923595357142853,
+          "candidate_counts": {
+            "3": 140,
+            "7": 140
+          }
+        },
+        "noul": {
+          "n": 659,
+          "hard_correct": 475,
+          "hard_accuracy": 0.7207890743550834,
+          "tvd": 0.2435574889722437,
+          "soft_brier_vector": 0.16349296692812518,
+          "soft_ce_nats": 0.6045895773739662,
+          "human_agreement": 0.673195660091047,
+          "soft_brier_scalar": 0.08174648346406257,
+          "candidate_counts": {
+            "2": 659
+          }
+        },
+        "score": {
+          "n": 341,
+          "hard_correct": 118,
+          "hard_accuracy": 0.3460410557184751,
+          "tvd": 0.5711008555175783,
+          "soft_brier_vector": 0.5825940836832249,
+          "soft_ce_nats": 1.5846293026721283,
+          "human_agreement": 0.3151493519061584,
+          "soft_rps_normalized": 0.2293315442826555,
+          "candidate_counts": {
+            "3": 138,
+            "5": 203
+          }
+        }
+      },
+      "hard_full_correct": 6224,
+      "n_full": 10316,
+      "max_target_sum_error": 1.000000000139778e-06,
+      "qid_strata": {
+        "choice::event_probability": {
+          "n": 38,
+          "hard_correct": 12,
+          "hard_accuracy": 0.3157894736842105,
+          "tvd": 0.21922927263334357,
+          "soft_brier_vector": 0.09964496736135114,
+          "soft_ce_nats": 1.0804966394745672,
+          "human_agreement": 0.36748626315789473,
+          "type": "choice",
+          "qid": "event_probability",
+          "prediction_indices": [
+            1,
+            2
+          ]
+        },
+        "choice::expected_outcome": {
+          "n": 102,
+          "hard_correct": 55,
+          "hard_accuracy": 0.5392156862745098,
+          "tvd": 0.21728620628078651,
+          "soft_brier_vector": 0.09058385156311038,
+          "soft_ce_nats": 1.0788335149004455,
+          "human_agreement": 0.4268183823529412,
+          "type": "choice",
+          "qid": "expected_outcome",
+          "prediction_indices": [
+            0,
+            1,
+            2
+          ]
+        },
+        "choice::typical_emotion_group": {
+          "n": 140,
+          "hard_correct": 52,
+          "hard_accuracy": 0.37142857142857144,
+          "tvd": 0.5315084055600546,
+          "soft_brier_vector": 0.45944167710128253,
+          "soft_ce_nats": 1.716364112228109,
+          "human_agreement": 0.3477579571428572,
+          "type": "choice",
+          "qid": "typical_emotion_group",
+          "prediction_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        "noul::event_probability": {
+          "n": 194,
+          "hard_correct": 133,
+          "hard_accuracy": 0.6855670103092784,
+          "tvd": 0.2013625900088154,
+          "soft_brier_vector": 0.13184960283740774,
+          "soft_ce_nats": 0.6625790249731117,
+          "human_agreement": 0.6076235154639176,
+          "soft_brier_scalar": 0.06592480141870387,
+          "type": "noul",
+          "qid": "event_probability",
+          "prediction_indices": [
+            0,
+            1
+          ]
+        },
+        "noul::expected_outcome": {
+          "n": 246,
+          "hard_correct": 202,
+          "hard_accuracy": 0.8211382113821138,
+          "tvd": 0.2294884276985365,
+          "soft_brier_vector": 0.13564323064783737,
+          "soft_ce_nats": 0.5089218354904284,
+          "human_agreement": 0.7854774390243903,
+          "soft_brier_scalar": 0.06782161532391866,
+          "type": "noul",
+          "qid": "expected_outcome",
+          "prediction_indices": [
+            0,
+            1
+          ]
+        },
+        "noul::typical_annotator_toxic": {
+          "n": 219,
+          "hard_correct": 140,
+          "hard_accuracy": 0.639269406392694,
+          "tvd": 0.2967392217221845,
+          "soft_brier_vector": 0.22280734025483748,
+          "soft_ce_nats": 0.6606823247215282,
+          "human_agreement": 0.6051576621004566,
+          "soft_brier_scalar": 0.1114036701274187,
+          "type": "noul",
+          "qid": "typical_annotator_toxic",
+          "prediction_indices": [
+            0,
+            1
+          ]
+        },
+        "score::typical_hatespeech": {
+          "n": 138,
+          "hard_correct": 48,
+          "hard_accuracy": 0.34782608695652173,
+          "tvd": 0.5705376417637734,
+          "soft_brier_vector": 0.7929219800275261,
+          "soft_ce_nats": 1.543630101594268,
+          "human_agreement": 0.30815565942028983,
+          "soft_rps_normalized": 0.38918372577135224,
+          "type": "score",
+          "qid": "typical_hatespeech",
+          "prediction_indices": [
+            2
+          ]
+        },
+        "score::typical_insult": {
+          "n": 116,
+          "hard_correct": 39,
+          "hard_accuracy": 0.33620689655172414,
+          "tvd": 0.5774433628539292,
+          "soft_brier_vector": 0.4599993976039719,
+          "soft_ce_nats": 1.5819954866285248,
+          "human_agreement": 0.33606779310344825,
+          "soft_rps_normalized": 0.12083560733846029,
+          "type": "score",
+          "qid": "typical_insult",
+          "prediction_indices": [
+            0,
+            2,
+            3
+          ]
+        },
+        "score::typical_violence": {
+          "n": 87,
+          "hard_correct": 31,
+          "hard_accuracy": 0.3563218390804598,
+          "tvd": 0.5635375526096285,
+          "soft_brier_vector": 0.412430105403682,
+          "soft_ce_nats": 1.653174272899745,
+          "human_agreement": 0.298351540229885,
+          "soft_rps_normalized": 0.12043416083537381,
+          "type": "score",
+          "qid": "typical_violence",
+          "prediction_indices": [
+            0,
+            2,
+            3
+          ]
+        }
+      },
+      "flags": [
+        {
+          "type": "score",
+          "qid": "typical_hatespeech",
+          "n": 138,
+          "hard_accuracy": 0.34782608695652173,
+          "constant_index": true
+        }
+      ],
+      "post_inference_descriptive": true,
+      "training_gain": false,
+      "publisher_endpoint_equivalent": false,
+      "plan_sha256": "1479d21f3224ff19890b4065325125e99e20298d0df586041882814668e185f2"
+    },
+    {
+      "model": "4b",
+      "n_soft": 1280,
+      "by_type": {
+        "choice": {
+          "n": 280,
+          "hard_correct": 145,
+          "hard_accuracy": 0.5178571428571429,
+          "tvd": 0.3548476445067659,
+          "soft_brier_vector": 0.28089968903447987,
+          "soft_ce_nats": 1.4806369814134661,
+          "human_agreement": 0.43230384285714285,
+          "candidate_counts": {
+            "3": 140,
+            "7": 140
+          }
+        },
+        "noul": {
+          "n": 659,
+          "hard_correct": 516,
+          "hard_accuracy": 0.7830045523520486,
+          "tvd": 0.18475250513394093,
+          "soft_brier_vector": 0.13501371528442827,
+          "soft_ce_nats": 0.5923603896324074,
+          "human_agreement": 0.7186874962063733,
+          "soft_brier_scalar": 0.06750685764221412,
+          "candidate_counts": {
+            "2": 659
+          }
+        },
+        "score": {
+          "n": 341,
+          "hard_correct": 166,
+          "hard_accuracy": 0.4868035190615836,
+          "tvd": 0.4626797194956843,
+          "soft_brier_vector": 0.4147993882925939,
+          "soft_ce_nats": 1.3542825491738577,
+          "human_agreement": 0.42982924633431085,
+          "soft_rps_normalized": 0.13242549276563162,
+          "candidate_counts": {
+            "3": 138,
+            "5": 203
+          }
+        }
+      },
+      "hard_full_correct": 7221,
+      "n_full": 10316,
+      "max_target_sum_error": 1.000000000139778e-06,
+      "qid_strata": {
+        "choice::event_probability": {
+          "n": 38,
+          "hard_correct": 11,
+          "hard_accuracy": 0.2894736842105263,
+          "tvd": 0.27876253786675104,
+          "soft_brier_vector": 0.1469282488059499,
+          "soft_ce_nats": 1.1494245717243277,
+          "human_agreement": 0.3428467105263158,
+          "type": "choice",
+          "qid": "event_probability",
+          "prediction_indices": [
+            1,
+            2
+          ]
+        },
+        "choice::expected_outcome": {
+          "n": 102,
+          "hard_correct": 79,
+          "hard_accuracy": 0.7745098039215687,
+          "tvd": 0.15561501432090644,
+          "soft_brier_vector": 0.0538174858013547,
+          "soft_ce_nats": 1.0244714081992137,
+          "human_agreement": 0.5316744117647059,
+          "type": "choice",
+          "qid": "expected_outcome",
+          "prediction_indices": [
+            0,
+            1,
+            2
+          ]
+        },
+        "choice::typical_emotion_group": {
+          "n": 140,
+          "hard_correct": 55,
+          "hard_accuracy": 0.39285714285714285,
+          "tvd": 0.5206545183016104,
+          "soft_brier_vector": 0.4827089708806434,
+          "soft_ce_nats": 1.902886695956616,
+          "human_agreement": 0.3841865071428571,
+          "type": "choice",
+          "qid": "typical_emotion_group",
+          "prediction_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        "noul::event_probability": {
+          "n": 194,
+          "hard_correct": 145,
+          "hard_accuracy": 0.7474226804123711,
+          "tvd": 0.24328886085841417,
+          "soft_brier_vector": 0.1934862903586745,
+          "soft_ce_nats": 0.8049243256962297,
+          "human_agreement": 0.6521201237113402,
+          "soft_brier_scalar": 0.09674314517933727,
+          "type": "noul",
+          "qid": "event_probability",
+          "prediction_indices": [
+            0,
+            1
+          ]
+        },
+        "noul::expected_outcome": {
+          "n": 246,
+          "hard_correct": 223,
+          "hard_accuracy": 0.9065040650406504,
+          "tvd": 0.07338818875479862,
+          "soft_brier_vector": 0.02338464471129184,
+          "soft_ce_nats": 0.35625714844864725,
+          "human_agreement": 0.8411943658536586,
+          "soft_brier_scalar": 0.011692322355645919,
+          "type": "noul",
+          "qid": "expected_outcome",
+          "prediction_indices": [
+            0,
+            1
+          ]
+        },
+        "noul::typical_annotator_toxic": {
+          "n": 219,
+          "hard_correct": 148,
+          "hard_accuracy": 0.6757990867579908,
+          "tvd": 0.2579925454020743,
+          "soft_brier_vector": 0.20860765042866472,
+          "soft_ce_nats": 0.6692736030334279,
+          "human_agreement": 0.640045397260274,
+          "soft_brier_scalar": 0.10430382521433235,
+          "type": "noul",
+          "qid": "typical_annotator_toxic",
+          "prediction_indices": [
+            0,
+            1
+          ]
+        },
+        "score::typical_hatespeech": {
+          "n": 138,
+          "hard_correct": 76,
+          "hard_accuracy": 0.5507246376811594,
+          "tvd": 0.4206100885898163,
+          "soft_brier_vector": 0.42223064379298664,
+          "soft_ce_nats": 1.0511803730735805,
+          "human_agreement": 0.49354213768115945,
+          "soft_rps_normalized": 0.19861792380662027,
+          "type": "score",
+          "qid": "typical_hatespeech",
+          "prediction_indices": [
+            0,
+            2
+          ]
+        },
+        "score::typical_insult": {
+          "n": 116,
+          "hard_correct": 40,
+          "hard_accuracy": 0.3448275862068966,
+          "tvd": 0.5413270052504366,
+          "soft_brier_vector": 0.49387070442683545,
+          "soft_ce_nats": 1.7016404895783979,
+          "human_agreement": 0.3326195344827586,
+          "soft_rps_normalized": 0.1099686695519985,
+          "type": "score",
+          "qid": "typical_insult",
+          "prediction_indices": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        "score::typical_violence": {
+          "n": 87,
+          "hard_correct": 50,
+          "hard_accuracy": 0.5747126436781609,
+          "tvd": 0.42454781050095475,
+          "soft_brier_vector": 0.2975834580555109,
+          "soft_ce_nats": 1.3719213907245655,
+          "human_agreement": 0.4583803678160919,
+          "soft_rps_normalized": 0.0573730331004018,
+          "type": "score",
+          "qid": "typical_violence",
+          "prediction_indices": [
+            0,
+            1,
+            2,
+            3
+          ]
+        }
+      },
+      "flags": [],
+      "post_inference_descriptive": true,
+      "training_gain": false,
+      "publisher_endpoint_equivalent": false,
+      "plan_sha256": "f62882c9a077d693bc3b7146ebbd4b5204f4fcd734d289ec5072a8d55e2603fd"
+    },
+    {
+      "model": "9b",
+      "n_soft": 1280,
+      "by_type": {
+        "choice": {
+          "n": 280,
+          "hard_correct": 151,
+          "hard_accuracy": 0.5392857142857143,
+          "tvd": 0.38128481048061486,
+          "soft_brier_vector": 0.3041404698481637,
+          "soft_ce_nats": 1.486961149253009,
+          "human_agreement": 0.4388482714285714,
+          "candidate_counts": {
+            "3": 140,
+            "7": 140
+          }
+        },
+        "noul": {
+          "n": 659,
+          "hard_correct": 490,
+          "hard_accuracy": 0.7435508345978755,
+          "tvd": 0.17414693909458795,
+          "soft_brier_vector": 0.12474389977638786,
+          "soft_ce_nats": 0.5648885506993879,
+          "human_agreement": 0.7023800394537177,
+          "soft_brier_scalar": 0.062371949888193924,
+          "candidate_counts": {
+            "2": 659
+          }
+        },
+        "score": {
+          "n": 341,
+          "hard_correct": 170,
+          "hard_accuracy": 0.49853372434017595,
+          "tvd": 0.4690171454176192,
+          "soft_brier_vector": 0.39132099511269747,
+          "soft_ce_nats": 1.288605622674474,
+          "human_agreement": 0.435260073313783,
+          "soft_rps_normalized": 0.11733582196378868,
+          "candidate_counts": {
+            "3": 138,
+            "5": 203
+          }
+        }
+      },
+      "hard_full_correct": 7358,
+      "n_full": 10316,
+      "max_target_sum_error": 1.000000000139778e-06,
+      "qid_strata": {
+        "choice::event_probability": {
+          "n": 38,
+          "hard_correct": 5,
+          "hard_accuracy": 0.13157894736842105,
+          "tvd": 0.5150351895084433,
+          "soft_brier_vector": 0.4502638581960412,
+          "soft_ce_nats": 1.6048793235106473,
+          "human_agreement": 0.1962910789473684,
+          "type": "choice",
+          "qid": "event_probability",
+          "prediction_indices": [
+            2
+          ]
+        },
+        "choice::expected_outcome": {
+          "n": 102,
+          "hard_correct": 76,
+          "hard_accuracy": 0.7450980392156863,
+          "tvd": 0.19963409365085524,
+          "soft_brier_vector": 0.08060784037409711,
+          "soft_ce_nats": 1.0883917160959182,
+          "human_agreement": 0.5292386568627451,
+          "type": "choice",
+          "qid": "expected_outcome",
+          "prediction_indices": [
+            1,
+            2
+          ]
+        },
+        "choice::typical_emotion_group": {
+          "n": 140,
+          "hard_correct": 70,
+          "hard_accuracy": 0.5,
+          "tvd": 0.4773266584347434,
+          "soft_brier_vector": 0.42733789448484544,
+          "soft_ce_nats": 1.7453410889689593,
+          "human_agreement": 0.4388293714285714,
+          "type": "choice",
+          "qid": "typical_emotion_group",
+          "prediction_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        "noul::event_probability": {
+          "n": 194,
+          "hard_correct": 117,
+          "hard_accuracy": 0.6030927835051546,
+          "tvd": 0.2181135000822262,
+          "soft_brier_vector": 0.15634133924943935,
+          "soft_ce_nats": 0.6943675298937174,
+          "human_agreement": 0.5838908556701031,
+          "soft_brier_scalar": 0.07817066962471966,
+          "type": "noul",
+          "qid": "event_probability",
+          "prediction_indices": [
+            0,
+            1
+          ]
+        },
+        "noul::expected_outcome": {
+          "n": 246,
+          "hard_correct": 219,
+          "hard_accuracy": 0.8902439024390244,
+          "tvd": 0.08801734063516455,
+          "soft_brier_vector": 0.035276806780046535,
+          "soft_ce_nats": 0.3733113480552762,
+          "human_agreement": 0.8367589756097561,
+          "soft_brier_scalar": 0.01763840339002326,
+          "type": "noul",
+          "qid": "expected_outcome",
+          "prediction_indices": [
+            0,
+            1
+          ]
+        },
+        "noul::typical_annotator_toxic": {
+          "n": 219,
+          "hard_correct": 154,
+          "hard_accuracy": 0.7031963470319634,
+          "tvd": 0.2319477079960324,
+          "soft_brier_vector": 0.19725075648564805,
+          "soft_ce_nats": 0.6653865867119524,
+          "human_agreement": 0.6563968584474886,
+          "soft_brier_scalar": 0.09862537824282402,
+          "type": "noul",
+          "qid": "typical_annotator_toxic",
+          "prediction_indices": [
+            0,
+            1
+          ]
+        },
+        "score::typical_hatespeech": {
+          "n": 138,
+          "hard_correct": 75,
+          "hard_accuracy": 0.5434782608695652,
+          "tvd": 0.45096260038855984,
+          "soft_brier_vector": 0.4133679202509834,
+          "soft_ce_nats": 1.0709874848627885,
+          "human_agreement": 0.4833033623188406,
+          "soft_rps_normalized": 0.17145273556866233,
+          "type": "score",
+          "qid": "typical_hatespeech",
+          "prediction_indices": [
+            0,
+            1,
+            2
+          ]
+        },
+        "score::typical_insult": {
+          "n": 116,
+          "hard_correct": 38,
+          "hard_accuracy": 0.3275862068965517,
+          "tvd": 0.5422184028471533,
+          "soft_brier_vector": 0.4513972912493653,
+          "soft_ce_nats": 1.5295149410833768,
+          "human_agreement": 0.3241269655172414,
+          "soft_rps_normalized": 0.10198382499104913,
+          "type": "score",
+          "qid": "typical_insult",
+          "prediction_indices": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        "score::typical_violence": {
+          "n": 87,
+          "hard_correct": 57,
+          "hard_accuracy": 0.6551724137931034,
+          "tvd": 0.4000537126841048,
+          "soft_brier_vector": 0.27624828222836484,
+          "soft_ce_nats": 1.312580589140909,
+          "human_agreement": 0.5072309540229885,
+          "soft_rps_normalized": 0.05196452968063033,
+          "type": "score",
+          "qid": "typical_violence",
+          "prediction_indices": [
+            0,
+            1,
+            2,
+            3
+          ]
+        }
+      },
+      "flags": [
+        {
+          "type": "choice",
+          "qid": "event_probability",
+          "n": 38,
+          "hard_accuracy": 0.13157894736842105,
+          "constant_index": true
+        }
+      ],
+      "post_inference_descriptive": true,
+      "training_gain": false,
+      "publisher_endpoint_equivalent": false,
+      "plan_sha256": "12f232257c4d301e83826d30cc070a740e424e61b23a601aab850f1b9a12cb53"
+    }
+  ],
+  "diagnostics": [
+    {
+      "model": "08b",
+      "type": "choice",
+      "n": 280,
+      "prediction_index_counts": {
+        "0": 226,
+        "2": 14,
+        "1": 9,
+        "3": 29,
+        "4": 1,
+        "6": 1
+      },
+      "distinct_probability_vectors": 280,
+      "exact_metric_zero_rows": {
+        "tvd": 0,
+        "soft_brier_vector": 0,
+        "soft_ce_nats": 0
+      },
+      "type_hard_accuracy": 0.21785714285714286,
+      "flags": [
+        {
+          "type": "choice",
+          "qid": "expected_outcome",
+          "n": 102,
+          "hard_accuracy": 0.09803921568627451,
+          "constant_index": true
+        }
+      ]
+    },
+    {
+      "model": "08b",
+      "type": "noul",
+      "n": 659,
+      "prediction_index_counts": {
+        "1": 650,
+        "0": 9
+      },
+      "distinct_probability_vectors": 659,
+      "exact_metric_zero_rows": {
+        "tvd": 0,
+        "soft_brier_vector": 0,
+        "soft_ce_nats": 0
+      },
+      "type_hard_accuracy": 0.661608497723824,
+      "flags": [
+        {
+          "type": "noul",
+          "qid": "event_probability",
+          "n": 194,
+          "hard_accuracy": 0.520618556701031,
+          "constant_index": true
+        },
+        {
+          "type": "noul",
+          "qid": "expected_outcome",
+          "n": 246,
+          "hard_accuracy": 0.8373983739837398,
+          "constant_index": true
+        }
+      ]
+    },
+    {
+      "model": "08b",
+      "type": "score",
+      "n": 341,
+      "prediction_index_counts": {
+        "2": 138,
+        "3": 203
+      },
+      "distinct_probability_vectors": 341,
+      "exact_metric_zero_rows": {
+        "tvd": 0,
+        "soft_brier_vector": 0,
+        "soft_ce_nats": 0
+      },
+      "type_hard_accuracy": 0.26392961876832843,
+      "flags": [
+        {
+          "type": "score",
+          "qid": "typical_hatespeech",
+          "n": 138,
+          "hard_accuracy": 0.34782608695652173,
+          "constant_index": true
+        },
+        {
+          "type": "score",
+          "qid": "typical_insult",
+          "n": 116,
+          "hard_accuracy": 0.3275862068965517,
+          "constant_index": true
+        },
+        {
+          "type": "score",
+          "qid": "typical_violence",
+          "n": 87,
+          "hard_accuracy": 0.04597701149425287,
+          "constant_index": true
+        }
+      ]
+    },
+    {
+      "model": "2b",
+      "type": "choice",
+      "n": 280,
+      "prediction_index_counts": {
+        "2": 68,
+        "4": 10,
+        "1": 45,
+        "3": 44,
+        "0": 102,
+        "5": 3,
+        "6": 8
+      },
+      "distinct_probability_vectors": 280,
+      "exact_metric_zero_rows": {
+        "tvd": 0,
+        "soft_brier_vector": 0,
+        "soft_ce_nats": 0
+      },
+      "type_hard_accuracy": 0.425,
+      "flags": []
+    },
+    {
+      "model": "2b",
+      "type": "noul",
+      "n": 659,
+      "prediction_index_counts": {
+        "1": 429,
+        "0": 230
+      },
+      "distinct_probability_vectors": 659,
+      "exact_metric_zero_rows": {
+        "tvd": 0,
+        "soft_brier_vector": 0,
+        "soft_ce_nats": 0
+      },
+      "type_hard_accuracy": 0.7207890743550834,
+      "flags": []
+    },
+    {
+      "model": "2b",
+      "type": "score",
+      "n": 341,
+      "prediction_index_counts": {
+        "2": 185,
+        "3": 119,
+        "0": 37
+      },
+      "distinct_probability_vectors": 341,
+      "exact_metric_zero_rows": {
+        "tvd": 0,
+        "soft_brier_vector": 0,
+        "soft_ce_nats": 0
+      },
+      "type_hard_accuracy": 0.3460410557184751,
+      "flags": [
+        {
+          "type": "score",
+          "qid": "typical_hatespeech",
+          "n": 138,
+          "hard_accuracy": 0.34782608695652173,
+          "constant_index": true
+        }
+      ]
+    },
+    {
+      "model": "4b",
+      "type": "choice",
+      "n": 280,
+      "prediction_index_counts": {
+        "2": 116,
+        "0": 67,
+        "1": 28,
+        "3": 46,
+        "6": 15,
+        "5": 4,
+        "4": 4
+      },
+      "distinct_probability_vectors": 280,
+      "exact_metric_zero_rows": {
+        "tvd": 0,
+        "soft_brier_vector": 0,
+        "soft_ce_nats": 0
+      },
+      "type_hard_accuracy": 0.5178571428571429,
+      "flags": []
+    },
+    {
+      "model": "4b",
+      "type": "noul",
+      "n": 659,
+      "prediction_index_counts": {
+        "0": 205,
+        "1": 454
+      },
+      "distinct_probability_vectors": 659,
+      "exact_metric_zero_rows": {
+        "tvd": 0,
+        "soft_brier_vector": 0,
+        "soft_ce_nats": 0
+      },
+      "type_hard_accuracy": 0.7830045523520486,
+      "flags": []
+    },
+    {
+      "model": "4b",
+      "type": "score",
+      "n": 341,
+      "prediction_index_counts": {
+        "0": 115,
+        "2": 149,
+        "3": 68,
+        "1": 9
+      },
+      "distinct_probability_vectors": 341,
+      "exact_metric_zero_rows": {
+        "tvd": 0,
+        "soft_brier_vector": 0,
+        "soft_ce_nats": 0
+      },
+      "type_hard_accuracy": 0.4868035190615836,
+      "flags": []
+    },
+    {
+      "model": "9b",
+      "type": "choice",
+      "n": 280,
+      "prediction_index_counts": {
+        "2": 137,
+        "4": 7,
+        "0": 37,
+        "3": 67,
+        "1": 7,
+        "6": 17,
+        "5": 8
+      },
+      "distinct_probability_vectors": 280,
+      "exact_metric_zero_rows": {
+        "tvd": 0,
+        "soft_brier_vector": 0,
+        "soft_ce_nats": 0
+      },
+      "type_hard_accuracy": 0.5392857142857143,
+      "flags": [
+        {
+          "type": "choice",
+          "qid": "event_probability",
+          "n": 38,
+          "hard_accuracy": 0.13157894736842105,
+          "constant_index": true
+        }
+      ]
+    },
+    {
+      "model": "9b",
+      "type": "noul",
+      "n": 659,
+      "prediction_index_counts": {
+        "0": 79,
+        "1": 580
+      },
+      "distinct_probability_vectors": 659,
+      "exact_metric_zero_rows": {
+        "tvd": 0,
+        "soft_brier_vector": 0,
+        "soft_ce_nats": 0
+      },
+      "type_hard_accuracy": 0.7435508345978755,
+      "flags": []
+    },
+    {
+      "model": "9b",
+      "type": "score",
+      "n": 341,
+      "prediction_index_counts": {
+        "2": 102,
+        "1": 46,
+        "0": 127,
+        "3": 66
+      },
+      "distinct_probability_vectors": 341,
+      "exact_metric_zero_rows": {
+        "tvd": 0,
+        "soft_brier_vector": 0,
+        "soft_ce_nats": 0
+      },
+      "type_hard_accuracy": 0.49853372434017595,
+      "flags": []
+    }
+  ],
+  "formulas": "# BEV skills soft-target descriptive supplement\n\nFrozen for this CPU computation on 2026-11-04, before inspecting its metric outputs. This is post-inference descriptive supplementary analysis, not pre-inference preregistration. Existing TEST prompts, model outputs, population, hard-label results and selection thresholds remain unchanged; no optimization/selection authority is created.\n\nPopulation: source skills/test.parquet, 6,755 rows /10,316 questions; include exactly all 1,280 questions carrying label_probs per model (choice280, Noul659, score341). Join by original flattened index plus qid, state, instructions, criteria/order, hard label and request identity. Preserve duplicate requests and null limitations. No hard-only target is converted into a soft target.\n\nLet q be source label_probs in source criterion order, and p be stable softmax of the full stored candidate logit vector. No temperature fitting or clipping; no target renormalization. Require finite probabilities in[0,1] and sum(q) within1e-5 of1, report maximum deviation. Noul order is true/false, corresponding to Yes/No. Candidate subsets may have different K; report by original question type rather than one pooled headline.\n\nTVD=sum|p-q|/2; vector Brier=sum(p-q)^2; soft CE=-sum(q*log p), natural logarithm; human agreement=q[argmax p]. For Noul additionally scalar Brier=(p_true-q_true)^2, separately named; its relation to vector Brier is checked. For score only: normalized soft RPS=sum over thresholds0..K-2 of(CDFp-CDFq)^2/(K-1). K>=2 required. Hard accuracy on the soft-present subset is a separately labelled diagnostic. ECE is not introduced as a soft-target metric.\n\nAll means are question-weighted within each type, no cross-dataset average. Report type n, distribution of K, qid groups, per-qid n<30 and exact0/1 hard-accuracy/constant-prediction flags. Constant prediction indices are descriptive behavior diagnostics, not proof of semantic failure; shared index across different qids is not a shared semantic class. Type/source target overlap and pretraining disjointness are not newly established.\n\nAudit every stored record's commitment, input/contract/model identity and label-logit arithmetic. Numerical tolerance1e-11 absolute for logprobs,1e-10 for formula identities; source values remain unchanged. Existing successful lifecycle/physical releases are verified on175. Model forward kernels/full vocabulary are not recomputed. This is not publisher-native probability scorer equivalence or a training gain.\n",
+  "parent_pin_check": {
+    "pins": 82579,
+    "mismatches": [],
+    "rows": 41264,
+    "soft_rows": 5120,
+    "scope": "post-inference descriptive supplementary metrics",
+    "utc": "2026-11-04T17:04:22.474230+00:00"
+  },
+  "independent_acceptance_sha256": "0eb025f034cf1b7136ae653b6cf208bd2d6338c9afe946f001970bd8b3702dec",
+  "scope": "Existing fixed-base skills results, no training gain or publisher-native endpoint claim"
+}
