@@ -317,3 +317,15 @@ The additional 4B and 9B cells passed independent full saved-result reconstructi
 | Qwen3.5-9B-Base | 1170/2000 | 58.5% | 0.308770753 | 0.157799407 | 0.037623090 |
 
 All four Qwen sizes now have accepted results on this panel. Overall accuracy rises and KL/Brier/ECE10 decrease with scale in this fixed comparison; subtype metrics need separate interpretation. This does not establish training gains, paired consistency, native five-question inference-endpoint equivalence, or complete cross-dataset coverage.
+
+## Hard 4B and HelpSteer2 verbosity TEST increment — 2026-11-04
+
+Independent complete saved-result reconstruction accepted hard4B at **8748/14479 = 60.418537%**. HelpSteer2 verbosity uses the separate preregistered local ordinal protocol on 1,000 released TEST rows; it is not Jevify endpoint/scorer equivalence. [Exact metrics and evidence](REFERENCE-HARD4B-HELPSTEER-INCREMENT-2026-11-04.json).
+
+| HelpSteer2 model | Accuracy | Argmax MAE | Expected-index MAE | Normalized RPS |
+| --- | ---: | ---: | ---: | ---: |
+| Qwen3.5-0.8B-Base | 16.7% | 1.091 | 0.552943309 | 0.149852795 |
+| Qwen3.5-2B-Base | 15.5% | 1.119 | 0.710356389 | 0.150557378 |
+| Constant grade2 diagnostic | 61.9% | 0.463 | — | — |
+
+Both models perform worse than the constant-grade diagnostic on accuracy and argmax MAE; predictions concentrate on grade3. The constant is a TEST-population descriptive diagnostic, not a learned held-out result. Full mapping and persisted arithmetic checks found no discrepancy, which does not prove model capability is the sole cause. Dedicated CPU bad-case diagnosis is pending; any subsequent optimization requires separate DEV design and preregistration. No test-driven prompt/threshold change has been applied.
