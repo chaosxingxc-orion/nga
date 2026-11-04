@@ -207,6 +207,63 @@
         "actual_run_started_at": "2026-11-03T07:05:39.22821662Z"
       },
       "separate_preregistration_draft_present": false
+    },
+    {
+      "model": "Qwen3.5-9B-Base",
+      "model_manifest_sha256": "e5155012784ee0a4bb59995749360fcf21b578858d58e62fe82376590ea8476f",
+      "contract_sha256": "ddc0a876caf881070af0898e53dd47f996737f27d96b9b85590a010baee0f58f",
+      "ordered_inputs_sha256": "43ed705e3af56064a35fc8498c561735e113bc1d5b8d3e9454551f24b72396dd",
+      "metrics": {
+        "n": 46320,
+        "correct": 30465,
+        "accuracy": 0.6577072538860104,
+        "by_type": {
+          "choice": {
+            "n": 18808,
+            "correct": 12404,
+            "accuracy": 0.6595065929391748,
+            "metric_origin": "NGA additive stratification"
+          },
+          "yes_no": {
+            "n": 17572,
+            "correct": 13756,
+            "accuracy": 0.7828363305258366,
+            "metric_origin": "NGA additive stratification"
+          },
+          "score": {
+            "n": 9940,
+            "correct": 4305,
+            "accuracy": 0.43309859154929575,
+            "metric_origin": "NGA additive stratification"
+          }
+        },
+        "adaptive": "NOT_EVALUATED"
+      },
+      "runtime": {
+        "chips": 1,
+        "dtype": "float32",
+        "hf32": false,
+        "peak_reserved_gib": 38.09765625,
+        "reserved_gib": 38.09765625,
+        "torch": "2.10.0+cpu",
+        "torch_npu": "2.10.0.post7",
+        "transformers": "5.14.1"
+      },
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_resume_20261104_v1/output/cpu/1/summary.json",
+        "sha256": "5809e7cded0944611d701e850639b1c9030d3e5693966a427f2af8c10c677368"
+      },
+      "result_acceptance": {
+        "path": "/home/xingchao/workspace/nga/.local/reviews/native9b-full-recovery-result-independent-20261104-v1/ACCEPTANCE.json",
+        "sha256": "607397c2b2c7443fe563cbd9fd65b2351514e947ae3740094b1b2196f38ddfda"
+      },
+      "status": "independently_reconstructed_fixed_base_test",
+      "anomaly_diagnosis": {
+        "model_size_delta_vs_4b_correct": -87,
+        "model_size_delta_vs_4b_pp": -0.1878238341968912,
+        "scientific_acceptance": false,
+        "training_gain_established": false
+      }
     }
   ],
   "boundaries": [
@@ -237,6 +294,6 @@
     "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_full_panel_20261103_v3/output/cpu/1/summary.json",
     "sha256": "0c34c29b3bf5acd195db89202bb7c3d2f0f0c7b437051c9b0e4321bab47a315b"
   },
-  "top_level_model_specific_metadata_scope": "0.8B original increment; 2B and 4B have explicit model-level contract, summary and anomaly fields",
-  "updated_utc": "2026-11-04"
+  "top_level_model_specific_metadata_scope": "0.8B original increment; 2B, 4B and 9B have explicit model-level contract, summary and anomaly fields",
+  "updated_utc": "2026-11-04T04:46:05.048335+00:00"
 }
