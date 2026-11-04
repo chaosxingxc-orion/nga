@@ -134,6 +134,79 @@
         "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_2b_full_panel_20261103_v1/output/attempts/1/report.json",
         "sha256": "20092c820dc153fd762dcea75c00846c0c392601b1c73e0668ecd38a1379d9b7"
       }
+    },
+    {
+      "model": "Qwen3.5-4B-Base",
+      "model_manifest_sha256": "866a92fd2e751f3221cc55d1d285d93d6285551cc50afe1a4bfb4772be1ff097",
+      "contract_sha256": "5a4069b2473edf0acafc2ea80f41407e60754d6c453a766e90f528e25947f889",
+      "ordered_inputs_sha256": "43ed705e3af56064a35fc8498c561735e113bc1d5b8d3e9454551f24b72396dd",
+      "metrics": {
+        "n": 46320,
+        "correct": 30552,
+        "accuracy": 0.6595854922279792,
+        "by_type": {
+          "choice": {
+            "n": 18808,
+            "correct": 12391,
+            "accuracy": 0.658815397703105,
+            "metric_origin": "NGA additive stratification"
+          },
+          "yes_no": {
+            "n": 17572,
+            "correct": 13992,
+            "accuracy": 0.7962667880719326,
+            "metric_origin": "NGA additive stratification"
+          },
+          "score": {
+            "n": 9940,
+            "correct": 4169,
+            "accuracy": 0.41941649899396377,
+            "metric_origin": "NGA additive stratification"
+          }
+        },
+        "adaptive": "NOT_EVALUATED"
+      },
+      "runtime": {
+        "chips": 1,
+        "dtype": "float32",
+        "hf32": false,
+        "peak_reserved_gib": 20.544921875,
+        "reserved_gib": 20.544921875,
+        "torch": "2.10.0+cpu",
+        "torch_npu": "2.10.0.post7",
+        "transformers": "5.14.1"
+      },
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_4b_full_panel_20261103_v1/output/cpu/1/summary.json",
+        "sha256": "49d84a5a4979ba8fbc8594fac37118a1f6ed91cdda7da77a69de9e987c206405"
+      },
+      "result_acceptance": {
+        "path": "/home/xingchao/workspace/nga/.local/reviews/native4b-full-result-independent-20261104-v1/ACCEPTANCE.json",
+        "sha256": "7516e0a745ea95ce4cbd3835273c01461f6efd78c8c94b1243488c479ce94096"
+      },
+      "status": "independently_reconstructed",
+      "anomaly_diagnosis": {
+        "all_predictions_match_raw_argmax": true,
+        "choice_nonzero_predictions": 12043,
+        "choice_unique_raw_vectors": 18799,
+        "qid_extreme_groups": 520,
+        "qid_low_n_groups": 622,
+        "qid_extreme_or_low_n_union": 625,
+        "constant_gold_perfect_qids": [
+          "progress_look_around",
+          "progress_inventory"
+        ],
+        "other_substantial_perfect_qids": [
+          "offered_remedy"
+        ]
+      },
+      "preregistration_provenance": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_4b_full_panel_20261103_v1/INDEPENDENT-REVIEW.json",
+        "sha256": "5d6bf1a7e1c4942fbd968c76446103de98cdd0c244fe768a55ca9fc880c84f2e",
+        "utc": "2026-11-03T07:01:17.716529+00:00",
+        "actual_run_started_at": "2026-11-03T07:05:39.22821662Z"
+      },
+      "separate_preregistration_draft_present": false
     }
   ],
   "boundaries": [
@@ -164,5 +237,6 @@
     "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_full_panel_20261103_v3/output/cpu/1/summary.json",
     "sha256": "0c34c29b3bf5acd195db89202bb7c3d2f0f0c7b437051c9b0e4321bab47a315b"
   },
-  "top_level_model_specific_metadata_scope": "0.8B original increment; 2B has explicit model-level contract, summary and anomaly fields"
+  "top_level_model_specific_metadata_scope": "0.8B original increment; 2B and 4B have explicit model-level contract, summary and anomaly fields",
+  "updated_utc": "2026-11-04"
 }
