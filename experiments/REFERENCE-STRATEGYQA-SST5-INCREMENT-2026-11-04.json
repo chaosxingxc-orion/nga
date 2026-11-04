@@ -1,0 +1,1369 @@
+{
+  "scope": "Twelve fixed-base derived-release TEST cells; no training gain or global completion",
+  "groups": [
+    {
+      "group": "STRATEGYQA",
+      "results": [
+        {
+          "ordinal_metrics": null,
+          "constant_diagnostic": {
+            "Yes": {
+              "accuracy": 0.4847161572052402,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "No": {
+              "accuracy": 0.5152838427947598,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            }
+          },
+          "prediction_distribution": {
+            "gold": {
+              "0": 333,
+              "1": 354
+            },
+            "predicted": {
+              "1": 609,
+              "0": 78
+            }
+          },
+          "within_release_test_state_overlap": {
+            "train": {
+              "test_state_matches": 1,
+              "test_request_matches": 1
+            },
+            "validation": {
+              "test_state_matches": 0,
+              "test_request_matches": 0
+            }
+          },
+          "job": "strategyqa_closed-08b",
+          "verdict": "PASS_FULL_RESULT_REBUILD",
+          "metrics": {
+            "n": 687,
+            "accuracy": 0.5007278020378457,
+            "correct": 344
+          },
+          "by_type": {
+            "choice": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "score": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "yes_no": {
+              "accuracy": 0.5007278020378457,
+              "correct": 344,
+              "metric_origin": "NGA additive stratification",
+              "n": 687
+            }
+          },
+          "by_workflow": null,
+          "source_rows": 687,
+          "full_population_rebuilt": 687,
+          "physical_container_exit_verified": true,
+          "summary_sha256": "d539197e64b35c0c80b732210b8041400fcd5c983096efe8225593589cad9821",
+          "plan_sha256": "16084a70450be0fabc7c36b662ec69df7891c5732f89a503056dfa29176e2a50",
+          "source_sha256": "88f41b6dc706badbfedcec8b1d741163fd473fdab3a998a4f58a9badc437f90f",
+          "full_vocabulary_logits_persisted": false,
+          "model_forward_reexecuted": false,
+          "training_benefit_claimed": false,
+          "candidate_test_authority": false,
+          "named_astra_review": false,
+          "inference_equivalent_to_published_endpoint": false,
+          "suspicious_success_flags": [],
+          "duplicate_excess": 0,
+          "class_index_order": [
+            "Yes",
+            "No"
+          ],
+          "by_gold_class": {
+            "Yes": {
+              "n": 333,
+              "correct": 34,
+              "accuracy": 0.1021021021021021
+            },
+            "No": {
+              "n": 354,
+              "correct": 310,
+              "accuracy": 0.8757062146892656
+            }
+          },
+          "original_source_sha256": "c4dbcffcad1950b29efc9d43d9f55cb6c7a612cf593eb2025d86a826de6cb8c5"
+        },
+        {
+          "ordinal_metrics": null,
+          "constant_diagnostic": {
+            "Yes": {
+              "accuracy": 0.4847161572052402,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "No": {
+              "accuracy": 0.5152838427947598,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            }
+          },
+          "prediction_distribution": {
+            "gold": {
+              "0": 333,
+              "1": 354
+            },
+            "predicted": {
+              "0": 399,
+              "1": 288
+            }
+          },
+          "within_release_test_state_overlap": {
+            "train": {
+              "test_state_matches": 1,
+              "test_request_matches": 1
+            },
+            "validation": {
+              "test_state_matches": 0,
+              "test_request_matches": 0
+            }
+          },
+          "job": "strategyqa_closed-2b",
+          "verdict": "PASS_FULL_RESULT_REBUILD",
+          "metrics": {
+            "n": 687,
+            "accuracy": 0.5924308588064047,
+            "correct": 407
+          },
+          "by_type": {
+            "choice": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "score": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "yes_no": {
+              "accuracy": 0.5924308588064047,
+              "correct": 407,
+              "metric_origin": "NGA additive stratification",
+              "n": 687
+            }
+          },
+          "by_workflow": null,
+          "source_rows": 687,
+          "full_population_rebuilt": 687,
+          "physical_container_exit_verified": true,
+          "summary_sha256": "361a050fdc88d8df779d6cd22ed823311fa5b3ac741d9ebcdfcda02c82d8d5f2",
+          "plan_sha256": "100ae7291f036a765e98b4a88766c737bef8d23b07a059300cdf6c3b95721c3c",
+          "source_sha256": "88f41b6dc706badbfedcec8b1d741163fd473fdab3a998a4f58a9badc437f90f",
+          "full_vocabulary_logits_persisted": false,
+          "model_forward_reexecuted": false,
+          "training_benefit_claimed": false,
+          "candidate_test_authority": false,
+          "named_astra_review": false,
+          "inference_equivalent_to_published_endpoint": false,
+          "suspicious_success_flags": [],
+          "duplicate_excess": 0,
+          "class_index_order": [
+            "Yes",
+            "No"
+          ],
+          "by_gold_class": {
+            "Yes": {
+              "n": 333,
+              "correct": 226,
+              "accuracy": 0.6786786786786787
+            },
+            "No": {
+              "n": 354,
+              "correct": 181,
+              "accuracy": 0.5112994350282486
+            }
+          },
+          "original_source_sha256": "c4dbcffcad1950b29efc9d43d9f55cb6c7a612cf593eb2025d86a826de6cb8c5"
+        },
+        {
+          "ordinal_metrics": null,
+          "constant_diagnostic": {
+            "Yes": {
+              "accuracy": 0.4847161572052402,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "No": {
+              "accuracy": 0.5152838427947598,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            }
+          },
+          "prediction_distribution": {
+            "gold": {
+              "0": 333,
+              "1": 354
+            },
+            "predicted": {
+              "1": 587,
+              "0": 100
+            }
+          },
+          "within_release_test_state_overlap": {
+            "train": {
+              "test_state_matches": 1,
+              "test_request_matches": 1
+            },
+            "validation": {
+              "test_state_matches": 0,
+              "test_request_matches": 0
+            }
+          },
+          "job": "strategyqa_closed-4b",
+          "verdict": "PASS_FULL_RESULT_REBUILD",
+          "metrics": {
+            "n": 687,
+            "accuracy": 0.5851528384279476,
+            "correct": 402
+          },
+          "by_type": {
+            "choice": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "score": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "yes_no": {
+              "accuracy": 0.5851528384279476,
+              "correct": 402,
+              "metric_origin": "NGA additive stratification",
+              "n": 687
+            }
+          },
+          "by_workflow": null,
+          "source_rows": 687,
+          "full_population_rebuilt": 687,
+          "physical_container_exit_verified": true,
+          "summary_sha256": "e4471626bf84ec362fa2831b56c9476c54a707a0ddb5302db021b5980e2daddb",
+          "plan_sha256": "6d8e6e55cd3dbcec68a765d7d7d3775b532afd9d5eaea116a43d4e6ca49d63ea",
+          "source_sha256": "88f41b6dc706badbfedcec8b1d741163fd473fdab3a998a4f58a9badc437f90f",
+          "full_vocabulary_logits_persisted": false,
+          "model_forward_reexecuted": false,
+          "training_benefit_claimed": false,
+          "candidate_test_authority": false,
+          "named_astra_review": false,
+          "inference_equivalent_to_published_endpoint": false,
+          "suspicious_success_flags": [],
+          "duplicate_excess": 0,
+          "class_index_order": [
+            "Yes",
+            "No"
+          ],
+          "by_gold_class": {
+            "Yes": {
+              "n": 333,
+              "correct": 74,
+              "accuracy": 0.2222222222222222
+            },
+            "No": {
+              "n": 354,
+              "correct": 328,
+              "accuracy": 0.9265536723163842
+            }
+          },
+          "original_source_sha256": "c4dbcffcad1950b29efc9d43d9f55cb6c7a612cf593eb2025d86a826de6cb8c5"
+        },
+        {
+          "ordinal_metrics": null,
+          "constant_diagnostic": {
+            "Yes": {
+              "accuracy": 0.4847161572052402,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "No": {
+              "accuracy": 0.5152838427947598,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            }
+          },
+          "prediction_distribution": {
+            "gold": {
+              "0": 333,
+              "1": 354
+            },
+            "predicted": {
+              "1": 647,
+              "0": 40
+            }
+          },
+          "within_release_test_state_overlap": {
+            "train": {
+              "test_state_matches": 1,
+              "test_request_matches": 1
+            },
+            "validation": {
+              "test_state_matches": 0,
+              "test_request_matches": 0
+            }
+          },
+          "job": "strategyqa_closed-9b",
+          "verdict": "PASS_FULL_RESULT_REBUILD",
+          "metrics": {
+            "n": 687,
+            "accuracy": 0.5589519650655022,
+            "correct": 384
+          },
+          "by_type": {
+            "choice": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "score": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "yes_no": {
+              "accuracy": 0.5589519650655022,
+              "correct": 384,
+              "metric_origin": "NGA additive stratification",
+              "n": 687
+            }
+          },
+          "by_workflow": null,
+          "source_rows": 687,
+          "full_population_rebuilt": 687,
+          "physical_container_exit_verified": true,
+          "summary_sha256": "d1f234b4168db16583f00d29eef42a87eaf1cf1dd36acbf178da53959d310eb5",
+          "plan_sha256": "4e9c806a5fdeab0f66fcc5528c311f791af6ec728c342a01282ad34ccc0c9623",
+          "source_sha256": "88f41b6dc706badbfedcec8b1d741163fd473fdab3a998a4f58a9badc437f90f",
+          "full_vocabulary_logits_persisted": false,
+          "model_forward_reexecuted": false,
+          "training_benefit_claimed": false,
+          "candidate_test_authority": false,
+          "named_astra_review": false,
+          "inference_equivalent_to_published_endpoint": false,
+          "suspicious_success_flags": [],
+          "duplicate_excess": 0,
+          "class_index_order": [
+            "Yes",
+            "No"
+          ],
+          "by_gold_class": {
+            "Yes": {
+              "n": 333,
+              "correct": 35,
+              "accuracy": 0.10510510510510511
+            },
+            "No": {
+              "n": 354,
+              "correct": 349,
+              "accuracy": 0.9858757062146892
+            }
+          },
+          "original_source_sha256": "c4dbcffcad1950b29efc9d43d9f55cb6c7a612cf593eb2025d86a826de6cb8c5"
+        },
+        {
+          "ordinal_metrics": null,
+          "constant_diagnostic": {
+            "Yes": {
+              "accuracy": 0.4847161572052402,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "No": {
+              "accuracy": 0.5152838427947598,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            }
+          },
+          "prediction_distribution": {
+            "gold": {
+              "0": 333,
+              "1": 354
+            },
+            "predicted": {
+              "0": 374,
+              "1": 313
+            }
+          },
+          "within_release_test_state_overlap": {
+            "train": {
+              "test_state_matches": 1,
+              "test_request_matches": 1
+            },
+            "validation": {
+              "test_state_matches": 0,
+              "test_request_matches": 0
+            }
+          },
+          "job": "strategyqa_grounded-08b",
+          "verdict": "PASS_FULL_RESULT_REBUILD",
+          "metrics": {
+            "n": 687,
+            "accuracy": 0.6026200873362445,
+            "correct": 414
+          },
+          "by_type": {
+            "choice": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "score": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "yes_no": {
+              "accuracy": 0.6026200873362445,
+              "correct": 414,
+              "metric_origin": "NGA additive stratification",
+              "n": 687
+            }
+          },
+          "by_workflow": null,
+          "source_rows": 687,
+          "full_population_rebuilt": 687,
+          "physical_container_exit_verified": true,
+          "summary_sha256": "61265253cf7cc712120bcdc5d63cc101d16bc253170c1e2d7be2a0b2df678c1d",
+          "plan_sha256": "a3874a25f8f0d2eda24de737a0eebff836a92160b30593a1f8132408c8441370",
+          "source_sha256": "2f1c88b35cab8a8b2efe3175d462a5ccfc04648cd3bafdcb694f21b39aabdf9b",
+          "full_vocabulary_logits_persisted": false,
+          "model_forward_reexecuted": false,
+          "training_benefit_claimed": false,
+          "candidate_test_authority": false,
+          "named_astra_review": false,
+          "inference_equivalent_to_published_endpoint": false,
+          "suspicious_success_flags": [],
+          "duplicate_excess": 0,
+          "class_index_order": [
+            "Yes",
+            "No"
+          ],
+          "by_gold_class": {
+            "Yes": {
+              "n": 333,
+              "correct": 217,
+              "accuracy": 0.6516516516516516
+            },
+            "No": {
+              "n": 354,
+              "correct": 197,
+              "accuracy": 0.556497175141243
+            }
+          },
+          "original_source_sha256": "66eab9b24f0b1979a842e6049911edc61276e0c884d3d7624ef9b8bd44dcbff3"
+        },
+        {
+          "ordinal_metrics": null,
+          "constant_diagnostic": {
+            "Yes": {
+              "accuracy": 0.4847161572052402,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "No": {
+              "accuracy": 0.5152838427947598,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            }
+          },
+          "prediction_distribution": {
+            "gold": {
+              "0": 333,
+              "1": 354
+            },
+            "predicted": {
+              "0": 335,
+              "1": 352
+            }
+          },
+          "within_release_test_state_overlap": {
+            "train": {
+              "test_state_matches": 1,
+              "test_request_matches": 1
+            },
+            "validation": {
+              "test_state_matches": 0,
+              "test_request_matches": 0
+            }
+          },
+          "job": "strategyqa_grounded-2b",
+          "verdict": "PASS_FULL_RESULT_REBUILD",
+          "metrics": {
+            "n": 687,
+            "accuracy": 0.8107714701601164,
+            "correct": 557
+          },
+          "by_type": {
+            "choice": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "score": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "yes_no": {
+              "accuracy": 0.8107714701601164,
+              "correct": 557,
+              "metric_origin": "NGA additive stratification",
+              "n": 687
+            }
+          },
+          "by_workflow": null,
+          "source_rows": 687,
+          "full_population_rebuilt": 687,
+          "physical_container_exit_verified": true,
+          "summary_sha256": "8b3858eac83d21f93a797c1dad72acdfa585beee292eb23d23bc84e69c8e2db6",
+          "plan_sha256": "9f791329cb3883555220e7e298b617c1d59a761fc976ccc6e35c3bc78b713001",
+          "source_sha256": "2f1c88b35cab8a8b2efe3175d462a5ccfc04648cd3bafdcb694f21b39aabdf9b",
+          "full_vocabulary_logits_persisted": false,
+          "model_forward_reexecuted": false,
+          "training_benefit_claimed": false,
+          "candidate_test_authority": false,
+          "named_astra_review": false,
+          "inference_equivalent_to_published_endpoint": false,
+          "suspicious_success_flags": [],
+          "duplicate_excess": 0,
+          "class_index_order": [
+            "Yes",
+            "No"
+          ],
+          "by_gold_class": {
+            "Yes": {
+              "n": 333,
+              "correct": 269,
+              "accuracy": 0.8078078078078078
+            },
+            "No": {
+              "n": 354,
+              "correct": 288,
+              "accuracy": 0.8135593220338984
+            }
+          },
+          "original_source_sha256": "66eab9b24f0b1979a842e6049911edc61276e0c884d3d7624ef9b8bd44dcbff3"
+        },
+        {
+          "ordinal_metrics": null,
+          "constant_diagnostic": {
+            "Yes": {
+              "accuracy": 0.4847161572052402,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "No": {
+              "accuracy": 0.5152838427947598,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            }
+          },
+          "prediction_distribution": {
+            "gold": {
+              "0": 333,
+              "1": 354
+            },
+            "predicted": {
+              "0": 213,
+              "1": 474
+            }
+          },
+          "within_release_test_state_overlap": {
+            "train": {
+              "test_state_matches": 1,
+              "test_request_matches": 1
+            },
+            "validation": {
+              "test_state_matches": 0,
+              "test_request_matches": 0
+            }
+          },
+          "job": "strategyqa_grounded-4b",
+          "verdict": "PASS_FULL_RESULT_REBUILD",
+          "metrics": {
+            "n": 687,
+            "accuracy": 0.8078602620087336,
+            "correct": 555
+          },
+          "by_type": {
+            "choice": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "score": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "yes_no": {
+              "accuracy": 0.8078602620087336,
+              "correct": 555,
+              "metric_origin": "NGA additive stratification",
+              "n": 687
+            }
+          },
+          "by_workflow": null,
+          "source_rows": 687,
+          "full_population_rebuilt": 687,
+          "physical_container_exit_verified": true,
+          "summary_sha256": "68f9e24e46a1cc05401f19e25e20b9bbce23b8dfa99b43ad9c6fd9b6ecc50457",
+          "plan_sha256": "9971b3a71d2e1fc4c3bae17eb10ddfe62cb0467a6a17904fe6e390c13dc37404",
+          "source_sha256": "2f1c88b35cab8a8b2efe3175d462a5ccfc04648cd3bafdcb694f21b39aabdf9b",
+          "full_vocabulary_logits_persisted": false,
+          "model_forward_reexecuted": false,
+          "training_benefit_claimed": false,
+          "candidate_test_authority": false,
+          "named_astra_review": false,
+          "inference_equivalent_to_published_endpoint": false,
+          "suspicious_success_flags": [],
+          "duplicate_excess": 0,
+          "class_index_order": [
+            "Yes",
+            "No"
+          ],
+          "by_gold_class": {
+            "Yes": {
+              "n": 333,
+              "correct": 207,
+              "accuracy": 0.6216216216216216
+            },
+            "No": {
+              "n": 354,
+              "correct": 348,
+              "accuracy": 0.9830508474576272
+            }
+          },
+          "original_source_sha256": "66eab9b24f0b1979a842e6049911edc61276e0c884d3d7624ef9b8bd44dcbff3"
+        },
+        {
+          "ordinal_metrics": null,
+          "constant_diagnostic": {
+            "Yes": {
+              "accuracy": 0.4847161572052402,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "No": {
+              "accuracy": 0.5152838427947598,
+              "argmax_mae": null,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            }
+          },
+          "prediction_distribution": {
+            "gold": {
+              "0": 333,
+              "1": 354
+            },
+            "predicted": {
+              "0": 197,
+              "1": 490
+            }
+          },
+          "within_release_test_state_overlap": {
+            "train": {
+              "test_state_matches": 1,
+              "test_request_matches": 1
+            },
+            "validation": {
+              "test_state_matches": 0,
+              "test_request_matches": 0
+            }
+          },
+          "job": "strategyqa_grounded-9b",
+          "verdict": "PASS_FULL_RESULT_REBUILD",
+          "metrics": {
+            "n": 687,
+            "accuracy": 0.7962154294032023,
+            "correct": 547
+          },
+          "by_type": {
+            "choice": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "score": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "yes_no": {
+              "accuracy": 0.7962154294032023,
+              "correct": 547,
+              "metric_origin": "NGA additive stratification",
+              "n": 687
+            }
+          },
+          "by_workflow": null,
+          "source_rows": 687,
+          "full_population_rebuilt": 687,
+          "physical_container_exit_verified": true,
+          "summary_sha256": "fd13ce495dd1d93913d2b61fc4efa45a1e1c3a5f7a8708e4aefa075af7edf283",
+          "plan_sha256": "99993834fb776e1aeb13b2038669e59764af84589499635e224966a8dbc407bf",
+          "source_sha256": "2f1c88b35cab8a8b2efe3175d462a5ccfc04648cd3bafdcb694f21b39aabdf9b",
+          "full_vocabulary_logits_persisted": false,
+          "model_forward_reexecuted": false,
+          "training_benefit_claimed": false,
+          "candidate_test_authority": false,
+          "named_astra_review": false,
+          "inference_equivalent_to_published_endpoint": false,
+          "suspicious_success_flags": [],
+          "duplicate_excess": 0,
+          "class_index_order": [
+            "Yes",
+            "No"
+          ],
+          "by_gold_class": {
+            "Yes": {
+              "n": 333,
+              "correct": 195,
+              "accuracy": 0.5855855855855856
+            },
+            "No": {
+              "n": 354,
+              "correct": 352,
+              "accuracy": 0.9943502824858758
+            }
+          },
+          "original_source_sha256": "66eab9b24f0b1979a842e6049911edc61276e0c884d3d7624ef9b8bd44dcbff3"
+        }
+      ],
+      "flags": [],
+      "review": {
+        "path": "/home/xingchao/workspace/nga/.local/reviews/strategyqa-ordinal-results-20261104-v1/STRATEGYQA-ACCEPTANCE.json",
+        "sha256": "594a4f17cbdf9e3181a44afec8779a09c7b09579c03da8bfbd7e45a07f577fb7",
+        "parent_rehashed_files": 11261
+      }
+    },
+    {
+      "group": "SST5",
+      "results": [
+        {
+          "ordinal_metrics": {
+            "n": 1000,
+            "accuracy": 0.182,
+            "argmax_mae": 1.923,
+            "expected_mae": 1.3112129324926585,
+            "rps_normalized": 0.2610627384048467,
+            "metric_origin": "NGA preregistered local ordinal formulas; not publisher scorer equivalence"
+          },
+          "constant_diagnostic": {
+            "Very negative: strongly unfavorable, hostile or dismissive.": {
+              "accuracy": 0.128,
+              "argmax_mae": 2.073,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Negative: unfavorable overall, with some criticism.": {
+              "accuracy": 0.283,
+              "argmax_mae": 1.329,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Neutral: mixed or factual, no clear lean.": {
+              "accuracy": 0.164,
+              "argmax_mae": 1.151,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Positive: favorable overall, with some praise.": {
+              "accuracy": 0.238,
+              "argmax_mae": 1.301,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Very positive: enthusiastic, strongly favorable.": {
+              "accuracy": 0.187,
+              "argmax_mae": 1.927,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            }
+          },
+          "prediction_distribution": {
+            "gold": {
+              "2": 164,
+              "4": 187,
+              "1": 283,
+              "0": 128,
+              "3": 238
+            },
+            "predicted": {
+              "4": 974,
+              "3": 26
+            }
+          },
+          "within_release_test_state_overlap": {
+            "train": {
+              "test_state_matches": 1,
+              "test_request_matches": 1
+            },
+            "validation": {
+              "test_state_matches": 0,
+              "test_request_matches": 0
+            }
+          },
+          "job": "sst5-08b",
+          "verdict": "PASS_FULL_RESULT_REBUILD",
+          "metrics": {
+            "n": 1000,
+            "accuracy": 0.182,
+            "correct": 182
+          },
+          "by_type": {
+            "choice": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "score": {
+              "accuracy": 0.182,
+              "correct": 182,
+              "metric_origin": "NGA additive stratification",
+              "n": 1000
+            },
+            "yes_no": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            }
+          },
+          "by_workflow": null,
+          "source_rows": 1000,
+          "full_population_rebuilt": 1000,
+          "physical_container_exit_verified": true,
+          "summary_sha256": "eb9a6eb7aed19cb5e9a9bd964ef1fca99c1554808b4b5d930d7f2ab73c5b583f",
+          "plan_sha256": "224bb33603e526b34fada26d61cd291ecf17be5239870a149179a5112678b66a",
+          "source_sha256": "553cbd678fa4d52fecb2e8160c2214ec51963b0893f5d8a6bca94fc16c2dbd54",
+          "full_vocabulary_logits_persisted": false,
+          "model_forward_reexecuted": false,
+          "training_benefit_claimed": false,
+          "candidate_test_authority": false,
+          "named_astra_review": false,
+          "inference_equivalent_to_published_endpoint": false,
+          "suspicious_success_flags": [
+            "class_Very negative: strongly unfavorable, hostile or dismissive.",
+            "class_Negative: unfavorable overall, with some criticism.",
+            "class_Neutral: mixed or factual, no clear lean."
+          ],
+          "duplicate_excess": 0,
+          "class_index_order": [
+            "Very negative: strongly unfavorable, hostile or dismissive.",
+            "Negative: unfavorable overall, with some criticism.",
+            "Neutral: mixed or factual, no clear lean.",
+            "Positive: favorable overall, with some praise.",
+            "Very positive: enthusiastic, strongly favorable."
+          ],
+          "by_gold_class": {
+            "Very negative: strongly unfavorable, hostile or dismissive.": {
+              "n": 128,
+              "correct": 0,
+              "accuracy": 0.0
+            },
+            "Negative: unfavorable overall, with some criticism.": {
+              "n": 283,
+              "correct": 0,
+              "accuracy": 0.0
+            },
+            "Neutral: mixed or factual, no clear lean.": {
+              "n": 164,
+              "correct": 0,
+              "accuracy": 0.0
+            },
+            "Positive: favorable overall, with some praise.": {
+              "n": 238,
+              "correct": 6,
+              "accuracy": 0.025210084033613446
+            },
+            "Very positive: enthusiastic, strongly favorable.": {
+              "n": 187,
+              "correct": 176,
+              "accuracy": 0.9411764705882353
+            }
+          },
+          "original_source_sha256": "4963982735612945d683631416dff465bdbed46cc79bb6c694f7300b514e8f09"
+        },
+        {
+          "ordinal_metrics": {
+            "n": 1000,
+            "accuracy": 0.315,
+            "argmax_mae": 1.074,
+            "expected_mae": 0.9117560462904922,
+            "rps_normalized": 0.15762479590061024,
+            "metric_origin": "NGA preregistered local ordinal formulas; not publisher scorer equivalence"
+          },
+          "constant_diagnostic": {
+            "Very negative: strongly unfavorable, hostile or dismissive.": {
+              "accuracy": 0.128,
+              "argmax_mae": 2.073,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Negative: unfavorable overall, with some criticism.": {
+              "accuracy": 0.283,
+              "argmax_mae": 1.329,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Neutral: mixed or factual, no clear lean.": {
+              "accuracy": 0.164,
+              "argmax_mae": 1.151,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Positive: favorable overall, with some praise.": {
+              "accuracy": 0.238,
+              "argmax_mae": 1.301,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Very positive: enthusiastic, strongly favorable.": {
+              "accuracy": 0.187,
+              "argmax_mae": 1.927,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            }
+          },
+          "prediction_distribution": {
+            "gold": {
+              "2": 164,
+              "4": 187,
+              "1": 283,
+              "0": 128,
+              "3": 238
+            },
+            "predicted": {
+              "1": 76,
+              "3": 355,
+              "0": 558,
+              "2": 10,
+              "4": 1
+            }
+          },
+          "within_release_test_state_overlap": {
+            "train": {
+              "test_state_matches": 1,
+              "test_request_matches": 1
+            },
+            "validation": {
+              "test_state_matches": 0,
+              "test_request_matches": 0
+            }
+          },
+          "job": "sst5-2b",
+          "verdict": "PASS_FULL_RESULT_REBUILD",
+          "metrics": {
+            "n": 1000,
+            "accuracy": 0.315,
+            "correct": 315
+          },
+          "by_type": {
+            "choice": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "score": {
+              "accuracy": 0.315,
+              "correct": 315,
+              "metric_origin": "NGA additive stratification",
+              "n": 1000
+            },
+            "yes_no": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            }
+          },
+          "by_workflow": null,
+          "source_rows": 1000,
+          "full_population_rebuilt": 1000,
+          "physical_container_exit_verified": true,
+          "summary_sha256": "164b0a06e297f628f3799f41d4d9f401c8075c96539e43c510e202cd32a67bfc",
+          "plan_sha256": "bbb312fd8caff9941f1d07c8cbcbe211f6088766d8271838d675a12053bc1a7a",
+          "source_sha256": "553cbd678fa4d52fecb2e8160c2214ec51963b0893f5d8a6bca94fc16c2dbd54",
+          "full_vocabulary_logits_persisted": false,
+          "model_forward_reexecuted": false,
+          "training_benefit_claimed": false,
+          "candidate_test_authority": false,
+          "named_astra_review": false,
+          "inference_equivalent_to_published_endpoint": false,
+          "suspicious_success_flags": [],
+          "duplicate_excess": 0,
+          "class_index_order": [
+            "Very negative: strongly unfavorable, hostile or dismissive.",
+            "Negative: unfavorable overall, with some criticism.",
+            "Neutral: mixed or factual, no clear lean.",
+            "Positive: favorable overall, with some praise.",
+            "Very positive: enthusiastic, strongly favorable."
+          ],
+          "by_gold_class": {
+            "Very negative: strongly unfavorable, hostile or dismissive.": {
+              "n": 128,
+              "correct": 124,
+              "accuracy": 0.96875
+            },
+            "Negative: unfavorable overall, with some criticism.": {
+              "n": 283,
+              "correct": 36,
+              "accuracy": 0.127208480565371
+            },
+            "Neutral: mixed or factual, no clear lean.": {
+              "n": 164,
+              "correct": 2,
+              "accuracy": 0.012195121951219513
+            },
+            "Positive: favorable overall, with some praise.": {
+              "n": 238,
+              "correct": 152,
+              "accuracy": 0.6386554621848739
+            },
+            "Very positive: enthusiastic, strongly favorable.": {
+              "n": 187,
+              "correct": 1,
+              "accuracy": 0.0053475935828877
+            }
+          },
+          "original_source_sha256": "4963982735612945d683631416dff465bdbed46cc79bb6c694f7300b514e8f09"
+        },
+        {
+          "ordinal_metrics": {
+            "n": 1000,
+            "accuracy": 0.523,
+            "argmax_mae": 0.565,
+            "expected_mae": 0.6124046880058679,
+            "rps_normalized": 0.10278038599605016,
+            "metric_origin": "NGA preregistered local ordinal formulas; not publisher scorer equivalence"
+          },
+          "constant_diagnostic": {
+            "Very negative: strongly unfavorable, hostile or dismissive.": {
+              "accuracy": 0.128,
+              "argmax_mae": 2.073,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Negative: unfavorable overall, with some criticism.": {
+              "accuracy": 0.283,
+              "argmax_mae": 1.329,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Neutral: mixed or factual, no clear lean.": {
+              "accuracy": 0.164,
+              "argmax_mae": 1.151,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Positive: favorable overall, with some praise.": {
+              "accuracy": 0.238,
+              "argmax_mae": 1.301,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Very positive: enthusiastic, strongly favorable.": {
+              "accuracy": 0.187,
+              "argmax_mae": 1.927,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            }
+          },
+          "prediction_distribution": {
+            "gold": {
+              "2": 164,
+              "4": 187,
+              "1": 283,
+              "0": 128,
+              "3": 238
+            },
+            "predicted": {
+              "2": 73,
+              "3": 369,
+              "1": 419,
+              "0": 74,
+              "4": 65
+            }
+          },
+          "within_release_test_state_overlap": {
+            "train": {
+              "test_state_matches": 1,
+              "test_request_matches": 1
+            },
+            "validation": {
+              "test_state_matches": 0,
+              "test_request_matches": 0
+            }
+          },
+          "job": "sst5-4b",
+          "verdict": "PASS_FULL_RESULT_REBUILD",
+          "metrics": {
+            "n": 1000,
+            "accuracy": 0.523,
+            "correct": 523
+          },
+          "by_type": {
+            "choice": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "score": {
+              "accuracy": 0.523,
+              "correct": 523,
+              "metric_origin": "NGA additive stratification",
+              "n": 1000
+            },
+            "yes_no": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            }
+          },
+          "by_workflow": null,
+          "source_rows": 1000,
+          "full_population_rebuilt": 1000,
+          "physical_container_exit_verified": true,
+          "summary_sha256": "b448efe3e176cf9f79a9d64e4518599d2b5f7bf51d20c819d7b4384801d03e24",
+          "plan_sha256": "885a14870d4832af15182708ac5a069754c7c844d87f97c61df7293d80228c83",
+          "source_sha256": "553cbd678fa4d52fecb2e8160c2214ec51963b0893f5d8a6bca94fc16c2dbd54",
+          "full_vocabulary_logits_persisted": false,
+          "model_forward_reexecuted": false,
+          "training_benefit_claimed": false,
+          "candidate_test_authority": false,
+          "named_astra_review": false,
+          "inference_equivalent_to_published_endpoint": false,
+          "suspicious_success_flags": [],
+          "duplicate_excess": 0,
+          "class_index_order": [
+            "Very negative: strongly unfavorable, hostile or dismissive.",
+            "Negative: unfavorable overall, with some criticism.",
+            "Neutral: mixed or factual, no clear lean.",
+            "Positive: favorable overall, with some praise.",
+            "Very positive: enthusiastic, strongly favorable."
+          ],
+          "by_gold_class": {
+            "Very negative: strongly unfavorable, hostile or dismissive.": {
+              "n": 128,
+              "correct": 49,
+              "accuracy": 0.3828125
+            },
+            "Negative: unfavorable overall, with some criticism.": {
+              "n": 283,
+              "correct": 222,
+              "accuracy": 0.784452296819788
+            },
+            "Neutral: mixed or factual, no clear lean.": {
+              "n": 164,
+              "correct": 24,
+              "accuracy": 0.14634146341463414
+            },
+            "Positive: favorable overall, with some praise.": {
+              "n": 238,
+              "correct": 185,
+              "accuracy": 0.7773109243697479
+            },
+            "Very positive: enthusiastic, strongly favorable.": {
+              "n": 187,
+              "correct": 43,
+              "accuracy": 0.22994652406417113
+            }
+          },
+          "original_source_sha256": "4963982735612945d683631416dff465bdbed46cc79bb6c694f7300b514e8f09"
+        },
+        {
+          "ordinal_metrics": {
+            "n": 1000,
+            "accuracy": 0.53,
+            "argmax_mae": 0.54,
+            "expected_mae": 0.5933191269484593,
+            "rps_normalized": 0.09945626096838306,
+            "metric_origin": "NGA preregistered local ordinal formulas; not publisher scorer equivalence"
+          },
+          "constant_diagnostic": {
+            "Very negative: strongly unfavorable, hostile or dismissive.": {
+              "accuracy": 0.128,
+              "argmax_mae": 2.073,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Negative: unfavorable overall, with some criticism.": {
+              "accuracy": 0.283,
+              "argmax_mae": 1.329,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Neutral: mixed or factual, no clear lean.": {
+              "accuracy": 0.164,
+              "argmax_mae": 1.151,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Positive: favorable overall, with some praise.": {
+              "accuracy": 0.238,
+              "argmax_mae": 1.301,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            },
+            "Very positive: enthusiastic, strongly favorable.": {
+              "accuracy": 0.187,
+              "argmax_mae": 1.927,
+              "scope": "descriptive TEST-population constant; not learned held-out predictor"
+            }
+          },
+          "prediction_distribution": {
+            "gold": {
+              "2": 164,
+              "4": 187,
+              "1": 283,
+              "0": 128,
+              "3": 238
+            },
+            "predicted": {
+              "1": 507,
+              "4": 82,
+              "3": 316,
+              "2": 71,
+              "0": 24
+            }
+          },
+          "within_release_test_state_overlap": {
+            "train": {
+              "test_state_matches": 1,
+              "test_request_matches": 1
+            },
+            "validation": {
+              "test_state_matches": 0,
+              "test_request_matches": 0
+            }
+          },
+          "job": "sst5-9b",
+          "verdict": "PASS_FULL_RESULT_REBUILD",
+          "metrics": {
+            "n": 1000,
+            "accuracy": 0.53,
+            "correct": 530
+          },
+          "by_type": {
+            "choice": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            },
+            "score": {
+              "accuracy": 0.53,
+              "correct": 530,
+              "metric_origin": "NGA additive stratification",
+              "n": 1000
+            },
+            "yes_no": {
+              "accuracy": null,
+              "correct": 0,
+              "metric_origin": "NGA additive stratification",
+              "n": 0
+            }
+          },
+          "by_workflow": null,
+          "source_rows": 1000,
+          "full_population_rebuilt": 1000,
+          "physical_container_exit_verified": true,
+          "summary_sha256": "c4877c6981ca809358a62b33ababb38f0660f09ba084a62609f6c1ee73b9f17f",
+          "plan_sha256": "ac2e89cdd42c6374783a21dff0683cb8bc0c88e5a7c99d7fb02cb5bff2431ee3",
+          "source_sha256": "553cbd678fa4d52fecb2e8160c2214ec51963b0893f5d8a6bca94fc16c2dbd54",
+          "full_vocabulary_logits_persisted": false,
+          "model_forward_reexecuted": false,
+          "training_benefit_claimed": false,
+          "candidate_test_authority": false,
+          "named_astra_review": false,
+          "inference_equivalent_to_published_endpoint": false,
+          "suspicious_success_flags": [],
+          "duplicate_excess": 0,
+          "class_index_order": [
+            "Very negative: strongly unfavorable, hostile or dismissive.",
+            "Negative: unfavorable overall, with some criticism.",
+            "Neutral: mixed or factual, no clear lean.",
+            "Positive: favorable overall, with some praise.",
+            "Very positive: enthusiastic, strongly favorable."
+          ],
+          "by_gold_class": {
+            "Very negative: strongly unfavorable, hostile or dismissive.": {
+              "n": 128,
+              "correct": 20,
+              "accuracy": 0.15625
+            },
+            "Negative: unfavorable overall, with some criticism.": {
+              "n": 283,
+              "correct": 259,
+              "accuracy": 0.9151943462897526
+            },
+            "Neutral: mixed or factual, no clear lean.": {
+              "n": 164,
+              "correct": 24,
+              "accuracy": 0.14634146341463414
+            },
+            "Positive: favorable overall, with some praise.": {
+              "n": 238,
+              "correct": 165,
+              "accuracy": 0.6932773109243697
+            },
+            "Very positive: enthusiastic, strongly favorable.": {
+              "n": 187,
+              "correct": 62,
+              "accuracy": 0.3315508021390374
+            }
+          },
+          "original_source_sha256": "4963982735612945d683631416dff465bdbed46cc79bb6c694f7300b514e8f09"
+        }
+      ],
+      "flags": [
+        {
+          "job": "sst5-08b",
+          "flag": "class_Very negative: strongly unfavorable, hostile or dismissive."
+        },
+        {
+          "job": "sst5-08b",
+          "flag": "class_Negative: unfavorable overall, with some criticism."
+        },
+        {
+          "job": "sst5-08b",
+          "flag": "class_Neutral: mixed or factual, no clear lean."
+        }
+      ],
+      "review": {
+        "path": "/home/xingchao/workspace/nga/.local/reviews/strategyqa-ordinal-results-20261104-v1/SST5-ACCEPTANCE.json",
+        "sha256": "1c433724ca8192c81fcd0b98c277787731bcabfc8e85b066e4ac491b4dc0c375",
+        "parent_rehashed_files": 8140
+      }
+    }
+  ],
+  "sst5_adverse_diagnosis": {
+    "predictions_08b": {
+      "level_4": 974,
+      "level_3": 26
+    },
+    "first_three_level_recall": 0,
+    "unique_logit_vectors": 1000,
+    "interpretation": "Full source/label/logit arithmetic matched; observed output collapse. Checkpoint versus prompt/readout cause not identified."
+  },
+  "limits": [
+    "StrategyQA closed and grounded are two views of one source family, not two independent datasets or a paired-consistency experiment",
+    "All are Jev-bench release TEST; upstream hidden TEST and native endpoint lineage unestablished",
+    "StrategyQA one exact train overlap per panel; SST5 one; validation overlaps zero",
+    "SST5 uses preregistered local ordinal metrics, not established native scorer equivalence",
+    "Saved selected logits reconstructed, not independent model-forward/full-vocabulary replay"
+  ]
+}

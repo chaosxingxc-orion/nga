@@ -417,3 +417,20 @@ ARC has4 three-option,993 four-option and3 five-option questions. Option-positio
 BEV skills9B completed **7358/10316 =71.326095%**: choice3167/4463, yes/no3847/5100, score344/753. It adds137 correct answers over4B (+1.328034 percentage points), a descriptive fixed-model comparison. All6755source rows and74semantic duplicate requests retained. The1280soft-target questions are evaluated by attached hard labels only; soft distribution quality remains unmeasured. All62qid slices flagged for small n or exact0/1 were regrouped and checked; one perfect n30 slice has constant gold. These observations do not establish invariance or generalization.
 
 The recent13-panel×4-size subset now has52 accepted results; this does not complete the global model×dataset×protocol Cartesian product. The historical38-unit coverage count remains unchanged.
+
+## StrategyQA and SST5 released TEST increment — 2026-11-04
+
+Twelve additional fixed-base cells independently reconstructed. Parent rehashed11,261 StrategyQA and8,140 SST5 evidence files. [Exact results, class counts and limitations](REFERENCE-STRATEGYQA-SST5-INCREMENT-2026-11-04.json).
+
+| Panel / metric | 0.8B Base | 2B Base | 4B Base | 9B Base |
+| --- | ---: | ---: | ---: | ---: |
+| StrategyQA closed correct/687 | 344 | 407 | 402 | 384 |
+| StrategyQA grounded correct/687 | 414 | 557 | 555 | 547 |
+| SST5 accuracy (n1000) | 18.2% | 31.5% | 52.3% | 53.0% |
+| SST5 argmax index MAE | 1.923 | 1.074 | 0.565 | 0.540 |
+| SST5 expected-index MAE | 1.311213 | 0.911756 | 0.612405 | 0.593319 |
+| SST5 normalized RPS | 0.261063 | 0.157625 | 0.102780 | 0.099456 |
+
+Grounded inputs yield higher observed StrategyQA accuracy for all four sizes, but this is input conditioning, not training gain, a significance result or paired invariance. Closed performance is not monotonic with size. Both views have333Yes/354No; constant-No354/687 is descriptive. Each has one exact released-train overlap, no validation overlap or internal duplicates.
+
+SST5 0.8B predicts highest level974/1000 times and next-highest26, giving zero recall for the firstthree levels. All1000savedlogitvectors differ; source mapping and independent formulas matched, so this is a real saved-output failure, not an aggregate formula error. Cause requires non-TEST controlled diagnosis. SST5 retains one train-overlapping request. Ordinal metrics use frozen local formulas; no native endpoint or original hidden-TEST equivalence is asserted.
