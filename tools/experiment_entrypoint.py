@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Versioned config entrypoint for reviewed BEV inference packages (host-local).
+"""Versioned config entrypoint for reviewed BEV and native DEV packages (host-local).
 
 Configuration and reviewed executable packages are trusted operator inputs, not a
 sandbox. No shell commands, remote execution, scientific approvals or automatic
@@ -15,6 +15,7 @@ import subprocess
 import sys
 
 SCHEMA = 'nga-experiment-entrypoint-v1'
+RUNTIME_SCHEMA = 'nga-experiment-entrypoint-v2'
 SHA = re.compile(r'[0-9a-f]{64}')
 
 
@@ -57,12 +58,20 @@ def load_config(path, expected_sha=None):
     if expected_sha is not None:
         require(SHA.fullmatch(expected_sha) and digest(path) == expected_sha, 'config SHA256 differs')
     config = read_json(path)
-    require(isinstance(config, dict) and set(config) == {'schema', 'kind', 'plan', 'review', 'attempt'},
+    fields = {'schema', 'kind', 'plan', 'review', 'attempt'}
+    require(isinstance(config, dict), 'config must be an object')
+    explicit_runtime = config.get('schema') == RUNTIME_SCHEMA
+    require(set(config) == fields | ({'host_runtime'} if explicit_runtime else set()),
             'config fields differ')
-    require(config['schema'] == SCHEMA and config['kind'] in ('bev-dev-v1', 'bev-public-test-v1'), 'unsupported schema/kind')
+    require((config['schema'] == SCHEMA and config['kind'] in ('bev-dev-v1', 'bev-public-test-v1'))
+            or (explicit_runtime and config['kind'] == 'native-config-dev-v1'), 'unsupported schema/kind')
+    if explicit_runtime:
+        host_runtime(config)
     require(type(config['attempt']) is int and config['attempt'] >= 1, 'positive integer attempt required')
     plan_path, review_path = pinned(config['plan']), pinned(config['review'])
     plan, review = read_json(plan_path), read_json(review_path)
+    if explicit_runtime:
+        return load_native(config, plan, review, plan_path)
     public = config['kind'] == 'bev-public-test-v1'
     require(plan.get('schema') == ('bev-public-test-plan-v1' if public else 'bev-dev-plan-v1')
             and plan.get('scientific_acceptance') is False
@@ -93,8 +102,62 @@ def load_config(path, expected_sha=None):
     return config, plan
 
 
+def host_runtime(config):
+    """Explicit host dependency context; never infer it from NPU environment."""
+    value = config['host_runtime']
+    require(type(value) is dict and set(value) == {'python', 'environment', 'imports'}, 'host runtime fields differ')
+    safe(value['python'])
+    env = value['environment']
+    require(type(env) is dict and all(type(k) is str and re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]*', k)
+            and type(v) is str and '\0' not in v for k, v in env.items()), 'invalid host environment')
+    require(env.get('PYTHONDONTWRITEBYTECODE') == '1', 'host runtime must disable bytecode writes')
+    imports = value['imports']
+    require(type(imports) is list and bool(imports) and len(imports) == len(set(imports))
+            and all(type(x) is str and re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]*(\.[A-Za-z_][A-Za-z_0-9]*)*', x)
+                    for x in imports), 'invalid host imports')
+    return value
+
+
+def load_native(config, plan, review, plan_path):
+    require(plan.get('schema') == 'native-config-execution-v1' and plan.get('test_read') is False
+            and plan.get('scientific_acceptance') is False, 'unsupported native DEV scope')
+    require(review.get('verdict') == 'PASS' and review.get('activation_authorized') is True
+            and review.get('scientific_acceptance') is False and review.get('test_read') is False
+            and review.get('approved_plan_sha256') == config['plan']['sha256'], 'activation review differs')
+    require(config['attempt'] in review.get('attempts', []), 'attempt not approved')
+    require(type(plan.get('files')) is dict and bool(plan['files']), 'missing dependency closure')
+    for name, pin in plan['files'].items():
+        pinned({'path': name, 'sha256': pin})
+        require(review.get('hashes', {}).get(name) == pin, 'dependency outside review: ' + name)
+    for name in ('host', 'runtime'):
+        ref = plan['modules'][name]
+        pinned(ref)
+        require(plan['files'].get(ref['path']) == ref['sha256'], 'module outside dependency closure')
+    require(Path(plan['modules']['host']['path']).name == 'bev_native_config_host.py', 'unsupported native host')
+    require(safe(plan['out']).parent == plan_path.parent, 'output must belong to package')
+    return config, plan
+
+
+def runtime_environment(config):
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
+    if config.get('schema') == RUNTIME_SCHEMA:
+        env.update(host_runtime(config)['environment'])
+    return env
+
+
 def commands(config, plan):
     common = ['--plan', config['plan']['path'], '--sha256', config['plan']['sha256']]
+    if config.get('schema') == RUNTIME_SCHEMA:
+        runtime = host_runtime(config)
+        prefix = [runtime['python'], '-B', '-P']
+        host = plan['modules']['host']['path']
+        return {
+            'imports': prefix + ['-c', 'import importlib,json,sys; [importlib.import_module(n) for n in json.loads(sys.argv[1])]', json.dumps(runtime['imports'])],
+            'verify': prefix + [host, 'verify', *common],
+            'preflight': prefix + [host, 'preflight', *common],
+            'start': prefix + [host, 'start', *common, '--review', config['review']['path'],
+                              '--review-sha256', config['review']['sha256'], '--attempt', str(config['attempt'])],
+        }
     return {
         'verify': [sys.executable, '-B', '-P', plan['code']['runner']['path'], 'verify', *common],
         'start': [sys.executable, '-B', '-P', plan['code']['host']['path'], 'start', *common,
@@ -138,7 +201,11 @@ def execute(op, config_path, expected_sha=None):
         return {'status': 'validated_dry_run', 'commands': command, 'writes_performed': False}
     # The existing runner performs its actual protocol and request validation.
     # No run/start API is called by validate.
-    env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1')
+    env = runtime_environment(config)
+    for stage in ('imports', 'preflight'):
+        if stage in command:
+            check = subprocess.run(command[stage], env=env, capture_output=True, text=True, timeout=180)
+            require(check.returncode == 0, 'host runtime ' + stage + ' failed before start: ' + check.stderr[-1500:])
     result = subprocess.run(command['verify'], env=env, capture_output=True, text=True, timeout=180)
     require(result.returncode == 0, 'existing runner verification failed: ' + result.stderr[-1500:])
     if op == 'validate':

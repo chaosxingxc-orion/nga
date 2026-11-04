@@ -93,3 +93,25 @@ Reusable operating rules:
   a ready-stock target, and CPU result analysis must not block unrelated NPU jobs.
 - A working queue cannot compensate for incomplete adapters or admission. Track
   preparation, review and launch latency independently to expose that bottleneck.
+
+## Host runtime configuration
+
+`experiment_entrypoint.py` v2 (`nga-experiment-entrypoint-v2`,
+`native-config-dev-v1`) accepts an explicit `host_runtime` containing the Python
+path, environment overlay and module imports. Import checks, host preflight,
+verification and guarded start use that same runtime. Missing dependencies fail
+before resource claims or attempt creation. This fixes a real activation failure
+where system Python lacked numpy while a different Python had passed preflight.
+CPU consumers also need their explicit dependency environment: the reviewer
+Python path alone did not provide numpy without its configured PYTHONPATH.
+
+The v1 entrypoint behavior is retained. V2 currently covers synthetic native DEV,
+not arbitrary TEST or training launchers. The host still owns exact command
+approval, resource reconciliation and detachment. Configured import availability
+is not a hermetic or binary-pinned Python environment; model and scientific code
+pins remain enforced by the existing execution package. A returned start request
+is not proof of a live container.
+
+Verification includes 16 tests, independent negative scope/dependency checks and
+an actual175 validate-only invocation against a completed plan. All115 existing
+output JSON files stayed byte-identical; no NPU task was restarted.

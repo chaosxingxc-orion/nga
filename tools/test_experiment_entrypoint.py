@@ -104,4 +104,48 @@ class EntryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'positive integer'):E.execute('dry-run',self.config_path)
 
 
+class NativeRuntimeTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name); self.marker = self.root / 'started.json'
+        host = self.root / 'bev_native_config_host.py'
+        host.write_text("import json,os,sys\nfrom pathlib import Path\nassert os.environ.get('NGA_RUNTIME_SENTINEL')=='configured'\nif sys.argv[1]=='start': Path(" + repr(str(self.marker)) + ").write_text(json.dumps({'python':sys.executable,'sentinel':os.environ['NGA_RUNTIME_SENTINEL']}))\nprint('OK')\n")
+        runtime = self.root / 'runtime.py'; runtime.write_text('# fixture\n')
+        pin = lambda p: {'path': str(p), 'sha256': E.digest(p)}
+        self.plan = {'schema':'native-config-execution-v1','test_read':False,'scientific_acceptance':False,
+                     'modules':{'host':pin(host),'runtime':pin(runtime)}, 'files':{str(host):E.digest(host),str(runtime):E.digest(runtime)},
+                     'out':str(self.root/'output')}
+        self.pp = self.root/'PLAN.json'; self.pp.write_text(json.dumps(self.plan))
+        self.review = {'verdict':'PASS','activation_authorized':True,'scientific_acceptance':False,'test_read':False,
+                       'approved_plan_sha256':E.digest(self.pp),'attempts':[1],'hashes':self.plan['files']}
+        self.rp=self.root/'REVIEW.json';self.rp.write_text(json.dumps(self.review))
+        self.config = {'schema':E.RUNTIME_SCHEMA,'kind':'native-config-dev-v1','plan':pin(self.pp),'review':pin(self.rp),'attempt':1,
+                       'host_runtime':{'python':str(Path(sys.executable).resolve()),'environment':{'PYTHONDONTWRITEBYTECODE':'1','NGA_RUNTIME_SENTINEL':'configured'},'imports':['json']}}
+        self.cp=self.root/'ENTRY.json'; self.save()
+    def save(self):self.cp.write_text(json.dumps(self.config))
+    def test_same_configured_runtime_preflight_and_start_real_subprocess(self):
+        result=E.execute('start',self.cp,E.digest(self.cp))
+        self.assertEqual(result['status'],'guarded_start_returned')
+        actual=json.loads(self.marker.read_text());self.assertEqual(actual['sentinel'],'configured')
+        self.assertEqual(Path(actual['python']).resolve(),Path(self.config['host_runtime']['python']))
+        commands=E.commands(self.config,self.plan)
+        self.assertTrue(all(c[:3]==[self.config['host_runtime']['python'],'-B','-P'] for c in commands.values()))
+    def test_missing_dependency_fails_before_start_mutation(self):
+        self.config['host_runtime']['imports']=['nga_deliberately_missing_dependency_20261104'];self.save()
+        with self.assertRaisesRegex(ValueError,'imports failed before start'):
+            E.execute('start',self.cp,E.digest(self.cp))
+        self.assertFalse(self.marker.exists());self.assertFalse((self.root/'output').exists())
+    def test_wrong_python_fails_before_start_mutation(self):
+        self.config['host_runtime']['python']=str(self.root/'absent-python');self.save()
+        with self.assertRaises(FileNotFoundError):E.execute('start',self.cp,E.digest(self.cp))
+        self.assertFalse(self.marker.exists());self.assertFalse((self.root/'output').exists())
+    def test_dependency_cannot_be_injected_as_code(self):
+        self.config['host_runtime']['imports']=["json; __import__('os').system('false')"];self.save()
+        with self.assertRaisesRegex(ValueError,'invalid host imports'):E.execute('start',self.cp,E.digest(self.cp))
+        self.assertFalse(self.marker.exists())
+    def test_native_scope_does_not_admit_test_or_unreviewed_code(self):
+        self.review['hashes']={};self.rp.write_text(json.dumps(self.review));self.config['review']['sha256']=E.digest(self.rp);self.save()
+        with self.assertRaisesRegex(ValueError,'outside review'):E.execute('dry-run',self.cp,E.digest(self.cp))
+
+
 if __name__=='__main__': unittest.main()
