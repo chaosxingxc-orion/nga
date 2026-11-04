@@ -272,3 +272,14 @@ No matched published OOD number is supplied in the increment, so none is inferre
 Future accepted reference milestones update this file and the Wiki together, preserving formulas and past measured values. Corrections are dated and identify whether metrics changed. The archived former page is historical material and is not the current authority.
 
 **2026-11-01 restoration note:** the previous latest-page path was removed during process-document cleanup while later documents still linked to it. This page restores the requested stable GitHub entry using the unchanged machine-readable result records; it does not restore the obsolete run-status chronology.
+
+## BEV skills TEST increment — native full-label, 2026-11-04
+
+Two fixed Qwen3.5 Base models completed the same public `skills/test` population: 6,755 source rows, 10,316 questions, 74 duplicate excess requests retained. Independent CPU reconstruction covered every saved selected-logit record and ordered receipt; parent verification covered 41,348 unique evidence pins. These are two additional BEV cells, not new independent datasets or training gains. [Metrics and artifact pins](REFERENCE-BEV-SKILLS-INCREMENT-2026-11-04.json).
+
+| Model | Correct / questions | Hard-label accuracy | Status |
+| --- | ---: | ---: | --- |
+| Qwen3.5-0.8B-Base | 4960 / 10316 | 48.080651% | Independently reconstructed |
+| Qwen3.5-2B-Base | 6224 / 10316 | 60.333463% | Independently reconstructed |
+
+The population includes 1,280 questions with soft target distributions; the registered scorer uses their accompanying hard labels. Soft-target probability metrics remain unevaluated. Score-type accuracy is discrete ordinal-label accuracy, not a regression metric. Compact records retain selected label logits, not full-vocabulary tensors. Named Astra adversarial review is pending; no training-benefit or candidate-TEST acceptance is implied. Prior results and the historical 36/38 reference matrix are unchanged.

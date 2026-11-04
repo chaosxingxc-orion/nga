@@ -1,0 +1,129 @@
+{
+  "schema": "reference-bev-skills-increment-v1",
+  "date_utc": "2026-11-04",
+  "dataset": "avbiswas/bev-decision",
+  "configuration": "skills",
+  "split": "test",
+  "source_rows": 6755,
+  "questions": 10316,
+  "semantic_duplicate_excess_retained": 74,
+  "soft_labels": 1280,
+  "soft_distribution_metric_evaluated": false,
+  "training_benefit_claimed": false,
+  "historical_38_unit_matrix_unchanged": true,
+  "protocol": "AnyJev-style Transformers full-label fp32 batch1 HF32off single-question",
+  "accepted_scope": "independent saved selected-logit full result reconstruction",
+  "reviewer_identity": "inherited Codex independent review; named Astra review pending",
+  "models": [
+    {
+      "model": "Qwen3.5-0.8B-Base",
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_skills_08b_idle_20261104_v1/output/cpu/1/summary.json",
+        "sha256": "0723dc4db155bc0326db176f37fdde577e70c2655db04a69108095f90045b08c"
+      },
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_skills_08b_idle_20261104_v1/PLAN.json",
+        "sha256": "b290d414419af7dcf77da6a99e76dd28b66e2c58e3e9e28836da65f68ddfb751"
+      },
+      "metrics": {
+        "adaptive": "NOT_EVALUATED",
+        "attempt": 1,
+        "by_type": {
+          "choice": {
+            "accuracy": 0.42415415639704235,
+            "correct": 1893,
+            "metric_origin": "NGA additive stratification",
+            "n": 4463
+          },
+          "score": {
+            "accuracy": 0.20318725099601595,
+            "correct": 153,
+            "metric_origin": "NGA additive stratification",
+            "n": 753
+          },
+          "yes_no": {
+            "accuracy": 0.5713725490196079,
+            "correct": 2914,
+            "metric_origin": "NGA additive stratification",
+            "n": 5100
+          }
+        },
+        "candidate_test_authority": false,
+        "engine": "Transformers full-label fp32 b1 HF32 off",
+        "model": "Qwen3.5-0.8B-Base fixed checkpoint",
+        "n": 10316,
+        "one_forward": {
+          "accuracy": 0.48080651415277237,
+          "correct": 4960
+        },
+        "plan_sha256": "b290d414419af7dcf77da6a99e76dd28b66e2c58e3e9e28836da65f68ddfb751",
+        "schema": "native-config-panel-summary-v2",
+        "scientific_acceptance": false,
+        "scope": "public_fixed_base_test"
+      },
+      "independent_result": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_skills_08b_2b_full_results_20261104_v1/08b-RESULT.json",
+        "sha256": "cb4ae176c3eece7cea2b26528e2459314589ba19bdbf40ff704b66603b2e84ca"
+      }
+    },
+    {
+      "model": "Qwen3.5-2B-Base",
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_skills_2b_idle_20261104_v1/output/cpu/1/summary.json",
+        "sha256": "2c4779fae9c96ad279ccf251e64a39f4c21b1199e94aadcb5fec0f80c1a8b476"
+      },
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_skills_2b_idle_20261104_v1/PLAN.json",
+        "sha256": "1479d21f3224ff19890b4065325125e99e20298d0df586041882814668e185f2"
+      },
+      "metrics": {
+        "adaptive": "NOT_EVALUATED",
+        "attempt": 1,
+        "by_type": {
+          "choice": {
+            "accuracy": 0.5675554559713197,
+            "correct": 2533,
+            "metric_origin": "NGA additive stratification",
+            "n": 4463
+          },
+          "score": {
+            "accuracy": 0.34794156706507307,
+            "correct": 262,
+            "metric_origin": "NGA additive stratification",
+            "n": 753
+          },
+          "yes_no": {
+            "accuracy": 0.6723529411764706,
+            "correct": 3429,
+            "metric_origin": "NGA additive stratification",
+            "n": 5100
+          }
+        },
+        "candidate_test_authority": false,
+        "engine": "Transformers full-label fp32 b1 HF32 off",
+        "model": "Qwen3.5-2B-Base fixed checkpoint",
+        "n": 10316,
+        "one_forward": {
+          "accuracy": 0.6033346258239628,
+          "correct": 6224
+        },
+        "plan_sha256": "1479d21f3224ff19890b4065325125e99e20298d0df586041882814668e185f2",
+        "schema": "native-config-panel-summary-v2",
+        "scientific_acceptance": false,
+        "scope": "public_fixed_base_test"
+      },
+      "independent_result": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_skills_08b_2b_full_results_20261104_v1/2b-RESULT.json",
+        "sha256": "83fc4c30ded2f1ef7732dc1a529a1e29da49b16428b5eac8ae3023485bf0d385"
+      }
+    }
+  ],
+  "independent_acceptance": {
+    "path": ".local/reviews/skills-08b-2b-full-results-20261104-v1/ACCEPTANCE.json",
+    "sha256": "486c307c1bbbc36a469ba0ec1a1be95e75e0e050a713c141a2b59daa61b8414f"
+  },
+  "root_check": {
+    "path": ".local/reviews/skills-08b-2b-full-results-20261104-v1/ROOT-CHECK.json",
+    "sha256": "ce607932cf82de6ee99edc3cc3c52d5bc11de51b87db9f4f46979bb8e1aa7f4c"
+  }
+}
