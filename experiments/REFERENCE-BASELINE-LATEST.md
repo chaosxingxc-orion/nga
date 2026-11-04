@@ -8,14 +8,14 @@ These are reference inference results. They do not establish an NGA training gai
 
 Coverage correction — 2026-11-02: the 38 units above are model × dataset units, not 38 independent datasets or a complete NxM. The latest v9 metadata audit covers 12 expansion sources, all `needs_review`, with zero newly admitted panels in that audit. Previous approximate source/panel targets are superseded as current coverage counts; source identity, native TEST, metric denominator and overlap must be established per panel. See the [current coverage plan](../proposal/24-dataset-coverage-expansion-v10-20261102.md) and [GitHub Wiki coverage conclusions](https://github.com/chaosxingxc-orion/nga/wiki/Dataset-Coverage). No new result is introduced by this correction.
 
-Current coverage snapshot (2026-11-04): **99 inferred/scored and parent-accepted cells** in the recent four-size Qwen extension (23 complete panels plus7 cells in two additional panels). The inventoried28-panel ×4-size subset contains112 cells:99 accepted and13 not yet accepted, including running and reconstructed results. Within its Jev-bench22-panel subset,75/88 are accepted. These are partial inventories, not the global Cartesian denominator; historical36/38 remains a separate registry. Published counts preserve previous readings; newly accepted local-codebook cells are separated below from publisher-native protocols.
+Current coverage snapshot (2026-11-04): **100 inferred/scored and parent-accepted cells** in the recent four-size Qwen extension (25 complete panels). The inventoried28-panel ×4-size subset contains112 cells:100 accepted and12 not yet accepted, including running and reconstructed results. Within its Jev-bench22-panel subset,76/88 are accepted. These are partial inventories, not the global Cartesian denominator; historical36/38 remains a separate registry. Published counts preserve previous readings; newly accepted local-codebook cells are separated below from publisher-native protocols.
 
 Execution status and dataset-admission progress are maintained in the Wiki. Fixed reference-model TEST evaluation can proceed per admitted panel; final evaluation of newly trained candidates follows DEV selection and a frozen TEST plan. Training progress is not a reference TEST metric.
 
 
 ## Large-candidate released TEST — local codebook protocol, 2026-11-04
 
-Seven cells independently reconstructed and diagnosed from all7,000 saved records. [Full metrics and evidence](REFERENCE-LARGE-CANDIDATE-INCREMENT-2026-11-04.json). Each cell uses1,000 released TEST rows, float32, HF32off, batch1, all77 or151 candidates, one forward; this local interface is not the original publisher endpoint. Other cells remain pending acceptance.
+Eight cells independently reconstructed and diagnosed from all8,000 saved records. [Full metrics and evidence](REFERENCE-LARGE-CANDIDATE-INCREMENT-2026-11-04.json). Each cell uses1,000 released TEST rows, float32, HF32off, batch1, all77 or151 candidates, one forward; this local interface is not the original publisher endpoint. Other cells remain pending acceptance.
 
 | Task | Qwen3.5 Base | Correct/n | Accuracy | Macro-F1 | Balanced accuracy | Vector Brier | NLL (nats) | ECE15 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -26,6 +26,8 @@ Seven cells independently reconstructed and diagnosed from all7,000 saved record
 | clinc150 | 2b | 8/1000 | 0.8% | 0.001112 | 0.007285 | 1.067507 | 7.023363 | 0.173660 |
 | banking77 | 9b | 424/1000 | 42.4% | 0.420573 | 0.417690 | 0.789818 | 2.931394 | 0.134384 |
 | clinc150 | 4b | 423/1000 | 42.3% | 0.506465 | 0.523983 | 0.753368 | 3.802889 | 0.100242 |
+
+| clinc150 | 9b | 387/1000 | 38.7% | 0.472384 | 0.479867 | 0.763236 | 3.674391 | 0.086193 |
 
 Macro-F1 averages all registered classes; balanced accuracy averages classes with TEST support. All classes have support here. Banking support is6–20 per class; CLINC1–187. Small class estimates require caution. No threshold or temperature was fitted onTEST.
 
