@@ -1,0 +1,173 @@
+{
+  "schema": "reference-paws-increment-v1",
+  "date_utc": "2026-11-04",
+  "scope": "Praveenrajus/jev-bench released TEST, local full-label protocol",
+  "models": [
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "Yes": {
+          "accuracy": 0.432,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "No": {
+          "accuracy": 0.568,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "1": 568,
+          "0": 432
+        },
+        "predicted": {
+          "1": 380,
+          "0": 620
+        }
+      },
+      "within_release_test_state_overlap": null,
+      "job": "paws-08b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.684,
+        "correct": 684
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": 0.684,
+          "correct": 684,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "ad9d1522882ae004383ca9aa364fc1717a190c435711e18e3e1e89f0dfcf030e",
+      "plan_sha256": "fac6fbf8cc69e8f2b8c26be56f2946ea5a14fabccfa8adcaa01c65cc57f12d63",
+      "source_sha256": "979316fa6f22afe568732242c064899c3b17f2028a67d95b49e89fd841c1906e",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "by_gold_class": {
+        "Yes": {
+          "n": 432,
+          "correct": 368,
+          "accuracy": 0.8518518518518519
+        },
+        "No": {
+          "n": 568,
+          "correct": 316,
+          "accuracy": 0.5563380281690141
+        }
+      },
+      "original_source_sha256": "43466db6213337bfcaa49682284b6fc75fac2e570b49054e5379807433cbd6d1"
+    },
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "Yes": {
+          "accuracy": 0.432,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "No": {
+          "accuracy": 0.568,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "1": 568,
+          "0": 432
+        },
+        "predicted": {
+          "1": 774,
+          "0": 226
+        }
+      },
+      "within_release_test_state_overlap": null,
+      "job": "paws-2b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.744,
+        "correct": 744
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": 0.744,
+          "correct": 744,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "ffb50c2a195274a6bb5d99c25dcaece1f5064266872ec0be862ea8df5c915f11",
+      "plan_sha256": "a0067b811efdc4716ec1349ba3ea0f00e4d79c49466c2038e1d96daa3ba5478c",
+      "source_sha256": "979316fa6f22afe568732242c064899c3b17f2028a67d95b49e89fd841c1906e",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "by_gold_class": {
+        "Yes": {
+          "n": 432,
+          "correct": 201,
+          "accuracy": 0.4652777777777778
+        },
+        "No": {
+          "n": 568,
+          "correct": 543,
+          "accuracy": 0.9559859154929577
+        }
+      },
+      "original_source_sha256": "43466db6213337bfcaa49682284b6fc75fac2e570b49054e5379807433cbd6d1"
+    }
+  ],
+  "independent_acceptance_sha256": "741f3e88d032e4e1c48821df44bab4479ab5800b5a4c5144800be926c5695b50",
+  "verified_unique_evidence_files": 4075,
+  "review_root": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_paws_boolq_first_six_results_20261104_v1",
+  "named_astra_review": false,
+  "training_benefit_claimed": false,
+  "limitations": [
+    "upstream original split lineage unverified",
+    "not Jevify endpoint equivalence",
+    "saved selected-logit reconstruction, not independent forward replay"
+  ]
+}

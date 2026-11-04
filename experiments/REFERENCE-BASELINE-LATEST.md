@@ -353,3 +353,14 @@ The final 4B and 9B cells passed complete independent saved-result reconstructio
 | Qwen3.5-9B-Base | 438/1000 | 43.8% | 0.678 | 0.715295479 | 0.093595116 |
 
 Both exceed the descriptive constant-grade3 accuracy20.3% and improve on its MAE1.322. The 9B expected-index MAE is worse than 4B despite better accuracy, argmax MAE and RPS; scale does not improve every metric. All four sizes now have accepted local ordinal TEST results. Four train/two validation exact-state overlaps and one within-TEST repeated state remain in the original population. This is saved selected-logit arithmetic/provenance verification, not independent model-forward reproduction, Jevify endpoint/scorer equivalence, named Astra review or training benefit.
+
+## PAWS released TEST increment — 2026-11-04
+
+Two fixed Qwen3.5 Base cells passed independent full reconstruction of all1,000 saved readouts each;4,075 evidence files were rehashed. [Exact results and evidence](REFERENCE-PAWS-INCREMENT-2026-11-04.json). This is the Praveenrajus/jev-bench released TEST subset with local full-label inference, not verified original upstream TEST lineage or Jevify endpoint equivalence.
+
+| Model | Correct / n | Accuracy | Yes recall (n432) | No recall (n568) |
+| --- | ---: | ---: | ---: | ---: |
+| Qwen3.5-0.8B-Base | 684/1000 | 68.4% | 368/432 =85.185185% | 316/568 =55.633803% |
+| Qwen3.5-2B-Base | 744/1000 | 74.4% | 201/432 =46.527778% | 543/568 =95.598592% |
+
+Both exceed descriptive always-No accuracy56.8%, but2B's higher total accuracy coexists with substantially lower Yes recall. This is not uniform class-wise improvement, paired consistency, training gain or named Astra acceptance. Per-class counts and output histograms remain in the exact JSON; no cross-task aggregate is introduced.
