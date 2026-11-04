@@ -306,3 +306,14 @@ Full saved-result reconstruction and parent evidence verification accepted three
 | skills | Qwen3.5-4B-Base | 7221 / 10316 | 69.998061% |
 
 The combined five-job review, including previously accepted Typed cells, reconstructed 43,274 saved records; parent verification checked 86,731 unique artifact pins. This does not represent new NPU computation. Skills retains 74 duplicate excess requests and 1,280 soft-label questions evaluated using their hard labels; soft-distribution metrics remain unevaluated. Hard score-type population is only 74 questions, so its strata are descriptive. These are fixed-base scale comparisons, not training gains or paired consistency.
+
+## Typed Decisions four-size matrix completed — 2026-11-04
+
+The additional 4B and 9B cells passed independent full saved-result reconstruction; parent verification checked 8,075 unique pins. [Additional metrics and evidence](REFERENCE-TYPED-QWEN-ADDITIONAL-2026-11-04.json). Each model uses the same 400 states / 2,000 questions, single-question v2 protocol and frozen publisher metric formulas.
+
+| Model | Correct / decisions | Accuracy | KL(q‖p) | Brier | ECE10 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Qwen3.5-4B-Base | 1114/2000 | 55.7% | 0.404785680 | 0.194924770 | 0.070808215 |
+| Qwen3.5-9B-Base | 1170/2000 | 58.5% | 0.308770753 | 0.157799407 | 0.037623090 |
+
+All four Qwen sizes now have accepted results on this panel. Overall accuracy rises and KL/Brier/ECE10 decrease with scale in this fixed comparison; subtype metrics need separate interpretation. This does not establish training gains, paired consistency, native five-question inference-endpoint equivalence, or complete cross-dataset coverage.
