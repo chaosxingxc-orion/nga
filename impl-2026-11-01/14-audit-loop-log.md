@@ -106,3 +106,25 @@ R1 脏（1 MAJOR 修复+变异自证）→ **R2 净 → R3 净 → R4 净 = 连�
 - **修复**：C8 补 guard（同用 p3FixtureCorrectionLanded，skip 时明说「重写为断言 T0≡T1 deny」）。变异自证：翻转→C8 SKIP（guard 活）→恢复绿。
 - 判定：**0 BLOCKER / 0 MAJOR**（C8 缺 guard=minor 级同族穷举补丁，即修不记账——它是 R11 修复的收尾缝，不是独立发现）。
 - 全量回归绿（-race 21 包）。
+
+## R13（连胜重建 2/3——审计形态轮，净）
+
+- 前置门全绿。RECON：11 探针族+3 夹具族全活；POLARITY GUARD 声明 4 处 vs 开关引用 7 处（3 测试×guard+2 开关）对齐。
+- 双变异重跑：守卫删除→测试回"疾病存在"断言模式（行为正确：guard 控制翻转而非崩溃）。
+- diff 范围评审：R12 仅 9 行（C8 guard+日志），无新面。
+- 判定：**0 BLOCKER / 0 MAJOR**。
+
+## R14（连胜重建 3/3——独立空白位退出守卫终审，净：收卷）
+
+- 空白子 64 工具调用，禁读 impl 目录全部产物。
+- **裁决：0 BLOCKER / 0 MAJOR / 3 新 minor**（N1 转换环状态键 control+adopted 钉状态/ N2 E3 夹具缺失 fail-open/ N3 truncate 按字节切中文——全部附确定性探针方案，按律积累 L34-L36）。
+- 机械门全过（build/vet/-race 20 包/self-test/八组 0 failures/manifest/gofmt 净）；测试面 224 Test+211 夹具恒积累。
+- singularity：镜像位点族第 3 次复发（N1）——候选证据加权仍未达启动阈值；断尾/权限族零复发；无可达奇点。
+- T1 配方中和核验干净（无端点/密钥残留）。
+- **R12/R13/R14 = 3 连 0B/0M——session goal 在最终增量态（含 E0/E3 实验+R11/R12 修复）上再次达成，收卷。**
+
+## 战役总账（终版）
+
+- 全循环：R1 脏→R2-R5 净→R6 空白抓 2M（连胜重置）→修复→R7-R9 三连→R10 净→R11 脏（2M polarity）→修复→R12（C8 补 guard）→R13 审计净→**R14 空白终审净 = 二次 3 连收卷**。
+- 累计：5 个 MAJOR 被独立/自审混合循环抓获修复、18 条 minor 入账不修（L16-L36）、2 个 singularity 结构候选登记。
+- 增量覆盖：baca2dd..HEAD 全量（含 E0/E3 实验、polarity guard、文档）。
