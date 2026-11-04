@@ -8,14 +8,14 @@ These are reference inference results. They do not establish an NGA training gai
 
 Coverage correction — 2026-11-02: the 38 units above are model × dataset units, not 38 independent datasets or a complete NxM. The latest v9 metadata audit covers 12 expansion sources, all `needs_review`, with zero newly admitted panels in that audit. Previous approximate source/panel targets are superseded as current coverage counts; source identity, native TEST, metric denominator and overlap must be established per panel. See the [current coverage plan](../proposal/24-dataset-coverage-expansion-v10-20261102.md) and [GitHub Wiki coverage conclusions](https://github.com/chaosxingxc-orion/nga/wiki/Dataset-Coverage). No new result is introduced by this correction.
 
-Current coverage snapshot (2026-11-04): **100 inferred/scored and parent-accepted cells** in the recent four-size Qwen extension (25 complete panels). The inventoried28-panel ×4-size subset contains112 cells:100 accepted and12 not yet accepted, including running and reconstructed results. Within its Jev-bench22-panel subset,76/88 are accepted. These are partial inventories, not the global Cartesian denominator; historical36/38 remains a separate registry. Published counts preserve previous readings; newly accepted local-codebook cells are separated below from publisher-native protocols.
+Current coverage snapshot (2026-11-04): **107 inferred/scored and parent-accepted cells** in the recent four-size Qwen extension (26 complete panels plus3 LEDGAR cells). The inventoried28-panel ×4-size subset contains112 cells:107 accepted and5 not yet accepted, including running and reconstructed results. Within its Jev-bench22-panel subset,83/88 are accepted. These are partial inventories, not the global Cartesian denominator; historical36/38 remains a separate registry. Published counts preserve previous readings; newly accepted local-codebook cells are separated below from publisher-native protocols.
 
 Execution status and dataset-admission progress are maintained in the Wiki. Fixed reference-model TEST evaluation can proceed per admitted panel; final evaluation of newly trained candidates follows DEV selection and a frozen TEST plan. Training progress is not a reference TEST metric.
 
 
 ## Large-candidate released TEST — local codebook protocol, 2026-11-04
 
-Eight cells independently reconstructed and diagnosed from all8,000 saved records. [Full metrics and evidence](REFERENCE-LARGE-CANDIDATE-INCREMENT-2026-11-04.json). Each cell uses1,000 released TEST rows, float32, HF32off, batch1, all77 or151 candidates, one forward; this local interface is not the original publisher endpoint. Other cells remain pending acceptance.
+Fifteen cells independently reconstructed and diagnosed from all15,000 saved records. [Full metrics and evidence](REFERENCE-LARGE-CANDIDATE-INCREMENT-2026-11-04.json). Each cell uses1,000 released TEST rows, float32, HF32off, batch1, all77 or151 candidates, one forward; this local interface is not the original publisher endpoint. Other cells remain pending acceptance.
 
 | Task | Qwen3.5 Base | Correct/n | Accuracy | Macro-F1 | Balanced accuracy | Vector Brier | NLL (nats) | ECE15 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -29,9 +29,19 @@ Eight cells independently reconstructed and diagnosed from all8,000 saved record
 
 | clinc150 | 9b | 387/1000 | 38.7% | 0.472384 | 0.479867 | 0.763236 | 3.674391 | 0.086193 |
 
-Macro-F1 averages all registered classes; balanced accuracy averages classes with TEST support. All classes have support here. Banking support is6–20 per class; CLINC1–187. Small class estimates require caution. No threshold or temperature was fitted onTEST.
+| massive | 08b | 3/1000 | 0.3% | 0.000100 | 0.017241 | 1.206643 | 5.983877 | 0.456181 |
+| massive | 2b | 3/1000 | 0.3% | 0.000100 | 0.017241 | 1.121948 | 5.988863 | 0.308167 |
+| massive | 4b | 459/1000 | 45.9% | 0.410654 | 0.450384 | 0.703730 | 2.630925 | 0.105414 |
+| massive | 9b | 405/1000 | 40.5% | 0.355926 | 0.367785 | 0.754670 | 2.992010 | 0.060142 |
+| ledgar | 08b | 46/1000 | 4.6% | 0.013509 | 0.028622 | 1.031944 | 6.005193 | 0.110802 |
+| ledgar | 2b | 68/1000 | 6.8% | 0.012560 | 0.024561 | 1.013298 | 5.388265 | 0.214949 |
+| ledgar | 4b | 600/1000 | 60.0% | 0.450902 | 0.526925 | 0.603394 | 2.026824 | 0.113005 |
+
+Macro-F1 averages all registered classes; balanced accuracy averages classes with TEST support. All Banking/CLINC classes have support; MASSIVE has58/60 supported classes, LEDGAR95/100. Banking support is6–20 per class; CLINC1–187. Small class estimates require caution. No threshold or temperature was fitted onTEST.
 
 Banking0.8B/2B predict only5/2 of77 classes; codeAA (position27) receives941/992 predictions. CLINC0.8B/2B predict4/3 of151 classes; O/AA receive853/991 predictions. Both CLINC models never predict OOS (187 gold examples, recall0); the descriptive constant-OOS control is18.7%, compared with0.7%/0.8%. Each cell has1,000 distinct probability and logit vectors. Complete source, prompt, tokenizer, candidate mapping and saved softmax checks found no index or scoring defect explaining these results. Code/position/semantic effects are confounded; no causal bias claim is made. These are fixed-interface baselines, not trained gains.
+
+MASSIVE0.8B/2B accuracy is0.3% each; 2B selects AA/iot_hue_lighton for all1000 inputs despite distinct vectors. MASSIVE4B/9B accuracy45.9%/40.5%; cooking_query receives134/285 predictions with zero TEST gold support. Registered zero-support classes remain included in macro-F1. LEDGAR0.8B/2B/4B accuracy4.6%/6.8%/60.0%; null source definitions remain null. Complete7000-row diagnosis found no source/token/saved-arithmetic defect. MASSIVE released-source overlaps3train/1validation are retained and reported.
 
 ## BEV public TEST increment — local protocol, updated 2026-11-03
 
