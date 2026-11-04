@@ -402,3 +402,18 @@ Four Qwen3.5 Base sizes, existing local full-label fp32 protocol. All 7,200 pred
 SMS always-ham is 85.625%; MNLI always-entailment is 36.0%, both descriptive TEST-population constants. MNLI0.8B predicts entailment999/1000 with zero neutral/contradiction recall. All1000 selected-logit vectors differ; full mapping and arithmetic reconstruction rules out an aggregate scoring error or duplicated identical output, but does not identify whether checkpoint or prompt causes the collapse. SMS0.8B spam recall is only2/115; aggregate accuracy alone is misleading.
 
 These are Jev-bench derived-release TEST subsets, not established upstream hidden TEST or Jevify endpoint reproduction. SMS retains13 excess duplicates and79/14 exact train/validation matches; MNLI has no exact release overlap. No independent model-forward/full-vocabulary replay, clean training generalization, significance or training gain is claimed. Historical36/38 coverage is unchanged.
+
+## ARC released TEST and BEV skills9B completion — 2026-11-04
+
+Independent source/readout/report/lifecycle reconstruction completed; parent rehashed28,812 evidence files. [Exact results and diagnostics](REFERENCE-ARC-SKILLS-COMPLETION-2026-11-04.json).
+
+| ARC Challenge derived-release TEST | 0.8B Base | 2B Base | 4B Base | 9B Base |
+| --- | ---: | ---: | ---: | ---: |
+| Correct /1000 | 571 | 775 | 911 | 935 |
+| Accuracy | 57.1% | 77.5% | 91.1% | 93.5% |
+
+ARC has4 three-option,993 four-option and3 five-option questions. Option-position diagnostics are not shared semantic classes. Small perfect strata were independently inspected and remain descriptive. Seven TEST states match release train and two validation, but no full-request overlaps or internal duplicate requests. This is not established original upstream hidden TEST, Jevify endpoint equivalence or a training gain.
+
+BEV skills9B completed **7358/10316 =71.326095%**: choice3167/4463, yes/no3847/5100, score344/753. It adds137 correct answers over4B (+1.328034 percentage points), a descriptive fixed-model comparison. All6755source rows and74semantic duplicate requests retained. The1280soft-target questions are evaluated by attached hard labels only; soft distribution quality remains unmeasured. All62qid slices flagged for small n or exact0/1 were regrouped and checked; one perfect n30 slice has constant gold. These observations do not establish invariance or generalization.
+
+The recent13-panel×4-size subset now has52 accepted results; this does not complete the global model×dataset×protocol Cartesian product. The historical38-unit coverage count remains unchanged.

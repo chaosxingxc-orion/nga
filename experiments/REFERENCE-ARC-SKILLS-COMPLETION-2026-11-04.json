@@ -1,0 +1,2025 @@
+{
+  "scope": "Fixed-base TEST descriptive results; not trained-candidate TEST gains",
+  "results": [
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "position_0": {
+          "accuracy": 0.235,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_1": {
+          "accuracy": 0.261,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_2": {
+          "accuracy": 0.269,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_3": {
+          "accuracy": 0.235,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_4": {
+          "accuracy": 0.0,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "0": 235,
+          "1": 261,
+          "2": 269,
+          "3": 235
+        },
+        "predicted": {
+          "0": 462,
+          "1": 163,
+          "3": 219,
+          "2": 155,
+          "4": 1
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 7,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 2,
+          "test_request_matches": 0
+        }
+      },
+      "job": "arc_challenge-08b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.571,
+        "correct": 571
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": 0.571,
+          "correct": 571,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "5adeec5386c2674c81df9f82bafebad6609b80610685a9b78f8433993782edfb",
+      "plan_sha256": "54eca44ba2d71f00e6c0295a97d25780c9a67e11409dac5b85401205e54d28b9",
+      "source_sha256": "ffdec8fa1948cd3691ca152891ace1d566af5c997172f9cc3fc526c87a7046fd",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "candidate_order_variants": 996,
+      "class_diagnostic_scope": "option position only, not shared semantic class",
+      "by_candidate_count": {
+        "3": {
+          "n": 4,
+          "correct": 3
+        },
+        "4": {
+          "n": 993,
+          "correct": 566
+        },
+        "5": {
+          "n": 3,
+          "correct": 2
+        }
+      },
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "position_0",
+        "position_1",
+        "position_2",
+        "position_3",
+        "position_4"
+      ],
+      "by_gold_class": {
+        "position_0": {
+          "n": 235,
+          "correct": 192,
+          "accuracy": 0.8170212765957446
+        },
+        "position_1": {
+          "n": 261,
+          "correct": 114,
+          "accuracy": 0.4367816091954023
+        },
+        "position_2": {
+          "n": 269,
+          "correct": 126,
+          "accuracy": 0.4684014869888476
+        },
+        "position_3": {
+          "n": 235,
+          "correct": 139,
+          "accuracy": 0.5914893617021276
+        },
+        "position_4": {
+          "n": 0,
+          "correct": 0,
+          "accuracy": null
+        }
+      },
+      "original_source_sha256": "c3fe1e8720c873d0621f0adc9d3246c24c9cfdcfb019724eafa601383c7fdb8b"
+    },
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "position_0": {
+          "accuracy": 0.235,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_1": {
+          "accuracy": 0.261,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_2": {
+          "accuracy": 0.269,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_3": {
+          "accuracy": 0.235,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_4": {
+          "accuracy": 0.0,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "0": 235,
+          "1": 261,
+          "2": 269,
+          "3": 235
+        },
+        "predicted": {
+          "0": 339,
+          "1": 235,
+          "2": 245,
+          "3": 181
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 7,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 2,
+          "test_request_matches": 0
+        }
+      },
+      "job": "arc_challenge-2b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.775,
+        "correct": 775
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": 0.775,
+          "correct": 775,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "be7d313a568401fccabebdada3fdd29518bd107a55da37a69ca82c4202809c6d",
+      "plan_sha256": "d8adfee50188dca761cd926c0d7436c495514ecff764066d994428dfc977505e",
+      "source_sha256": "ffdec8fa1948cd3691ca152891ace1d566af5c997172f9cc3fc526c87a7046fd",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "candidate_order_variants": 996,
+      "class_diagnostic_scope": "option position only, not shared semantic class",
+      "by_candidate_count": {
+        "3": {
+          "n": 4,
+          "correct": 4
+        },
+        "4": {
+          "n": 993,
+          "correct": 768
+        },
+        "5": {
+          "n": 3,
+          "correct": 3
+        }
+      },
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "position_0",
+        "position_1",
+        "position_2",
+        "position_3",
+        "position_4"
+      ],
+      "by_gold_class": {
+        "position_0": {
+          "n": 235,
+          "correct": 211,
+          "accuracy": 0.8978723404255319
+        },
+        "position_1": {
+          "n": 261,
+          "correct": 193,
+          "accuracy": 0.7394636015325671
+        },
+        "position_2": {
+          "n": 269,
+          "correct": 210,
+          "accuracy": 0.7806691449814126
+        },
+        "position_3": {
+          "n": 235,
+          "correct": 161,
+          "accuracy": 0.6851063829787234
+        },
+        "position_4": {
+          "n": 0,
+          "correct": 0,
+          "accuracy": null
+        }
+      },
+      "original_source_sha256": "c3fe1e8720c873d0621f0adc9d3246c24c9cfdcfb019724eafa601383c7fdb8b"
+    },
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "position_0": {
+          "accuracy": 0.235,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_1": {
+          "accuracy": 0.261,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_2": {
+          "accuracy": 0.269,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_3": {
+          "accuracy": 0.235,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_4": {
+          "accuracy": 0.0,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "0": 235,
+          "1": 261,
+          "2": 269,
+          "3": 235
+        },
+        "predicted": {
+          "0": 245,
+          "1": 260,
+          "2": 264,
+          "3": 231
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 7,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 2,
+          "test_request_matches": 0
+        }
+      },
+      "job": "arc_challenge-4b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.911,
+        "correct": 911
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": 0.911,
+          "correct": 911,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "b0836340c52470150168cc495c2494e1d207dc172296a9eb3644e99cfab48d90",
+      "plan_sha256": "a5448cccc3abc6f9fab327b05ba1da8cd1e3e43b64e3a4ed68fa5fbd1af9e950",
+      "source_sha256": "ffdec8fa1948cd3691ca152891ace1d566af5c997172f9cc3fc526c87a7046fd",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "candidate_order_variants": 996,
+      "class_diagnostic_scope": "option position only, not shared semantic class",
+      "by_candidate_count": {
+        "3": {
+          "n": 4,
+          "correct": 4
+        },
+        "4": {
+          "n": 993,
+          "correct": 904
+        },
+        "5": {
+          "n": 3,
+          "correct": 3
+        }
+      },
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "position_0",
+        "position_1",
+        "position_2",
+        "position_3",
+        "position_4"
+      ],
+      "by_gold_class": {
+        "position_0": {
+          "n": 235,
+          "correct": 220,
+          "accuracy": 0.9361702127659575
+        },
+        "position_1": {
+          "n": 261,
+          "correct": 233,
+          "accuracy": 0.89272030651341
+        },
+        "position_2": {
+          "n": 269,
+          "correct": 246,
+          "accuracy": 0.9144981412639405
+        },
+        "position_3": {
+          "n": 235,
+          "correct": 212,
+          "accuracy": 0.902127659574468
+        },
+        "position_4": {
+          "n": 0,
+          "correct": 0,
+          "accuracy": null
+        }
+      },
+      "original_source_sha256": "c3fe1e8720c873d0621f0adc9d3246c24c9cfdcfb019724eafa601383c7fdb8b"
+    },
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "position_0": {
+          "accuracy": 0.235,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_1": {
+          "accuracy": 0.261,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_2": {
+          "accuracy": 0.269,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_3": {
+          "accuracy": 0.235,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        },
+        "position_4": {
+          "accuracy": 0.0,
+          "scope": "descriptive fixed option-position rule; invalid positions count wrong; not a shared semantic or learned predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "0": 235,
+          "1": 261,
+          "2": 269,
+          "3": 235
+        },
+        "predicted": {
+          "0": 235,
+          "1": 259,
+          "2": 277,
+          "3": 229
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 7,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 2,
+          "test_request_matches": 0
+        }
+      },
+      "job": "arc_challenge-9b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.935,
+        "correct": 935
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": 0.935,
+          "correct": 935,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "e63663ea99f9ac64cd854cd89667d9902acc7a2955127436744d21dce5f9aa3f",
+      "plan_sha256": "0a867d360ba8b9422d50b3f465f18b84016dc1e2053ea52588eaadc6c6a392d2",
+      "source_sha256": "ffdec8fa1948cd3691ca152891ace1d566af5c997172f9cc3fc526c87a7046fd",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "candidate_order_variants": 996,
+      "class_diagnostic_scope": "option position only, not shared semantic class",
+      "by_candidate_count": {
+        "3": {
+          "n": 4,
+          "correct": 4
+        },
+        "4": {
+          "n": 993,
+          "correct": 928
+        },
+        "5": {
+          "n": 3,
+          "correct": 3
+        }
+      },
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "position_0",
+        "position_1",
+        "position_2",
+        "position_3",
+        "position_4"
+      ],
+      "by_gold_class": {
+        "position_0": {
+          "n": 235,
+          "correct": 221,
+          "accuracy": 0.9404255319148936
+        },
+        "position_1": {
+          "n": 261,
+          "correct": 242,
+          "accuracy": 0.9272030651340997
+        },
+        "position_2": {
+          "n": 269,
+          "correct": 256,
+          "accuracy": 0.9516728624535316
+        },
+        "position_3": {
+          "n": 235,
+          "correct": 216,
+          "accuracy": 0.9191489361702128
+        },
+        "position_4": {
+          "n": 0,
+          "correct": 0,
+          "accuracy": null
+        }
+      },
+      "original_source_sha256": "c3fe1e8720c873d0621f0adc9d3246c24c9cfdcfb019724eafa601383c7fdb8b"
+    },
+    {
+      "source_rows": 6755,
+      "soft_labels": 1280,
+      "soft_label_types": {
+        "choice": 280,
+        "noul": 659,
+        "score": 341
+      },
+      "soft_gold_argmax_disagreements": [],
+      "semantic_duplicate_excess_retained": 74,
+      "descriptive_label_slices": {
+        "hard_label_only": {
+          "n": 9036,
+          "correct": 6547,
+          "accuracy": 0.7245462594068172
+        },
+        "label_probs_present_hard_accuracy": {
+          "n": 1280,
+          "correct": 811,
+          "accuracy": 0.63359375
+        }
+      },
+      "qid_descriptive_flags": {
+        "request_domain_record_0": {
+          "n": 9,
+          "correct": 8
+        },
+        "has_third_party_beneficiary": {
+          "n": 22,
+          "correct": 22
+        },
+        "has_covenant_not_to_sue": {
+          "n": 25,
+          "correct": 17
+        },
+        "has_non_transferable_license": {
+          "n": 27,
+          "correct": 13
+        },
+        "has_non_compete": {
+          "n": 26,
+          "correct": 20
+        },
+        "has_revenue_profit_sharing": {
+          "n": 22,
+          "correct": 14
+        },
+        "renewal_term": {
+          "n": 120,
+          "correct": 120
+        },
+        "has_price_restrictions": {
+          "n": 19,
+          "correct": 19
+        },
+        "has_source_code_escrow": {
+          "n": 27,
+          "correct": 26
+        },
+        "has_audit_rights": {
+          "n": 25,
+          "correct": 21
+        },
+        "service_tool": {
+          "n": 121,
+          "correct": 121
+        },
+        "request_domain_record_3": {
+          "n": 7,
+          "correct": 4
+        },
+        "governing_law": {
+          "n": 69,
+          "correct": 69
+        },
+        "has_irrevocable_or_perpetual_license": {
+          "n": 27,
+          "correct": 24
+        },
+        "has_no_solicit_of_customers": {
+          "n": 16,
+          "correct": 14
+        },
+        "has_competitive_restriction_exception": {
+          "n": 17,
+          "correct": 13
+        },
+        "support_intent_record_0": {
+          "n": 9,
+          "correct": 8
+        },
+        "request_intent_record_4": {
+          "n": 14,
+          "correct": 11
+        },
+        "has_affiliate_license_licensee": {
+          "n": 29,
+          "correct": 24
+        },
+        "first_link": {
+          "n": 42,
+          "correct": 42
+        },
+        "support_intent_record_1": {
+          "n": 3,
+          "correct": 1
+        },
+        "has_non_disparagement": {
+          "n": 24,
+          "correct": 18
+        },
+        "has_ip_ownership_assignment": {
+          "n": 23,
+          "correct": 18
+        },
+        "change_size": {
+          "n": 15,
+          "correct": 7
+        },
+        "support_intent_record_2": {
+          "n": 4,
+          "correct": 4
+        },
+        "has_affiliate_license_licensor": {
+          "n": 30,
+          "correct": 30
+        },
+        "has_no_solicit_of_employees": {
+          "n": 27,
+          "correct": 27
+        },
+        "request_intent_record_1": {
+          "n": 29,
+          "correct": 22
+        },
+        "request_intent_record_3": {
+          "n": 27,
+          "correct": 23
+        },
+        "has_notice_period_to_terminate_renewal": {
+          "n": 28,
+          "correct": 20
+        },
+        "request_domain_record_1": {
+          "n": 7,
+          "correct": 5
+        },
+        "ride_class_argument": {
+          "n": 20,
+          "correct": 18
+        },
+        "has_change_of_control": {
+          "n": 29,
+          "correct": 20
+        },
+        "request_domain_record_5": {
+          "n": 1,
+          "correct": 1
+        },
+        "request_domain_record_2": {
+          "n": 5,
+          "correct": 2
+        },
+        "q5_answer": {
+          "n": 12,
+          "correct": 9
+        },
+        "q4_value": {
+          "n": 3,
+          "correct": 2
+        },
+        "q6_value": {
+          "n": 3,
+          "correct": 2
+        },
+        "q5_above_threshold": {
+          "n": 3,
+          "correct": 2
+        },
+        "has_uncapped_liability": {
+          "n": 28,
+          "correct": 15
+        },
+        "support_intent_record_3": {
+          "n": 5,
+          "correct": 4
+        },
+        "q2_answer": {
+          "n": 8,
+          "correct": 8
+        },
+        "request_intent_record_5": {
+          "n": 8,
+          "correct": 7
+        },
+        "has_most_favored_nation": {
+          "n": 19,
+          "correct": 16
+        },
+        "q3_answer": {
+          "n": 9,
+          "correct": 9
+        },
+        "q4_answer": {
+          "n": 5,
+          "correct": 3
+        },
+        "comparison_holds": {
+          "n": 2,
+          "correct": 2
+        },
+        "request_intent_record_6": {
+          "n": 3,
+          "correct": 3
+        },
+        "support_intent_record_4": {
+          "n": 4,
+          "correct": 2
+        },
+        "request_domain_record_6": {
+          "n": 2,
+          "correct": 2
+        },
+        "request_domain_record_4": {
+          "n": 3,
+          "correct": 1
+        },
+        "q1_value": {
+          "n": 3,
+          "correct": 2
+        },
+        "q2_above_threshold": {
+          "n": 1,
+          "correct": 0
+        },
+        "q3_value": {
+          "n": 1,
+          "correct": 1
+        },
+        "q4_above_threshold": {
+          "n": 1,
+          "correct": 0
+        },
+        "q1_answer": {
+          "n": 2,
+          "correct": 2
+        },
+        "q6_answer": {
+          "n": 5,
+          "correct": 2
+        },
+        "q6_above_threshold": {
+          "n": 3,
+          "correct": 1
+        },
+        "q5_value": {
+          "n": 2,
+          "correct": 2
+        },
+        "support_intent_record_5": {
+          "n": 2,
+          "correct": 1
+        },
+        "q6_change_size": {
+          "n": 1,
+          "correct": 0
+        },
+        "support_intent_record_6": {
+          "n": 1,
+          "correct": 1
+        }
+      },
+      "soft_distribution_metric_evaluated": false,
+      "model": "9b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "n": 10316,
+      "correct": 7358,
+      "accuracy": 0.7132609538580845,
+      "by_type": {
+        "choice": {
+          "accuracy": 0.7096123683620883,
+          "correct": 3167,
+          "metric_origin": "NGA additive stratification",
+          "n": 4463
+        },
+        "score": {
+          "accuracy": 0.45683930942895085,
+          "correct": 344,
+          "metric_origin": "NGA additive stratification",
+          "n": 753
+        },
+        "yes_no": {
+          "accuracy": 0.754313725490196,
+          "correct": 3847,
+          "metric_origin": "NGA additive stratification",
+          "n": 5100
+        }
+      },
+      "all10316_compact_operands_reconstructed": true,
+      "original_source_population_independently_mapped": true,
+      "model_forward_reexecuted": false,
+      "full_vocabulary_logits_persisted": false,
+      "retained_selected_logits_verified": true,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "9dd2448ef675a9f4ee25552da59cc8f5ce08c5845c0e9389a881079de6deae69",
+      "plan_sha256": "12f232257c4d301e83826d30cc070a740e424e61b23a601aab850f1b9a12cb53",
+      "suspicious_success_flags": [],
+      "reviewer": "inherited Codex independent result rebuild; not named Astra",
+      "candidate_test_authority": false,
+      "training_benefit_claimed": false
+    }
+  ],
+  "diagnostic_flags": [
+    {
+      "job": "arc_challenge-08b",
+      "flag": "candidate_count_3",
+      "n": 4,
+      "correct": 3,
+      "scope": "small positional diagnostic, not new gate"
+    },
+    {
+      "job": "arc_challenge-08b",
+      "flag": "candidate_count_5",
+      "n": 3,
+      "correct": 2,
+      "scope": "small positional diagnostic, not new gate"
+    },
+    {
+      "job": "arc_challenge-2b",
+      "flag": "candidate_count_3",
+      "n": 4,
+      "correct": 4,
+      "scope": "small positional diagnostic, not new gate"
+    },
+    {
+      "job": "arc_challenge-2b",
+      "flag": "candidate_count_5",
+      "n": 3,
+      "correct": 3,
+      "scope": "small positional diagnostic, not new gate"
+    },
+    {
+      "job": "arc_challenge-4b",
+      "flag": "candidate_count_3",
+      "n": 4,
+      "correct": 4,
+      "scope": "small positional diagnostic, not new gate"
+    },
+    {
+      "job": "arc_challenge-4b",
+      "flag": "candidate_count_5",
+      "n": 3,
+      "correct": 3,
+      "scope": "small positional diagnostic, not new gate"
+    },
+    {
+      "job": "arc_challenge-9b",
+      "flag": "candidate_count_3",
+      "n": 4,
+      "correct": 4,
+      "scope": "small positional diagnostic, not new gate"
+    },
+    {
+      "job": "arc_challenge-9b",
+      "flag": "candidate_count_5",
+      "n": 3,
+      "correct": 3,
+      "scope": "small positional diagnostic, not new gate"
+    },
+    {
+      "job": "skills9B",
+      "flag": "qid_descriptive_extrema_or_small_n",
+      "count": 62,
+      "scope": "diagnostic per-qid, not primary success or new gate"
+    }
+  ],
+  "acceptance": {
+    "path": "/home/xingchao/workspace/nga/.local/reviews/arc-skills-complete-results-20261104-v1/ACCEPTANCE.json",
+    "sha256": "ebbd7937d6c032ee4caafadd4bdf4c8a7e8a254985a559c77efb25d4ad1749d0",
+    "parent_rehashed_files": 28812
+  },
+  "diagnosis": {
+    "scope": "suspicious descriptive slices independently diagnosed from saved outputs; no new TEST inference",
+    "files": {
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/diagnose_arc_skills_complete_results_20261104_v1.py": "7ba0853ebc66e4f791e854d90137f64bed5f8c837274e30f0192a2b6b95b189f"
+    },
+    "arc": [
+      {
+        "model": "08b",
+        "slices": [
+          {
+            "candidate_count": 3,
+            "n": 4,
+            "correct": 3,
+            "gold_distribution": {
+              "0": 2,
+              "1": 1,
+              "2": 1
+            },
+            "prediction_distribution": {
+              "0": 2,
+              "1": 2
+            },
+            "unique_selected_logit_vectors": 4,
+            "source_indices": [
+              443,
+              840,
+              938,
+              941
+            ]
+          },
+          {
+            "candidate_count": 5,
+            "n": 3,
+            "correct": 2,
+            "gold_distribution": {
+              "0": 1,
+              "1": 1,
+              "3": 1
+            },
+            "prediction_distribution": {
+              "0": 1,
+              "4": 1,
+              "3": 1
+            },
+            "unique_selected_logit_vectors": 3,
+            "source_indices": [
+              131,
+              730,
+              887
+            ]
+          }
+        ]
+      },
+      {
+        "model": "2b",
+        "slices": [
+          {
+            "candidate_count": 3,
+            "n": 4,
+            "correct": 4,
+            "gold_distribution": {
+              "0": 2,
+              "1": 1,
+              "2": 1
+            },
+            "prediction_distribution": {
+              "0": 2,
+              "1": 1,
+              "2": 1
+            },
+            "unique_selected_logit_vectors": 4,
+            "source_indices": [
+              443,
+              840,
+              938,
+              941
+            ]
+          },
+          {
+            "candidate_count": 5,
+            "n": 3,
+            "correct": 3,
+            "gold_distribution": {
+              "0": 1,
+              "1": 1,
+              "3": 1
+            },
+            "prediction_distribution": {
+              "0": 1,
+              "1": 1,
+              "3": 1
+            },
+            "unique_selected_logit_vectors": 3,
+            "source_indices": [
+              131,
+              730,
+              887
+            ]
+          }
+        ]
+      },
+      {
+        "model": "4b",
+        "slices": [
+          {
+            "candidate_count": 3,
+            "n": 4,
+            "correct": 4,
+            "gold_distribution": {
+              "0": 2,
+              "1": 1,
+              "2": 1
+            },
+            "prediction_distribution": {
+              "0": 2,
+              "1": 1,
+              "2": 1
+            },
+            "unique_selected_logit_vectors": 4,
+            "source_indices": [
+              443,
+              840,
+              938,
+              941
+            ]
+          },
+          {
+            "candidate_count": 5,
+            "n": 3,
+            "correct": 3,
+            "gold_distribution": {
+              "0": 1,
+              "1": 1,
+              "3": 1
+            },
+            "prediction_distribution": {
+              "0": 1,
+              "1": 1,
+              "3": 1
+            },
+            "unique_selected_logit_vectors": 3,
+            "source_indices": [
+              131,
+              730,
+              887
+            ]
+          }
+        ]
+      },
+      {
+        "model": "9b",
+        "slices": [
+          {
+            "candidate_count": 3,
+            "n": 4,
+            "correct": 4,
+            "gold_distribution": {
+              "0": 2,
+              "1": 1,
+              "2": 1
+            },
+            "prediction_distribution": {
+              "0": 2,
+              "1": 1,
+              "2": 1
+            },
+            "unique_selected_logit_vectors": 4,
+            "source_indices": [
+              443,
+              840,
+              938,
+              941
+            ]
+          },
+          {
+            "candidate_count": 5,
+            "n": 3,
+            "correct": 3,
+            "gold_distribution": {
+              "0": 1,
+              "1": 1,
+              "3": 1
+            },
+            "prediction_distribution": {
+              "0": 1,
+              "1": 1,
+              "3": 1
+            },
+            "unique_selected_logit_vectors": 3,
+            "source_indices": [
+              131,
+              730,
+              887
+            ]
+          }
+        ]
+      }
+    ],
+    "skills": {
+      "qid_total": 121,
+      "flagged_qids": {
+        "request_domain_record_0": {
+          "n": 9,
+          "correct": 8,
+          "gold_distribution": {
+            "0": 9
+          },
+          "prediction_distribution": {
+            "0": 8,
+            "2": 1
+          },
+          "unique_selected_logit_vectors": 9
+        },
+        "has_third_party_beneficiary": {
+          "n": 22,
+          "correct": 22,
+          "gold_distribution": {
+            "1": 20,
+            "0": 2
+          },
+          "prediction_distribution": {
+            "1": 20,
+            "0": 2
+          },
+          "unique_selected_logit_vectors": 21
+        },
+        "has_covenant_not_to_sue": {
+          "n": 25,
+          "correct": 17,
+          "gold_distribution": {
+            "0": 8,
+            "1": 17
+          },
+          "prediction_distribution": {
+            "1": 25
+          },
+          "unique_selected_logit_vectors": 24
+        },
+        "has_non_transferable_license": {
+          "n": 27,
+          "correct": 13,
+          "gold_distribution": {
+            "1": 13,
+            "0": 14
+          },
+          "prediction_distribution": {
+            "0": 2,
+            "1": 25
+          },
+          "unique_selected_logit_vectors": 27
+        },
+        "has_non_compete": {
+          "n": 26,
+          "correct": 20,
+          "gold_distribution": {
+            "0": 11,
+            "1": 15
+          },
+          "prediction_distribution": {
+            "0": 5,
+            "1": 21
+          },
+          "unique_selected_logit_vectors": 25
+        },
+        "has_revenue_profit_sharing": {
+          "n": 22,
+          "correct": 14,
+          "gold_distribution": {
+            "0": 11,
+            "1": 11
+          },
+          "prediction_distribution": {
+            "0": 3,
+            "1": 19
+          },
+          "unique_selected_logit_vectors": 19
+        },
+        "renewal_term": {
+          "n": 120,
+          "correct": 120,
+          "gold_distribution": {
+            "5": 103,
+            "4": 2,
+            "1": 13,
+            "0": 2
+          },
+          "prediction_distribution": {
+            "5": 103,
+            "4": 2,
+            "1": 13,
+            "0": 2
+          },
+          "unique_selected_logit_vectors": 119
+        },
+        "has_price_restrictions": {
+          "n": 19,
+          "correct": 19,
+          "gold_distribution": {
+            "1": 19
+          },
+          "prediction_distribution": {
+            "1": 19
+          },
+          "unique_selected_logit_vectors": 18
+        },
+        "has_source_code_escrow": {
+          "n": 27,
+          "correct": 26,
+          "gold_distribution": {
+            "1": 26,
+            "0": 1
+          },
+          "prediction_distribution": {
+            "1": 27
+          },
+          "unique_selected_logit_vectors": 26
+        },
+        "has_audit_rights": {
+          "n": 25,
+          "correct": 21,
+          "gold_distribution": {
+            "0": 19,
+            "1": 6
+          },
+          "prediction_distribution": {
+            "0": 15,
+            "1": 10
+          },
+          "unique_selected_logit_vectors": 25
+        },
+        "service_tool": {
+          "n": 121,
+          "correct": 121,
+          "gold_distribution": {
+            "3": 19,
+            "5": 17,
+            "0": 21,
+            "2": 21,
+            "1": 19,
+            "4": 24
+          },
+          "prediction_distribution": {
+            "3": 19,
+            "5": 17,
+            "0": 21,
+            "2": 21,
+            "1": 19,
+            "4": 24
+          },
+          "unique_selected_logit_vectors": 121
+        },
+        "request_domain_record_3": {
+          "n": 7,
+          "correct": 4,
+          "gold_distribution": {
+            "0": 7
+          },
+          "prediction_distribution": {
+            "3": 2,
+            "2": 1,
+            "0": 4
+          },
+          "unique_selected_logit_vectors": 7
+        },
+        "governing_law": {
+          "n": 69,
+          "correct": 69,
+          "gold_distribution": {
+            "1": 10,
+            "3": 8,
+            "2": 8,
+            "5": 14,
+            "0": 16,
+            "4": 13
+          },
+          "prediction_distribution": {
+            "1": 10,
+            "3": 8,
+            "2": 8,
+            "5": 14,
+            "0": 16,
+            "4": 13
+          },
+          "unique_selected_logit_vectors": 69
+        },
+        "has_irrevocable_or_perpetual_license": {
+          "n": 27,
+          "correct": 24,
+          "gold_distribution": {
+            "0": 6,
+            "1": 21
+          },
+          "prediction_distribution": {
+            "1": 24,
+            "0": 3
+          },
+          "unique_selected_logit_vectors": 26
+        },
+        "has_no_solicit_of_customers": {
+          "n": 16,
+          "correct": 14,
+          "gold_distribution": {
+            "1": 12,
+            "0": 4
+          },
+          "prediction_distribution": {
+            "1": 14,
+            "0": 2
+          },
+          "unique_selected_logit_vectors": 15
+        },
+        "has_competitive_restriction_exception": {
+          "n": 17,
+          "correct": 13,
+          "gold_distribution": {
+            "1": 13,
+            "0": 4
+          },
+          "prediction_distribution": {
+            "1": 17
+          },
+          "unique_selected_logit_vectors": 17
+        },
+        "support_intent_record_0": {
+          "n": 9,
+          "correct": 8,
+          "gold_distribution": {
+            "0": 9
+          },
+          "prediction_distribution": {
+            "0": 8,
+            "1": 1
+          },
+          "unique_selected_logit_vectors": 9
+        },
+        "request_intent_record_4": {
+          "n": 14,
+          "correct": 11,
+          "gold_distribution": {
+            "2": 2,
+            "4": 1,
+            "1": 5,
+            "0": 3,
+            "5": 1,
+            "3": 1,
+            "6": 1
+          },
+          "prediction_distribution": {
+            "2": 2,
+            "8": 1,
+            "1": 5,
+            "0": 3,
+            "3": 2,
+            "6": 1
+          },
+          "unique_selected_logit_vectors": 14
+        },
+        "has_affiliate_license_licensee": {
+          "n": 29,
+          "correct": 24,
+          "gold_distribution": {
+            "0": 6,
+            "1": 23
+          },
+          "prediction_distribution": {
+            "1": 28,
+            "0": 1
+          },
+          "unique_selected_logit_vectors": 27
+        },
+        "first_link": {
+          "n": 42,
+          "correct": 42,
+          "gold_distribution": {
+            "1": 8,
+            "3": 14,
+            "0": 10,
+            "2": 10
+          },
+          "prediction_distribution": {
+            "1": 8,
+            "3": 14,
+            "0": 10,
+            "2": 10
+          },
+          "unique_selected_logit_vectors": 42
+        },
+        "support_intent_record_1": {
+          "n": 3,
+          "correct": 1,
+          "gold_distribution": {
+            "0": 3
+          },
+          "prediction_distribution": {
+            "1": 2,
+            "0": 1
+          },
+          "unique_selected_logit_vectors": 3
+        },
+        "has_non_disparagement": {
+          "n": 24,
+          "correct": 18,
+          "gold_distribution": {
+            "1": 17,
+            "0": 7
+          },
+          "prediction_distribution": {
+            "1": 23,
+            "0": 1
+          },
+          "unique_selected_logit_vectors": 24
+        },
+        "has_ip_ownership_assignment": {
+          "n": 23,
+          "correct": 18,
+          "gold_distribution": {
+            "0": 9,
+            "1": 14
+          },
+          "prediction_distribution": {
+            "1": 19,
+            "0": 4
+          },
+          "unique_selected_logit_vectors": 23
+        },
+        "change_size": {
+          "n": 15,
+          "correct": 7,
+          "gold_distribution": {
+            "1": 5,
+            "4": 7,
+            "0": 1,
+            "3": 2
+          },
+          "prediction_distribution": {
+            "1": 5,
+            "2": 2,
+            "4": 6,
+            "3": 2
+          },
+          "unique_selected_logit_vectors": 15
+        },
+        "support_intent_record_2": {
+          "n": 4,
+          "correct": 4,
+          "gold_distribution": {
+            "0": 4
+          },
+          "prediction_distribution": {
+            "0": 4
+          },
+          "unique_selected_logit_vectors": 4
+        },
+        "has_affiliate_license_licensor": {
+          "n": 30,
+          "correct": 30,
+          "gold_distribution": {
+            "1": 30
+          },
+          "prediction_distribution": {
+            "1": 30
+          },
+          "unique_selected_logit_vectors": 30
+        },
+        "has_no_solicit_of_employees": {
+          "n": 27,
+          "correct": 27,
+          "gold_distribution": {
+            "1": 20,
+            "0": 7
+          },
+          "prediction_distribution": {
+            "1": 20,
+            "0": 7
+          },
+          "unique_selected_logit_vectors": 27
+        },
+        "request_intent_record_1": {
+          "n": 29,
+          "correct": 22,
+          "gold_distribution": {
+            "5": 3,
+            "8": 1,
+            "1": 6,
+            "3": 5,
+            "0": 10,
+            "2": 4
+          },
+          "prediction_distribution": {
+            "5": 4,
+            "2": 6,
+            "9": 1,
+            "3": 8,
+            "0": 8,
+            "1": 2
+          },
+          "unique_selected_logit_vectors": 29
+        },
+        "request_intent_record_3": {
+          "n": 27,
+          "correct": 23,
+          "gold_distribution": {
+            "2": 9,
+            "1": 6,
+            "0": 3,
+            "3": 2,
+            "4": 2,
+            "6": 2,
+            "7": 1,
+            "8": 1,
+            "5": 1
+          },
+          "prediction_distribution": {
+            "2": 9,
+            "3": 3,
+            "0": 4,
+            "4": 3,
+            "6": 2,
+            "1": 4,
+            "7": 1,
+            "5": 1
+          },
+          "unique_selected_logit_vectors": 27
+        },
+        "has_notice_period_to_terminate_renewal": {
+          "n": 28,
+          "correct": 20,
+          "gold_distribution": {
+            "1": 15,
+            "0": 13
+          },
+          "prediction_distribution": {
+            "1": 23,
+            "0": 5
+          },
+          "unique_selected_logit_vectors": 24
+        },
+        "request_domain_record_1": {
+          "n": 7,
+          "correct": 5,
+          "gold_distribution": {
+            "0": 7
+          },
+          "prediction_distribution": {
+            "0": 5,
+            "2": 1,
+            "1": 1
+          },
+          "unique_selected_logit_vectors": 7
+        },
+        "ride_class_argument": {
+          "n": 20,
+          "correct": 18,
+          "gold_distribution": {
+            "2": 10,
+            "3": 1,
+            "1": 9
+          },
+          "prediction_distribution": {
+            "2": 12,
+            "3": 1,
+            "1": 7
+          },
+          "unique_selected_logit_vectors": 20
+        },
+        "has_change_of_control": {
+          "n": 29,
+          "correct": 20,
+          "gold_distribution": {
+            "0": 23,
+            "1": 6
+          },
+          "prediction_distribution": {
+            "0": 16,
+            "1": 13
+          },
+          "unique_selected_logit_vectors": 28
+        },
+        "request_domain_record_5": {
+          "n": 1,
+          "correct": 1,
+          "gold_distribution": {
+            "0": 1
+          },
+          "prediction_distribution": {
+            "0": 1
+          },
+          "unique_selected_logit_vectors": 1
+        },
+        "request_domain_record_2": {
+          "n": 5,
+          "correct": 2,
+          "gold_distribution": {
+            "0": 5
+          },
+          "prediction_distribution": {
+            "0": 2,
+            "2": 1,
+            "1": 1,
+            "3": 1
+          },
+          "unique_selected_logit_vectors": 5
+        },
+        "q5_answer": {
+          "n": 12,
+          "correct": 9,
+          "gold_distribution": {
+            "2": 3,
+            "3": 4,
+            "1": 3,
+            "4": 2
+          },
+          "prediction_distribution": {
+            "2": 4,
+            "3": 3,
+            "1": 4,
+            "4": 1
+          },
+          "unique_selected_logit_vectors": 12
+        },
+        "q4_value": {
+          "n": 3,
+          "correct": 2,
+          "gold_distribution": {
+            "4": 2,
+            "0": 1
+          },
+          "prediction_distribution": {
+            "0": 2,
+            "4": 1
+          },
+          "unique_selected_logit_vectors": 3
+        },
+        "q6_value": {
+          "n": 3,
+          "correct": 2,
+          "gold_distribution": {
+            "3": 2,
+            "0": 1
+          },
+          "prediction_distribution": {
+            "3": 2,
+            "4": 1
+          },
+          "unique_selected_logit_vectors": 3
+        },
+        "q5_above_threshold": {
+          "n": 3,
+          "correct": 2,
+          "gold_distribution": {
+            "1": 3
+          },
+          "prediction_distribution": {
+            "0": 1,
+            "1": 2
+          },
+          "unique_selected_logit_vectors": 3
+        },
+        "has_uncapped_liability": {
+          "n": 28,
+          "correct": 15,
+          "gold_distribution": {
+            "1": 15,
+            "0": 13
+          },
+          "prediction_distribution": {
+            "1": 28
+          },
+          "unique_selected_logit_vectors": 28
+        },
+        "support_intent_record_3": {
+          "n": 5,
+          "correct": 4,
+          "gold_distribution": {
+            "0": 5
+          },
+          "prediction_distribution": {
+            "0": 4,
+            "1": 1
+          },
+          "unique_selected_logit_vectors": 5
+        },
+        "q2_answer": {
+          "n": 8,
+          "correct": 8,
+          "gold_distribution": {
+            "0": 1,
+            "2": 4,
+            "1": 2,
+            "4": 1
+          },
+          "prediction_distribution": {
+            "0": 1,
+            "2": 4,
+            "1": 2,
+            "4": 1
+          },
+          "unique_selected_logit_vectors": 8
+        },
+        "request_intent_record_5": {
+          "n": 8,
+          "correct": 7,
+          "gold_distribution": {
+            "8": 2,
+            "1": 2,
+            "2": 2,
+            "0": 2
+          },
+          "prediction_distribution": {
+            "8": 2,
+            "1": 2,
+            "2": 1,
+            "6": 1,
+            "0": 2
+          },
+          "unique_selected_logit_vectors": 8
+        },
+        "has_most_favored_nation": {
+          "n": 19,
+          "correct": 16,
+          "gold_distribution": {
+            "1": 16,
+            "0": 3
+          },
+          "prediction_distribution": {
+            "1": 19
+          },
+          "unique_selected_logit_vectors": 19
+        },
+        "q3_answer": {
+          "n": 9,
+          "correct": 9,
+          "gold_distribution": {
+            "2": 5,
+            "1": 1,
+            "4": 2,
+            "3": 1
+          },
+          "prediction_distribution": {
+            "2": 5,
+            "1": 1,
+            "4": 2,
+            "3": 1
+          },
+          "unique_selected_logit_vectors": 9
+        },
+        "q4_answer": {
+          "n": 5,
+          "correct": 3,
+          "gold_distribution": {
+            "0": 1,
+            "1": 2,
+            "4": 1,
+            "3": 1
+          },
+          "prediction_distribution": {
+            "0": 1,
+            "1": 3,
+            "2": 1
+          },
+          "unique_selected_logit_vectors": 5
+        },
+        "comparison_holds": {
+          "n": 2,
+          "correct": 2,
+          "gold_distribution": {
+            "1": 2
+          },
+          "prediction_distribution": {
+            "1": 2
+          },
+          "unique_selected_logit_vectors": 2
+        },
+        "request_intent_record_6": {
+          "n": 3,
+          "correct": 3,
+          "gold_distribution": {
+            "2": 1,
+            "3": 1,
+            "1": 1
+          },
+          "prediction_distribution": {
+            "2": 1,
+            "3": 1,
+            "1": 1
+          },
+          "unique_selected_logit_vectors": 3
+        },
+        "support_intent_record_4": {
+          "n": 4,
+          "correct": 2,
+          "gold_distribution": {
+            "0": 4
+          },
+          "prediction_distribution": {
+            "0": 2,
+            "1": 1,
+            "2": 1
+          },
+          "unique_selected_logit_vectors": 4
+        },
+        "request_domain_record_6": {
+          "n": 2,
+          "correct": 2,
+          "gold_distribution": {
+            "0": 2
+          },
+          "prediction_distribution": {
+            "0": 2
+          },
+          "unique_selected_logit_vectors": 2
+        },
+        "request_domain_record_4": {
+          "n": 3,
+          "correct": 1,
+          "gold_distribution": {
+            "0": 3
+          },
+          "prediction_distribution": {
+            "0": 1,
+            "1": 1,
+            "2": 1
+          },
+          "unique_selected_logit_vectors": 3
+        },
+        "q1_value": {
+          "n": 3,
+          "correct": 2,
+          "gold_distribution": {
+            "4": 1,
+            "3": 2
+          },
+          "prediction_distribution": {
+            "4": 1,
+            "0": 1,
+            "3": 1
+          },
+          "unique_selected_logit_vectors": 3
+        },
+        "q2_above_threshold": {
+          "n": 1,
+          "correct": 0,
+          "gold_distribution": {
+            "0": 1
+          },
+          "prediction_distribution": {
+            "1": 1
+          },
+          "unique_selected_logit_vectors": 1
+        },
+        "q3_value": {
+          "n": 1,
+          "correct": 1,
+          "gold_distribution": {
+            "0": 1
+          },
+          "prediction_distribution": {
+            "0": 1
+          },
+          "unique_selected_logit_vectors": 1
+        },
+        "q4_above_threshold": {
+          "n": 1,
+          "correct": 0,
+          "gold_distribution": {
+            "1": 1
+          },
+          "prediction_distribution": {
+            "0": 1
+          },
+          "unique_selected_logit_vectors": 1
+        },
+        "q1_answer": {
+          "n": 2,
+          "correct": 2,
+          "gold_distribution": {
+            "2": 2
+          },
+          "prediction_distribution": {
+            "2": 2
+          },
+          "unique_selected_logit_vectors": 2
+        },
+        "q6_answer": {
+          "n": 5,
+          "correct": 2,
+          "gold_distribution": {
+            "3": 2,
+            "2": 2,
+            "0": 1
+          },
+          "prediction_distribution": {
+            "1": 1,
+            "2": 3,
+            "3": 1
+          },
+          "unique_selected_logit_vectors": 5
+        },
+        "q6_above_threshold": {
+          "n": 3,
+          "correct": 1,
+          "gold_distribution": {
+            "1": 1,
+            "0": 2
+          },
+          "prediction_distribution": {
+            "1": 3
+          },
+          "unique_selected_logit_vectors": 3
+        },
+        "q5_value": {
+          "n": 2,
+          "correct": 2,
+          "gold_distribution": {
+            "2": 1,
+            "1": 1
+          },
+          "prediction_distribution": {
+            "2": 1,
+            "1": 1
+          },
+          "unique_selected_logit_vectors": 2
+        },
+        "support_intent_record_5": {
+          "n": 2,
+          "correct": 1,
+          "gold_distribution": {
+            "0": 2
+          },
+          "prediction_distribution": {
+            "0": 1,
+            "2": 1
+          },
+          "unique_selected_logit_vectors": 2
+        },
+        "q6_change_size": {
+          "n": 1,
+          "correct": 0,
+          "gold_distribution": {
+            "0": 1
+          },
+          "prediction_distribution": {
+            "2": 1
+          },
+          "unique_selected_logit_vectors": 1
+        },
+        "support_intent_record_6": {
+          "n": 1,
+          "correct": 1,
+          "gold_distribution": {
+            "0": 1
+          },
+          "prediction_distribution": {
+            "0": 1
+          },
+          "unique_selected_logit_vectors": 1
+        }
+      },
+      "small_n_qids": 57,
+      "extreme_qids": 22,
+      "interpretation": "Per-qid extremes reproduce actual saved predictions. Constant-label or tiny qid populations are descriptive only and cannot establish discrimination/generalization; all population source mappings and row arithmetic independently validated."
+    },
+    "utc_seconds": 1793800611.7865686
+  },
+  "limits": [
+    "ARC is derived released TEST, original hidden TEST lineage and endpoint equivalence not established",
+    "ARC position strata are not semantic classes; 3/5-candidate strata n4/n3 are descriptive",
+    "BEV skills 1280 soft-target rows scored with hard labels; probability quality not evaluated",
+    "Saved selected-label reconstruction, not independent new forward or full-vocabulary replay",
+    "No named Astra review, significance or training gain claimed"
+  ]
+}
