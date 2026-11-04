@@ -494,3 +494,28 @@ Physical row 396 (`mmlu/test/4021`) has identical A/D descriptions and published
 There are zero full-request overlaps with release train/validation and zero internal duplicate full requests, but one TEST state matches validation with a different question. Upstream split lineage and pretraining disjointness remain unestablished. The earlier synthetic behavioral failures are preserved. No training gain or paired significance claim.
 
 The recent four-size subset now has **80 accepted cells across 20 panels/protocols**; this remains a partial matrix. [Exact results and diagnostics](REFERENCE-MMLU-INCREMENT-2026-11-04.json).
+
+## ChaosNLI / Civil Comments hard and soft TEST — accepted, 2026-11-04
+
+All 14,396 saved readouts were independently reconstructed; parent rehashed 29,536 evidence files without mismatch. Metrics are NGA prospectively specified formulas, not original publisher endpoint/scorer equivalence.
+
+| Panel / metric | 0.8B Base | 2B Base | 4B Base | 9B Base |
+| --- | ---: | ---: | ---: | ---: |
+| chaosnli Accuracy | 46.278924% | 55.597248% | 50.343965% | 59.787367% |
+| chaosnli TVD human | 0.374126194 | 0.303080188 | 0.343244182 | 0.289369624 |
+| chaosnli Soft Brier vector | 0.331774344 | 0.206601265 | 0.278169589 | 0.192805710 |
+| chaosnli Soft CE nats | 1.292310694 | 1.098808273 | 1.272348657 | 1.123949422 |
+| chaosnli ECE15 | 0.266674887 | 0.089062904 | 0.261470631 | 0.095945442 |
+| civil_comments Accuracy | 92.300000% | 87.300000% | 76.950000% | 82.750000% |
+| civil_comments TVD human | 0.279914412 | 0.295926175 | 0.248135100 | 0.192701535 |
+| civil_comments Soft Brier vector | 0.176807675 | 0.204694789 | 0.205619339 | 0.142711265 |
+| civil_comments Soft CE nats | 0.464435554 | 0.490515605 | 0.464949310 | 0.385201015 |
+| civil_comments ECE15 | 0.251565683 | 0.224792749 | 0.027242978 | 0.032746543 |
+
+ChaosNLI n=1599/model; Civil Comments n=2000/model. ChaosNLI 0.8B predicts entailment 1597/1599; neutral/contradiction recalls are zero. Civil 0.8B predicts non-toxic for all 2000, so 92.3% equals the majority constant and toxic recall is 0/154. Toxic recalls for 2B/4B/9B are 33/154, 100/154, 70/154. High total accuracy is not toxic-detection success.
+
+TEST mean-human distributions are descriptive oracle baselines. ChaosNLI TVD baseline=0.316499958; only 2B/9B beat it. Civil TVD baseline=0.140898570; all models are worse. Civil scalar Brier is half the vector value; do not mix the two conventions.
+
+Civil has 3 exact TEST requests overlapping release train, none with validation. ChaosNLI train/validation are not published; overlap is unassessed, not zero. No internal duplicate full requests. Upstream lineage/pretraining disjointness unestablished. No training gain, original ChaosNLI JS, Civil AUROC, AURC, consistency or unknown-handling claim.
+
+Recent four-size coverage is **88 accepted cells across 22 panels/protocols**, still not global NxM. [Exact metrics, bins and diagnostics](REFERENCE-SOFTLABEL-INCREMENT-2026-11-04.json).
