@@ -377,3 +377,14 @@ Independent full saved-result reconstruction and8,142-file hash verification acc
 | BoolQ2B | 796/1000 =79.6% | 504/628 =80.254777% | 292/372 =78.494624% |
 
 PAWS four sizes are complete;4B/9B differ by one correct answer, which does not establish statistical equivalence. BoolQ0.8B exceeds descriptive always-Yes62.8% by4.8 percentage points but has weak No recall;2B improves total and No recall while reducing Yes recall. Constants are descriptive TEST-population comparators. No training improvement, paired consistency, original hidden BoolQ TEST result or named Astra acceptance is claimed.
+
+## BoolQ four-size completion — 2026-11-04
+
+The final two1,000-row released TEST cells passed full independent saved-result reconstruction;4,076 evidence hashes were rechecked. [Exact results](REFERENCE-BOOLQ-COMPLETION-2026-11-04.json).
+
+| Model | Accuracy | Yes recall (n628) | No recall (n372) |
+| --- | ---: | ---: | ---: |
+| Qwen3.5-4B-Base | 827/1000 =82.7% | 470/628 =74.840764% | 357/372 =95.967742% |
+| Qwen3.5-9B-Base | 862/1000 =86.2% | 503/628 =80.095541% | 359/372 =96.505376% |
+
+All four sizes now have accepted BoolQ local full-label results.9B improves both class recalls versus4B in this fixed comparison; statistical significance and training treatment effects are not established. Released-subset provenance, original hidden-TEST and Jevify endpoint limitations remain unchanged.
