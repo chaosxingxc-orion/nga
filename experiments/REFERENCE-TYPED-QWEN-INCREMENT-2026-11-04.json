@@ -1,0 +1,174 @@
+{
+  "schema": "reference-typed-qwen-increment-v1",
+  "date_utc": "2026-11-04",
+  "dataset": "LocalLLaMA/typed-decisions",
+  "configuration": "all",
+  "split": "test",
+  "source_rows": 400,
+  "questions": 2000,
+  "protocol": "typed-qwen-single-question-full-label-v2",
+  "metrics_equivalent_to_publisher_formulas": true,
+  "inference_equivalent_to_published_endpoint": false,
+  "training_benefit_claimed": false,
+  "named_astra_review": false,
+  "models": [
+    {
+      "model": "Qwen3.5-0.8B-Base",
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/typed_qwen_execution_08b_successor_20261104_v3/PLAN.json",
+        "sha256": "70401d60e7550f0cac3ec9ea805ef4a994be7a8f70b159a4407c92bf55eb8085"
+      },
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/typed_qwen_execution_08b_successor_20261104_v3/output/cpu/1/summary.json",
+        "sha256": "975f200a821cf62aa4aae2824662a41412b4e22ebf1b14c76218856e78254313"
+      },
+      "metrics": {
+        "n": 2000,
+        "accuracy": 0.384,
+        "kl_from_gold": 0.6390494390178592,
+        "brier": 0.31915881885785086,
+        "ece10": 0.208538028017137
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": 0.3416666666666667,
+          "brier": 0.3356224450107587,
+          "ece10": 0.1915602567601851,
+          "kl_from_gold": 0.7617610058349018,
+          "n": 600
+        },
+        "noul": {
+          "accuracy": 0.485,
+          "brier": 0.20334441985214133,
+          "ece10": 0.0605665372088393,
+          "kl_from_gold": 0.24335188989841,
+          "n": 600
+        },
+        "score": {
+          "accuracy": 0.34,
+          "brier": 0.39367189849745216,
+          "ece10": 0.3322499745660742,
+          "kl_from_gold": 0.8437889257446642,
+          "n": 800
+        }
+      },
+      "by_workflow": {
+        "agent_trace_observability": {
+          "accuracy": 0.264,
+          "brier": 0.350124732028669,
+          "ece10": 0.3351071678354433,
+          "kl_from_gold": 0.6947362035482589,
+          "n": 500
+        },
+        "customer_service": {
+          "accuracy": 0.472,
+          "brier": 0.29733750807929216,
+          "ece10": 0.11955928893402452,
+          "kl_from_gold": 0.5978219753818086,
+          "n": 500
+        },
+        "invoice_processing": {
+          "accuracy": 0.364,
+          "brier": 0.4428246985341434,
+          "ece10": 0.2779725568038085,
+          "kl_from_gold": 0.8460222481716154,
+          "n": 500
+        },
+        "security_incidents": {
+          "accuracy": 0.436,
+          "brier": 0.1863483367892989,
+          "ece10": 0.13776922604724728,
+          "kl_from_gold": 0.41761732896975406,
+          "n": 500
+        }
+      },
+      "independent_result": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_completed_panels_full_results_20261104_v1/typed-08b-RESULT.json",
+        "sha256": "bec712877e650b888f2f6b4d73e144d18e837d79fdda60a29c17d1ba431b29bf"
+      }
+    },
+    {
+      "model": "Qwen3.5-2B-Base",
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/typed_qwen_execution_2b_successor_20261104_v3/PLAN.json",
+        "sha256": "8511984dcf2c2becdb934770285b45c63db88c3d4151cbaa31700a2b661cfb87"
+      },
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/typed_qwen_execution_2b_successor_20261104_v3/output/cpu/1/summary.json",
+        "sha256": "ec9b5ccd45a02b137474353e247220775d06e70c5b330f7cc05f947e126bce7a"
+      },
+      "metrics": {
+        "n": 2000,
+        "accuracy": 0.46,
+        "kl_from_gold": 0.4892232541670533,
+        "brier": 0.2476558810096903,
+        "ece10": 0.12397192321132716
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": 0.5233333333333333,
+          "brier": 0.2250339601976745,
+          "ece10": 0.08287468688962098,
+          "kl_from_gold": 0.5226826914707325,
+          "n": 600
+        },
+        "noul": {
+          "accuracy": 0.5766666666666667,
+          "brier": 0.2001557869763769,
+          "ece10": 0.08587945113121308,
+          "kl_from_gold": 0.24042809415561892,
+          "n": 600
+        },
+        "score": {
+          "accuracy": 0.325,
+          "brier": 0.3002473921436872,
+          "ece10": 0.25463657013775015,
+          "kl_from_gold": 0.6507250461978696,
+          "n": 800
+        }
+      },
+      "by_workflow": {
+        "agent_trace_observability": {
+          "accuracy": 0.336,
+          "brier": 0.2565818310249601,
+          "ece10": 0.2151625878710424,
+          "kl_from_gold": 0.5399986107570207,
+          "n": 500
+        },
+        "customer_service": {
+          "accuracy": 0.528,
+          "brier": 0.22335065359646916,
+          "ece10": 0.1250263976086213,
+          "kl_from_gold": 0.4406131975390945,
+          "n": 500
+        },
+        "invoice_processing": {
+          "accuracy": 0.502,
+          "brier": 0.35321451634507034,
+          "ece10": 0.19997938886208252,
+          "kl_from_gold": 0.6280390987942825,
+          "n": 500
+        },
+        "security_incidents": {
+          "accuracy": 0.474,
+          "brier": 0.15747652307226154,
+          "ece10": 0.12684125516608752,
+          "kl_from_gold": 0.3482421095778155,
+          "n": 500
+        }
+      },
+      "independent_result": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_completed_panels_full_results_20261104_v1/typed-2b-RESULT.json",
+        "sha256": "79bd1792eb1b15580dc104815217bd5dfcc28cd0ee4da75f35f73c0481bc276d"
+      }
+    }
+  ],
+  "independent_acceptance": {
+    "path": ".local/reviews/completed-panels-full-results-20261104-v1/TYPED-ACCEPTANCE.json",
+    "sha256": "86a7daf1f603275d70edcba438cb83a359e8a76d13a1033427634b8d252274eb"
+  },
+  "root_check": {
+    "path": ".local/reviews/completed-panels-full-results-20261104-v1/TYPED-ROOT-CHECK.json",
+    "sha256": "c0c81f5be0b3dfd99498f5882192b3c3b2c576911aba03597cee8e0296162832"
+  }
+}

@@ -283,3 +283,14 @@ Two fixed Qwen3.5 Base models completed the same public `skills/test` population
 | Qwen3.5-2B-Base | 6224 / 10316 | 60.333463% | Independently reconstructed |
 
 The population includes 1,280 questions with soft target distributions; the registered scorer uses their accompanying hard labels. Soft-target probability metrics remain unevaluated. Score-type accuracy is discrete ordinal-label accuracy, not a regression metric. Compact records retain selected label logits, not full-vocabulary tensors. Named Astra adversarial review is pending; no training-benefit or candidate-TEST acceptance is implied. Prior results and the historical 36/38 reference matrix are unchanged.
+
+## Typed Decisions Qwen TEST increment — single-question v2, 2026-11-04
+
+Two fixed Qwen3.5 Base models completed the same 400 states / 2,000 public TEST decisions. Every saved selected-logit record and source/gold/receipt identity was independently reconstructed; the parent verified 8,075 unique evidence pins. [Exact metrics and source artifacts](REFERENCE-TYPED-QWEN-INCREMENT-2026-11-04.json).
+
+| Model | Correct / decisions | Accuracy | KL(q‖p) | Brier | ECE10 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Qwen3.5-0.8B-Base | 768/2000 | 38.4% | 0.639049439 | 0.319158819 | 0.208538028 |
+| Qwen3.5-2B-Base | 920/2000 | 46.0% | 0.489223254 | 0.247655881 | 0.123971923 |
+
+Accuracy, KL, Brier and ECE10 reproduce publisher formulas, including original gold mass and native predicted normalization and ECE accumulation order. Inference uses one full-label forward per question; it is **not** the publisher five-question endpoint. Formula agreement does not establish inference-protocol equivalence. Overall 2B improves all four descriptive metrics over 0.8B, but ordinal hard accuracy declines from 34.0% to 32.5%; scale effects are not uniform across types. These are fixed-base results, not training gains. No named Astra acceptance or candidate-TEST authority is claimed.
