@@ -1,0 +1,297 @@
+{
+  "schema": "reference-fever-supplied-evidence-results-v1",
+  "date": "2026-11-04",
+  "status": "parent_accepted",
+  "scope": "Qwen3.5 Base fixed-checkpoint inference on Jev-bench supplied-evidence binary FEVER released TEST",
+  "population": {
+    "rows_per_model": 1000,
+    "support": 502,
+    "refute": 498,
+    "not_enough_info_included": false
+  },
+  "models": [
+    {
+      "model": "08b",
+      "verdict": "PASS_FULL_RESULT_RECONSTRUCTION",
+      "n": 1000,
+      "valid": 1000,
+      "invalid": 0,
+      "correct": 528,
+      "accuracy": 0.528,
+      "class_order": [
+        "support",
+        "refute"
+      ],
+      "confusion_gold_rows_predicted_columns": [
+        [
+          500,
+          2
+        ],
+        [
+          470,
+          28
+        ]
+      ],
+      "by_class": {
+        "support": {
+          "n": 502,
+          "correct": 500,
+          "recall": 0.9960159362549801
+        },
+        "refute": {
+          "n": 498,
+          "correct": 28,
+          "recall": 0.05622489959839357
+        }
+      },
+      "prediction_counts": [
+        970,
+        30
+      ],
+      "descriptive_constant_accuracy": {
+        "support": 0.502,
+        "refute": 0.498
+      },
+      "within_release_overlap": {
+        "train": {
+          "state_matches": 0,
+          "request_matches": 0
+        },
+        "validation": {
+          "state_matches": 0,
+          "request_matches": 0
+        }
+      },
+      "suspicious_success_flags": [],
+      "plan_sha256": "175f037ce002d101698ea6b21771d28c12db3b63face78b7e93c20c90d483113",
+      "summary_sha256": "9149a86b49bad54eddaf828207f32ae933ba4508af0843549c5057bdef7307fb",
+      "container": "983bdd995225361e127244fbef38ef5452d3e8650258959975919be61d054b42",
+      "chips": 1,
+      "reserved_gib": 3.109375,
+      "actual_new_forwards": 1000,
+      "source_rows": 1000,
+      "training_gain": false,
+      "official_fever_score": false,
+      "named_astra_review": false
+    },
+    {
+      "model": "2b",
+      "verdict": "PASS_FULL_RESULT_RECONSTRUCTION",
+      "n": 1000,
+      "valid": 1000,
+      "invalid": 0,
+      "correct": 859,
+      "accuracy": 0.859,
+      "class_order": [
+        "support",
+        "refute"
+      ],
+      "confusion_gold_rows_predicted_columns": [
+        [
+          490,
+          12
+        ],
+        [
+          129,
+          369
+        ]
+      ],
+      "by_class": {
+        "support": {
+          "n": 502,
+          "correct": 490,
+          "recall": 0.9760956175298805
+        },
+        "refute": {
+          "n": 498,
+          "correct": 369,
+          "recall": 0.7409638554216867
+        }
+      },
+      "prediction_counts": [
+        619,
+        381
+      ],
+      "descriptive_constant_accuracy": {
+        "support": 0.502,
+        "refute": 0.498
+      },
+      "within_release_overlap": {
+        "train": {
+          "state_matches": 0,
+          "request_matches": 0
+        },
+        "validation": {
+          "state_matches": 0,
+          "request_matches": 0
+        }
+      },
+      "suspicious_success_flags": [],
+      "plan_sha256": "1b47bf60fe9191a93a6dfa60d05903af9df473268be4debc5a11e67ddf1734ec",
+      "summary_sha256": "e9831ce5d756f21ed6160f1125ad3687893a224a7bce7792a30360a45c60b411",
+      "container": "cb04178cca74e5abca0b320b620f4ccac714dcf61d28a07b443f0a98f040b638",
+      "chips": 1,
+      "reserved_gib": 7.369140625,
+      "actual_new_forwards": 1000,
+      "source_rows": 1000,
+      "training_gain": false,
+      "official_fever_score": false,
+      "named_astra_review": false
+    },
+    {
+      "model": "4b",
+      "verdict": "PASS_FULL_RESULT_RECONSTRUCTION",
+      "n": 1000,
+      "valid": 1000,
+      "invalid": 0,
+      "correct": 932,
+      "accuracy": 0.932,
+      "class_order": [
+        "support",
+        "refute"
+      ],
+      "confusion_gold_rows_predicted_columns": [
+        [
+          456,
+          46
+        ],
+        [
+          22,
+          476
+        ]
+      ],
+      "by_class": {
+        "support": {
+          "n": 502,
+          "correct": 456,
+          "recall": 0.9083665338645418
+        },
+        "refute": {
+          "n": 498,
+          "correct": 476,
+          "recall": 0.9558232931726908
+        }
+      },
+      "prediction_counts": [
+        478,
+        522
+      ],
+      "descriptive_constant_accuracy": {
+        "support": 0.502,
+        "refute": 0.498
+      },
+      "within_release_overlap": {
+        "train": {
+          "state_matches": 0,
+          "request_matches": 0
+        },
+        "validation": {
+          "state_matches": 0,
+          "request_matches": 0
+        }
+      },
+      "suspicious_success_flags": [],
+      "plan_sha256": "e62decb95cea19fe271581b052fe4d08b5b8786ff866c090b964deb63b447f73",
+      "summary_sha256": "d0f078a1c2bf0180fbe7f739d5b07cfddb5f55f6ca9082b8d8c3c37562e70a52",
+      "container": "a80b7d7cf661d0763747ef23a6ae5f3e1581d4e9c98633110a397b8d53e30ec3",
+      "chips": 1,
+      "reserved_gib": 16.27734375,
+      "actual_new_forwards": 1000,
+      "source_rows": 1000,
+      "training_gain": false,
+      "official_fever_score": false,
+      "named_astra_review": false
+    },
+    {
+      "model": "9b",
+      "verdict": "PASS_FULL_RESULT_RECONSTRUCTION",
+      "n": 1000,
+      "valid": 1000,
+      "invalid": 0,
+      "correct": 945,
+      "accuracy": 0.945,
+      "class_order": [
+        "support",
+        "refute"
+      ],
+      "confusion_gold_rows_predicted_columns": [
+        [
+          468,
+          34
+        ],
+        [
+          21,
+          477
+        ]
+      ],
+      "by_class": {
+        "support": {
+          "n": 502,
+          "correct": 468,
+          "recall": 0.9322709163346613
+        },
+        "refute": {
+          "n": 498,
+          "correct": 477,
+          "recall": 0.9578313253012049
+        }
+      },
+      "prediction_counts": [
+        489,
+        511
+      ],
+      "descriptive_constant_accuracy": {
+        "support": 0.502,
+        "refute": 0.498
+      },
+      "within_release_overlap": {
+        "train": {
+          "state_matches": 0,
+          "request_matches": 0
+        },
+        "validation": {
+          "state_matches": 0,
+          "request_matches": 0
+        }
+      },
+      "suspicious_success_flags": [],
+      "plan_sha256": "c0c365aa36b149c6002a3b187afdbfee9bc8b66dde6d0764fdb2e2bd6a73ca33",
+      "summary_sha256": "ce67eaff17ec497a2d67baf51901ad83ed78e654b4203504c9d99085f58e76c9",
+      "container": "fce7b2494adf716b2945386540ffb0546c47d5a98fd3941bc99dc902d92fa1a5",
+      "chips": 1,
+      "reserved_gib": 34.00390625,
+      "actual_new_forwards": 1000,
+      "source_rows": 1000,
+      "training_gain": false,
+      "official_fever_score": false,
+      "named_astra_review": false
+    }
+  ],
+  "primary_metric": "correct / full 1000 rows; first-index argmax over saved two-label logits",
+  "official_fever_score": false,
+  "training_gain": false,
+  "endpoint_equivalence_established": false,
+  "reference_method_note": "Official three-class accuracy, retrieval metrics and FEVER score are different protocols and are not reproduced by this supplied-evidence binary task.",
+  "limitations": [
+    "binary gold-evidence support/refute only; excludes NEI",
+    "not official FEVER retrieval/three-class score",
+    "upstream split lineage/pretraining disjointness unestablished",
+    "fixed-base inference only; no training gain",
+    "full vocabulary not saved; reconstructs all saved candidate logits"
+  ],
+  "verification": {
+    "rows_rebuilt": 4000,
+    "parent_files_rehashed": 8504,
+    "mismatches": 0,
+    "acceptance_sha256": "2078167835a677749c4d6969a06ceaabe29004717e932158a44312af4ac9ee61",
+    "independent_method": "Full source/item/gold/committed-label-logit reconstruction with standard-library log-sum-exp; lifecycle and source bindings checked; no new model forwards"
+  },
+  "coverage": {
+    "recent_accepted_cells": 76,
+    "recent_panels_protocols": 19,
+    "model_sizes": 4,
+    "global_cartesian_complete": false,
+    "historical_registered_result_cells": 36,
+    "historical_registered_cells": 38
+  }
+}

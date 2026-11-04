@@ -461,3 +461,20 @@ Helpfulness 0.8B predicts only levels 3/4 (246/754); the lowest three recalls ar
 Both panels have zero exact TEST request overlap with this release train/validation and zero internal duplicate excess; original upstream split lineage remains unverified. Ordered levels, denominators and formulas are unchanged. Full-vocabulary vectors were not persisted; this review reconstructs saved selected logits, not fresh model forwards.
 
 Exact counts, formulas, diagnostics and evidence: [REFERENCE-YELP-HELPFULNESS-INCREMENT-2026-11-04.json](REFERENCE-YELP-HELPFULNESS-INCREMENT-2026-11-04.json).
+
+## FEVER supplied-evidence binary TEST — accepted fixed-base results, 2026-11-04
+
+All 4,000 rows were independently reconstructed; the parent rechecked 8,504 evidence fingerprints without mismatch. [Exact results and limitations](REFERENCE-FEVER-INCREMENT-2026-11-04.json).
+
+| Metric | 0.8B Base | 2B Base | 4B Base | 9B Base |
+| --- | ---: | ---: | ---: | ---: |
+| Correct / 1000 | 528 | 859 | 932 | 945 |
+| Accuracy | 52.8% | 85.9% | 93.2% | 94.5% |
+| Support correct / 502 | 500 | 490 | 456 | 468 |
+| Refute correct / 498 | 28 | 369 | 476 | 477 |
+
+0.8B predicts support 970/1000 times; its refute recall is only 28/498 = 5.622490%. Source mapping and saved-logit arithmetic were checked, so the low minority-class recall remains an adverse behavioral finding. Descriptive constant-support accuracy is 50.2%; it is not a trained held-out baseline.
+
+This task supplies gold evidence and excludes NOT ENOUGH INFO. It is **not official FEVER score, retrieval evaluation or three-class accuracy**, nor a publisher-native endpoint reproduction. There are no exact release train/validation request overlaps or internal duplicates; upstream lineage and pretraining disjointness are unestablished. No training gain or significance claim is made.
+
+The recent four-size subset now has **76 accepted cells across 19 panels/protocols**. This does not complete the global model×dataset×protocol Cartesian product; historical 36/38 is a separate irregular registry.
