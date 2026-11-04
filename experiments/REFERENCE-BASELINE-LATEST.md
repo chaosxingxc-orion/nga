@@ -478,3 +478,19 @@ All 4,000 rows were independently reconstructed; the parent rechecked 8,504 evid
 This task supplies gold evidence and excludes NOT ENOUGH INFO. It is **not official FEVER score, retrieval evaluation or three-class accuracy**, nor a publisher-native endpoint reproduction. There are no exact release train/validation request overlaps or internal duplicates; upstream lineage and pretraining disjointness are unestablished. No training gain or significance claim is made.
 
 The recent four-size subset now has **76 accepted cells across 19 panels/protocols**. This does not complete the global model×dataset×protocol Cartesian product; historical 36/38 is a separate irregular registry.
+
+## MMLU positioned released TEST — accepted fixed-base results, 2026-11-04
+
+All 4,000 rows independently reconstructed; parent rechecked 8,385 evidence fingerprints without mismatch. This is a 1,000-row released subset under local positional full-label readout, not original full-MMLU or publisher-native endpoint equivalence.
+
+| Metric | 0.8B Base | 2B Base | 4B Base | 9B Base |
+| --- | ---: | ---: | ---: | ---: |
+| Correct / 1000 | 374 | 527 | 707 | 749 |
+| Accuracy | 37.4% | 52.7% | 70.7% | 74.9% |
+| Predictions A/B/C/D | 682/105/80/133 | 512/193/156/139 | 224/287/250/239 | 190/283/284/243 |
+
+Physical row 396 (`mmlu/test/4021`) has identical A/D descriptions and published gold D. All four choose A and are counted incorrect under the frozen metric; the row remains in the denominator. Positional diagnostics are not semantic class recalls. Of 57 subject groups, 52 have fewer than 30 samples; all 0%/100% subject results occur in those small groups and are not mastery/generalization evidence.
+
+There are zero full-request overlaps with release train/validation and zero internal duplicate full requests, but one TEST state matches validation with a different question. Upstream split lineage and pretraining disjointness remain unestablished. The earlier synthetic behavioral failures are preserved. No training gain or paired significance claim.
+
+The recent four-size subset now has **80 accepted cells across 20 panels/protocols**; this remains a partial matrix. [Exact results and diagnostics](REFERENCE-MMLU-INCREMENT-2026-11-04.json).
