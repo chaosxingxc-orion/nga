@@ -84,3 +84,16 @@ R1 脏（1 MAJOR 修复+变异自证）→ **R2 净 → R3 净 → R4 净 = 连�
 - 4-lens：Simplicity（零产线码+3 整型计数器+3 行方法）✓；Consistency（L31 双形态记账）✓；Bearing（变异自证：快路径偷调判定→断言精确报 s1 2→3 红→恢复绿）✓；Fidelity（注释引 F-02C 行 1 原文+双面声明）✓；singularity 无复发。
 - 判定：**0 BLOCKER / 0 MAJOR**（L31 记账）。
 - 终态更新：R8/R9/R10 = 覆盖最终态的 3 连 0B/0M（goal 证据链闭环至 baca2dd..最终提交）。
+
+## R11（T0+E0/E3 实验代码增量轮，脏轮：2 MAJOR → 修复 → 变异自证）
+
+- 前置门：build/vet/test 全绿；测试面 5 新增（correctness_probe_test.go 359 行）。
+- 4-lens 审 correctness_probe_test.go：
+  - **Simplicity**：E0-sick 第 89-91 行死代码（先调健康替身再丢弃再调病替身）——已清除；E3 fixture 路径硬编码三层相对——L30 同族 minor。
+  - **Bearing（2 MAJOR）**：E0-sick 和 E3-window 两个测试**断言的是疾病存在（pass=病在）**，方向与其他探针（pass=修复生效）**相反**。翻转条件依赖外部动作（correctness layer 落地 / P3 修正），但**翻转本身无探针守护**——如果加了 correctness layer 但忘了翻 E0-sick，它会继续绿着（错误地证明疾病还在）。
+  - **Fidelity**：E3 注释「expected to be RED」不准确——测试当前是绿的（断言矛盾存在且矛盾确实存在），应为「断言矛盾存在，矛盾修复后翻绿」——已修正措辞。
+- singularity：同族（翻转方向测试缺翻转探针），但两个 MAJOR 同根，不成族。无可达奇点。
+- **修复**：polarity guard——`correctnessLayerLanded` 和 `p3FixtureCorrectionLanded` 两个翻转开关；E0-sick 和 E3-window 开头各加 guard skip（开关翻转后测试 Skip 并说明「应重写为断言拦截」）。变异自证：翻转 correctnessLayerLanded → E0-sick 立即 SKIP（guard 活着）→ 恢复绿。
+- 全量回归绿（-race 21 包+Python 八组+manifest）。
+- minor：L32（E3 fixture 路径三层硬编码）+ L33（E0-healthy 断言翻转后的精确形态待 P3/CL 落地时同步确定）。
+

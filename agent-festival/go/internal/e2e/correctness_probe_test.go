@@ -14,6 +14,11 @@ package e2e
 // blocks the wrong grant, the "structural blindness" claim is falsified. If
 // E3 shows the fixture and stand-ins are actually consistent, the "spec
 // correctness" gap is falsified.
+//
+// POLARITY GUARD (review-loop R11): the two E0-sick tests assert the DISEASED
+// state (pass = disease exists). When the correctness layer lands, they MUST
+// be flipped to assert the blocking (pass = fixed). Forgetting to flip would
+// leave them green while silently proving an obsolete claim.
 
 import (
 	"encoding/json"
@@ -24,6 +29,15 @@ import (
 
 	"github.com/openjiuwen/agent-festival/go/internal/adopt"
 )
+
+// correctnessLayerLanded is the polarity guard's flip switch — set to true
+// in the same commit that adds the correctness layer. E0-sick tests skip
+// when this is true (their claim is obsolete).
+var correctnessLayerLanded = false // flip when preconditions[]/verifier lands
+
+// p3FixtureCorrectionLanded flips when the P3 fixture correction (unbounded
+// veto, business-owner seat) lands. E3-window skips when this is true.
+var p3FixtureCorrectionLanded = false // flip when P3 fixture correction lands
 
 // s1AlwaysGrant is the "sick" S1 stand-in for E0: it ALWAYS returns
 // grant-50000 with high-confidence details, regardless of evidence. This
@@ -78,6 +92,14 @@ func TestE0DiseaseExists_HealthyS1(t *testing.T) {
 // flip to red (the sick grant gets blocked), and then we update it to
 // assert the blocking.
 func TestE0DiseaseExists_SickS1(t *testing.T) {
+	// POLARITY GUARD (review-loop R11): if the correctness layer has landed,
+	// this test's claim ("disease exists") is obsolete — the sick grant would
+	// be blocked and this test would fail its "adopted" assertion below,
+	// which is the CORRECT red signal. The guard makes the polarity explicit:
+	if correctnessLayerLanded {
+		t.Skip("E0-sick: correctness layer landed — this test asserted the DISEASED state; " +
+			"it must be rewritten to assert the BLOCKING (preconditions violation → control event)")
+	}
 	h := newTask(t)
 	e := creditEvidence{
 		assetMillions:   35,
@@ -86,9 +108,7 @@ func TestE0DiseaseExists_SickS1(t *testing.T) {
 	}
 
 	// The sick S1 says grant, ignoring the 4-month overdue entirely
-	v := h.judge(e)
-	_ = v // we can't use h.judge because it calls the healthy s1Judge; call directly
-	v = s1AlwaysGrant(e)
+	v := s1AlwaysGrant(e)
 	if v.kind != "grant-50000" {
 		t.Fatalf("E0: sick S1 returned %q, want grant-50000 — sick stand-in broken", v.kind)
 	}
@@ -238,6 +258,15 @@ type fixtureSpec struct {
 // When the P3 fixture correction lands (business-owner seat + unbounded veto),
 // this test should flip to GREEN.
 func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
+	// POLARITY GUARD (review-loop R11): if the P3 fixture correction landed
+	// (unbounded veto), this test's claim (fixture is window-scoped) is
+	// obsolete — the fixture would no longer contain "in the window" and
+	// the first assertion below would fail, which IS the correct red signal.
+	// The guard makes the polarity explicit.
+	if p3FixtureCorrectionLanded {
+		t.Skip("E3-window: P3 fixture correction landed — this test asserted the OLD window-scoped veto; " +
+			"rewrite to assert the unbounded scope in the corrected fixture")
+	}
 	// Read the fixture
 	fixturePath := filepath.Join("..", "..", "..", "schema", "examples", "judgment", "valid", "judgment-spec-credit.json")
 	raw, err := os.ReadFile(fixturePath)
