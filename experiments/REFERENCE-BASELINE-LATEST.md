@@ -8,7 +8,7 @@ These are reference inference results. They do not establish an NGA training gai
 
 Coverage correction — 2026-11-02: the 38 units above are model × dataset units, not 38 independent datasets or a complete NxM. The latest v9 metadata audit covers 12 expansion sources, all `needs_review`, with zero newly admitted panels in that audit. Previous approximate source/panel targets are superseded as current coverage counts; source identity, native TEST, metric denominator and overlap must be established per panel. See the [current coverage plan](../proposal/24-dataset-coverage-expansion-v10-20261102.md) and [GitHub Wiki coverage conclusions](https://github.com/chaosxingxc-orion/nga/wiki/Dataset-Coverage). No new result is introduced by this correction.
 
-Current coverage snapshot (2026-11-04): the recent four-size Qwen extension has **72 inferred/scored and parent-accepted cells across 18 panels**, including the eight Yelp5/helpfulness cells after full independent reconstruction and diagnosis. Within the inventoried Jev-bench 22 panels, 10 panels × 4 sizes (40 cells) still lack completed inference. Neither this inventory nor the historical 38 units is the global Cartesian denominator. These counts do not amend any published metric.
+Current coverage snapshot (2026-11-04 16:28 UTC): **92 inferred/scored and parent-accepted cells across 23 panels/protocols** in the recent four-size Qwen extension. The inventoried 28-panel × 4-size subset contains 112 cells: 92 accepted and 20 not yet inferred. Within its Jev-bench 22-panel subset, 68/88 cells are accepted; Banking77, CLINC150/OOS, MASSIVE, LEDGAR and GoEmotions account for the remaining 20. These are partial inventories, not the global Cartesian denominator; historical 36/38 is a separate irregular registry. Accepted cells may still lack publisher-native or additional evaluation endpoints. Coverage correction replaces the stale page-top 72-cell snapshot without changing prior measurements.
 
 Execution status and dataset-admission progress are maintained in the Wiki. Fixed reference-model TEST evaluation can proceed per admitted panel; final evaluation of newly trained candidates follows DEV selection and a frozen TEST plan. Training progress is not a reference TEST metric.
 
@@ -477,7 +477,7 @@ All 4,000 rows were independently reconstructed; the parent rechecked 8,504 evid
 
 This task supplies gold evidence and excludes NOT ENOUGH INFO. It is **not official FEVER score, retrieval evaluation or three-class accuracy**, nor a publisher-native endpoint reproduction. There are no exact release train/validation request overlaps or internal duplicates; upstream lineage and pretraining disjointness are unestablished. No training gain or significance claim is made.
 
-The recent four-size subset now has **76 accepted cells across 19 panels/protocols**. This does not complete the global model×dataset×protocol Cartesian product; historical 36/38 is a separate irregular registry.
+At this increment, the recent four-size subset reached **76 accepted cells across 19 panels/protocols** (historical milestone; current count above). This does not complete the global model×dataset×protocol Cartesian product; historical 36/38 is a separate irregular registry.
 
 ## MMLU positioned released TEST — accepted fixed-base results, 2026-11-04
 
@@ -493,7 +493,7 @@ Physical row 396 (`mmlu/test/4021`) has identical A/D descriptions and published
 
 There are zero full-request overlaps with release train/validation and zero internal duplicate full requests, but one TEST state matches validation with a different question. Upstream split lineage and pretraining disjointness remain unestablished. The earlier synthetic behavioral failures are preserved. No training gain or paired significance claim.
 
-The recent four-size subset now has **80 accepted cells across 20 panels/protocols**; this remains a partial matrix. [Exact results and diagnostics](REFERENCE-MMLU-INCREMENT-2026-11-04.json).
+At this increment, the recent four-size subset reached **80 accepted cells across 20 panels/protocols** (historical milestone; current count above); this remains a partial matrix. [Exact results and diagnostics](REFERENCE-MMLU-INCREMENT-2026-11-04.json).
 
 ## ChaosNLI / Civil Comments hard and soft TEST — accepted, 2026-11-04
 
@@ -518,4 +518,24 @@ TEST mean-human distributions are descriptive oracle baselines. ChaosNLI TVD bas
 
 Civil has 3 exact TEST requests overlapping release train, none with validation. ChaosNLI train/validation are not published; overlap is unassessed, not zero. No internal duplicate full requests. Upstream lineage/pretraining disjointness unestablished. No training gain, original ChaosNLI JS, Civil AUROC, AURC, consistency or unknown-handling claim.
 
-Recent four-size coverage is **88 accepted cells across 22 panels/protocols**, still not global NxM. [Exact metrics, bins and diagnostics](REFERENCE-SOFTLABEL-INCREMENT-2026-11-04.json).
+At this increment, four-size coverage reached **88 accepted cells across 22 panels/protocols** (historical milestone; current count above), still not global NxM. [Exact metrics, bins and diagnostics](REFERENCE-SOFTLABEL-INCREMENT-2026-11-04.json).
+
+## Measuring Hate Speech released TEST — accepted, 2026-11-04
+
+Four 1,000-item cells were independently reconstructed with hard, soft-label and ordinal metrics; parent checked 8,620 evidence and delivery pins without mismatch. This is the Jev-bench three-level derivative, not the original continuous-scale publisher endpoint.
+
+| Metric | Qwen3.5-0.8B Base | 2B Base | 4B Base | 9B Base |
+| --- | ---: | ---: | ---: | ---: |
+| Accuracy | 26.5% | 27.9% | 44.9% | 29.7% |
+| Argmax MAE | 1.421000000 | 1.393000000 | 0.898000000 | 0.812000000 |
+| Expected MAE | 1.274756431 | 1.175263448 | 0.883842974 | 0.856993902 |
+| TVD human | 0.608189135 | 0.569669295 | 0.477129528 | 0.549525650 |
+| Soft Brier vector | 0.848328821 | 0.718086091 | 0.514462330 | 0.578949954 |
+| Soft CE nats | 1.580016790 | 1.466452244 | 1.310475258 | 1.338569811 |
+| Hard RPS normalized | 0.517458684 | 0.451768063 | 0.318639757 | 0.281880351 |
+| Soft RPS normalized | 0.413067450 | 0.347626743 | 0.223327055 | 0.192792267 |
+| ECE15 | 0.575925317 | 0.500561566 | 0.255161377 | 0.303460712 |
+
+All four hard accuracies are below the descriptive constant no_hate 68.6%, and argmax MAE is worse than its 0.579. The 0.8B model predicts hate for all 1,000 items; 2B never predicts borderline. All saved score vectors, class ordering and zero/one recalls were checked. 4B leads accuracy/TVD; 9B leads MAE/RPS, so model-size benefit depends on the target metric. TEST mean-human controls are oracle diagnostics, not deployable baselines. Release train/validation exact request overlaps are zero; upstream and pretraining disjointness remain unknown. No training gain is claimed.
+
+[Exact results, confusion matrices and limitations](REFERENCE-MEASURING-INCREMENT-2026-11-04.json).
