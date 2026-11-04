@@ -30,6 +30,16 @@ Rules of engagement:
   still Fable's: spawn an Agent with `model: "fable"` for every adversarial review, result acceptance
   and go/no-go call, hand it the artifacts rather than your own conclusion, and act on its verdict.
 
+### 2.1 Durable task handoffs (owner clarification, 2026-11-04)
+
+Every subagent must record its task goal, inputs/constraints, actual method,
+changes/actions, findings with evidence, verification coverage, results and limits,
+open work and parent decisions in its task directory. Status/messages alone are
+not a deliverable. The parent reads and verifies the record before acceptance.
+Follow [the handoff contract](configs/experiments/SUBAGENT-HANDOFF.md); process
+records remain local/Ceph and only accepted conclusions go to the GitHub Wiki.
+Write records alongside execution without pausing already admitted NPU work.
+
 ## 3. What this repository is
 
 A survey and research program on Jev-class single-pass typed-readout decision models ("System One"
