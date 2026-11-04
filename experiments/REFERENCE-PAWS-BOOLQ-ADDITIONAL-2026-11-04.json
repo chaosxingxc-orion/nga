@@ -1,0 +1,324 @@
+{
+  "schema": "reference-paws-boolq-additional-v1",
+  "date_utc": "2026-11-04",
+  "models": [
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "Yes": {
+          "accuracy": 0.432,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "No": {
+          "accuracy": 0.568,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "1": 568,
+          "0": 432
+        },
+        "predicted": {
+          "1": 580,
+          "0": 420
+        }
+      },
+      "within_release_test_state_overlap": null,
+      "job": "paws-4b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.826,
+        "correct": 826
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": 0.826,
+          "correct": 826,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "92173b86033ffb67be0308a2656e4173626381e778d3a1552493c5e50c6fbaaa",
+      "plan_sha256": "6a383ea8d140215495d28afe0bfd3a3b5baa1041fa1defef472f6331d4e87c07",
+      "source_sha256": "979316fa6f22afe568732242c064899c3b17f2028a67d95b49e89fd841c1906e",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "by_gold_class": {
+        "Yes": {
+          "n": 432,
+          "correct": 339,
+          "accuracy": 0.7847222222222222
+        },
+        "No": {
+          "n": 568,
+          "correct": 487,
+          "accuracy": 0.8573943661971831
+        }
+      },
+      "original_source_sha256": "43466db6213337bfcaa49682284b6fc75fac2e570b49054e5379807433cbd6d1"
+    },
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "Yes": {
+          "accuracy": 0.432,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "No": {
+          "accuracy": 0.568,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "1": 568,
+          "0": 432
+        },
+        "predicted": {
+          "1": 541,
+          "0": 459
+        }
+      },
+      "within_release_test_state_overlap": null,
+      "job": "paws-9b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.825,
+        "correct": 825
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": 0.825,
+          "correct": 825,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "04c208a3ce1986ed6c963cf2183c1539c475eb5e094a907e2f60e617ed05a79c",
+      "plan_sha256": "f25d27102109de30c1bf56776404061dafaa1f144b6b5806bb384f6963837097",
+      "source_sha256": "979316fa6f22afe568732242c064899c3b17f2028a67d95b49e89fd841c1906e",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "by_gold_class": {
+        "Yes": {
+          "n": 432,
+          "correct": 358,
+          "accuracy": 0.8287037037037037
+        },
+        "No": {
+          "n": 568,
+          "correct": 467,
+          "accuracy": 0.8221830985915493
+        }
+      },
+      "original_source_sha256": "43466db6213337bfcaa49682284b6fc75fac2e570b49054e5379807433cbd6d1"
+    },
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "Yes": {
+          "accuracy": 0.628,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "No": {
+          "accuracy": 0.372,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "0": 628,
+          "1": 372
+        },
+        "predicted": {
+          "0": 894,
+          "1": 106
+        }
+      },
+      "within_release_test_state_overlap": null,
+      "job": "boolq-08b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.676,
+        "correct": 676
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": 0.676,
+          "correct": 676,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "c44775a230ed37fd5f5ffb7f6f80062ce2980a438fcb1019ce34c6fb9b931140",
+      "plan_sha256": "452ce6f7e39119a583343752f6c78a01fa8199fc94e279c8e3a7ce2062936e27",
+      "source_sha256": "ba13f6dea4fedf6c7d6b48acc02b65c3f7a4af6859f148a378418b84ebe1f829",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "by_gold_class": {
+        "Yes": {
+          "n": 628,
+          "correct": 599,
+          "accuracy": 0.9538216560509554
+        },
+        "No": {
+          "n": 372,
+          "correct": 77,
+          "accuracy": 0.20698924731182797
+        }
+      },
+      "original_source_sha256": "92bef666d167e8a5a3c5895a6ce62f957029ea1fa39f20e6f8a0c8ded7646305"
+    },
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "Yes": {
+          "accuracy": 0.628,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "No": {
+          "accuracy": 0.372,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "0": 628,
+          "1": 372
+        },
+        "predicted": {
+          "0": 584,
+          "1": 416
+        }
+      },
+      "within_release_test_state_overlap": null,
+      "job": "boolq-2b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.796,
+        "correct": 796
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": 0.796,
+          "correct": 796,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "9fb0fc9a08425ebf4a910b98ac8b80c6fa0cd74a6d57351d22c91aff842deb1b",
+      "plan_sha256": "ae9de9bad47254923e24e4dd06457b61413dc8f3d68b7f08cface9551e212ae6",
+      "source_sha256": "ba13f6dea4fedf6c7d6b48acc02b65c3f7a4af6859f148a378418b84ebe1f829",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "by_gold_class": {
+        "Yes": {
+          "n": 628,
+          "correct": 504,
+          "accuracy": 0.802547770700637
+        },
+        "No": {
+          "n": 372,
+          "correct": 292,
+          "accuracy": 0.7849462365591398
+        }
+      },
+      "original_source_sha256": "92bef666d167e8a5a3c5895a6ce62f957029ea1fa39f20e6f8a0c8ded7646305"
+    }
+  ],
+  "independent_acceptance_sha256": "82970a5557698a97ba11cd827b1fe6eeef49efd1ee6bf15130cc27590943ddcb",
+  "verified_unique_evidence_files": 8142,
+  "review_root": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_paws_boolq_remaining_seal_20261104_v1",
+  "scope": "four completed fixed-base released TEST cells; saved selected-logit reconstruction, not forward replay",
+  "named_astra_review": false,
+  "training_benefit_claimed": false
+}

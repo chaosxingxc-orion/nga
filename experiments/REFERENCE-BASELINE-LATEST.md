@@ -364,3 +364,16 @@ Two fixed Qwen3.5 Base cells passed independent full reconstruction of all1,000 
 | Qwen3.5-2B-Base | 744/1000 | 74.4% | 201/432 =46.527778% | 543/568 =95.598592% |
 
 Both exceed descriptive always-No accuracy56.8%, but2B's higher total accuracy coexists with substantially lower Yes recall. This is not uniform class-wise improvement, paired consistency, training gain or named Astra acceptance. Per-class counts and output histograms remain in the exact JSON; no cross-task aggregate is introduced.
+
+## PAWS completion and BoolQ small-model TEST — 2026-11-04
+
+Independent full saved-result reconstruction and8,142-file hash verification accepted four more1,000-row cells. [Exact results](REFERENCE-PAWS-BOOLQ-ADDITIONAL-2026-11-04.json). These retain the Jev-bench released-subset/local full-label limits above.
+
+| Panel / model | Accuracy | Yes recall | No recall |
+| --- | ---: | ---: | ---: |
+| PAWS4B | 826/1000 =82.6% | 339/432 =78.472222% | 487/568 =85.739437% |
+| PAWS9B | 825/1000 =82.5% | 358/432 =82.870370% | 467/568 =82.218310% |
+| BoolQ0.8B | 676/1000 =67.6% | 599/628 =95.382166% | 77/372 =20.698925% |
+| BoolQ2B | 796/1000 =79.6% | 504/628 =80.254777% | 292/372 =78.494624% |
+
+PAWS four sizes are complete;4B/9B differ by one correct answer, which does not establish statistical equivalence. BoolQ0.8B exceeds descriptive always-Yes62.8% by4.8 percentage points but has weak No recall;2B improves total and No recall while reducing Yes recall. Constants are descriptive TEST-population comparators. No training improvement, paired consistency, original hidden BoolQ TEST result or named Astra acceptance is claimed.
