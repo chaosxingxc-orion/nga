@@ -80,3 +80,25 @@ Relevant regression suites are `test_bev_native_cpu_parallel_v1.py` and
 `test_r3_final_async_*.py`. Current measurements and acceptance scope belong in the
 [Wiki](https://github.com/chaosxingxc-orion/nga/wiki/Current-Conclusions); process logs
 and detailed review evidence remain local/Ceph.
+
+### Durable event handoff
+
+`experiment_event_relay_v1.py` connects real resource-release, preparation and
+independent-review completion signals to existing queue/reviewer/dispatcher
+processes. Configuration pins the plan, evidence, destination and process identity;
+new experiments should supply new configuration rather than edit a running relay.
+It copies independently approved review bytes and wakes consumers, and never
+creates a review PASS or directly launches an NPU experiment.
+
+The relay persists intent, uses no-clobber approval publication, verifies PID/boot/
+start-time identity and serializes owners with a lock. Consumers retain their own
+resource checks and durable launch intents. A stale identity or conflicting
+publication blocks for reconciliation; do not restart experiments from an expired
+observation alone. Script-only event checks can run at15seconds with existing
+600second consumer fallback; the orchestrator reads bounded digests.
+
+Run `python3 -B -m unittest tools.test_experiment_event_relay_v1` for12 component
+tests. Independent review additionally exercised six fault cases and the actual
+175 dispatcher validator. Actual ARC handoff has used this relay; that establishes
+execution, not sustained full utilization or a measured general speedup. Keep ready
+queue depth and expected chip-minutes separate from completed/blocked node counts.
