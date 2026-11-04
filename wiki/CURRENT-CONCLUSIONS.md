@@ -1,223 +1,68 @@
-# Current Jev experiment conclusions
+# Current Conclusions
 
-Updated: 2026-11-02
-Authority: this file is the current remote collaboration entry. Detailed run procedures, receipts, container logs and intermediate reviews remain in the local dated archive and CephFS. The remote wiki keeps only conclusions and the information needed for coordination.
-
-Coverage correction — v10, 2026-11-02: the dataset choice is being widened from the narrow D1 reference layer into an executable capability matrix. D1 remains frozen at 38 model×dataset units (36 scored, 2 `blocked/null`), while the next plan explicitly expands the text NxM layer to JevBench/Applied ML/Intern-Decision/Jevals, canonical and legacy DecisionBench, Decision Model Benchmark, BEV Decision, LocalLLaMA typed decisions, prevalence shift, OOD calibration and conventional routing. Ranking/order, System-One coherence, robustness, guardrails, multilingual and spatial/complex tasks are separate P1 panels; multimodal and web/closed-loop tasks are separate P2 matrices; Chinese rules, evidence, unknown/fallback, escalation and cost remain P3 self-built gaps. The v10 register is [`proposal/24-dataset-coverage-expansion-v10-20261102.md`](../proposal/24-dataset-coverage-expansion-v10-20261102.md). This is a coverage and queue revision only: the 12 audited v9 source families are still `needs_review`, `ready_for_inference=0`, no candidate TEST rows were read, and no Qwen3.5 result was added.
+Updated: 2026-11-04  
+Authority: this page is the current collaboration summary. Detailed procedures, run logs, receipts and intermediate reviews remain in the local dated archive and CephFS. Historical versions are available through Git history.
 
 ## Current position
 
-D1 reference reporting is closed for the registered test matrix: 36 of 38 model-by-dataset combinations have results; Open-Jev-2B×JEVal and Open-Jev-9B×JEVal remain `blocked/null`. Test metrics are preserved by task formula, temperature, hard/soft target and effective denominator. Formal K1 v15 training for Qwen3.5-0.8B completed for seeds 2 and 3 with exit 0, but scientific acceptance is still false. The detached DEV/calibration/Track-T evaluation is now running on host 175; it is not a test-set result and does not authorize TEST.
+The fixed reference base is locked for the registered TEST matrix. The next crossed-candidate interface DEV is prepared but has not been launched. Numerical admission has completed on four Qwen3.5 sizes; this validates execution consistency only and is not a scientific gain or business result.
 
-The engineering constraints are fixed: NPU work consumes a per-chip FIFO queue; CPU scoring, independent checks, baseline locking, Astra review and report refresh run asynchronously in an ordered lane. The controller has regression tests, but a production queue and ready manifest are not deployed, so current continuous NPU saturation must not be claimed.
+The 175 host currently has no active NPU allocation. All eight chips are free in the allocation ledger. This idle interval is caused by the behavior-DEV execution gate, not by completion of the Cartesian product or training program.
 
-Coverage correction — 2026-11-02 dataset inventory revision: the local CephFS inventory contains 24 Jev-related top-level directories, but this is not a count of independent datasets because it includes version projections, result mirrors, subpanels and multiple modalities. The executable coverage register now separates a frozen D1 reference layer, P0 text/typed/routing families, P1 risk and capability families, and P2 multimodal, web/closed-loop and self-built business-gap suites. P0 explicitly includes BEV Decision, LocalLLaMA typed decisions, canonical/legacy DecisionBench, Praveenrajus JevBench, Applied ML Jev panels, JevBench/Intern-Decision/Jevals, prevalence shift and OOD calibration; P1 adds Eikos, Korean JEV, behavior perturbation, DecisionPivot, DecisionRobust, safety/guardrails, spatial/complex and order/coherence; P2 keeps OneJev/Imajev/WebJev and internal Chinese rules, evidence, unknown/fallback, escalation and cost separate. The planning range remains approximately 25–30 source/task families and 70+ native panels, but the register distinguishes local inventory, locally mirrored candidates, external-to-be-mirrored candidates and completed D1 results. All candidate panels remain `needs_review` with zero `ready_for_inference`; no candidate TEST row or Qwen3.5 metric was added. The detailed status and next plan are in [`proposal/21-status-decisions-next-plan-2026-11-02-dataset-coverage-revision.md`](../proposal/21-status-decisions-next-plan-2026-11-02-dataset-coverage-revision.md).
+## Frozen reference and direct-drive results
 
-P0 panel register milestone — 2026-11-02: a local machine-readable register now records all six audited P0 families, their declared task/config counts (114 in total, explicitly non-additive), unresolved lineage/metric/TEST-exposure fields and read-scope flags. Independent panel counts remain pending; all six are `needs_review`, with zero `ready_for_inference`. Contract tests pass (5/5), while the validator correctly returns `NO_FIFO_ADMISSION`. The register is local at `.local/reports/p0-panel-admission-register-20261102.{md,json}`.
+- Qwen3.5 0.8B/2B/4B/9B × 28 registered panels: **112/112 cells accepted**.
+- Jev-bench subset: **88/88 cells accepted**.
+- D1 heterogeneous reference layer: **36/38 model×dataset units scored**; Open-Jev-2B×JEVal and Open-Jev-9B×JEVal remain `blocked/null`.
+- Five large candidate TEST tasks × four model sizes: **20/20 cells completed**, independently rescored on CPU.
+- The five-task accuracy table and protocol-specific metrics are authoritative in [`experiments/REFERENCE-BASELINE-LATEST.md`](../experiments/REFERENCE-BASELINE-LATEST.md). Hard/soft targets, native temperature versus raw T=1, Brier variants, calibration metrics and denominators remain separate.
 
-Formal K1 progress — 2026-11-01 21:29 UTC: the watchdog reports seed2 `650/3116` (20.86%, about 954.5 tok/s/chip) and seed3 `580/3116` (18.61%, about 845.0 tok/s/chip), with fresh heartbeats and no terminal markers. The allocation ledger still binds them to chip2/chip3. The 3600-second AICore windows are about 53.0% and 53.6%; this confirms active NPU work but does not support a sustained full-load claim. Training remains uninterrupted, TEST remains locked, and post-training CPU preparation is waiting for both successful terminal closures. Structured evidence is local at `.local/reports/formal-k1-progress-20261101T2129.json`.
+## Training status
 
-Efficiency follow-up — 2026-11-02: a read-only diagnosis records possible host-side gaps in Python sequence/index construction, per-chunk loss synchronization, `micro_tokens` sizing and the reference kernel. No formal code or configuration was changed; any fix must be a separate engineering benchmark with identical loss/gradient checks before reuse. Evidence is local at `.local/reports/formal-k1-efficiency-diagnosis-20261102.md`.
+The 0.8B LoRA DEV qualification and seven-member candidate assembly are complete. DEV mean is about 82.397152% (+24.011076 pp versus K0); transfer mean is about 65.167683% (+4.649390 pp). These are DEV/transfer diagnostics and are **not** same-TEST training gains.
 
-Formal K1 progress — 2026-11-01 21:49 UTC: seed2 is `1050/3116` (33.7%) and seed3 is `980/3116` (31.5%), with fresh heartbeats and no terminal markers. Both remain bound to chip2/chip3; TEST remains locked and CPU post-training preparation is waiting for terminal closure. Structured evidence is local at `.local/reports/formal-k1-progress-20261101T2149.json`.
+The seven-member same-TEST evaluation is still blocked. The final admission requires a real `independent_astra` review using `gpt-6-astra` with a substantive `PASS` file. Dispatch acknowledgements without a review artifact do not satisfy this gate.
 
-Formal K1 progress — 2026-11-01 21:59 UTC: seed2 is `1250/3116` (40.1%) and seed3 is `1170/3116` (37.5%), with fresh heartbeats and no terminal markers. Both remain bound to chip2/chip3; TEST remains locked. Structured evidence is local at `.local/reports/formal-k1-progress-20261101T2159.json`.
+## Latest NPU experiment: numerical interface admission
 
-Monitoring correction — 2026-11-01 22:11 UTC: the CPU post-training watcher was briefly classified as stalled because it updated `digest.json` without a generic heartbeat. `tools/r3_posttrain_eval_plan.py` now writes timestamped `heartbeat.log`; the detached v15 watcher was restarted and remains `waiting_training`. It does not read TEST or use NPU resources.
+Run root: `/mnt/cephfs/xingchao/experiments/jev/r3_runs/large_candidate_interface_execution_20261104_v2/`
 
-Monitoring correction verified — 2026-11-01 22:19 UTC: the main watchdog now classifies the v15 post-training watcher as `running` from its fresh heartbeat. Formal K1 seed2 is `1660/3116` (53.3%) and seed3 is `1549/3116` (49.7%); both remain train-only with TEST locked and no terminal markers. Evidence is local at `.local/reports/formal-k1-progress-20261101T2219.json`.
+| Model | Forwards | Variants | Raw exact | Scientific acceptance | TEST read | Chip / reserved |
+| --- | ---: | ---: | --- | --- | --- | --- |
+| Qwen3.5-0.8B | 144/144 | 3/3 | true | false | false | 0 / 3.7695 GiB |
+| Qwen3.5-2B | 144/144 | 3/3 | true | false | false | 1 / 8.1387 GiB |
+| Qwen3.5-4B | 144/144 | 3/3 | true | false | false | 2 / 18.4023 GiB |
+| Qwen3.5-9B | 144/144 | 3/3 | true | false | false | 3 / 36.2734 GiB |
 
-Formal K1 progress — 2026-11-01 22:29 UTC: seed2 is `1860/3116` (59.7%) and seed3 is `1740/3116` (55.8%), with fresh heartbeats and no terminal markers. The CPU post-training watcher is also `running` and waiting for training closure; TEST remains locked. Evidence is local at `.local/reports/formal-k1-progress-20261101T2229.json`.
+Each report has `completed_items=144`, `passes=3`, `reused_items=0`, `all_raw_exact=true`, `scientific_acceptance=false` and `test_read=false`. Host claim, run exit, release and container evidence exist for all four jobs. An independent CPU audit is pending before these results can be sealed as formal numerical-admission PASS.
 
-Formal K1 progress — 2026-11-01 22:39 UTC: seed2 is `2080/3116` (66.8%) and seed3 is `1930/3116` (61.9%), with fresh heartbeats and no terminal markers. The CPU post-training watcher remains alive and waiting; TEST remains locked. Evidence is local at `.local/reports/formal-k1-progress-20261101T2239.json`.
+## Behavior DEV gate
 
-Coverage correction — v8, 2026-11-01: the v7 candidate range (approximately 25–30 source/task families and 70+ panels) was still too narrow for the required capability axes. The planning register now targets approximately **35–45 independent source/task families and 100+ native panels**, pending provenance, lineage, licence and TEST-exposure audits. The added axes are ordinary routing and complete-message accuracy, ordinal/numeric routes, known-probability and interface-coherence batteries, selective fallback/refusal, answer-preserving and option-channel attacks, ranking/order/coherence, Agent/web closed-loop actions, multimodal/spatial inputs, and human/business boundary diagnostics. This is a planning upper bound, not completed experiments. A text NxM, B closed-loop, C multimodal and D human/business layers remain separate; all new panels are `needs_review` with `ready_for_inference=0`, and no candidate TEST row or Qwen3.5 metric was added. See [`proposal/22-dataset-coverage-expansion-v8-2026-11-01.md`](../proposal/22-dataset-coverage-expansion-v8-2026-11-01.md).
+The behavior package contains 672 requests per model, 2,688 forwards total. It has fixed candidate order and mapping, semantic discrimination controls, full-vocabulary checks, float32, HF32 off, batch 1, max length 8192, item-level resume and 600-second watchdog configuration. The preparation audit verdict is `PASS_PREPARATION_ONLY_NOT_EXECUTION_AUTHORITY`.
 
-Coverage correction — v9, 2026-11-02: a second review found that v8 still described several locally mirrored public sources only as abstract capability axes. The register now explicitly names AppliedMachineLearning-Lab Jev benchmarking (37 public reports), JevBench v1.6.1 public-231, Intern-Decision, Jevals (Banking77/PubMedQA/HelpSteer2), canonical and legacy DecisionBench, Decision Model Benchmark, TDM prevalence-shift, Jev OOD calibration, BEV Decision and LocalLLaMA typed decisions as the first common-text contract wave. P1 adds ORDER BY, System-One coherence, This-That, robustness, guardrails, Decision Index and multilingual panels; P2 keeps multimodal, web/closed-loop and self-built business-gap tasks separate. The planning upper bound is now approximately **45–55 source/task families and 150+ native panels**, including unresolved lineage candidates; this is not a completed experiment count. All new panels remain `needs_review` with `ready_for_inference=0`; no candidate TEST row or Qwen3.5 metric was added. The detailed contract and queue order are in [`proposal/23-dataset-coverage-expansion-v9-2026-11-02.md`](../proposal/23-dataset-coverage-expansion-v9-2026-11-02.md).
+Launch remains blocked until all of the following are present:
 
-P0 v9 metadata audit milestone — 2026-11-02: a CPU-only source-contract audit inspected repository documentation, manifests, licenses and source commits for 12 local public source families spanning Applied ML, JevBench, Intern-Decision, Jevals, DecisionBench, DMB, prevalence shift, OOD calibration, BEV and typed decisions. All 12 remain `needs_review`; none has a complete per-panel public TEST authority, input adapter, native scorer/denominator and item-lineage closure, so `ready_for_inference=0` and no FIFO task was admitted. Candidate TEST rows, model outputs, inference and training were not read or started. The local machine-readable evidence is `.local/reports/p0-v9-source-contract-audit-20261102.{json,md}`; it is an audit record, not a Qwen3.5 result.
+1. Independent CPU audit of the four numerical reports.
+2. Formal numerical-admission PASS artifacts and refreshed behavior-plan hashes.
+3. Fresh prospective behavior review and resource binding.
+4. Parent execution review, then detached launch with claim/heartbeat/exit/release evidence.
 
-## Coverage correction — 2026-11-02
+## Next execution order
 
-The current D1 matrix was too narrow for a broad Jev capability claim. Its 38 model-by-dataset units (36 scored and 2 blocked) remain frozen, but they are concentrated in a few source families. The repository inventory contains 24 directories, yet that count includes version projections, result packages, overlapping sources and different modalities.
+1. Seal or reject numerical admission from the independent audit.
+2. Regenerate and re-review the four behavior plans.
+3. Claim fresh chips from the ledger and launch the 2,688-forward behavior DEV as detached FIFO work.
+4. Run CPU scoring and diagnostics asynchronously with multithreaded scripts; watchdog polling remains event-driven or about every 600 seconds.
+5. Use preregistered DEV gates to select candidates. Only after a real Astra substantive PASS may the final seven-member same-TEST evaluation start.
+6. After the stable base is closed, add missing business-task datasets and then design RL optimization and baselines.
 
-The expansion register now distinguishes approximately 16–17 independent source/task families and more than 50 native test/eval panels. The first priority is text-compatible reference evaluation: `Praveenrajus/jev-bench` (22 source panels), canonical `Hanno-Labs/decision-bench` (43 task IDs, 27 families, 28 domains), the independent `akhilaaa3/decision-bench` medium/hard panels, Eikos, Korean JEV, Respan Behavior, DecisionPivot and DecisionRobust text. Complex/spatial decisions and guardrail/safety follow as separate diagnostic families.
+## Evidence pointers
 
-This expansion does not authorize inference yet. The latest metadata audit has four new entries, all `needs_review`, with zero `ready_for_inference`; no candidate TEST rows were read. Jev-bench has confirmed source-name and release-hash correspondence with frozen Nimble panels for MASSIVE, PAWS and Civil Comments, so item identity must be audited before those panels can support independent generalization claims. Canonical versus legacy DecisionBench remain separate sources, and state-macro, question-weighted, hard/soft-label, calibration and paired robustness statistics remain separate tables.
+- Current detailed status: [`experiments/STATUS-LATEST-2026-11-04.md`](../experiments/STATUS-LATEST-2026-11-04.md)
+- Frozen baseline: [`experiments/REFERENCE-BASELINE-LATEST.md`](../experiments/REFERENCE-BASELINE-LATEST.md)
+- Numerical execution root: `/mnt/cephfs/xingchao/experiments/jev/r3_runs/large_candidate_interface_execution_20261104_v2/`
+- Allocation ledger: `/mnt/cephfs/xingchao/experiments/jev/CHIP-ALLOCATION.json`
+- Preparation review: `.local/reviews/interface-dev-independent-20261104-v1/REVIEW.md`
+- Final admission tool: [`tools/r3_final_admission.py`](../tools/r3_final_admission.py)
 
-DecisionRobust image and other multimodal collections will use a separate matrix. WebJev and OneJev currently have no public TEST, Imajev remains blocked by its release gates, and `btzsc` remains a boundary classification comparison until its typed-decision schema is proven. Public collections still do not cover business-authored rules, Chinese business rules, unknown/fallback, evidence and audit state, equivalence classes or end-to-end cost per correct result; those require frozen internal datasets later.
-
-The detailed scope and execution order are in [`proposal/16-dataset-coverage-expansion-v4-status-2026-11-02.md`](../proposal/16-dataset-coverage-expansion-v4-status-2026-11-02.md). The frozen D1 values in this page and `experiments/REFERENCE-BASELINE-LATEST.md` are unchanged.
-
-Coverage correction — v5 capability-axis review, 2026-11-02: v4 expanded the register to roughly 16–17 source/task families and 50+ native panels, but it still concentrated on Jev-specific benchmarks. A local inventory found additional independently maintained sources that cover ordinary classification/routing, ordinal score, calibration, prevalence shift, OOD, order sensitivity, coherence, cost and closed-loop decisions. The highest-priority new registrations are AppliedMachineLearning-Lab Jev benchmarking (37 public task reports), JevBench v1.6.1 public-231, Intern-Decision, and Jevals (Banking77, PubMedQA and HelpSteer2). These are reference/source candidates, not Qwen3.5 results. Their native accuracy, F1/AUPRC, ordinal correlation/MAE, calibration, coverage-risk and cost metrics must stay in separate tables.
-
-The v5 review also registers Decision Model Benchmark, TDM prevalence shift, System-One coherence, This-That spatial, Jev OOD calibration and ORDER BY robustness as second-wave candidates. UniJev/OneJev/DecisionRobust image remain a separate multimodal matrix. Business-authored rules, Chinese numeric/date/version changes, explicit unknown/fallback, evidence/audit receipts, equivalence classes and end-to-end cost still require self-built frozen datasets. No new candidate TEST rows have been read and no new inference is authorized. The plan is in [`proposal/17-dataset-coverage-expansion-v5-status-2026-11-02.md`](../proposal/17-dataset-coverage-expansion-v5-status-2026-11-02.md); supporting inventory and gap audits remain local under `.local/reports/`.
-
-Coverage correction — v6, 2026-11-02: the user’s concern remains valid after v5. The candidate register now expands provisionally to approximately 25–30 source/task families and 70+ native panels, pending manifest, hash, item-lineage and TEST-exposure audits. The additional families are not extra Jev directory names: they explicitly add ordinary routing and complete-message accuracy (Decision Model Benchmark and selected broad classification panels), business-style typed decisions and numeric/temporal counterfactuals (`avbiswas/bev-decision`, `LocalLLaMA/typed-decisions`), prevalence shift and known/unknown calibration, ORDER BY ranking, System-One coherence, refusal/selective prediction, web/closed-loop actions and independent multimodal matrices. The provisional counts must not be presented as completed experiments or independent datasets.
-
-The first contract wave is now P0: JevBench/Applied ML/Intern-Decision/Jevals/DecisionBench common text, Decision Model Benchmark, BEV Decision, LocalLLaMA typed decisions, prevalence-shift and OOD-calibration. P1 covers ranking, coherence, robustness, safety, refusal and multilingual panels. P2 covers multimodal, web/closed-loop and self-built business-gap suites. Every panel remains `needs_review` until source/version/hash, split, input schema, pair key, native formula, denominator, overlap and TEST exposure are closed; only `ready_for_inference` panels may enter the FIFO. The detailed scope is in [`proposal/18-dataset-coverage-expansion-v6-status-2026-11-02.md`](../proposal/18-dataset-coverage-expansion-v6-status-2026-11-02.md), with local audits under `.local/reports/`.
-
-Coverage correction — v7, 2026-11-02: the v6 register still undercounted the first common-text admission wave. The P0 contract queue is now explicitly ten source/task families: AppliedMachineLearning-Lab Jev benchmarking (about 37 native panels), JevBench public-231, Intern-Decision, Jevals, canonical/legacy DecisionBench, Decision Model Benchmark, BEV Decision, LocalLLaMA typed decisions, TDM prevalence-shift and Jev OOD calibration. This expands the candidate plan to approximately 25–30 source/task families and 70+ native panels, while preserving the distinction between planned panels and completed results. The frozen D1 reference remains 38 units (36 results and 2 blocked/null), and the five v6-audited source families with 18 declared panels remain `needs_review` with `ready_for_inference=0`.
-
-The v7 admission rule is unchanged: CPU provenance, version/hash, split, input schema, target type, pair key, native formula, denominator, overlap lineage and TEST exposure must close before a panel can enter the FIFO. P1 adds ranking, coherence, robustness, safety, refusal and multilingual panels; P2 keeps multimodal, web/closed-loop and self-built business-gap suites separate. No new candidate TEST row, Qwen3.5 metric, training result or inference authorization was created by this scope update. The detailed scope is in [`proposal/19-dataset-coverage-expansion-v7-status-2026-11-02.md`](../proposal/19-dataset-coverage-expansion-v7-status-2026-11-02.md).
-
-P0 metadata milestone — 2026-11-02: a CPU-only audit added six common-text source families to the contract queue: AppliedMachineLearning-Lab Jev benchmarking (about 37 panels), Intern-Decision (10,751 rows / 12,351 decisions), Jevals (Banking77, PubMedQA and HelpSteer2), Hanno-Labs DecisionBench, Praveenrajus JevBench and akhilaaa3 DecisionBench. All six remain `needs_review` and `ready_for_inference=0`; the audit read documentation/manifests only, with no candidate TEST rows, model outputs, inference or training. The next gate is per-panel source/hash, public TEST authority, input adapter, metric denominator, licence and item-lineage closure. The bounded audit is local at `.local/reports/p0-common-text-metadata-audit-20261102.md` and `.local/reports/p0-common-text-metadata-audit-20261102.json`.
-
-Formal K1 launch milestone — 2026-11-02: after both reviewed CPU verifiers returned `PLAN_VERIFIED`, the v15 Qwen3.5-0.8B train-only wave was launched on host 175. Seed 2 is bound to chip2 and seed 3 to chip3; both retained containers are `running` and have atomic `CLAIM`, `LAUNCH_SPEC`, `LAUNCH_RECEIPT` and supervisor heartbeat files. The allocation ledger now leaves chip1 free and records chip2/3 as owned by `formal_k1_preparation_20261102_v15`. No TEST or candidate rows were read, and scientific acceptance remains false. The watchdog's first utilization window has fewer than three passes, so its 71.8%/75.0% AICore means are informational and do not certify sustained full load. The launch evidence is local at `.local/reports/formal-k1-launch-milestone-20261102.json`; CPU scoring and report preparation continue asynchronously.
-
-Formal K1 progress — 2026-11-02 21:05 UTC: the watchdog digest sees both v15 seeds as `running` with fresh heartbeats and no flags. Seed2 is at 150/3116 steps (4.8%, about 855.5 tok/s/chip) and seed3 at 120/3116 (3.9%, about 795.0 tok/s/chip). The initial ETA range is still rough because the observation window is under ten minutes. No terminal, release or scientific-acceptance receipt exists yet; TEST remains locked. The CPU-side post-training plan is recorded in [`proposal/20-status-decisions-next-plan-2026-11-02-dataset-scope.md`](../proposal/20-status-decisions-next-plan-2026-11-02-dataset-scope.md).
-
-Resource correction — 2026-11-02: a local Docker inspection briefly reported the six allocated receipt IDs as missing. That observation was against the wrong Docker daemon. A direct inspection on host 175 resolves all six immutable receipt IDs to running containers; chips 0, 1, 4, 5, 6 and 7 remain allocated, and chips 2 and 3 are the only free chips. No release or allocation edit was made. Formal preparation must use a fresh allocation snapshot and the resource adapter claim transaction.
-
-Engineering correction — 2026-11-02: the formal prepare/launcher pair now accepts an explicit two-chip seed binding, validates chip IDs against the eight-device range, and rejects a seed/chip mismatch. The launcher also disables Torch backend autoload before importing the CPU-only checker. The change is committed as `4f57092`; focused regression tests pass. A v11 CPU preparation attempt was stopped by the existing evidence consumer because the selected legacy training-evidence pack is not compatible with the newer Instruct/Base evidence closure; no NPU activation or TEST read occurred. A subsequent container attempt exposed that the 175 workspace snapshot was stale and incomplete, so the preparation has not yet received an exact-plan Astra review. The next action is to rerun the CPU-only preparation from a complete, hash-pinned source snapshot, then obtain a fresh independent review.
-
-## Dimension 1 — how Jev-class gains are obtained
-
-This is our literature grouping, not a claim that each paper established a causal mechanism. A work can belong to more than one group.
-
-| Group | Examples | Change | What we can conclude |
-| --- | --- | --- | --- |
-| Frozen parameters, changed driving/readout | LLM-as-Jev, Mapika decider, AnyJev, Runoff, JevCascade, RSAJEV, parts of Releasing the Inner Jev | Candidate presentation, logit/probability normalization, temperature, rotation debiasing, menu restriction, multiple readouts or prototype memory | Readout and harness changes can produce gains; they are not model-training gains |
-| Structural model changes | Block-causal readout, Prism-1, SanSi, LEV, NumericJev, NIOCIS, and proposed branch/recurrence variants | Branch isolation, position independence, recurrence depth, candidate trees or node conditioning | A structural gain needs a same-task, same-parameter direct-readout control; branch isolation on the Qwen3.5 hybrid backbone is still an engineering blocker |
-| Task and training-data design | Kev, Tev1, Nimble, SecJev, Chinese Decision, DKnown-Jev, Open-Jev | Decision format, candidate sets, domain tasks, contrast pairs or scenario weighting, followed by SFT/LoRA | Data distribution can improve in-task performance; it does not establish general reasoning or business benefit |
-| Learning-method design | Nimble one-fact contrast, PACT paired calibration, ordinal/proper-scoring terms, reasoning-to-readout distillation, RLCD, SHIFT-JEV KL plus temperature, scheduling RL | Supervision, loss, distillation or policy optimization | Compare each method with a same-data, same-backbone CE/LoRA baseline; isolated paper numbers do not establish the mechanism |
-
-The most stable evidence is that frozen readout and post-processing can yield engineering gains, task data can improve in-domain accuracy, and evidence for changing the learning objective is less consistent. The survey also finds that untuned readout reaches roughly 76%–97% of tuned accuracy across the cited scale range. Our first training question is therefore whether task training improves and stabilizes readout on held-out task families.
-
-## Dimension 2 — tasks, published metrics and reference results
-
-The numbers below come from the frozen test matrix `experiments/REFERENCE-BASELINE-MATRIX-2026-10-31.json`, SHA256 `03459facf6f86a919e10d9a0acef413b89c5a5d4ffd232352260722b05d0266e`. Percentages are accuracy; other values retain their native scale.
-
-### Kev native test sets
-
-| Dataset (n) | Kev-0.8B | Kev-4B | Kev-9B |
-| --- | ---: | ---: | ---: |
-| decision-v7 clean (1200) | 83.750% | 86.500% | 87.250% |
-| transfer-v4 clean (656) | 69.665% | 83.841% | 85.213% |
-| hard-v1 clean (1088) | 66.636% | 80.331% | 83.456% |
-| documents-v1 clean (936) | 85.150% | 90.278% | 89.957% |
-| devtools-v1 full (1073) | 63.653% | 75.582% | 79.124% |
-| devtools-v1 release (1071) | 63.679% | 75.630% | 79.178% |
-
-Published/alignment metrics are question-weighted hard accuracy, summed one-hot multiclass Brier, top-confidence ECE10 and NLL. Native temperatures are 2.3510958126, 2.4060500722 and 2.1936499594 for 0.8B, 4B and 9B. Raw T=1 is a separate protocol; its probability metrics are not pooled with native-temperature values.
-
-### Nimble native test sets
-
-Nimble has 1,884 test items across seven original subsets and uses native T=1. It has no single Kev-equivalent task definition, so no cross-subset total is reported.
-
-| Subset (n) | Accuracy | Native additional metrics |
-| --- | ---: | --- |
-| MASSIVE en-US (350) | 86.857% | Brier 0.215612; ECE10 0.069903; NLL 0.566445 |
-| MASSIVE de-DE (350) | 84.000% | Brier 0.256619; ECE10 0.081899; NLL 0.664881 |
-| PAWS (250) | 82.800% | Brier 0.279648; binary Brier 0.139824; ECE10 0.100160 |
-| Civil Comments (300) | 70.000% | Brier 0.413404; binary Brier 0.206702; ECE10 0.135851 |
-| Aegis2 (250) | 81.600% | Brier 0.289384; binary Brier 0.144692; ECE10 0.098642 |
-| SummEval relevance (240) | 48.750% | Brier 0.676895; score MAE 0.695520; ECE10 0.090175 |
-| SummEval consistency (144) | 75.000% | Brier 0.419423; score MAE 0.567382; ECE10 0.171725 |
-
-One-hot multiclass Brier, Noul binary Brier, expected-score MAE, JSD and TV remain separate because their targets and denominators differ.
-
-### Typed Decisions common test
-
-The common test contains 400 states and 2,000 questions. It compares readouts across models and is not a reproduction of each model's own test suite.
-
-| Model | Serving accuracy | Serving KL | Serving Brier | Serving ECE10 | Raw T=1 accuracy |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Kev-0.8B | 45.950% | 0.349523 | 0.195493 | 0.045770 | 45.950% |
-| Kev-4B | 66.450% | 0.223109 | 0.124565 | 0.089534 | 66.450% |
-| Kev-9B | 68.050% | 0.213790 | 0.116321 | 0.064928 | 68.050% |
-| Nimble-9B (T=1) | 65.100% | 0.706028 | 0.254995 | 0.172864 | 65.100% |
-| Open-Jev-2B | 58.250% | 0.410911 | 0.193817 | 0.081003 | 58.250% |
-| Open-Jev-9B | 67.800% | 0.369436 | 0.147618 | 0.058202 | 67.800% |
-
-### Open-Jev original release-v2 test
-
-The test has 10,532 rows: 10,046 one-hot hard rows and 486 soft rows. Hard accuracy uses only one-hot rows; expected accuracy, NLL, Brier, expected Brier and ECE15 use all rows.
-
-| Model | Serving hard accuracy | Serving expected accuracy | Serving NLL | Serving Brier | Raw T=1 hard accuracy |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Open-Jev-2B | 94.635% | 91.877% | 0.195622 | 0.076288 | 94.635% |
-| Open-Jev-9B | 97.511% | 94.687% | 0.130801 | 0.039047 | 97.511% |
-
-### Why published statistics are listed separately
-
-- Native temperature and raw T=1 are different readout protocols. Accuracy can match while probability metrics change.
-- Hard accuracy uses one-hot targets; expected/soft accuracy uses a target distribution.
-- Kev Brier, Nimble Noul binary Brier and score MAE, Typed `KL(q||p)`, and Open-Jev expected Brier are different formulas.
-- JEVal keeps valid, overlength, unsupported, classification and score denominators separate. Open-Jev×JEVal remains `blocked/null` and is not zero-filled.
-- A model's own test, Typed common test, JEVal and original Open-Jev test are different tasks. Comparisons require the same data and protocol.
-
-## Dimension 3 — business requirements and coverage
-
-These are capability requirements, not production claims. Existing public tasks carry only part of them.
-
-| Requirement | Existing carrier | Gap |
-| --- | --- | --- |
-| Candidate membership and type correctness | Kev, Nimble, Typed, Open-Jev | Type-correct semantic errors need paired tests |
-| Calibration and risk ranking | Typed, Kev, Nimble, Open-Jev, JEVal, Sys1Cal | Broad coverage, but ECE/KL/Brier formulas differ |
-| Invariance under equivalent wording | Typed paraphrase/common tasks, ordering and adversarial tests | No unified business-equivalence class or primary metric |
-| Fallback, abstain and unknown | JEVal, PFR, arithmetic refusal, Sys1Cal | Partial coverage; unknown is not a common structural output |
-| Selective escalation and self-knowledge | JEVal and selective-prediction studies | No cross-domain test of error-source identification |
-| Probability axioms and repeated judgments | Probability axiom battery and Probability Contracts | Small scale; no n-way decomposition protocol |
-| Rules written by business staff | No qualifying public task; moderation rule/precedent studies are closest | Author identity, editable versions and definition quality are absent |
-| Auditability | No public benchmark gives a model-level verdict | Needs task graph, evidence state, receipt and harness definitions |
-| Cost/latency per correct result | Scattered latency, caching and cascade reports | No common cost-per-correct protocol |
-| Chinese business rules and numeric/date decisions | Existing Chinese tasks and Kev date supplement only partially apply | No business-rule Chinese set or matched numeric-route comparison |
-
-The main missing artifacts are business-authored rules, equivalence classes, unknown/fallback, auditable intermediate state, joint cost/correctness evaluation, and Chinese business/numeric tasks. These must become frozen datasets and metrics before training claims are made.
-
-## Dimension 4 — our experiment route
-
-### Dataset coverage expansion (2026-11-01)
-
-The first public-evaluation contract covered six task families and 14 evaluation cells. That is too narrow for a broad Jev capability claim. The local inventory contains 24 directories, but this count includes version projections, result packages, overlapping sources and different modalities; it is not a count of independent datasets. The next coverage milestone expands the candidate task axis to 12 families in three batches: eight direct-test families (the existing six plus complex deterministic decisions and spatial decisions), three boundary/migration families (safety/guardrail, multilingual/behavior and web/action), and one separate multimodal family (vision/video typed decisions). The first metadata audit produced 16 new contract cells: 12 remain `needs_review` and 4 are `blocked`; none is authorized for inference. WebJev and OneJev have no native TEST, and Imajev has hidden labels plus failed release gates. No new candidate TEST samples have been read and no new inference or training has been authorized by this planning update. The detailed scope is in [`proposal/13-dataset-coverage-expansion-v2-2026-11-01.md`](../proposal/13-dataset-coverage-expansion-v2-2026-11-01.md).
-
-Coverage feedback revision (2026-11-02): the 12-family candidate plan was still too compressed. The next admission matrix expands to approximately 16–17 source/task families and 50+ native test panels, adding Jev-bench (22 native test configs), canonical and legacy DecisionBench as separate sources, and DecisionRobust image; existing Eikos heldout, Korean JEV, Respan Behavior, and DecisionRobust text candidates are promoted to separately scored native panels. Each panel remains split by source, task, formula, denominator, target and pairing; this does not amend the frozen 38-cell D1 reference matrix. The v3 plan is in [`proposal/15-dataset-coverage-expansion-v3-2026-11-02.md`](../proposal/15-dataset-coverage-expansion-v3-2026-11-02.md). Metadata-only review has authorized no new inference.
-
-The first v3 metadata audit is complete: four newly added entries are all `needs_review` (zero `ready_for_inference`, zero `blocked`). Jev-bench has confirmed source-name and release-hash correspondence with frozen Nimble panels (`massive`, `paws`, `civil_comments`), although its released TEST counts differ from the frozen subsamples; exact item identity still needs checking before independent generalization claims. Canonical DecisionBench, legacy DecisionBench and DecisionRobust image still require metric, source, input-interface and pairing reviews. No candidate TEST rows were read and no new inference was authorized.
-
-The engineering queue also needs a separate admission note. A chip-3 Instruct-K0 DEV successor has `EXIT=0`, `RELEASE` and `SUPERVISOR_DONE`, but its precheck remains `PENDING_ROOT_REVIEW` and its scientific acceptance is false. It is retained as a possible successor input, not as a published result. The latest watchdog snapshot reported no queued admissible successor and marked the NPU as free; the retained release snapshot specifically lists chips 1 and 3 as free. Historical stalled entries do not count as active work. The next safe action is CPU provenance/precheck review, followed by FIFO activation only after an admissible successor is signed.
-
-Resource snapshot revision (2026-11-02): the guarded resource adapter has since released chip 2 as well as chip 3. The authoritative allocation file now lists chips 2 and 3 as free; chips 0, 1, 4, 5, 6 and 7 remain owned by existing engineering runs. This is recorded in local `.local/reports/resource-and-admission-snapshot-20261102.json`. No manual allocation edit was made. Formal K1 v8 remains `NONAUTHORIZING_RESOURCE_BLOCKED`, and the four new dataset panels remain `ready_for_inference=0`, so neither free chip is used for unapproved TEST work.
-
-The CPU precheck repair found a real version-binding error: the previous source-verified v2 bundle was for `Qwen3.5-0.8B-Base`, while the chip-3 report is Instruct. The current validator correctly rejected that bundle. A new, separately owned v2 bundle for the Instruct report now passes the same pinned validator with exit 0 and `test_read=false`; it is accepted only as scoped CPU precheck evidence. Formal preparation, exact-plan review and activation remain open.
-
-A new formal K1 preparation generation is now drafted at `formal_k1_preparation_20261102_v8`. It binds the corrected Instruct v2 precheck and records seed2/seed3, but remains `NONAUTHORIZING_RESOURCE_BLOCKED`: CHIP-ALLOCATION currently shows chip1 owned by the formal DEV run and chip4 owned by the 4B engineering DEV run. No resource claim, NPU activation, training launch or TEST read was made. The draft awaits an exact-plan Astra review and a later live release/claim transaction.
-
-The bounded exact-plan review then returned `CHANGES_REQUIRED`: v8 has a stale allocation hash, names chips 1/4 although the live adapter now lists chips 2/3 free, omits the repaired C02 receipt binding, and lacks a complete exact training/recovery closure. A new preparation generation and a fresh independent review are required before any activation.
-
-### NxM direct-readout baseline
-
-D1 remains the current 38-cell reference scope; it is not expanded. Internal experiments will build a separate NxM product: N model sizes (first Qwen3.5-0.8B, then 2B, 4B and 9B) × M frozen tasks (Kev decision/transfer, Typed, JEVal and later gap datasets). Every cell uses the same harness, test lock, paired decision-level metrics and resource evidence; missing cells are `blocked`, never zero.
-
-Start with Qwen3.5-0.8B K0 untuned readout, then K1 LoRA. Seeds 2 and 3 are registered before any result is read. K1 dev gates and test lock are in `R3 training preregistration (local archive)`. K2 option-restricted loss is the fixed challenger. K4/RL and real-business integration are not started early.
-
-### Open learning/optimization methods and engineering base
-
-Use same-backbone, same-data, same-test-lock CE/LoRA as the first baseline. Then add one factor at a time: one-fact contrast data, option-restricted loss, ordinal/proper-scoring terms, temperature/prior calibration, distillation and menu optimization. Record per-chip throughput, memory, recovery, paired test gain and calibration change. The preflight passed three steps; formal training still requires a frozen code snapshot, real claim/release adapter, detached resumable containers and a throughput window of at least ten warmup-excluded steps over at least 60 seconds.
-
-### Business-gap datasets
-
-Turn the gaps into frozen tasks: business-authored rules, equivalent rewrites, unknown/fallback, evidence state and audit receipts, Chinese business rules, numeric/date intervals, and cost/escalation decisions. Each set needs train/dev/test, rule-family holdout, paired equivalence, typed candidates and explicit denominators. First report direct-readout test performance, then decide whether training is warranted. Real business samples and production integration remain out of scope.
-
-### Reinforcement learning and usable baselines
-
-RL is conditional. First establish SFT/LoRA, proper scoring, calibration and gap-dataset baselines. Start RL only when the reward depends on an auditable intermediate object or a scheduling decision:
-
-1. readout-side RL against CE/proper-scoring to test whether a single-pass readout gains anything;
-2. scheduling RL against a model-free deterministic controller, reporting cost, coverage and correctness together;
-3. decomposition RL only after intermediate-state tasks pass, with a KL anchor, a gold holdout and reward-gaming checks.
-
-Every RL result uses the same test split, decision-level paired protocol and cost definition as its baseline. A higher reward is not a business benefit claim.
-
-## Coordination status and next milestone
-
-- **Done:** D1 reference matrix and latest cumulative report; E39 legacy Kev CPU re-audit; bounded E40/E41 Open-Jev engineering diagnostics and guarded release; Q-host CPU contract; R3 three-step training preflight; asynchronous queue CPU regression tests.
-- **Open:** Open-Jev×JEVal numeric/memory admission; production FIFO adapter, ready manifest and watchdog deployment; formal K1 seed 2/3 training; post-training test-lock evaluation; business-gap datasets; RL baseline.
-- **Next order:** freeze the training code snapshot → complete the efficiency-window validation while the NPU queue keeps consuming work → launch K1 seeds 2/3 → score dev asynchronously and select → write `FINAL.json` → read test once → refresh this file and a new cumulative report.
-
-Remote collaboration should use this file. Historical experiment entries, raw reviews and milestone reports are local archival lookup only; they are intentionally absent from the remote wiki.
-
-Formal K1 DEV launch milestone — 2026-11-02: after remote execution-pin verification with `/usr/bin/python3.12 -P`, both Qwen3.5-0.8B K1 seeds were started as detached supervisors on host 175. Seed2 atomically claimed chip1 and seed3 claimed chip2; both retained containers are running with CLAIM, LAUNCH_SPEC, LAUNCH_RECEIPT and supervisor heartbeats. The execution pins are `0ddea06b...609832d` and `6dd1c429...12c1e9`; both verifier calls returned `ENGINEERING_EXECUTION_VERIFIED`. The plans mount DEV/calibration/Track-T only, keep `test_read=false` and `scientific_acceptance=false`, and do not read candidate TEST rows. Terminal truth remains the engineering exit, guarded RELEASE and supervisor completion markers. CPU selection/scoring and coverage-contract work continue asynchronously; the local milestone receipt is `.local/reports/formal-k1-dev-launch-20261102.json`.
-
-Monitoring correction — 2026-11-02: the global watchdog entry for v15 was using an obsolete parent watcher heartbeat and an old local-workspace script, so it falsely classified active DEV work as stalled. The actual seed-level scorer heartbeats and processes were live. A dedicated host-175 watchdog now scans the v15 root at depth 4, reads the seed result heartbeats, and polls every 600 seconds without an NPU probe or container restart. Its first digest reports `running`, two chips, about 11,962 tok/s/chip and no error signatures. This changes monitoring evidence only; TEST remains locked and scientific acceptance remains false.
+The terms “numerical admission”, “behavior DEV”, “same-TEST scientific acceptance” and “business gain” are separate states. Current work has reached numerical execution completion, but not behavior-DEV execution or training-gain acceptance.
