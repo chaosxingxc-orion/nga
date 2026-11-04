@@ -15,7 +15,7 @@ Execution status and dataset-admission progress are maintained in the Wiki. Fixe
 
 ## Large-candidate released TEST — local codebook protocol, 2026-11-04
 
-Fifteen cells independently reconstructed and diagnosed from all15,000 saved records. [Full metrics and evidence](REFERENCE-LARGE-CANDIDATE-INCREMENT-2026-11-04.json). Each cell uses1,000 released TEST rows, float32, HF32off, batch1, all77 or151 candidates, one forward; this local interface is not the original publisher endpoint. Other cells remain pending acceptance.
+Fifteen cells independently reconstructed and diagnosed from all15,000 saved records. [Full metrics and evidence](REFERENCE-LARGE-CANDIDATE-INCREMENT-2026-11-04.json). Each cell uses1,000 released TEST rows, float32, HF32off, batch1, all77/151/60/100 candidates for Banking77/CLINC150/MASSIVE/LEDGAR respectively, one forward; this local interface is not the original publisher endpoint. Other cells remain pending acceptance.
 
 | Task | Qwen3.5 Base | Correct/n | Accuracy | Macro-F1 | Balanced accuracy | Vector Brier | NLL (nats) | ECE15 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -26,9 +26,7 @@ Fifteen cells independently reconstructed and diagnosed from all15,000 saved rec
 | clinc150 | 2b | 8/1000 | 0.8% | 0.001112 | 0.007285 | 1.067507 | 7.023363 | 0.173660 |
 | banking77 | 9b | 424/1000 | 42.4% | 0.420573 | 0.417690 | 0.789818 | 2.931394 | 0.134384 |
 | clinc150 | 4b | 423/1000 | 42.3% | 0.506465 | 0.523983 | 0.753368 | 3.802889 | 0.100242 |
-
 | clinc150 | 9b | 387/1000 | 38.7% | 0.472384 | 0.479867 | 0.763236 | 3.674391 | 0.086193 |
-
 | massive | 08b | 3/1000 | 0.3% | 0.000100 | 0.017241 | 1.206643 | 5.983877 | 0.456181 |
 | massive | 2b | 3/1000 | 0.3% | 0.000100 | 0.017241 | 1.121948 | 5.988863 | 0.308167 |
 | massive | 4b | 459/1000 | 45.9% | 0.410654 | 0.450384 | 0.703730 | 2.630925 | 0.105414 |
