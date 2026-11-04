@@ -59,3 +59,37 @@ readiness only after required handlers/dependencies are active, bind readiness t
 one process generation, persist delivery intent before notifying, and test the
 real startup interval rather than only mocked successful calls. Keep wake
 delivery separate from work acceptance and completion.
+
+## Queue signal handling and progress
+
+`bev_successor_prepare_queue_v4.py` preserves the v3 preparation configuration
+schema and scientific/resource checks. It replaces Event-based signal wakeups
+with scalar handler flags and CPython's nonblocking wakeup pipe. The main loop
+uses select with the existing 600-second fallback. Deploy it only in a fresh,
+explicitly configured queue generation; existing pinned runs remain unchanged.
+
+A Python signal handler must not acquire a lock held by the interrupted main
+thread. The isolated reproducer demonstrates Event/Condition reentry deadlock;
+it does not establish the historical production stack. Readiness proves the
+handler is installed, while `PROGRESS.json` and heartbeat pass counters show
+whether work advances. Fresh heartbeats alone cannot rule out a stuck builder.
+SIGTERM waits for owned builders, so a builder that never exits still requires
+progress-age detection and identity-bound reconciliation.
+
+Verification: 51 tests in `python3 -B -m unittest
+tools.test_bev_successor_prepare_queue_v4`, plus an independent two-node fixture
+using actual binder/builder subprocesses and simulated Docker observations.
+The second node starts after its exact release and SIGUSR1; each builder executes
+once. These are preparation-controller checks, not NPU throughput or scientific
+admission. The component is reviewed; production migration is separate.
+
+Reusable operating rules:
+
+- Separate process liveness, dependency progress, readiness, execution and result
+  acceptance. Give each its own timestamp and terminal evidence.
+- Use event wakeups with fallback polling, and reconcile uncertain child ownership
+  before retrying; never infer a restart is safe from a missing observation alone.
+- Refill ready work by estimated chip-hours. Planned/prepared work cannot satisfy
+  a ready-stock target, and CPU result analysis must not block unrelated NPU jobs.
+- A working queue cannot compensate for incomplete adapters or admission. Track
+  preparation, review and launch latency independently to expose that bottleneck.
