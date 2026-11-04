@@ -53,6 +53,19 @@ The 2B complete-panel result is independently reconstructed: all46,320records, s
 
 Identity correction — 2026-11-04: earlier descriptions equating independent subagents with non-Astra reviewers are withdrawn. Frozen receipts retain their original wording; review scope and evidence, rather than an unverified model label, determine what was accepted.
 
+## BEV counterfactual TEST increment — native full-label, 2026-11-04
+
+Four fixed Qwen3.5 Base models completed the same public `counterfactual_15k/test` population: 2,386 rows and questions, no exclusion or truncation. Protocol: Transformers full-label fp32, batch1, HF32 off, one forward. This is an additional BEV panel, not a new independent source family or an amendment to the historical 36/38 matrix. Exact metrics and artifact pins: [REFERENCE-BEV-COUNTERFACTUAL-INCREMENT-2026-11-04.json](REFERENCE-BEV-COUNTERFACTUAL-INCREMENT-2026-11-04.json).
+
+| Model | Correct / n | Accuracy | Choice | Yes/no | Score |
+| --- | --- | --- | --- | --- | --- |
+| Qwen3.5-0.8B-Base | 1229/2386 | 51.508801% | 563/1180 | 499/804 | 167/402 |
+| Qwen3.5-2B-Base | 1538/2386 | 64.459346% | 721/1180 | 590/804 | 227/402 |
+| Qwen3.5-4B-Base | 2123/2386 | 88.977368% | 997/1180 | 752/804 | 374/402 |
+| Qwen3.5-9B-Base | 2173/2386 | 91.072925% | 1039/1180 | 764/804 | 370/402 |
+
+Independent reconstruction verified all 9,544 saved predictions, source/gold joins, selected-logit arithmetic, receipts and retained-container lifecycle; parent rehashed 19,201 unique evidence files. Published summary metrics match exactly. This accepts fixed-baseline result correctness, not named Astra review, candidate selection or training gains. The public data lacks usable pair IDs, so no paired consistency claim follows. Saved records retain selected label logits rather than the whole vocabulary; model forward values are supported by the previously admitted numerical runtime and provenance, not a new model rerun. Different BEV populations/protocols cannot be subtracted to claim improvement.
+
 ## Evidence and reading conventions
 
 - [REFERENCE-BASELINE-MATRIX-2026-10-31.json](REFERENCE-BASELINE-MATRIX-2026-10-31.json) — SHA256 `03459facf6f86a919e10d9a0acef413b89c5a5d4ffd232352260722b05d0266e`.

@@ -1,0 +1,222 @@
+{
+  "schema": "reference-bev-counterfactual-increment-v1",
+  "date_utc": "2026-11-04",
+  "dataset": "avbiswas/bev-decision",
+  "configuration": "counterfactual_15k",
+  "split": "test",
+  "source_rows": 2386,
+  "questions": 2386,
+  "protocol": "AnyJev-style Transformers full-label fp32 batch1 HF32off single-question",
+  "source_sha256": "233c7ae93f07808f5e31b335c600a72588237e7aaef7d83b91b0d48b007ae64b",
+  "accepted_scope": "independent full saved-selected-logit result reconstruction",
+  "reviewer_identity": "inherited Codex subagent; explicit named Astra review not established",
+  "paired_consistency_evaluated": false,
+  "training_benefit_claimed": false,
+  "historical_38_unit_matrix_unchanged": true,
+  "models": [
+    {
+      "model": "Qwen3.5-0.8B-Base",
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_counterfactual_08b_20261104_v5/output/cpu/1/summary.json",
+        "sha256": "a6c56fb2cf04107b2f3fb8bc81c621c85f11e684c7ec89391433ac602c780400"
+      },
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_counterfactual_08b_20261104_v5/PLAN.json",
+        "sha256": "18ab40190563f343df5e5aba9df10f25b4b9280e5bfb8d8181034062616b84da"
+      },
+      "metrics": {
+        "adaptive": "NOT_EVALUATED",
+        "attempt": 1,
+        "by_type": {
+          "choice": {
+            "accuracy": 0.47711864406779664,
+            "correct": 563,
+            "metric_origin": "NGA additive stratification",
+            "n": 1180
+          },
+          "score": {
+            "accuracy": 0.4154228855721393,
+            "correct": 167,
+            "metric_origin": "NGA additive stratification",
+            "n": 402
+          },
+          "yes_no": {
+            "accuracy": 0.6206467661691543,
+            "correct": 499,
+            "metric_origin": "NGA additive stratification",
+            "n": 804
+          }
+        },
+        "candidate_test_authority": false,
+        "engine": "Transformers full-label fp32 b1 HF32 off",
+        "model": "Qwen3.5-0.8B-Base fixed checkpoint",
+        "n": 2386,
+        "one_forward": {
+          "accuracy": 0.5150880134115675,
+          "correct": 1229
+        },
+        "plan_sha256": "18ab40190563f343df5e5aba9df10f25b4b9280e5bfb8d8181034062616b84da",
+        "schema": "native-config-panel-summary-v2",
+        "scientific_acceptance": false,
+        "scope": "public_fixed_base_test"
+      },
+      "independent_result": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_counterfactual_full_results_20261104_v1/08b-RESULT.json",
+        "sha256": "4c4835c27721c5d54b0e7463b316ace32c4128143612b4910d9419f9c7ea84ec"
+      }
+    },
+    {
+      "model": "Qwen3.5-2B-Base",
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_counterfactual_2b_20261104_v5/output/cpu/1/summary.json",
+        "sha256": "5655b0d4f04dbf0a3ebde1b40dcd86207245ef09317918991bcb77666323b04a"
+      },
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_counterfactual_2b_20261104_v5/PLAN.json",
+        "sha256": "5db36ac75a6f9f8d6bd44ab21d9e30f7036245cd473466cb53764199cd3f05fc"
+      },
+      "metrics": {
+        "adaptive": "NOT_EVALUATED",
+        "attempt": 1,
+        "by_type": {
+          "choice": {
+            "accuracy": 0.6110169491525423,
+            "correct": 721,
+            "metric_origin": "NGA additive stratification",
+            "n": 1180
+          },
+          "score": {
+            "accuracy": 0.5646766169154229,
+            "correct": 227,
+            "metric_origin": "NGA additive stratification",
+            "n": 402
+          },
+          "yes_no": {
+            "accuracy": 0.7338308457711443,
+            "correct": 590,
+            "metric_origin": "NGA additive stratification",
+            "n": 804
+          }
+        },
+        "candidate_test_authority": false,
+        "engine": "Transformers full-label fp32 b1 HF32 off",
+        "model": "Qwen3.5-2B-Base fixed checkpoint",
+        "n": 2386,
+        "one_forward": {
+          "accuracy": 0.644593461860855,
+          "correct": 1538
+        },
+        "plan_sha256": "5db36ac75a6f9f8d6bd44ab21d9e30f7036245cd473466cb53764199cd3f05fc",
+        "schema": "native-config-panel-summary-v2",
+        "scientific_acceptance": false,
+        "scope": "public_fixed_base_test"
+      },
+      "independent_result": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_counterfactual_full_results_20261104_v1/2b-RESULT.json",
+        "sha256": "50d5c43c9891d99c3c3f6f1b5cfef3d382a981c5b30a91f65d28828b5d187f4d"
+      }
+    },
+    {
+      "model": "Qwen3.5-4B-Base",
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_counterfactual_4b_20261104_v5/output/cpu/1/summary.json",
+        "sha256": "7845b0d6ca5f32dcda68f6ce2849cf98636626e1ff8bf3b07c01d052cbbd4fa6"
+      },
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_counterfactual_4b_20261104_v5/PLAN.json",
+        "sha256": "ab46018bf68866951702c01271123817cb6f4928348f5e87dbf8b185d4755a54"
+      },
+      "metrics": {
+        "adaptive": "NOT_EVALUATED",
+        "attempt": 1,
+        "by_type": {
+          "choice": {
+            "accuracy": 0.8449152542372881,
+            "correct": 997,
+            "metric_origin": "NGA additive stratification",
+            "n": 1180
+          },
+          "score": {
+            "accuracy": 0.9303482587064676,
+            "correct": 374,
+            "metric_origin": "NGA additive stratification",
+            "n": 402
+          },
+          "yes_no": {
+            "accuracy": 0.9353233830845771,
+            "correct": 752,
+            "metric_origin": "NGA additive stratification",
+            "n": 804
+          }
+        },
+        "candidate_test_authority": false,
+        "engine": "Transformers full-label fp32 b1 HF32 off",
+        "model": "Qwen3.5-4B-Base fixed checkpoint",
+        "n": 2386,
+        "one_forward": {
+          "accuracy": 0.8897736797988265,
+          "correct": 2123
+        },
+        "plan_sha256": "ab46018bf68866951702c01271123817cb6f4928348f5e87dbf8b185d4755a54",
+        "schema": "native-config-panel-summary-v2",
+        "scientific_acceptance": false,
+        "scope": "public_fixed_base_test"
+      },
+      "independent_result": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_counterfactual_full_results_20261104_v1/4b-RESULT.json",
+        "sha256": "682315e5f1ccc247b9e84ddc98321992cef0bc5f6be84bdc195686baf7814656"
+      }
+    },
+    {
+      "model": "Qwen3.5-9B-Base",
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_counterfactual_9b_20261104_v5/output/cpu/1/summary.json",
+        "sha256": "8942bd826e22746ad7369fd0edbbdd0efcde3fe94949b8219940466a508a1fb3"
+      },
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_counterfactual_9b_20261104_v5/PLAN.json",
+        "sha256": "5ef6b148f806b5b9b0a13c1a5167cbc86a2c067625f3a7b9a6fc76a4f237e9b3"
+      },
+      "metrics": {
+        "adaptive": "NOT_EVALUATED",
+        "attempt": 1,
+        "by_type": {
+          "choice": {
+            "accuracy": 0.8805084745762712,
+            "correct": 1039,
+            "metric_origin": "NGA additive stratification",
+            "n": 1180
+          },
+          "score": {
+            "accuracy": 0.9203980099502488,
+            "correct": 370,
+            "metric_origin": "NGA additive stratification",
+            "n": 402
+          },
+          "yes_no": {
+            "accuracy": 0.9502487562189055,
+            "correct": 764,
+            "metric_origin": "NGA additive stratification",
+            "n": 804
+          }
+        },
+        "candidate_test_authority": false,
+        "engine": "Transformers full-label fp32 b1 HF32 off",
+        "model": "Qwen3.5-9B-Base fixed checkpoint",
+        "n": 2386,
+        "one_forward": {
+          "accuracy": 0.9107292539815591,
+          "correct": 2173
+        },
+        "plan_sha256": "5ef6b148f806b5b9b0a13c1a5167cbc86a2c067625f3a7b9a6fc76a4f237e9b3",
+        "schema": "native-config-panel-summary-v2",
+        "scientific_acceptance": false,
+        "scope": "public_fixed_base_test"
+      },
+      "independent_result": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_counterfactual_full_results_20261104_v1/9b-RESULT.json",
+        "sha256": "1049467bf7e3ce90817011fb0a5408ac8ee84409c2c94da588c5c6373e55ae65"
+      }
+    }
+  ]
+}
