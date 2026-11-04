@@ -388,3 +388,17 @@ The final two1,000-row released TEST cells passed full independent saved-result 
 | Qwen3.5-9B-Base | 862/1000 =86.2% | 503/628 =80.095541% | 359/372 =96.505376% |
 
 All four sizes now have accepted BoolQ local full-label results.9B improves both class recalls versus4B in this fixed comparison; statistical significance and training treatment effects are not established. Released-subset provenance, original hidden-TEST and Jevify endpoint limitations remain unchanged.
+
+## SMS Spam / MNLI released TEST increment — 2026-11-04
+
+Four Qwen3.5 Base sizes, existing local full-label fp32 protocol. All 7,200 predictions were independently reconstructed from source/request/gold, saved selected logits and lifecycle receipts; parent rehashed all 14,662 evidence files. [Exact results and limits](REFERENCE-SMS-MNLI-INCREMENT-2026-11-04.json).
+
+| Panel / metric | 0.8B Base | 2B Base | 4B Base | 9B Base |
+| --- | ---: | ---: | ---: | ---: |
+| SMS accuracy (n=800) | 85.5% | 74.75% | 94.375% | 96.375% |
+| SMS spam recall (n=115) | 2/115 | 99/115 | 80/115 | 91/115 |
+| MNLI accuracy (n=1000) | 35.9% | 64.2% | 78.5% | 81.2% |
+
+SMS always-ham is 85.625%; MNLI always-entailment is 36.0%, both descriptive TEST-population constants. MNLI0.8B predicts entailment999/1000 with zero neutral/contradiction recall. All1000 selected-logit vectors differ; full mapping and arithmetic reconstruction rules out an aggregate scoring error or duplicated identical output, but does not identify whether checkpoint or prompt causes the collapse. SMS0.8B spam recall is only2/115; aggregate accuracy alone is misleading.
+
+These are Jev-bench derived-release TEST subsets, not established upstream hidden TEST or Jevify endpoint reproduction. SMS retains13 excess duplicates and79/14 exact train/validation matches; MNLI has no exact release overlap. No independent model-forward/full-vocabulary replay, clean training generalization, significance or training gain is claimed. Historical36/38 coverage is unchanged.

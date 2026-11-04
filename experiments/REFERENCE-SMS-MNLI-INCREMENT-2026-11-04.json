@@ -1,0 +1,818 @@
+{
+  "scope": "Fixed Qwen3.5 Base derived-release TEST; not training gain or global NxM",
+  "source": "Praveenrajus/jev-bench",
+  "protocol": "existing local full-label fp32; selected-logit reconstruction, not new forward",
+  "accepted_results": [
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "Yes": {
+          "accuracy": 0.14375,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "No": {
+          "accuracy": 0.85625,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "1": 685,
+          "0": 115
+        },
+        "predicted": {
+          "1": 795,
+          "0": 5
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 79,
+          "test_request_matches": 79
+        },
+        "validation": {
+          "test_state_matches": 14,
+          "test_request_matches": 14
+        }
+      },
+      "job": "sms_spam-08b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 800,
+        "accuracy": 0.855,
+        "correct": 684
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": 0.855,
+          "correct": 684,
+          "metric_origin": "NGA additive stratification",
+          "n": 800
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 800,
+      "full_population_rebuilt": 800,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "2bc756a324b67efd736274485107dea1aa4c527fcc24e6e75fbb28ff87b01c0e",
+      "plan_sha256": "670efc8945fc42f99678084d2d87cd5fd6ddec570940cfa7980656c4eb3e6df8",
+      "source_sha256": "ddefd0bb8155042a7a41b0cd502816a246caba333035b5ba294cf0ba116455a9",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "duplicate_excess": 13,
+      "class_index_order": [
+        "Yes",
+        "No"
+      ],
+      "by_gold_class": {
+        "Yes": {
+          "n": 115,
+          "correct": 2,
+          "accuracy": 0.017391304347826087
+        },
+        "No": {
+          "n": 685,
+          "correct": 682,
+          "accuracy": 0.9956204379562044
+        }
+      },
+      "original_source_sha256": "ed8bfc45e29e5b128cb087fde72366c05ea2ac20b61c8cee150cca4bd0875a94"
+    },
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "Yes": {
+          "accuracy": 0.14375,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "No": {
+          "accuracy": 0.85625,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "1": 685,
+          "0": 115
+        },
+        "predicted": {
+          "1": 515,
+          "0": 285
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 79,
+          "test_request_matches": 79
+        },
+        "validation": {
+          "test_state_matches": 14,
+          "test_request_matches": 14
+        }
+      },
+      "job": "sms_spam-2b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 800,
+        "accuracy": 0.7475,
+        "correct": 598
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": 0.7475,
+          "correct": 598,
+          "metric_origin": "NGA additive stratification",
+          "n": 800
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 800,
+      "full_population_rebuilt": 800,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "89e1cae6b9bd26b413a85c21ac057304a1b7a9266b968f47f7b47ad2f4baf28c",
+      "plan_sha256": "01a9b3651b189814443b9ac13e3bcbe2f9cac158f9ce4b13fdab79a1315a7943",
+      "source_sha256": "ddefd0bb8155042a7a41b0cd502816a246caba333035b5ba294cf0ba116455a9",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "duplicate_excess": 13,
+      "class_index_order": [
+        "Yes",
+        "No"
+      ],
+      "by_gold_class": {
+        "Yes": {
+          "n": 115,
+          "correct": 99,
+          "accuracy": 0.8608695652173913
+        },
+        "No": {
+          "n": 685,
+          "correct": 499,
+          "accuracy": 0.7284671532846715
+        }
+      },
+      "original_source_sha256": "ed8bfc45e29e5b128cb087fde72366c05ea2ac20b61c8cee150cca4bd0875a94"
+    },
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "Yes": {
+          "accuracy": 0.14375,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "No": {
+          "accuracy": 0.85625,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "1": 685,
+          "0": 115
+        },
+        "predicted": {
+          "1": 710,
+          "0": 90
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 79,
+          "test_request_matches": 79
+        },
+        "validation": {
+          "test_state_matches": 14,
+          "test_request_matches": 14
+        }
+      },
+      "job": "sms_spam-4b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 800,
+        "accuracy": 0.94375,
+        "correct": 755
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": 0.94375,
+          "correct": 755,
+          "metric_origin": "NGA additive stratification",
+          "n": 800
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 800,
+      "full_population_rebuilt": 800,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "63baeb0ba4246a32a7086e2434325683debab5e26d62c28c0f250e776d62bfd7",
+      "plan_sha256": "69c904fbd4223d7c95b9f9844122611420036152c8bdff15bc536131b90d76f1",
+      "source_sha256": "ddefd0bb8155042a7a41b0cd502816a246caba333035b5ba294cf0ba116455a9",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "duplicate_excess": 13,
+      "class_index_order": [
+        "Yes",
+        "No"
+      ],
+      "by_gold_class": {
+        "Yes": {
+          "n": 115,
+          "correct": 80,
+          "accuracy": 0.6956521739130435
+        },
+        "No": {
+          "n": 685,
+          "correct": 675,
+          "accuracy": 0.9854014598540146
+        }
+      },
+      "original_source_sha256": "ed8bfc45e29e5b128cb087fde72366c05ea2ac20b61c8cee150cca4bd0875a94"
+    },
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "Yes": {
+          "accuracy": 0.14375,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "No": {
+          "accuracy": 0.85625,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "1": 685,
+          "0": 115
+        },
+        "predicted": {
+          "1": 704,
+          "0": 96
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 79,
+          "test_request_matches": 79
+        },
+        "validation": {
+          "test_state_matches": 14,
+          "test_request_matches": 14
+        }
+      },
+      "job": "sms_spam-9b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 800,
+        "accuracy": 0.96375,
+        "correct": 771
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": 0.96375,
+          "correct": 771,
+          "metric_origin": "NGA additive stratification",
+          "n": 800
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 800,
+      "full_population_rebuilt": 800,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "e6f599a2679aa012b3bb48d4874657e89a269230ebb036371fc946699560a877",
+      "plan_sha256": "fa45b9e83d7bda31b6d2c676fd83563e89204d5cf89fefc97b155025dba1817e",
+      "source_sha256": "ddefd0bb8155042a7a41b0cd502816a246caba333035b5ba294cf0ba116455a9",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "duplicate_excess": 13,
+      "class_index_order": [
+        "Yes",
+        "No"
+      ],
+      "by_gold_class": {
+        "Yes": {
+          "n": 115,
+          "correct": 91,
+          "accuracy": 0.7913043478260869
+        },
+        "No": {
+          "n": 685,
+          "correct": 680,
+          "accuracy": 0.9927007299270073
+        }
+      },
+      "original_source_sha256": "ed8bfc45e29e5b128cb087fde72366c05ea2ac20b61c8cee150cca4bd0875a94"
+    },
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "The hypothesis is definitely true given the premise.": {
+          "accuracy": 0.36,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "The hypothesis might be true; the premise does not settle it.": {
+          "accuracy": 0.328,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "The hypothesis is definitely false given the premise.": {
+          "accuracy": 0.312,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "1": 328,
+          "2": 312,
+          "0": 360
+        },
+        "predicted": {
+          "0": 999,
+          "1": 1
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        }
+      },
+      "job": "mnli-08b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.359,
+        "correct": 359
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": 0.359,
+          "correct": 359,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "88d5e8f54c7ae56c9113af1be9177938f2840756e216c01a578c5a39bf7009bf",
+      "plan_sha256": "db9185c160cf446a5c9c963f82969429df5be795926aff4f81247790518ceaac",
+      "source_sha256": "a943c808604511d5eb4b1357f37b147a3c0ecaa86c0a582211ed204a7dbdcddd",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [
+        "class_The hypothesis might be true; the premise does not settle it.",
+        "class_The hypothesis is definitely false given the premise."
+      ],
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "The hypothesis is definitely true given the premise.",
+        "The hypothesis might be true; the premise does not settle it.",
+        "The hypothesis is definitely false given the premise."
+      ],
+      "by_gold_class": {
+        "The hypothesis is definitely true given the premise.": {
+          "n": 360,
+          "correct": 359,
+          "accuracy": 0.9972222222222222
+        },
+        "The hypothesis might be true; the premise does not settle it.": {
+          "n": 328,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "The hypothesis is definitely false given the premise.": {
+          "n": 312,
+          "correct": 0,
+          "accuracy": 0.0
+        }
+      },
+      "original_source_sha256": "f0d062d261fc024145ab0d67acf7cec5e06002bf9bf1b2299cfeb374aa7e8de7"
+    },
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "The hypothesis is definitely true given the premise.": {
+          "accuracy": 0.36,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "The hypothesis might be true; the premise does not settle it.": {
+          "accuracy": 0.328,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "The hypothesis is definitely false given the premise.": {
+          "accuracy": 0.312,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "1": 328,
+          "2": 312,
+          "0": 360
+        },
+        "predicted": {
+          "2": 409,
+          "1": 80,
+          "0": 511
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        }
+      },
+      "job": "mnli-2b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.642,
+        "correct": 642
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": 0.642,
+          "correct": 642,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "379e35d9c3725ed17846887a55c0f48e46872ebbee9885cc76a9c7bd1c99b19b",
+      "plan_sha256": "33a154418475d097d9a4f0e8e588e2e57c00dd201a99fe1628edb2600c43a58f",
+      "source_sha256": "a943c808604511d5eb4b1357f37b147a3c0ecaa86c0a582211ed204a7dbdcddd",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "The hypothesis is definitely true given the premise.",
+        "The hypothesis might be true; the premise does not settle it.",
+        "The hypothesis is definitely false given the premise."
+      ],
+      "by_gold_class": {
+        "The hypothesis is definitely true given the premise.": {
+          "n": 360,
+          "correct": 326,
+          "accuracy": 0.9055555555555556
+        },
+        "The hypothesis might be true; the premise does not settle it.": {
+          "n": 328,
+          "correct": 44,
+          "accuracy": 0.13414634146341464
+        },
+        "The hypothesis is definitely false given the premise.": {
+          "n": 312,
+          "correct": 272,
+          "accuracy": 0.8717948717948718
+        }
+      },
+      "original_source_sha256": "f0d062d261fc024145ab0d67acf7cec5e06002bf9bf1b2299cfeb374aa7e8de7"
+    },
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "The hypothesis is definitely true given the premise.": {
+          "accuracy": 0.36,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "The hypothesis might be true; the premise does not settle it.": {
+          "accuracy": 0.328,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "The hypothesis is definitely false given the premise.": {
+          "accuracy": 0.312,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "1": 328,
+          "2": 312,
+          "0": 360
+        },
+        "predicted": {
+          "1": 450,
+          "2": 301,
+          "0": 249
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        }
+      },
+      "job": "mnli-4b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.785,
+        "correct": 785
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": 0.785,
+          "correct": 785,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "d9010bc129b992d0877d6e851e42de92ecde20d4c29ea1116b206b2ea7bac374",
+      "plan_sha256": "b82b53220944abff57ab227e186d1b4bc8c235726d0e88fc89c8491ee4e10fc6",
+      "source_sha256": "a943c808604511d5eb4b1357f37b147a3c0ecaa86c0a582211ed204a7dbdcddd",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "The hypothesis is definitely true given the premise.",
+        "The hypothesis might be true; the premise does not settle it.",
+        "The hypothesis is definitely false given the premise."
+      ],
+      "by_gold_class": {
+        "The hypothesis is definitely true given the premise.": {
+          "n": 360,
+          "correct": 235,
+          "accuracy": 0.6527777777777778
+        },
+        "The hypothesis might be true; the premise does not settle it.": {
+          "n": 328,
+          "correct": 284,
+          "accuracy": 0.8658536585365854
+        },
+        "The hypothesis is definitely false given the premise.": {
+          "n": 312,
+          "correct": 266,
+          "accuracy": 0.8525641025641025
+        }
+      },
+      "original_source_sha256": "f0d062d261fc024145ab0d67acf7cec5e06002bf9bf1b2299cfeb374aa7e8de7"
+    },
+    {
+      "ordinal_metrics": null,
+      "constant_diagnostic": {
+        "The hypothesis is definitely true given the premise.": {
+          "accuracy": 0.36,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "The hypothesis might be true; the premise does not settle it.": {
+          "accuracy": 0.328,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        },
+        "The hypothesis is definitely false given the premise.": {
+          "accuracy": 0.312,
+          "scope": "descriptive TEST-population constant; not learned held-out predictor"
+        }
+      },
+      "prediction_distribution": {
+        "gold": {
+          "1": 328,
+          "2": 312,
+          "0": 360
+        },
+        "predicted": {
+          "1": 234,
+          "2": 401,
+          "0": 365
+        }
+      },
+      "within_release_test_state_overlap": {
+        "train": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        },
+        "validation": {
+          "test_state_matches": 0,
+          "test_request_matches": 0
+        }
+      },
+      "job": "mnli-9b",
+      "verdict": "PASS_FULL_RESULT_REBUILD",
+      "metrics": {
+        "n": 1000,
+        "accuracy": 0.812,
+        "correct": 812
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": 0.812,
+          "correct": 812,
+          "metric_origin": "NGA additive stratification",
+          "n": 1000
+        },
+        "score": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        },
+        "yes_no": {
+          "accuracy": null,
+          "correct": 0,
+          "metric_origin": "NGA additive stratification",
+          "n": 0
+        }
+      },
+      "by_workflow": null,
+      "source_rows": 1000,
+      "full_population_rebuilt": 1000,
+      "physical_container_exit_verified": true,
+      "summary_sha256": "4308ebea6a5dd030836f9efe3e6f0840beea1e336afbad00342a7f12a977920e",
+      "plan_sha256": "a451759dac6d61c5fc6a075263f8cbfd84d7aaa43087558369d1bdf1ac737187",
+      "source_sha256": "a943c808604511d5eb4b1357f37b147a3c0ecaa86c0a582211ed204a7dbdcddd",
+      "full_vocabulary_logits_persisted": false,
+      "model_forward_reexecuted": false,
+      "training_benefit_claimed": false,
+      "candidate_test_authority": false,
+      "named_astra_review": false,
+      "inference_equivalent_to_published_endpoint": false,
+      "suspicious_success_flags": [],
+      "duplicate_excess": 0,
+      "class_index_order": [
+        "The hypothesis is definitely true given the premise.",
+        "The hypothesis might be true; the premise does not settle it.",
+        "The hypothesis is definitely false given the premise."
+      ],
+      "by_gold_class": {
+        "The hypothesis is definitely true given the premise.": {
+          "n": 360,
+          "correct": 315,
+          "accuracy": 0.875
+        },
+        "The hypothesis might be true; the premise does not settle it.": {
+          "n": 328,
+          "correct": 198,
+          "accuracy": 0.6036585365853658
+        },
+        "The hypothesis is definitely false given the premise.": {
+          "n": 312,
+          "correct": 299,
+          "accuracy": 0.9583333333333334
+        }
+      },
+      "original_source_sha256": "f0d062d261fc024145ab0d67acf7cec5e06002bf9bf1b2299cfeb374aa7e8de7"
+    }
+  ],
+  "suspicious_success_flags": [
+    {
+      "job": "mnli-08b",
+      "flag": "class_The hypothesis might be true; the premise does not settle it."
+    },
+    {
+      "job": "mnli-08b",
+      "flag": "class_The hypothesis is definitely false given the premise."
+    }
+  ],
+  "independent_acceptance": {
+    "path": "/home/xingchao/workspace/nga/.local/reviews/sms-mnli-result-audit-20261104-v1/ACCEPTANCE.json",
+    "sha256": "0efc525d07196b974e3e93cefc8863ba4af475a579c56cf42347e914fce752e0",
+    "evidence_files_rehashed_by_parent": 14662
+  },
+  "limits": [
+    "Original upstream split lineage and Jevify endpoint equivalence unestablished",
+    "SMS retains 13 excess duplicates and 79 train / 14 validation exact request matches",
+    "MNLI no exact release train/validation request matches, not a pretraining-disjoint claim"
+  ],
+  "diagnosis": {
+    "mnli_08b": "999 entailment, 1 neutral, 0 contradiction predictions; 1000 distinct selected-logit vectors; zero recall for neutral and contradiction",
+    "sms_08b": "spam recall 2/115; 795/800 No predictions; 787 unique logit vectors; 13 duplicates retained",
+    "causal_attribution": "Saved-output and arithmetic checks passed; prompt versus checkpoint cause requires separate non-TEST probe"
+  }
+}
