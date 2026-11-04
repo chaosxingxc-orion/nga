@@ -8,10 +8,26 @@ These are reference inference results. They do not establish an NGA training gai
 
 Coverage correction — 2026-11-02: the 38 units above are model × dataset units, not 38 independent datasets or a complete NxM. The latest v9 metadata audit covers 12 expansion sources, all `needs_review`, with zero newly admitted panels in that audit. Previous approximate source/panel targets are superseded as current coverage counts; source identity, native TEST, metric denominator and overlap must be established per panel. See the [current coverage plan](../proposal/24-dataset-coverage-expansion-v10-20261102.md) and [GitHub Wiki coverage conclusions](https://github.com/chaosxingxc-orion/nga/wiki/Dataset-Coverage). No new result is introduced by this correction.
 
-Current coverage snapshot (2026-11-04 16:28 UTC): **92 inferred/scored and parent-accepted cells across 23 panels/protocols** in the recent four-size Qwen extension. The inventoried 28-panel × 4-size subset contains 112 cells: 92 accepted and 20 not yet inferred. Within its Jev-bench 22-panel subset, 68/88 cells are accepted; Banking77, CLINC150/OOS, MASSIVE, LEDGAR and GoEmotions account for the remaining 20. These are partial inventories, not the global Cartesian denominator; historical 36/38 is a separate irregular registry. Accepted cells may still lack publisher-native or additional evaluation endpoints. Coverage correction replaces the stale page-top 72-cell snapshot without changing prior measurements.
+Current coverage snapshot (2026-11-04): **97 inferred/scored and parent-accepted cells** in the recent four-size Qwen extension (23 complete panels plus5 cells in two additional panels). The inventoried28-panel ×4-size subset contains112 cells:97 accepted and15 not yet accepted, including running and reconstructed results. Within its Jev-bench22-panel subset,73/88 are accepted. These are partial inventories, not the global Cartesian denominator; historical36/38 remains a separate registry. Published counts preserve previous readings; newly accepted local-codebook cells are separated below from publisher-native protocols.
 
 Execution status and dataset-admission progress are maintained in the Wiki. Fixed reference-model TEST evaluation can proceed per admitted panel; final evaluation of newly trained candidates follows DEV selection and a frozen TEST plan. Training progress is not a reference TEST metric.
 
+
+## Large-candidate released TEST — local codebook protocol, 2026-11-04
+
+Five cells independently reconstructed and diagnosed from all5,000 saved records. [Full metrics and evidence](REFERENCE-LARGE-CANDIDATE-INCREMENT-2026-11-04.json). Each cell uses1,000 released TEST rows, float32, HF32off, batch1, all77 or151 candidates, one forward; this local interface is not the original publisher endpoint. Other cells remain pending acceptance.
+
+| Task | Qwen3.5 Base | Correct/n | Accuracy | Macro-F1 | Balanced accuracy | Vector Brier | NLL (nats) | ECE15 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| banking77 | 08b | 22/1000 | 2.2% | 0.009851 | 0.023704 | 1.045725 | 5.954751 | 0.161240 |
+| banking77 | 2b | 12/1000 | 1.2% | 0.000310 | 0.012987 | 1.068676 | 5.918805 | 0.220709 |
+| banking77 | 4b | 440/1000 | 44.0% | 0.418439 | 0.439718 | 0.778950 | 3.274129 | 0.131077 |
+| clinc150 | 08b | 7/1000 | 0.7% | 0.000350 | 0.009461 | 1.084700 | 7.528431 | 0.187764 |
+| clinc150 | 2b | 8/1000 | 0.8% | 0.001112 | 0.007285 | 1.067507 | 7.023363 | 0.173660 |
+
+Macro-F1 averages all registered classes; balanced accuracy averages classes with TEST support. All classes have support here. Banking support is6–20 per class; CLINC1–187. Small class estimates require caution. No threshold or temperature was fitted onTEST.
+
+Banking0.8B/2B predict only5/2 of77 classes; codeAA (position27) receives941/992 predictions. CLINC0.8B/2B predict4/3 of151 classes; O/AA receive853/991 predictions. Both CLINC models never predict OOS (187 gold examples, recall0); the descriptive constant-OOS control is18.7%, compared with0.7%/0.8%. Each cell has1,000 distinct probability and logit vectors. Complete source, prompt, tokenizer, candidate mapping and saved softmax checks found no index or scoring defect explaining these results. Code/position/semantic effects are confounded; no causal bias claim is made. These are fixed-interface baselines, not trained gains.
 
 ## BEV public TEST increment — local protocol, updated 2026-11-03
 
