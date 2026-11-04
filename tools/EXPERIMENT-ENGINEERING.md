@@ -61,6 +61,20 @@ Saved-readout CPU replay does not measure NPU inference speed or training gains.
   and independent review. Component tests do not demonstrate a deployed final run.
 - `r3_monitor_registry.py` and `watchdog.py`: scripted lifecycle, progress and log
   summaries. A stage-local count is not an experiment-wide completion percentage.
+- `bev_successor_prepare_queue_v3.py`: prepare-only successor controller with
+  SIGUSR1 wakeup and a 600-second fallback. It verifies the predecessor's durable
+  release and physical generation without waiting for CPU result acceptance.
+  Post-spawn publication failures clean up owned builders; uncertain cleanup writes
+  an explicit reconciliation requirement. Existing node directories are never
+  automatically retried. It does not review or launch NPU experiments, and a wakeup
+  receiver alone does not provide a production release-event sender. Version 1 is
+  retained for contract regression tests; use version 3 for new configurations.
+
+The successor suite is `python3 -B -m unittest
+tools.test_bev_successor_prepare_queue_v1 tools.test_bev_successor_prepare_queue_v3`.
+Its 45 test executions include inherited repetitions, not 45 distinct behaviors.
+Lifecycle tests establish cleanup and contract behavior, not a measured utilization
+improvement or acceptance of any specific experiment configuration.
 
 Relevant regression suites are `test_bev_native_cpu_parallel_v1.py` and
 `test_r3_final_async_*.py`. Current measurements and acceptance scope belong in the
