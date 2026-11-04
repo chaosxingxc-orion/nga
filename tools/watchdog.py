@@ -7,6 +7,7 @@ report.json, and writes a small, bounded digest.json + digest.md. See tools/READ
 
 Run with:  python3 -P tools/watchdog.py [--root DIR ...] [--out-dir DIR] [--watch --interval 600]
 """
+import copy
 import argparse
 import calendar
 import errno
@@ -45,6 +46,7 @@ TS_RE = re.compile(r"(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(?:[.,]\d
 def build_parser():
     p = argparse.ArgumentParser(prog="watchdog.py", description=__doc__.split("\n\n")[0])
     a = p.add_argument
+    a("--run-manifest", help="JSON list of explicit unique phase ids, paths and marker paths; bypass recursive discovery")
     a("--root", action="append", help="run root to scan (repeatable); default %s" % DEFAULT_ROOT)
     a("--out-dir", help="where digest.json/digest.md go; default <first root>/_watchdog")
     a("--stall-seconds", type=float, default=None,
@@ -1155,6 +1157,34 @@ def is_run_dir(d, entries, depth, cfg):
 def discover(cfg, queued=None):
     """Runs below the roots. `queued`, when a list, receives the ids of directories that hold a queued-file (--queued-names) but no
     terminal marker and no heartbeat file: work that has been queued and has not started."""
+    if cfg.run_manifest:
+        with open(cfg.run_manifest) as f:
+            entries = json.load(f)
+        if not isinstance(entries, list) or not entries:
+            raise ValueError("run manifest must be a nonempty list")
+        ids, paths, runs = set(), set(), []
+        for row in entries:
+            if not isinstance(row, dict) or set(row) != {"id", "path", "marker", "log_globs"}:
+                raise ValueError("invalid phase manifest row")
+            rid, path, marker = row["id"], row["path"], row["marker"]
+            if not isinstance(rid, str) or not rid or rid in ids:
+                raise ValueError("duplicate or empty phase id")
+            if not isinstance(path, str) or not os.path.isabs(path) or os.path.normpath(path) != path or path in paths:
+                raise ValueError("invalid or duplicate phase path")
+            if not isinstance(marker, str) or not os.path.isabs(marker) or os.path.commonpath([path, marker]) != path or os.path.normpath(marker) != marker:
+                raise ValueError("phase marker outside its path")
+            if not isinstance(row["log_globs"], list) or not all(isinstance(x,str) and not os.path.isabs(x) and ".." not in x.split("/") for x in row["log_globs"]):
+                raise ValueError("invalid phase log globs")
+            ids.add(rid); paths.add(path)
+            phase_cfg = copy.copy(cfg)
+            phase_cfg.globs = row["log_globs"]
+            observed = (os.path.isfile(marker) or os.path.isfile(os.path.join(path, cfg.heartbeat_name))
+                        or os.path.isfile(os.path.join(path, JSON_HEARTBEAT)) or bool(run_logs(path, phase_cfg)))
+            if not os.path.isdir(path) or not observed:
+                if queued is not None: queued.append(rid)
+                continue
+            runs.append(dict(id=rid,path=path,root=path,id_prefix="",phase_marker=marker,phase_log_globs=row["log_globs"]))
+        return runs
     runs, seen = [], set()
     roots = [os.path.abspath(r) for r in cfg.root]
     for root in roots:
@@ -1312,13 +1342,13 @@ def read_marker(d, cfg):
                           "utc": iso(mtime), "ts": mtime, "empty": False,
                           "problem": "marker unreadable (%s)" % str(e)[:120], "review": None})
             continue
-        rc, jutc, prob = parse_marker_content(content, name) if len(content) <= MARKER_MAX_BYTES else (
+        rc, jutc, prob = parse_marker_content(content, os.path.basename(name)) if len(content) <= MARKER_MAX_BYTES else (
             None, None, "terminal marker exceeds size limit")
         um = TS_RE.search(jutc or content)
         ts = parse_ts(um) if um else None
         found.append({"name": name, "path": p, "exit_code": rc, "utc": iso(ts) if ts else iso(mtime),
                       "ts": ts if ts else mtime, "empty": not content.strip(), "problem": prob,
-                      "review": marker_review(content, name, p) if prob is None else None})
+                      "review": marker_review(content, os.path.basename(name), p) if prob is None else None})
     if not found:
         return None, None
     rcs = {m["exit_code"] for m in found if m["exit_code"] is not None}
@@ -2783,16 +2813,21 @@ def build_digest(cfg, states, now=None, sched=None):
     slack = 0.1 * cfg.interval if sched is not None else 0.0   # tick jitter must not push a due run one whole tick late
     runs, seen, queued = [], set(), []
     for r in discover(cfg, queued):
+        run_cfg = cfg
+        if "phase_marker" in r:
+            run_cfg = copy.copy(cfg)
+            run_cfg.markers = [r["phase_marker"]]
+            run_cfg.globs = r["phase_log_globs"]
         seen.add(r["path"])
         ent = sched.get(r["path"]) if sched is not None else None
-        if ent is not None and now + slack < ent["next"] and marker_set(r["path"], cfg) <= ent["markers"]:
-            res = refresh_cached(dict(ent["res"]), r["path"], cfg, now)
+        if ent is not None and now + slack < ent["next"] and marker_set(r["path"], run_cfg) <= ent["markers"]:
+            res = refresh_cached(dict(ent["res"]), r["path"], run_cfg, now)
         else:
-            res = evaluate_run(r, cfg, states, now, None if sched is None else (ent["res"] if ent else {}))
+            res = evaluate_run(r, run_cfg, states, now, None if sched is None else (ent["res"] if ent else {}))
             every = cfg.tiers["fast"]["recheck_s"] if res["state"] in ("failed", "stalled") else res["tier"]["recheck_s"]
             res["watch"] = {"last_eval_utc": iso(now), "next_eval_utc": iso(now + every), "recheck_s": every}
             if sched is not None:
-                sched[r["path"]] = {"res": res, "next": now + every, "markers": marker_set(r["path"], cfg)}
+                sched[r["path"]] = {"res": res, "next": now + every, "markers": marker_set(r["path"], run_cfg)}
         runs.append(res)
     if sched is not None:
         for k in [k for k in sched if k not in seen]:
