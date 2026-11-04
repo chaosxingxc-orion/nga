@@ -76,3 +76,5 @@ This first increment locks the trigger interface for one existing inference
 contract. Config-driven package preparation, CPU scoring, multi-task queues and
 report publication remain explicit functional backlog, rather than claimed
 features. Performance tuning of the wrapper follows functional integration.
+
+Reusable reliability and efficiency acceptance criteria: [Recovery and efficiency contract](NFR-RECOVERY-CONTRACT.md). This records requirements and known gaps, not a claim of complete deployment.
