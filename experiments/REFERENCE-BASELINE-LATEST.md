@@ -294,3 +294,15 @@ Two fixed Qwen3.5 Base models completed the same 400 states / 2,000 public TEST 
 | Qwen3.5-2B-Base | 920/2000 | 46.0% | 0.489223254 | 0.247655881 | 0.123971923 |
 
 Accuracy, KL, Brier and ECE10 reproduce publisher formulas, including original gold mass and native predicted normalization and ECE accumulation order. Inference uses one full-label forward per question; it is **not** the publisher five-question endpoint. Formula agreement does not establish inference-protocol equivalence. Overall 2B improves all four descriptive metrics over 0.8B, but ordinal hard accuracy declines from 34.0% to 32.5%; scale effects are not uniform across types. These are fixed-base results, not training gains. No named Astra acceptance or candidate-TEST authority is claimed.
+
+## BEV hard and skills additional TEST cells — 2026-11-04
+
+Full saved-result reconstruction and parent evidence verification accepted three additional fixed-base cells. [Exact counts, type strata and artifact pins](REFERENCE-BEV-HARD-SKILLS-ADDITIONAL-2026-11-04.json). Prior cells are unchanged.
+
+| Panel | Model | Correct / questions | Hard-label accuracy |
+| --- | --- | ---: | ---: |
+| hard_50k | Qwen3.5-0.8B-Base | 5677 / 14479 | 39.208509% |
+| hard_50k | Qwen3.5-2B-Base | 7688 / 14479 | 53.097590% |
+| skills | Qwen3.5-4B-Base | 7221 / 10316 | 69.998061% |
+
+The combined five-job review, including previously accepted Typed cells, reconstructed 43,274 saved records; parent verification checked 86,731 unique artifact pins. This does not represent new NPU computation. Skills retains 74 duplicate excess requests and 1,280 soft-label questions evaluated using their hard labels; soft-distribution metrics remain unevaluated. Hard score-type population is only 74 questions, so its strata are descriptive. These are fixed-base scale comparisons, not training gains or paired consistency.

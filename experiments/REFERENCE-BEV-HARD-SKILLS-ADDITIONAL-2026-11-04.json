@@ -1,0 +1,145 @@
+{
+  "schema": "reference-bev-hard-skills-additive-v1",
+  "date_utc": "2026-11-04",
+  "protocol": "Transformers full-label fp32 batch1 HF32off single-question",
+  "models": [
+    {
+      "model": "Qwen3.5-0.8B-Base",
+      "panel": "hard",
+      "split": "test",
+      "metrics": {
+        "n": 14479,
+        "accuracy": 0.392085088749223,
+        "correct": 5677
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": 0.3400243309002433,
+          "correct": 2795,
+          "metric_origin": "NGA additive stratification",
+          "n": 8220
+        },
+        "score": {
+          "accuracy": 0.1891891891891892,
+          "correct": 14,
+          "metric_origin": "NGA additive stratification",
+          "n": 74
+        },
+        "yes_no": {
+          "accuracy": 0.4637025060630558,
+          "correct": 2868,
+          "metric_origin": "NGA additive stratification",
+          "n": 6185
+        }
+      },
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_hard_50k_08b_successor_20261104_v1/PLAN.json",
+        "sha256": "20f4ebb0155b0b0973cbedf39a3cce75eb8828ce0b5360ef4375ffb163737137"
+      },
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_hard_50k_08b_successor_20261104_v1/output/cpu/1/summary.json",
+        "sha256": "a3a82495563e6999e392c666140419987b39c95fba2c51db33a63a5af2a36705"
+      },
+      "independent_result": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_completed_panels_full_results_20261104_v1/hard-08b-RESULT.json",
+        "sha256": "c6c29be77744afad4e3a3c573cda8894fa5a1ea91d5e271f1b99afa556120291"
+      }
+    },
+    {
+      "model": "Qwen3.5-2B-Base",
+      "panel": "hard",
+      "split": "test",
+      "metrics": {
+        "n": 14479,
+        "accuracy": 0.5309758961254231,
+        "correct": 7688
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": 0.4891727493917275,
+          "correct": 4021,
+          "metric_origin": "NGA additive stratification",
+          "n": 8220
+        },
+        "score": {
+          "accuracy": 0.2702702702702703,
+          "correct": 20,
+          "metric_origin": "NGA additive stratification",
+          "n": 74
+        },
+        "yes_no": {
+          "accuracy": 0.5896523848019402,
+          "correct": 3647,
+          "metric_origin": "NGA additive stratification",
+          "n": 6185
+        }
+      },
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_hard_50k_2b_successor_20261104_v1/PLAN.json",
+        "sha256": "dea212eea854fdec455cd3ff32354d7910412ec6780f2cb59f27091e51b0f334"
+      },
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_hard_50k_2b_successor_20261104_v1/output/cpu/1/summary.json",
+        "sha256": "dd4c91ad4a8e55515bb4425e4816c6a4783358fabac49e35ac1470223830a480"
+      },
+      "independent_result": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_completed_panels_full_results_20261104_v1/hard-2b-RESULT.json",
+        "sha256": "435a1e53d917f6fbf4b7ede45fbe95ae4bd2841436fd17d0d14baefc73eeb674"
+      }
+    },
+    {
+      "model": "Qwen3.5-4B-Base",
+      "panel": "skills",
+      "split": "test",
+      "metrics": {
+        "n": 10316,
+        "accuracy": 0.6999806126405583,
+        "correct": 7221
+      },
+      "by_type": {
+        "choice": {
+          "accuracy": 0.673762043468519,
+          "correct": 3007,
+          "metric_origin": "NGA additive stratification",
+          "n": 4463
+        },
+        "score": {
+          "accuracy": 0.4820717131474104,
+          "correct": 363,
+          "metric_origin": "NGA additive stratification",
+          "n": 753
+        },
+        "yes_no": {
+          "accuracy": 0.7550980392156863,
+          "correct": 3851,
+          "metric_origin": "NGA additive stratification",
+          "n": 5100
+        }
+      },
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_skills_4b_idle_20261104_v1/PLAN.json",
+        "sha256": "f62882c9a077d693bc3b7146ebbd4b5204f4fcd734d289ec5072a8d55e2603fd"
+      },
+      "summary": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_skills_4b_idle_20261104_v1/output/cpu/1/summary.json",
+        "sha256": "fde31c66866742196cbb9bf90a024d2f34278ed3dfa5e362e4fe202ea580bb49"
+      },
+      "independent_result": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_completed_panels_full_results_20261104_v1/skills-4b-RESULT.json",
+        "sha256": "4f2aaf6cac0a1014764d3f03cf62826085062ebbea10222fdef47f5dd185736a"
+      }
+    }
+  ],
+  "independent_acceptance": {
+    "path": ".local/reviews/completed-panels-full-results-20261104-v1/ACCEPTANCE.json",
+    "sha256": "44e8273dcc91eedea1e56956fcc8a3bb84dd757f9298285d0bf26bc4fc1ca1ab"
+  },
+  "root_check": {
+    "path": ".local/reviews/completed-panels-full-results-20261104-v1/ROOT-CHECK.json",
+    "sha256": "088fadd388f64bb094229437eb561f49a3bf53f675343b853026ba045eee9388"
+  },
+  "training_benefit_claimed": false,
+  "named_astra_review": false,
+  "soft_distribution_metric_evaluated": false,
+  "historical_38_unit_matrix_unchanged": true
+}
