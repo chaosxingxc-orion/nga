@@ -329,3 +329,16 @@ Independent complete saved-result reconstruction accepted hard4B at **8748/14479
 | Constant grade2 diagnostic | 61.9% | 0.463 | — | — |
 
 Both models perform worse than the constant-grade diagnostic on accuracy and argmax MAE; predictions concentrate on grade3. The constant is a TEST-population descriptive diagnostic, not a learned held-out result. Full mapping and persisted arithmetic checks found no discrepancy, which does not prove model capability is the sole cause. Dedicated CPU bad-case diagnosis is pending; any subsequent optimization requires separate DEV design and preregistration. No test-driven prompt/threshold change has been applied.
+
+## Hard four-size completion and ordinal TEST increments — 2026-11-04
+
+Hard 9B is accepted at **9701/14479 = 67.000483%**, completing the four-size hard matrix. Four more ordinal cells passed full saved-result reconstruction. [Counts, formulas and artifact pins](REFERENCE-HARD9B-ORDINAL-INCREMENT-2026-11-04.json).
+
+| Panel / model | Accuracy | Argmax MAE | Expected-index MAE | Normalized RPS |
+| --- | ---: | ---: | ---: | ---: |
+| HelpSteer2 4B | 31.6% | 1.212 | 0.657099273 | 0.134284801 |
+| HelpSteer2 9B | 35.0% | 0.966 | 0.597090074 | 0.117272213 |
+| STS-B 0.8B | 23.6% | 1.616 | 1.378102318 | 0.210381312 |
+| STS-B 2B | 21.6% | 1.620 | 1.049575596 | 0.170985528 |
+
+HelpSteer2 four-size evaluation is complete; every model remains below the descriptive constant-grade2 accuracy61.9% and above its MAE0.463. STS-B constant-grade3 accuracy20.3% / MAE1.322 shows why accuracy alone is insufficient: the small models exceed that accuracy but have worse argmax MAE. STS-B retains its four train/two validation exact-state overlaps. These are local ordinal formulas, not publisher inference/scorer equivalence or learned gains.
