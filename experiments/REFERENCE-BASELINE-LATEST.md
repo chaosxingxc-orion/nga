@@ -8,6 +8,8 @@ These are reference inference results. They do not establish an NGA training gai
 
 Coverage correction — 2026-11-02: the 38 units above are model × dataset units, not 38 independent datasets or a complete NxM. The latest v9 metadata audit covers 12 expansion sources, all `needs_review`, with zero newly admitted panels in that audit. Previous approximate source/panel targets are superseded as current coverage counts; source identity, native TEST, metric denominator and overlap must be established per panel. See the [current coverage plan](../proposal/24-dataset-coverage-expansion-v10-20261102.md) and [GitHub Wiki coverage conclusions](https://github.com/chaosxingxc-orion/nga/wiki/Dataset-Coverage). No new result is introduced by this correction.
 
+Current coverage snapshot (2026-11-04 14:36 UTC): the recent four-size Qwen extension has 72 inferred/scored cells across 18 panels, of which 64 have parent-accepted results. The remaining eight Yelp5/helpfulness cells have completed independent reconstruction/diagnosis but are not yet added to the accepted tables. Within the inventoried Jev-bench 22 panels, 10 panels × 4 sizes (40 cells) still lack completed inference. Neither this inventory nor the historical 38 units is the global Cartesian denominator. These counts do not amend any published metric.
+
 Execution status and dataset-admission progress are maintained in the Wiki. Fixed reference-model TEST evaluation can proceed per admitted panel; final evaluation of newly trained candidates follows DEV selection and a frozen TEST plan. Training progress is not a reference TEST metric.
 
 
