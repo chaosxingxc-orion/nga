@@ -1,5 +1,9 @@
 # tools/
 
+[Experiment execution contracts](EXPERIMENT-ENGINEERING.md) define the reusable
+functional baseline, CPU/NPU concurrency, lifecycle, monitoring and performance
+acceptance requirements. Measurements and deployment status remain in the Wiki.
+
 ## Native reference inference
 
 `reference_kev_eval.py --config FILE` executes frozen native Kev inference and scoring on
