@@ -62,3 +62,4 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - L28（minor，不修）：torn 同因四种报文形态键族不齐——Dispatch 入口门纯散文无 [键]、append 写时复核 [ADOPT.TORN_TAIL]、refuse 包装、commit 包装「ledger append failed:」；按错误键过滤的宿主在形态①失配（行为全一致，R9 m-2；与 L24 同域不同面）。
 - L29（minor，不修）：E3 的 replay 层（mode-2 重驱 drive+eventsEqual）零 control 事件夹具——机器/checker/e2e-Inspect 三层已钉，唯 replay 驱动面无红探针护体（R9 m-3；与 L24 可在未来结构战役合并考虑）。
 - L30（minor，不修）：T1 launch 命令密钥指针硬编码 providerRules[4]——配置重排后指错 key，失败形态响亮（401→fail-loud 门），纯文档脆性（R9 m-4）。
+- L31（minor，不修）：e2e 席位调用双形态——九个既有场景直调自由函数（s1Judge/s2Query/bankAPISubmit），零调用探针经 harness 计数方法（h.judge/h.query/h.submit）——最小侵入取舍，统一到方法形态留作 T0 场景族下次扩面时顺带。
