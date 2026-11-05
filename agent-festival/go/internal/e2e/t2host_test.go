@@ -308,8 +308,18 @@ func (kr *knowledgeRegistry) publish(m knowledgeMethod) error {
 		return fmt.Errorf("[T2.REGISTRY] publish: method ID %q already published — redeclaration is not a flip (an invalidated method cannot be silently re-armed; publish a NEW ID) (fail-closed, R22 m-1)", m.ID)
 	}
 	if m.Replaces != "" {
-		if _, ok := kr.methods[m.Replaces]; !ok {
+		target, ok := kr.methods[m.Replaces]
+		if !ok {
 			return fmt.Errorf("[T2.REGISTRY] publish: method %q declares Replaces=%q but no such method is published — the supersession would silently not happen (typo?) (fail-closed, R22 M-2)", m.ID, m.Replaces)
+		}
+		// R24 M-1: a typo most plausibly lands on an EXISTING sibling ID
+		// (this fixture's ID space is exactly "method-overdue-v1/v2"
+		// shaped) — an existence-only check lets it through silently:
+		// the supersession does not happen, the stale method keeps being
+		// served deterministically, AND the wrong target's node coverage
+		// is silently removed. Supersession is same-node-kind only.
+		if target.ServesNode != m.ServesNode {
+			return fmt.Errorf("[T2.REGISTRY] publish: method %q (node %q) declares Replaces=%q serving node %q — supersession is same-node only; a cross-node Replaces silently removes the wrong node's coverage and leaves the stale method served (typo?) (fail-closed, R24 M-1)", m.ID, m.ServesNode, m.Replaces, target.ServesNode)
 		}
 	}
 	kr.methods[m.ID] = m
@@ -606,9 +616,14 @@ func TestT2Lookup_TieBreakDeterminism(t *testing.T) {
 	// 500 iterations: each lookup ranges the map once; without sorted
 	// iteration the winner flips (random start offset per range).
 	// R21 m-3: statistical power recorded per the R18 methodology rule —
-	// 2 keys in one 8-slot bucket give a ~7/8 favorite bias, so the
-	// mutation's silent-escape bound is (7/8)^500 ≈ 1e-29 (a 50-iteration
-	// loop would only bound it at ≈ 1.3e-3).
+	// R21 m-3/R24 m-2: statistical power recorded per the R18 methodology
+	// rule, direction MEASURED (200k raw ranges over this 2-key fixture,
+	// insertion order z-then-a): the first-ENCOUNTERED key under raw
+	// ranging is op-tie-z ~87.5% of the time — and op-tie-z is exactly
+	// the RED-result key (the mutation fails on the first iteration where
+	// z is encountered first). The expected winner op-tie-a is the ~1/8
+	// underdog, so the silent-escape bound is (1/8)^500 ≈ 1e-451 (a
+	// 50-iteration loop would bound it at ≈ 1.3e-3).
 	for i := 0; i < 500; i++ {
 		r, opID, found := rs.lookupByBusinessRequest("br-tie")
 		if !found {
@@ -866,8 +881,12 @@ func TestT2FindForNode_SupersessionWindow(t *testing.T) {
 // probe, TestT2FindForNode_SupersessionWindow), findForNode must return a
 // DETERMINISTIC winner: the lexicographically-lowest method ID. Mutation
 // probe: revert findForNode to raw map ranging and the winner flips
-// across iterations (raw ranging biased ~88/12 in measurement; escape
-// probability across 200 iterations < 1e-10).
+// across iterations. R24 m-2: direction MEASURED (200k raw ranges over
+// this 3-key fixture, insertion order c-a-b): first-encountered ≈
+// method-c 75%, method-a 12.5%, method-b 12.5% — the expected winner
+// method-a is a ~1/8 underdog, so the true silent-escape bound is
+// (1/8)^200 ≈ 1e-181 (the earlier "< 1e-10" note was a valid but
+// extremely conservative bound).
 func TestT2FindForNode_Deterministic(t *testing.T) {
 	kr := newKnowledgeRegistry()
 	kr.mustPublish(t, knowledgeMethod{ID: "method-c", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
@@ -909,6 +928,27 @@ func TestT2Registry_PublishValidation(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "Replaces") {
 		t.Fatalf("M-2 probe: error = %q, want the Replaces marker", err.Error())
+	}
+
+	// R24 M-1 probe: the typo lands on an EXISTING method serving a
+	// DIFFERENT node kind — the existence check alone accepts it
+	// silently (the supersession does not happen, the stale v1 keeps
+	// being served, AND the wrong target's node coverage would be
+	// silently removed). The same-node gate must reject it.
+	krOther := newKnowledgeRegistry()
+	krOther.mustPublish(t, knowledgeMethod{ID: "method-pv-a", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
+	krOther.mustPublish(t, knowledgeMethod{ID: "method-pv-b", Version: "1.0.0", ServesNode: "credit-scoring", Valid: true})
+	err = krOther.publish(knowledgeMethod{ID: "method-pv-c", Version: "1.0.0", ServesNode: "history-verification", Valid: true, Replaces: "method-pv-b"})
+	if err == nil {
+		t.Fatal("M-1 probe: a cross-node Replaces (existing ID, wrong node kind) was accepted — the supersession silently does not happen and the wrong node's coverage would be silently removed")
+	}
+	if !strings.Contains(err.Error(), "same-node") {
+		t.Fatalf("M-1 probe: error = %q, want the same-node marker", err.Error())
+	}
+	// the wrong target's coverage must remain intact (a rejected publish
+	// must not mutate state)
+	if m, ok := krOther.findForNode("credit-scoring"); !ok || m.ID != "method-pv-b" {
+		t.Fatalf("M-1 probe: credit-scoring coverage lost after the rejected publish — found %q (ok=%v), want method-pv-b", m.ID, ok)
 	}
 
 	// R22 m-1 probe: invalidate v1, then republish the SAME ID with

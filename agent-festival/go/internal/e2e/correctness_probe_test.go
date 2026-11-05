@@ -336,6 +336,17 @@ func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
 		t.Fatalf("E3: fixture time_window = %q — expected to mention 'upper band' scope", spec.Conventions.TimeWindow)
 	}
 
+	// R24 m-1: the T1 half of the resolved state is ASSERTED, not just
+	// narrated — t1Spec's veto wording must stay unbounded (a re-windowed
+	// veto clause would keep the three C8-side markers passing while
+	// silently breaking the three-way agreement this file claims)
+	if !strings.Contains(t1Spec, "AT ANY TIME") {
+		t.Fatal("E3: t1Spec no longer contains 'AT ANY TIME' — the T1 veto clause is no longer unbounded")
+	}
+	if !strings.Contains(t1Spec, "limited to any recent window") {
+		t.Fatal("E3: t1Spec no longer contains 'limited to any recent window' — the T1 veto clause's no-window declaration is gone")
+	}
+
 	// Proof complete: fixture and stand-in now AGREE on the unbounded veto
 	// (the former contradiction is resolved by the P3 correction); the
 	// time_window convention survives scoped to the upper band only.
@@ -390,6 +401,17 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 
 	if !t1SpecContainsVetoFirst {
 		t.Fatal("E3-C8: T1 spec text does not contain unbounded precedence-0 veto — spec may have changed")
+	}
+
+	// R24 m-1 (ordering half): precedence 0 is THE VETO and nothing else —
+	// the contiguous claim pins that the precedence-0 clause is the veto
+	// clause, and the count pins that no other clause (e.g.
+	// missing-evidence) has been relabeled precedence 0
+	if !strings.Contains(t1Spec, "- Precedence 0 (override): ANY overdue") {
+		t.Fatal("E3-C8: t1Spec's precedence-0 clause is no longer the unbounded veto — the contiguous claim 'Precedence 0 (override): ANY overdue' is gone")
+	}
+	if n := strings.Count(t1Spec, "Precedence 0"); n != 1 {
+		t.Fatalf("E3-C8: t1Spec contains %d 'Precedence 0' clauses, want exactly 1 (the veto) — a relabeled clause would break the ordering half of the resolved state", n)
 	}
 
 	// R23 m-1: the T1-side half is ASSERTED, not just narrated — the C8
