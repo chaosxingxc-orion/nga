@@ -519,6 +519,137 @@
           "pattern": "^/"
         }
       }
+    },
+    {
+      "title": "Registered bounded K1 family training",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recipe_id",
+        "owner",
+        "seed",
+        "model",
+        "dataset",
+        "resume",
+        "engineering_stop_after",
+        "schema",
+        "adapter",
+        "output"
+      ],
+      "properties": {
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446688733643
+        },
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "path",
+            "manifest",
+            "manifest_sha256"
+          ],
+          "properties": {
+            "id": {
+              "enum": [
+                "Qwen3.5-0.8B-Base",
+                "Qwen3.5-2B-Base",
+                "Qwen3.5-4B-Base",
+                "Qwen3.5-9B-Base"
+              ]
+            },
+            "path": {
+              "type": "string",
+              "pattern": "^/"
+            },
+            "manifest": {
+              "type": "string",
+              "pattern": "^/"
+            },
+            "manifest_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "dataset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "path",
+            "manifest",
+            "manifest_sha256"
+          ],
+          "properties": {
+            "id": {
+              "const": "decision-v7-train"
+            },
+            "path": {
+              "type": "string",
+              "pattern": "^/"
+            },
+            "manifest": {
+              "type": "string",
+              "pattern": "^/"
+            },
+            "manifest_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "resume": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^/"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "recipe_id": {
+          "enum": [
+            "k1-base-0.8b-3116-v2",
+            "k1-base-2b-3116-v2",
+            "k1-base-4b-3116-v2",
+            "k1-base-9b-3116-v2"
+          ]
+        },
+        "engineering_stop_after": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3116
+        },
+        "schema": {
+          "const": "nga-unified-config-v1"
+        },
+        "adapter": {
+          "const": "k1-family-train-v2"
+        },
+        "output": {
+          "type": "string",
+          "pattern": "^/"
+        }
+      }
     }
   ]
 }

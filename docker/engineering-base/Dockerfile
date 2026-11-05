@@ -1,4 +1,4 @@
-FROM sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7
+FROM sha256:27b2f9a84cbc3bc3eca95bb5ded98431f1a87ca8f0ef5d895970f4060ec4f325
 COPY source/ /opt/nga/source/
 COPY third-party/ /opt/nga/third-party/
 COPY components/ /opt/nga/components/

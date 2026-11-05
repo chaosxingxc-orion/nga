@@ -17,7 +17,11 @@ def main():
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
     with Path(args.config).open() as f: config = json.load(f, object_pairs_hook=unique)
-    result = training.run(config, args.output)
+    if "recipe_id" in config:
+        import family
+        result = family.run(config, args.output)
+    else:
+        result = training.run(config, args.output)
     print(json.dumps(result, sort_keys=True))
 
 if __name__ == '__main__': main()

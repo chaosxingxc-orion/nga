@@ -156,8 +156,29 @@ def validate(c):
             for item in value: yield from paths(item)
         elif isinstance(value, str) and value.startswith('/'):
             yield value
-    for path in paths(c['task']):
+    task=c['task']
+    family=task.get('adapter')=='k1-family-train-v2'
+    if family:
+        recipes={'k1-base-0.8b-3116-v2':'0.8B','k1-base-2b-3116-v2':'2B',
+                 'k1-base-4b-3116-v2':'4B','k1-base-9b-3116-v2':'9B'}
+        assets='/opt/nga/components/training/family-assets-v2/'
+        expected=(assets+'model-'+recipes[task['recipe_id']]+'.json',assets+'dataset.json')
+        for obj, asset in zip((task['model'],task['dataset']),expected):
+            U.need(obj['manifest']==asset, 'unregistered image manifest')
+        for obj, root in ((task['model'],'/model'),(task['dataset'],'/data')):
+            U.need(contained(obj['path'],root), 'family input outside typed namespace')
+        if task['resume'] is not None:
+            checkpoint=task['resume']['path']
+            U.need(os.path.dirname(checkpoint)==task['output']+'/ckpt' and
+                   re.fullmatch(r'step_\d{6}\.pt',os.path.basename(checkpoint)) is not None,
+                   'checkpoint outside owned output')
+            task_path(checkpoint,c['output'],OUTPUT_TARGET)
+    image_assets=set(expected) if family else set()
+    checkpoint=task['resume']['path'] if family and task['resume'] is not None else None
+    for path in paths(task):
         U.need(os.path.normpath(path)==path, 'task path not normalized')
+        if path in image_assets or path==checkpoint:
+            continue
         matches = [m for m in c['mounts'] if contained(path, m['target'])]
         U.need(len(matches)==1, 'task path outside read-only mounts')
         task_path(path, matches[0]['source'], matches[0]['target'])

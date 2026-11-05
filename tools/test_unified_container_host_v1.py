@@ -353,3 +353,32 @@ class HostTest(LeaseTest):
             with self.assertRaisesRegex(ValueError,'owner differs'): H.establish_owner(other,stack)
 
 if __name__=='__main__': unittest.main()
+
+class FamilyPathTest(HostTest):
+    def test_family_typed_assets_and_owned_resume(self):
+        import hashlib
+        self.setUp(); c=self.host(self.c,'family')
+        data=self.root/'family-data'; data.mkdir(); (data/'input.jsonl').write_text('data')
+        c['mounts'].append({'source':str(data),'target':'/data'})
+        base=Path(__file__).resolve().parents[1]/'docker/engineering-base/components/training/family-assets-v2'
+        def asset(n):
+            return {'manifest':'/opt/nga/components/training/family-assets-v2/'+n,
+                    'manifest_sha256':hashlib.sha256((base/n).read_bytes()).hexdigest()}
+        t={'schema':'nga-unified-config-v1','adapter':'k1-family-train-v2','owner':'owner','seed':2,
+           'recipe_id':'k1-base-2b-3116-v2','engineering_stop_after':1,'output':'/run/nga/output',
+           'model':dict(id='Qwen3.5-2B-Base',path='/model',**asset('model-2B.json')),
+           'dataset':dict(id='decision-v7-train',path='/data/input.jsonl',**asset('dataset.json')),
+           'resume':{'path':'/run/nga/output/ckpt/step_000001.pt','sha256':'a'*64}}
+        c['task']=t; self.repin_host(c); H.validate(c)
+        mutations=[('checkpoint',lambda x:x['resume'].update(path='/run/nga/output/other/step_000001.pt')),
+                   ('model namespace',lambda x:x['model'].update(path='/data')),
+                   ('dataset namespace',lambda x:x['dataset'].update(path='/model')),
+                   ('asset',lambda x:x['model'].update(manifest='/opt/nga/adapter.py')),
+                   ('traversal',lambda x:x['resume'].update(path='/run/nga/output/ckpt/../step_000001.pt'))]
+        for label,mutate in mutations:
+            with self.subTest(label=label):
+                c['task']=copy.deepcopy(t); mutate(c['task']); self.repin_host(c)
+                with self.assertRaises(ValueError): H.validate(c)
+        c['task']=copy.deepcopy(t); (Path(c['output'])/'ckpt').symlink_to(self.root)
+        self.repin_host(c)
+        with self.assertRaises(ValueError): H.validate(c)

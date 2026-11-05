@@ -19,6 +19,24 @@ def unique(pairs):
         out[k]=v
     return out
 def run(c, config_path=None):
+    if c['adapter']=='k1-family-train-v2':
+        # Resolve the sibling import from the image, never from the caller's cwd.
+        directory=BASE/'components'/'training'
+        sys.path.insert(0,str(directory))
+        try:
+            component=load(directory/'family.py','nga_training_family_v2')
+            body={k:v for k,v in c.items() if k not in ('schema','adapter','output')}
+            recipe=component.validate(body)
+            size=next(k for k,v in component.REGISTRY['recipes'].items() if v['id']==recipe['id'])
+            assets=directory/'family-assets-v2'
+            for obj, path in ((body['model'],assets/('model-'+size+'.json')), (body['dataset'],assets/'dataset.json')):
+                if obj['manifest']!=str(path) or obj['manifest_sha256']!=digest(path):
+                    raise ValueError('manifest is not the registered image asset')
+            component.cli(body,c['output'])
+            component.run(body,c['output'])
+        finally:
+            sys.path.remove(str(directory))
+        return
     if c['adapter']=='native-panel-export-v1':
         raise ValueError('v1 inference does not bind a panel contract before inference; export rejected before effects')
     if c['adapter']=='native-panel-export-v2':
