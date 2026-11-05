@@ -13,6 +13,8 @@ Current coverage snapshot (2026-11-04): **112 inferred/scored and parent-accepte
 Execution status and dataset-admission progress are maintained in the Wiki. Fixed reference-model TEST evaluation can proceed per admitted panel; final evaluation of newly trained candidates follows DEV selection and a frozen TEST plan. Training progress is not a reference TEST metric.
 
 
+The fixed 2B/4B/9B retained-training **DEV** reconstruction and paired arithmetic now have scoped independent acceptance: [machine-readable conclusions](SCALE-DEV-SCOPED-RESULTS-2026-11-05.json) and [Wiki](https://github.com/chaosxingxc-orion/nga/wiki/Scale-DEV-Scoped-Conclusions). Complete eligibility remains open, including a disclosed overbroad report-half decoding boundary. These DEV diagnostics are separate from the TEST tables and grant no new TEST or historical formal-training claim.
+
 ## Accepted training comparison — 2026-11-05
 
 The fixed Qwen3.5-0.8B seven-member same-TEST report passed independent scientific review. Primary seed-mean accuracy is **83.333333%** on decision-v7 (1200 questions) and **67.530488%** on transfer-v4 (656), improving over its own Base by **28.500000 pp** and **4.725610 pp**. Frozen paired 90% intervals are [25.958333, 31.041667] and [1.448171, 7.926829] pp. Transfer ECE worsens; no uniform metric improvement or superiority over PT is claimed.

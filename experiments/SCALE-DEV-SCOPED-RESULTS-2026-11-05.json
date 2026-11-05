@@ -1,0 +1,548 @@
+{
+  "schema": "nga-scale-dev-scoped-results-v1",
+  "updated_utc": "2026-11-05T07:28:14.358193+00:00",
+  "status": "ACCEPTED_RECONSTRUCTION_AND_PAIRED_ARITHMETIC_ONLY",
+  "split": "DEV selection; not TEST",
+  "fixed_roster": "configs/scale-prospective-reuse-roster-2026-11-05.json",
+  "scope_amendment": "SCALE-PROSPECTIVE-REUSE-PREREG-2026-11-05.md",
+  "review_sha256": "704dc2edd489bdfef9303c1955231c8e25fdc33035701c4615c41962173a4b81",
+  "parent_acceptance_sha256": "a1f6101a81df0172d1766ae0772226a4cd0a103f5155ead69e5593956b3db91e",
+  "parent_evidence_rehashed": 32,
+  "accepted_scopes": [
+    "C1 exact accepted publication bytes and fixed nine-member identities",
+    "Four new complete canonical reconstructions:2b-k0,4b-k0,4b-s2,4b-s3",
+    "Five exact full-rebuild reuse objects; 2B prior acceptance stays scoped",
+    "All nine current §10.4 prechecks and retained controls",
+    "Recorded recipe source/manifests and separate seed2 monotonic ladder diagnostic",
+    "Accepted2B paired arithmetic reuse and independently reproduced4B/9B counts,per-seed/mean90%CI,discordants",
+    "Exact CPU containers/terminals and published wiki identity",
+    "Valid TrackT adverse/void/below-min outcomes and distinct equal-headline vectors",
+    "C3 length inventory reused and exact nine-row CPU bindings assembled"
+  ],
+  "independent_4b_9b_statistics": {
+    "chips": 0,
+    "ci": 0.9,
+    "elapsed_seconds": 8.000128746032715,
+    "equality": [
+      {
+        "different": 42,
+        "left": "4b-s2",
+        "right": "4b-s3",
+        "suite": "transfer-v4"
+      },
+      {
+        "different": 62,
+        "left": "4b-s2",
+        "right": "9b-s2",
+        "suite": "decision-v7"
+      },
+      {
+        "different": 48,
+        "left": "9b-s2",
+        "right": "9b-s3",
+        "suite": "decision-v7"
+      }
+    ],
+    "numpy": "1.26.4",
+    "resamples": 10000,
+    "rng_seed": 20261030,
+    "seed_uncertainty": false,
+    "statistics": {
+      "4b": {
+        "decision-v7": {
+          "correct_counts": {
+            "k0": 987,
+            "s2": 1105,
+            "s3": 1097
+          },
+          "per_seed": {
+            "2": {
+              "ci_lower": 0.07436708860759493,
+              "ci_upper": 0.11234177215189874,
+              "discordant": {
+                "a_better": 169,
+                "b_better": 51,
+                "equal": 1044
+              },
+              "mean_difference": 0.09335443037974683,
+              "n": 1264
+            },
+            "3": {
+              "ci_lower": 0.06882911392405064,
+              "ci_upper": 0.10522151898734178,
+              "discordant": {
+                "a_better": 158,
+                "b_better": 48,
+                "equal": 1058
+              },
+              "mean_difference": 0.08702531645569621,
+              "n": 1264
+            }
+          },
+          "two_seed": {
+            "ci_lower": 0.07238924050632911,
+            "ci_upper": 0.10799050632911393,
+            "discordant": {
+              "a_better": 179,
+              "b_better": 63,
+              "equal": 1022
+            },
+            "mean_difference": 0.09018987341772151,
+            "n": 1264
+          }
+        },
+        "transfer-v4": {
+          "correct_counts": {
+            "k0": 460,
+            "s2": 518,
+            "s3": 518
+          },
+          "per_seed": {
+            "2": {
+              "ci_lower": 0.06097560975609756,
+              "ci_upper": 0.11432926829268293,
+              "discordant": {
+                "a_better": 89,
+                "b_better": 31,
+                "equal": 536
+              },
+              "mean_difference": 0.08841463414634146,
+              "n": 656
+            },
+            "3": {
+              "ci_lower": 0.06097560975609756,
+              "ci_upper": 0.1173780487804878,
+              "discordant": {
+                "a_better": 97,
+                "b_better": 39,
+                "equal": 520
+              },
+              "mean_difference": 0.08841463414634146,
+              "n": 656
+            }
+          },
+          "two_seed": {
+            "ci_lower": 0.0625,
+            "ci_upper": 0.11436737804877994,
+            "discordant": {
+              "a_better": 105,
+              "b_better": 44,
+              "equal": 507
+            },
+            "mean_difference": 0.08841463414634146,
+            "n": 656
+          }
+        }
+      },
+      "9b": {
+        "decision-v7": {
+          "correct_counts": {
+            "k0": 1003,
+            "s2": 1105,
+            "s3": 1105
+          },
+          "per_seed": {
+            "2": {
+              "ci_lower": 0.06329113924050633,
+              "ci_upper": 0.09889240506329114,
+              "discordant": {
+                "a_better": 150,
+                "b_better": 48,
+                "equal": 1066
+              },
+              "mean_difference": 0.08069620253164557,
+              "n": 1264
+            },
+            "3": {
+              "ci_lower": 0.06329113924050633,
+              "ci_upper": 0.0981012658227848,
+              "discordant": {
+                "a_better": 145,
+                "b_better": 43,
+                "equal": 1076
+              },
+              "mean_difference": 0.08069620253164557,
+              "n": 1264
+            }
+          },
+          "two_seed": {
+            "ci_lower": 0.0636867088607595,
+            "ci_upper": 0.09770569620253164,
+            "discordant": {
+              "a_better": 159,
+              "b_better": 58,
+              "equal": 1047
+            },
+            "mean_difference": 0.08069620253164557,
+            "n": 1264
+          }
+        },
+        "transfer-v4": {
+          "correct_counts": {
+            "k0": 485,
+            "s2": 544,
+            "s3": 532
+          },
+          "per_seed": {
+            "2": {
+              "ci_lower": 0.06554878048780488,
+              "ci_upper": 0.11432926829268293,
+              "discordant": {
+                "a_better": 79,
+                "b_better": 20,
+                "equal": 557
+              },
+              "mean_difference": 0.0899390243902439,
+              "n": 656
+            },
+            "3": {
+              "ci_lower": 0.04573170731707317,
+              "ci_upper": 0.0975609756097561,
+              "discordant": {
+                "a_better": 77,
+                "b_better": 30,
+                "equal": 549
+              },
+              "mean_difference": 0.07164634146341463,
+              "n": 656
+            }
+          },
+          "two_seed": {
+            "ci_lower": 0.056402439024390245,
+            "ci_upper": 0.10442073170731707,
+            "discordant": {
+              "a_better": 89,
+              "b_better": 35,
+              "equal": 532
+            },
+            "mean_difference": 0.08079268292682927,
+            "n": 656
+          }
+        }
+      }
+    },
+    "status": "PASS",
+    "unit": "question"
+  },
+  "predicates": {
+    "2b": {
+      "decision-v7": {
+        "K_floor_pass": true,
+        "W_gain_numeric": true,
+        "W_mean_pass": true,
+        "W_within_1pp_pass": true,
+        "floor_margins": {
+          "s2": {
+            "constant": 0.4564873417721519,
+            "question_only": 0.4825949367088608
+          },
+          "s3": {
+            "constant": 0.4541139240506329,
+            "question_only": 0.46439873417721517
+          }
+        },
+        "matched_k0": 0.6408227848101266,
+        "mean": 0.8548259493670887
+      },
+      "transfer-v4": {
+        "K_floor_pass": true,
+        "W_gain_numeric": true,
+        "W_mean_pass": true,
+        "W_within_1pp_pass": true,
+        "floor_margins": {
+          "s2": {
+            "constant": 0.29725609756097554,
+            "question_only": 0.2515243902439024
+          },
+          "s3": {
+            "constant": 0.3201219512195122,
+            "question_only": 0.2682926829268293
+          }
+        },
+        "matched_k0": 0.6310975609756098,
+        "mean": 0.7035060975609756
+      }
+    },
+    "4b": {
+      "decision-v7": {
+        "K_floor_pass": true,
+        "W_gain_numeric": true,
+        "W_mean_pass": true,
+        "W_within_1pp_pass": true,
+        "floor_margins": {
+          "s2": {
+            "constant": 0.47468354430379744,
+            "question_only": 0.5039556962025317
+          },
+          "s3": {
+            "constant": 0.4683544303797468,
+            "question_only": 0.49446202531645567
+          }
+        },
+        "matched_k0": 0.7808544303797469,
+        "mean": 0.8710443037974683
+      },
+      "transfer-v4": {
+        "K_floor_pass": true,
+        "W_gain_numeric": true,
+        "W_mean_pass": true,
+        "W_within_1pp_pass": true,
+        "floor_margins": {
+          "s2": {
+            "constant": 0.3948170731707317,
+            "question_only": 0.34451219512195125
+          },
+          "s3": {
+            "constant": 0.3948170731707317,
+            "question_only": 0.3429878048780488
+          }
+        },
+        "matched_k0": 0.7012195121951219,
+        "mean": 0.7896341463414634
+      }
+    },
+    "9b": {
+      "decision-v7": {
+        "K_floor_pass": true,
+        "W_gain_numeric": true,
+        "W_mean_pass": true,
+        "W_within_1pp_pass": true,
+        "floor_margins": {
+          "s2": {
+            "constant": 0.47468354430379744,
+            "question_only": 0.5166139240506329
+          },
+          "s3": {
+            "constant": 0.47468354430379744,
+            "question_only": 0.4920886075949367
+          }
+        },
+        "matched_k0": 0.7935126582278481,
+        "mean": 0.8742088607594937
+      },
+      "transfer-v4": {
+        "K_floor_pass": true,
+        "W_gain_numeric": true,
+        "W_mean_pass": true,
+        "W_within_1pp_pass": true,
+        "floor_margins": {
+          "s2": {
+            "constant": 0.43445121951219506,
+            "question_only": 0.3765243902439024
+          },
+          "s3": {
+            "constant": 0.4161585365853659,
+            "question_only": 0.3414634146341464
+          }
+        },
+        "matched_k0": 0.739329268292683,
+        "mean": 0.8201219512195121
+      }
+    }
+  },
+  "adverse_summary": {
+    "2b-k0": {
+      "B-1": {
+        "False": 13,
+        "True": 7
+      },
+      "B-2": {
+        "fail": 5,
+        "pass": 3,
+        "void": 2
+      },
+      "B-2_T3": {
+        "fail": 1,
+        "pass": 1,
+        "void": 1
+      },
+      "B-3": {
+        "False": 5,
+        "True": 5
+      },
+      "below_min": 21
+    },
+    "2b-s2": {
+      "B-1": {
+        "False": 17,
+        "True": 3
+      },
+      "B-2": {
+        "fail": 7,
+        "pass": 3
+      },
+      "B-2_T3": {
+        "fail": 1,
+        "pass": 2
+      },
+      "B-3": {
+        "False": 5,
+        "True": 5
+      },
+      "below_min": 21
+    },
+    "2b-s3": {
+      "B-1": {
+        "False": 17,
+        "True": 3
+      },
+      "B-2": {
+        "fail": 2,
+        "pass": 3,
+        "void": 5
+      },
+      "B-2_T3": {
+        "fail": 1,
+        "pass": 2
+      },
+      "B-3": {
+        "False": 5,
+        "True": 5
+      },
+      "below_min": 21
+    },
+    "4b-k0": {
+      "B-1": {
+        "False": 17,
+        "True": 3
+      },
+      "B-2": {
+        "fail": 3,
+        "pass": 6,
+        "void": 1
+      },
+      "B-2_T3": {
+        "pass": 2,
+        "void": 1
+      },
+      "B-3": {
+        "False": 2,
+        "True": 7
+      },
+      "below_min": 20
+    },
+    "4b-s2": {
+      "B-1": {
+        "False": 13,
+        "True": 7
+      },
+      "B-2": {
+        "fail": 1,
+        "pass": 4,
+        "void": 5
+      },
+      "B-2_T3": {
+        "pass": 2,
+        "void": 1
+      },
+      "B-3": {
+        "False": 4,
+        "True": 5
+      },
+      "below_min": 20
+    },
+    "4b-s3": {
+      "B-1": {
+        "False": 15,
+        "True": 5
+      },
+      "B-2": {
+        "fail": 4,
+        "pass": 3,
+        "void": 3
+      },
+      "B-2_T3": {
+        "pass": 2,
+        "void": 1
+      },
+      "B-3": {
+        "False": 5,
+        "True": 4
+      },
+      "below_min": 20
+    },
+    "9b-k0": {
+      "B-1": {
+        "False": 10,
+        "True": 10
+      },
+      "B-2": {
+        "pass": 9,
+        "void": 1
+      },
+      "B-2_T3": {
+        "fail": 1,
+        "pass": 1,
+        "void": 1
+      },
+      "B-3": {
+        "False": 5,
+        "True": 5
+      },
+      "below_min": 20
+    },
+    "9b-s2": {
+      "B-1": {
+        "False": 10,
+        "True": 10
+      },
+      "B-2": {
+        "fail": 5,
+        "pass": 3,
+        "void": 2
+      },
+      "B-2_T3": {
+        "pass": 1,
+        "void": 2
+      },
+      "B-3": {
+        "False": 4,
+        "True": 6
+      },
+      "below_min": 21
+    },
+    "9b-s3": {
+      "B-1": {
+        "False": 8,
+        "True": 12
+      },
+      "B-2": {
+        "fail": 3,
+        "pass": 4,
+        "void": 3
+      },
+      "B-2_T3": {
+        "fail": 1,
+        "pass": 1,
+        "void": 1
+      },
+      "B-3": {
+        "False": 4,
+        "True": 6
+      },
+      "below_min": 21
+    }
+  },
+  "scientific_eligibility": false,
+  "historical_formal_training_accepted": false,
+  "new_test_results": false,
+  "read_boundary_correction": {
+    "unnecessarily_decoded_report_half_non_tau_rows_per_role": 319,
+    "roles_per_model": 3,
+    "report_half_metric_aggregation_found": false,
+    "effect": "strict access boundary claim invalid; no metric-based selection leakage established",
+    "repair_required": "selection OR exact tau TrainView keys; targeted Track T/tau equivalence and boundary negatives, retain access deviation"
+  },
+  "remaining": [
+    "C2 applicable consumer guards and origin/payload binding",
+    "C3 exact nine-closure applicability/origin disposition",
+    "C5 immutable scale DEV consumer and independently pinned validator/integration"
+  ],
+  "limits": [
+    "Question bootstrap conditional on fixed two seeds, excludes run/seed uncertainty.",
+    "Recorded recipe/source equality does not authenticate physical training history.",
+    "Negative/void/below-min/zero/perfect results preserved; no all-Track-T-pass gate.",
+    "2B accepted paired arithmetic reused; no fresh 2B bootstrap represented by independent_4b_9b_statistics.",
+    "No candidate or seed reselection, adoption, FINAL or TEST authorization."
+  ]
+}
