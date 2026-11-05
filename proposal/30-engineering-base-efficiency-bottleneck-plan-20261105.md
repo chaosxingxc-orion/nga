@@ -1,6 +1,6 @@
 # 工程基座效率瓶颈分析与优化计划
 
-更新时间：2026-11-05 UTC。研究实验仍处于 HOLD；已运行容器和其镜像、配置、输出不修改。本文只记录工程基座的效率收敛，不把 CPU fixture 或历史评分结果写成 NPU 性能结论。
+更新时间：2026-11-05 23:23 UTC。研究实验仍处于 HOLD；已运行容器和其镜像、配置、输出不修改。本文只记录工程基座的效率收敛，不把 CPU fixture 或历史评分结果写成 NPU 性能结论。
 
 ## 当前结论
 
@@ -41,12 +41,20 @@ NPU/设备队列保持 detached、连续消费；CPU 只消费结构化事件。
 
 ## 下一阶段顺序
 
-1. 等待 Terra v19 生成全新冻结准入包；只读取其终态、`FROZEN.json` 和有界 handoff，不能把开发中目录当证据。
-2. 等待 Astra 对固定 launcher/cast 快照的独立结论；若仅批准 CPU smoke，则使用真实 175、Ceph 输出、固定镜像和 UID 9009 做 detached smoke，不映射设备。
-3. 修正并冻结 actual175 benchmark driver、资源采样和结果摘要；先做功能 preflight，再做八次 A/B，保持旧候选和失败证据可追溯。
+1. v19 已冻结且 Astra 已完成独立审查：收据独立计算、摘要绑定和冻结一致性通过；兼容模式仍接受同时加入两份摘要的未登记字段，候选资格 NO_GO。v20 正在独立目录修复该反例，并统一控制器与准入器对异常容器状态的判定；完成后再冻结、复审。
+2. launcher v3 已修复终态一致性和 marker 文件/目录 fsync，经 Astra 有界审查后完成真实175 CPU-only smoke。固定镜像、9009:9009、无设备/网络、保留容器、Ceph输出；Docker exited/exit0 与 EXIT0 一致。仅为小脚本生命周期证据，不是 scorer、性能、重启恢复或 NPU 资格。畸形 Docker inspect 数据仍可能抛 AttributeError，未误报成功，扩大使用前需处理。
+3. Sol 正在固化可执行 A/B 统计合同和分析脚本：八次 ABBA/BAAB，保留全部样本；明确 ratio-of-medians 与 paired-ratio 区别，非退化阈值 ≤1.10、采用阈值 ≤0.98，禁止四舍五入改变判定；历史2B摘要兼容与当前A/B字节相等分开。尚无性能数据，工程测量驱动和安装资格仍待完成。
 4. 只有功能、恢复、CPU 安装资格和独立审查都通过，才按 checkpoint/item 边界停止旧实验、替换工程基座并恢复研究队列；此前不改运行中实验。
 
 ## 仍需决策的内容
 
-当前没有新的阻塞性决策。需要在后续候选达到资格门槛后再确认两件事：是否接受 full-label cast 的 scoped CPU non-regression，以及是否批准基座迁移窗口。27B 多卡、业务数据集扩展和新的研究训练均不属于本轮效率收敛范围。
+当前没有新的阻塞性决策。更正上一版对重复审批的要求：用户已授权基座通过资格后迁移，无需再次批准迁移窗口；可选优化是否采用，按预注册等价性、资源和实用收益门槛判断。27B 多卡、业务数据集扩展和新的研究训练均不属于本轮效率收敛范围。
 
+
+## 当前可核对的里程碑证据
+
+- v19独立审查：`.local/reviews/engineering-v19-frozen-astra-review-20261106-v1/RESULT.json`；候选和发布均 NO_GO，原因分别是未登记元数据接纳，以及占位发布配置/未安装资格。原候选和审查快照均保留。
+- launcher v3独立审查：`.local/reviews/engineering-launcher-v3-astra-review-20261106-v1/RESULT.json`；64项独立探针和21项候选fixture通过，仅允许一次175 CPU smoke。
+- launcher v3实际结果：`.local/qualifications/engineering-launcher-v3-actual175-20261106/RESULT.json`；主机、身份、终态、UID、镜像、设备隔离、网络隔离、保留容器和payload摘要共9项核验通过。远端输出 `/mnt/cephfs/xingchao/experiments/jev/engineering-launcher-smoke-20261106-v3/output`，容器ID `a7f818ac6b09e0ce6e6e89a7c76bb228fdae7403c2401e47485cdbaa0e01472a`。没有停止旧任务。
+
+上述完成的是工程修复与有限运行验证。Qwen3.5小于10B训练、优化收益、同测试集参考基线对齐和最终对抗审查仍未完成，不能以这些CPU证据替代。
