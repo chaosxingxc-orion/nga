@@ -1,0 +1,168 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "adapter",
+    "runtime",
+    "recipe_id",
+    "model",
+    "adapter_publication",
+    "dataset",
+    "panel",
+    "image_sha256",
+    "max_length",
+    "batch_size"
+  ],
+  "properties": {
+    "adapter": {
+      "const": "trained-full-label-v1"
+    },
+    "runtime": {
+      "const": "npu"
+    },
+    "recipe_id": {
+      "enum": [
+        "k1-base-0.8b-3116-v2",
+        "k1-base-2b-3116-v2",
+        "k1-base-4b-3116-v2",
+        "k1-base-9b-3116-v2"
+      ]
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "path",
+        "manifest",
+        "manifest_sha256"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "Qwen3.5-0.8B-Base",
+            "Qwen3.5-2B-Base",
+            "Qwen3.5-4B-Base",
+            "Qwen3.5-9B-Base"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "manifest": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "manifest_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "adapter_publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "checkpoint",
+        "checkpoint_sha256",
+        "seed",
+        "owner"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "checkpoint": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "checkpoint_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446688733643
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "count"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "panel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract",
+        "contract_file_sha256",
+        "contract_sha256",
+        "ordered_requests_sha256",
+        "model_sha256"
+      ],
+      "properties": {
+        "contract": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "contract_file_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "contract_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "ordered_requests_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "model_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "image_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "max_length": {
+      "const": 8192,
+      "type": "integer"
+    },
+    "batch_size": {
+      "const": 1,
+      "type": "integer"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nga.local/schema/trained-full-label-v1.json"
+}

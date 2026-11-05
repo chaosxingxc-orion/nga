@@ -134,6 +134,14 @@ def validate(c):
         need(c['export_receipt'] is None, 'export cannot depend on receipt')
         need(task['source'] == OUTPUT+'/result' and any(m['target'] == OUTPUT and m['source'] == host['output'] for m in c['inputs']), 'export source differs from event host output')
         need(any(Path(task['source_config']).is_relative_to(m['target']) and str(Path(m['source'])/Path(task['source_config']).relative_to(m['target'])) == host['config']['path'] for m in c['inputs']) and task['source_config_sha256'] == host['config']['sha256'], 'export source config differs from host')
+        source = pin(host['config'])
+        if source.get('adapter') == 'trained-full-label-v1':
+            try:
+                from . import unified_cpu_pipeline_v1 as pipeline
+            except ImportError:
+                import unified_cpu_pipeline_v1 as pipeline
+            pipeline.dependencies(c['inputs'], task)
+            trained_source(c['inputs'], task['source'], task['owner_sha256'], source, pipeline)
     else:
         receipt=pin(c['export_receipt'])
         need(receipt.get('schema') == 'unified-cpu-export-receipt-v1' and receipt.get('event_id') == event['event_id'] and receipt.get('scientific_acceptance') is False, 'export receipt event')
@@ -146,7 +154,44 @@ def validate(c):
         need(owner.get('event_id') == event['event_id'] and owner.get('job_id') == receipt['job_id'] and owner['config']['output'] == receipt['output'] and owner['task']['adapter'] == 'native-panel-export-v2' and terminal.get('exit_code') == 0 and ack.get('terminal_sha256') == hashlib.sha256((root/'TERMINAL.json').read_bytes()).hexdigest() and receipt.get('ack_sha256') == hashlib.sha256((root/'ACK.json').read_bytes()).hexdigest(), 'export receipt ancestry')
         need(hashlib.sha256((Path(receipt['output'])/'result/manifest.json').read_bytes()).hexdigest() == receipt['manifest_sha256'], 'export manifest changed')
         need(read(Path(receipt['output'])/'result/manifest.json').get('records') == EXPORT+'/result/records', 'export records outside stage')
+        provenance = task.get('trained_provenance')
+        source_config = pin(host['config'])
+        need((provenance is not None) == (source_config.get('adapter') == 'trained-full-label-v1'), 'trained provenance required for trained event')
+        if provenance is not None:
+            try:
+                from . import unified_cpu_pipeline_v1 as pipeline
+            except ImportError:
+                import unified_cpu_pipeline_v1 as pipeline
+            exp = owner['task']
+            need(provenance['source_config'] == exp['source_config'] and provenance['source_config_sha256'] == exp['source_config_sha256'] and provenance['source_manifest'] == exp['panel_manifest'] and provenance['source_manifest_sha256'] == exp['panel_manifest_sha256'], 'trained export ancestry differs')
+            source = pipeline.mapped(c['inputs'], provenance['source'])
+            need(source == safe(host['output'])/'result', 'trained source differs from event')
+            rp = pipeline.mapped(c['inputs'], provenance['receipt'])
+            need(rp == safe(receipt['output'])/'result/trained-export-receipt.json', 'trained receipt location differs')
+            tr = pin({'path':str(rp), 'sha256':provenance['receipt_sha256']})
+            need(tr.get('source_config_sha256') == exp['source_config_sha256'] and tr.get('source_manifest_sha256') == exp['panel_manifest_sha256'] and tr.get('export_manifest_sha256') == receipt['manifest_sha256'], 'trained receipt ancestry differs')
+            for name, key in (('OWNER.json','source_owner_sha256'), ('completion.json','source_completion_sha256'), ('EXIT.json','source_exit_sha256'), ('predictions.json','source_predictions_sha256')):
+                need(pipeline.sha(source/name) == tr.get(key), 'trained source evidence changed')
+            synthetic = [m for m in c['inputs'] if m['target'] not in (EXPORT, provenance['source'])]
+            synthetic.append({'source':host['output'], 'target':OUTPUT})
+            pipeline.dependencies(synthetic, exp)
+            config = pin({'path':str(pipeline.mapped(c['inputs'], provenance['source_config'])), 'sha256':provenance['source_config_sha256']})
+            need(config == source_config, 'trained source config differs from event')
+            trained_source(c['inputs'], provenance['source'], tr['source_owner_sha256'], config, pipeline)
     return event, host, task, mounts
+
+
+def trained_source(inputs, path, owner_hash, config, pipeline):
+    source = pipeline.mapped(inputs, path)
+    owner = pin({'path':str(source/'OWNER.json'), 'sha256':owner_hash})
+    identity = read(source/'model-identity.json')
+    model_hash = hashlib.sha256(json.dumps(identity, sort_keys=True, separators=(',',':'), ensure_ascii=False, allow_nan=False).encode()).hexdigest()
+    need(model_hash == config['panel']['model_sha256'] == owner.get('model_sha256'), 'trained model identity differs')
+    pub = pipeline.mapped(inputs, config['adapter_publication']['path'])
+    need(identity.get('checkpoint_sha256') == config['adapter_publication']['checkpoint_sha256'] and identity.get('publication_files') == {n:pipeline.sha(pub/n) for n in ('adapter_config.json','adapter_model.safetensors','PUBLICATION.json','BINDING.json')}, 'trained publication identity differs')
+    need(owner.get('schema') == 'nga-trained-owner-v1' and owner.get('output') == config['output'], 'trained owner differs')
+    completion = read(source/'completion.json'); terminal = read(source/'EXIT.json')
+    need(completion.get('schema') == 'nga-trained-completion-v1' and completion.get('identity_sha256') == owner.get('identity_sha256') == terminal.get('identity_sha256') and completion.get('model_sha256') == model_hash and completion.get('contract_sha256') == config['panel']['contract_sha256'] and completion.get('ordered_requests_sha256') == config['panel']['ordered_requests_sha256'] and completion.get('completed') == terminal.get('completed') and terminal.get('exit_code') == 0 and completion.get('predictions_sha256') == pipeline.sha(source/'predictions.json'), 'trained terminal state differs')
 
 
 def args(c, mounts, name, launch):

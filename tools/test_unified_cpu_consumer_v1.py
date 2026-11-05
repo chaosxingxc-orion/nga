@@ -82,10 +82,10 @@ class ConsumerTest(unittest.TestCase):
         r=self.root; out=r/(tag+'-out'); out.mkdir(); source=r/(tag+'-source'); source.mkdir()
         if source_override is not None: source=source_override
         inp=r/(tag+'-input'); inp.mkdir(); (inp/'manifest').write_text('{}'); (inp/'config').write_text('{}')
-        task={'schema':'nga-unified-config-v1','adapter':'native-panel-export-v2','runtime':'cpu','source':'/run/nga/output/result','source_config':'/data/config','source_config_sha256':'a'*64,'panel_manifest':'/data/manifest','panel_manifest_sha256':'a'*64,'owner_sha256':'a'*64,'output':'/run/nga/export/result'}
+        task={'schema':'nga-unified-config-v1','adapter':'native-panel-export-v2','runtime':'cpu','source':'/run/nga/output/result','source_config':'/data/config','source_config_sha256':hashlib.sha256((inp/'config').read_bytes()).hexdigest(),'panel_manifest':'/data/manifest','panel_manifest_sha256':'a'*64,'owner_sha256':'a'*64,'output':'/run/nga/export/result'}
         tp=put(r/(tag+'-task.json'),task)
         lease={'lease_id':tag,'run':tag,'journal':str(r/'journal'), 'allocation':str(r/'allocation.json'), 'acceptance':{},'task_sha256':''}
-        host={'name':tag,'image':'sha256:'+'a'*64,'entrypoint':'nga-engineering-v1','mounts':[],'task':{},'config':source_config or {'path':str(inp/'config'),'sha256':'a'*64},'output':str(source),'lease':lease}
+        host={'name':tag,'image':'sha256:'+'a'*64,'entrypoint':'nga-engineering-v1','mounts':[],'task':{},'config':source_config or {'path':str(inp/'config'),'sha256':task['source_config_sha256']},'output':str(source),'lease':lease}
         launch={k:host[k] for k in ('name','image','entrypoint','mounts','task','config','output')}; lease['task_sha256']=M.digest(launch)
         hp=put(r/(tag+'-host.json'),host); conf=U.config_hash(lease); cid='c'*64
         terminal={'schema':'unified-container-terminal-v1','container_id':cid,'exit_code':0,'launch_sha256':lease['task_sha256']}
@@ -203,6 +203,17 @@ class ConsumerTest(unittest.TestCase):
         with self.assertRaises(ValueError): M.validate(bad)
         manifest.write_text('{"changed":true}')
         with self.assertRaises(ValueError): M.validate(score)
+
+    def test_trained_provenance_requires_real_mounted_dependencies(self):
+        def export():
+            result=Path(self.c['output'])/'result';result.mkdir();(result/'manifest.json').write_text('{"records":"/run/nga/export/result/records"}')
+        self.d.on_wait=export;M.Consumer(self.d).run(self.c)
+        receipt=next((self.root/'controller'/'jobs').glob('*/EXPORT.json'))
+        manifest=Path(self.c['output'])/'result/manifest.json';out=self.root/'trained-score';out.mkdir()
+        task={'schema':'nga-unified-config-v1','adapter':'native-panel-score-v1','runtime':'cpu','manifest':'/run/nga/export/result/manifest.json','manifest_sha256':hashlib.sha256(manifest.read_bytes()).hexdigest(),'output':'/run/nga/score/result','workers':1,'chunk_size':1,'trained_provenance':{'source':'/data/outside-source','source_config':'/data/outside-config','source_config_sha256':'a'*64,'source_manifest':'/data/outside-manifest','source_manifest_sha256':'a'*64,'receipt':'/data/outside-receipt','receipt_sha256':'a'*64}}
+        score=copy.deepcopy(self.c);score.update(config=put(self.root/'trained-score.json',task),inputs=[{'source':self.c['output'],'target':M.EXPORT}],output=str(out),export_receipt={'path':str(receipt),'sha256':hashlib.sha256(receipt.read_bytes()).hexdigest()})
+        with self.assertRaises(ValueError): M.Consumer(self.d).run(score)
+        self.assertEqual(self.d.creates,1)
 
     def test_actual_adapters_export_then_score_fixed_paths(self):
         import subprocess, sys

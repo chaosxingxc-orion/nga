@@ -51,6 +51,16 @@ def dependencies(inputs, export):
         C.need(type(name) is str and name and not Path(name).is_absolute() and '..' not in Path(name).parts and sha(modelroot/name)==digest, 'model file differs')
     for path, digest in ((dataset['path'],dataset['sha256']), (panel['contract'],panel['contract_file_sha256'])):
         C.need(sha(mapped(inputs,path)) == digest, 'export dependency hash')
+    trained=source.get('adapter')=='trained-full-label-v1'
+    extra=[]
+    if trained:
+        a=source['adapter_publication']; pub=mapped(inputs,a['path']); checkpoint=mapped(inputs,a['checkpoint'])
+        C.need(pub.is_dir() and pub.name=='adapter' and checkpoint.is_file() and sha(checkpoint)==a['checkpoint_sha256'], 'trained publication or checkpoint differs')
+        entries=list(pub.iterdir())
+        C.need({p.name for p in entries}=={'adapter_config.json','adapter_model.safetensors','PUBLICATION.json','BINDING.json'} and all(not p.is_symlink() and p.is_file() and not p.stat().st_mode & 0o111 for p in entries), 'unsafe trained publication')
+        publication=C.read(pub/'PUBLICATION.json')
+        C.need(publication.get('files')=={name:sha(pub/name) for name in ('adapter_config.json','adapter_model.safetensors')}, 'trained publication digest differs')
+        extra=[{'source':str(mapped(inputs,path)),'target':path} for path in (export['source_config'],export['panel_manifest'],model['path'],model['manifest'],a['path'],a['checkpoint'],dataset['path'])]
     mounts=[]
     for key in ('contract','items','gold','requests'):
         item=manifest['population'][key]; path=item['path']; host=mapped(inputs,path)
@@ -58,9 +68,13 @@ def dependencies(inputs, export):
         mount={'source':str(host),'target':path}
         if mount not in mounts: mounts.append(mount)
     C.need(manifest['population']['contract']['path'] == panel['contract'] and manifest['population']['contract']['sha256'] == panel['contract_file_sha256'], 'contract mapping differs')
+    if trained:
+        mounts.extend(m for m in extra if m not in mounts)
+        mounts.append({'source':str(mapped(inputs,export['source'])),'target':'/data/nga-trained-source'})
     allowed={C.OUTPUT,export['source_config'],export['panel_manifest'],model['path'],model['manifest'],dataset['path'],panel['contract'],*(manifest['population'][k]['path'] for k in ('contract','items','gold','requests'))}
+    if trained: allowed.update((source['adapter_publication']['path'],source['adapter_publication']['checkpoint'],'/data/nga-trained-source'))
     C.need(type(inputs) is list and all(type(m) is dict and set(m)=={'source','target'} and m['target'] in allowed for m in inputs), 'unexpected export mount')
-    C.need(all(m['target'] in (C.OUTPUT,model['path']) or (stat.S_ISREG(C.safe(m['source']).stat().st_mode) and not C.safe(m['source']).stat().st_mode & 0o111) for m in inputs), 'non-regular or executable export input')
+    C.need(all(m['target'] in ((C.OUTPUT,model['path'],source['adapter_publication']['path']) if trained else (C.OUTPUT,model['path'])) or (stat.S_ISREG(C.safe(m['source']).stat().st_mode) and not C.safe(m['source']).stat().st_mode & 0o111) for m in inputs), 'non-regular or executable export input')
     return manifest, mounts
 
 
@@ -127,10 +141,15 @@ def run(config_ref, consumer=None, hook=None):
         exported=C.read(manifest)
         C.need(all(exported.get(k)==v for k,v in original_manifest.items() if k not in ('records','receipts_sha256')) and set(exported)==set(original_manifest), 'exported manifest differs from pinned population')
         for item in score_inputs:
-            C.need(mapped(cfg['inputs'],item['target']) == Path(item['source']), 'population mapping changed')
+            if item['target'] != '/data/nga-trained-source': C.need(mapped(cfg['inputs'],item['target']) == Path(item['source']), 'population mapping changed')
         inventory(exported,cfg['export_output'])
         if hook: hook('after_export')
+        source_config=C.pin({'path':str(mapped(cfg['inputs'],export['source_config'])),'sha256':export['source_config_sha256']})
+        trained=source_config.get('adapter')=='trained-full-label-v1'
         score_task={'schema':'nga-unified-config-v1','adapter':'native-panel-score-v1','runtime':'cpu','manifest':C.EXPORT+'/result/manifest.json','manifest_sha256':receipt['manifest_sha256'],'output':C.SCORE+'/result',**score}
+        if trained:
+            trained_receipt=Path(cfg['export_output'])/'result/trained-export-receipt.json'
+            score_task['trained_provenance']={'source':'/data/nga-trained-source','source_config':export['source_config'],'source_config_sha256':export['source_config_sha256'],'source_manifest':export['panel_manifest'],'source_manifest_sha256':export['panel_manifest_sha256'],'receipt':C.EXPORT+'/result/trained-export-receipt.json','receipt_sha256':sha(trained_receipt)}
         score_ref=persist(state/'score-task.json',score_task)
         sc={**base,'config':score_ref,'inputs':[{'source':cfg['export_output'],'target':C.EXPORT},*score_inputs],'output':cfg['score_output'],'export_receipt':receipt_ref}
         score_consumer_ref=persist(state/'score-consumer.json',sc)
@@ -148,7 +167,11 @@ def run(config_ref, consumer=None, hook=None):
         C.need(report.get('schema')=='native-panel-score-report-v1' and report.get('records')==exported['population']['count'] and report.get('receipts_sha256')==exported['receipts_sha256'] and report.get('config_sha256')==score_ref['sha256'] and report.get('manifest_sha256')==receipt['manifest_sha256'] and report.get('summary_sha256')==summary_hash and report.get('cpu_only') is True and report.get('test_inference_rerun') is False, 'score report')
         C.need(exitinfo.get('exit_code')==0 and exitinfo.get('config_sha256')==score_ref['sha256'] and exitinfo.get('manifest_sha256')==receipt['manifest_sha256'] and exitinfo.get('summary_sha256')==summary_hash, 'score EXIT')
         inventory(exported,cfg['export_output'])
+        if trained:
+            tr=C.read(resultdir/'trained-report.json')
+            C.need(tr.get('schema')=='nga-trained-panel-score-report-v1' and tr.get('model_sha256')==exported['model_sha256'] and tr.get('export_receipt_sha256')==score_task['trained_provenance']['receipt_sha256'] and tr.get('summary_sha256')==summary_hash and tr.get('native_report_sha256')==sha(resultdir/'report.json') and tr.get('score_config_sha256')==score_ref['sha256'], 'trained score report')
         terminal={'schema':'unified-cpu-pipeline-terminal-v1','event_id':event['event_id'],'owner':ref(state/'OWNER.json'),'export_consumer':ref(state/'export-consumer.json'),'export_task':exp_ref,'export_receipt':receipt_ref,'manifest':ref(manifest),'score_consumer':ref(state/'score-consumer.json'),'score_task':score_ref,'score_ack':ref(sr/'ACK.json'),'score_consumer_owner':ref(sr/'OWNER.json'),'score_consumer_terminal':ref(sr/'TERMINAL.json'),'score_owner':ref(resultdir/'OWNER.json'),'score_report':ref(resultdir/'report.json'),'score_exit':ref(resultdir/'EXIT.json'),'summary':ref(summary),'sources':sourcepins,'scientific_acceptance':False}
+        if trained: terminal.update(trained_score_report=ref(resultdir/'trained-report.json'),trained_export_receipt=ref(trained_receipt),model_sha256=exported['model_sha256'])
         persist(state/'TERMINAL.json',terminal)
         return terminal
 

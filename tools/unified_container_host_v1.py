@@ -173,6 +173,11 @@ def validate(c):
                    re.fullmatch(r'step_\d{6}\.pt',os.path.basename(checkpoint)) is not None,
                    'checkpoint outside owned output')
             task_path(checkpoint,c['output'],OUTPUT_TARGET)
+    if task.get('adapter')=='trained-full-label-v1':
+        for path, root in ((task['model']['path'],'/model'), (task['model']['manifest'],'/model'),
+                           (task['adapter_publication']['path'],'/data'), (task['adapter_publication']['checkpoint'],'/data'),
+                           (task['dataset']['path'],'/data'), (task['panel']['contract'],'/data')):
+            U.need(contained(path,root), 'trained input outside typed namespace')
     image_assets=set(expected) if family else set()
     checkpoint=task['resume']['path'] if family and task['resume'] is not None else None
     for path in paths(task):
@@ -305,10 +310,46 @@ def heartbeat(c, meta, ident, state):
 
 
 def run(c, docker=None, event=None, relaunch=None):
-    validate(c); docker=docker or Docker(); event=event or threading.Event()
-    with ExitStack() as stack:
-        meta=establish_owner(c,stack)
-        return run_owned(c,docker,event,meta,relaunch)
+    docker=docker or Docker(); event=event or threading.Event()
+    stage='validation'
+    try:
+        validate(c)
+        stage='ownership'
+        with ExitStack() as stack:
+            meta=establish_owner(c,stack)
+            stage='execution'
+            return run_owned(c,docker,event,meta,relaunch)
+    except Exception as exc:
+        try: record_attempt_failure(c, exc, stage)
+        except Exception: pass  # Evidence is best effort; never replace the original error.
+        event.set()
+        raise
+
+
+def record_attempt_failure(c, exc, stage):
+    # Only an already authenticated lease and existing matching owner grant custody.
+    U.need(type(c) is dict and path_ok(c.get('output')), 'unsafe output')
+    out=c['output']; meta=Path(out+'.host-v1'); lease=c['lease']
+    U.validate_config(lease); U.accepted_identity(lease)
+    U.need(Path(out).is_dir() and path_ok(str(meta)) and meta.is_dir(), 'no metadata custody')
+    owner=R.load(meta/'OWNER.json')
+    U.need(type(owner) is dict and owner.get('schema')=='unified-container-owner-v1' and
+           owner.get('output')==out and owner.get('lease_id')==lease['lease_id'] and
+           owner.get('lease_config_sha256')==U.config_hash(lease), 'foreign metadata')
+    attempt=uuid.uuid4().hex
+    record={'schema':'unified-host-attempt-failure-v1','attempt_id':attempt,'utc':R.utc(),
+            'stage':stage,'nonlaunch':True if stage in ('validation','ownership') else None,
+            'attempted_config_sha256':U.digest(c),'error_type':type(exc).__name__,
+            'historical_terminal':'not_the_result_of_this_attempt'}
+    try: record['intended_launch_sha256']=U.digest(launch_spec(c))
+    except (KeyError,TypeError,ValueError): pass
+    name=c.get('name'); image=c.get('image')
+    if type(name) is str and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}',name): record['container_name']=name
+    if type(image) is str and re.fullmatch(r'sha256:[0-9a-f]{64}',image): record['image_id']=image
+    ref=c.get('config')
+    if type(ref) is dict and set(ref)=={'path','sha256'} and path_ok(ref['path']) and type(ref['sha256']) is str and re.fullmatch(r'[0-9a-f]{64}',ref['sha256']):
+        record['attempted_input_ref']={'path_sha256':U.digest(ref['path']),'sha256':ref['sha256']}
+    R.write_atomic(meta/('attempt-failure-'+attempt+'.json'),record)
 
 
 def run_owned(c, docker, event, meta, relaunch):
@@ -369,13 +410,21 @@ def run_owned(c, docker, event, meta, relaunch):
             U.need(state.get('Status') in ('running','exited'), 'container state uncertain')
             done.wait(c['poll_seconds'])
     except Exception as exc:
-        R.write_atomic(meta/'host-failure.json',{'schema':'unified-container-host-failure-v1','utc':R.utc(),'error':str(exc),'lease_status':'uncertain'})
+        try: R.write_atomic(meta/'host-failure.json',{'schema':'unified-container-host-failure-v1','utc':R.utc(),'error_type':type(exc).__name__,'lease_status':'uncertain'})
+        except Exception: pass
         event.set(); raise
 
 
 def main():
     p=argparse.ArgumentParser(); p.add_argument('command',choices=['validate','start','supervise']); p.add_argument('--config',required=True); p.add_argument('--sha256',required=True); args=p.parse_args()
-    raw=R.read_bytes(args.config); U.need(R.sha_bytes(raw)==args.sha256, 'host config pin differs'); c=json.loads(raw); validate(c)
+    raw=R.read_bytes(args.config); U.need(R.sha_bytes(raw)==args.sha256, 'host config pin differs'); c=json.loads(raw)
+    if args.command != 'supervise':
+        try: validate(c)
+        except Exception as exc:
+            if args.command == 'start':
+                try: record_attempt_failure(c,exc,'validation')
+                except Exception: pass
+            raise
     argv=[sys.executable,os.path.abspath(__file__),'supervise','--config',os.path.abspath(args.config),'--sha256',args.sha256]
     sources=[Path(__file__).resolve(),Path(U.__file__).resolve(),Path(R.__file__).resolve(),
              Path(__file__).resolve().parents[1]/'docker/engineering-base/schema.json']
@@ -383,11 +432,16 @@ def main():
               'sources':[{'path':str(p),'sha256':R.sha_bytes(R.read_bytes(p))} for p in sources]}
     if args.command=='start':
         # Local detached supervisor owns the wait; no inherited SSH pipes or session.
-        with ExitStack() as stack:
-            meta=establish_owner(c,stack)
-            path=meta/'RELAUNCH.json'
-            if path.exists(): U.need(R.load(path)==relaunch,'relaunch pins differ')
-            else: R.write_atomic(path,relaunch)
+        try:
+            with ExitStack() as stack:
+                meta=establish_owner(c,stack)
+                path=meta/'RELAUNCH.json'
+                if path.exists(): U.need(R.load(path)==relaunch,'relaunch pins differ')
+                else: R.write_atomic(path,relaunch)
+        except Exception as exc:
+            try: record_attempt_failure(c,exc,'ownership')
+            except Exception: pass
+            raise
         with open(meta/'supervisor.log','ab',buffering=0) as log:
             proc=subprocess.Popen(argv,stdin=subprocess.DEVNULL,stdout=log,stderr=log,start_new_session=True,close_fds=True)
         print(json.dumps({'status':'supervisor-started','pid':proc.pid}))

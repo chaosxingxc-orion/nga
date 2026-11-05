@@ -37,10 +37,21 @@ def run(c, config_path=None):
         finally:
             sys.path.remove(str(directory))
         return
+    if c['adapter']=='trained-full-label-v1':
+        directory=BASE/'components'/'inference'
+        sys.path.insert(0,str(directory))
+        try:
+            component=load(directory/'trained_inference.py','nga_trained_inference')
+            component.run({k:v for k,v in c.items() if k not in ('schema','output')},c['output'])
+        finally:
+            sys.path.remove(str(directory))
+        return
     if c['adapter']=='native-panel-export-v1':
         raise ValueError('v1 inference does not bind a panel contract before inference; export rejected before effects')
     if c['adapter']=='native-panel-export-v2':
         export=load(BASE/'panel_export.py','nga_panel_export'); export.run(c); return
+    if c['adapter']=='native-panel-score-v1' and 'trained_provenance' in c:
+        panel=load(BASE/'trained_panel_score.py','nga_trained_panel_score'); panel.run(c,config_path); return
     if c['adapter']=='native-panel-score-v1':
         panel=load(BASE/'panel_score.py','nga_panel_score'); panel.run(c,config_path); return
     if c['adapter']=='environment-check-v1':

@@ -350,14 +350,31 @@
         "image_assembled": false
       },
       "consumer_v6": {
-        "status": "candidate independent review active",
+        "status": "ACCEPT_SCOPED_EXACT_SOURCE_NORMAL_CPU_PATH",
         "parent_tests": 4,
         "initial_wrong_test_class_loader_error": 1,
         "current_source_pins_matching": 27,
         "source_pins_changed": 1,
         "changed_file": "panel_score.py diagnostic lane",
         "historical_event_reuse": "explicit pinned event valid; no newfailedcall returnsoldsuccess reproduced",
-        "physicalqualified": false
+        "physicalqualified": false,
+        "independent_cases": {
+          "positive": 15,
+          "negative": 24,
+          "image_closure_defect": 1
+        },
+        "independent_supplied_tests": 6,
+        "parent_review_pins": 157,
+        "parent_review_pin_mismatch": 0,
+        "parent_selected_source_files": 16,
+        "parent_source_mismatch": 0,
+        "parent_boundary_tests": 6,
+        "remaining": [
+          "source/service rebinding",
+          "image manifest/COPY assembly",
+          "physical qualification"
+        ],
+        "diagnostic_live_scorer_acceptance": false
       }
     },
     "runtime_metadata": {
@@ -729,7 +746,7 @@
       "repair": "terra diagnostic route v7 running"
     },
     "configured_resource_service_v5": {
-      "status": "scoped feature delivered independent review running",
+      "status": "PARTIAL_SCOPED_SIMULATION_ACCEPTANCE_FULL_SERVICE_NO_GO",
       "parent_pins": 27,
       "parent_pin_mismatches": 0,
       "parent_tests": 8,
@@ -747,7 +764,17 @@
         "enabled actualservice automaticCPU pipeline",
         "physical175 qualification"
       ],
-      "physical_docker": false
+      "physical_docker": false,
+      "independent_checks": 28,
+      "checks_confirming_known_limits": 3,
+      "parent_review_pins": 168,
+      "parent_review_pin_mismatch": 0,
+      "remaining": [
+        "pipeline dependency missing from follower/supervisor source pins",
+        "actual trained export-score-capture service transaction",
+        "two obsolete regression expectations",
+        "deployable closure and actual175qualification"
+      ]
     },
     "score_observer_dependency": {
       "package": "threadpoolctl",
