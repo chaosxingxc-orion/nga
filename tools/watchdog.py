@@ -8,6 +8,7 @@ report.json, and writes a small, bounded digest.json + digest.md. See tools/READ
 Run with:  python3 -P tools/watchdog.py [--root DIR ...] [--out-dir DIR] [--watch --interval 600]
 """
 import copy
+from decimal import Decimal, InvalidOperation
 import argparse
 import calendar
 import errno
@@ -288,10 +289,51 @@ BENIGN_SPANS = [
 ]
 
 
+def _structured_log_text(seg):
+    """Remove only zero-valued error-count fields from valid JSON objects/arrays.
+
+    Keep all other keys and values searchable, including messages and positive counts.
+    Malformed JSON is returned intact so it cannot acquire a benign exemption.
+    """
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('duplicate structured log key')
+            result[key] = value
+        return result
+
+    try:
+        obj = json.loads(seg, object_pairs_hook=unique, parse_float=Decimal,
+                         parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
+    except (ValueError, RecursionError, InvalidOperation):
+        return seg
+    if not isinstance(obj, (dict, list)):
+        return seg
+
+    def clean(value):
+        if isinstance(value, dict):
+            return {k: clean(v) for k, v in value.items()
+                    if not (k.lower() in {"error", "errors", "failure", "failures", "failed"}
+                            and type(v) in (int, Decimal) and v == 0)}
+        if isinstance(value, list):
+            return [clean(v) for v in value]
+        return value
+
+    try:
+        return json.dumps(clean(obj), ensure_ascii=True, default=str)
+    except RecursionError:
+        return seg
+
+
 def classify_line(seg, cfg):
     """'error' | 'warning' | None. A line that says 'warning' and carries no hard error word is a warning
     even if it also says 'failed' (e.g. 'UserWarning: Failed to create processor')."""
-    if cfg.ignore_re is not None and cfg.ignore_re.search(seg):
+    # Whole-line ignore patterns are unsafe for structured records: a benign field
+    # can coexist with an exception or a positive count. Fail closed on malformed JSON.
+    if seg.lstrip().startswith(('{', '[')):
+        seg = _structured_log_text(seg)
+    elif cfg.ignore_re is not None and cfg.ignore_re.search(seg):
         return None
     for rx in BENIGN_SPANS:
         seg = rx.sub(" ", seg)

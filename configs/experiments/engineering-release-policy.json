@@ -1,0 +1,27 @@
+{
+  "schema": "nga-engineering-release-policy-v1",
+  "phase": "engineering_optimization",
+  "new_experiment_dispatch": "hold",
+  "running_experiments": "preserve_until_qualified_replacement",
+  "qualification": "bounded_engineering_validation_only",
+  "release_requirements": [
+    "functional_contract_tests_pass",
+    "fault_and_resume_tests_pass",
+    "immutable_image_and_host_adapter_pinned",
+    "measured_end_to_end_efficiency_report",
+    "unchanged_numeric_protocol_or_separate_validated_amendment",
+    "independent_release_review"
+  ],
+  "migration": {
+    "when": "qualified_replacement_available",
+    "stop_boundary": "durable_resumable_boundary",
+    "preserve_previous_image": true,
+    "preserve_evidence": true,
+    "incompatible_resume": "retain_old_release_or_document_explicit_restart"
+  },
+  "monitor": {
+    "mode": "event_with_fallback",
+    "fallback_seconds": 600
+  },
+  "purpose": "Owner update 2026-11-05 overrides urgent queue replenishment. This policy records an admission hold; it is not a scientific acceptance or a runtime resource lease."
+}
