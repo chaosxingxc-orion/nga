@@ -68,7 +68,13 @@ func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 	// silently-resolved array order. R38 M-2: FindAllStringSubmatch —
 	// INTRA-RULE matches too (an appended clause "recap: assets above 50
 	// as before" was silently ignored by first-match); two different
-	// values in one rule are a conflict, same as cross-rule.
+	// values in one rule are a conflict, same as cross-rule. R44 m-4:
+	// DECLARED blind spot — the COMMA/CONJUNCTION LISTING form ("above
+	// 30, 50 as before" / "above 30 and 50") yields one match per
+	// keyword occurrence; a second bare number without its keyword is
+	// not a hit and is not conflicted (the anchor test pins the
+	// fixture's canonical form; the listing form is out of the anchor's
+	// grammar, like the veto arm's conjunction blind spot).
 	// R40 m-2: seenAbove/seenBelow separate "a value was recorded" from
 	// the recorded VALUE — the 0 sentinel used to collide with a
 	// legitimately-parsed 0 ("above 0" then "above 50" last-wins'd

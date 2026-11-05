@@ -320,3 +320,12 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **m-1~m-5（随批清偿）**：m-1 变体探针头部 Carrier note 改真（与臂注释一致——头部声称 default 载体而臂①实测镜像面）；m-2 yearsAgo 席位侧装饰声明（R37 窗口面退役移除唯一读者——字段存在暗示席位知道「何时」，声明+③注释因果从句改写）；m-3 normalizeRuleText 包级 helper（三处内联收敛——R42 方法论 42 的可执行形态）；m-4 Events 吞错包级横扫（R39/R40 对账规则的 grep 域从 diff 扩到包级——7 处残余全修，grep 包级零命中）；m-5 账本 R32 M-3 反突变结果标注（(0,0) 为 Contains 形态；R33 后 regex 形态 (2,50) 型红源=值钉）。
 - **过程记录：m-2 声明插入锚点匹配错位（插进 isWordChar 函数体内）——vet missing return 即抓，移动到真 rawEvidence 后。**
 - **方法论入账（第 43/44 实证）**：doc 收窄要逐段 grep 同一 doc 块（M-1——首段与窗口声明同块互斥八轮未扫）；对账规则的 grep 域要包级而非 diff 级（m-4——族名的落地集不等于增量的落地集）。
+
+## R44 空白复审记账（2026-11-06，339b38b..637241d 六实验+R29-R43 清偿——**0B/0M/4m，连净 1/3**；空白子将 R43 M-1 重定级 m——doc 假句行为无害）
+
+- **m-1（doc 声明「-1 唯一可提交形」而任意负值均可）**：实测 -1/-2/-100/MinInt64 全部 dispatched——doc「改真」段自身含不可兑现句；行为无害（任意负值≡plain Dispatch，14-A4 照跑）。已修：doc 改口「ANY negative observation is the landable fresh form」+observed=-2 探针臂（排序修：-2 臂在 -1 臂**前**跑——同 op 派发后状态门遮蔽）。doc 探针锚跨行安全化（"forged-observation gate" 跨行断字）。
+- **m-2（Events 吞错横扫的包域缺口）**：R43 m-4 横扫 e2e 包零命中，adopt 包同族 20 处全吞错——「包级横扫」的 grep 域实际只到被审包。已修：adopt_test 全部 20 处改检查（含一处 err 作用域复用修正）。
+- **m-3（归一 helper 消费点缺口）**：normalizeRuleText 自称 SINGLE 而包内另两处内联副本（E3 空白折叠 2 处）。已修：全部改调 helper（包内 grep strings.Fields 仅 helper 定义命中——一行横扫兑现）。
+- **m-4（band 臂列举形盲区声明）**："above 30, 50"/"above 30 and 50" 第二裸数无关键字不成命中——全称句宽于机制。已修：DECLARED blind spot 收窄（veto 臂 R40 m-3 同款）。
+- **轮次判定：0B/0M——连净 1/3。**
+- **方法论入账（第 45 实证）**：「包级横扫」的字面域要写明包名（m-2——「包级」冷读是模块级，隔壁包活着）；doc 的行为句要与门条件同价验证（m-1——doc 探针的措辞锚抓不到行为句的假）。

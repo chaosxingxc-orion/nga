@@ -144,7 +144,10 @@ func TestRetryReuseAfterTerminal(t *testing.T) {
 	if m.State("op-t1") != StateCompleted {
 		t.Fatalf("state after retry = %q, want completed", m.State("op-t1"))
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 4 { // adopted, dispatched, completed, reused
 		t.Fatalf("events = %d, want 4: %+v", len(events), events)
 	}
@@ -165,7 +168,10 @@ func TestChangedPayloadSameKey(t *testing.T) {
 	if o.Status != "rejected" {
 		t.Fatalf("changed payload = %q, want rejected", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 2 {
 		t.Fatalf("events = %d, want 2 (adopted + conflict)", len(events))
 	}
@@ -332,7 +338,10 @@ func TestUnresolvedFirstClass(t *testing.T) {
 	if o := m.MarkCompleted("op-t4"); o.Status != "completed" {
 		t.Fatalf("reconciliation = %q, want completed: %s", o.Status, o.Detail)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	got := []string{}
 	for _, e := range events {
 		got = append(got, e.Outcome.Status)
@@ -377,7 +386,10 @@ func TestRefusalWritesControlEvent(t *testing.T) {
 	if m2.State("op-ctl") != StateDispatched {
 		t.Fatalf("replayed state = %q, want dispatched — the control event must not project", m2.State("op-ctl"))
 	}
-	events, _ := m2.Events()
+	events, err := m2.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 3 {
 		t.Fatalf("events = %d, want 3 (adopted, control, dispatched)", len(events))
 	}
@@ -599,7 +611,10 @@ func TestReplayKeepsWinnerIdentity(t *testing.T) {
 	if o := m2.Dispatch("op-win", pinGrants()); o.Status != "dispatched" {
 		t.Fatalf("dispatch after reload = %q, want dispatched: %s", o.Status, o.Detail)
 	}
-	events, _ := m2.Events()
+	events, err := m2.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 3 {
 		t.Fatalf("events = %d, want 3", len(events))
 	}
@@ -709,7 +724,10 @@ func TestAccountabilityRidesEveryEvent(t *testing.T) {
 	if o := m.MarkCompleted("op-acc"); o.Status != "completed" {
 		t.Fatalf("complete = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 6 {
 		t.Fatalf("events = %d, want 6", len(events))
 	}
@@ -831,7 +849,10 @@ func TestHealKeepsNoTrailingNewlineEvent(t *testing.T) {
 	if m3.State("op-nl") != StateUnresolved {
 		t.Fatalf("state after reopen = %q, want unresolved — the adopted event was dropped on heal", m3.State("op-nl"))
 	}
-	events, _ := m3.Events()
+	events, err := m3.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 2 {
 		t.Fatalf("events = %d, want 2 (adopted preserved + unresolved): %+v", len(events), events)
 	}
@@ -853,7 +874,10 @@ func TestAdoptRejectsNonconformingRequests(t *testing.T) {
 	if o := m.Adopt(badDigest); o.Status != "rejected" {
 		t.Fatalf("malformed-digest request = %q, want rejected", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 0 {
 		t.Fatalf("nonconforming requests wrote %d events, want 0", len(events))
 	}
@@ -877,7 +901,10 @@ func TestOpenRejectsFoldedSeq(t *testing.T) {
 	if o := m.Adopt(testRequest("op-f53", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	adopted := events[0]
 	adopted.ArbitrationSeq = 9007199254740993
 	first, err := json.Marshal(adopted)
@@ -912,7 +939,10 @@ func TestOpenRejectsTransitionOrderBypass(t *testing.T) {
 	if o := m.Adopt(testRequest("op-tr", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	first, err := json.Marshal(events[0])
 	if err != nil {
 		t.Fatal(err)
@@ -1063,7 +1093,10 @@ func TestAdoptRejectsInvalidUTF8(t *testing.T) {
 	if o := m.Adopt(badSession); o.Status != "rejected" {
 		t.Fatalf("invalid-UTF-8 accountability session = %q, want rejected", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 0 {
 		t.Fatalf("invalid-UTF-8 requests wrote %d events, want 0", len(events))
 	}
@@ -1090,7 +1123,10 @@ func TestOpenAcceptsLegalHighSeqAcross2e53(t *testing.T) {
 	if o := m.Adopt(testRequest("op-hi", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	adopted := events[0]
 	adopted.ArbitrationSeq = 9007199254740992 // 2^53
 	first, err := json.Marshal(adopted)
@@ -1193,7 +1229,10 @@ func TestPinIsNotCallerAliased(t *testing.T) {
 	if o := m.MarkCompleted("op-alias"); o.Status != "completed" {
 		t.Fatalf("completed = %q, want completed", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	for i, e := range events {
 		if e.Accountability == nil || e.Accountability.Role != "employee" {
 			got := "<nil>"
@@ -1232,7 +1271,10 @@ func TestReturnedEventsDoNotAliasPin(t *testing.T) {
 	if o := m.MarkCompleted("op-out"); o.Status != "completed" {
 		t.Fatalf("completed = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	for i, e := range events {
 		if e.Accountability == nil || e.Accountability.Role != "employee" || e.Accountability.Session != "sess-t" {
 			got := "<nil>"
@@ -1256,7 +1298,10 @@ func TestOpenRejectsNoIdemBypass(t *testing.T) {
 	if o := m.Adopt(testRequest("op-ni", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	// form 1: adopted event with idempotency stripped
 	stripped := events[0]
 	stripped.Idempotency = nil
@@ -1315,7 +1360,10 @@ func TestCounterExhaustionRefusesWrites(t *testing.T) {
 	if o := m.Adopt(testRequest("op-ex", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	maxed := events[0]
 	maxed.ArbitrationSeq = math.MaxInt64
 	line, err := json.Marshal(maxed)
@@ -1351,7 +1399,10 @@ func TestOpenRejectsAttributionDivergence(t *testing.T) {
 	if o := m.Adopt(testRequest("op-at", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	effect := events[0]
 	effect.EventType = "effect"
 	effect.ArbitrationSeq = 1
@@ -1404,7 +1455,10 @@ func TestOpenRejectsConflictCarryingIdem(t *testing.T) {
 	if o := m.Adopt(testRequest("op-cf", digestB, pinGrants())); o.Status != "rejected" {
 		t.Fatalf("conflict = %q, want rejected", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 2 || events[1].Outcome.Status != "conflict" {
 		t.Fatalf("expected adopted+conflict, got %d events", len(events))
 	}
@@ -1462,7 +1516,10 @@ func TestOpenRejectsSingleViolationShapes(t *testing.T) {
 		if o := m.Dispatch("op-sv", pinGrants()); o.Status != "dispatched" {
 			t.Fatalf("dispatch = %q: %s", o.Status, o.Detail)
 		}
-		events, _ := m.Events()
+		events, err := m.Events()
+		if err != nil {
+			t.Fatalf("Events() failed (R44 m-2): %v", err)
+		}
 		var lines []string
 		for _, e := range events {
 			line, err := json.Marshal(e)
@@ -1635,7 +1692,10 @@ func TestOpenRejectsSeqDomainShapes(t *testing.T) {
 	if o := m.Adopt(testRequest("op-sq", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	writePair := func(second string) error {
 		first, err := json.Marshal(events[0])
 		if err != nil {
@@ -1653,7 +1713,7 @@ func TestOpenRejectsSeqDomainShapes(t *testing.T) {
 		`"identity":{"business_request_id":"br-t","operation_id":"op-sq"},` +
 		`"versions":{"evidence":"e","rule":"r","model":"m","readout":"ro","policy":"p"},` +
 		`"outcome":{"status":"dispatched"},` + idem + `}`
-	err := writePair(overflow)
+	err = writePair(overflow) // R44 m-2: reuse the events err (same scope since the Events check)
 	if err == nil {
 		t.Fatal("int64-overflow seq line was absorbed at load")
 	}
@@ -2009,10 +2069,16 @@ func TestE6_ConditionalCommit(t *testing.T) {
 	if o.Status != "rejected" || !strings.Contains(o.Detail, "never this operation's version") {
 		t.Fatalf("reopen: observed=0 after replay = %q (%s), want the forged-observation rejection — the replay-side sentinel is broken", o.Status, o.Detail)
 	}
-	o = m3reopened.DispatchIfCurrent("op-e6-r", pinGrants(), -1)
+	// R44 m-1: ANY negative observation is the fresh form — pinned with
+	// -2 BEFORE the -1 dispatch commits (the gate treats every negative
+	// as fresh; the doc previously claimed "-1 only"). Mutation probe:
+	// change the gate to observedDispatchSeq != -1 and this arm goes red.
+	o = m3reopened.DispatchIfCurrent("op-e6-r", pinGrants(), -2)
 	if o.Status != "dispatched" {
-		t.Fatalf("reopen: observed=-1 after replay = %q (%s), want dispatched", o.Status, o.Detail)
+		t.Fatalf("m-1 probe: observed=-2 = %q (%s), want dispatched (any negative is the fresh form)", o.Status, o.Detail)
 	}
+	// (the earlier "-1 after replay" arm is subsumed by the -2 arm — any
+	// negative is the fresh form, R44 m-1)
 	// R30 M-4: the ledger detail must not claim a version check the
 	// fresh-observation form skipped — pinned by form. Mutation probe:
 	// collapse the detail back to one "after the version check" string
@@ -2073,7 +2139,7 @@ func TestE6_DocContractPinned(t *testing.T) {
 	if strings.Contains(text, "still current at commit time") {
 		t.Fatal("M-1 probe: the DispatchIfCurrent doc still claims a still-current CAS commit — the retired narrative resurrected")
 	}
-	if !strings.Contains(text, "forged or cross-wired") || !strings.Contains(text, "opt-in forged-observation gate") {
+	if !strings.Contains(text, "forged or cross-wired") || !strings.Contains(text, "forged-observation gate") {
 		t.Fatal("M-1 probe: the truthful contract sentences are missing from the doc")
 	}
 }

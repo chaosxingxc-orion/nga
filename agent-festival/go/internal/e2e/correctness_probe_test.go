@@ -374,7 +374,7 @@ func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
 	// parenthetical negation must be present verbatim (flipping its "NOT"
 	// would re-window the veto in the prose while "at any time" stays,
 	// silently breaking the three-way agreement this file asserts)
-	collapsedCoverage := strings.Join(strings.Fields(vetoRule.Coverage), " ")
+	collapsedCoverage := normalizeRuleText(vetoRule.Coverage)
 	if !strings.Contains(collapsedCoverage, "NOT limited to the six-month window") {
 		t.Fatalf("E3: fixture veto coverage negation is gone or polarity-flipped — 'NOT limited to the six-month window' must be present verbatim: %q", vetoRule.Coverage)
 	}
@@ -412,7 +412,7 @@ func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
 	// R25 m-2: the marker is POLARITY-PINNED — the negation itself must
 	// be present (deleting the "NOT" re-windows the veto while the bare
 	// "limited to any recent window" substring stays green)
-	collapsedSpec := strings.Join(strings.Fields(t1Spec), " ")
+	collapsedSpec := normalizeRuleText(t1Spec) // R44 m-3: the shared helper
 	if !strings.Contains(collapsedSpec, "NOT limited to any recent window") {
 		t.Fatal("E3: t1Spec's veto negation is gone or polarity-flipped — the no-window declaration 'NOT limited to any recent window' is no longer present verbatim")
 	}

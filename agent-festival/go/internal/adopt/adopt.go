@@ -411,13 +411,16 @@ func (m *Machine) Dispatch(op string, liveGrants []ledger.Grant) Outcome {
 // ALWAYS refused — an adopted operation has no dispatch event (no ledger
 // back-edge), so its "version" is -1 and any non-negative observation is
 // by construction forged or cross-wired (a control event records the
-// refusal). The ONLY landable form is observed = -1 ("no dispatch
-// observed yet") — the canonical "D2 took effect between check and
-// submit" race on ANOTHER operation is NOT detectable here (that
-// protection lives at the host tier; see the WINDOW DECLARATION below).
-// The plain Dispatch stays version-blind (the machine dispatches whatever
-// the caller submits — semantic blindness by design); this method is the
-// opt-in forged-observation gate, not a same-operation CAS.
+// refusal). R44 m-1: ANY negative observation is the landable fresh form
+// ("no dispatch observed" — the gate treats every negative value as
+// fresh, behaviorally equivalent to the plain version-blind Dispatch,
+// 14-A4 still runs; the earlier "-1 only" phrasing was not what the gate
+// does). The canonical "D2 took effect between check and submit" race on
+// ANOTHER operation is NOT detectable here (that protection lives at the
+// host tier; see the WINDOW DECLARATION below). The plain Dispatch stays
+// version-blind (the machine dispatches whatever the caller submits —
+// semantic blindness by design); this method is the opt-in
+// forged-observation gate, not a same-operation CAS.
 //
 // WINDOW DECLARATION (the two windows of C4, pre-declared per 33号 B6;
 // R29 M-2 narrowed to the mechanism's true reach):
