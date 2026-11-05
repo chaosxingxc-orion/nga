@@ -44,5 +44,26 @@
     "Sol analysis must report measurements and causes with evidence, not make final plan decisions.",
     "Terra engineering/documentation tasks must not be silently reassigned while Terra is unavailable.",
     "NPU execution remains detached and script-controlled; model routing does not change resource or TEST gates."
-  ]
+  ],
+  "execution_contract": {
+    "effective_for": "future parallel work",
+    "launch_method": "directly launched Codex subprocesses",
+    "collaboration_subagents": "never",
+    "nested_delegation": "prohibited",
+    "required_execution_record": [
+      "exact model",
+      "prompt file",
+      "PID",
+      "boot identifier",
+      "process start ticks",
+      "durable events",
+      "exit status",
+      "HANDOFF.md",
+      "parent acceptance"
+    ],
+    "task_subprocess_lifecycle": "detached and survivable",
+    "parent_log_access": "no raw log ingestion; use bounded script-produced digests",
+    "monitoring": "script-based monitoring at 600-second intervals",
+    "precedence": "supersedes earlier Agent-tool dispatch instructions for future parallel work; preserves model roles and scientific gates"
+  }
 }

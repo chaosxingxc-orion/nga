@@ -11,3 +11,9 @@
 当前 Codex 模型目录已经包含 `gpt-6.1-terra`，并已验证为可见且支持 API。因此工程和文档任务可以按原分工派发给 Terra。配置不建立隐式 fallback；若后续目录再次移除 Terra，任务应标记为 queued/unavailable，不能自动改派给 Sol 或 Astra。`gpt-6.1-sol` 和 `gpt-6-astra` 当前也可调度。
 
 所有子智能体仍必须写完整 `HANDOFF.md`，包含目标、输入约束、实际方法、变更、证据、验证、结果范围、未完成事项和执行连续性。通信消息只是通知，不是交付物。NPU 资源 claim、detached 生命周期、TEST 门禁和 600 秒脚本监控规则保持不变。
+
+## 后续并行工作的执行方式（用户决定）
+
+后续并行工作由父进程直接启动 Codex 子进程，绝不使用 collaboration subagent；子进程不得嵌套派发。上述 Terra、Sol、Astra 分工和无隐式 fallback 保持不变。本决定取代旧的 Agent 工具派发方式。
+
+每个任务的执行记录须包含精确模型名、prompt 文件、PID、boot 标识及进程启动 ticks、持久化事件、退出状态、`HANDOFF.md` 和父进程验收。任务子进程须 detached 且可存活；父进程不摄入原始日志，使用脚本生成的有界摘要，并以 600 秒间隔进行脚本监控。实验资源和科学门禁不因本执行方式改变。

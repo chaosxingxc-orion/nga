@@ -52,6 +52,22 @@ catalog no longer exposes it, engineering/documentation tasks remain queued rath
 falling back to another model. Astra does not implement or own sample analysis, and Sol reports
 evidence rather than making the final plan decision.
 
+### 2.3 Direct Codex child-process execution (user decision)
+
+For future parallel work, the parent directly launches Codex subprocesses; never use
+collaboration subagents. This supersedes the earlier Agent-tool dispatch instructions in
+section 2 while preserving the model roles and restrictions in section 2.2: Terra for
+engineering and documentation, Sol for statistics and sample analysis, and Astra for
+planning and review. Child processes must not delegate or launch nested agents.
+
+Each task's durable execution record must identify the exact model and prompt file, PID,
+boot identifier and process start ticks, durable lifecycle events, exit status and
+`HANDOFF.md`. The parent reviews the handoff and verifies the deliverables against the
+acceptance checks, recording its acceptance or rejection. Task subprocesses must be
+detached and survivable. The parent must not ingest raw logs; script-produced bounded
+digests provide monitoring, with scripts checking at 600-second intervals. Existing
+experiment resource controls, monitoring evidence rules and scientific gates remain in force.
+
 ## 3. What this repository is
 
 A survey and research program on Jev-class single-pass typed-readout decision models ("System One"
