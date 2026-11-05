@@ -1,0 +1,15 @@
+{
+  "child_elapsed_seconds": 87.83023283979855,
+  "end_monotonic": 1563445.84822365,
+  "involuntary_context_switches": 2822,
+  "logical_read_bytes": 450322980,
+  "logical_read_note": "last 10-second process sample, incomplete; logical bytes are not physical I/O or Ceph traffic",
+  "major_faults": 0,
+  "max_rss_kib": 1260816,
+  "minor_faults": 1334468,
+  "physical_io_bytes": null,
+  "start_monotonic": 1563358.01799081,
+  "system_cpu_seconds": 29.559812,
+  "user_cpu_seconds": 105.687372,
+  "voluntary_context_switches": 2898703
+}

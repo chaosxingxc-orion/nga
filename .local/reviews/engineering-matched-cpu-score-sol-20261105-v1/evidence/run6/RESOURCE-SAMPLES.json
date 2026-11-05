@@ -1,0 +1,130 @@
+[
+  {
+    "completed": 400,
+    "monotonic": 1563368.01859339,
+    "phase": "records",
+    "proc_io": {
+      "cancelled_write_bytes": 0,
+      "rchar": 356958765,
+      "read_bytes": 0,
+      "syscr": 31282,
+      "syscw": 63,
+      "wchar": 33172,
+      "write_bytes": 32768
+    },
+    "total": 46320,
+    "utc": 1793881104.7852736
+  },
+  {
+    "completed": 6400,
+    "monotonic": 1563378.02022046,
+    "phase": "records",
+    "proc_io": {
+      "cancelled_write_bytes": 0,
+      "rchar": 370505614,
+      "read_bytes": 0,
+      "syscr": 91745,
+      "syscw": 123,
+      "wchar": 38611,
+      "write_bytes": 278528
+    },
+    "total": 46320,
+    "utc": 1793881114.7869012
+  },
+  {
+    "completed": 12000,
+    "monotonic": 1563388.02160412,
+    "phase": "records",
+    "proc_io": {
+      "cancelled_write_bytes": 0,
+      "rchar": 383451378,
+      "read_bytes": 0,
+      "syscr": 149456,
+      "syscw": 180,
+      "wchar": 43806,
+      "write_bytes": 512000
+    },
+    "total": 46320,
+    "utc": 1793881124.788285
+  },
+  {
+    "completed": 18400,
+    "monotonic": 1563398.02309711,
+    "phase": "records",
+    "proc_io": {
+      "cancelled_write_bytes": 0,
+      "rchar": 396951203,
+      "read_bytes": 0,
+      "syscr": 211250,
+      "syscw": 244,
+      "wchar": 49674,
+      "write_bytes": 774144
+    },
+    "total": 46320,
+    "utc": 1793881134.7897782
+  },
+  {
+    "completed": 24700,
+    "monotonic": 1563408.02443371,
+    "phase": "records",
+    "proc_io": {
+      "cancelled_write_bytes": 0,
+      "rchar": 410611076,
+      "read_bytes": 0,
+      "syscr": 275043,
+      "syscw": 308,
+      "wchar": 55549,
+      "write_bytes": 1036288
+    },
+    "total": 46320,
+    "utc": 1793881144.7911148
+  },
+  {
+    "completed": 31100,
+    "monotonic": 1563418.02580671,
+    "phase": "records",
+    "proc_io": {
+      "cancelled_write_bytes": 0,
+      "rchar": 424200754,
+      "read_bytes": 0,
+      "syscr": 338609,
+      "syscw": 372,
+      "wchar": 61417,
+      "write_bytes": 1298432
+    },
+    "total": 46320,
+    "utc": 1793881154.7924879
+  },
+  {
+    "completed": 37100,
+    "monotonic": 1563428.02713722,
+    "phase": "records",
+    "proc_io": {
+      "cancelled_write_bytes": 0,
+      "rchar": 437458308,
+      "read_bytes": 0,
+      "syscr": 400339,
+      "syscw": 433,
+      "wchar": 67016,
+      "write_bytes": 1548288
+    },
+    "total": 46320,
+    "utc": 1793881164.793818
+  },
+  {
+    "completed": 43100,
+    "monotonic": 1563438.02874522,
+    "phase": "records",
+    "proc_io": {
+      "cancelled_write_bytes": 0,
+      "rchar": 450322980,
+      "read_bytes": 0,
+      "syscr": 459453,
+      "syscw": 493,
+      "wchar": 72519,
+      "write_bytes": 1794048
+    },
+    "total": 46320,
+    "utc": 1793881174.7954261
+  }
+]

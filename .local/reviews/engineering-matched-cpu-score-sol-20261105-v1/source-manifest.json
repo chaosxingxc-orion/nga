@@ -1,0 +1,43 @@
+{
+  "engine": "Transformers full-label fp32 b1 HF32 off",
+  "model": "Qwen3.5-9B-Base fixed checkpoint",
+  "model_sha256": "e5155012784ee0a4bb59995749360fcf21b578858d58e62fe82376590ea8476f",
+  "plan_sha256": "847343a8e8e843f5b60d855539dda1979583c9d775d479cebae3ea64ac52cc5d",
+  "population": {
+    "contract": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_config_20261103_v6/cpu/CONTRACT.json",
+      "sha256": "232ac6be1f124918150ec4791f8176e0d407db46624ef25fb41b80cba2942b04"
+    },
+    "contract_sha256": "ddc0a876caf881070af0898e53dd47f996737f27d96b9b85590a010baee0f58f",
+    "count": 46320,
+    "gold": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_config_20261103_v6/cpu/gold.jsonl",
+      "sha256": "5f4b0def8623c6e2ddda689f4f68b2bcc0e2b2a693af8a70de7656e9b2c89ce8"
+    },
+    "items": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_config_20261103_v6/cpu/items.jsonl",
+      "sha256": "3200deaaace2e6790e2562eacf129a7d5645c1f744c19050ea0aae1a8d5065d6"
+    },
+    "kinds": {
+      "choice": 18808,
+      "score": 9940,
+      "yes_no": 17572
+    },
+    "ordered_inputs_sha256": "43ed705e3af56064a35fc8498c561735e113bc1d5b8d3e9454551f24b72396dd",
+    "protocol_binding_sha256": "d2f17ce72ba96e001e5bdddb172fd02468ec8a2d0d765e46548013bb8618363a",
+    "requests": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_config_20261103_v6/inference/requests.jsonl",
+      "sha256": "60feb4aca4fde1bef8390bc95d45123b20e0135ed295c8cb8b9f3373c033fec1"
+    },
+    "semantic_duplicates": 9,
+    "source": {
+      "path": "/mnt/cephfs/xingchao/omni/datasets/jev/avbiswas__bev-decision/data/test.parquet",
+      "sha256": "eba9f9df6ad54ccdc3aa6516ab97e4f9dea4030422e0dc90510b85e462206a61"
+    },
+    "source_rows": 24386
+  },
+  "receipts_sha256": "832f0583a7aa00d07f24dec4f2ab313bd621632f4848c14d3a0dd372a1f8095c",
+  "records": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_resume_20261104_v1/output/items",
+  "schema": "native-panel-input-manifest-v1",
+  "scope": "public_fixed_base_test"
+}

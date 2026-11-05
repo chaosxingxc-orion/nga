@@ -1,0 +1,96 @@
+{
+  "Id": "32c6196f47e03a3a829146fde59061bc8dcdcd50b881ea26f7366073ffb31660",
+  "Image": "sha256:27b2f9a84cbc3bc3eca95bb5ded98431f1a87ca8f0ef5d895970f4060ec4f325",
+  "Mounts": [
+    {
+      "Destination": "/mnt/cephfs",
+      "Mode": "ro",
+      "Propagation": "rprivate",
+      "RW": false,
+      "Source": "/mnt/cephfs",
+      "Type": "bind"
+    },
+    {
+      "Destination": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_matched_cpu_score_20261105_v1",
+      "Mode": "rw",
+      "Propagation": "rprivate",
+      "RW": true,
+      "Source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_matched_cpu_score_20261105_v1",
+      "Type": "bind"
+    }
+  ],
+  "Name": "/nga-matched-cpu-sol-20261105-v1-6",
+  "State": {
+    "Dead": false,
+    "Error": "",
+    "ExitCode": 0,
+    "FinishedAt": "2026-11-05T12:19:42.63765899Z",
+    "OOMKilled": false,
+    "Paused": false,
+    "Pid": 0,
+    "Restarting": false,
+    "Running": false,
+    "StartedAt": "2026-11-05T12:18:14.57044295Z",
+    "Status": "exited"
+  },
+  "environment_names": [
+    "OMP_NUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+    "BLIS_NUM_THREADS",
+    "TORCH_DEVICE_BACKEND_AUTOLOAD",
+    "HF_HUB_OFFLINE",
+    "TRANSFORMERS_OFFLINE",
+    "PATH",
+    "CANN_VERSION",
+    "LD_LIBRARY_PATH",
+    "ASCEND_TOOLKIT_HOME",
+    "ASCEND_TOOLKIT_LATEST_HOME",
+    "PYTHONPATH",
+    "ASCEND_AICPU_PATH",
+    "ASCEND_OPP_PATH",
+    "TOOLCHAIN_HOME",
+    "ASCEND_HOME_PATH",
+    "CMAKE_PREFIX_PATH",
+    "ATB_HOME_PATH",
+    "ATB_STREAM_SYNC_EVERY_KERNEL_ENABLE",
+    "ATB_STREAM_SYNC_EVERY_RUNNER_ENABLE",
+    "ATB_STREAM_SYNC_EVERY_OPERATION_ENABLE",
+    "ATB_OPSRUNNER_KERNEL_CACHE_LOCAL_COUNT",
+    "ATB_OPSRUNNER_KERNEL_CACHE_GLOABL_COUNT",
+    "ATB_WORKSPACE_MEM_ALLOC_ALG_TYPE",
+    "ATB_COMPARE_TILING_EVERY_KERNEL",
+    "ATB_SHARE_MEMORY_NAME_SUFFIX",
+    "ATB_MATMUL_SHUFFLE_K_ENABLE",
+    "LCCL_DETERMINISTIC",
+    "LCCL_PARALLEL",
+    "ATB_CXX_ABI",
+    "DEBIAN_FRONTEND",
+    "SOC_VERSION",
+    "TASK_QUEUE_ENABLE"
+  ],
+  "host": {
+    "AutoRemove": false,
+    "Binds": [
+      "/mnt/cephfs:/mnt/cephfs:ro",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_matched_cpu_score_20261105_v1:/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_matched_cpu_score_20261105_v1:rw"
+    ],
+    "CapDrop": [
+      "ALL"
+    ],
+    "DeviceRequests": null,
+    "Devices": null,
+    "Memory": 12884901888,
+    "NanoCpus": 8000000000,
+    "NetworkMode": "none",
+    "PidsLimit": 256,
+    "Privileged": false,
+    "ReadonlyRootfs": true,
+    "Runtime": "runc",
+    "SecurityOpt": [
+      "no-new-privileges"
+    ]
+  }
+}

@@ -1,0 +1,146 @@
+[
+  {
+    "affinity_count": 256,
+    "cpu_count": 256,
+    "host_busy_fraction": 0.014243649493339117,
+    "host_iowait_fraction": 0.00020049290560425018,
+    "host_loadavg_after": "11.83 10.80 9.95 1/4165 74",
+    "host_loadavg_before": "8.33 9.32 9.34 1/4193 6",
+    "psi": {
+      "cpu": {
+        "full": 263035,
+        "some": 2627361
+      },
+      "io": {
+        "full": 1785663,
+        "some": 1791233
+      },
+      "memory": {
+        "full": 67720848,
+        "some": 67952116
+      }
+    },
+    "run": 1,
+    "same_boot": true
+  },
+  {
+    "affinity_count": 256,
+    "cpu_count": 256,
+    "host_busy_fraction": 0.009858727360235298,
+    "host_iowait_fraction": 0.00012621724381435765,
+    "host_loadavg_after": "10.70 10.76 10.03 1/4169 74",
+    "host_loadavg_before": "11.83 10.80 9.95 1/4176 6",
+    "psi": {
+      "cpu": {
+        "full": 755260,
+        "some": 1099330
+      },
+      "io": {
+        "full": 469752,
+        "some": 471584
+      },
+      "memory": {
+        "full": 11151631,
+        "some": 11189962
+      }
+    },
+    "run": 2,
+    "same_boot": true
+  },
+  {
+    "affinity_count": 256,
+    "cpu_count": 256,
+    "host_busy_fraction": 0.006318315046593637,
+    "host_iowait_fraction": 2.6890138171939014e-05,
+    "host_loadavg_after": "9.97 10.49 10.00 1/4177 74",
+    "host_loadavg_before": "10.70 10.76 10.03 1/4183 6",
+    "psi": {
+      "cpu": {
+        "full": 1436814,
+        "some": 1446313
+      },
+      "io": {
+        "full": 21391,
+        "some": 22248
+      },
+      "memory": {
+        "full": 0,
+        "some": 0
+      }
+    },
+    "run": 3,
+    "same_boot": true
+  },
+  {
+    "affinity_count": 256,
+    "cpu_count": 256,
+    "host_busy_fraction": 0.010359449758957529,
+    "host_iowait_fraction": 5.614175707288971e-06,
+    "host_loadavg_after": "9.79 10.28 9.97 1/4171 74",
+    "host_loadavg_before": "9.97 10.49 10.00 1/4179 6",
+    "psi": {
+      "cpu": {
+        "full": 1061083,
+        "some": 1096492
+      },
+      "io": {
+        "full": 22480,
+        "some": 23266
+      },
+      "memory": {
+        "full": 0,
+        "some": 0
+      }
+    },
+    "run": 4,
+    "same_boot": true
+  },
+  {
+    "affinity_count": 256,
+    "cpu_count": 256,
+    "host_busy_fraction": 0.006382609444591569,
+    "host_iowait_fraction": 3.91491072046102e-06,
+    "host_loadavg_after": "10.01 10.21 9.98 2/4189 74",
+    "host_loadavg_before": "9.79 10.28 9.97 1/4178 6",
+    "psi": {
+      "cpu": {
+        "full": 1270257,
+        "some": 1283745
+      },
+      "io": {
+        "full": 18575,
+        "some": 19240
+      },
+      "memory": {
+        "full": 0,
+        "some": 0
+      }
+    },
+    "run": 5,
+    "same_boot": true
+  },
+  {
+    "affinity_count": 256,
+    "cpu_count": 256,
+    "host_busy_fraction": 0.006502651296547812,
+    "host_iowait_fraction": 2.8922426048693797e-05,
+    "host_loadavg_after": "10.07 10.18 9.99 1/4152 74",
+    "host_loadavg_before": "10.01 10.21 9.98 1/4180 6",
+    "psi": {
+      "cpu": {
+        "full": 1314557,
+        "some": 1325525
+      },
+      "io": {
+        "full": 21082,
+        "some": 22039
+      },
+      "memory": {
+        "full": 0,
+        "some": 0
+      }
+    },
+    "run": 6,
+    "same_boot": true
+  }
+]

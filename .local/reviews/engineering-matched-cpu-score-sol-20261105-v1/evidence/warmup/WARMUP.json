@@ -1,0 +1,8 @@
+{
+  "bytes": 16777216,
+  "cache": "one bounded shared requests read; record cache residency unknown; no flush",
+  "elapsed_seconds": 0.06321305991150439,
+  "max_bytes": 16777216,
+  "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_config_20261103_v6/inference/requests.jsonl",
+  "sha256": "df431b80b0c8a1f773d94dbd7ea2fb6472b31f4a1a6975845c1b26a31be430a6"
+}

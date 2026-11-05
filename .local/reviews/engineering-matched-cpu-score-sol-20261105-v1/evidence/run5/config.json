@@ -1,0 +1,10 @@
+{
+  "adapter": "native-panel-score-v1",
+  "chunk_size": 100,
+  "manifest": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/unified_score_20261105_v4/manifest.json",
+  "manifest_sha256": "0c893733922a0f6cd11deece688d39f36eb161d14f959970d367f6cf2a8478c1",
+  "output": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_matched_cpu_score_20261105_v1/run5/output",
+  "runtime": "cpu",
+  "schema": "nga-unified-config-v1",
+  "workers": 4
+}

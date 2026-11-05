@@ -1,0 +1,12 @@
+{
+  "all_native_python_sources_equal": true,
+  "native_python_source_count": 14,
+  "chunk_ast_equal": true,
+  "entrypoint_bytes_equal": true,
+  "changes_in_panel": [
+    "ROOT resolves to same image path",
+    "heartbeat lock serializes writes",
+    "contract reconstruction uses frozen tau explicitly"
+  ],
+  "bytecode_cache_changes": "Baseline ships Python 3.11/3.12 runtime caches; candidate removes them. Source Python files are byte-identical; baseline may load its accepted cache, candidate recompiles source in memory. Do not infer startup equivalence from source alone."
+}

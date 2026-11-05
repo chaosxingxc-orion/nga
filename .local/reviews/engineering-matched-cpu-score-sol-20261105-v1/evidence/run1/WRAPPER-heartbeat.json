@@ -1,0 +1,16 @@
+{
+  "completed": 45200,
+  "monotonic": 1562968.65502743,
+  "phase": "records",
+  "proc_io": {
+    "cancelled_write_bytes": 0,
+    "rchar": 454999593,
+    "read_bytes": 141640577024,
+    "syscr": 480458,
+    "syscw": 529,
+    "wchar": 75474,
+    "write_bytes": 1884160
+  },
+  "total": 46320,
+  "utc": 1793880705.4217079
+}

@@ -1,0 +1,62 @@
+{
+  "schema": "nga-prospective-matched-efficiency-v1",
+  "status": "planned_not_executed",
+  "registered_utc": "2026-11-05T11:19:52.045147+00:00",
+  "host": "175",
+  "research_dispatch": "hold",
+  "scope": "CPU engineering replay of previously accepted saved records, no new TEST selection or inference",
+  "immutable_input": {
+    "source_root": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/unified_score_20261105_v4",
+    "population": 46320,
+    "summary_sha256": "5809e7cded0944611d701e850639b1c9030d3e5693966a427f2af8c10c677368",
+    "manifest_sha256": "0c893733922a0f6cd11deece688d39f36eb161d14f959970d367f6cf2a8478c1"
+  },
+  "before_execution": [
+    "Authenticate exact input paths/manifests from accepted handoff; original fixtures readonly",
+    "Pin both scorer closures/images; candidate functional/recovery review required",
+    "Use fresh output directories and fixed retained containers, no historical test discovery",
+    "Record host CPU availability, concurrent workload and filesystem/cache conditions; no disruptive cache flush",
+    "Freeze chosen workers/chunk_size before paired run; no use of science score for tuning"
+  ],
+  "comparison": {
+    "baseline_image": "sha256:5904bd2bdbce7e67a4dfb920879db40f96bd8370af20796781775c565a43dfd9",
+    "candidate_image": "pending combined accepted image",
+    "paired_order": [
+      "baseline",
+      "candidate",
+      "candidate",
+      "baseline",
+      "baseline",
+      "candidate"
+    ],
+    "workers": 4,
+    "chunk_size": 100,
+    "thread_limit_per_worker": 1,
+    "warmup": "one bounded shared input read, measured separately; state exact cache limitations",
+    "acceptance": "Every summary byte-identical; zero missing/duplicate questions, same required provenance checks. Report each pair and median rather than cherry-pick fastest."
+  },
+  "instrumentation": {
+    "clock": "same-host monotonic for durations, UTC+boot_id for correlation",
+    "phases": [
+      "config_admission",
+      "source_hash",
+      "population_validation",
+      "record_loading",
+      "parallel_arithmetic",
+      "aggregation",
+      "atomic_publish",
+      "container_startup",
+      "total_to_terminal"
+    ],
+    "collect": [
+      "wall_seconds",
+      "user_cpu_seconds",
+      "system_cpu_seconds",
+      "max_rss",
+      "logical_read_bytes_if_available",
+      "physical_io_if_available"
+    ],
+    "unknown": "Keep uninstrumented phases null, not zero. Page-cache hits are not Ceph traffic."
+  },
+  "followup": "Only after baseline comparison optimize chunk-resume/hash reuse; rerun affected paired conditions and exact numerical equivalence; NPU timings separate after release prerequisites."
+}
