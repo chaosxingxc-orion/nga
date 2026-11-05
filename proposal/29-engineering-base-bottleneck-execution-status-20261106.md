@@ -73,3 +73,7 @@ Sol v4 在本地主机、固定 1,024 条保存记录上完成分项计时。每
 下一项具体候选是 `z.astype(np.float32, copy=False)`，保留全部有限值检查、float64 算术和决策协议。在独立目录测试 dtype、只读/非连续数组、极值、NaN/Inf、别名和输入不变性，然后在 175 CPU 容器做 6 对 AB/BA 比较。事前目标为配对 wall 比值中位数≤0.98、CPU≤1.0、RSS≤1.05，且所有有序 prediction/receipt 一致；不达标则不采用，不事后调整门槛。
 
 运行中的交付目录：`.local/preparations/engineering-copy-elision-terra-20261106-v1/`；v17 独立审查：`.local/reviews/engineering-admission-v17-astra-review-20261106-v1/`。两项均不得授予整个基座发布资格。
+
+## copy=False 候选终态
+
+`z.astype(np.float32, copy=False)` 在等价性门禁中被拒绝，未进入 175 benchmark。普通 dtype、非连续数组、只读视图、极值、NaN/Inf 和输入字节保持测试通过，但并发 alias 场景出现 baseline/candidate 决策差异；根据预注册的“aliasing observable behavior=reject”规则，结果为 `REJECTED_PRE_BENCHMARK`。175 上的容器启动还暴露出两个启动器缺陷：Ceph 输出目录属主 `9009:9009` 且 `0700` 导致容器无法遍历，重试脚本曾硬编码旧输出目录。没有产生性能数据，也没有改生产 runtime。
