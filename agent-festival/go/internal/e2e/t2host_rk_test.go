@@ -225,22 +225,34 @@ func TestT2R_StaleResultCorrection(t *testing.T) {
 		t.Fatalf("R-correction READ-3: history incomplete — original: %v, correction: %v", hasOriginal, hasCorrection)
 	}
 
-	// READ 4 (R17 M-A fix — the knowledge-search face, asserted for REAL):
-	// the wrong result came from the stale knowledge method; the correction
-	// publishes the corrected method (v2, supersedes v1). A NEW task
-	// searching the registry must find the CORRECTION's method, not the
-	// stale one — this face is the REGISTRY (findForNode), independent of
-	// the store lookups in READ 1/2.
+	// READ 4 (R17 M-A fix + R18 m-1 honesty fix — the registry-filter face):
+	// the correction's method lifecycle mirrors K-expired: v1 is published
+	// valid, the correction publishes v2 (supersedes v1), then v1 is
+	// flipped invalid. A NEW task searching the registry must find v2, not
+	// v1 — this face is the REGISTRY (findForNode), independent of the
+	// store lookups in READ 1/2. (v1 and v2 share the same deterministic
+	// body in this fixture — the correction here is the REGISTRY
+	// transition, not a logic change.)
 	h.registry.publish(knowledgeMethod{
 		ID: "method-overdue-v1", Version: "1.0.0",
-		ServesNode: "history-verification", Valid: false, // superseded by the correction
-		Replaces: "",
+		ServesNode:  "history-verification",
+		InputFields: []string{"overdue_months", "business_request_id"},
+		Valid:       true, // valid BEFORE the correction (the transition state is real)
 	})
 	h.registry.publish(knowledgeMethod{
 		ID: "method-overdue-v2", Version: "2.0.0",
-		ServesNode: "history-verification", Valid: true,
-		Replaces: "method-overdue-v1",
+		ServesNode:  "history-verification",
+		InputFields: []string{"overdue_months", "business_request_id"},
+		Valid:       true,
+		Replaces:    "method-overdue-v1",
 	})
+	// flip v1 invalid (superseded by the correction) — the K-expired form
+	h.registry.methods["method-overdue-v1"] = knowledgeMethod{
+		ID: "method-overdue-v1", Version: "1.0.0",
+		ServesNode:  "history-verification",
+		InputFields: []string{"overdue_months", "business_request_id"},
+		Valid:       false,
+	}
 	corrMethod, methodOK := h.registry.findForNode("history-verification")
 	if !methodOK {
 		t.Fatal("R-correction READ-4: no method found for a new task — the correction method must be discoverable")
@@ -248,9 +260,9 @@ func TestT2R_StaleResultCorrection(t *testing.T) {
 	if corrMethod.ID != "method-overdue-v2" {
 		t.Fatalf("R-correction READ-4: new task found %q, want method-overdue-v2 — the stale method must not be served to new tasks", corrMethod.ID)
 	}
-	// Executing the correction's method on the corrected input reproduces
-	// the deny semantic — the knowledge face carries the correction, not
-	// just the store's projection.
+	// The registry serves the correction's method to a new task; executing
+	// it on the corrected input reproduces the deny semantic (the veto
+	// input for this business request's history).
 	kResult, err := corrMethod.execute(map[string]string{
 		"overdue_months":      "4", // the historical veto input (4 months, 2 years ago)
 		"business_request_id": "br-t2r-corr",

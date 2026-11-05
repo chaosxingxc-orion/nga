@@ -97,3 +97,11 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **M-C（L44 清偿偏离先验+fail-open）**：34 号先验明写「返回 error 而非静默为 0」，清偿实现为追加 fact 后 treating as 0——否决输入解析失败按无逾期处理=否决通道 fail-open（E0 extraction-miss 的方法形态）；且解析错误分支零测试触达。已修：execute 改 (storedResult, error)，否决输入不可解析即 fail-closed 报错；TestT2Method_ParseErrorFailsClosed（坏输入必须报错+好输入不受影响）。反突变 C（回退吞错）→红。
 - **过程事故（自记）**：反突变验证中误用 `git checkout --` 回滚了持有未提交修复的文件（t2host_test.go M-C+探针全灭），从备份重建；教训=持有未提交修复的工作树禁用 git checkout 做突变恢复，改用 /tmp 副本。另：一次突变形态错误（追加语句落在 return 后成不可达死代码，Go 合法但无效）被 -v 调试抓出——突变探针本身也要验证「突变真的改变了行为」。
 - **净计数**：本轮新增 0 minor（3 M 全清偿）；L45/L46 维持不修声明。测试面：t2host 0→4（四组件探针），t2host_rk 8。
+
+## R18 空白复审记账（2026-11-05，R17 修复增量 c919009..5f47936——0B/3M/2m 全清偿）
+
+- **M-1（L43 幻影复发）**：findForNode 仍是裸 map 迭代——L43 注释宣称治了 findForNode+lookup 两面，实际只治 lookup（sortedKeys 唯一消费点即 lookupByBusinessRequest）。空白子隔离实测：裸 range 下两键选择偏置 ~88/12——R17 记账的「反突变 A→红」实为概率事件非机械验证。已修：findForNode 改 sortedKeys 迭代（多 valid 同节点时最低 ID 赢，确定性契约入注释）；TestT2FindForNode_Deterministic（三键 200 迭代+F-04 过滤面）。反突变 M1→红（第 0 迭代即红）；A2（去 Valid 检查）在 READ-4 新过渡形态下确定性红。
+- **M-2（缺键 fail-open）**：execute 新注释宣称「违反声明输入契约即报错」，但 overdue_months **键缺失**时静默为 0——恰是注释自己引用的 E0 extraction-miss 病主形态（上游没抽出字段=缺键，不是坏值）。已修：InputFields 驱动的必填键存在检查（缺键即 fail-closed 报错）；M-2 探针（无 overdue_months 键必须报错）。反突变 M2→红。
+- **M-3（Sscanf 前缀解析放行腐坏输入）**：Sscanf 前缀解析使 "0abc"→0 / "2xyz"→2 / "0.5"→0 全部静默过 fail-closed 门——门的存在面≠声称面（防「腐坏输入解除否决」实际只防「首字符非数字」）。同族：revisionNumber 共用宽松解析。已修：execute 与 revisionNumber 全改 strconv.Atoi（全串严格解析，骑上游标准轮）；探针扩至五种腐坏形态（not-a-number/0abc/2xyz/0.5/空串）。反突变 M3→红（"0abc" 首个命中）。
+- **m-1/m-2（新鲜码诚实修正，随批清偿不入积累账）**：READ-4 叙事收窄到注册表过滤面+改 K-expired 真过渡形态（v1 先 valid→发 v2→翻 v1 invalid——旧形态 v1 出生即 invalid 是手工摆拍）；分支探针改直接驱动 machine（Adopt/Dispatch/MarkCompleted 不经 store.put，真「完成未持久化」场景——旧形态先持久化再删内存 map，文件里结果仍存活）。
+- **族复发警示（入方法论）**：L40 幻影族在 L43 上复发（修复声称的面＞实际治的面）；且反突变的「红」本身要区分确定性红与概率红（88/12 的红是掷骰子）——「修复声明必须机械验证」纪律的第三、第四实证。
