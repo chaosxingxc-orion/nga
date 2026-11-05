@@ -1,13 +1,13 @@
 # Current Conclusions
 
-Updated: 2026-11-04  
+Updated: 2026-11-05
 Authority: this page is the current collaboration summary. Detailed procedures, run logs, receipts and intermediate reviews remain in the local dated archive and CephFS. Historical versions are available through Git history.
 
 ## Current position
 
-The fixed reference base is locked for the registered TEST matrix. The next crossed-candidate interface DEV is prepared but has not been launched. Numerical admission has completed on four Qwen3.5 sizes; this validates execution consistency only and is not a scientific gain or business result.
+As observed around 2026-11-05 02:30 UTC, the seven final same-TEST runs are running on host 175 chips 0–6 following authentic exact UID-handoff Astra PASS. Running is not completion or scientific acceptance; no same-TEST training gain is established. The fixed 112 panels are a registered local inventory, not completion of the heterogeneous model × dataset × protocol matrix.
 
-The 175 host currently has no active NPU allocation. All eight chips are free in the allocation ledger. This idle interval is caused by the behavior-DEV execution gate, not by completion of the Cartesian product or training program.
+9B crossed-interface DEV completed 672/672 with runtime and host EXIT 0 and chip 7 release. Restricted-output CPU reconstruction passed. Exploration was negative for the unchanged interface at all registered K; the frozen decision permits registered confirmation as an independent diagnostic, with no selection or threshold change. The 0.8B successor has started on chip 7; 2B/4B are queued and their automatic continuation is preparation only, not deployed. The new 28-node graph (11 NPU, 17 CPU) is planning only.
 
 ## Frozen reference and direct-drive results
 
@@ -21,7 +21,7 @@ The 175 host currently has no active NPU allocation. All eight chips are free in
 
 The 0.8B LoRA DEV qualification and seven-member candidate assembly are complete. DEV mean is about 82.397152% (+24.011076 pp versus K0); transfer mean is about 65.167683% (+4.649390 pp). These are DEV/transfer diagnostics and are **not** same-TEST training gains.
 
-The seven-member same-TEST evaluation is still blocked. The final admission requires a real `independent_astra` review using `gpt-6-astra` with a substantive `PASS` file. Dispatch acknowledgements without a review artifact do not satisfy this gate.
+The seven-member same-TEST evaluation is running after the authentic exact-plan UID-handoff review PASS; results and independent acceptance remain pending. It is independent of crossed-interface behavior DEV.
 
 ## Latest NPU experiment: numerical interface admission
 
@@ -34,27 +34,13 @@ Run root: `/mnt/cephfs/xingchao/experiments/jev/r3_runs/large_candidate_interfac
 | Qwen3.5-4B | 144/144 | 3/3 | true | false | false | 2 / 18.4023 GiB |
 | Qwen3.5-9B | 144/144 | 3/3 | true | false | false | 3 / 36.2734 GiB |
 
-Each report has `completed_items=144`, `passes=3`, `reused_items=0`, `all_raw_exact=true`, `scientific_acceptance=false` and `test_read=false`. Host claim, run exit, release and container evidence exist for all four jobs. An independent CPU audit is pending before these results can be sealed as formal numerical-admission PASS.
+Each report has `completed_items=144`, `passes=3`, `reused_items=0`, `all_raw_exact=true`, `scientific_acceptance=false` and `test_read=false`. Host claim, run exit, release and container evidence exist for all four jobs. Full-vocabulary operands were persisted for numerical admission. The host-ready plans bind the admission evidence; no new NPU generation is needed for that verification.
 
-## Behavior DEV gate
+## Behavior DEV and next steps
 
-The behavior package contains 672 requests per model, 2,688 forwards total. It has fixed candidate order and mapping, semantic discrimination controls, full-vocabulary checks, float32, HF32 off, batch 1, max length 8192, item-level resume and 600-second watchdog configuration. The preparation audit verdict is `PASS_PREPARATION_ONLY_NOT_EXECUTION_AUTHORITY`.
+The registered package has 672 requests per model with semantic discrimination controls. 9B completed and its restricted-output reconstruction passed. Exploration semantic accuracy was 18/32, 8/32 and 8/32 at K=28, 77 and 151; no K met the complete screen. The frozen negative exploratory decision permits confirmation only under the unchanged registered protocol as an independent diagnostic. No confirmation outcome is claimed.
 
-Launch remains blocked until all of the following are present:
-
-1. Independent CPU audit of the four numerical reports.
-2. Formal numerical-admission PASS artifacts and refreshed behavior-plan hashes.
-3. Fresh prospective behavior review and resource binding.
-4. Parent execution review, then detached launch with claim/heartbeat/exit/release evidence.
-
-## Next execution order
-
-1. Seal or reject numerical admission from the independent audit.
-2. Regenerate and re-review the four behavior plans.
-3. Claim fresh chips from the ledger and launch the 2,688-forward behavior DEV as detached FIFO work.
-4. Run CPU scoring and diagnostics asynchronously with multithreaded scripts; watchdog polling remains event-driven or about every 600 seconds.
-5. Use preregistered DEV gates to select candidates. Only after a real Astra substantive PASS may the final seven-member same-TEST evaluation start.
-6. After the stable base is closed, add missing business-task datasets and then design RL optimization and baselines.
+The 0.8B successor started on chip 7 (PID 3644197; container `3df2320022f6`). The 2B and 4B successors are queued; their automatic continuation is still preparation only. Monitor the seven TEST runs and successors through bounded digests, reconcile terminals and releases, and independently reconstruct results before acceptance.
 
 ## Evidence pointers
 
@@ -65,4 +51,6 @@ Launch remains blocked until all of the following are present:
 - Preparation review: `.local/reviews/interface-dev-independent-20261104-v1/REVIEW.md`
 - Final admission tool: [`tools/r3_final_admission.py`](../tools/r3_final_admission.py)
 
-The terms “numerical admission”, “behavior DEV”, “same-TEST scientific acceptance” and “business gain” are separate states. Current work has reached numerical execution completion, but not behavior-DEV execution or training-gain acceptance.
+The terms “numerical admission”, “behavior DEV”, “same-TEST scientific acceptance” and “business gain” are separate states. The 9B exploration is a negative DEV diagnosis; confirmation and same-TEST training-gain acceptance remain pending.
+
+Snapshot sources: `.local/reviews/final-uid-followup-astra-20261105-v1/REVIEW.md`; `.local/reviews/interface9b-exploration-sol-20261105-v1/ANALYSIS.md`; Ceph `interface_cpu_continuation_20261105_v1/digest.md` and `FROZEN-EXPLORATION-DECISION.json`. Process evidence remains local or on CephFS.
