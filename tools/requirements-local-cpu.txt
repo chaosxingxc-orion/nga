@@ -1,0 +1,6 @@
+# Local CPython 3.11 CPU development/test environment; not the Ascend runtime.
+numpy==1.26.4
+scipy==1.13.1
+jsonschema==4.26.0
+pytest==8.4.2
+torch==2.10.0
