@@ -659,7 +659,7 @@
       "launch": false
     },
     "attempt_identity_v5": {
-      "status": "partial source fix under independent review",
+      "status": "ACCEPT_BOUNDED_EARLY_FAILURE_ATTRIBUTION",
       "parent_pins": 17,
       "parent_pin_mismatches": 0,
       "parent_focused_tests": 2,
@@ -668,7 +668,41 @@
         "verify actualnewattempt vs historicalevent selection",
         "image closure"
       ],
-      "fullacceptance": false
+      "fullacceptance": false,
+      "independent_cases": {
+        "positive": 6,
+        "negative_rejections": 24,
+        "known_defect": 1
+      },
+      "parent_review_pins": 191,
+      "parent_review_pin_mismatches": 0,
+      "live_source_delta": "panel_score.py modified by separate telemetry lane; acceptance bound to snapshot"
+    },
+    "score_observability_v6": {
+      "status": "source delivered independent review active",
+      "parent_tests": 7,
+      "parent_test_seconds": 0.12,
+      "producer_selected_loader_tests": 4,
+      "producer_broader_loader": {
+        "passed": 13,
+        "errors": 2,
+        "reason": "fixture baseline-records directory reuse"
+      },
+      "image_integrated": false,
+      "new_measurement": false,
+      "coverage": [
+        "memory stat gauge/counter distinction",
+        "monotonic and scope identity",
+        "missing metrics explicit",
+        "same-process library pool observation",
+        "fixed diagnostic phase events"
+      ],
+      "limitations": [
+        "cgroup privacy must be independently established by controller",
+        "no perchunk CPU span",
+        "no full timing overhead estimate",
+        "no runtime config route yet"
+      ]
     }
   }
 }
