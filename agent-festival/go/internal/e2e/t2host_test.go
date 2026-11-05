@@ -292,8 +292,37 @@ func newKnowledgeRegistry() *knowledgeRegistry {
 	return &knowledgeRegistry{methods: map[string]knowledgeMethod{}}
 }
 
-func (kr *knowledgeRegistry) publish(m knowledgeMethod) {
+// publish declares a method in the registry. R22 M-2/m-1: publish VALIDATES
+// its declaration — both "declared effect" forms fail closed:
+//   - a DUPLICATE ID is a redeclaration, not a flip: republishing an
+//     existing ID (e.g. re-arming an invalidated method with Valid:true)
+//     silently revives known-stale knowledge — a NEW ID must be published
+//     instead (the invalidate() comment's "single write path" guarantee
+//     is only true if redeclaration is refused)
+//   - a Replaces value that references a method NOT in the registry is a
+//     typo'd supersession: the supersession silently does not happen and
+//     the stale method keeps being served deterministically (the same
+//     "the declared effect did not happen" family invalidate() made loud)
+func (kr *knowledgeRegistry) publish(m knowledgeMethod) error {
+	if _, exists := kr.methods[m.ID]; exists {
+		return fmt.Errorf("[T2.REGISTRY] publish: method ID %q already published — redeclaration is not a flip (an invalidated method cannot be silently re-armed; publish a NEW ID) (fail-closed, R22 m-1)", m.ID)
+	}
+	if m.Replaces != "" {
+		if _, ok := kr.methods[m.Replaces]; !ok {
+			return fmt.Errorf("[T2.REGISTRY] publish: method %q declares Replaces=%q but no such method is published — the supersession would silently not happen (typo?) (fail-closed, R22 M-2)", m.ID, m.Replaces)
+		}
+	}
 	kr.methods[m.ID] = m
+	return nil
+}
+
+// mustPublish is the test-side form of publish (fails the test on a
+// rejected declaration).
+func (kr *knowledgeRegistry) mustPublish(t *testing.T, m knowledgeMethod) {
+	t.Helper()
+	if err := kr.publish(m); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // invalidate marks a published method invalid (expired/superseded) — the
@@ -633,17 +662,21 @@ func TestT2NodeEntry_Branches(t *testing.T) {
 }
 
 // TestT2Method_ParseErrorFailsClosed probes the L44 fix (R17 M-C) and its
-// R18 M-2/M-3 + R19 M-4/M-5/m-1 extensions: the veto input fails closed
-// on ALL corrupted forms — unparseable ("not-a-number"),
+// R18 M-2/M-3 + R19 M-4/M-5/m-1 + R22 M-1 extensions: the veto input
+// fails closed on ALL corrupted forms — unparseable ("not-a-number"),
 // prefix-parseable garbage that Sscanf would have accepted ("0abc",
 // "2xyz", "0.5"), empty, NEGATIVE (a month count cannot be negative),
 // MISSING (the extraction-miss form — the declared required input
 // absent), and under-declared methods (contract/consumption divergence).
 // Mutation probes: revert Atoi to Sscanf and the "0abc" case fails;
-// remove the InputFields presence loop and the missing-key case fails;
-// remove the divergence check and the under-declared case fails; remove
-// the negative check and the "-4" case fails; remove the empty-value
-// check and the empty-brID case fails.
+// remove the divergence check and the under-declared cases fail;
+// remove the negative check and the "-4" case fails; remove the
+// empty-value check and the empty-brID case fails.
+// R22 M-1 honest note: the presence loop's EXCLUSIVE behavioral face is
+// the missing business_request_id key (probe below — without the loop an
+// orphan result is produced); the missing-overdue_months form is
+// double-covered by the unconditional Atoi gate (Atoi("") errors), so
+// that case's coupling is marker-only.
 func TestT2Method_ParseErrorFailsClosed(t *testing.T) {
 	m := knowledgeMethod{
 		ID:          "method-parse-probe",
@@ -677,6 +710,22 @@ func TestT2Method_ParseErrorFailsClosed(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "missing") {
 		t.Fatalf("M-2 probe: error = %q, want the missing-input marker", err.Error())
+	}
+
+	// R22 M-1 probe (the presence loop's EXCLUSIVE face): the
+	// business_request_id key is ABSENT while overdue_months carries a
+	// legal value — nothing else checks brID presence, so without the
+	// presence loop this produces an ORPHAN result (BusinessReqID ""
+	// never matches a lookup). Mutation probe: remove the InputFields
+	// presence loop and this case produces a result (real fail-open).
+	_, err = m.execute(map[string]string{
+		"overdue_months": "4",
+	})
+	if err == nil {
+		t.Fatal("M-1 probe: a missing business_request_id key produced a result — the presence loop's exclusive face must fail CLOSED")
+	}
+	if !strings.Contains(err.Error(), "missing") {
+		t.Fatalf("M-1 probe: error = %q, want the missing-input marker", err.Error())
 	}
 
 	// R19 m-1 probe: a present-but-EMPTY declared input fails closed (an
@@ -778,8 +827,8 @@ func TestT2Method_ParseErrorFailsClosed(t *testing.T) {
 // Valid flag and the second face fails (v1 revives and is served).
 func TestT2FindForNode_SupersessionWindow(t *testing.T) {
 	kr := newKnowledgeRegistry()
-	kr.publish(knowledgeMethod{ID: "method-overdue-v1", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
-	kr.publish(knowledgeMethod{ID: "method-overdue-v2", Version: "2.0.0", ServesNode: "history-verification", Valid: true, Replaces: "method-overdue-v1"})
+	kr.mustPublish(t, knowledgeMethod{ID: "method-overdue-v1", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
+	kr.mustPublish(t, knowledgeMethod{ID: "method-overdue-v2", Version: "2.0.0", ServesNode: "history-verification", Valid: true, Replaces: "method-overdue-v1"})
 	// NO invalidation — the window state: both valid, v2 supersedes v1
 	m, ok := kr.findForNode("history-verification")
 	if !ok {
@@ -817,9 +866,9 @@ func TestT2FindForNode_SupersessionWindow(t *testing.T) {
 // probability across 200 iterations < 1e-10).
 func TestT2FindForNode_Deterministic(t *testing.T) {
 	kr := newKnowledgeRegistry()
-	kr.publish(knowledgeMethod{ID: "method-c", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
-	kr.publish(knowledgeMethod{ID: "method-a", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
-	kr.publish(knowledgeMethod{ID: "method-b", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
+	kr.mustPublish(t, knowledgeMethod{ID: "method-c", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
+	kr.mustPublish(t, knowledgeMethod{ID: "method-a", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
+	kr.mustPublish(t, knowledgeMethod{ID: "method-b", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
 	for i := 0; i < 200; i++ {
 		m, ok := kr.findForNode("history-verification")
 		if !ok {
@@ -831,10 +880,52 @@ func TestT2FindForNode_Deterministic(t *testing.T) {
 	}
 	// invalid methods are filtered regardless of ID order (F-04 face)
 	kr2 := newKnowledgeRegistry()
-	kr2.publish(knowledgeMethod{ID: "method-a", ServesNode: "history-verification", Valid: false})
-	kr2.publish(knowledgeMethod{ID: "method-b", ServesNode: "history-verification", Valid: true})
+	kr2.mustPublish(t, knowledgeMethod{ID: "method-a", ServesNode: "history-verification", Valid: false})
+	kr2.mustPublish(t, knowledgeMethod{ID: "method-b", ServesNode: "history-verification", Valid: true})
 	m, ok := kr2.findForNode("history-verification")
 	if !ok || m.ID != "method-b" {
 		t.Fatalf("M-1 probe: expected method-b (the only valid one), got %q (ok=%v)", m.ID, ok)
+	}
+}
+
+// TestT2Registry_PublishValidation probes R22 M-2/m-1: publish validates
+// its declaration — a typo'd Replaces (reference to an unpublished method)
+// and a duplicate-ID redeclaration (re-arming an invalidated method) both
+// fail closed. Mutation probes: remove the Replaces check and the typo
+// case fails; remove the duplicate check and the revival case fails.
+func TestT2Registry_PublishValidation(t *testing.T) {
+	kr := newKnowledgeRegistry()
+	kr.mustPublish(t, knowledgeMethod{ID: "method-pv-v1", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
+
+	// R22 M-2 probe: typo'd Replaces — the supersession would silently
+	// not happen (the stale v1 keeps being served, deterministically)
+	err := kr.publish(knowledgeMethod{ID: "method-pv-v2", Version: "2.0.0", ServesNode: "history-verification", Valid: true, Replaces: "method-pv-typo"})
+	if err == nil {
+		t.Fatal("M-2 probe: a publish with a typo'd Replaces was accepted — a supersession that silently does not happen must be LOUD (fail-closed)")
+	}
+	if !strings.Contains(err.Error(), "Replaces") {
+		t.Fatalf("M-2 probe: error = %q, want the Replaces marker", err.Error())
+	}
+
+	// R22 m-1 probe: invalidate v1, then republish the SAME ID with
+	// Valid:true — the re-arming must be refused (a NEW ID is required)
+	if err := kr.invalidate("method-pv-v1"); err != nil {
+		t.Fatal(err)
+	}
+	err = kr.publish(knowledgeMethod{ID: "method-pv-v1", Version: "1.0.1", ServesNode: "history-verification", Valid: true})
+	if err == nil {
+		t.Fatal("m-1 probe: republishing an invalidated method's ID with Valid:true was accepted — known-stale knowledge was silently re-armed; redeclaration must be refused (fail-closed)")
+	}
+	if !strings.Contains(err.Error(), "redeclaration") {
+		t.Fatalf("m-1 probe: error = %q, want the redeclaration marker", err.Error())
+	}
+
+	// sanity: the rejected publishes did not mutate the registry state —
+	// the registry still holds exactly one method (v1, invalidated)
+	if len(kr.methods) != 1 {
+		t.Fatalf("publish-validation probe: registry holds %d methods after rejected publishes, want 1 — a rejected publish must not mutate state", len(kr.methods))
+	}
+	if m := kr.methods["method-pv-v1"]; m.Valid {
+		t.Fatal("publish-validation probe: v1 is Valid after invalidate + rejected republish — the rejected re-arming must not have landed")
 	}
 }

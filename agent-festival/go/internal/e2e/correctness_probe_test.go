@@ -12,11 +12,12 @@ package e2e
 // alignment landed — see the two E3 tests' doc comments for the resolved
 // state and their mutation probes).
 //
-// Both experiments may CHANGE our conclusions (the user's instruction:
-// "有可能会通过实验验证或者改变我们的结论"). If E0 shows the gate somehow
-// blocks the wrong grant, the "structural blindness" claim is falsified. If
-// E3 shows the fixture and stand-ins are actually consistent, the "spec
-// correctness" gap is falsified.
+// Both experiments were framed as conclusion-changing probes (the user's
+// instruction: "有可能会通过实验验证或者改变我们的结论"). E0's result
+// stands (the gate does not block the wrong grant — the structural
+// blindness claim holds). E3 ran and resolved its contradiction once P3+L23
+// landed; its former "the fixture and stand-ins are actually consistent"
+// falsification branch is now the asserted state.
 //
 // POLARITY GUARD (review-loop R11): the two E0-sick tests assert the DISEASED
 // state (pass = disease exists). When the correctness layer lands, they MUST

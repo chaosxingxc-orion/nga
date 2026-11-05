@@ -241,13 +241,13 @@ func TestT2R_StaleResultCorrection(t *testing.T) {
 	// (TestT2FindForNode_SupersessionWindow / TestT2K_ExpiredKnowledgeNotConsumed).
 	// The pre-invalidate assertion below makes the WINDOW state observable
 	// here too (supersession step observable in-scenario).
-	h.registry.publish(knowledgeMethod{
+	h.registry.mustPublish(t, knowledgeMethod{
 		ID: "method-overdue-v1", Version: "1.0.0",
 		ServesNode:  "history-verification",
 		InputFields: []string{"overdue_months", "business_request_id"},
 		Valid:       true, // valid BEFORE the correction (the transition state is real)
 	})
-	h.registry.publish(knowledgeMethod{
+	h.registry.mustPublish(t, knowledgeMethod{
 		ID: "method-overdue-v2", Version: "2.0.0",
 		ServesNode:  "history-verification",
 		InputFields: []string{"overdue_months", "business_request_id"},
@@ -298,7 +298,7 @@ func TestT2K_NewTaskZeroModelCalls(t *testing.T) {
 	h := newT2Host(t, t.TempDir())
 
 	// Publish a knowledge method (the "history-overdue verification" method)
-	h.registry.publish(knowledgeMethod{
+	h.registry.mustPublish(t, knowledgeMethod{
 		ID:          "method-overdue-v1",
 		Version:     "1.0.0",
 		ServesNode:  "history-verification",
@@ -369,11 +369,11 @@ func TestT2K_ExpiredKnowledgeNotConsumed(t *testing.T) {
 	h := newT2Host(t, t.TempDir())
 
 	// Publish the (about-to-expire) old method, then the current one
-	h.registry.publish(knowledgeMethod{
+	h.registry.mustPublish(t, knowledgeMethod{
 		ID: "method-a-old", Version: "1.0.0",
 		ServesNode: "history-verification", Valid: true,
 	})
-	h.registry.publish(knowledgeMethod{
+	h.registry.mustPublish(t, knowledgeMethod{
 		ID: "method-b-new", Version: "2.0.0",
 		ServesNode: "history-verification", Valid: true,
 	})
@@ -415,7 +415,7 @@ func TestT2K_SimilarButDifferentTask(t *testing.T) {
 // the node kind — the method is not consumed.
 func TestT2K_ScopeMismatch(t *testing.T) {
 	h := newT2Host(t, t.TempDir())
-	h.registry.publish(knowledgeMethod{
+	h.registry.mustPublish(t, knowledgeMethod{
 		ID: "method-credit", Version: "1.0.0",
 		ServesNode: "credit-scoring", // serves a DIFFERENT node
 		Valid:      true,
