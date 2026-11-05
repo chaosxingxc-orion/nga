@@ -16,7 +16,7 @@ import bev_native_runtime as native
 import bev_native_protocol as protocol
 
 MODELS = {f'Qwen3.5-{s}-Base': f'Qwen__Qwen3.5-{s}-Base' for s in ('0.8B','2B','4B')}
-MODEL_ROOTS = (Path('/mnt/cephfs/xingchao/models/jev'), Path('/mnt/cephfs/xingchao/omni/models/jev'))
+MODEL_ROOTS = (Path('/mnt/cephfs/xingchao/models/jev'), Path('/mnt/cephfs/xingchao/omni/models/jev'), Path('/model'))
 
 def require(condition, message):
     if not condition: raise ValueError(message)

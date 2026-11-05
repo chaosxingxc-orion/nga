@@ -1,5 +1,11 @@
 # Contracts
 
+## Fixed stage paths
+
+Inference writes `/run/nga/output/result`. Export mounts that inference result read-only at the same path and writes `/run/nga/export/result`. Score mounts that export result read-only at the same path and writes `/run/nga/score/result`. Shared model and data inputs retain their paths under `/model` and `/data` across stages. The model directory is a registered model name directly under `/model`; the two existing model mirror roots remain registered.
+
+The inference component hash contributes to output ownership. This source change creates a new prospective component identity; existing runs continue with their original immutable image and owner record.
+
 - The Dockerfile pins the base image. `SOURCE-MANIFEST.json` pins copied legacy source; the build receipt inventories all v4 context files.
 - The configuration schema is closed world and admits registered adapters, not commands or caller-selected executable modules.
 - Panel scoring checks the pinned manifest, input file bytes, population joins, record receipts and generation identities, and recomputes saved candidate arithmetic with image-local native functions. The manifest pin establishes content identity, not authorship.

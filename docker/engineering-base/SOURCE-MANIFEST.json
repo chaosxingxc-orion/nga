@@ -104,7 +104,7 @@
     {
       "source": "docker/engineering-base/components/inference/native_inference.py",
       "image": "/opt/nga/components/inference/native_inference.py",
-      "sha256": "82d96efa075ffaea0bf466a7992e5fa9e885e063e56ab7ef0b4dedd88fb588c5"
+      "sha256": "903cc4e536a0dedfe0a678df6a372689f264743b78f6213c3c641906e7859be8"
     },
     {
       "source": "docker/engineering-base/components/inference/test_native_inference.py",
