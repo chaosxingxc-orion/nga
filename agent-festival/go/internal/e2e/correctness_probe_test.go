@@ -36,9 +36,12 @@ import (
 // when this is true (their claim is obsolete).
 var correctnessLayerLanded = false // flip when preconditions[]/verifier lands
 
-// p3FixtureCorrectionLanded flips when the P3 fixture correction (unbounded
-// veto, business-owner seat) lands. E3-window skips when this is true.
-var p3FixtureCorrectionLanded = true // flip when P3 fixture correction lands
+// p3FixtureCorrectionLanded was removed in R20 (B-1): its two skip guards
+// survived the rewrite of the E3 test bodies, leaving the rewritten
+// assertions as dead code — the P3 correction and the L23 fix had zero
+// active coverage while the ledger claimed "极性翻绿". The E3 tests now
+// assert the corrected state directly and are mutation-coupled (fixture
+// text revert / s1Judge order revert both turn them red).
 
 // s1AlwaysGrant is the "sick" S1 stand-in for E0: it ALWAYS returns
 // grant-50000 with high-confidence details, regardless of evidence. This
@@ -233,16 +236,15 @@ func TestE0DiseaseExists_SickS1ExtractionMiss(t *testing.T) {
 	// (e.g., the evidlog / raw dossier), not S1's processed input.
 }
 
-// E3: Spec Self-Contradiction
+// E3: Spec Self-Contradiction — RESOLVED STATE (P3 + L23 landed)
 //
-// The judgment-spec-credit.json fixture says the veto is "in the window"
-// (six-month window), but both T0's s1Judge and T1's t1Spec use an
-// UNBOUNDED veto (any >3-month overdue at any time denies).
-// Additionally, on C8 (missing asset report + historical overdue), T0
-// returns on_missing_evidence (checks report first), but the spec's
-// precedence 0 (veto) should fire first, and T1 correctly expects deny.
-//
-// This test PROVES the contradiction is real, not just asserted.
+// The two contradictions this experiment proved are now fixed and this
+// file asserts the resolved state (see each test's doc comment for its
+// mutation probe):
+//   - window scope: the fixture's veto is unbounded ("at any time"),
+//     matching T0's stand-in and T1's t1Spec
+//   - C8 precedence: T0's s1Judge fires the veto (precedence 0) BEFORE
+//     the missing-evidence check, matching t1Spec's ordering
 
 // fixtureVetoRule holds the parsed veto rule from the fixture JSON
 type fixtureVetoRule struct {
@@ -257,23 +259,18 @@ type fixtureSpec struct {
 	Rules []fixtureVetoRule `json:"rules"`
 }
 
-// TestE3SpecSelfContradiction_WindowScope proves that the fixture's veto
-// scope ("in the window") contradicts T0's stand-in ("unbounded") and T1's
-// spec text ("at any time in the applicant's credit history on record").
+// TestE3SpecSelfContradiction_WindowScope asserts the RESOLVED state of
+// the former window-scope contradiction: the fixture's veto is unbounded
+// ("at any time in the applicant's credit history on record") and T0's
+// stand-in agrees. R20 B-1: the polarity guard that skipped this test
+// after the P3 correction landed was NEVER removed when the body was
+// rewritten — the assertions below were dead code and the P3 correction
+// had zero active coverage (reverting the fixture text kept all 21
+// packages green). The guard is gone; the assertions must run.
 //
-// This test is expected to be RED (it proves a contradiction exists).
-// When the P3 fixture correction lands (business-owner seat + unbounded veto),
-// this test should flip to GREEN.
+// Mutation probes: revert the fixture's veto coverage to "in the window
+// denies" → assertion 1 fails; window the stand-in → assertion 2 fails.
 func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
-	// POLARITY GUARD (review-loop R11): if the P3 fixture correction landed
-	// (unbounded veto), this test's claim (fixture is window-scoped) is
-	// obsolete — the fixture would no longer contain "in the window" and
-	// the first assertion below would fail, which IS the correct red signal.
-	// The guard makes the polarity explicit.
-	if p3FixtureCorrectionLanded {
-		t.Skip("E3-window: P3 fixture correction landed — this test asserted the OLD window-scoped veto; " +
-			"rewrite to assert the unbounded scope in the corrected fixture")
-	}
 	// Read the fixture
 	fixturePath := filepath.Join("..", "..", "..", "schema", "examples", "judgment", "valid", "judgment-spec-credit.json")
 	raw, err := os.ReadFile(fixturePath)
@@ -329,33 +326,24 @@ func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
 		t.Fatalf("E3: fixture time_window = %q — expected to mention 'upper band' scope", spec.Conventions.TimeWindow)
 	}
 
-	// Proof complete: fixture says "in the window" (six months) but stand-in
-	// denies a 2-year-old overdue. The spec is self-contradictory with its
-	// own implementation. This is the E3 experiment result:
-	//
-	// t.Logf("E3 RESULT: spec self-contradiction CONFIRMED — fixture veto scope: "+
-	// 	"'%s' (window-scoped, time_window='%s'), but T0 s1Judge denies a "+
-	// 	"4-month overdue from %d years ago (unbounded). "+
-	// 	"These cannot both be correct.", vetoRule.Coverage, spec.Conventions.TimeWindow, 2)
+	// Proof complete: fixture and stand-in now AGREE on the unbounded veto
+	// (the former contradiction is resolved by the P3 correction); the
+	// time_window convention survives scoped to the upper band only.
 }
 
-// TestE3SpecSelfContradiction_C8Precedence proves that on C8 (missing asset
-// report + historical overdue), T0's s1Judge returns on_missing_evidence
-// (because it checks the report first), but the spec's precedence-0 veto
-// should fire FIRST (giving deny). T1's spec correctly puts the veto at
-// precedence 0 — so T0 and T1 disagree on C8.
+// TestE3SpecSelfContradiction_C8Precedence asserts the RESOLVED state of
+// the former C8 precedence discrepancy (minor ledger L23): on C8 (missing
+// asset report + historical overdue), T0's s1Judge now returns deny —
+// the veto (precedence 0) fires before the missing-evidence check,
+// aligned with t1Spec. R20 B-1: the polarity guard that skipped this
+// test after the correction landed was NEVER removed when the body was
+// rewritten — the assertions below were dead code and the L23 fix had
+// zero active coverage (reverting s1Judge's priority order kept the
+// whole module green). The guard is gone; the assertions must run.
 //
-// This is registered as L23 in the minor ledger.
+// Mutation probe: restore the report-check-first order in s1Judge →
+// the deny assertion below fails.
 func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
-	// POLARITY GUARD (review-loop R12): C8 asserts T0's CURRENT precedence
-	// order (report check before veto). When the P3 fixture correction
-	// lands AND the T0 stand-in is fixed to match (veto fires first), this
-	// test's claim (T0 = on_missing_evidence) is obsolete — rewrite to
-	// assert deny (T0 ≡ T1, contradiction resolved).
-	if p3FixtureCorrectionLanded {
-		t.Skip("E3-C8: P3 fixture correction landed — T0 stand-in precedence must be fixed to match; " +
-			"rewrite to assert T0 ≡ T1 (deny on C8, the L23 discrepancy is resolved)")
-	}
 	// C8 evidence: missing report AND a 4-month overdue 2 years ago
 	e := creditEvidence{
 		assetMillions:   35,

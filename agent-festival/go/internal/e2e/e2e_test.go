@@ -40,16 +40,17 @@ type s1Verdict struct {
 // credit rules — the historical veto is UNBOUNDED (08:181-183; 10-walkthrough
 // :145 "may be an older record outside the recent six-month window ... R1 now
 // requires rejection"), so a >3-month overdue ANYWHERE on record denies.
-// The judgment-spec-credit fixture's window-scoped veto wording is the
-// pending P3 correction (business-owner seat + pending-confirmation); this
-// stand-in does not wait for it — the E2E data uses the reviewer's
+// The judgment-spec-credit fixture AGREES since the P3 correction landed
+// (unbounded veto "at any time", asserted by
+// TestE3SpecSelfContradiction_WindowScope); the E2E data uses the reviewer's
 // counterexample (assets 35M, clean recent window, 4-month overdue two
 // years ago → deny).
 func s1Judge(e creditEvidence) s1Verdict {
 	// L23 fix: veto (precedence 0) fires BEFORE the missing-evidence check —
 	// t1Spec puts "Precedence 0 (override): ANY overdue > 3 months at ANY
-	// TIME ... denies credit — regardless of assets" at precedence 0 and the
-	// T1 cases C8/C12 hardBar deny for missing-report + historical overdue.
+	// TIME ... denies credit — regardless of assets" at precedence 0; the
+	// T1 cases C8 (missing report + historical overdue) and C12 (lower
+	// band + historical overdue) both hardBar deny.
 	// The old T0 stand-in checked assetReportOK first, returning
 	// on_missing_evidence when both a veto and a gap were present — a
 	// priority-order discrepancy between T0 and T1 (minor-ledger L23,

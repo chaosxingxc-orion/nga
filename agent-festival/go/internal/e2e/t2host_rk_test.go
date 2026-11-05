@@ -116,7 +116,9 @@ func TestT2R_PermissionRevoked(t *testing.T) {
 	// L39 fix: the host-side authorization check is now a REAL assertion,
 	// not just documentation. The T2 nodeEntry method checks the caller's
 	// grants before serving the stored result. We test both sides:
-	// ① caller WITH matching grants → result served
+	// ① caller with NON-EMPTY grants → result served (fixture-level
+	//    simplification: non-empty = authorized — no grant-content
+	//    matching, nodeEntry does not inspect selector/action)
 	// ② caller WITHOUT grants → result NOT served
 	stored, ok := h.store.get("op-t2r-perm")
 	if !ok || stored.Receipt == "" {
@@ -260,7 +262,10 @@ func TestT2R_StaleResultCorrection(t *testing.T) {
 	}
 	// The registry serves the correction's method to a new task; executing
 	// it on the corrected input reproduces the deny semantic (the veto
-	// input for this business request's history).
+	// input for this business request's history). R20 m-1: the receipt
+	// assertion embeds v2's IDENTITY — the assertion is no longer
+	// decorative (v1/v2 share the method body, so a bare "veto-fired"
+	// check could not distinguish which method was served).
 	kResult, err := corrMethod.execute(map[string]string{
 		"overdue_months":      "4", // the historical veto input (4 months, 2 years ago)
 		"business_request_id": "br-t2r-corr",
@@ -268,8 +273,8 @@ func TestT2R_StaleResultCorrection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("R-correction READ-4: correction method execute failed: %v", err)
 	}
-	if !strings.Contains(kResult.Receipt, "veto-fired") {
-		t.Fatalf("R-correction READ-4: correction method receipt = %q, want veto-fired — the knowledge face must carry the corrected deny semantic", kResult.Receipt)
+	if kResult.Receipt != "method:method-overdue-v2:veto-fired" {
+		t.Fatalf("R-correction READ-4: correction method receipt = %q, want method:method-overdue-v2:veto-fired — the result must come from the v2 correction method, with its identity embedded", kResult.Receipt)
 	}
 }
 

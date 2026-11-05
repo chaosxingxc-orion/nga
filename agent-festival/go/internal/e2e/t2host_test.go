@@ -209,19 +209,24 @@ func (m knowledgeMethod) execute(inputs map[string]string) (storedResult, error)
 	facts := []string{}
 	receipt := fmt.Sprintf("method:%s:result", m.ID)
 	overdueMonths := 0
-	// R19 M-4: the method body CONSUMES overdue_months (the veto carrier) —
-	// a declaration that omits it is a contract/consumption divergence and
-	// fails closed. Without this check, an under-declared method let the
-	// veto input arrive absent, skip both gates, and default to 0 (the E0
-	// extraction-miss form reopened through the declaration seam).
-	declaresOverdue := false
-	for _, f := range m.InputFields {
-		if f == "overdue_months" {
-			declaresOverdue = true
+	// R19 M-4 + R20 M-2: the method body CONSUMES specific input keys —
+	// "overdue_months" (the veto carrier) and "business_request_id" (the
+	// result's identity carrier). A declaration that omits ANY consumed
+	// key is a contract/consumption divergence and fails closed.
+	// Without this check, an under-declared method let the omitted input
+	// arrive absent, skip both gates, and default (the E0 extraction-miss
+	// form reopened through the declaration seam — on the identity key it
+	// produced orphan results whose BusinessReqID never matches a lookup).
+	for _, consumed := range []string{"overdue_months", "business_request_id"} {
+		declared := false
+		for _, f := range m.InputFields {
+			if f == consumed {
+				declared = true
+			}
 		}
-	}
-	if !declaresOverdue {
-		return storedResult{}, fmt.Errorf("[T2.METHOD %s] consumes overdue_months but does not declare it in input_fields — contract/consumption divergence (fail-closed, R19 M-4)", m.ID)
+		if !declared {
+			return storedResult{}, fmt.Errorf("[T2.METHOD %s] consumes %q but does not declare it in input_fields — contract/consumption divergence (fail-closed, R19 M-4/R20 M-2)", m.ID, consumed)
+		}
 	}
 	// R18 M-2: the DECLARED required inputs must be PRESENT — a missing
 	// key fails closed. The extraction-miss disease (E0) is exactly the
@@ -302,16 +307,21 @@ func (kr *knowledgeRegistry) invalidate(id string) {
 // method ID wins. Raw map ranging made this choice random (~88/12 per
 // probe), silently nondeterministic.
 // R19 M-3: SUPERSESSION is enforced mechanically, not by convention — a
-// valid method's Replaces names the method it supersedes, and the
-// superseded method is skipped even while still marked valid. In the
-// correction window (v2 published, v1 not yet flipped invalid) the window
+// method's Replaces names the method it supersedes, and the superseded
+// method is skipped even while still marked valid. In the correction
+// window (v2 published, v1 not yet flipped invalid) the window
 // deterministically serves v2, the correction — previously the lowest-ID
 // tiebreak deterministically served the STALE v1, and Replaces was
 // decorative (zero consumers).
+// R20 M-1: Replaces is a DATA FACT once stated — supersession is NOT
+// conditional on the superseder's current validity. If the superseder
+// itself is invalidated, the superseded method does NOT revive (v1 was
+// declared stale; reviving it serves known-stale knowledge): the node
+// serves NO method (fail-closed) until a new one is published.
 func (kr *knowledgeRegistry) findForNode(nodeKind string) (knowledgeMethod, bool) {
 	superseded := map[string]bool{}
 	for _, m := range kr.methods {
-		if m.Valid && m.Replaces != "" {
+		if m.Replaces != "" {
 			superseded[m.Replaces] = true
 		}
 	}
@@ -686,6 +696,27 @@ func TestT2Method_ParseErrorFailsClosed(t *testing.T) {
 		t.Fatalf("M-4 probe: error = %q, want the divergence marker", err.Error())
 	}
 
+	// R20 M-2 probe: the IDENTITY carrier is consumed too — a method that
+	// declares overdue_months but NOT business_request_id must fail closed
+	// (previously it produced an orphan result whose BusinessReqID never
+	// matches a lookup)
+	noIdentity := knowledgeMethod{
+		ID:          "method-no-identity",
+		Version:     "1.0.0",
+		ServesNode:  "history-verification",
+		InputFields: []string{"overdue_months"}, // business_request_id NOT declared
+		Valid:       true,
+	}
+	_, err = noIdentity.execute(map[string]string{
+		"overdue_months": "4",
+	})
+	if err == nil {
+		t.Fatal("M-2 probe: a method consuming but not declaring business_request_id produced a result — the identity carrier's divergence must fail CLOSED")
+	}
+	if !strings.Contains(err.Error(), "business_request_id") {
+		t.Fatalf("M-2 probe: error = %q, want the business_request_id divergence marker", err.Error())
+	}
+
 	// valid input still works (the fail-closed gates do not break the
 	// happy path)
 	r, err := m.execute(map[string]string{
@@ -706,6 +737,10 @@ func TestT2Method_ParseErrorFailsClosed(t *testing.T) {
 // is enforced mechanically via Replaces. Mutation probe: remove the
 // supersession skip and this test fails (the lowest-ID tiebreak would
 // deterministically serve the stale v1).
+// R20 M-1 face: Replaces is a data fact — superseding v2 then
+// INVALIDATING v2 must NOT revive the stale v1 (fail-closed: the node
+// serves no method). Mutation probe: gate supersession on the superseder's
+// Valid flag and the second face fails (v1 revives and is served).
 func TestT2FindForNode_SupersessionWindow(t *testing.T) {
 	kr := newKnowledgeRegistry()
 	kr.publish(knowledgeMethod{ID: "method-overdue-v1", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
@@ -718,11 +753,20 @@ func TestT2FindForNode_SupersessionWindow(t *testing.T) {
 	if m.ID != "method-overdue-v2" {
 		t.Fatalf("M-3 probe: window winner = %q, want method-overdue-v2 — during the correction window the superseding method must be served, not the stale lowest-ID one", m.ID)
 	}
+
+	// R20 M-1 probe: the superseder itself expires — the superseded v1
+	// must NOT revive (it was declared stale by v2's Replaces; the node
+	// serves no method until a new one is published)
+	kr.invalidate("method-overdue-v2")
+	if m, ok := kr.findForNode("history-verification"); ok {
+		t.Fatalf("M-1 probe: after invalidating the superseder, findForNode served %q — the superseded stale method must NOT revive (fail-closed, no method)", m.ID)
+	}
 }
 
 // TestT2FindForNode_Deterministic probes R18 M-1: with MULTIPLE valid
-// methods serving the same node kind (the correction-window state — v2
-// published before v1 is flipped invalid), findForNode must return a
+// methods serving the same node kind and NO Replaces relations (the plain
+// tie-break face — the supersession/correction-window face has its own
+// probe, TestT2FindForNode_SupersessionWindow), findForNode must return a
 // DETERMINISTIC winner: the lexicographically-lowest method ID. Mutation
 // probe: revert findForNode to raw map ranging and the winner flips
 // across iterations (raw ranging biased ~88/12 in measurement; escape
