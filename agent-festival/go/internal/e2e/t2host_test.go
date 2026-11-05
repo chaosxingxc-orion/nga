@@ -209,14 +209,21 @@ func (m knowledgeMethod) execute(inputs map[string]string) (storedResult, error)
 	facts := []string{}
 	receipt := fmt.Sprintf("method:%s:result", m.ID)
 	overdueMonths := 0
-	// R19 M-4 + R20 M-2: the method body CONSUMES specific input keys —
-	// "overdue_months" (the veto carrier) and "business_request_id" (the
-	// result's identity carrier). A declaration that omits ANY consumed
+	// R19 M-4 + R20 M-2 + R21 M-2: the method body CONSUMES specific input
+	// keys — "overdue_months" (the veto carrier) and "business_request_id"
+	// (the result's identity carrier). A declaration that omits ANY consumed
 	// key is a contract/consumption divergence and fails closed.
-	// Without this check, an under-declared method let the omitted input
-	// arrive absent, skip both gates, and default (the E0 extraction-miss
-	// form reopened through the declaration seam — on the identity key it
-	// produced orphan results whose BusinessReqID never matches a lookup).
+	// EXCLUSIVE faces of this check (verified by probes):
+	//   - identity key undeclared + brID missing → orphan result (nothing
+	//     else checks business_request_id's presence — line ~270 consumes
+	//     it unconditionally as "")
+	//   - veto key undeclared + overdue_months PRESENT with a legal value →
+	//     contract hygiene: the method executes on an input it never
+	//     promised to require (the Atoi gate does NOT reject a legal value)
+	// Double-covered face (honest note): veto key undeclared + overdue_months
+	// MISSING is also caught by the unconditional Atoi gate below (Atoi("")
+	// errors) — that form's protection does not exclusively depend on this
+	// check.
 	for _, consumed := range []string{"overdue_months", "business_request_id"} {
 		declared := false
 		for _, f := range m.InputFields {
@@ -290,13 +297,20 @@ func (kr *knowledgeRegistry) publish(m knowledgeMethod) {
 }
 
 // invalidate marks a published method invalid (expired/superseded) — the
-// single write path for validity flips (R19 m-2: one idiom, no
-// whole-struct-rewrite field loss, no third flip form).
-func (kr *knowledgeRegistry) invalidate(id string) {
-	if m, ok := kr.methods[id]; ok {
-		m.Valid = false
-		kr.methods[id] = m
+// single write path for validity flips of a PUBLISHED method (R19 m-2:
+// one idiom, no whole-struct-rewrite field loss, no third flip form;
+// publishing a NEW struct under an existing ID is a redeclaration, not a
+// flip). R21 m-2: an unknown ID is LOUD — a typo'd flip that silently
+// no-ops would leave the stale method consumable (every other
+// "declared effect did not happen" form in this increment fails closed).
+func (kr *knowledgeRegistry) invalidate(id string) error {
+	m, ok := kr.methods[id]
+	if !ok {
+		return fmt.Errorf("[T2.REGISTRY] invalidate: no published method with ID %q — the flip did NOT happen (typo?); a silently skipped flip would leave the stale method consumable (fail-closed, R21 m-2)", id)
 	}
+	m.Valid = false
+	kr.methods[id] = m
+	return nil
 }
 
 // findForNode returns the valid method serving the given node kind, or
@@ -556,9 +570,13 @@ func TestT2Lookup_TieBreakDeterminism(t *testing.T) {
 	if err := rs.put("op-tie-a", storedResult{Receipt: "r-tie-a", BusinessReqID: "br-tie", EvaluationRev: "er-5"}); err != nil {
 		t.Fatal(err)
 	}
-	// 50 iterations: each lookup ranges the map once; without sorted
-	// iteration the winner flips (random start offset per range)
-	for i := 0; i < 50; i++ {
+	// 500 iterations: each lookup ranges the map once; without sorted
+	// iteration the winner flips (random start offset per range).
+	// R21 m-3: statistical power recorded per the R18 methodology rule —
+	// 2 keys in one 8-slot bucket give a ~7/8 favorite bias, so the
+	// mutation's silent-escape bound is (7/8)^500 ≈ 1e-29 (a 50-iteration
+	// loop would only bound it at ≈ 1.3e-3).
+	for i := 0; i < 500; i++ {
 		r, opID, found := rs.lookupByBusinessRequest("br-tie")
 		if !found {
 			t.Fatal("L43 probe: no result found for br-tie")
@@ -677,8 +695,9 @@ func TestT2Method_ParseErrorFailsClosed(t *testing.T) {
 
 	// R19 M-4 probe: an UNDER-DECLARED method (consumes overdue_months but
 	// does not declare it) fails closed on the contract/consumption
-	// divergence — previously the veto input could arrive absent, skip
-	// both gates, and default to 0 through the declaration seam
+	// divergence. R21 M-2: this case feeds the missing-key form (which the
+	// unconditional Atoi gate ALSO catches — double coverage); the
+	// check's EXCLUSIVE face is the case below (legal value present).
 	underDeclared := knowledgeMethod{
 		ID:          "method-under-declared",
 		Version:     "1.0.0",
@@ -694,6 +713,22 @@ func TestT2Method_ParseErrorFailsClosed(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "divergence") {
 		t.Fatalf("M-4 probe: error = %q, want the divergence marker", err.Error())
+	}
+
+	// R21 M-2 probe (the check's EXCLUSIVE face): overdue_months PRESENT
+	// with a legal value — no other gate rejects a legal number, so only
+	// the divergence check can refuse. Mutation probe: remove the
+	// overdue_months half of the divergence check and this case produces
+	// a RESULT (real fail-open, not a marker mismatch).
+	_, err = underDeclared.execute(map[string]string{
+		"overdue_months":      "4", // legal value — the Atoi gate passes it
+		"business_request_id": "br-parse",
+	})
+	if err == nil {
+		t.Fatal("M-2 probe: an under-declared method with a LEGAL overdue_months value produced a result — the contract/consumption divergence must fail CLOSED even when the input arrives")
+	}
+	if !strings.Contains(err.Error(), "overdue_months") {
+		t.Fatalf("M-2 probe: error = %q, want the overdue_months divergence marker", err.Error())
 	}
 
 	// R20 M-2 probe: the IDENTITY carrier is consumed too — a method that
@@ -757,9 +792,18 @@ func TestT2FindForNode_SupersessionWindow(t *testing.T) {
 	// R20 M-1 probe: the superseder itself expires — the superseded v1
 	// must NOT revive (it was declared stale by v2's Replaces; the node
 	// serves no method until a new one is published)
-	kr.invalidate("method-overdue-v2")
+	if err := kr.invalidate("method-overdue-v2"); err != nil {
+		t.Fatal(err)
+	}
 	if m, ok := kr.findForNode("history-verification"); ok {
 		t.Fatalf("M-1 probe: after invalidating the superseder, findForNode served %q — the superseded stale method must NOT revive (fail-closed, no method)", m.ID)
+	}
+
+	// R21 m-2 probe: a typo'd invalidate (unknown ID) is LOUD — a silent
+	// no-op would leave the stale method consumable. Mutation probe:
+	// revert invalidate to silent-else and this fails.
+	if err := kr.invalidate("method-typo-does-not-exist"); err == nil {
+		t.Fatal("m-2 probe: invalidate of an unknown ID silently no-opped — the flip not happening must be LOUD (fail-closed)")
 	}
 }
 

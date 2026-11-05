@@ -234,10 +234,13 @@ func TestT2R_StaleResultCorrection(t *testing.T) {
 	// REGISTRY (findForNode), independent of the store lookups in READ 1/2.
 	// (v1 and v2 share the same deterministic body in this fixture — the
 	// correction here is the REGISTRY transition, not a logic change.)
-	// Both mechanisms are in play here: supersession (v2.Replaces=v1) AND
-	// invalidation — each has its own dedicated mutation-coupled probe
-	// (TestT2FindForNode_SupersessionWindow / TestT2K_ExpiredKnowledgeNotConsumed);
-	// this scenario-level assertion checks their coexistence.
+	// R21 m-1 (honest scope): this scenario asserts the TERMINAL STATE
+	// produced by both mechanisms being in play (supersession OR
+	// invalidation alone would also yield v2); each mechanism has its own
+	// dedicated mutation-coupled probe
+	// (TestT2FindForNode_SupersessionWindow / TestT2K_ExpiredKnowledgeNotConsumed).
+	// The pre-invalidate assertion below makes the WINDOW state observable
+	// here too (supersession step observable in-scenario).
 	h.registry.publish(knowledgeMethod{
 		ID: "method-overdue-v1", Version: "1.0.0",
 		ServesNode:  "history-verification",
@@ -251,8 +254,15 @@ func TestT2R_StaleResultCorrection(t *testing.T) {
 		Valid:       true,
 		Replaces:    "method-overdue-v1",
 	})
+	// WINDOW assertion (before the flip): v1 is STILL valid and sorts
+	// BELOW v2 — only supersession keeps it from being served
+	if m, ok := h.registry.findForNode("history-verification"); !ok || m.ID != "method-overdue-v2" {
+		t.Fatalf("R-correction READ-4 window: found %q (ok=%v), want method-overdue-v2 — during the correction window (v1 valid, v2 supersedes) the correction must be served", m.ID, ok)
+	}
 	// invalidate v1 (superseded by the correction) — the single flip path
-	h.registry.invalidate("method-overdue-v1")
+	if err := h.registry.invalidate("method-overdue-v1"); err != nil {
+		t.Fatal(err)
+	}
 	corrMethod, methodOK := h.registry.findForNode("history-verification")
 	if !methodOK {
 		t.Fatal("R-correction READ-4: no method found for a new task — the correction method must be discoverable")
@@ -368,7 +378,9 @@ func TestT2K_ExpiredKnowledgeNotConsumed(t *testing.T) {
 		ServesNode: "history-verification", Valid: true,
 	})
 	// The old method expires (invalidated) — the single flip write path
-	h.registry.invalidate("method-a-old")
+	if err := h.registry.invalidate("method-a-old"); err != nil {
+		t.Fatal(err)
+	}
 
 	// A new task should find only the CURRENT method
 	method, ok := h.registry.findForNode("history-verification")

@@ -6,8 +6,11 @@ package e2e
 // (198232012) identifies a real structural hole in our architecture.
 //
 // E0 proves the disease exists: a "sick" S1 that always returns grant passes
-// the adoption gate undetected. E3 proves the spec is self-contradictory:
-// the fixture's veto window contradicts both T0 and T1.
+// the adoption gate undetected. E3 PROVED the spec was self-contradictory
+// (the fixture's window-scoped veto contradicted both T0 and T1); that
+// contradiction is now RESOLVED (P3 fixture correction + L23 priority
+// alignment landed — see the two E3 tests' doc comments for the resolved
+// state and their mutation probes).
 //
 // Both experiments may CHANGE our conclusions (the user's instruction:
 // "有可能会通过实验验证或者改变我们的结论"). If E0 shows the gate somehow
@@ -271,11 +274,14 @@ type fixtureSpec struct {
 // Mutation probes: revert the fixture's veto coverage to "in the window
 // denies" → assertion 1 fails; window the stand-in → assertion 2 fails.
 func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
-	// Read the fixture
+	// Read the fixture. R21 M-3: a missing fixture is a RED, not a skip —
+	// this test is the fixture's only code consumer; skipping on a
+	// missing/moved file would silently evaporate the P3 correction's
+	// active coverage (the B-1 disease shape via an environmental guard).
 	fixturePath := filepath.Join("..", "..", "..", "schema", "examples", "judgment", "valid", "judgment-spec-credit.json")
 	raw, err := os.ReadFile(fixturePath)
 	if err != nil {
-		t.Skipf("E3: fixture not found at %s (running from wrong directory?): %v", fixturePath, err)
+		t.Fatalf("E3: fixture not found at %s (an in-repo required resource — a missing fixture must fail, not skip): %v", fixturePath, err)
 	}
 	var spec fixtureSpec
 	if err := json.Unmarshal(raw, &spec); err != nil {
@@ -360,28 +366,20 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 			"(L23 fix: veto at precedence 0 fires before missing-evidence check)", v0.kind)
 	}
 
-	// T1's t1Spec puts the veto at precedence 0 (BEFORE the report check)
-	// → the CORRECT answer per the spec is deny (veto fires regardless)
+	// Historical record (the former diseased state, fixed by L23): T0's
+	// s1Judge used to check the report FIRST and return
+	// on_missing_evidence for C8, while t1Spec puts the veto at precedence
+	// 0 (before the report check) and T1's C8 case expects deny — a
+	// priority-order discrepancy between T0 and T1. The fix moved the veto
+	// before the missing-evidence check in s1Judge (asserted above).
+	// Mutation probe: revert s1Judge's order (report first) → the deny
+	// assertion above fails.
 	//
-	// We can't call t1Judge here (it's in the T1 test file which requires
-	// real LLM), but we can verify the T1 spec text:
-	//
-	// From t1_llm_test.go's t1Spec:
-	//   "- Precedence 0 (override): ANY overdue obligation longer than three
-	//    months, AT ANY TIME in the applicant's credit history on record,
-	//    denies credit — regardless of assets. This veto is NOT limited to
-	//    any recent window"
-	//
-	// And C8 in t1Cases:
-	//   expected: "deny", hardBar: true
-	//
-	// So T1 expects deny for the same input where T0 returns on_missing_evidence.
-	//
-	// PROOF: T0 returns on_missing_evidence, T1 expects deny. The spec's
-	// own precedence rules say veto (precedence 0) fires before everything.
-	// T0's implementation has the precedence order wrong.
-
-	// We can verify this by reading the T1 test's spec text:
+	// t1Spec (t1_llm_test.go) states: "Precedence 0 (override): ANY overdue
+	// obligation longer than three months, AT ANY TIME in the applicant's
+	// credit history on record, denies credit — regardless of assets. This
+	// veto is NOT limited to any recent window" — and C8 in t1Cases
+	// expects "deny", hardBar: true.
 	t1SpecContainsVetoFirst := strings.Contains(t1Spec, "Precedence 0") &&
 		strings.Contains(t1Spec, "ANY overdue") &&
 		strings.Contains(t1Spec, "regardless of assets")
@@ -389,11 +387,6 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 	if !t1SpecContainsVetoFirst {
 		t.Fatal("E3-C8: T1 spec text does not contain unbounded precedence-0 veto — spec may have changed")
 	}
-
-	// t.Logf("E3-C8 RESULT: precedence contradiction CONFIRMED — T0 returns "+
-	// 	"on_missing_evidence (report check first), T1 expects deny (veto at "+
-	// 	"precedence 0 fires first). The spec's own precedence rules say the "+
-	// 	"veto should fire before the report check. L23 is validated.")
 }
 
 // TestE0DiseaseExists_PhantomJSONMidFile is R14' M-1's deterministic red
