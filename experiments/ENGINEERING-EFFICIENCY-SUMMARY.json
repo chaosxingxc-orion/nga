@@ -1049,7 +1049,7 @@
     }
   },
   "latest_execution_status": {
-    "as_of_utc": "2026-11-05T17:50:00Z",
+    "as_of_utc": "2026-11-05T18:08:00Z",
     "research_hold": true,
     "existing_runs": "preserved",
     "full_release": false,
@@ -1143,7 +1143,7 @@
       "repair": "v14 running"
     },
     "service_closure_v14": {
-      "status": "PASS_CPU_FIXTURE_FUNCTIONAL_SCOPE_PARENT_REVIEW_PENDING",
+      "status": "ASTRA_BLOCKED_FIRST_REQUIREMENT",
       "fresh_e2e": "daemon->worker->P.run->C.Consumer->trained export->trained score",
       "regression_tests": 55,
       "creates": 2,
@@ -1153,13 +1153,19 @@
         "yes_no": 1,
         "score": 1
       },
-      "exact_prediction_parity": true,
+      "exact_prediction_parity": false,
       "hold_blocks_new_npu": true,
       "invalid_lineage_pre_create": true,
       "open": [
         "Astra independent review",
         "production identity/real Docker/NPU"
-      ]
+      ],
+      "first_blocker": "contract_sha256 source 4530... vs export 6856..."
+    },
+    "service_contract_v15": {
+      "status": "queued",
+      "scope": "single contract identity propagation fix",
+      "preserve": "prediction arithmetic, metrics, creates, restart, HOLD, lineage, 55-test matrix"
     }
   }
 }
