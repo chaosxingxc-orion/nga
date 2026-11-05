@@ -1,6 +1,6 @@
 # 工程基座瓶颈执行状态与优化计划
 
-更新时间：2026-11-06。研究实验继续 HOLD；已运行任务保持原镜像和原配置。只有新基座通过资格、独立审查和迁移演练后才切换。
+更新时间：2026-11-05 22:02 UTC（沿用既有文件名）。研究实验继续 HOLD；已运行任务保持原镜像和原配置。只有新基座通过资格、独立审查和迁移演练后才切换。
 
 本轮执行原则是先把工程基座的功能、可靠性和效率收敛，再迁移实验。当前运行中的实验不停止；新的研究任务不因设备空闲而追加。CPU 分析、审查和修复继续异步推进，不能占用已运行任务的设备生命周期。
 
@@ -13,9 +13,9 @@
 | 流式 SHA-256 | 候选改动通过限定测试 | 1 MiB 读取保持 hash 一致；128 MiB 本地微测 RSS 约 146 MiB→20 MiB；无端到端提速结论 |
 | 安装诊断资格 | 未通过 | full3 controller exit 1，child exit 137 为失败后的清理终止；首错 `ValueError: parity mismatch`；评分子进程 exit 0，失败归档保留 |
 | full4 | 仅改配置执行成功 | 预期摘要 hash 被改为 full3 实际 hash `299447…`，不构成冻结 parity 修复或 finalization recovery 证据 |
-| Terra 候选 | v15 被 Astra 拒绝；v18 候选文件已生成但最新复跑失败 | v15 14/14 仅 CPU/模拟；Astra 发现结果 hash 抄写错误、finalization 自调用假测试、输入 lineage 缺失、源码信任可被调用者重绑、OOM 等状态未完整绑定。v16 6/6 将兼容协议接入控制器候选，默认仍冻结 parity；v18 最新集成复跑在 `unknown schema or metadata shape` 处失败，未重建镜像、未改生产源码。|
+| Terra 候选 | v15 被 Astra 拒绝；v18 当前 focused integration 3/3 通过 | v15 14/14 仅 CPU/模拟；Astra 发现结果 hash 抄写错误、finalization 自调用假测试、输入 lineage 缺失、源码信任可被调用者重绑、OOM 等状态未完整绑定。v16 6/6 将兼容协议接入控制器候选，默认仍冻结 parity；v18 已修复中间复跑发现的 schema/metadata 接口差异，当前仍未重建镜像、未改生产源码。|
 | Sol 配对效率测量 | 候选拒绝 | 24 个 CPU fixture 试验保持共同 prediction/receipt digest；读 ahead/并行候选在全部 worker 数下均未快于参考 |
-| CPU 配置化启动器 | 有界 smoke 通过 | 两个保留容器均 exit 0；确认 pinned image、9009:9009、只读输入、可写输出、network=none、资源上限、持久日志和 EXIT.json。仅为启动器操作证据，不是语义、性能或 NPU 资格 |
+| CPU 配置化启动器 | 有界 smoke 通过 | 本地主机 Docker smoke 的两个保留容器均 exit 0，输出位于本地工作区（非175/Ceph输出资格）；确认 pinned image、9009:9009、只读输入、可写输出、network=none、资源上限、持久日志和 EXIT.json。仅为启动器操作证据，不是语义、性能或 NPU 资格 |
 | NPU/真实设备 | 尚未资格化 | 没有设备映射、每芯片吞吐、内存和恢复证据；不据此判断主机空闲 |
 
 ## 效率瓶颈
@@ -29,9 +29,9 @@
 
 ## 本轮执行效率判断
 
-目前可以确认的效率损失按优先级排序如下：
+以下为工程处理优先级；返工、等待和评分来自不同测量窗口，不能相加或据此认定总耗时排名：
 
-1. **验收失败导致的返工**。v18 的配置兼容校验在最新复跑失败，说明候选生成、控制器消费和准入器消费之间仍有接口漂移。它会把一次候选修复变成多轮重复准备，是当前最大的系统性损失。先修复并用真实 `controller.main()` 路径复跑，才能继续测性能。
+1. **接口和验收返工风险**。v18 开发中曾有 schema/metadata 接口错误，当前已修复且主会话复跑 3/3 通过。其用例调用 `controller.main()`，Docker 依赖仍为模拟。返工总时长尚未量化；优先级高是因为安装验证依赖正确的控制路径，不能据此声称它占用时间最多。
 2. **前置核验和交接等待**。前置核验代理区间约 11.35 分钟，评分六轮约 12.23 分钟；历史交接中位数约 243 秒。若只优化评分函数，端到端收益会被前置和等待抵消。应先把阶段时间拆成准备、准入、设备运行、持久化、CPU评分和结果交付，并让 CPU 交接不持有设备租约。
 3. **评分阶段的文件和校验成本**。固定 1,024 条样本的插桩计时显示 JSON 序列化、路径检查、有限值检查和类型转换都占用明显 CPU；当前每条记录和提交文件各读一次，已经关闭了旧的重复读取问题。下一步只能在可信不可变身份下做 warm/cold 对照，不能通过删校验换速度。
 4. **内存压力和文件系统行为未分离**。前四轮 cgroup 计费接近 12 GiB 上限，后两轮约 0.80 GiB；原因尚未归因到 Python 对象、文件缓存、线程池或 Ceph。必须记录 `memory.stat`、回收计数、线程数和文件阶段，再做单因素优化。
@@ -43,7 +43,7 @@
 
 - v15 admission 候选不能接受：Astra 的独立反例证明输入树、可信源码身份和完整 child 生命周期状态仍未锁定。v17 最终为 17 项测试（16 通过、1 项 finalization 恢复跳过）；Astra 给出限定候选 GO，但要求修复悬空 sentinel、生成器自检、直接摘要/收据校验，并冻结源码后复验。安装资格未通过。
 - v16 controller 候选已把兼容协议接入控制器，但生产镜像仍包含旧控制器，且生产 admission 尚不识别 `COMPATIBILITY.json`；必须配套镜像构建、准入器变更和独立审查。
-- “finalization interruption” 目前只有 mock primitive 证据，不能算控制器恢复。
+- v18 已补 controller main 路径的模拟 Docker 故障测试；当前证明的是故障拒绝和证据保留，不是安装后的成功断点续跑。原 v15 直接 mock rename 的证据仍不算恢复。
 
 ## 优化顺序
 
@@ -96,19 +96,23 @@ Sol v4 在本地主机、固定 1,024 条保存记录上完成分项计时。每
 
 ## 当前实现工作与收敛条件
 
-1. v18 将控制器、兼容凭据、准入器和配置生成器集成为一条可测试路径，但当前最新复跑仍在 schema/metadata 兼容校验失败。先修复生成器与控制器契约，再调用控制器 main 做发布前/后中断测试；不能用直接调用 mock rename 代替恢复验证。异常输出要保留，重复启动不得重复创建 child。兼容迁移的科学不变检查不允许被单纯回填候选 hash 替代。
+1. v18 将控制器、兼容凭据、准入器和配置生成器集成为一条可测试路径，当前 focused integration 3/3 通过，已从 controller main 进入发布前/后故障测试。仍需独立审查并完成安装后验证；不能用直接调用 mock rename 代替恢复验证。异常输出要保留，重复启动不得重复创建 child。兼容迁移的科学不变检查不允许被单纯回填候选 hash 替代。
 2. 可复用 CPU 资格启动器固化镜像 digest、UID/GID、只读输入、输出目录和 argv，先在真实运行用户下检查输入可读/输出可写，再 detached 启动；日志由容器内部直接落 Ceph，失败与成功都写终态。当前旧启动脚本没有通过该契约，不能当作稳定基座继续复用。
 3. 上述功能通过后，才进入隔离安装资格与候选效率测量；测试夹具和启动器 smoke 通过仍不代表 Docker/NPU 发布。
 
-目录：`.local/preparations/engineering-controller-admission-integrated-20261106-v18/` 与 `.local/preparations/engineering-cpu-preflight-launcher-20261106-v1/`。v18 候选仍需修复后复跑；启动器 smoke 已结束。后续以终态、测试凭据与独立审查为准。
+目录：`.local/preparations/engineering-controller-admission-integrated-20261106-v18/` 与 `.local/preparations/engineering-cpu-preflight-launcher-20261106-v1/`。v18 当前候选测试已结束；启动器 smoke 已结束。后续以冻结后的终态、测试凭据与独立审查为准。
 
 ## 下一阶段计划和完成条件
 
 按依赖顺序执行，但 CPU 分析与仍在运行的实验保持异步：
 
-1. **接口收敛**：修复 v18 generator/controller 的 schema 兼容差异；重新生成 config、summary、receipt 和 pins；测试 receipt 必须由实际测试结果生成，summary/receipt hash 必须独立直接复核。完成条件是 focused integration 全通过，且没有 dangling `INCOMPLETE.json`、路径逃逸或可重绑定 trust root。
+1. **接口收敛**：当前 schema 差异已修复且集成测试 3/3 通过；冻结候选，核验 config、summary、receipt 和 pins；测试 receipt 必须由实际测试结果生成，summary/receipt hash 必须独立直接复核。完成条件是 focused integration 全通过，且没有 dangling `INCOMPLETE.json`、路径逃逸或可重绑定 trust root。
 2. **故障恢复闭环**：从 controller main 进入发布前中断、发布后中断、重复启动、staging 保留和恢复；保留失败证据。完成条件是失败不会被准入为成功，重启不会重复创建 child，终态和 committed inventory 一致。
 3. **CPU 端到端测量**：使用配置化启动器在固定输入上分别测 cold/warm 校验、JSON/数值校验、线程池和 cgroup memory.stat；每次只改变一个因素，保持 prediction、receipt、顺序和样本数不变。完成条件是得到可复现的阶段时间和明确的采用/拒绝结论。
 4. **有限安装资格**：重建候选镜像并执行 CPU 安装资格；核对 UID/GID、输入只读、输出写入、日志、EXIT、重试路径和容器资源。完成条件是资格证据完整且经独立 Astra 审查。
 5. **真实设备资格**：只在前四步通过后执行有界 G4，记录真实设备映射、每芯片吞吐、保留内存、checkpoint/item 恢复；不把历史容器状态或 CPU smoke 当作 NPU 证据。
 6. **迁移**：G4 和发布审查通过后，才按 checkpoint/item 边界停止旧实验、替换工程基座并恢复研究队列；迁移前不修改旧实验的镜像、配置和输出。
+
+## 本轮核验更正与当前接续
+
+2026-11-05 UTC：此前把开发中 schema 报错误标为最新失败，现以终态和主会话 3/3 复跑更正。启动器 9/9 复跑通过，但 smoke 的输出目录在本地工作区，不能认定175或Ceph输出通过。Astra独立审查和Sol下一轮效率方案已以Codex子进程启动；分别输出 `.local/reviews/engineering-v18-launcher-astra-review-20261106-v2/` 和 `.local/reviews/engineering-efficiency-next-sol-20261106-v2/`。未启动新研究任务，未停止旧实验。
