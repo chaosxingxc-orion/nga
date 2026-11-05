@@ -499,12 +499,53 @@ func requestForT2(op, revision, evidence, digest, brID string) *adopt.Request {
 // caller's authorization (L39 fix: host-side read authorization), checks
 // the machine state, and serves the stored result if the operation is
 // complete — or errors if the caller is not authorized.
+// grantsCoverRead is the T2 fixture's grant-coverage check (same shape as
+// the machine's grantsCover — the fixture is self-contained by design):
+// every pinned requirement must be covered by a live grant with matching
+// kind/selector/actions.
+func grantsCoverRead(live, pinned []ledger.Grant) bool {
+	for _, p := range pinned {
+		covered := false
+		for _, l := range live {
+			if l.Kind != p.Kind || l.Selector != p.Selector {
+				continue
+			}
+			allActions := true
+			for _, a := range p.Actions {
+				has := false
+				for _, la := range l.Actions {
+					if la == a {
+						has = true
+						break
+					}
+				}
+				if !has {
+					allActions = false
+					break
+				}
+			}
+			if allActions {
+				covered = true
+				break
+			}
+		}
+		if !covered {
+			return false
+		}
+	}
+	return len(pinned) > 0
+}
+
 func (h *t2Host) nodeEntry(opID string, callerGrants []ledger.Grant) (storedResult, error) {
 	// L39: host-side authorization check — the host checks its own access
 	// rules before serving stored results (per MR#1 consensus: the framework
 	// enforces the contract; the host checks its own permissions).
-	if len(callerGrants) == 0 {
-		return storedResult{}, fmt.Errorf("[T2.NODE_ENTRY] %s: caller not authorized to read stored results (empty grants)", opID)
+	// L39 + E5: the check is against the RESULT'S grants, not just
+	// non-emptiness — a caller whose grants were DOWNGRADED after the
+	// result was stored (the D-04 form: channel visibility narrowed away
+	// from the result's selector) is refused too.
+	if !grantsCoverRead(callerGrants, []ledger.Grant{{Kind: "data", Selector: "ledger://credit/e2e", Actions: []string{"read"}, Effect: "none"}}) {
+		return storedResult{}, fmt.Errorf("[T2.NODE_ENTRY] %s: caller not authorized to read stored results (grants empty or missing the data-read the result was produced under — the D-04 downgraded form)", opID)
 	}
 	// check the machine state — if completed, serve the stored result
 	if s := h.machine.State(opID); s != adopt.StateCompleted {

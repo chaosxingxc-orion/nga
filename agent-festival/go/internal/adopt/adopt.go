@@ -129,6 +129,7 @@ type opState struct {
 	identity       ledger.Identity
 	versions       ledger.Versions
 	accountability *ledger.Accountability // pinned at adoption; rides every effect event
+	dispatchedSeq  int64                  // the arbitration seq of THIS operation's dispatch event (-1 before dispatch) — the checked version for the E6 conditional commit (C4)
 }
 
 // Open loads (or starts) the durable form at path. A torn tail — an
@@ -236,6 +237,12 @@ func (m *Machine) replayEvent(e *ledger.Event) {
 	if s := State(e.Outcome.Status); s == StateAdopted || s == StateDispatched ||
 		s == StateUnresolved || s == StateCompleted || s == StateFailed {
 		st.state = s
+	}
+	// E6 (C4): the dispatch event's arbitration seq is the operation's
+	// checked version for the conditional commit — replayed from the
+	// durable form exactly as a live Dispatch would record it.
+	if e.Outcome.Status == string(StateDispatched) {
+		st.dispatchedSeq = e.ArbitrationSeq
 	}
 }
 
@@ -356,7 +363,67 @@ func (m *Machine) Dispatch(op string, liveGrants []ledger.Grant) Outcome {
 	if !grantsCover(liveGrants, st.grants) {
 		return m.refuse(st, "live grant set no longer covers the grants pinned at decision time (revocation check, 14-A4)")
 	}
-	return m.commit(st, StateDispatched, "dispatched after the 14-A4 revocation check")
+	o := m.commit(st, StateDispatched, "dispatched after the 14-A4 revocation check")
+	// E6 (C4): record the dispatch's own arbitration seq — the checked
+	// version a later conditional re-commit (DispatchIfCurrent) compares
+	// against. A failed dispatch leaves the pin at -1 (no dispatch event
+	// exists to be current).
+	if o.Event != nil {
+		st.dispatchedSeq = o.Event.ArbitrationSeq
+	}
+	return o
+}
+
+// DispatchIfCurrent is the E6 conditional commit (C4, xingchao 198232012
+// §一.4): the caller pins the dispatch seq it OBSERVED, and the commit
+// lands only if that version is still current at commit time. A stale
+// caller (its observation invalidated by an intervening decision — the
+// "D2 took effect between check and submit" race) is rejected with a
+// control event, not silently reordered. The plain Dispatch stays
+// version-blind (the machine dispatches whatever the caller submits —
+// semantic blindness by design); this method is the OPT-IN versioned
+// form for hosts whose sequencing requires the checked version to hold.
+//
+// WINDOW DECLARATION (the two windows of C4, pre-declared per 33号 B6):
+//   Window 1 — "approved but not sent" (adopted, pre-dispatch): fully
+//   covered — a revocation (14-A4) or a stale-version observation (this
+//   method) blocks the dispatch before any external call.
+//   Window 2 — "sent but unconfirmed" (post-dispatch, pre-receipt): NOT
+//   covered by any pre-commit check — the effect may already be external.
+//   The machine's answer is MarkUnresolved (T0 scenario 5); declaring a
+//   residual window honestly is the contract — no method promises that a
+//   late revocation retracts an in-flight external effect.
+func (m *Machine) DispatchIfCurrent(op string, liveGrants []ledger.Grant, observedDispatchSeq int64) Outcome {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.tornTail {
+		return Outcome{Status: "rejected",
+			Detail: fmt.Sprintf("durable form %s ends in a torn tail (external damage): no state change and no execution permission until the file is repaired and the machine is re-Opened", m.path)}
+	}
+	st, ok := m.ops[op]
+	if !ok || st.state != StateAdopted {
+		if !ok {
+			return Outcome{Status: "rejected", Detail: fmt.Sprintf("operation %q is not in the adopted state", op)}
+		}
+		return m.refuse(st, fmt.Sprintf("operation %q is in the %s state — not adoptable for dispatch", op, st.state))
+	}
+	// The conditional gate BEFORE the revocation check: a stale observation
+	// is refused even if the grants still cover (the version is the older
+	// fact — the caller's view of the world predates the current one).
+	// observedDispatchSeq < 0 means "I never observed a dispatch" — for an
+	// adopted operation that is the correct fresh-observation form (no
+	// dispatch event exists yet), so it is accepted.
+	if observedDispatchSeq >= 0 && observedDispatchSeq != st.dispatchedSeq {
+		return m.refuse(st, fmt.Sprintf("conditional commit rejected (E6/C4): the caller observed dispatch seq %d but the current version is %d — the observation is stale (an intervening decision took effect between check and submit)", observedDispatchSeq, st.dispatchedSeq))
+	}
+	if !grantsCover(liveGrants, st.grants) {
+		return m.refuse(st, "live grant set no longer covers the grants pinned at decision time (revocation check, 14-A4)")
+	}
+	o := m.commit(st, StateDispatched, "dispatched after the version check (E6/C4 conditional commit) and the 14-A4 revocation check")
+	if o.Event != nil {
+		st.dispatchedSeq = o.Event.ArbitrationSeq
+	}
+	return o
 }
 
 // MarkUnresolved records 'dispatch outcome unknown' (timeout / lost receipt /

@@ -35,10 +35,12 @@ import (
 	"github.com/openjiuwen/agent-festival/go/internal/adopt"
 )
 
-// correctnessLayerLanded is the polarity guard's flip switch — set to true
-// in the same commit that adds the correctness layer. E0-sick tests skip
-// when this is true (their claim is obsolete).
-var correctnessLayerLanded = false // flip when preconditions[]/verifier lands
+// correctnessLayerLanded was retired in E1 (the R20 B-1 discipline): the
+// E0-sick tests were REWRITTEN to assert the blocking state in the same
+// commit the verification seat landed — no skip guards survive to turn
+// the rewritten assertions into dead code. The rewritten tests are
+// mutation-coupled: removing the verify gate from the harness turns the
+// sick-chain test red (the grant flows through again).
 
 // p3FixtureCorrectionLanded was removed in R20 (B-1): its two skip guards
 // survived the rewrite of the E3 test bodies, leaving the rewritten
@@ -74,6 +76,17 @@ func TestE0DiseaseExists_HealthyS1(t *testing.T) {
 	if v.kind != "deny" {
 		t.Fatalf("E0 positive control: healthy S1 returned %q, want deny — harness broken", v.kind)
 	}
+	// E1 positive control: the CORRECT deny also passes the verification
+	// seat (the seat guards against wrong grants, not against denies —
+	// a healthy flow must not be damaged by the new gate).
+	cr := verify(v, loadE3Fixture(t), rawEvidence{
+		assetMillionsDeclared: float64(e.assetMillions),
+		assetReportPresent:    e.assetReportOK,
+		overdueOnRecord:       e.overdueOnRecord,
+	})
+	if !cr.ok {
+		t.Fatalf("E1 positive control: the seat REFUSED a correct deny (%s) — the gate damages healthy flows", cr.reason)
+	}
 	// the deny record is adopted (decision record) — the machine CAN dispatch
 	// it (it doesn't know it's a "deny" — this IS the structural blindness
 	// E0 proves), but the HOST chooses not to. We verify the healthy S1
@@ -92,22 +105,17 @@ func TestE0DiseaseExists_HealthyS1(t *testing.T) {
 	}
 }
 
-// TestE0DiseaseExists_SickS1 is the disease existence proof: the "sick" S1
-// (always grant) passes through the adoption gate completely undetected.
-// This test asserts the CURRENT state — the fact that it PASSES is the
-// proof that the architectural blindness is real. When we add the
-// correctness layer (preconditions[] or verifier), this test should
-// flip to red (the sick grant gets blocked), and then we update it to
-// assert the blocking.
-func TestE0DiseaseExists_SickS1(t *testing.T) {
-	// POLARITY GUARD (review-loop R11): if the correctness layer has landed,
-	// this test's claim ("disease exists") is obsolete — the sick grant would
-	// be blocked and this test would fail its "adopted" assertion below,
-	// which is the CORRECT red signal. The guard makes the polarity explicit:
-	if correctnessLayerLanded {
-		t.Skip("E0-sick: correctness layer landed — this test asserted the DISEASED state; " +
-			"it must be rewritten to assert the BLOCKING (preconditions violation → control event)")
-	}
+// (Historical doc, E0 era: this test asserted the disease — the sick S1
+// passing adopt→dispatch→API→completed with zero resistance, WGR 1/1.
+// E1 flipped the polarity: the verification seat now sits judge→verify→
+// adopt and the test asserts the INTERCEPTION — see the rewritten body.)
+func TestE0CorrectnessLayerBlocksSickS1(t *testing.T) {
+	// E1 flipped the polarity (33号 B1): the verification seat is in the
+	// chain, so the sick grant is BLOCKED — this test now asserts the
+	// interception, not the disease. The disease's FORMER existence is
+	// recorded in the ledger (R17-R20 eras); the proof that the seat is
+	// load-bearing is the mutation probe: remove the verify call from
+	// this chain and the sick grant flows to completion again.
 	h := newTask(t)
 	e := creditEvidence{
 		assetMillions:   35,
@@ -121,72 +129,85 @@ func TestE0DiseaseExists_SickS1(t *testing.T) {
 		t.Fatalf("E0: sick S1 returned %q, want grant-50000 — sick stand-in broken", v.kind)
 	}
 
-	// THE EXPERIMENT: walk the sick grant through the full chain.
-	// If the adoption gate has any semantic correctness layer, it should
-	// reject or block this somewhere. If it doesn't, the wrong grant
-	// will be adopted and dispatched.
+	// THE EXPERIMENT (E1, polarity flipped): the verification seat sits
+	// between the verdict and the adoption — judge → verify → adopt. The
+	// raw evidence carries the 4-month overdue; the sick verdict says
+	// grant; the seat must refuse BEFORE adoption.
+	raw := rawEvidence{
+		assetMillionsDeclared: 35,
+		assetReportPresent:    true,
+		overdueOnRecord:       e.overdueOnRecord,
+	}
+	spec := loadE3Fixture(t)
+	cr := verify(v, spec, raw)
+	if cr.ok {
+		t.Fatal("E1: the verification seat PASSED the sick grant — the seat is not load-bearing (the disease is back); verify() is broken or bypassed")
+	}
+	if !strings.Contains(cr.reason, "rule 0") {
+		t.Fatalf("E1: seat rejection reason = %q, want the rule-0 (unbounded veto) marker", cr.reason)
+	}
+
+	// The host honors the refusal: no adoption, no dispatch, no external
+	// call — the wrong verdict never enters the machine. The refusal is
+	// the host-tier gate (the machine stays semantically blind by design;
+	// the E3 control-event face here is the HOST's audit log, not the
+	// machine's ledger — nothing was adopted, so the machine has no event
+	// to write).
 	if o := h.machine.Adopt(requestFor("op-e0-sick", "er-1", "ev-1", digestHex('2'))); o.Status != "adopted" {
-		t.Fatalf("E0: adopt = %q: %s — UNEXPECTED: gate blocked the sick grant! "+
-			"This FALSIFIES the 'structural blindness' hypothesis", o.Status, o.Detail)
+		t.Fatalf("E1: adopt = %q: %s — unexpected: the machine refused on its own (it must stay blind; the HOST is the correctness seat)", o.Status, o.Detail)
 	}
-	if o := h.machine.Dispatch("op-e0-sick", chainGrants()); o.Status != "dispatched" {
-		t.Fatalf("E0: dispatch = %q: %s — UNEXPECTED: gate blocked the sick dispatch! "+
-			"This FALSIFIES the 'structural blindness' hypothesis", o.Status, o.Detail)
+	// The host checks the seat result before dispatching:
+	if !cr.ok {
+		// the host does NOT dispatch; the operation is parked unresolved
+		// (its permit is real but the seat said no — the host records the
+		// refusal and does not send the request)
+		if o := h.machine.MarkUnresolved("op-e0-sick"); o.Status != "unresolved" {
+			t.Fatalf("E1: parked unresolved = %q: %s", o.Status, o.Detail)
+		}
+	} else {
+		t.Fatal("E1: unreachable — the seat passed a sick grant")
 	}
 
-	// If we reach here, the sick grant was adopted AND dispatched.
-	// The disease exists. Record the evidence:
-	receipt := h.submit("op-e0-sick")
-	if o := h.machine.MarkCompleted("op-e0-sick"); o.Status != "completed" {
-		t.Fatalf("E0: complete = %q: %s", o.Status, o.Detail)
-	}
-
-	// Assert the machine has no mechanism to detect the error:
-	// 1. No precondition field in the request (verified by construction — Request struct has none)
-	// 2. No verdict field (the gate never saw "grant-50000" vs the evidence)
-	// 3. The machine completed normally — from its perspective, nothing went wrong
-	if s := h.machine.State("op-e0-sick"); s != adopt.StateCompleted {
-		t.Fatalf("E0: state = %q, want completed — machine saw nothing wrong", s)
-	}
+	// Zero external effect: the business API was never called (the submit
+	// never happens on a refused verdict). The zero-invocation proof is
+	// by construction here: h.submit is simply not reached. The machine's
+	// events show adoption + unresolved — no dispatched, no completed:
 	events, _ := h.machine.Events()
-	// 3 events: adoption, dispatched, completed — zero control events (nothing was rejected)
-	if len(events) != 3 {
-		t.Fatalf("E0: events = %d, want 3 (no rejections, no control events — gate was semantically blind)", len(events))
-	}
 	for _, ev := range events {
-		if ev.EventType == "control" {
-			t.Fatalf("E0: found control event — gate DID detect something! This falsifies the hypothesis")
+		if ev.Outcome.Status == "dispatched" || ev.Outcome.Status == "completed" {
+			t.Fatalf("E1: found a %q event — the sick verdict reached execution despite the seat refusal", ev.Outcome.Status)
 		}
 	}
-
-	// CONCLUSION: the sick grant went through the entire chain —
-	// adopt → dispatch → business API → completed — with zero resistance.
-	// The adoption gate is semantically blind to the judgment's correctness.
-	// xingchao's counterexample A is validated: "consistent but wrong" passes.
-	//
-	// t.Logf("E0 RESULT: disease CONFIRMED — sick S1 (always grant) with " +
-	// 	"4-month overdue evidence passed through adopt→dispatch→API→completed. " +
-	// 	"WGR = 1/1. The adoption gate has no semantic correctness layer. " +
-	// 	"Receipt: %s", receipt)
-	_ = receipt
 }
 
-// TestE0DiseaseExists_SickS1ExtractionMiss is the extraction-miss arm from
-// 27-blank-collision: the S1 correctly reads the overdue record but the
-// EVIDENCE DOSSIER itself is incomplete — the 4-month overdue is missing from
-// the structured input the verifier would see. This tests whether ANY layer
-// (not just the gate) catches "evidence was there but the input lost it."
-//
-// In our current architecture, the input (creditEvidence struct) is composed
-// by the test harness — there IS no input assembly layer that could catch
-// extraction errors. This test proves that.
-func TestE0DiseaseExists_SickS1ExtractionMiss(t *testing.T) {
-	// POLARITY GUARD (L47 fix): this test asserts the DISEASED state for
-	// extraction-miss (the extraction error passes through undetected).
-	// When the correctness layer lands, this test must be rewritten.
-	if correctnessLayerLanded {
-		t.Skip("extraction-miss: correctness layer landed — rewrite to assert the verification seat catches extraction gaps (or honestly declares it cannot)")
+// loadE3Fixture parses the credit fixture for the verification seat (the
+// same file the E3 tests read — one spec, all seats).
+func loadE3Fixture(t *testing.T) *fixtureSpec {
+	t.Helper()
+	fixturePath := filepath.Join("..", "..", "..", "schema", "examples", "judgment", "valid", "judgment-spec-credit.json")
+	raw, err := os.ReadFile(fixturePath)
+	if err != nil {
+		t.Fatalf("E1: fixture not found (an in-repo required resource): %v", err)
 	}
+	var spec fixtureSpec
+	if err := json.Unmarshal(raw, &spec); err != nil {
+		t.Fatalf("E1: fixture parse failed: %v", err)
+	}
+	return &spec
+}
+
+// (Historical doc, E0 era: this test asserted the extraction error
+// propagating undetected — the 27-blank-collision "independence trap":
+// a verifier consuming the SAME extracted input would inherit the error.
+// E1's answer: the seat reads the RAW dossier, so the trap is dead —
+// asserted below.)
+func TestE1SeatKillsExtractionInheritance(t *testing.T) {
+	// E1's extraction arm (33号 B1 step 6): the extraction layer drops the
+	// overdue, S1 sees a clean record and grants — but the seat reads the
+	// RAW evidence, so the extraction error does NOT inherit into the
+	// check. The interception is the answer to "can any layer catch
+	// evidence was there but the input lost it": yes — the seat, because
+	// it never reads the extracted form.
 	h := newTask(t)
 
 	// The REAL evidence has a 4-month overdue — but the EXTRACTION layer
@@ -214,30 +235,36 @@ func TestE0DiseaseExists_SickS1ExtractionMiss(t *testing.T) {
 		t.Fatalf("E0-extraction: real evidence S1 returned %q, want deny — harness broken", vReal.kind)
 	}
 
-	// The wrong grant (based on incomplete extraction) goes through the chain
+	// The seat verifies the sick verdict against the RAW record (not the
+	// extracted one): the overdue the extraction dropped is still in the
+	// raw ledger, so the grant is refused — the inheritance is killed.
+	raw := rawEvidence{
+		assetMillionsDeclared: float64(realEvidence.assetMillions),
+		assetReportPresent:    realEvidence.assetReportOK,
+		overdueOnRecord:       realEvidence.overdueOnRecord, // the RAW fact the extraction missed
+	}
+	spec := loadE3Fixture(t)
+	cr := verify(v, spec, raw)
+	if cr.ok {
+		t.Fatal("E1: the seat PASSED a verdict built on dropped evidence — the extraction error inherited into the check (the seat must read RAW, never the extracted form)")
+	}
+	if !strings.Contains(cr.reason, "rule 0") {
+		t.Fatalf("E1: seat rejection reason = %q, want the rule-0 marker", cr.reason)
+	}
+	// The host parks the operation unresolved; the wrong grant never
+	// dispatches (zero external effect, same as the sick-chain arm).
 	if o := h.machine.Adopt(requestFor("op-e0-extract", "er-1", "ev-1", digestHex('3'))); o.Status != "adopted" {
-		t.Fatalf("E0-extraction: adopt = %q: %s", o.Status, o.Detail)
+		t.Fatalf("E1: adopt = %q: %s", o.Status, o.Detail)
 	}
-	if o := h.machine.Dispatch("op-e0-extract", chainGrants()); o.Status != "dispatched" {
-		t.Fatalf("E0-extraction: dispatch = %q: %s", o.Status, o.Detail)
+	if o := h.machine.MarkUnresolved("op-e0-extract"); o.Status != "unresolved" {
+		t.Fatalf("E1: parked unresolved = %q: %s", o.Status, o.Detail)
 	}
-	_ = h.submit("op-e0-extract")
-	if o := h.machine.MarkCompleted("op-e0-extract"); o.Status != "completed" {
-		t.Fatalf("E0-extraction: complete = %q: %s", o.Status, o.Detail)
+	events, _ := h.machine.Events()
+	for _, ev := range events {
+		if ev.Outcome.Status == "dispatched" || ev.Outcome.Status == "completed" {
+			t.Fatalf("E1: found a %q event — the extraction-miss grant reached execution", ev.Outcome.Status)
+		}
 	}
-
-	// CONCLUSION: the extraction error propagated through the entire chain
-	// undetected. Even if we add a verifier that checks "months > 3 → deny"
-	// on the EXTRACTED input, it would see a clean record and pass —
-	// because the verifier consumes the same incomplete extraction.
-	//
-	// This is 27-blank-collision's "independence trap" proven in code:
-	// the verifier's independence is capped by the extraction source's
-	// independence. If the verifier reads the same (incomplete) input,
-	// it inherits the extraction error.
-	//
-	// The fix requires: the verifier reads the ORIGINAL evidence source
-	// (e.g., the evidlog / raw dossier), not S1's processed input.
 }
 
 // E3: Spec Self-Contradiction — RESOLVED STATE (P3 + L23 landed)

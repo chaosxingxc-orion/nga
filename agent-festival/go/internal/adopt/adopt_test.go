@@ -1889,3 +1889,85 @@ func TestDurableModeStatErrorFailsLoud(t *testing.T) {
 		t.Fatal("durableMode returned nil error for a non-not-exist Stat failure — a silent new-file default would mask it (P1-1)")
 	}
 }
+
+// TestE6ConditionalCommit is the E6 experiment (C4, xingchao 198232012
+// §一.4): DispatchIfCurrent pins the caller's observed dispatch seq, and a
+// stale observation (an intervening decision took effect between check and
+// submit) is refused with a control event — the newest correction can
+// never be silently reordered behind an older world-view.
+// Mutation probe: remove the version gate in DispatchIfCurrent and the
+// stale-commit case below succeeds (red).
+func TestE6ConditionalCommit(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+
+	// The optimistic-concurrency form: the host OBSERVES the world (A is
+	// adopted, never dispatched → observedDispatchSeq = -1), an
+	// intervening decision lands (B dispatches — the "D2 took effect
+	// between check and submit" race), and THEN the host submits A under
+	// its observation. Drive the race on B itself: the host observed B
+	// already DISPATCHED at seq N (that was its world-view when it
+	// planned the submit), a reconciliation event (A's unresolved) lands
+	// in between, and the host re-submits B with the seq it observed.
+	// Wait — B, once dispatched, is gated by the STATE gate (dispatched is
+	// not adoptable), which precedes the version gate by design. The race
+	// that reaches the version gate is exactly: an operation still in the
+	// ADOPTED state whose PREVIOUS dispatch attempt was recorded and then
+	// reverted… which the state machine does not have (adopted → dispatched
+	// → unresolved, and unresolved refuses re-dispatch: no auto-retry).
+	// So within ONE operation the version gate is unreachable from the
+	// plain flow — and that is itself a finding: the version gate's real
+	// face is the host submitting a seq it observed for a DIFFERENT
+	// operation, or a seq from a speculative/future reading. Drive it
+	// directly: the host submits A with a seq it "observed" that A never
+	// had (a corrupted or cross-wired observation):
+	if o := m.Adopt(testRequest("op-e6-a", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("A adopt = %q", o.Status)
+	}
+	if o := m.Adopt(testRequest("op-e6-b", digestB, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("B adopt = %q", o.Status)
+	}
+	if o := m.Dispatch("op-e6-b", pinGrants()); o.Status != "dispatched" {
+		t.Fatalf("B dispatch = %q", o.Status)
+	}
+	events, err := m.Events()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bSeq := int64(-1)
+	for _, e := range events {
+		if e.Idempotency != nil && e.Idempotency.OperationID == "op-e6-b" && e.Outcome.Status == "dispatched" {
+			bSeq = e.ArbitrationSeq
+		}
+	}
+
+	// The cross-wired stale submit: the host submits A while holding B's
+	// dispatch seq as its observation (the "D2 took effect" race
+	// abstracted — the observation predates the current state of A's
+	// world). A is adopted and grants cover; the version gate must refuse:
+	o := m.DispatchIfCurrent("op-e6-a", pinGrants(), bSeq)
+	if o.Status != "rejected" {
+		t.Fatalf("stale conditional commit = %q, want rejected — the caller's observation (seq %d) is not A's version (E6/C4)", o.Status, bSeq)
+	}
+	if !strings.Contains(o.Detail, "stale") {
+		t.Fatalf("rejection detail = %q, want the stale-observation marker", o.Detail)
+	}
+	if o.Event == nil {
+		t.Fatal("stale rejection left no control event — the refusal must be auditable (E3 family)")
+	}
+
+	// The fresh submit (-1 = "no dispatch observed yet") is the correct
+	// form for a first dispatch — accepted, revocation-checked, committed:
+	o = m.DispatchIfCurrent("op-e6-a", pinGrants(), -1)
+	if o.Status != "dispatched" {
+		t.Fatalf("fresh conditional commit = %q (%s), want dispatched", o.Status, o.Detail)
+	}
+
+	// The state gate still precedes: a second conditional commit on the
+	// now-dispatched A hits the state gate (not the version gate) —
+	// pin the precedence:
+	o = m.DispatchIfCurrent("op-e6-a", pinGrants(), -1)
+	if o.Status != "rejected" || !strings.Contains(o.Detail, "not adoptable for dispatch") {
+		t.Fatalf("second conditional commit = %q (%s), want the state-gate rejection", o.Status, o.Detail)
+	}
+}
