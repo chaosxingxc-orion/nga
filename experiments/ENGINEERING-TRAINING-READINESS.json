@@ -96,8 +96,8 @@
   ],
   "scope": "Retained metadata/source audit; no new training or NPU qualification; model payload hashes inherited.",
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T12:52:02.436647+00:00",
-    "status": "component_outer_and_shell_derivative_scoped_accepted_realruntime_trainedeval_integration_missing",
+    "observed_utc": "2026-11-05T15:36:33.387944+00:00",
+    "status": "CPU training shell and trained consumer accepted in scoped tests; production full capture and physical NPU qualification pending",
     "supersedes": "Implementation status of initial metadata audit only; inherited counts and scientific conclusions unchanged",
     "handoff_sha256": "7d89cd1aeedc62b7008fd3daf1af598f417ef0b96985743ab2d9c40ebd7c13b8",
     "result_sha256": "be5e0e5095c0bfa773f4acda35cc762fec846372dc15d8f0f886b50b2c230e10",
@@ -267,6 +267,40 @@
         "parent_review_evidence_rehashes": 269,
         "fixture_commit": "bb772c3"
       }
+    },
+    "trained_evaluation_current": {
+      "supersedes": "initial trained_evaluation_gap and corresponding historical remaining-release item for CPU source only",
+      "status": "ACCEPT_SCOPED_NORMAL_CPU_SOURCE",
+      "source_commit": "ae71d02",
+      "sizes_registered": [
+        "0.8B",
+        "2B",
+        "4B",
+        "9B"
+      ],
+      "fixture": "actual tiny Llama/PEFT, three task types, independent load parity; not actual Qwen or NPU",
+      "parent_review_pins": 157,
+      "parent_selected_source_pins": 16,
+      "parent_boundary_tests": 6,
+      "remaining": [
+        "final source/image binding",
+        "full service transaction",
+        "real Qwen/NPU qualification"
+      ]
+    },
+    "full_gradient_capture_current": {
+      "status": "INCOMPLETE_CHANGES_REQUIRED",
+      "parent_review_pins": 100,
+      "parent_pin_mismatches": 0,
+      "storage_supplied_tests_passed": 5,
+      "independent_passed": 4,
+      "independent_failed": 3,
+      "failure_latch": false,
+      "bounded_reader": false,
+      "total_staging_bound": false,
+      "native_loop_integrated": false,
+      "next": "actual native-loop two-update CPU integration; Adam/restore/NPU later gates",
+      "real_npu_launch": false
     }
   }
 }

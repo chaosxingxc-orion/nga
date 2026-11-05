@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T15:02:24.802241+00:00",
+    "observed_utc": "2026-11-05T15:36:33.387944+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -823,13 +823,54 @@
       "next": "portableprovider completefeature v9 active"
     },
     "full_gradient_capture_v1": {
-      "status": "INCOMPLETE_STORAGE_PRIMITIVE_ONLY",
+      "status": "INCOMPLETE_CHANGES_REQUIRED",
       "cpu_primitive_tests": 5,
       "native_loop_integrated": false,
       "npu_supported": false,
       "strict8MiBtotal_staging_proven": false,
-      "next": "actualnative-loop CPUverticalslice after independentreview",
-      "full_protocol_remaining": true
+      "next": "v2 real native-loop CPU capture implementation active; independent review queued",
+      "full_protocol_remaining": true,
+      "parent_review_pins": 100,
+      "parent_pin_mismatches": 0,
+      "independent_tests": {
+        "passed": 4,
+        "failed": 3,
+        "errors": 0
+      },
+      "remaining": [
+        "same failed capture attempt can later validate COMPLETE",
+        "corrupt shard read allocates before size validation",
+        "valid reader exceeds8MiB Python staging",
+        "native training loop capture absent"
+      ]
+    },
+    "diagnostic_completion_current": {
+      "version": "v8",
+      "status": "CHANGES_REQUIRED",
+      "parent_review_pins": 226,
+      "parent_pin_mismatches": 0,
+      "accepted_scope": "double-slash and lock-symlink rejection; cleanup when unlink succeeds; descriptor-relative marker; three-record source parity",
+      "remaining": [
+        "fsync plus unlink failure leaves readable success marker; actual supervisor and consumer protocol missing",
+        "mkdir/open replacement adopts foreign directory; private-parent custody missing"
+      ],
+      "image_built": false,
+      "new_measurement": false,
+      "next": "v9 actual supervisor/consumer and enforced output custody, independent delta review queued"
+    },
+    "portable_resource_current": {
+      "version": "v9",
+      "status": "DELIVERED_PENDING_INDEPENDENT_REVIEW",
+      "runtime_root": "tools/resource-provider-v3-runtime",
+      "historical_review_directory_required_at_runtime": false,
+      "parent_pins": 11,
+      "parent_pin_mismatches": 0,
+      "parent_tests": 5,
+      "parent_seconds": 6.074,
+      "scope": "same six-file v3 simulation closure; ambient Python/jsonschema trusted",
+      "physical_qualified": false,
+      "full_service_qualified": false,
+      "legacy_regression": "one obsolete caller-executable timeout expectation remains; real child timeout test passes"
     }
   }
 }
