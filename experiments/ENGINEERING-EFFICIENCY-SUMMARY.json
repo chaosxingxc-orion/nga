@@ -1047,5 +1047,31 @@
       "independent_review": "running",
       "next": "v13 implement candidate admission and authenticated completed upstream; actual service worker transaction"
     }
+  },
+  "latest_execution_status": {
+    "as_of_utc": "2026-11-05T16:37:00Z",
+    "research_hold": true,
+    "existing_runs": "preserved",
+    "full_release": false,
+    "service_bridge": {
+      "independent_positive": 3,
+      "failure_confirmations": 1,
+      "limitations": 6,
+      "actual_service_attempts": 0,
+      "parent_artifact_and_probe_pins_checked": 195,
+      "mismatches": 0,
+      "next": "implement authenticated actual service transaction"
+    },
+    "capture_stream": {
+      "status": "partial delivery; independent review running",
+      "source_pins_checked": 7,
+      "mismatches": 0,
+      "producer_tests_reported": 18,
+      "duplicate_native_checkpoint_staging": "unresolved",
+      "full_size_npu_qualification": false
+    },
+    "diagnostic_controller": "v12 failure repair running, independent review queued",
+    "next_measurement": "bounded175CPU phase/memory/thread diagnostics after controller acceptance",
+    "end_to_end_speedup_demonstrated": false
   }
 }
