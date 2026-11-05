@@ -136,3 +136,24 @@ R1 脏（1 MAJOR 修复+变异自证）→ **R2 净 → R3 净 → R4 净 = 连�
 - 修复：requestForT2（brID 参数化）+ 5 处直接 Adopt 调用全改。L37（O(n) 遍历）+ L38（References 未用）入台账。
 - 全量回归绿（-race 21 包）。已提交已推（c23f344）。
 - 连胜状态：R12' 脏（1M 修复）→ R13' 起算。
+
+## R15'（连胜重建 1/2——M-1 修复增量轮，净）
+
+- 前置门全绿；测试面恒积累（correctness_probe 7 函数）。
+- 4-lens 审 M-1 修复 diff（ParseLines 严格形状判定+两发探针）：Simplicity（最小严格化）✓；Consistency（torn EOF 路径经临时回归确认不变+合法事件兼容）✓；Bearing（两发探针绿+变异红）✓；Fidelity（注释引出处+探针语义演化如实记录）✓。
+- 同族穷举：torn EOF 路径临时回归确认不受严格化影响（TestT0TornTailStillWorksAfterStrictShape 临时测试，验证后删除——一次验证即可）。
+- 判定：**0 BLOCKER / 0 MAJOR**（连胜 1/2）。
+
+## R16'（连胜重建 2/2——审计形态轮，净：收官 R+K 线）
+
+- 前置门全绿。RECON：14 探针族全活（新 PhantomJSON 双发+E0/E3 全家+T0/T2/K 全族）。
+- 变异重跑：ParseLines 严格形状判定撤除 → Phantom 探针红（守卫活）→ 恢复全绿。
+- diff 范围：M-1 修复（load.go 15 行+探针 110 行）——无新面。
+- 判定：**0 BLOCKER / 0 MAJOR**。
+- **R15'/R16' = 2 连净——R+K 线按 2 连口径收官。**
+
+## R+K 线终态
+
+- 全循环：R12'（1M brID 修复）→ R13' 净 → R14' 空白终审脱 1M（phantom JSON 形状门）→ 修复 → R15' 净 → R16' 净 = 2 连收官。
+- 累计（R+K 线）：2 MAJOR 修复（brID 不同源+phantom 形状门）、12 探针族全活、L37-L47 共 11 条 minor 入账。
+- shape-table 结构候选第三次加权——登记未启动（启动须自带全强度外环）。
