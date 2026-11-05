@@ -362,11 +362,30 @@ func (m *Machine) dispatchGated(op string, liveGrants []ledger.Grant, observedDi
 		return m.refuse(st, fmt.Sprintf("operation %q is in the %s state — not adoptable for dispatch", op, st.state))
 	}
 	if observedDispatchSeq >= 0 && observedDispatchSeq != st.dispatchedSeq {
-		return m.refuse(st, fmt.Sprintf("conditional commit rejected (E6/C4): the caller observed dispatch seq %d but the current version is %d — the observation is stale (an intervening decision took effect between check and submit)", observedDispatchSeq, st.dispatchedSeq))
+		// R30 m-6: the reachable refusal face is forged/cross-wired
+		// observations — at this gate st.dispatchedSeq is always -1 (an
+		// adopted operation has no dispatch event), so the message says
+		// exactly that instead of narrating a same-op CAS story the
+		// architecture has ruled out, and the sentinel is explained.
+		return m.refuse(st, fmt.Sprintf("conditional commit rejected (E6/C4): the caller observed dispatch seq %d but the operation has no dispatch event (version -1) — the observation was never this operation's version", observedDispatchSeq))
 	}
 	if !grantsCover(liveGrants, st.grants) {
 		return m.refuse(st, "live grant set no longer covers the grants pinned at decision time (revocation check, 14-A4)")
 	}
+	// R30 M-4: the ledger detail must not claim a version check that the
+	// fresh-observation form SKIPPED (observed < 0 = nothing to compare)
+	// — a 100%-systematic false fact would poison any audit counting
+	// "dispatches that passed the version gate". The detail is split by
+	// form: the conditional form names the check it actually ran; the
+	// plain form and the fresh-observation form name what they are.
+	if observedDispatchSeq >= 0 {
+		commitDetail = "dispatched after the version check (E6/C4 conditional commit) and the 14-A4 revocation check"
+	} else if commitDetail == "" {
+		// the plain Dispatch form (observed = -1 by definition)
+		commitDetail = "dispatched after the 14-A4 revocation check"
+	}
+	// commitDetail != "" with observed < 0 rides through — the caller
+	// (DispatchIfCurrent's fresh form) owns its honest wording.
 	o := m.commit(st, StateDispatched, commitDetail)
 	// E6 (C4): record the dispatch's own arbitration seq — the checked
 	// version a later conditional re-commit (DispatchIfCurrent) compares
@@ -421,8 +440,9 @@ func (m *Machine) DispatchIfCurrent(op string, liveGrants []ledger.Grant, observ
 	// observedDispatchSeq < 0 means "I never observed a dispatch" — for an
 	// adopted operation that is the correct fresh-observation form (no
 	// dispatch event exists yet), so the version gate is skipped (see
-	// dispatchGated).
-	return m.dispatchGated(op, liveGrants, observedDispatchSeq, "dispatched after the version check (E6/C4 conditional commit) and the 14-A4 revocation check")
+	// dispatchGated). R30 M-4: the ledger detail names the skipped check
+	// honestly — the fresh form never ran a version comparison.
+	return m.dispatchGated(op, liveGrants, observedDispatchSeq, "dispatched after the fresh-observation form (no dispatch version to check) and the 14-A4 revocation check")
 }
 
 // MarkUnresolved records 'dispatch outcome unknown' (timeout / lost receipt /

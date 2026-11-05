@@ -204,3 +204,13 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **M-6（named guard 名不副实+掩盖形态）**：全 control 事件共享唯一 status "rejected"——按 status 无法点名单个守卫，其他守卫持续拦截掩盖特定守卫死亡。已修：参数改名 controlStatus+表达力边界声明（点名守卫需 refuse detail 前缀解析——夹具层故意不做）。
 - **m-1~m-8（随批清偿）**：m-1 Dispatch/DispatchIfCurrent 30+ 行重复收敛 dispatchGated helper（46 调用点零改动承诺保持）；m-2 「Wait —」草稿叙事改 Reachability note；m-3 不可达 else 删+零调用改 measured；m-4 requiredSources 死 value 删+sourceSources 死字段删+夹具联动声称如实化；m-5 grantsCoverRead 语义差声明（无 effect 级/空 pinned 反转/常量 pin vs per-result——0.2.0 面）；m-6 age 面精确边界钉（30 静默/31 列）；m-7 gofmt -l 修复+纪律账声明更正（收官提交时 adopt.go 实有命中）；m-8 命名统一 TestE<N>_YYY。
 - **方法论入账（第 19/20 实证）**：健康断言不得靠缺席将证伪它的流量而绿（B-1——绿灯用例的 effect 数为 0 恰是盲区所在）；新组件的参数若「存在即被忽略」（M-3 spec 只做 nil 检查）=参数承载失败，锚定测试是廉价闭环。
+
+## R30 空白复审记账（2026-11-06，339b38b..7e4d4b7 六实验+R29 清偿——0B/4M/7m 全清偿；连净计数 0）
+
+- **M-1（E2 拦截无行为承载）**：测试全程不调 S1、无按 gap 条件化派发——「拦截」无可执行承载面，反突变声明不可达（缺席断言绿=方法论第 19 条形态）。已修：真条件流（gap 空→judge/adopt/dispatch/submit；非空→扣派发），双断言面。反突变（coverageGap 恒空）→门自由路径跑通→行为红。
+- **M-2（锚 fail-open）**：anchorVetoMonths 只识别 three/four，词表外措辞（six months）落默认 3——漂移探测器变漂移掩护者。已修：fail-closed（词表 three/four/five/six 映射；无解析→0 哨兵→verify 拒绝把关=对流程 fail-closed）+锚测试双断言（可解析+值）。反突变（夹具改 six）→双测试红。
+- **M-3（词表门缺失）**：三语义面全靠精确字符串——GRANT-50000 大小写变体/词表外 kind/无 veto 字样的伪造 deny 全部实测绕过。已修：词表门先行（夹具 levels+resolution 词；EqualFold），镜像面收窄为「!vetoFires 时一切 deny 皆伪造」（rule 0 是夹具唯一 deny 路径，不再关键词嗅探）。直检探针：变体必拒。
+- **M-4（账本系统性假 detail）**：DispatchIfCurrent 成功事件 100% 写「after the version check」而版本比较在可达态必然被跳过（observed 恒 -1）——审计统计「过版本门的派发」全数为假。已修：detail 按 form 分裂（conditional 命名实跑的检查/fresh-observation 诚实声明跳过）+TestE6 detail 分形钉（回退合一→红）。
+- **m-1~m-7（随批清偿）**：文件头叙事翻转（POLARITY GUARD 指令退役）；恒真条件包裹去壳；MEASURED 措辞如实（计数器按构造为零）；trafficVolume 文档如实（adoption 不计/unresolved 计入已声明）；闭区间两端的夹具出处分指（exception vs example）；版本门拒绝消息讲架构已排除的因果故事+裸 sentinel（改「never this operation's version」+解释 -1）；双 E1 头块合并。
+- **正面确认（空白子实测）**：收敛重构等价性成立（dispatchGated 与旧 Dispatch 逐字一致）；探针耦合全保留（版本门/状态门/sentinel 三探针在突变 C 下全红）；46 调用点零改动相符；37 号数字面全对。
+- **方法论入账（第 21/22 实证）**：拦截声称要有条件流承载（无分支的流=缺席断言，M-1）；fail-open 默认值把守卫变掩护（M-2——哨兵语义要 fail-closed）；词表门先行于语义门（M-3——精确字符串匹配对变体全开）。

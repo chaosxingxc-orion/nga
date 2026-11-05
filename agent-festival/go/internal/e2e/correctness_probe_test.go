@@ -5,24 +5,22 @@ package e2e
 // experiments that test whether xingchao's "consistent but wrong" critique
 // (198232012) identifies a real structural hole in our architecture.
 //
-// E0 proves the disease exists: a "sick" S1 that always returns grant passes
-// the adoption gate undetected. E3 PROVED the spec was self-contradictory
-// (the fixture's window-scoped veto contradicted both T0 and T1); that
-// contradiction is now RESOLVED (P3 fixture correction + L23 priority
-// alignment landed — see the two E3 tests' doc comments for the resolved
-// state and their mutation probes).
+// E1 flipped the E0 polarity (this batch): the verification seat now sits
+// judge→verify→adopt, and the former disease tests assert the
+// INTERCEPTION. The disease's existence is historical record: a "sick" S1
+// used to pass the adoption gate undetected (WGR 1/1), and E3 proved the
+// spec self-contradiction that P3+L23 resolved. The current assertions
+// are the corrected state (see each test's doc for its mutation probe).
 //
-// Both experiments were framed as conclusion-changing probes (the user's
-// instruction: "有可能会通过实验验证或者改变我们的结论"). E0's result
-// stands (the gate does not block the wrong grant — the structural
-// blindness claim holds). E3 ran and resolved its contradiction once P3+L23
-// landed; its former "the fixture and stand-ins are actually consistent"
-// falsification branch is now the asserted state.
+// The experiments were framed as conclusion-changing probes (the user's
+// instruction: "有可能会通过实验验证或者改变我们的结论"). Both concluded:
+// the structural-blindness claim held (E0 era) and was then ANSWERED by
+// the E1 verification seat; the E3 contradiction resolved once P3+L23
+// landed. Nothing in this file asserts a pending state.
 //
-// POLARITY GUARD (review-loop R11): the two E0-sick tests assert the DISEASED
-// state (pass = disease exists). When the correctness layer lands, they MUST
-// be flipped to assert the blocking (pass = fixed). Forgetting to flip would
-// leave them green while silently proving an obsolete claim.
+// (The R11-era POLARITY GUARD instruction is RETIRED: the flip this block
+// demanded happened in this batch — the rewritten tests assert the
+// blocking, mutation-coupled, no skip guards survive.)
 
 import (
 	"encoding/json"
@@ -163,14 +161,15 @@ func TestE1_BlocksSickS1(t *testing.T) {
 	// look for an external effect that never existed). The host's refusal
 	// fact lives at the host tier; the operation simply stays adopted
 	// with no dispatch (the ledger truth: adopted, never dispatched).
-	if !cr.ok {
-		if s := h.machine.State("op-e0-sick"); s != adopt.StateAdopted {
-			t.Fatalf("E1: state after seat refusal = %q, want adopted (parked, never dispatched — no false unresolved fact)", s)
-		}
+	// (cr.ok is already excluded above — the state check is unconditional.)
+	if s := h.machine.State("op-e0-sick"); s != adopt.StateAdopted {
+		t.Fatalf("E1: state after seat refusal = %q, want adopted (parked, never dispatched — no false unresolved fact)", s)
 	}
 
-	// Zero external effect, now MEASURED not by construction alone (R29
-	// m-3): the stand-in API call counter must be zero.
+	// Zero external effect: the API counter is zero BY CONSTRUCTION in
+	// this flow (no submit path exists below the refusal — R30 m-3
+	// honesty: the counter adds no independent evidence here; the
+	// conditional-flow face with real counter evidence is TestE2).
 	if h.calls.bankAPI != 0 {
 		t.Fatalf("E1: the business API was called %d times — the sick verdict reached execution despite the seat refusal", h.calls.bankAPI)
 	}
@@ -254,8 +253,8 @@ func TestE1_SeatKillsExtractionInheritance(t *testing.T) {
 		t.Fatalf("E1: seat rejection reason = %q, want the rule-0 marker", cr.reason)
 	}
 	// Same host-tier discipline as the sick arm (R29 M-5): the record is
-	// adopted, the DISPATCH is withheld (no false unresolved fact), the
-	// API counter stays zero.
+	// adopted, the DISPATCH is withheld (no false unresolved fact); the
+	// counter is zero by construction (R30 m-3).
 	if o := h.machine.Adopt(requestFor("op-e0-extract", "er-1", "ev-1", digestHex('3'))); o.Status != "adopted" {
 		t.Fatalf("E1: adopt = %q: %s", o.Status, o.Detail)
 	}
@@ -289,11 +288,16 @@ type fixtureVetoRule struct {
 	Coverage   string `json:"coverage"`
 }
 
+type fixtureLevel struct {
+	Name string `json:"name"`
+}
+
 type fixtureSpec struct {
 	Conventions struct {
 		TimeWindow string `json:"time_window"`
 	} `json:"conventions"`
-	Rules []fixtureVetoRule `json:"rules"`
+	Rules  []fixtureVetoRule `json:"rules"`
+	Levels []fixtureLevel    `json:"levels"` // R30 M-3: the verdict vocabulary (the word-list gate's source)
 }
 
 // countPrecedenceZero counts rules at precedence 0 — the veto layer must

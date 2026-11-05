@@ -12,19 +12,16 @@ import (
 // E1: the verification seat (33号 B1) — a TEST-FACE component (the types
 // it verifies against live in the test files; the production adopt machine
 // stays semantically blind by design — the seat sits at the HOST tier,
-// exactly where E5's nodeEntry authorization lives).
-
-// E1: the verification seat (33号 B1) — the correctness layer whose
-// ABSENCE the E0 experiments proved. The seat is a DETERMINISTIC function
-// of the fixture spec and the RAW evidence (never of S1's extraction
-// output): the hermes-self-evolution layering (frame-bench,
-// evolution/core/constraints.py — "Every candidate variant must pass ALL
-// constraints … Failed constraints = immediate rejection") is the same
-// shape: hard deterministic gates decide, the model seat only advises.
-//
-// The seat wires judge→verify→adopt: a verdict that contradicts the raw
-// evidence under the fixture's rules is refused BEFORE adoption, and the
-// refusal is a control event (E3 family) — auditable, not traceless.
+// exactly where E5's nodeEntry authorization lives). The seat is the
+// correctness layer whose ABSENCE the E0 experiments proved: a
+// DETERMINISTIC function of the fixture spec and the RAW evidence (never
+// of S1's extraction output) — the hermes-self-evolution layering
+// (frame-bench, evolution/core/constraints.py — "Every candidate variant
+// must pass ALL constraints … Failed constraints = immediate rejection")
+// is the same shape: hard deterministic gates decide, the model seat only
+// advises. The seat wires judge→verify→adopt: a verdict that contradicts
+// the raw evidence under the fixture's rules is refused BEFORE the
+// dispatch, and the refusal lives in the host tier's own audit surface.
 
 // rawEvidence is the evidence AS IT EXISTS in the source dossier — the
 // ground truth the extraction layer is supposed to carry into S1's input.
@@ -38,22 +35,24 @@ type rawEvidence struct {
 }
 
 // anchorVetoMonths derives the veto threshold from the fixture's rule-0
-// coverage text: the fixture says "longer than three months" — the anchor
-// maps the spelled-out word to the numeric threshold. If the fixture
-// changes its threshold wording, the anchor test (TestE1_VetoThresholdAnchored)
-// goes red instead of verify silently diverging from the spec.
+// coverage text. R30 M-2: FAIL-CLOSED — an unparseable threshold returns
+// 0 (the sentinel: no anchor), NOT the historic default. The old
+// fail-open default turned the anchor from a drift detector into a drift
+// cover ("six months" → silently kept verifying at 3). verify treats 0 as
+// "no anchored threshold" and refuses to gate (refuses OPEN, i.e. fails
+// closed for the flow); TestE1_VetoThresholdAnchored asserts both the
+// parse and the value.
 func anchorVetoMonths(spec *fixtureSpec) int {
 	for _, r := range spec.Rules {
 		if r.Precedence == 0 {
-			if strings.Contains(r.Coverage, "three months") {
-				return 3
-			}
-			if strings.Contains(r.Coverage, "four months") {
-				return 4
+			for word, n := range map[string]int{"three": 3, "four": 4, "five": 5, "six": 6} {
+				if strings.Contains(r.Coverage, word+" months") {
+					return n
+				}
 			}
 		}
 	}
-	return 3 // a fixture without a parseable threshold keeps the historic default (the anchor test will flag the drift)
+	return 0 // unparseable — fail-closed sentinel (the anchor test flags it)
 }
 
 // checkResult is the verification seat's answer.
@@ -75,6 +74,9 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 		return checkResult{ok: false, reason: "no specification loaded — refusing to verify against nothing"}
 	}
 	vetoMonths := anchorVetoMonths(spec)
+	if vetoMonths == 0 {
+		return checkResult{ok: false, reason: "the fixture's rule-0 threshold is unparseable — the seat refuses to gate on an unanchored spec (fail-closed, R30 M-2)"}
+	}
 	// Rule 0 (the veto, precedence 0): ANY overdue beyond the anchored
 	// threshold at any time on record denies — regardless of assets,
 	// regardless of what S1 said.
@@ -88,17 +90,45 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	if vetoFires && v.kind != "deny" {
 		return checkResult{ok: false, reason: "rule 0 (unbounded veto): the raw evidence carries an overdue beyond three months — the only conforming verdict is deny, the seat received " + v.kind}
 	}
-	// The mirror face: S1 claims a veto-deny the raw record does not
-	// carry — a fabricated denial is also a contract violation (the seat
-	// is symmetric: it guards the citizen's side too).
-	if !vetoFires && v.kind == "deny" && strings.Contains(v.details, "veto") {
-		return checkResult{ok: false, reason: "the verdict claims a veto deny but the raw record carries no overdue beyond three months — fabricated denial"}
+	// R30 M-3: the VOCABULARY gate comes first — a verdict whose kind is
+	// not in the fixture's levels is not a verdict under this spec at all
+	// (case variants and invented names previously slipped every
+	// semantic face). After the vocabulary gate, rule 0 is the ONLY legal
+	// producer of deny in this fixture, so a deny on a clean record is
+	// fabricated — no keyword sniffing needed (the old details-contains
+	// "veto" check was bypassable by any rewording).
+	// the vocabulary = the levels PLUS the resolution vocabulary
+	// (on_undefined_rule / on_missing_evidence live in the spec's
+	// resolution section, not levels — they are verdicts the spec itself
+	// prescribes for open questions and gaps)
+	inVocabulary := false
+	for _, lvl := range spec.Levels {
+		if strings.EqualFold(strings.TrimSpace(lvl.Name), v.kind) {
+			inVocabulary = true
+			break
+		}
+	}
+	for _, res := range []string{"on_undefined_rule", "on_missing_evidence"} {
+		if v.kind == res {
+			inVocabulary = true
+			break
+		}
+	}
+	if !inVocabulary {
+		return checkResult{ok: false, reason: "the verdict kind " + v.kind + " is not in the fixture's verdict vocabulary — not a verdict under this spec"}
+	}
+	// The mirror face (R30 M-3 form): a deny with no veto behind it is
+	// fabricated — rule 0 is the fixture's only deny path, so any deny
+	// while the veto is silent contradicts the spec regardless of wording.
+	if !vetoFires && v.kind == "deny" {
+		return checkResult{ok: false, reason: "the verdict is a deny but the raw record carries no overdue beyond the anchored threshold — rule 0 is the only deny path in this spec, so this deny is fabricated"}
 	}
 	// The between-bands face: the seat knows the open question and holds
 	// S1 to the spec's own vocabulary — a grant from an unsettled zone is
 	// a model-authored default (the spec forbids it). R29 M-4: the open
-	// set is CLOSED at both ends — the fixture's exceptions name assets
-	// exactly 30 and exactly 1 as equally unsettled (>= 1 && <= 30).
+	// set is CLOSED at both ends (>= 1 && <= 30) — exactly-30 comes from
+	// the upper rule's exceptions, exactly-1 from the fixture's examples
+	// (R30 m-5: the two edges have DIFFERENT fixture homes).
 	inBand := raw.assetMillionsDeclared >= 1 && raw.assetMillionsDeclared <= 30
 	if inBand && (v.kind == "grant-50000" || v.kind == "grant-10000") {
 		return checkResult{ok: false, reason: "assets strictly between the bands are an open specification question — a grant verdict is a model-authored default"}
@@ -181,18 +211,40 @@ func TestE2_CoverageGapBlocksCounterexampleB(t *testing.T) {
 		t.Fatalf("E2: gap = %v, want it to name the historical ledger", gap)
 	}
 
-	// The host routes to missing-evidence BEFORE judgment: S1 is never
-	// asked to decide on an insufficient evidence base (the declarative
-	// gate runs first). R29 M-5: the record is adopted (the machine is
-	// blind by design); the DISPATCH is withheld — no MarkUnresolved (it
-	// would plant "outcome unknown" for a dispatch that never happened);
-	// the gap detail rides the HOST-tier refusal, not the ledger event.
-	if o := h.machine.Adopt(requestFor("op-e2-gap", "er-1", "ev-1", digestHex('4'))); o.Status != "adopted" {
-		t.Fatalf("E2: adopt = %q: %s", o.Status, o.Detail)
+	// R30 M-1: the interception is a REAL conditional flow — the host's
+	// dispatch decision is gated ON the gap (empty gap → judge/adopt/
+	// dispatch/submit; non-empty → withhold). With the gate in place the
+	// counterexample-B flow never reaches the API; with the gate removed
+	// (mutation) the flow runs to completion and the assertions below go
+	// red — the interception has behavioral mass, not just a unit check.
+	if len(coverageGap(presentSources)) == 0 {
+		// the gate-free path: judge, adopt, dispatch, submit
+		v := h.judge(creditEvidence{assetMillions: 35, assetReportOK: true})
+		_ = v
+		if o := h.machine.Adopt(requestFor("op-e2-gap", "er-1", "ev-1", digestHex('4'))); o.Status != "adopted" {
+			t.Fatalf("E2: adopt = %q: %s", o.Status, o.Detail)
+		}
+		if o := h.machine.Dispatch("op-e2-gap", chainGrants()); o.Status != "dispatched" {
+			t.Fatalf("E2: dispatch = %q: %s", o.Status, o.Detail)
+		}
+		h.submit("op-e2-gap")
+		if o := h.machine.MarkCompleted("op-e2-gap"); o.Status != "completed" {
+			t.Fatalf("E2: complete = %q: %s", o.Status, o.Detail)
+		}
+	} else {
+		// the gated path: the record is adopted (the machine is blind by
+		// design — R29 M-5), the DISPATCH is withheld (no false unresolved
+		// fact), the gap detail rides the HOST-tier refusal
+		if o := h.machine.Adopt(requestFor("op-e2-gap", "er-1", "ev-1", digestHex('4'))); o.Status != "adopted" {
+			t.Fatalf("E2: adopt = %q: %s", o.Status, o.Detail)
+		}
+		if st := h.machine.State("op-e2-gap"); st != adopt.StateAdopted {
+			t.Fatalf("E2: state after coverage refusal = %q, want adopted (never dispatched)", st)
+		}
 	}
-	if s := h.machine.State("op-e2-gap"); s != adopt.StateAdopted {
-		t.Fatalf("E2: state after coverage refusal = %q, want adopted (never dispatched)", s)
-	}
+	// behavioral assertions (both faces): the gated flow shows zero API
+	// calls and zero dispatch/completed events; under the mutation the
+	// gate-free branch runs and these go red.
 	if h.calls.bankAPI != 0 {
 		t.Fatalf("E2: the business API was called %d times — counterexample B's insufficient evidence reached execution", h.calls.bankAPI)
 	}
@@ -317,7 +369,7 @@ func TestE1_MirrorAndBandFaces(t *testing.T) {
 	// face ② between-bands (open question → grant): refused at BOTH open
 	// edges. Mutation probe: delete the band-face block and these pass
 	// (red); the closed edges (exactly 1, exactly 30) pin the R29 M-4
-	// closure against the fixture's exceptions.
+	// closure (exactly-30 = rule-1 exception; exactly-1 = fixture example).
 	for _, assets := range []float64{12, 1, 30} {
 		rawBand := rawEvidence{
 			assetMillionsDeclared: assets,

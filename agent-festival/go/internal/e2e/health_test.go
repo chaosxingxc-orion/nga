@@ -41,8 +41,11 @@ func aggregateControl(events []ledger.Event) frequencyReport {
 	return rep
 }
 
-// trafficVolume counts effect events (adopted/dispatched/…): the flow the
-// guards are supposed to be policing.
+// trafficVolume counts EFFECT events (the commit() family: dispatched/
+// unresolved/completed/failed — adoption events are EventType "adoption",
+// not "effect", and are NOT counted). R30 m-4 honesty: unresolved rides
+// the effect face as declared here — an unknown-outcome event counts as
+// flow for the death probe (a known, declared bound).
 func trafficVolume(events []ledger.Event) int {
 	n := 0
 	for _, e := range events {

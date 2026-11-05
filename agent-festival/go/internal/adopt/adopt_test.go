@@ -1947,8 +1947,11 @@ func TestE6_ConditionalCommit(t *testing.T) {
 	if o.Status != "rejected" {
 		t.Fatalf("stale conditional commit = %q, want rejected — the caller's observation (seq %d) is not A's version (E6/C4)", o.Status, bSeq)
 	}
-	if !strings.Contains(o.Detail, "stale") {
-		t.Fatalf("rejection detail = %q, want the stale-observation marker", o.Detail)
+	// R30 m-6: the marker is "never this operation's version" — the
+	// reachable face is forged/cross-wired observations (the gate's
+	// st.dispatchedSeq is always -1), not a same-op CAS story.
+	if !strings.Contains(o.Detail, "never this operation's version") {
+		t.Fatalf("rejection detail = %q, want the forged-observation marker", o.Detail)
 	}
 	if o.Event == nil {
 		t.Fatal("stale rejection left no control event — the refusal must be auditable (E3 family)")
@@ -1980,11 +1983,18 @@ func TestE6_ConditionalCommit(t *testing.T) {
 		t.Fatalf("sentinel: adopt = %q", o.Status)
 	}
 	o = m2.DispatchIfCurrent("op-e6-s", pinGrants(), 0)
-	if o.Status != "rejected" || !strings.Contains(o.Detail, "stale") {
-		t.Fatalf("sentinel: observed=0 on a never-dispatched op = %q (%s), want the stale-observation rejection (0 is not the -1 sentinel)", o.Status, o.Detail)
+	if o.Status != "rejected" || !strings.Contains(o.Detail, "never this operation's version") {
+		t.Fatalf("sentinel: observed=0 on a never-dispatched op = %q (%s), want the forged-observation rejection (0 is not the -1 sentinel)", o.Status, o.Detail)
 	}
 	o = m2.DispatchIfCurrent("op-e6-s", pinGrants(), -1)
 	if o.Status != "dispatched" {
 		t.Fatalf("sentinel: observed=-1 on a never-dispatched op = %q (%s), want dispatched", o.Status, o.Detail)
+	}
+	// R30 M-4: the ledger detail must not claim a version check the
+	// fresh-observation form skipped — pinned by form. Mutation probe:
+	// collapse the detail back to one "after the version check" string
+	// and this assertion goes red.
+	if !strings.Contains(o.Event.Outcome.Detail, "fresh-observation form") {
+		t.Fatalf("sentinel: fresh-form dispatch detail = %q, want the honest fresh-observation marker (no version-check claim)", o.Event.Outcome.Detail)
 	}
 }
