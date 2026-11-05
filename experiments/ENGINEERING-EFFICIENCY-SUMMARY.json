@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T13:31:03.615525+00:00",
+    "observed_utc": "2026-11-05T13:39:51.600763+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -305,7 +305,7 @@
       "parent_test_seconds": 0.479,
       "fixture": "actual tiny PEFT publication/load/forward, patched registry; not realQwen or NPU",
       "root_host_export_score_integration": false,
-      "root_integration": "partial producer v2: root schema/adapter/export/host edits, no trained end-to-end; re-review and completion v3 running"
+      "root_integration": "v2 final independent audit:actualtiny248320PEFT3kind chain positive,15cases include defectreproducers;96reviewpinschecked. Wholeintegration rejected: CPU pipeline separatepublicationmounts, processglobalread_logitsrace, attemptlifecycle, imageclosure. v3fix running"
     },
     "runtime_metadata": {
       "image": "sha256:a2b20ba160230b3e8c538ce588e256bec55cdb4b4e5e5a294e70ba9107dca6d9",
@@ -334,9 +334,9 @@
         "tests": 5,
         "TORCH_DEVICE_BACKEND_AUTOLOAD": "0"
       },
-      "full_replay": "Sol task active, no result yet"
+      "full_replay": "Sol admission recovered name conflict; originalrecord snapshot inprogress, no sixrunresults yet"
     },
-    "resource_provider": "Astra request_changes four findings; Terra fixes v2 running; physical qualification not done",
+    "resource_provider": "four findings fixed in simulated v2; parent11newregressions pass0.319s; independent review running, actualphysical and service missing",
     "log_service_integration": "incomplete: standalone accepted, supervisor/event service registration and recovery unimplemented",
     "runtime_import": {
       "image": "sha256:a2b20ba160230b3e8c538ce588e256bec55cdb4b4e5e5a294e70ba9107dca6d9",
