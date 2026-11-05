@@ -1,0 +1,61 @@
+{
+  "schema": "nga-qwen38-multicard-resource-policy-v2",
+  "utc": "2026-11-05T03:51:53.795065+00:00",
+  "authority": "User explicitly authorizes 2-card or 4-card inference/training budget for Qwen3.8-27B",
+  "model": "Qwen/Qwen3.8-27B",
+  "model_path": "/mnt/cephfs/models/Qwen3.8-27B",
+  "host": "npu / 175",
+  "device": "Ascend910B3",
+  "device_hbm_gib": 64,
+  "allowed_world_sizes": [
+    2,
+    4
+  ],
+  "profiles": {
+    "inference_initial": {
+      "world_size": 4,
+      "parallelism": "model_sharding; implementation selected from verified existing stack",
+      "dtype": "float32",
+      "alternative_world_size": 2,
+      "alternative_basis": [
+        "measured peak memory including activation and workspace",
+        "unchanged frozen engineering workload and numerical agreement",
+        "total lease card-seconds and completed items per hour"
+      ]
+    },
+    "lora_training_initial": {
+      "world_size": 4,
+      "parallelism": "FSDP/model-sharded frozenbase+LoRA; plain replicatedDDP does not resolve modelcapacity",
+      "fallback_world_size": 2,
+      "fallback_basis": "measuredsafepeakmemory and totalexperimentefficiency"
+    },
+    "full_parameter_training": {
+      "authorized_recipe": false,
+      "reason": "cardbudgetdoesnotchangeLoRAobjective; fullAdamstatecapacitymustbeseparatelyplanned"
+    }
+  },
+  "parameter_only_gib": {
+    "bf16": {
+      "1": 51.74694201350212,
+      "2": 25.87347100675106,
+      "4": 12.93673550337553
+    },
+    "fp32": {
+      "1": 103.49388402700424,
+      "2": 51.74694201350212,
+      "4": 25.87347100675106
+    }
+  },
+  "resource_constraints": [
+    "Atomicwholegroupclaim, no partialholdwhilewaitingforremainingcards",
+    "Resolveactualclaim/release/currentdeviceconflicts at launch; currentidleobservationnotreservation",
+    "CPUscoring must not holdNPUallocation or require successoridle",
+    "Useevent/600s scriptmonitor; memory/throughputperchip and aggregate; reportcardseconds",
+    "Compare2vs4using frozenDEV engineeringworkload, notchoosefromTESTresults",
+    "Retaineddetachedcontainers,persistentlogs,heartbeats,terminalmarkers,resumeandexactrelaunch"
+  ],
+  "launch_authorized": false,
+  "note": "Resource policy only. Concrete controller consumes its own reviewed CONFIG.json; this file does not reserve devices or activate a run. Initial four-card inference probe is not yet launched. LoRA four-card recipe remains to implement and validate.",
+  "resource_budget_authorized": true,
+  "updated_utc": "2026-11-05T04:27:00Z"
+}
