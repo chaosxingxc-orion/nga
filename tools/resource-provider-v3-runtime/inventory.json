@@ -1,0 +1,11 @@
+{
+  "files": {
+    "docker/engineering-base/schema.json": "2c4df3b73d2cec97a5715ade3a3f4bacf3c5fb29760ba4aaa15c367bd410e012",
+    "tools/experiment_dag.py": "264d2b32b01059f91c40723b35b8204cb5add1cb3a0fecb4a200129ddbcf0ebe",
+    "tools/r3_resource_adapter.py": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a",
+    "tools/unified_container_host_v1.py": "afd86a405cdb08b1353ec1385f268794854ce4c2309847df018962d019759de1",
+    "tools/unified_resource_lease_v1.py": "5c354ace3023d9cf2ca2c8d8d4a0a1ed468de71609aee797212d38eb2e467d7e",
+    "tools/unified_resource_provider_v1.py": "00333ca9ce97d0f474f28ceb59fd773905888629e979b0015f60ddd73d2f2c45"
+  },
+  "schema": "resource-provider-v3-inventory-v1"
+}
