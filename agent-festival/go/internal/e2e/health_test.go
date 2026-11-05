@@ -137,10 +137,10 @@ func TestE4_FrequencyAggregationAndGuardDeath(t *testing.T) {
 		t.Fatal("E4: guard reported dead while actively intercepting — false positive")
 	}
 
-	// Phase 2 — the guard DIES: traffic continues (full effect flows —
-	// adopt AND dispatch, the events a guard polices), but no further
-	// interception ever fires (simulated: the check is silently removed
-	// upstream — from the event stream's view, rejections stop while
+	// Phase 2 — the guard DIES: traffic continues (the dispatches are
+	// the effect events guardDied walks — adoption events are NOT flow,
+	// see guardDied), but no further interception ever fires (simulated:
+	// the check is silently removed upstream — rejections stop while
 	// effects keep flowing).
 	for _, op := range []string{"op-e4-l1", "op-e4-l2", "op-e4-l3"} {
 		if o := m.Adopt(adoptRequest(t, op)); o.Status != "adopted" {
@@ -411,14 +411,17 @@ func TestEGr_TieAtExcessBoundaryIsDeterministic(t *testing.T) {
 		{id: "L-tie-b", ageDays: 10},
 		{id: "L-tie-a", ageDays: 10}, // same age — the tiebreak decides
 	}
-	first := graveyardSweep(entries, th)
-	for i := 0; i < 50; i++ {
-		got := graveyardSweep(entries, th)
-		if len(got) != len(first) || (len(got) > 0 && got[0] != first[0]) {
-			t.Fatalf("m-4 probe: tie-break flipped across runs (%v vs %v) — the equal-age cut is nondeterministic", first, got)
-		}
+	// R33 m-8: the deterministic property the tiebreak buys is INPUT-ORDER
+	// independence (the sweep is a total order — run-to-run repeats are
+	// trivially equal), so the probe scans INPUT PERMUTATIONS.
+	perms := [][]graveyardEntry{
+		entries,
+		{entries[1], entries[0]}, // the swapped input order
 	}
-	if len(first) != 1 || first[0] != "L-tie-a" {
-		t.Fatalf("m-4 probe: tie winner = %v, want [L-tie-a] (the lower id on an equal-age cut)", first)
+	for pi, perm := range perms {
+		got := graveyardSweep(perm, th)
+		if len(got) != 1 || got[0] != "L-tie-a" {
+			t.Fatalf("m-4 probe: permutation %d winner = %v, want [L-tie-a] — the equal-age cut depends on input order", pi, got)
+		}
 	}
 }

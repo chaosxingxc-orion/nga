@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -38,18 +39,24 @@ type rawEvidence struct {
 }
 
 // anchorBandBounds derives the open-question band's closed bounds from the
-// fixture's rule texts (rule 1 "above 30", rule 2 "below 1" — the numbers
-// the between-bands face brackets). Unparseable bounds return 0,0 (the
-// fail-closed sentinel: verify's inBand never fires — the anchor test
-// flags it), never a historic default.
+// fixture's rule texts — the NUMBER IS PARSED from the matched text (R33
+// M-1: the previous Contains+literal-copy form was blind to digit
+// extension, "above 30"→"above 300" matched and kept the stale 30). An
+// unparseable bound returns 0 (the fail-closed sentinel: the anchor test
+// flags it), never a historic default. R33 m-3 honesty: with bounds (0,0)
+// the band face's closed interval [0,0] fires only at assets==0 — the
+// "never fires" phrasing was false; the sentinel's real protection is the
+// TEST-layer value assertion, not gate inertness.
 func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 	var lo, hi float64
+	aboveRe := regexp.MustCompile(`above (\d+(?:\.\d+)?)`)
+	belowRe := regexp.MustCompile(`below (\d+(?:\.\d+)?)`)
 	for _, r := range spec.Rules {
-		if strings.Contains(r.Coverage, "above 30") {
-			hi = 30
+		if m := aboveRe.FindStringSubmatch(r.Coverage); m != nil {
+			fmt.Sscanf(m[1], "%g", &hi)
 		}
-		if strings.Contains(r.Coverage, "below 1") {
-			lo = 1
+		if m := belowRe.FindStringSubmatch(r.Coverage); m != nil {
+			fmt.Sscanf(m[1], "%g", &lo)
 		}
 	}
 	return lo, hi
@@ -164,7 +171,7 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 		return checkResult{ok: false, reason: "the asset valuation report (the fixture's first evidence source) is absent — a grant verdict without it is the evasive-S1 form (E0 family)"}
 	}
 	if raw.assetReportPresent && kind == "on_missing_evidence" {
-		return checkResult{ok: false, reason: "the asset valuation report is present but the verdict claims missing evidence — reporting a gap that does not exist is the evasion mirror"}
+		return checkResult{ok: false, reason: "the asset valuation report is present but the verdict claims it missing — the spec's resolution scopes on_missing_evidence to the asset report alone (any other gap is the host's pre-judgment coverage route, E2), so this claim is the evasion mirror"}
 	}
 	// The between-bands face: the seat knows the open question and holds
 	// S1 to the spec's own vocabulary — a grant from an unsettled zone is
@@ -176,9 +183,12 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	// like the veto threshold — a fixture edit that moves a bound turns the
 	// anchor test red instead of silently over/under-blocking the seat.
 	lo, hi := anchorBandBounds(spec)
+	if lo == 0 || hi == 0 {
+		return checkResult{ok: false, reason: "the fixture's band bounds are unparseable — the seat refuses to gate on an unanchored spec (fail-closed, R33 m-3: the two anchors now fail at the same depth)"}
+	}
 	inBand := raw.assetMillionsDeclared >= lo && raw.assetMillionsDeclared <= hi
 	if inBand && (kind == "grant-50000" || kind == "grant-10000") {
-		return checkResult{ok: false, reason: "assets strictly between the bands are an open specification question — a grant verdict is a model-authored default"}
+		return checkResult{ok: false, reason: "assets in the closed between-bands zone (both cutoffs included) are an open specification question — a grant verdict is a model-authored default"}
 	}
 	return checkResult{ok: true, reason: "verdict conforms to the raw evidence under the corrected spec"}
 }
@@ -528,9 +538,11 @@ func TestE1_BandBoundsAnchored(t *testing.T) {
 		t.Fatalf("M-3 anchor: band bounds = (%v, %v), want (1, 30) from the fixture's rule texts — the fixture and the seat have drifted", lo, hi)
 	}
 	// behavioral face: the anchor actually drives the band face — a grant
-	// verdict at assets=31 (now OUTSIDE the fixture's open set) must pass
-	// the band face (it did not before the derive: the hardcoded 30 would
-	// have blocked it)
+	// verdict at assets=31 passes because inBand uses the DERIVED hi (31 >
+	// 30), not a second hardcoded copy; this catches a verify-side
+	// constant that forks from the anchor (R33 m-1: the earlier "the
+	// hardcoded 30 would have blocked 31" history claim was false — every
+	// prior form passed 31; the probe's real catch is the fork)
 	raw := rawEvidence{assetMillionsDeclared: 31, assetReportPresent: true}
 	cr := verify(s1Verdict{kind: "grant-50000", details: "healthy upper-band grant"}, spec, raw)
 	if !cr.ok {

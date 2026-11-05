@@ -226,6 +226,12 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 
 - **M-1（fail-closed 自身零探针）**：R30 M-2 的哨兵分支与 verify 拒面是装饰守卫（删码/回退 return 3 全套件绿——本仓 R29 M-4 自立标准），锚测试只钉值面。已修：TestE1_FailClosedAnchored（不可解析 spec→anchor 0+verify 拒+nil spec 拒）。反突变（回退 return 3）→红。
 - **M-2（assetReportPresent 死字段双向不设防）**：全仓只写不读——夹具第一条 evidence source 缺失时 grant 放行/报告在场时谎报缺证放行（E0 evasive-S1 家族双向）；未按 requiredSources 款式声明已知面。已修：消费字段（双向面：无报告出 grant 拒/有报告谎报缺证拒）+TestE1_EvidencePresenceMirror 双探针+诚实 gap 阳性对照。反突变（删双面）→红。
-- **M-3（带界硬编码未锚定）**：veto 阈值锚定了（R29 M-3）带界没锚——夹具 30→50 全套件照绿（31..50 规范内 grant 被静默 over-block）；注释 "comes from" 制造已锚定假象。已修：anchorBandBounds 从夹具规则文本派生（fail-closed 哨兵 0,0）+TestE1_BandBoundsAnchored 锚测试（含 31 处行为面——旧硬编码下会被挡）。反突变（夹具 30→50/1→2）→bounds (0,0) 红。
+- **M-3（带界硬编码未锚定）**：veto 阈值锚定了（R29 M-3）带界没锚——夹具 30→50 全套件照绿（31..50 规范内 grant 被静默 under-block（陈旧面对漂移后夹具放行过宽））；注释 "comes from" 制造已锚定假象。已修：anchorBandBounds 从夹具规则文本派生（fail-closed 哨兵 0,0）+TestE1_BandBoundsAnchored 锚测试（含 31 处行为面——【R33 m-1 更正】旧硬编码下 31 同样通过（>=1 && <=30 不含 31）；该面的真实承载是抓 verify 侧常量与锚分叉，非历史行为差异）。反突变（夹具 30→50/1→2）→bounds (0,0) 红。
 - **m-1~m-6（随批清偿）**：dispatchGated 提交后 CAS 叙事注释如实（pin 无可达读者——replay 对称+未来文法预留）；镜像面重复句删；E-GR 演示头 17→19 对齐；graveyardSweep 同龄并列 id 决胜（确定性纪律落到切点）+TestEGr_TieAtExcessBoundaryIsDeterministic 50 迭代探针；raw 隔离措辞收窄（"dead in THIS wiring"——类型边界非强制，纪律面非机制面）；healthy 臂 E0 旧注释改真（测试故意派发=证明机器盲，非宿主政策）。
 - **方法论入账（第 24/25 实证）**：fail-closed 是守卫不是措辞——它的两面（哨兵值+拒面）同样需要红探针，否则就是装饰（M-1）；结构体字段「每个构造点都写、无人读」=未落地面（M-2——字段存在暗示的语义要消费或声明）；锚定纪律要横扫同组件的**全部数值字面量**（M-3——修了 veto 漏了带界）。
+
+## R33 空白复审记账（2026-11-06，339b38b..44e69c8 六实验+R29-R32 清偿——0B/1M/9m 全清偿；连净计数 0）
+
+- **M-1（带界锚数字扩展漂移盲区）**：Contains("above 30") 是 "above 300" 的前缀子串——数字扩展（30→300/1→10）锚照绿、seat 静默 under-block（150 被放行）；R32 M-3 声明的「移动 bound 即红」对扩展族为假。已修：anchorBandBounds 改 regex 解析数字（`above (\d+(?:\.\d+)?)`/below 同型——值不可与文本分叉）+哨兵深度对齐 veto 臂（0,0→verify 拒关，R33 m-3）。反突变（300/10 双向）→bounds (1,300)/(10,30) 红。
+- **m-1~m-9（随批清偿）**：带界锚行为面的历史声明改真（前身形态全通过 31——真实承载是抓 verify 侧常量与锚分叉；账本方向词 over/under 更正）；on_missing_evidence 镜像面消息依据如实（resolution 主语限定+coverageGap 前置）；双锚 fail-closed 深度对齐+「never fires」假句修正；带面消息 "strictly between"→"closed between-bands zone"（与闭区间一致）；E4 phase-2 注释 adoption 不计（与 guardDied 实际计数一致）；nodeEntry doc 错挂归位；E3 双测试改调 loadE3Fixture（三处解析点收敛）；E-GR 并列探针改输入排列扫描（50 迭代恒真——确定性买的是输入序无关非 run 重复）；37 号「实跑」改「合成形状演示」。
+- **方法论入账（第 26/27 实证）**：锚定用 Contains 匹配+字面量复制=值可与文本分叉——数字要从匹配文本**解析**（前缀子串是扩展漂移的天然盲区，M-1）；探针声称的确定性质要指认真实来源（并列决胜买的是输入序无关——50 迭代重复循环是恒真断言，m-8）。

@@ -330,22 +330,10 @@ func countPrecedenceZero(rules []fixtureVetoRule) int {
 // Mutation probes: revert the fixture's veto coverage to "in the window
 // denies" → assertion 1 fails; window the stand-in → assertion 2 fails.
 func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
-	// Read the fixture. R21 M-3: a missing fixture is a RED, not a skip —
-	// this test is the fixture's only SEMANTIC consumer (cmd/judgment's
-	// must-accept loop also reads it, but only schema-validates the whole
-	// examples/judgment/valid/ directory and does not pin this single
-	// file); skipping on a missing/moved file would silently evaporate
-	// the P3 correction's active coverage (the B-1 disease shape via an
-	// environmental guard).
-	fixturePath := filepath.Join("..", "..", "..", "schema", "examples", "judgment", "valid", "judgment-spec-credit.json")
-	raw, err := os.ReadFile(fixturePath)
-	if err != nil {
-		t.Fatalf("E3: fixture not found at %s (an in-repo required resource — a missing fixture must fail, not skip): %v", fixturePath, err)
-	}
-	var spec fixtureSpec
-	if err := json.Unmarshal(raw, &spec); err != nil {
-		t.Fatalf("E3: fixture JSON parse failed: %v", err)
-	}
+	// R33 m-7: the fixture load goes through loadE3Fixture (one spec, all
+	// seats — the previously duplicated inline parse is gone; the
+	// R21 M-3 fail-not-skip discipline lives in the helper).
+	spec := loadE3Fixture(t)
 
 	// Find the veto rule (precedence 0)
 	var vetoRule *fixtureVetoRule

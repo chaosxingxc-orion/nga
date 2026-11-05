@@ -493,12 +493,6 @@ func requestForT2(op, revision, evidence, digest, brID string) *adopt.Request {
 	}
 }
 
-// nodeEntry is the T2 reference host's unified node entry point (L41 fix:
-// the "re-submit the same node execution" logic was previously inlined in
-// test bodies; now it's a named component the tests call). It checks the
-// caller's authorization (L39 fix: host-side read authorization), checks
-// the machine state, and serves the stored result if the operation is
-// complete — or errors if the caller is not authorized.
 // grantsCoverRead is the T2 fixture's grant-coverage check — SAME SHAPE
 // as the machine's grantsCover but a DELIBERATE SUBSET (R29 m-5 honesty):
 // no effect-rank comparison (reads are Effect:"none" in this fixture) and
@@ -540,6 +534,11 @@ func grantsCoverRead(live, pinned []ledger.Grant) bool {
 	return len(pinned) > 0
 }
 
+// nodeEntry is the T2 reference host's unified node entry point (L41: a
+// named component, previously inlined; L39+E5: host-side read
+// authorization — see grantsCoverRead for the grant face, R32 m-5 for the
+// fixture-subset honesty). It checks the caller's authorization, the
+// machine state, and serves the stored result when complete.
 func (h *t2Host) nodeEntry(opID string, callerGrants []ledger.Grant) (storedResult, error) {
 	// L39: host-side authorization check — the host checks its own access
 	// rules before serving stored results (per MR#1 consensus: the framework
