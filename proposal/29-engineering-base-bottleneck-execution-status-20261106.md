@@ -118,6 +118,10 @@ Sol v4 在本地主机、固定 1,024 条保存记录上完成分项计时。每
 
 `.local/reviews/engineering-v18-launcher-astra-review-20261106-v2/` 给出 `NO_GO_CANDIDATE_ONLY_ENGINEERING_HOLD`。v18 focused 3/3、launcher 9/9 和源码 pins 均通过，但不覆盖真实准入资格。Astra 的 V18-01/V18-04 为阻塞项，V18-02/V18-03 为高风险项，LCH-01 为启动器高风险项；安装、性能、NPU 和研究派发均未运行。
 
+## Sol v2 下一轮效率计划
+
+Sol 的 `.local/reviews/engineering-efficiency-next-sol-20261106-v2/` 已形成预注册计划，尚未启动 benchmark。下一候选只改 `bev_native_runtime.py` 的 full-label arithmetic：保留有限值检查、float32 转换和 vllm top20 的 float64 路径，避免 saved scorer 对整个 vocabulary 做 float64 widening。固定 v14 2B、46,320 条记录、4 workers、chunk 100、六个线程环境变量为1，执行 ABBA/BAAB 共8次。候选必须逐条 prediction、ordered receipt、summary bytes 和 report 完全一致；ratio >1.10、任一正确性失败、缺终态或资源证据异常立即拒绝。当前本地 profile 只给出 9.15% serial CPU Amdahl ceiling 和 8.66秒线性 CPU work projection，不能当作端到端提速。
+
 ## 本轮核验更正与当前接续
 
 2026-11-05 UTC：此前把开发中 schema 报错误标为最新失败，现以终态和主会话 3/3 复跑更正。启动器 9/9 复跑通过，但 smoke 的输出目录在本地工作区，不能认定175或Ceph输出通过。Astra独立审查和Sol下一轮效率方案已以Codex子进程启动；分别输出 `.local/reviews/engineering-v18-launcher-astra-review-20261106-v2/` 和 `.local/reviews/engineering-efficiency-next-sol-20261106-v2/`。未启动新研究任务，未停止旧实验。
