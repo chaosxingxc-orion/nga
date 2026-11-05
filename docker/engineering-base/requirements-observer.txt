@@ -1,0 +1,2 @@
+# Optional CPU diagnostic dependency. Install offline with --require-hashes --no-deps.
+threadpoolctl==3.6.0 --hash=sha256:43a0b8fd5a2928500110039e43a5eed8480b918967083ea48dc3ab9f13c4a7fb

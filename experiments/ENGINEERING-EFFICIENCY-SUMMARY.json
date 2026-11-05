@@ -348,6 +348,16 @@
           "reason": "parent rerun overwrote producer independent-results.json; separate independent review source/artifacts retained"
         },
         "image_assembled": false
+      },
+      "consumer_v6": {
+        "status": "candidate independent review active",
+        "parent_tests": 4,
+        "initial_wrong_test_class_loader_error": 1,
+        "current_source_pins_matching": 27,
+        "source_pins_changed": 1,
+        "changed_file": "panel_score.py diagnostic lane",
+        "historical_event_reuse": "explicit pinned event valid; no newfailedcall returnsoldsuccess reproduced",
+        "physicalqualified": false
       }
     },
     "runtime_metadata": {
@@ -746,7 +756,19 @@
       "local_installed": true,
       "ceph_wheel": "/mnt/cephfs/xingchao/experiments/jev/engineering_assets/threadpoolctl-3.6.0/threadpoolctl-3.6.0-py3-none-any.whl",
       "image_installed": false,
-      "prior175effective_pools_still_unknown": true
+      "prior175effective_pools_still_unknown": true,
+      "repo_lock": "docker/engineering-base/requirements-observer.txt"
+    },
+    "diagnostic_route_v7": {
+      "status": "delivered independent review active",
+      "parent_tests": 32,
+      "includes_inherited_discovery": true,
+      "parent_seconds": 8.993,
+      "parent_pins": 15,
+      "pin_mismatch": 0,
+      "image_built": false,
+      "actual175_cpu_build_queued_after_review": true,
+      "fullbenchmark": false
     }
   }
 }
