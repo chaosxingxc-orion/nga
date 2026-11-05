@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T16:04:02.671920+00:00",
+    "observed_utc": "2026-11-05T16:13:51.363995+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -938,7 +938,7 @@
     },
     "diagnostic_image_current": {
       "version": "v10",
-      "status": "ACTUAL175_CPU_CANDIDATE_INDEPENDENT_REVIEW_PENDING",
+      "status": "ACCEPT_SCOPED_INSTALLED_CPU_DIAGNOSTIC_SMOKE_CONTROLLER_CHANGES_REQUIRED",
       "image": "sha256:55e7084617b30b2e0439ebfe8457885ddb3eb1e60456fe5cc492253af2627720",
       "parent_delivery_pins": 200,
       "pin_mismatches": 0,
@@ -952,16 +952,23 @@
       "observed_openblas_threads": 1,
       "cgroup_privacy": "unverified byobserver",
       "remaining": [
-        "installed completion-fault coverage",
-        "durable extraction fsync and terminal binding",
-        "independent image/dependency/custody review"
+        "controller terminal must bind actual container completion with bounded cleanup",
+        "checked fsync of extracted files/directories and terminal",
+        "immutable candidate ID relaunch",
+        "installed completion fault qualification"
       ],
       "new_performance_measurement": false,
-      "release": false
+      "release": false,
+      "parent_review_pins": 454,
+      "parent_review_mismatches": 0,
+      "installed_files_verified": 65,
+      "overlay_files_verified": 23,
+      "actual_retry_and_qualification_container_exit": 0,
+      "next": "durable configuration-driven controller v11 active"
     },
     "adam_checkpoint_capture_current": {
       "version": "v4",
-      "status": "CPU_FIXTURE_DELIVERED_REVIEW_PENDING",
+      "status": "PARTIAL_CPU_HOOKS_VERIFIED_COMPLETE_ADMISSION_CHANGES_REQUIRED",
       "parent_source_pins": 7,
       "pin_mismatches": 0,
       "producer_tests": 25,
@@ -971,7 +978,27 @@
         "productionidentity andinputRNGpending",
         "comparator andacceleratortransferpending"
       ],
-      "production_qualified": false
+      "production_qualified": false,
+      "parent_review_pins": 244,
+      "parent_review_mismatches": 0,
+      "parent_capture_tests": 15,
+      "parent_capture_seconds": 2.074,
+      "independent_distinct_methods": 20,
+      "independent_passed": 14,
+      "independent_failed": 6,
+      "independent_product_findings": 3,
+      "normal_capture_exact_observations": 20,
+      "capture_event_counts": [
+        13,
+        8,
+        10
+      ],
+      "admission_defects": [
+        "uniform optimizer betas omission admitted",
+        "uniform scheduler _schedule_phases omission admitted",
+        "new typed state encoder/decoder bypass endian guard"
+      ],
+      "next": "fixed fullgroup/scheduler census and typedstate endian validation v5 queued"
     }
   }
 }
