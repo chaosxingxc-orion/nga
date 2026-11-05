@@ -78,6 +78,12 @@
 | 新业务缺失数据集 | 已识别缺口，尚未进入本轮实验执行 | 否 |
 | 强化学习优化 | 依赖前一阶段稳定轨迹和采集，尚未开始 | 否 |
 
+## 4.1 Numerical admission 复核后的新发现（2026-11-05）
+
+四个 v2 numerical probe 的父执行审查均为 PASS，但 Astra 评价发现一个必须修复的证据缺口：运行时确实检查了完整 `(1, 248320)` float32 vocabulary logits，却没有把完整 raw vocabulary 输出持久化，现有 report 只有候选 operand/摘要。因此 `all_raw_exact=true` 只能证明运行时内部比较通过，不能支持独立 raw-logit 复算，也不能升级为正式 full-vocabulary numerical admission PASS。
+
+旧目录中其他批次的 `PASS_204_SYNTHETIC_OPERANDS` 或短/长 probe 证据属于不同 generation、不同计划和不同 scope，不能回填到 v2。Terra 正在制作新 generation：补充可独立复算的分块 raw evidence、shape/dtype/request/plan 绑定和篡改反例测试；在新证据完成前，行为 DEV 仍保持 `launch_authorized=false`。
+
 ## 5. 当前需要用户决策的内容
 
 现在没有必须立即回答才能继续做的科学定义问题，D1–D7 的范围已经按此前约定冻结。为了避免下一次执行歧义，建议确认两项运行策略：
