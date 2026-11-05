@@ -46,14 +46,22 @@ type s1Verdict struct {
 // counterexample (assets 35M, clean recent window, 4-month overdue two
 // years ago → deny).
 func s1Judge(e creditEvidence) s1Verdict {
-	if !e.assetReportOK {
-		return s1Verdict{kind: "on_missing_evidence", details: "asset valuation not retrievable — request evidence, record the issue, no automatic denial"}
-	}
+	// L23 fix: veto (precedence 0) fires BEFORE the missing-evidence check —
+	// t1Spec puts "Precedence 0 (override): ANY overdue > 3 months at ANY
+	// TIME ... denies credit — regardless of assets" at precedence 0 and the
+	// T1 cases C8/C12 hardBar deny for missing-report + historical overdue.
+	// The old T0 stand-in checked assetReportOK first, returning
+	// on_missing_evidence when both a veto and a gap were present — a
+	// priority-order discrepancy between T0 and T1 (minor-ledger L23,
+	// validated by TestE3SpecSelfContradiction_C8Precedence).
 	for _, o := range e.overdueOnRecord {
 		if o.months > 3 {
 			return s1Verdict{kind: "deny",
 				details: fmt.Sprintf("historical veto: a %d-month overdue %d years ago is on record — the veto is unbounded by any window", o.months, o.yearsAgo)}
 		}
+	}
+	if !e.assetReportOK {
+		return s1Verdict{kind: "on_missing_evidence", details: "asset valuation not retrievable — request evidence, record the issue, no automatic denial"}
 	}
 	if e.assetMillions > 30 {
 		return s1Verdict{kind: "grant-50000", details: "assets above the upper cutoff with a clean record"}

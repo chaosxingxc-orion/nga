@@ -13,15 +13,16 @@
       },
       {
         "name": "overdue",
-        "definition": "an unpaid obligation past its due date for more than the window",
-        "unit": "months"
+        "definition": "an unpaid obligation past its due date for longer than three months, measured from the overdue start, at any point in the applicant's credit history on record",
+        "unit": "months (overdue duration); the lookback for the veto is unbounded"
       }
     ],
     "reference_time": "application-submission timestamp",
-    "time_window": "six calendar months before the application timestamp, both ends inclusive",
+    "time_window": "six calendar months before the application timestamp, both ends inclusive (attaches to the upper band rule only; the historical veto is unbounded — 10-walkthrough:145 'may be an older record outside the recent six-month window ... requires rejection')",
     "evidence_sources": [
       "the declared asset valuation report submitted with the application",
-      "the payment-history ledger of record for the overdue window"
+      "the payment-history ledger of record for the overdue window",
+      "the historical payment-history ledger covering the full record period (required for the veto — a six-month-only ledger is insufficient coverage for the unbounded lookback)"
     ]
   },
   "levels": [
@@ -44,7 +45,7 @@
   "rules": [
     {
       "precedence": 0,
-      "coverage": "any overdue longer than three months in the window denies credit regardless of assets",
+      "coverage": "any overdue longer than three months at any time in the applicant's credit history on record denies credit regardless of assets (08:183; 10-walkthrough:145 — the veto is NOT limited to the six-month window)",
       "exceptions": []
     },
     {
@@ -69,6 +70,11 @@
       "kind": "boundary",
       "case": "assets exactly 30, no overdue",
       "expected": "the cutoff is an open specification question — the upper rule's exception names it, so the outcome is on_undefined_rule until the owner settles it"
+    },
+    {
+      "kind": "competing",
+      "case": "assets 35, last six months clean, one four-month overdue two years ago (xingchao's counterexample)",
+      "expected": "deny — the historical veto fires regardless of the clean recent window; the six-month condition attaches to the upper band only, not to the veto"
     },
     {
       "kind": "competing",
@@ -109,6 +115,6 @@
       "decision: D1 credit limit"
     ]
   },
-  "_expect": "ACCEPT: the NGA §6 credit example as a full specification — every §6 required-information field present; the §6.1 gaps (units, window convention, BOTH cutoffs, the between-bands interval, six-month scope of the upper band only) stated as open questions instead of model-authored defaults",
+  "_expect": "ACCEPT: the corrected credit specification — the historical veto is UNBOUNDED (08:181-183; 10-walkthrough:145). Units (USD-millions) and the six-month window (upper band only) are demonstration assumptions pending the business owner's confirmation; the veto's unbounded lookback is the jointly confirmed semantic (xingchao's counterexample accepted, E3 experiment validated). The xingchao counterexample is now an example case",
   "candidate_set": "exclusive"
 }

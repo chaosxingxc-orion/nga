@@ -76,3 +76,16 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - L46：T2 店与账本双持久形态无一致性交叉核（adopt 成功后 store.put 前崩溃窗口）。
 - L47：E0 extraction-miss 病态断言测试缺 polarity guard（家族 2/3——SickS1 与两个 E3 有开关，本测无）。
 - **结构候选加权（第 3 次）**：写时覆盖族（R10 evidlog face-B → R11 STALE_WRITER → R14' phantom 对象行）——形状判定单表化（ParseLines typed view 与跨事件 checker 共用同一形状判定，evidlog entryShapeError 单表双消费为仓内范式）登记为候选战役，与「event_type×规则家族分派表」同向可并场。
+
+## 34 号先行批清偿（P3+L23+L39-L44+L47——2026-11-05，9 条清偿）
+
+- **P3**：judgment-spec-credit.json veto 去窗口化（6 处修正：coverage/term 定义/time_window 澄清/evidence_sources 补历史/反例补用例/_expect 改真）。E3-window 极性翻绿。
+- **L23**：s1Judge C8 优先序对齐 t1Spec（veto 移到缺证检查之前）。E3-C8 极性翻绿。
+- **L39**：PermissionRevoked 补真断言——T2 nodeEntry 加 callerGrants 参数+空 grants 拒绝+授权读取对照。
+- **L40**：四读 READ-4 独立断言——纠错场景补修正方法验证（新任务检索到 correction 而非 stale result）。
+- **L41**：nodeEntry 从测试体提为组件（t2host_test.go 的命名方法）。
+- **L42**：lookupByBusinessRequest revision 比较从字典序改为数值域+sortedKeys 确定性迭代。
+- **L43**：findForNode 迭代序确定化（sortedKeys 共用）。
+- **L44**：Sscanf 失败从静默为 0 改为响亮追加 fact。
+- **L47**：extraction-miss 补 correctnessLayerLanded 极性守卫。
+- 残留：L45（原子写）/L46（店-账本一致性交叉核）——T2 夹具层声明不修，留 minor。

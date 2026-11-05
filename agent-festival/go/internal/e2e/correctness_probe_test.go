@@ -38,7 +38,7 @@ var correctnessLayerLanded = false // flip when preconditions[]/verifier lands
 
 // p3FixtureCorrectionLanded flips when the P3 fixture correction (unbounded
 // veto, business-owner seat) lands. E3-window skips when this is true.
-var p3FixtureCorrectionLanded = false // flip when P3 fixture correction lands
+var p3FixtureCorrectionLanded = true // flip when P3 fixture correction lands
 
 // s1AlwaysGrant is the "sick" S1 stand-in for E0: it ALWAYS returns
 // grant-50000 with high-confidence details, regardless of evidence. This
@@ -174,6 +174,12 @@ func TestE0DiseaseExists_SickS1(t *testing.T) {
 // by the test harness — there IS no input assembly layer that could catch
 // extraction errors. This test proves that.
 func TestE0DiseaseExists_SickS1ExtractionMiss(t *testing.T) {
+	// POLARITY GUARD (L47 fix): this test asserts the DISEASED state for
+	// extraction-miss (the extraction error passes through undetected).
+	// When the correctness layer lands, this test must be rewritten.
+	if correctnessLayerLanded {
+		t.Skip("extraction-miss: correctness layer landed — rewrite to assert the verification seat catches extraction gaps (or honestly declares it cannot)")
+	}
 	h := newTask(t)
 
 	// The REAL evidence has a 4-month overdue — but the EXTRACTION layer
@@ -291,11 +297,13 @@ func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
 		t.Fatal("E3: no precedence-0 rule found in fixture")
 	}
 
-	// ASSERTION 1: The fixture's veto is window-scoped
-	// ("any overdue longer than three months in the window")
-	if !strings.Contains(vetoRule.Coverage, "in the window") {
-		t.Fatalf("E3: fixture veto coverage = %q — expected window-scoped (contains 'in the window'). "+
-			"If this changed, the P3 fixture correction may have landed — update this test.", vetoRule.Coverage)
+	// ASSERTION 1: The fixture's veto is NOW unbounded (P3 correction landed)
+	// — it must NOT contain the old "in the window" window-scoping
+	if strings.Contains(vetoRule.Coverage, "in the window denies") {
+		t.Fatalf("E3: fixture veto still window-scoped (%q) — P3 correction NOT landed", vetoRule.Coverage)
+	}
+	if !strings.Contains(vetoRule.Coverage, "at any time") {
+		t.Fatalf("E3: fixture veto coverage = %q — expected 'at any time' (unbounded, P3 corrected)", vetoRule.Coverage)
 	}
 
 	// ASSERTION 2: T0's s1Judge uses UNBOUNDED veto
@@ -307,17 +315,18 @@ func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
 	}
 	v := s1Judge(e)
 	if v.kind != "deny" {
-		t.Fatalf("E3: T0 s1Judge returned %q for 2-year-ago overdue, want deny (unbounded). "+
-			"If this changed, the stand-in may have been window-scoped — contradiction resolved?", v.kind)
+		t.Fatalf("E3: T0 s1Judge returned %q for 2-year-ago overdue, want deny (unbounded)", v.kind)
 	}
 
-	// THE CONTRADICTION: the fixture says "in the window" (six months),
-	// but the stand-in denies a 2-year-ago overdue (which is OUTSIDE the
-	// window). These two cannot both be correct.
-	//
-	// The fixture's own text limits the veto to the six-month window:
+	// The contradiction is RESOLVED: both the fixture and the stand-in now
+	// use unbounded veto. The time_window convention still exists (for the
+	// upper band rule) and correctly mentions "six calendar months":
 	if !strings.Contains(spec.Conventions.TimeWindow, "six calendar months") {
-		t.Fatalf("E3: fixture time_window = %q — expected 'six calendar months'", spec.Conventions.TimeWindow)
+		t.Fatalf("E3: fixture time_window = %q — expected 'six calendar months' (upper band only)", spec.Conventions.TimeWindow)
+	}
+	// The window must be scoped to the upper band, not the veto:
+	if !strings.Contains(spec.Conventions.TimeWindow, "upper band") {
+		t.Fatalf("E3: fixture time_window = %q — expected to mention 'upper band' scope", spec.Conventions.TimeWindow)
 	}
 
 	// Proof complete: fixture says "in the window" (six months) but stand-in
@@ -354,11 +363,13 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 		overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 2}}, // AND veto should fire
 	}
 
-	// T0's s1Judge checks the report FIRST → on_missing_evidence
+	// L23 FIXED: T0's s1Judge now checks the veto FIRST → deny
+	// (priority order aligned with t1Spec: veto at precedence 0 fires
+	// before the missing-evidence check)
 	v0 := s1Judge(e)
-	if v0.kind != "on_missing_evidence" {
-		t.Fatalf("E3-C8: T0 s1Judge returned %q for C8, want on_missing_evidence "+
-			"(T0 checks report before veto — this is the L23 discrepancy)", v0.kind)
+	if v0.kind != "deny" {
+		t.Fatalf("E3-C8: T0 s1Judge returned %q for C8, want deny "+
+			"(L23 fix: veto at precedence 0 fires before missing-evidence check)", v0.kind)
 	}
 
 	// T1's t1Spec puts the veto at precedence 0 (BEFORE the report check)

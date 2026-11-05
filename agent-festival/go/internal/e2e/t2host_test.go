@@ -30,6 +30,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"sync"
 	"testing"
 
@@ -104,21 +106,51 @@ func (rs *resultStore) lookupByBusinessRequest(brID string) (storedResult, strin
 	defer rs.mu.Unlock()
 	// The validity projection: the LATEST evaluation revision for this
 	// business request is the current valid result (per 29-reconciliation:
-	// "最新已采纳修订=当前有效"). Revisions are lexically ordered (er-1 < er-2).
+	// "最新已采纳修订=当前有效").
+	// L42 fix: revision comparison is now numeric, not lexical (er-10 > er-2
+	// under lexical ordering — the old code would pick er-2 as "later").
+	// Iteration order is made deterministic by sorting keys (L43 fix).
 	var best storedResult
 	bestOp := ""
+	bestRev := -1
 	found := false
-	for opID, r := range rs.data {
+	for _, opID := range sortedKeys(rs.data) {
+		r := rs.data[opID]
 		if r.BusinessReqID != brID {
 			continue
 		}
-		if !found || r.EvaluationRev > best.EvaluationRev {
+		rev := revisionNumber(r.EvaluationRev)
+		if !found || rev > bestRev {
 			best = r
 			bestOp = opID
+			bestRev = rev
 			found = true
 		}
 	}
 	return best, bestOp, found
+}
+
+// revisionNumber extracts the numeric suffix from "er-N" (returns -1 if
+// unparseable — the caller treats it as the lowest revision).
+func revisionNumber(rev string) int {
+	rev = strings.TrimPrefix(rev, "er-")
+	n := 0
+	if _, err := fmt.Sscanf(rev, "%d", &n); err != nil {
+		return -1
+	}
+	return n
+}
+
+// sortedKeys returns map keys in sorted order (deterministic iteration —
+// L43 fix: map iteration order is random in Go, making findForNode and
+// lookupByBusinessRequest nondeterministic across runs).
+func sortedKeys[V any](m map[string]V) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 // ---------------------------------------------------------------------------
@@ -174,7 +206,10 @@ func (m knowledgeMethod) execute(inputs map[string]string) storedResult {
 	receipt := fmt.Sprintf("method:%s:result", m.ID)
 	overdueMonths := 0
 	if v, ok := inputs["overdue_months"]; ok {
-		fmt.Sscanf(v, "%d", &overdueMonths)
+		// L44 fix: Sscanf failure is now loud, not silently swallowed
+		if _, err := fmt.Sscanf(v, "%d", &overdueMonths); err != nil {
+			facts = append(facts, fmt.Sprintf("overdue_months_parse_error: %q is not a number — treating as 0 (L44: loud, not silent)", v))
+		}
 	}
 	if overdueMonths > 3 {
 		facts = append(facts, fmt.Sprintf("overdue_%d_months_found", overdueMonths))
@@ -293,6 +328,31 @@ func requestForT2(op, revision, evidence, digest, brID string) *adopt.Request {
 		GrantsAtDecision: chainGrants(),
 		Accountability:   &ledger.Accountability{Session: "sess-t2", Skill: "skill-credit", Role: "employee"},
 	}
+}
+
+// nodeEntry is the T2 reference host's unified node entry point (L41 fix:
+// the "re-submit the same node execution" logic was previously inlined in
+// test bodies; now it's a named component the tests call). It checks the
+// caller's authorization (L39 fix: host-side read authorization), checks
+// the machine state, and serves the stored result if the operation is
+// complete — or errors if the caller is not authorized.
+func (h *t2Host) nodeEntry(opID string, callerGrants []ledger.Grant) (storedResult, error) {
+	// L39: host-side authorization check — the host checks its own access
+	// rules before serving stored results (per MR#1 consensus: the framework
+	// enforces the contract; the host checks its own permissions).
+	if len(callerGrants) == 0 {
+		return storedResult{}, fmt.Errorf("[T2.NODE_ENTRY] %s: caller not authorized to read stored results (empty grants)", opID)
+	}
+	// check the machine state — if completed, serve the stored result
+	if s := h.machine.State(opID); s != adopt.StateCompleted {
+		return storedResult{}, fmt.Errorf("[T2.NODE_ENTRY] %s: operation not completed (state=%v)", opID, s)
+	}
+	// serve from the store
+	r, ok := h.store.get(opID)
+	if !ok {
+		return storedResult{}, fmt.Errorf("[T2.NODE_ENTRY] %s: no stored result found", opID)
+	}
+	return r, nil
 }
 
 // adoptAndDispatch is the standard first-pass flow: adopt + dispatch +
