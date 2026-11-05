@@ -1,0 +1,21 @@
+{
+  "schema": "scale-c1-parent-acceptance-v1",
+  "utc": "2026-11-05T06:30:16.493540+00:00",
+  "status": "C1_ACCEPTED_FOR_PUBLICATION_AND_CPU_C2_C4",
+  "amendment_status": "Exact reviewed draft becomes effective on publication with this additive receipt; draft bytes remain unchanged",
+  "review_sha256": "88d2f41d24cfbce190749d5f2b2110cf08da9d30ef60ea886e3be51dc41c566f",
+  "files": {
+    "experiments/SCALE-PROSPECTIVE-REUSE-PREREG-2026-11-05.md": "a947b787cdbb564f75113587c9d4bc626eae7f92e9c6e7c5f8e870ab2b7f7cb2",
+    "experiments/configs/scale-prospective-reuse-roster-2026-11-05.json": "9b831e7c3a0b6296edb825a5b3579ecbe766c7b70fef659d4770f2c3412107c8"
+  },
+  "parent_checks": 41,
+  "independent_checks": 53,
+  "actual_scale_eligibility": false,
+  "remaining": [
+    "C2",
+    "C3 applicability",
+    "C4",
+    "C5"
+  ],
+  "original_training_formal": false
+}
