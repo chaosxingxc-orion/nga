@@ -254,7 +254,7 @@
     {
       "source": "docker/engineering-base/panel_score.py",
       "image": "/opt/nga/panel_score.py",
-      "sha256": "26b0213ff0f7cbda7eb8b513d443f9a938aa43800e60fc6f57316300cf296afd"
+      "sha256": "56675511843c327503dc74f8980a8d1c74ff96b64583d8a9c28d41cddaab35db"
     },
     {
       "source": "docker/engineering-base/panel_export.py",
@@ -275,6 +275,16 @@
       "source": "docker/engineering-base/schema.json",
       "image": "/opt/nga/schema.json",
       "sha256": "13348c3b3fdf27f2df22c827610eb1b8d45efd14254f46c653ffd080cdcb4d36"
+    },
+    {
+      "source": "docker/engineering-base/panel_score_load.py",
+      "image": "/opt/nga/panel_score_load.py",
+      "sha256": "b9fdce991b1176e34e8e798a833926fbdde2663e233ae2c49768aa1fcb864e43"
+    },
+    {
+      "source": "docker/engineering-base/test_panel_score_load.py",
+      "image": "/opt/nga/test_panel_score_load.py",
+      "sha256": "e31a93e97d4b91711a09d7d8125312f17e08796626c12ca6eee6f40c750b6f84"
     }
   ]
 }

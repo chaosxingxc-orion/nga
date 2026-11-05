@@ -5,6 +5,7 @@ from collections import Counter
 import importlib.util, sys
 
 ROOT=Path(__file__).resolve().parent/'source/native'
+_spec=importlib.util.spec_from_file_location('nga_panel_score_load',Path(__file__).resolve().parent/'panel_score_load.py');panel_score_load=importlib.util.module_from_spec(_spec);_spec.loader.exec_module(panel_score_load)
 def module(name):
     spec=importlib.util.spec_from_file_location(name, ROOT/(name+'.py')); m=importlib.util.module_from_spec(spec);sys.modules[name]=m;spec.loader.exec_module(m);return m
 N=module('bev_native_runtime'); P=module('bev_native_protocol'); X=module('bev_native_panel_runner'); R=module('bev_native_cpu_replay_v1'); Q=module('bev_native_cpu_parallel_v1')
@@ -56,9 +57,9 @@ def run(c,config_path):
             for i in range(start,end):
                 item,req,g=items[i],requests[i],gold[i];X.item_check(req,i,8192)
                 require(req['request_sha256']==P.request_hash(item) and g==dict(i=i,qid=item['qid'],y=item['y'],request_sha256=P.request_hash(item)),'population join differs')
-                dest=recordroot/f'{i:06d}';p=R.load_item(dest,req,{'model_sha256':m['model_sha256'],'contract_sha256':pop['contract_sha256']},N,ref)
+                dest=recordroot/f'{i:06d}';p,receipt_hash,_=panel_score_load.load_item(dest,req,{'model_sha256':m['model_sha256'],'contract_sha256':pop['contract_sha256']},N,ref,R)
                 require(p['i']==i and p['qid']==item['qid'] and p['request_sha256']==req['request_sha256'] and p['input_sha256']==N.digest(req) and 'gold' not in p and 'y' not in p,'prediction join differs')
-                result.append([dict(p,y=item['y']),sha(dest/'COMMITTED.json')])
+                result.append([dict(p,y=item['y']),receipt_hash])
             return start,result
         # Chunks are recomputed on resume: saved output is never trusted as input.
         preds=[];receipts=[]
