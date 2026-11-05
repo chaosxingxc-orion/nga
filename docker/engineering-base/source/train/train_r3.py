@@ -398,7 +398,20 @@ def seed_step(torch, seed, step):
         pass
 
 
-def run(args):
+def run(args, *, _qualification_observer=None):
+    """Run the native loop; the internal observer is reserved for fixed CPU qualification."""
+    try:
+        result = _run(args, _qualification_observer)
+        if _qualification_observer is not None:
+            _qualification_observer.finish()
+        return result
+    except BaseException as exc:
+        if _qualification_observer is not None:
+            _qualification_observer.fail(exc)
+        raise
+
+
+def _run(args, observer):
     import torch
     import torch_npu  # noqa: F401
     import transformers
@@ -431,6 +444,9 @@ def run(args):
         step = st["step"]
         print(f"[train_r3] resumed from {ck} at step {step}", flush=True)
 
+    if observer is not None:
+        observer.start(trainable, step, total)
+
     loss_path = os.path.join(args.out, "losses.jsonl")
     if os.path.exists(loss_path):          # drop lines after the checkpoint we resumed from
         keep = [l for l in open(loss_path) if l.strip() and json.loads(l)["step"] <= step]
@@ -452,70 +468,78 @@ def run(args):
                 "transformers": transformers.__version__, "torch": torch.__version__}
     with open(os.path.join(args.out, "manifest.json"), "w") as f:
         json.dump(manifest, f, indent=1, sort_keys=True)
-    prog = open(os.path.join(args.out, "progress.log"), "a", buffering=1)
-    lossf = open(loss_path, "a", buffering=1)
-    counters = {}
-    t_start, steps_run, last_beat = time.time(), 0, 0.0
-    peak_reserved = 0
-    print(f"[train_r3] arm={args.arm} seed={args.seed} total_steps={total} steps/epoch={spe} lora_pairs={n_pairs} "
-          f"kernel={args.kernel} grad_ckpt={args.grad_ckpt} start_step={step} "
-          f"PYTORCH_NPU_ALLOC_CONF={os.environ.get('PYTORCH_NPU_ALLOC_CONF')!r}", flush=True)
+    import contextlib
+    with contextlib.ExitStack() as files:
+        prog = files.enter_context(open(os.path.join(args.out, "progress.log"), "a", buffering=1))
+        lossf = files.enter_context(open(loss_path, "a", buffering=1))
+        counters = {}
+        t_start, steps_run, last_beat = time.time(), 0, 0.0
+        peak_reserved = 0
+        print(f"[train_r3] arm={args.arm} seed={args.seed} total_steps={total} steps/epoch={spe} lora_pairs={n_pairs} "
+              f"kernel={args.kernel} grad_ckpt={args.grad_ckpt} start_step={step} "
+              f"PYTORCH_NPU_ALLOC_CONF={os.environ.get('PYTORCH_NPU_ALLOC_CONF')!r}", flush=True)
 
-    while step < total:
-        epoch, units = data.step_units(step)
-        seed_step(torch, args.seed, step)
-        torch.npu.synchronize()
-        t0 = time.time()
-        opt.zero_grad(set_to_none=True)
-        loss, stats = step_loss(torch, core, tok, units, args.arm, device, pad_id, args.max_len, args.micro_tokens, counters,
-                                full_logits=args.full_logits)
-        gn = float(torch.nn.utils.clip_grad_norm_(params, 1.0))
-        opt.step()
-        lr_used = opt.param_groups[0]["lr"]
-        sched.step()
-        torch.npu.synchronize()
-        dt = time.time() - t0
-        step += 1
-        steps_run += 1
-        peak_reserved = max(peak_reserved, torch.npu.max_memory_reserved())
-        rec = {"step": step, "epoch": epoch, "loss": loss, "lr": lr_used, "grad_norm": gn, "step_s": dt,
-               "base_questions": len(units), "examples": stats["rows"], "tokens": stats["tokens"], "chunks": stats.get("chunks", 0),
-               "tok_s_chip": stats["tokens"] / dt, "q_s_chip": len(units) / dt}
-        lossf.write(json.dumps(rec) + "\n")
-        now = time.time()
-        if now - last_beat >= 30 or step == total or step % 10 == 0:
-            prog.write(f"{utc()} step {step}/{total} epoch {epoch} loss {loss:.4f} lr {lr_used:.2e} gnorm {gn:.2f} "
-                       f"step_s {dt:.2f} tok/s/chip {rec['tok_s_chip']:.0f} q/s/chip {rec['q_s_chip']:.2f} chips 1 "
-                       f"reserved_gib {peak_reserved / 2**30:.1f}\n")
-            last_beat = now
-            with open(os.path.join(args.out, "heartbeat.log"), "a") as hb:      # progress line for tools/watchdog.py
-                hb.write(f"{utc()} step done={step} total={total} loss={loss:.4f} step_s={dt:.2f}\n")
-        if step % 10 == 0:
-            print(f"step {step}/{total} loss {loss:.4f} step_s {dt:.2f} tok/s/chip {rec['tok_s_chip']:.0f}", flush=True)
-        if args.save_every and step % args.save_every == 0 and step < total:
-            save_ckpt(torch, args.out, step, trainable, opt, sched)
-        if args.stop_after and steps_run >= args.stop_after:
-            save_ckpt(torch, args.out, step, trainable, opt, sched)
-            print(f"[train_r3] stopped after {steps_run} steps at step {step} (checkpoint written)", flush=True)
-            return {"step": step, "stopped": True}
+        while step < total:
+            epoch, units = data.step_units(step)
+            seed_step(torch, args.seed, step)
+            torch.npu.synchronize()
+            t0 = time.time()
+            opt.zero_grad(set_to_none=True)
+            loss, stats = step_loss(torch, core, tok, units, args.arm, device, pad_id, args.max_len, args.micro_tokens, counters,
+                                    full_logits=args.full_logits)
+            if observer is not None:
+                observer.preclip(step + 1, loss, trainable)
+            gn = float(torch.nn.utils.clip_grad_norm_(params, 1.0))
+            if observer is not None:
+                observer.postclip(step + 1, trainable)
+            opt.step()
+            lr_used = opt.param_groups[0]["lr"]
+            sched.step()
+            if observer is not None:
+                observer.updated(step + 1, trainable)
+            torch.npu.synchronize()
+            dt = time.time() - t0
+            step += 1
+            steps_run += 1
+            peak_reserved = max(peak_reserved, torch.npu.max_memory_reserved())
+            rec = {"step": step, "epoch": epoch, "loss": loss, "lr": lr_used, "grad_norm": gn, "step_s": dt,
+                   "base_questions": len(units), "examples": stats["rows"], "tokens": stats["tokens"], "chunks": stats.get("chunks", 0),
+                   "tok_s_chip": stats["tokens"] / dt, "q_s_chip": len(units) / dt}
+            lossf.write(json.dumps(rec) + "\n")
+            now = time.time()
+            if now - last_beat >= 30 or step == total or step % 10 == 0:
+                prog.write(f"{utc()} step {step}/{total} epoch {epoch} loss {loss:.4f} lr {lr_used:.2e} gnorm {gn:.2f} "
+                           f"step_s {dt:.2f} tok/s/chip {rec['tok_s_chip']:.0f} q/s/chip {rec['q_s_chip']:.2f} chips 1 "
+                           f"reserved_gib {peak_reserved / 2**30:.1f}\n")
+                last_beat = now
+                with open(os.path.join(args.out, "heartbeat.log"), "a") as hb:      # progress line for tools/watchdog.py
+                    hb.write(f"{utc()} step done={step} total={total} loss={loss:.4f} step_s={dt:.2f}\n")
+            if step % 10 == 0:
+                print(f"step {step}/{total} loss {loss:.4f} step_s {dt:.2f} tok/s/chip {rec['tok_s_chip']:.0f}", flush=True)
+            if args.save_every and step % args.save_every == 0 and step < total:
+                save_ckpt(torch, args.out, step, trainable, opt, sched)
+            if args.stop_after and steps_run >= args.stop_after:
+                save_ckpt(torch, args.out, step, trainable, opt, sched)
+                print(f"[train_r3] stopped after {steps_run} steps at step {step} (checkpoint written)", flush=True)
+                return {"step": step, "stopped": True}
 
-    save_ckpt(torch, args.out, step, trainable, opt, sched)
-    summary = {"steps_run_this_invocation": steps_run, "wall_s": time.time() - t_start, "peak_reserved_gib": peak_reserved / 2**30,
-               "truncated_examples": counters.get("truncated", 0), "final_step": step}
-    pm.save_pretrained(os.path.join(args.out, "adapter"))
-    if not args.no_merge:     # fp32 export only; the model of record is base + adapter
-        probe_units = data.step_units(0)[1][:4]
-        probe = []
-        for u in probe_units:
-            p, a = encode_example(tok, u[0], args.max_len, {})
-            probe.append(p + a)
-        summary["merge"] = fold_and_save(torch, pm, args, tok, os.path.join(args.out, "export_fp32"), probe, device)
-        print("[train_r3] merge check:", json.dumps(summary["merge"]), flush=True)
-    manifest["summary"] = summary
-    with open(os.path.join(args.out, "manifest.json"), "w") as f:
-        json.dump(manifest, f, indent=1, sort_keys=True)
-    print("[train_r3] finished:", json.dumps(summary), flush=True)
-    return summary
+        save_ckpt(torch, args.out, step, trainable, opt, sched)
+        summary = {"steps_run_this_invocation": steps_run, "wall_s": time.time() - t_start, "peak_reserved_gib": peak_reserved / 2**30,
+                   "truncated_examples": counters.get("truncated", 0), "final_step": step}
+        pm.save_pretrained(os.path.join(args.out, "adapter"))
+        if not args.no_merge:     # fp32 export only; the model of record is base + adapter
+            probe_units = data.step_units(0)[1][:4]
+            probe = []
+            for u in probe_units:
+                p, a = encode_example(tok, u[0], args.max_len, {})
+                probe.append(p + a)
+            summary["merge"] = fold_and_save(torch, pm, args, tok, os.path.join(args.out, "export_fp32"), probe, device)
+            print("[train_r3] merge check:", json.dumps(summary["merge"]), flush=True)
+        manifest["summary"] = summary
+        with open(os.path.join(args.out, "manifest.json"), "w") as f:
+            json.dump(manifest, f, indent=1, sort_keys=True)
+        print("[train_r3] finished:", json.dumps(summary), flush=True)
+        return summary
 
 
 if __name__ == "__main__":
