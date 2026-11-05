@@ -373,7 +373,13 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	// anchor test red instead of silently over/under-blocking the seat.
 	lo, hi := anchorBandBounds(spec)
 	if lo == 0 || hi == 0 {
-		return checkResult{ok: false, reason: "the fixture's band bounds are unparseable — the seat refuses to gate on an unanchored spec (fail-closed, R33 m-3: the two anchors now fail at the same depth)"}
+		// R45 m-2: the (0,0) sentinel has THREE reachable sources — truly
+		// unparseable text, multi-hit conflicts (bounds parsed fine), and
+		// self-contradicting inversions (R41 m-1's own note says "neither
+		// unparseable nor multi-hit") — the message names all three
+		// instead of claiming unparseable (the host would otherwise go fix
+		// a parser that is not broken).
+		return checkResult{ok: false, reason: "no usable band bounds — the fixture's bounds are unparseable, conflicting, or self-contradicting; the seat refuses to gate (fail-closed, R33 m-3/R40 M-2)"}
 	}
 	// R35 M-2: the LEVEL-BAND CONSISTENCY face — the fixture's rule 1
 	// grants 50,000 only above the upper bound, rule 2 grants 10,000 only
@@ -964,8 +970,8 @@ func TestE1_BandBoundsInvertedRefused(t *testing.T) {
 	if cr.ok {
 		t.Fatal("m-2 probe: verify gated on an inverted-band spec — the fail-closed face is not load-bearing")
 	}
-	if !strings.Contains(cr.reason, "band bounds are unparseable") {
-		t.Fatalf("m-2 probe: refusal reason = %q, want the band-side carrier (the veto anchor parses, so the band face is what refused)", cr.reason)
+	if !strings.Contains(cr.reason, "no usable band bounds") {
+		t.Fatalf("m-2 probe: refusal reason = %q, want the no-usable-bounds marker (R45 m-2)", cr.reason)
 	}
 }
 
@@ -1111,8 +1117,8 @@ func TestE1_BandAnchorFailClosed(t *testing.T) {
 	if cr.ok {
 		t.Fatal("M-2 probe: verify gated on a band-unparseable spec — the band-side fail-closed face is not load-bearing")
 	}
-	if !strings.Contains(cr.reason, "band bounds are unparseable") {
-		t.Fatalf("M-2 probe: refusal reason = %q, want the band-unparseable marker", cr.reason)
+	if !strings.Contains(cr.reason, "no usable band bounds") {
+		t.Fatalf("M-2 probe: refusal reason = %q, want the no-usable-bounds marker (R45 m-2)", cr.reason)
 	}
 }
 

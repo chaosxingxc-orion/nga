@@ -265,7 +265,10 @@ func TestCrashRecoveryTornTail(t *testing.T) {
 	if o := m3.MarkUnresolved("op-t3"); o.Status != "unresolved" {
 		t.Fatalf("mark unresolved = %q, want unresolved: %s", o.Status, o.Detail)
 	}
-	events, _ = m3.Events()
+	events, err = m3.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R45 m-1): %v", err)
+	}
 	// the revoked-grants refusal above is now recorded as a control event
 	// (E3) — the post-repair stream is adopted / control(rejected, 14-A4) /
 	// dispatched / unresolved
@@ -755,7 +758,10 @@ func TestLoadRejectsLaunderedShapes(t *testing.T) {
 	if o := m.Adopt(testRequest("op-seed", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("seed adopt = %q", o.Status)
 	}
-	seedEvents, _ := m.Events()
+	seedEvents, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R45 m-1): %v", err)
+	}
 	if len(seedEvents) != 1 {
 		t.Fatalf("seed events = %d", len(seedEvents))
 	}
