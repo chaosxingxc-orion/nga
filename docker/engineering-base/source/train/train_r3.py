@@ -436,12 +436,16 @@ def _run(args, observer):
     ck = latest_ckpt(args.out)
     if ck:
         st = torch.load(ck, map_location="cpu", weights_only=False)
+        if observer is not None and hasattr(observer, "checkpoint_decoded"):
+            observer.checkpoint_decoded(ck, st)
         with torch.no_grad():
             for n, p in trainable:
                 p.copy_(st["lora"][n].to(p.device, p.dtype))
         opt.load_state_dict(st["opt"])
         sched.load_state_dict(st["sched"])
         step = st["step"]
+        if observer is not None and hasattr(observer, "checkpoint_restored"):
+            observer.checkpoint_restored(ck, step, trainable, opt, sched)
         print(f"[train_r3] resumed from {ck} at step {step}", flush=True)
 
     if observer is not None:
@@ -449,8 +453,10 @@ def _run(args, observer):
 
     loss_path = os.path.join(args.out, "losses.jsonl")
     if os.path.exists(loss_path):          # drop lines after the checkpoint we resumed from
-        keep = [l for l in open(loss_path) if l.strip() and json.loads(l)["step"] <= step]
-        open(loss_path, "w").writelines(keep)
+        with open(loss_path) as existing_loss:
+            keep = [l for l in existing_loss if l.strip() and json.loads(l)["step"] <= step]
+        with open(loss_path, "w") as existing_loss:
+            existing_loss.writelines(keep)
     manifest = {"utc": utc(), "args": vars(args), "arm": args.arm, "total_steps": total, "steps_per_epoch": spe,
                 "base_questions_per_epoch": len(data.rows) + len(data.sym), "lora_pairs": n_pairs,
                 "trainable_params": sum(p.numel() for p in params), "kernel": args.kernel, "chips": 1,
@@ -497,6 +503,8 @@ def _run(args, observer):
             sched.step()
             if observer is not None:
                 observer.updated(step + 1, trainable)
+                if hasattr(observer, "optimizer_updated"):
+                    observer.optimizer_updated(step + 1, trainable, opt, sched)
             torch.npu.synchronize()
             dt = time.time() - t0
             step += 1
@@ -517,13 +525,25 @@ def _run(args, observer):
             if step % 10 == 0:
                 print(f"step {step}/{total} loss {loss:.4f} step_s {dt:.2f} tok/s/chip {rec['tok_s_chip']:.0f}", flush=True)
             if args.save_every and step % args.save_every == 0 and step < total:
+                if observer is not None and hasattr(observer, "checkpoint_presave"):
+                    observer.checkpoint_presave(step, trainable, opt, sched)
                 save_ckpt(torch, args.out, step, trainable, opt, sched)
+                if observer is not None and hasattr(observer, "checkpoint_saved"):
+                    observer.checkpoint_saved(args.out, step)
             if args.stop_after and steps_run >= args.stop_after:
+                if observer is not None and hasattr(observer, "checkpoint_presave"):
+                    observer.checkpoint_presave(step, trainable, opt, sched)
                 save_ckpt(torch, args.out, step, trainable, opt, sched)
+                if observer is not None and hasattr(observer, "checkpoint_saved"):
+                    observer.checkpoint_saved(args.out, step)
                 print(f"[train_r3] stopped after {steps_run} steps at step {step} (checkpoint written)", flush=True)
                 return {"step": step, "stopped": True}
 
+        if observer is not None and hasattr(observer, "checkpoint_presave"):
+            observer.checkpoint_presave(step, trainable, opt, sched)
         save_ckpt(torch, args.out, step, trainable, opt, sched)
+        if observer is not None and hasattr(observer, "checkpoint_saved"):
+            observer.checkpoint_saved(args.out, step)
         summary = {"steps_run_this_invocation": steps_run, "wall_s": time.time() - t_start, "peak_reserved_gib": peak_reserved / 2**30,
                    "truncated_examples": counters.get("truncated", 0), "final_step": step}
         pm.save_pretrained(os.path.join(args.out, "adapter"))

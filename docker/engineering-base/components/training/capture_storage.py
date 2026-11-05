@@ -14,8 +14,34 @@ import re
 import functools
 import struct
 import stat
+import sys
 
 MAX_SHARD = 8 * 1024 * 1024
+
+
+def _require_little_endian():
+    # The v1 format has no byte-order field. Its only admitted wire encoding is
+    # little-endian; never silently reinterpret old files on a different host.
+    if sys.byteorder != 'little':
+        raise ValueError('capture storage requires little-endian host')
+
+
+def _read_bounded(directory, name, limit):
+    try:
+        fd = os.open(directory / name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    except OSError as exc:
+        raise ValueError('missing or invalid artifact') from exc
+    try:
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode) or st.st_size > limit:
+            raise ValueError('artifact integrity failure: invalid size or type')
+        with os.fdopen(fd, 'rb', closefd=False) as f:
+            data = f.read(limit + 1)
+        if len(data) != st.st_size or len(data) > limit:
+            raise ValueError('artifact integrity failure: changed size')
+        return data
+    finally:
+        os.close(fd)
 
 
 def _canonical(obj):
@@ -58,6 +84,7 @@ def fail_closed(fn):
 class CPUAttempt:
     """Write ordered float32 CPU tensors under a caller-frozen explicit schema."""
     def __init__(self, parent, attempt_id, expected, quota):
+        _require_little_endian()
         parent = Path(parent)
         if not parent.is_absolute() or parent.resolve() != parent or not parent.is_dir():
             raise ValueError('parent must be an existing canonical directory')
@@ -138,25 +165,12 @@ class CPUAttempt:
 def validate(directory, expected):
     """Authenticate exact ordering, files, finite values and all payload hashes."""
     import torch
+    _require_little_endian()
     directory = Path(directory)
     if directory.resolve() != directory or not directory.is_dir():
         raise ValueError('invalid attempt directory')
     def read(name, limit):
-        try:
-            fd = os.open(directory / name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-        except OSError as exc:
-            raise ValueError('missing or invalid artifact') from exc
-        try:
-            st = os.fstat(fd)
-            if not stat.S_ISREG(st.st_mode) or st.st_size > limit:
-                raise ValueError('artifact integrity failure: invalid size or type')
-            with os.fdopen(fd, 'rb', closefd=False) as f:
-                data = f.read(limit + 1)
-            if len(data) != st.st_size or len(data) > limit:
-                raise ValueError('artifact integrity failure: changed size')
-            return data
-        finally:
-            os.close(fd)
+        return _read_bounded(directory, name, limit)
     def strict(raw):
         def pairs(items):
             d = {}

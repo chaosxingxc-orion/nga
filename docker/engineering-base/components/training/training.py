@@ -13,7 +13,7 @@ import uuid
 from typing import Any, TypedDict
 
 SOURCE = Path('/opt/nga/source/train')
-PINS = {'train_r3.py':'044ad70d14a6511816066407986e075bb02be0cb86eb0e0a47225f33161d9e18', 'build_kev_sft.py':'356da5eb4667eb9c3349e26b088b2bd0fac5cd30acea548a3d92bed2adcf0b98','kev_aug.py':'696da28b06a7e902197806bfb4969586ee050877e93e49a744e7a1df4ebf4542','r0_code/prompt.py':'84c99aec2817de3365e650c7c6c846aeddc1ec675b3321cf80be267a7557f0fc'}
+PINS = {'train_r3.py':'ffc39a67971320b227f1482237d1397aa134acc1670d80f45cca3bfdfbbd4330', 'build_kev_sft.py':'356da5eb4667eb9c3349e26b088b2bd0fac5cd30acea548a3d92bed2adcf0b98','kev_aug.py':'696da28b06a7e902197806bfb4969586ee050877e93e49a744e7a1df4ebf4542','r0_code/prompt.py':'84c99aec2817de3365e650c7c6c846aeddc1ec675b3321cf80be267a7557f0fc'}
 DATA_SHA = '5ddc8e94f3e0af1c8abdb887ed77c1e8813879efcc428edc6d4ea0bed537daf6'
 class Config(TypedDict):
     adapter: str

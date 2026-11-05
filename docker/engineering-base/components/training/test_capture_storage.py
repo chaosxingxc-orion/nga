@@ -5,6 +5,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import torch
 
@@ -96,6 +97,15 @@ class CaptureStorageTest(unittest.TestCase):
         with self.assertRaises(ValueError): self.m.validate(p, list(reversed(self.expected)))
         (p / 'COMPLETE.json').write_text(json.dumps({'manifest_sha256': '0' * 64}))
         with self.assertRaises(ValueError): self.m.validate(p, self.expected)
+
+    def test_little_endian_contract_rejects_other_hosts(self):
+        p = self.attempt()
+        with patch.object(self.m.sys, 'byteorder', 'big'):
+            with self.assertRaisesRegex(ValueError, 'little-endian'):
+                self.m.CPUAttempt(self.root, 'big-endian', self.expected, 10000)
+            with self.assertRaisesRegex(ValueError, 'little-endian'):
+                self.m.validate(p, self.expected)
+        self.assertFalse((self.root / 'big-endian').exists())
 
 
 if __name__ == '__main__':
