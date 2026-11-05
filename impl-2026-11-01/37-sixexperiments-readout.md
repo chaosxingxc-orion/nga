@@ -30,6 +30,6 @@
 
 ## 提交
 
-- E6：adopt.go（dispatchedSeq+DispatchIfCurrent）+ adopt_test.go（TestE6ConditionalCommit）
+- E6：adopt.go（dispatchedSeq+DispatchIfCurrent）+ adopt_test.go（TestE6_ConditionalCommit）
 - E1/E2/E5：verifier_test.go（verify/coverageGap/E2/E5 测试）+ correctness_probe_test.go（E0 重写+loadE3Fixture）+ t2host_test.go（grantsCoverRead+nodeEntry 升级）
 - E4/E-GR：health_test.go（aggregate/guardDied/graveyardSweep+四测试）

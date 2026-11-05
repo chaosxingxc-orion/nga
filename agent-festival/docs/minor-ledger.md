@@ -214,3 +214,10 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **m-1~m-7（随批清偿）**：文件头叙事翻转（POLARITY GUARD 指令退役）；恒真条件包裹去壳；MEASURED 措辞如实（计数器按构造为零）；trafficVolume 文档如实（adoption 不计/unresolved 计入已声明）；闭区间两端的夹具出处分指（exception vs example）；版本门拒绝消息讲架构已排除的因果故事+裸 sentinel（改「never this operation's version」+解释 -1）；双 E1 头块合并。
 - **正面确认（空白子实测）**：收敛重构等价性成立（dispatchGated 与旧 Dispatch 逐字一致）；探针耦合全保留（版本门/状态门/sentinel 三探针在突变 C 下全红）；46 调用点零改动相符；37 号数字面全对。
 - **方法论入账（第 21/22 实证）**：拦截声称要有条件流承载（无分支的流=缺席断言，M-1）；fail-open 默认值把守卫变掩护（M-2——哨兵语义要 fail-closed）；词表门先行于语义门（M-3——精确字符串匹配对变体全开）。
+
+## R31 空白复审记账（2026-11-06，339b38b..c6719fa 六实验+R29/R30 清偿——0B/2M/7m 全清偿；连净计数 0）
+
+- **M-1（词表门 EqualFold 放行变体——R30 M-3 清偿自身的反噬）**：词表门 EqualFold 把变体放进词表，三语义面全 case-exact——"DENY" 伪造放行/"GRANT-50000" 开放带放行，且极性反转（同变体真 veto 时被拒、伪造时放行）；R30 M-3 账行的「直检探针：变体必拒」无探针、声明假。已修：词表门归一化（命中即取夹具 canonical 名，三面全比 canonical）+TestE1_CaseVariantsRefused 真直检探针（变体伪造拒/开放带拒/真 veto 时变体 deny 接受=归一化对称）。反突变（去归一化赋值）→红。方法论：**EqualFold 进门+精确比较把关=变体被门豁免**——归一化要在进门时完成，不是进门时认可。
+- **M-2（detail 分形双死臂）**：R30 M-4 的 `observed>=0` 成功臂与 `commitDetail==""` 回退臂均不可达（adopted 无回边→门处 dispatchedSeq 恒 -1→条件提交 observed>=0 必拒）——conditional detail 字符串永不入账，M-4 动机（审计统计）是空集。已修：死臂删除+调用方静态诚实措辞+负向探针（全流断言无 "after the version check" 成功 detail——死臂复活即红）。
+- **m-1~m-7（随批清偿）**：trafficVolume 死代码删除（guardDied 自算流量——36 号旧接线叙述退役）；E1 双臂/文件头突变叙事改真（直检断言为耦合面，条件流面=TestE2——R30 方法论 21 回灌）；E-GR 头注释如实（合成演示非真解析台账）；anchorVetoMonths 定序切片（map 迭代序随机=3/6 掷骰）+拒绝消息模板化（hardcode "three months" 与锚脱钩）；resolution 词表硬编码声明（与 levels 臂锚定不对称 declared）；TestE6 doc 名同步；E-GR `>=` 残留声明两处收窄对齐。
+- **方法论入账（第 23 实证）**：清偿自己的声明也要被审——R30 M-3 的「直检探针」是记账假（写了红探针三个字没有探针），空白子下一轮抓出；EqualFold 归一化的正确位置在进门处。

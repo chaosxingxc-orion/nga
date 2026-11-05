@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 	"testing"
@@ -43,11 +44,20 @@ type rawEvidence struct {
 // closed for the flow); TestE1_VetoThresholdAnchored asserts both the
 // parse and the value.
 func anchorVetoMonths(spec *fixtureSpec) int {
+	// R31 m-4: a FIXED order slice (map range order is random — a
+	// coverage text mentioning two threshold words would 3/6-flip) with
+	// FIRST-HIT-wins; "six-month" (hyphenated) does not match "six
+	// months" — the fixture's window mention is safe today, and a double
+	// hit among the THRESHOLD words stays deterministic (first in this
+	// order wins; the anchor test pins the value).
 	for _, r := range spec.Rules {
 		if r.Precedence == 0 {
-			for word, n := range map[string]int{"three": 3, "four": 4, "five": 5, "six": 6} {
-				if strings.Contains(r.Coverage, word+" months") {
-					return n
+			for _, w := range []struct {
+				word string
+				n    int
+			}{{"three", 3}, {"four", 4}, {"five", 5}, {"six", 6}} {
+				if strings.Contains(r.Coverage, w.word+" months") {
+					return w.n
 				}
 			}
 		}
@@ -77,6 +87,35 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	if vetoMonths == 0 {
 		return checkResult{ok: false, reason: "the fixture's rule-0 threshold is unparseable — the seat refuses to gate on an unanchored spec (fail-closed, R30 M-2)"}
 	}
+	// R31 M-1: the VOCABULARY gate with NORMALIZATION comes first — a
+	// case variant that folds onto a fixture name takes the fixture's
+	// canonical form (every semantic face below compares canonical case;
+	// EqualFold alone would admit "DENY" into the vocabulary while the
+	// faces still compared exact case — the variant was admitted by the
+	// gate and exempted by every face). Unknown kinds and the resolution
+	// verdicts keep their literal form. R31 m-5: the resolution words are
+	// HARDCODED here — uneven vs the levels arm's fixture derivation (the
+	// fixture's resolution section is not parsed into fixtureSpec; a
+	// rename there drifts silently — the known 0.2.0 face, same family as
+	// requiredSources).
+	kind := strings.TrimSpace(v.kind)
+	inVocabulary := false
+	for _, lvl := range spec.Levels {
+		if strings.EqualFold(strings.TrimSpace(lvl.Name), kind) {
+			kind = strings.TrimSpace(lvl.Name) // the fixture's canonical form
+			inVocabulary = true
+			break
+		}
+	}
+	for _, res := range []string{"on_undefined_rule", "on_missing_evidence"} {
+		if kind == res {
+			inVocabulary = true
+			break
+		}
+	}
+	if !inVocabulary {
+		return checkResult{ok: false, reason: "the verdict kind " + v.kind + " is not in the fixture's verdict vocabulary — not a verdict under this spec"}
+	}
 	// Rule 0 (the veto, precedence 0): ANY overdue beyond the anchored
 	// threshold at any time on record denies — regardless of assets,
 	// regardless of what S1 said.
@@ -87,40 +126,16 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 			break
 		}
 	}
-	if vetoFires && v.kind != "deny" {
-		return checkResult{ok: false, reason: "rule 0 (unbounded veto): the raw evidence carries an overdue beyond three months — the only conforming verdict is deny, the seat received " + v.kind}
+	if vetoFires && kind != "deny" {
+		return checkResult{ok: false, reason: fmt.Sprintf("rule 0 (unbounded veto): the raw evidence carries an overdue beyond %d months (the anchored threshold) — the only conforming verdict is deny, the seat received %q", vetoMonths, v.kind)}
 	}
-	// R30 M-3: the VOCABULARY gate comes first — a verdict whose kind is
-	// not in the fixture's levels is not a verdict under this spec at all
-	// (case variants and invented names previously slipped every
-	// semantic face). After the vocabulary gate, rule 0 is the ONLY legal
-	// producer of deny in this fixture, so a deny on a clean record is
-	// fabricated — no keyword sniffing needed (the old details-contains
-	// "veto" check was bypassable by any rewording).
-	// the vocabulary = the levels PLUS the resolution vocabulary
-	// (on_undefined_rule / on_missing_evidence live in the spec's
-	// resolution section, not levels — they are verdicts the spec itself
-	// prescribes for open questions and gaps)
-	inVocabulary := false
-	for _, lvl := range spec.Levels {
-		if strings.EqualFold(strings.TrimSpace(lvl.Name), v.kind) {
-			inVocabulary = true
-			break
-		}
-	}
-	for _, res := range []string{"on_undefined_rule", "on_missing_evidence"} {
-		if v.kind == res {
-			inVocabulary = true
-			break
-		}
-	}
-	if !inVocabulary {
-		return checkResult{ok: false, reason: "the verdict kind " + v.kind + " is not in the fixture's verdict vocabulary — not a verdict under this spec"}
-	}
-	// The mirror face (R30 M-3 form): a deny with no veto behind it is
+	// The mirror face (R30 M-3 form, R31 M-1 normalized): a deny with no
+	// veto behind it is fabricated — rule 0 is the fixture's only deny
+	// path, so any deny while the veto is silent contradicts the spec
+	// regardless of wording or case.
 	// fabricated — rule 0 is the fixture's only deny path, so any deny
 	// while the veto is silent contradicts the spec regardless of wording.
-	if !vetoFires && v.kind == "deny" {
+	if !vetoFires && kind == "deny" {
 		return checkResult{ok: false, reason: "the verdict is a deny but the raw record carries no overdue beyond the anchored threshold — rule 0 is the only deny path in this spec, so this deny is fabricated"}
 	}
 	// The between-bands face: the seat knows the open question and holds
@@ -130,7 +145,7 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	// the upper rule's exceptions, exactly-1 from the fixture's examples
 	// (R30 m-5: the two edges have DIFFERENT fixture homes).
 	inBand := raw.assetMillionsDeclared >= 1 && raw.assetMillionsDeclared <= 30
-	if inBand && (v.kind == "grant-50000" || v.kind == "grant-10000") {
+	if inBand && (kind == "grant-50000" || kind == "grant-10000") {
 		return checkResult{ok: false, reason: "assets strictly between the bands are an open specification question — a grant verdict is a model-authored default"}
 	}
 	return checkResult{ok: true, reason: "verdict conforms to the raw evidence under the corrected spec"}
@@ -388,5 +403,32 @@ func TestE1_MirrorAndBandFaces(t *testing.T) {
 	open := verify(s1Verdict{kind: "on_undefined_rule", details: "between bands — owner question"}, spec, rawOpen)
 	if !open.ok {
 		t.Fatalf("E1 band: an on_undefined_rule verdict was refused (%s) — the seat over-blocks the spec's own vocabulary", open.reason)
+	}
+}
+
+// TestE1_CaseVariantsRefused is the R31 M-1 direct probe — the probe the
+// R30 M-3 ledger entry CLAIMED existed ("直检探针：变体必拒") but didn't.
+// Case variants must be refused exactly like their canonical forms: the
+// vocabulary gate normalizes them, so every semantic face sees the
+// canonical kind. Mutation probe: remove the normalization assignment
+// (kind = lvl.Name) and "DENY" on a clean record passes (red).
+func TestE1_CaseVariantsRefused(t *testing.T) {
+	spec := loadE3Fixture(t)
+
+	// "DENY" on a clean record = fabricated deny in variant case — refused
+	rawClean := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true}
+	if cr := verify(s1Verdict{kind: "DENY", details: "fabricated in caps"}, spec, rawClean); cr.ok {
+		t.Fatal("M-1 probe: DENY on a clean record was served — the variant escaped the mirror face (normalization not load-bearing)")
+	}
+	// "GRANT-50000" in the open band — refused
+	rawBand := rawEvidence{assetMillionsDeclared: 12, assetReportPresent: true}
+	if cr := verify(s1Verdict{kind: "GRANT-50000", details: "variant grant"}, spec, rawBand); cr.ok {
+		t.Fatal("M-1 probe: GRANT-50000 in the open band was served — the variant escaped the band face")
+	}
+	// the variant honored as a REAL deny when the veto fires (the seat
+	// accepts the normalized form's verdict — normalization is symmetric)
+	rawVeto := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 2}}}
+	if cr := verify(s1Verdict{kind: "DENY", details: "real veto in caps"}, spec, rawVeto); !cr.ok {
+		t.Fatalf("M-1 probe: a variant-case REAL deny was refused (%s) — normalization broke the happy path", cr.reason)
 	}
 }

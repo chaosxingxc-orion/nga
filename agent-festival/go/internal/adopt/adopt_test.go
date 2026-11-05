@@ -1890,7 +1890,7 @@ func TestDurableModeStatErrorFailsLoud(t *testing.T) {
 	}
 }
 
-// TestE6ConditionalCommit is the E6 experiment (C4, xingchao 198232012
+// TestE6_ConditionalCommit is the E6 experiment (C4, xingchao 198232012
 // §一.4): DispatchIfCurrent pins the caller's observed dispatch seq, and a
 // stale observation (an intervening decision took effect between check and
 // submit) is refused with a control event — the newest correction can
@@ -1996,5 +1996,40 @@ func TestE6_ConditionalCommit(t *testing.T) {
 	// and this assertion goes red.
 	if !strings.Contains(o.Event.Outcome.Detail, "fresh-observation form") {
 		t.Fatalf("sentinel: fresh-form dispatch detail = %q, want the honest fresh-observation marker (no version-check claim)", o.Event.Outcome.Detail)
+	}
+}
+
+// TestE6_NoVersionCheckDetailEverLands is the R31 M-2 negative probe: with
+// the dead arms removed, NO event in ANY reachable flow may claim "after
+// the version check (E6/C4 conditional commit)" on a SUCCESS path — if a
+// future grammar change makes conditional commits landable and someone
+// restores that detail string, this goes red (the audit-integrity claim
+// becomes testable again).
+func TestE6_NoVersionCheckDetailEverLands(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	// drive every reachable transition on two operations (plain + conditional forms)
+	for _, op := range []string{"op-nv-1", "op-nv-2"} {
+		if o := m.Adopt(testRequest(op, digestA, pinGrants())); o.Status != "adopted" {
+			t.Fatalf("adopt %s = %q", op, o.Status)
+		}
+		if o := m.Dispatch(op, pinGrants()); o.Status != "dispatched" {
+			t.Fatalf("dispatch %s = %q", op, o.Status)
+		}
+	}
+	if o := m.Adopt(testRequest("op-nv-3", digestB, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt 3 = %q", o.Status)
+	}
+	if o := m.DispatchIfCurrent("op-nv-3", pinGrants(), -1); o.Status != "dispatched" {
+		t.Fatalf("conditional dispatch = %q", o.Status)
+	}
+	events, err := m.Events()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, e := range events {
+		if e.Outcome.Status == "dispatched" && strings.Contains(e.Outcome.Detail, "after the version check") {
+			t.Fatalf("event %d detail = %q — a version-check claim landed on a success path (the dead arm revived)", i, e.Outcome.Detail)
+		}
 	}
 }

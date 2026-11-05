@@ -343,7 +343,12 @@ func (m *Machine) Adopt(req *Request) Outcome {
 // (R29 m-1: the two public methods were 30+ duplicated lines; the commit
 // detail differs, everything else is identical). observedDispatchSeq < 0
 // skips the version gate (the plain Dispatch form); commitDetail rides
-// through to the ledger event.
+// through to the ledger event. R31 M-2: a conditional commit with
+// observed >= 0 can NEVER succeed on the current ledger grammar (an
+// adopted operation has no dispatch version to match — the version gate
+// below refuses every observed >= 0); its success-path detail is
+// therefore unreachable by construction, and both callers pass static
+// honest wording.
 func (m *Machine) dispatchGated(op string, liveGrants []ledger.Grant, observedDispatchSeq int64, commitDetail string) Outcome {
 	// The torn-tail gate comes FIRST (P1-2): a damaged durable form may
 	// have lost the dispatch line of this very operation — re-issuing the
@@ -372,20 +377,13 @@ func (m *Machine) dispatchGated(op string, liveGrants []ledger.Grant, observedDi
 	if !grantsCover(liveGrants, st.grants) {
 		return m.refuse(st, "live grant set no longer covers the grants pinned at decision time (revocation check, 14-A4)")
 	}
-	// R30 M-4: the ledger detail must not claim a version check that the
-	// fresh-observation form SKIPPED (observed < 0 = nothing to compare)
-	// — a 100%-systematic false fact would poison any audit counting
-	// "dispatches that passed the version gate". The detail is split by
-	// form: the conditional form names the check it actually ran; the
-	// plain form and the fresh-observation form name what they are.
-	if observedDispatchSeq >= 0 {
-		commitDetail = "dispatched after the version check (E6/C4 conditional commit) and the 14-A4 revocation check"
-	} else if commitDetail == "" {
-		// the plain Dispatch form (observed = -1 by definition)
-		commitDetail = "dispatched after the 14-A4 revocation check"
-	}
-	// commitDetail != "" with observed < 0 rides through — the caller
-	// (DispatchIfCurrent's fresh form) owns its honest wording.
+	// R31 M-2: the R30 detail split's two non-fresh arms were DEAD CODE —
+	// an adopted operation has no dispatch event (no back-edge in the
+	// ledger grammar), so at this gate st.dispatchedSeq is always -1 and
+	// a conditional commit with observed >= 0 can NEVER land (it is
+	// refused at the version gate above). The success detail is therefore
+	// static per caller and both callers pass their own honest wording;
+	// no runtime form-splitting exists to maintain.
 	o := m.commit(st, StateDispatched, commitDetail)
 	// E6 (C4): record the dispatch's own arbitration seq — the checked
 	// version a later conditional re-commit (DispatchIfCurrent) compares

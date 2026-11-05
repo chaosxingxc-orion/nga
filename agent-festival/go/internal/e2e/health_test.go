@@ -3,11 +3,13 @@ package e2e
 // E4 (33号 B4) + E-GR (33号 B7): the health-reading face — the machine
 // face of xia 2.5's first amendment ("a guard failing QUIETLY — never
 // intercepting again while traffic continues — is the most dangerous
-// failure form") and her 2.2 graveyard-sweep guardrail. Both are pure
-// functions over the machine's public event stream (Machine.Events) and
-// the ledger's public loader — zero machine changes, the readings live at
-// the host/ops tier. Determinism: langgraph _algo.py sorted-keys
-// discipline for every aggregation walk.
+// failure form") and her 2.2 graveyard-sweep guardrail. E4 is a pure
+// function over the machine's public event stream (Machine.Events);
+// E-GR is a pure function over structured entries — R31 m-3 honesty: the
+// minor-ledger demo is a SYNTHETIC shape-run (L-1..L-47 with constructed
+// ages), NOT a load of docs/minor-ledger.md (the real ledger is never
+// parsed here). Zero machine changes; determinism: langgraph _algo.py
+// sorted-keys discipline for every aggregation walk.
 
 import (
 	"fmt"
@@ -22,14 +24,16 @@ import (
 
 // frequencyReport aggregates control-family events by their status, in
 // sorted-key order (deterministic output for diffing and alerting).
+// R31 m-1: guardDied computes its own traffic face inline (the effect
+// events it walks) — this report covers the control side only.
 type frequencyReport struct {
 	byStatus map[string]int
 	total    int
 }
 
 // aggregateControl walks the event stream and counts control events by
-// outcome status. Effect events are traffic, not interceptions — they set
-// the volume baseline the death probe compares against.
+// outcome status. Effect events are traffic, not interceptions — the
+// death probe (guardDied) walks them itself.
 func aggregateControl(events []ledger.Event) frequencyReport {
 	rep := frequencyReport{byStatus: map[string]int{}}
 	for _, e := range events {
@@ -39,21 +43,6 @@ func aggregateControl(events []ledger.Event) frequencyReport {
 		}
 	}
 	return rep
-}
-
-// trafficVolume counts EFFECT events (the commit() family: dispatched/
-// unresolved/completed/failed — adoption events are EventType "adoption",
-// not "effect", and are NOT counted). R30 m-4 honesty: unresolved rides
-// the effect face as declared here — an unknown-outcome event counts as
-// flow for the death probe (a known, declared bound).
-func trafficVolume(events []ledger.Event) int {
-	n := 0
-	for _, e := range events {
-		if e.EventType == "effect" {
-			n++
-		}
-	}
-	return n
 }
 
 // sortedStatuses returns the report's statuses in sorted order (E4's
@@ -280,10 +269,11 @@ type graveyardEntry struct {
 }
 
 // TestEGr_GraveyardSweep is the E-GR experiment: threshold boundaries are
-// exact (N stays, N+1 sweeps), the age face fires independently, and the
-// sweep list is complete (every over-threshold entry appears). Mutation
-// probe: break the boundary comparison (>= instead of >) and the N-entry
-// case sweeps when it must not (red).
+// exact (N stays, N+1 sweeps; age maxAgeDays stays, +1 sweeps), the age
+// face fires independently, and the sweep list is complete. Mutation
+// probes are scoped to the EXCESS ARITHMETIC only (R31 m-7: a >= ceiling
+// mutation is unreachable in this function shape — zero excess lists
+// nothing — so it is not claimed as red).
 func TestEGr_GraveyardSweep(t *testing.T) {
 	th := sweepThreshold{maxEntries: 3, maxAgeDays: 30}
 
@@ -300,8 +290,8 @@ func TestEGr_GraveyardSweep(t *testing.T) {
 
 	// boundary: exactly maxEntries → no count-face sweep. The entries sit
 	// just inside the age face (1..3 days vs 30) so ONLY the count
-	// boundary is under test — a >= mutation sweeps all three (they become
-	// "excess") and turns this case red.
+	// boundary is under test (a >= ceiling mutation is behavior-identical
+	// here — see the scoping note above).
 	three := []graveyardEntry{
 		{id: "L-a", ageDays: 1}, {id: "L-b", ageDays: 2}, {id: "L-c", ageDays: 3},
 	}

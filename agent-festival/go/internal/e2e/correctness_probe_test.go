@@ -7,10 +7,11 @@ package e2e
 //
 // E1 flipped the E0 polarity (this batch): the verification seat now sits
 // judge→verify→adopt, and the former disease tests assert the
-// INTERCEPTION. The disease's existence is historical record: a "sick" S1
-// used to pass the adoption gate undetected (WGR 1/1), and E3 proved the
-// spec self-contradiction that P3+L23 resolved. The current assertions
-// are the corrected state (see each test's doc for its mutation probe).
+// INTERCEPTION (coupled to verify's ANSWER — a seat that returns ok turns
+// them red; the conditional-flow face is TestE2's). The disease's
+// existence is historical record: a "sick" S1 used to pass the adoption
+// gate undetected (WGR 1/1), and E3 proved the spec self-contradiction
+// that P3+L23 resolved.
 //
 // The experiments were framed as conclusion-changing probes (the user's
 // instruction: "有可能会通过实验验证或者改变我们的结论"). Both concluded:
@@ -110,10 +111,13 @@ func TestE1_PositiveControlHealthyS1(t *testing.T) {
 func TestE1_BlocksSickS1(t *testing.T) {
 	// E1 flipped the polarity (33号 B1): the verification seat is in the
 	// chain, so the sick grant is BLOCKED — this test now asserts the
-	// interception, not the disease. The disease's FORMER existence is
-	// recorded in the ledger (R17-R20 eras); the proof that the seat is
-	// load-bearing is the mutation probe: remove the verify call from
-	// this chain and the sick grant flows to completion again.
+	// interception, not the disease. The seat's mutation coupling is the
+	// DIRECT assertion on verify's answer (a seat returning ok for the
+	// sick verdict turns this red); the conditional-flow face with full
+	// behavioral mass lives in TestE2 (R30 M-1). R31 m-2: the earlier
+	// "remove the verify call and the grant flows" narrative was false —
+	// this test's remaining assertions are unconditional and cannot
+	// detect a deleted call.
 	h := newTask(t)
 	e := creditEvidence{
 		assetMillions:   35,
