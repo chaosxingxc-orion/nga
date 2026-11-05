@@ -60,7 +60,7 @@ func s1AlwaysGrant(e creditEvidence) s1Verdict {
 	}
 }
 
-// TestE0DiseaseExists_HealthyS1 is the positive control: the healthy S1
+// TestE1_PositiveControlHealthyS1 is the positive control: the healthy S1
 // correctly denies the counterexample evidence (4-month overdue 2 years ago).
 // This must pass, proving the test harness works. If this fails, E0's
 // negative result is meaningless.
@@ -101,7 +101,7 @@ func TestE1_PositiveControlHealthyS1(t *testing.T) {
 	// dispatch two lines below).
 	if o := h.machine.Dispatch("op-e0-healthy", chainGrants()); o.Status != "dispatched" {
 		t.Fatalf("E0 positive control: dispatch on deny record = %q — expected dispatched "+
-			"(machine is semantically blind by design, host decides not to dispatch)", o.Status)
+			"(machine is semantically blind by design; the dispatch here is the demonstration, not a policy)", o.Status)
 	}
 }
 

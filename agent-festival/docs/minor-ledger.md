@@ -235,3 +235,11 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **M-1（带界锚数字扩展漂移盲区）**：Contains("above 30") 是 "above 300" 的前缀子串——数字扩展（30→300/1→10）锚照绿、seat 静默 under-block（150 被放行）；R32 M-3 声明的「移动 bound 即红」对扩展族为假。已修：anchorBandBounds 改 regex 解析数字（`above (\d+(?:\.\d+)?)`/below 同型——值不可与文本分叉）+哨兵深度对齐 veto 臂（0,0→verify 拒关，R33 m-3）。反突变（300/10 双向）→bounds (1,300)/(10,30) 红。
 - **m-1~m-9（随批清偿）**：带界锚行为面的历史声明改真（前身形态全通过 31——真实承载是抓 verify 侧常量与锚分叉；账本方向词 over/under 更正）；on_missing_evidence 镜像面消息依据如实（resolution 主语限定+coverageGap 前置）；双锚 fail-closed 深度对齐+「never fires」假句修正；带面消息 "strictly between"→"closed between-bands zone"（与闭区间一致）；E4 phase-2 注释 adoption 不计（与 guardDied 实际计数一致）；nodeEntry doc 错挂归位；E3 双测试改调 loadE3Fixture（三处解析点收敛）；E-GR 并列探针改输入排列扫描（50 迭代恒真——确定性买的是输入序无关非 run 重复）；37 号「实跑」改「合成形状演示」。
 - **方法论入账（第 26/27 实证）**：锚定用 Contains 匹配+字面量复制=值可与文本分叉——数字要从匹配文本**解析**（前缀子串是扩展漂移的天然盲区，M-1）；探针声称的确定性质要指认真实来源（并列决胜买的是输入序无关——50 迭代重复循环是恒真断言，m-8）。
+
+## R34 空白复审记账（2026-11-06，339b38b..4210084 六实验+R29-R33 清偿——0B/1M/4m 全清偿；连净计数 0）
+
+- **M-1（veto 锚复合数词盲区）**："thirty-three months" Contains "three months"→解析 3（值保持型误解析）——R33 M-1 的 regex 纪律横扫了带界臂的数字形态、没横扫 veto 臂的词形（R32 M-3 方法论的横扫缺口）。已修：边界感知匹配（裸词前紧跟字母/连字符=复合形态→落 0 哨兵 fail-closed）+TestE1_VetoAnchorCompoundWords 直检探针（复合→0+verify 拒关+真夹具仍 3）。反突变（去边界检查）→红。
+- **m-1（分组数字前缀捕获）**："30,000" 的数字 regex 静默捕获 30——探针先红实锤。已修：分组形态（[,.]\d 后继）毒化→sentinel (0,0)+Sscanf 错误显式面。探针入 TestE1_VetoAnchorCompoundWords。
+- **m-2（多命中静默消解）**：双规则不同 "above" 值按数组序 last-wins——与 countPrecedenceZero「歧义=冲突」纪律分叉。已修：同面异值→sentinel 冲突化+同值 agreeing 阳性对照。反突变（回退 last-wins）→红。
+- **m-3（doc 名/retract 残留）**：TestE0DiseaseExists_HealthyS1 doc 名未随 R31 m-8 同步；healthy 臂失败消息保留 R32 m-6 刚 retract 的「host decides not to dispatch」从句。已修：双处同步；retract 短语全仓唯一命中=更正注释自己（合规引用）。
+- **方法论入账（第 28/29 实证）**：横扫纪律的宾语要按**形态族**枚举（regex 数字形态/词形是两族——修一族漏一族，M-1）；解析器的边界形态（分组符/复合词）与解析成功同权入探针（m-1/m-2——失败形态静默落陈旧值是最隐蔽的 fail-open）。

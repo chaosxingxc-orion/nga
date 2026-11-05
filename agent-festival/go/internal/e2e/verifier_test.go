@@ -49,14 +49,44 @@ type rawEvidence struct {
 // TEST-layer value assertion, not gate inertness.
 func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 	var lo, hi float64
-	aboveRe := regexp.MustCompile(`above (\d+(?:\.\d+)?)`)
-	belowRe := regexp.MustCompile(`below (\d+(?:\.\d+)?)`)
+	// R34 m-1: a digit run followed by a comma/digit means a GROUPED
+	// number ("30,000") — the capture would be a prefix (30), so any such
+	// match poisons the bound (sentinel 0) instead of silently parsing
+	// the prefix. Sscanf errors are surfaced (a partial parse is a
+	// sentinel, not a stale value).
+	aboveRe := regexp.MustCompile(`above (\d+(?:\.\d+)?)([,.]\d)?`)
+	belowRe := regexp.MustCompile(`below (\d+(?:\.\d+)?)([,.]\d)?`)
+	// R34 m-2: MULTIPLE hits for the same face are a CONFLICT, not a
+	// silently-resolved array order (the countPrecedenceZero discipline —
+	// ambiguous derivation refuses). First hit wins only within ONE rule;
+	// a second rule deriving the same face with a different value is
+	// ambiguous → sentinel.
 	for _, r := range spec.Rules {
 		if m := aboveRe.FindStringSubmatch(r.Coverage); m != nil {
-			fmt.Sscanf(m[1], "%g", &hi)
+			if m[2] != "" {
+				return 0, 0 // grouped/poisoned form — fail closed
+			}
+			var v float64
+			if _, err := fmt.Sscanf(m[1], "%g", &v); err != nil {
+				return 0, 0
+			}
+			if hi != 0 && hi != v {
+				return 0, 0 // two rules derive different "above" bounds — ambiguous
+			}
+			hi = v
 		}
 		if m := belowRe.FindStringSubmatch(r.Coverage); m != nil {
-			fmt.Sscanf(m[1], "%g", &lo)
+			if m[2] != "" {
+				return 0, 0
+			}
+			var v float64
+			if _, err := fmt.Sscanf(m[1], "%g", &v); err != nil {
+				return 0, 0
+			}
+			if lo != 0 && lo != v {
+				return 0, 0
+			}
+			lo = v
 		}
 	}
 	return lo, hi
@@ -71,12 +101,14 @@ func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 // closed for the flow); TestE1_VetoThresholdAnchored asserts both the
 // parse and the value.
 func anchorVetoMonths(spec *fixtureSpec) int {
-	// R31 m-4: a FIXED order slice (map range order is random — a
-	// coverage text mentioning two threshold words would 3/6-flip) with
-	// FIRST-HIT-wins; "six-month" (hyphenated) does not match "six
-	// months" — the fixture's window mention is safe today, and a double
-	// hit among the THRESHOLD words stays deterministic (first in this
-	// order wins; the anchor test pins the value).
+	// R34 M-1: BOUNDARY-AWARE word matching — a bare word directly
+	// preceded by a letter or hyphen ("thirty-three months", "twenty-three
+	// months") is a DIFFERENT number and must NOT match ("three months"
+	// was a prefix substring of it: the seat silently kept vetoing at >3
+	// while the fixture said >33). The R33 M-1 regex-digits discipline
+	// swept the band arm; this is the veto arm's word-form sweep. Compound
+	// forms land on the 0 sentinel (fail-closed — the anchor test flags
+	// them). R31 m-4: fixed order slice, first-hit-wins (deterministic).
 	for _, r := range spec.Rules {
 		if r.Precedence == 0 {
 			for _, w := range []struct {
@@ -84,12 +116,22 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 				n    int
 			}{{"three", 3}, {"four", 4}, {"five", 5}, {"six", 6}} {
 				if strings.Contains(r.Coverage, w.word+" months") {
-					return w.n
+					// boundary check: the character before the word (if any)
+					// must not be a letter or hyphen
+					idx := strings.Index(r.Coverage, w.word+" months")
+					if idx == 0 {
+						return w.n
+					}
+					prev := r.Coverage[idx-1]
+					if !(prev >= 'A' && prev <= 'Z') && !(prev >= 'a' && prev <= 'z') && prev != '-' {
+						return w.n
+					}
+					// compound form — keep scanning (fail through to 0)
 				}
 			}
 		}
 	}
-	return 0 // unparseable — fail-closed sentinel (the anchor test flags it)
+	return 0 // unparseable/compound — fail-closed sentinel (the anchor test flags it)
 }
 
 // checkResult is the verification seat's answer.
@@ -547,5 +589,66 @@ func TestE1_BandBoundsAnchored(t *testing.T) {
 	cr := verify(s1Verdict{kind: "grant-50000", details: "healthy upper-band grant"}, spec, raw)
 	if !cr.ok {
 		t.Fatalf("M-3 anchor: a grant at assets=31 was refused (%s) — the band face is not anchored to the fixture's 30", cr.reason)
+	}
+}
+
+// TestE1_VetoAnchorCompoundWords is the R34 M-1 direct probe: compound
+// number words ("thirty-three months") must NOT parse as their bare-word
+// prefix ("three months") — they land on the 0 sentinel (fail-closed) and
+// verify refuses to gate. Mutation probe: remove the boundary check in
+// anchorVetoMonths and "thirty-three months" parses as 3 — this goes red.
+func TestE1_VetoAnchorCompoundWords(t *testing.T) {
+	compound := &fixtureSpec{Rules: []fixtureVetoRule{{Precedence: 0, Coverage: "any overdue longer than thirty-three months at any time denies credit"}}}
+	if got := anchorVetoMonths(compound); got != 0 {
+		t.Fatalf("M-1 probe: compound word anchored = %d, want 0 (a compound is a different number — fail-closed sentinel)", got)
+	}
+	cr := verify(s1Verdict{kind: "grant-50000", details: "healthy"}, compound, rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true})
+	if cr.ok {
+		t.Fatal("M-1 probe: verify gated on a compound-word spec — the unanchored refusal is not load-bearing")
+	}
+	// the honest fixture still parses (the boundary check does not break
+	// the canonical form)
+	if got := anchorVetoMonths(loadE3Fixture(t)); got != 3 {
+		t.Fatalf("M-1 probe: the real fixture anchored = %d, want 3 — the boundary check broke the happy path", got)
+	}
+
+	// R34 m-1: the SEPARATOR form ("30,000") must fail closed — the digit
+	// regex stops at the comma and would silently capture "30"; the
+	// declared contract is sentinel-0 for any form the parser can't take
+	// whole. Mutation probe: widen the digit class to include commas and
+	// this red expectation changes shape (re-pin it).
+	comma := &fixtureSpec{Rules: []fixtureVetoRule{}} // band-arm form via anchorBandBounds below
+	bandSpec := &fixtureSpec{Rules: []fixtureVetoRule{{Precedence: 1, Coverage: "assets above 30,000 (USD-millions) grant the line"}, {Precedence: 2, Coverage: "assets below 1 (USD-millions) grants the small line"}}}
+	blo, bhi := anchorBandBounds(bandSpec)
+	_ = comma
+	if blo != 0 || bhi != 0 {
+		t.Fatalf("m-1 probe: separator-form bounds = (%v, %v), want (0, 0) — the digit regex captured a prefix of a grouped number (fail-closed violated)", blo, bhi)
+	}
+}
+
+// TestE1_BandBoundsMultiHitConflicts is the R34 m-2 probe: two rules
+// deriving the same face with DIFFERENT values is an ambiguous derivation
+// — the anchor refuses (sentinel), matching the
+// ambiguous-precedence-is-a-conflict discipline. Mutation probe: make the
+// second hit silently overwrite (last-wins) and this goes red.
+func TestE1_BandBoundsMultiHitConflicts(t *testing.T) {
+	ambiguous := &fixtureSpec{Rules: []fixtureVetoRule{
+		{Precedence: 1, Coverage: "assets above 30 (USD-millions) grant the line"},
+		{Precedence: 3, Coverage: "assets above 40 (USD-millions) also mentioned"},
+	}}
+	lo, hi := anchorBandBounds(ambiguous)
+	if lo != 0 || hi != 0 {
+		t.Fatalf("m-2 probe: conflicting derivations = (%v, %v), want (0, 0) — ambiguity is a conflict, not a last-wins order", lo, hi)
+	}
+	// agreement face: two rules deriving the SAME value are fine (plus
+	// the below-1 rule so lo is populated — the fixture's real shape)
+	agreeing := &fixtureSpec{Rules: []fixtureVetoRule{
+		{Precedence: 1, Coverage: "assets above 30 (USD-millions) grant the line"},
+		{Precedence: 3, Coverage: "recap: assets above 30 (USD-millions) as before"},
+		{Precedence: 2, Coverage: "assets below 1 (USD-millions) grants the small line"},
+	}}
+	lo, hi = anchorBandBounds(agreeing)
+	if lo != 1 || hi != 30 {
+		t.Fatalf("m-2 probe: agreeing derivations = (%v, %v), want (1, 30) — agreement must not be treated as conflict", lo, hi)
 	}
 }
