@@ -55,7 +55,7 @@
     "Retaineddetachedcontainers,persistentlogs,heartbeats,terminalmarkers,resumeandexactrelaunch"
   ],
   "launch_authorized": false,
-  "note": "Resource policy only. Concrete controller consumes its own reviewed CONFIG.json; this file does not reserve devices or activate a run. Initial four-card inference probe is not yet launched. LoRA four-card recipe remains to implement and validate.",
+  "note": "Resource policy only; concrete controllers consume separately reviewed CONFIG.json. Four-card inference v7 actually ran on host175 physical4-7, failed before a valid forward, and released all four cards. Diagnose before successor retry. LoRA four-card recipe remains to implement and validate; two-card execution is authorized by budget but still needs measured capacity/numerical/efficiency qualification.",
   "resource_budget_authorized": true,
-  "updated_utc": "2026-11-05T04:27:00Z"
+  "updated_utc": "2026-11-05T06:15:46.286930+00:00"
 }
