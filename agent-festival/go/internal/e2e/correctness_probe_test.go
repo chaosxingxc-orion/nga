@@ -93,11 +93,12 @@ func TestE1_PositiveControlHealthyS1(t *testing.T) {
 	if o := h.machine.Adopt(requestFor("op-e0-healthy", "er-1", "ev-1", digestHex('1'))); o.Status != "adopted" {
 		t.Fatalf("E0 positive control: adopt = %q: %s", o.Status, o.Detail)
 	}
-	// CRITICAL: the machine WOULD dispatch this deny record if asked —
-	// it has no verdict field and no precondition check. The HOST decides
-	// not to call Dispatch for a deny. This is by design (semantic blindness
-	// is the architecture's contract, not a bug), but it means the machine
-	// provides no guard against a sick S1 that returns grant instead of deny.
+	// This test DELIBERATELY dispatches the deny record to prove the
+	// machine's semantic blindness (it has no verdict field); a PRODUCTION
+	// host withholds dispatch on a deny — the distinction matters and the
+	// dispatch here is the demonstration, not a policy (R32 m-6: the old
+	// comment claimed the host decides not to dispatch, contradicting the
+	// dispatch two lines below).
 	if o := h.machine.Dispatch("op-e0-healthy", chainGrants()); o.Status != "dispatched" {
 		t.Fatalf("E0 positive control: dispatch on deny record = %q — expected dispatched "+
 			"(machine is semantically blind by design, host decides not to dispatch)", o.Status)

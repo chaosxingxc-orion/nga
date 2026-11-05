@@ -243,7 +243,15 @@ func graveyardSweep(entries []graveyardEntry, th sweepThreshold) []string {
 		excess := len(entries) - th.maxEntries
 		byAge := make([]graveyardEntry, len(entries))
 		copy(byAge, entries)
-		sort.Slice(byAge, func(i, j int) bool { return byAge[i].ageDays > byAge[j].ageDays })
+		// R32 m-4: the id tiebreak makes the equal-age cut deterministic
+		// (the file head's sorted-keys discipline — a tie at the excess
+		// boundary previously picked arbitrarily)
+		sort.Slice(byAge, func(i, j int) bool {
+			if byAge[i].ageDays != byAge[j].ageDays {
+				return byAge[i].ageDays > byAge[j].ageDays
+			}
+			return byAge[i].id < byAge[j].id
+		})
 		listed := map[string]bool{}
 		for _, id := range out {
 			listed[id] = true
@@ -343,9 +351,10 @@ func TestEGr_GraveyardSweep(t *testing.T) {
 		}
 	}
 
-	// the first real user: the minor ledger itself — a live sweep over
-	// L1-L47's count (47 entries against a demo threshold of 30 → 17
-	// sweep candidates, listed deterministically)
+	// the first real user: the minor ledger itself — a SYNTHETIC shape-run
+	// over L1-L47 (47 entries, demo threshold 30/45) → a 19-entry sweep
+	// list (2 age + 17 count), listed deterministically (R32 m-3: the
+	// block header previously said 17, contradicting the asserted 19)
 	var demo []graveyardEntry
 	for i := 1; i <= 47; i++ {
 		demo = append(demo, graveyardEntry{id: fmt.Sprintf("L-%d", i), ageDays: i})
@@ -390,5 +399,26 @@ func fullGrants() []ledger.Grant {
 	return []ledger.Grant{
 		{Kind: "data", Selector: "ledger://credit/t", Actions: []string{"read"}, Effect: "none"},
 		{Kind: "tool", Selector: "tool://credit-transfer", Actions: []string{"execute"}, Effect: "irreversible"},
+	}
+}
+
+// TestEGr_TieAtExcessBoundaryIsDeterministic is the R32 m-4 probe: two
+// entries with the SAME age straddling the excess cut — the id tiebreak
+// must pick the same one on every run (map/range order may vary).
+func TestEGr_TieAtExcessBoundaryIsDeterministic(t *testing.T) {
+	th := sweepThreshold{maxEntries: 1, maxAgeDays: 999} // count face only
+	entries := []graveyardEntry{
+		{id: "L-tie-b", ageDays: 10},
+		{id: "L-tie-a", ageDays: 10}, // same age — the tiebreak decides
+	}
+	first := graveyardSweep(entries, th)
+	for i := 0; i < 50; i++ {
+		got := graveyardSweep(entries, th)
+		if len(got) != len(first) || (len(got) > 0 && got[0] != first[0]) {
+			t.Fatalf("m-4 probe: tie-break flipped across runs (%v vs %v) — the equal-age cut is nondeterministic", first, got)
+		}
+	}
+	if len(first) != 1 || first[0] != "L-tie-a" {
+		t.Fatalf("m-4 probe: tie winner = %v, want [L-tie-a] (the lower id on an equal-age cut)", first)
 	}
 }

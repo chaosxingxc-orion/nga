@@ -385,10 +385,12 @@ func (m *Machine) dispatchGated(op string, liveGrants []ledger.Grant, observedDi
 	// static per caller and both callers pass their own honest wording;
 	// no runtime form-splitting exists to maintain.
 	o := m.commit(st, StateDispatched, commitDetail)
-	// E6 (C4): record the dispatch's own arbitration seq — the checked
-	// version a later conditional re-commit (DispatchIfCurrent) compares
-	// against. A failed dispatch leaves the pin at -1 (no dispatch event
-	// exists to be current).
+	// E6 (C4): record the dispatch's own arbitration seq. R32 m-1 honesty:
+	// with no ledger back-edge this pin has NO reachable reader on the
+	// success path (an adopted operation — the only state that reaches the
+	// version gate — always carries -1); the pin exists for replay
+	// symmetry and a future grammar that allows re-commit, and its one
+	// LIVE face is the adopted-state forged-observation refusal above.
 	if o.Event != nil {
 		st.dispatchedSeq = o.Event.ArbitrationSeq
 	}

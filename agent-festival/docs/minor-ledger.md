@@ -221,3 +221,11 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **M-2（detail 分形双死臂）**：R30 M-4 的 `observed>=0` 成功臂与 `commitDetail==""` 回退臂均不可达（adopted 无回边→门处 dispatchedSeq 恒 -1→条件提交 observed>=0 必拒）——conditional detail 字符串永不入账，M-4 动机（审计统计）是空集。已修：死臂删除+调用方静态诚实措辞+负向探针（全流断言无 "after the version check" 成功 detail——死臂复活即红）。
 - **m-1~m-7（随批清偿）**：trafficVolume 死代码删除（guardDied 自算流量——36 号旧接线叙述退役）；E1 双臂/文件头突变叙事改真（直检断言为耦合面，条件流面=TestE2——R30 方法论 21 回灌）；E-GR 头注释如实（合成演示非真解析台账）；anchorVetoMonths 定序切片（map 迭代序随机=3/6 掷骰）+拒绝消息模板化（hardcode "three months" 与锚脱钩）；resolution 词表硬编码声明（与 levels 臂锚定不对称 declared）；TestE6 doc 名同步；E-GR `>=` 残留声明两处收窄对齐。
 - **方法论入账（第 23 实证）**：清偿自己的声明也要被审——R30 M-3 的「直检探针」是记账假（写了红探针三个字没有探针），空白子下一轮抓出；EqualFold 归一化的正确位置在进门处。
+
+## R32 空白复审记账（2026-11-06，339b38b..6ce74be 六实验+R29/R30/R31 清偿——0B/3M/6m 全清偿；连净计数 0）
+
+- **M-1（fail-closed 自身零探针）**：R30 M-2 的哨兵分支与 verify 拒面是装饰守卫（删码/回退 return 3 全套件绿——本仓 R29 M-4 自立标准），锚测试只钉值面。已修：TestE1_FailClosedAnchored（不可解析 spec→anchor 0+verify 拒+nil spec 拒）。反突变（回退 return 3）→红。
+- **M-2（assetReportPresent 死字段双向不设防）**：全仓只写不读——夹具第一条 evidence source 缺失时 grant 放行/报告在场时谎报缺证放行（E0 evasive-S1 家族双向）；未按 requiredSources 款式声明已知面。已修：消费字段（双向面：无报告出 grant 拒/有报告谎报缺证拒）+TestE1_EvidencePresenceMirror 双探针+诚实 gap 阳性对照。反突变（删双面）→红。
+- **M-3（带界硬编码未锚定）**：veto 阈值锚定了（R29 M-3）带界没锚——夹具 30→50 全套件照绿（31..50 规范内 grant 被静默 over-block）；注释 "comes from" 制造已锚定假象。已修：anchorBandBounds 从夹具规则文本派生（fail-closed 哨兵 0,0）+TestE1_BandBoundsAnchored 锚测试（含 31 处行为面——旧硬编码下会被挡）。反突变（夹具 30→50/1→2）→bounds (0,0) 红。
+- **m-1~m-6（随批清偿）**：dispatchGated 提交后 CAS 叙事注释如实（pin 无可达读者——replay 对称+未来文法预留）；镜像面重复句删；E-GR 演示头 17→19 对齐；graveyardSweep 同龄并列 id 决胜（确定性纪律落到切点）+TestEGr_TieAtExcessBoundaryIsDeterministic 50 迭代探针；raw 隔离措辞收窄（"dead in THIS wiring"——类型边界非强制，纪律面非机制面）；healthy 臂 E0 旧注释改真（测试故意派发=证明机器盲，非宿主政策）。
+- **方法论入账（第 24/25 实证）**：fail-closed 是守卫不是措辞——它的两面（哨兵值+拒面）同样需要红探针，否则就是装饰（M-1）；结构体字段「每个构造点都写、无人读」=未落地面（M-2——字段存在暗示的语义要消费或声明）；锚定纪律要横扫同组件的**全部数值字面量**（M-3——修了 veto 漏了带界）。

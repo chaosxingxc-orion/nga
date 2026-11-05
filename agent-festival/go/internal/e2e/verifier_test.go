@@ -15,8 +15,10 @@ import (
 // stays semantically blind by design — the seat sits at the HOST tier,
 // exactly where E5's nodeEntry authorization lives). The seat is the
 // correctness layer whose ABSENCE the E0 experiments proved: a
-// DETERMINISTIC function of the fixture spec and the RAW evidence (never
-// of S1's extraction output) — the hermes-self-evolution layering
+// DETERMINISTIC function of the fixture spec and the RAW evidence (never — in THIS wiring —
+// of S1's extraction output (the raw/extracted separation is the caller's
+// discipline, not a type-level force: rawEvidence can be legally built
+// from extracted data — R32 m-5)) — the hermes-self-evolution layering
 // (frame-bench, evolution/core/constraints.py — "Every candidate variant
 // must pass ALL constraints … Failed constraints = immediate rejection")
 // is the same shape: hard deterministic gates decide, the model seat only
@@ -33,6 +35,24 @@ type rawEvidence struct {
 	assetMillionsDeclared float64
 	assetReportPresent    bool
 	overdueOnRecord       []overdueEvent // the full-history ledger of record
+}
+
+// anchorBandBounds derives the open-question band's closed bounds from the
+// fixture's rule texts (rule 1 "above 30", rule 2 "below 1" — the numbers
+// the between-bands face brackets). Unparseable bounds return 0,0 (the
+// fail-closed sentinel: verify's inBand never fires — the anchor test
+// flags it), never a historic default.
+func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
+	var lo, hi float64
+	for _, r := range spec.Rules {
+		if strings.Contains(r.Coverage, "above 30") {
+			hi = 30
+		}
+		if strings.Contains(r.Coverage, "below 1") {
+			lo = 1
+		}
+	}
+	return lo, hi
 }
 
 // anchorVetoMonths derives the veto threshold from the fixture's rule-0
@@ -133,10 +153,18 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	// veto behind it is fabricated — rule 0 is the fixture's only deny
 	// path, so any deny while the veto is silent contradicts the spec
 	// regardless of wording or case.
-	// fabricated — rule 0 is the fixture's only deny path, so any deny
-	// while the veto is silent contradicts the spec regardless of wording.
 	if !vetoFires && kind == "deny" {
 		return checkResult{ok: false, reason: "the verdict is a deny but the raw record carries no overdue beyond the anchored threshold — rule 0 is the only deny path in this spec, so this deny is fabricated"}
+	}
+	// R32 M-2: the evidence-presence mirror faces — the fixture's FIRST
+	// evidence source (the asset valuation report) must be present for a
+	// grant to be honest, and a report that IS present must not be
+	// denied-by-evasion. Both directions of the E0 evasive-S1 family.
+	if !raw.assetReportPresent && (kind == "grant-50000" || kind == "grant-10000") {
+		return checkResult{ok: false, reason: "the asset valuation report (the fixture's first evidence source) is absent — a grant verdict without it is the evasive-S1 form (E0 family)"}
+	}
+	if raw.assetReportPresent && kind == "on_missing_evidence" {
+		return checkResult{ok: false, reason: "the asset valuation report is present but the verdict claims missing evidence — reporting a gap that does not exist is the evasion mirror"}
 	}
 	// The between-bands face: the seat knows the open question and holds
 	// S1 to the spec's own vocabulary — a grant from an unsettled zone is
@@ -144,7 +172,11 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	// set is CLOSED at both ends (>= 1 && <= 30) — exactly-30 comes from
 	// the upper rule's exceptions, exactly-1 from the fixture's examples
 	// (R30 m-5: the two edges have DIFFERENT fixture homes).
-	inBand := raw.assetMillionsDeclared >= 1 && raw.assetMillionsDeclared <= 30
+	// R32 M-3: the band bounds are DERIVED from the fixture (anchorBandBounds)
+	// like the veto threshold — a fixture edit that moves a bound turns the
+	// anchor test red instead of silently over/under-blocking the seat.
+	lo, hi := anchorBandBounds(spec)
+	inBand := raw.assetMillionsDeclared >= lo && raw.assetMillionsDeclared <= hi
 	if inBand && (kind == "grant-50000" || kind == "grant-10000") {
 		return checkResult{ok: false, reason: "assets strictly between the bands are an open specification question — a grant verdict is a model-authored default"}
 	}
@@ -430,5 +462,78 @@ func TestE1_CaseVariantsRefused(t *testing.T) {
 	rawVeto := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 2}}}
 	if cr := verify(s1Verdict{kind: "DENY", details: "real veto in caps"}, spec, rawVeto); !cr.ok {
 		t.Fatalf("M-1 probe: a variant-case REAL deny was refused (%s) — normalization broke the happy path", cr.reason)
+	}
+}
+
+// TestE1_FailClosedAnchored is the R32 M-1 probe: the fail-closed faces
+// R30 M-2 introduced had ZERO probes (deleting them or reverting the
+// sentinel kept all 13 tests green — decorative guards by this repo's own
+// R29 M-4 standard). Pinned now: an unparseable spec yields sentinel 0
+// from the anchor, verify refuses to gate on it, and a nil spec refuses
+// outright. Mutation probe: revert anchorVetoMonths's fallback to `return
+// 3` (the R30 M-2 disease) or delete the vetoMonths==0 face — this goes red.
+func TestE1_FailClosedAnchored(t *testing.T) {
+	// ① unparseable threshold → sentinel 0 → verify refuses
+	broken := &fixtureSpec{Rules: []fixtureVetoRule{{Precedence: 0, Coverage: "denies credit for overdue records"}}}
+	if got := anchorVetoMonths(broken); got != 0 {
+		t.Fatalf("M-1 probe: unparseable threshold anchored = %d, want 0 (fail-closed sentinel)", got)
+	}
+	cr := verify(s1Verdict{kind: "grant-50000", details: "healthy"}, broken, rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true})
+	if cr.ok {
+		t.Fatal("M-1 probe: verify gated on an unanchored spec — the fail-closed face is not load-bearing")
+	}
+	if !strings.Contains(cr.reason, "unparseable") {
+		t.Fatalf("M-1 probe: refusal reason = %q, want the unparseable marker", cr.reason)
+	}
+
+	// ② nil spec → outright refusal
+	cr = verify(s1Verdict{kind: "grant-50000", details: "healthy"}, nil, rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true})
+	if cr.ok || !strings.Contains(cr.reason, "no specification") {
+		t.Fatalf("M-1 probe: nil spec = %+v, want refusal with the no-specification marker", cr)
+	}
+}
+
+// TestE1_EvidencePresenceMirror is the R32 M-2 probe: both directions of
+// the evidence-presence face. Mutation probes: delete either new face in
+// verify() and the matching case passes silently (red).
+func TestE1_EvidencePresenceMirror(t *testing.T) {
+	spec := loadE3Fixture(t)
+
+	// ① no report + a grant → refused (the evasive-S1 grant form)
+	rawNoReport := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: false}
+	if cr := verify(s1Verdict{kind: "grant-50000", details: "grant without a report"}, spec, rawNoReport); cr.ok {
+		t.Fatal("M-2 probe: a grant verdict passed with the asset report absent — the evasive-S1 grant form is not intercepted")
+	}
+	// ② report present + on_missing_evidence → refused (the evasion mirror)
+	rawPresent := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true}
+	if cr := verify(s1Verdict{kind: "on_missing_evidence", details: "claiming a gap that does not exist"}, spec, rawPresent); cr.ok {
+		t.Fatal("M-2 probe: on_missing_evidence passed with the report present — the evasion mirror is not intercepted")
+	}
+	// positive control: an on_missing_evidence verdict with the report
+	// genuinely ABSENT passes (the honest gap form)
+	rawHonestGap := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: false}
+	if cr := verify(s1Verdict{kind: "on_missing_evidence", details: "the report could not be retrieved"}, spec, rawHonestGap); !cr.ok {
+		t.Fatalf("M-2 probe: an HONEST missing-evidence verdict was refused (%s) — the new faces over-block", cr.reason)
+	}
+}
+
+// TestE1_BandBoundsAnchored is the R32 M-3 anchor: the between-bands face's
+// bounds must be DERIVED from the fixture's rule texts. Mutation probe:
+// change the fixture's rule-1 "above 30" to "above 50" and this goes red —
+// the seat can no longer silently over-block grants the spec allows.
+func TestE1_BandBoundsAnchored(t *testing.T) {
+	spec := loadE3Fixture(t)
+	lo, hi := anchorBandBounds(spec)
+	if lo != 1 || hi != 30 {
+		t.Fatalf("M-3 anchor: band bounds = (%v, %v), want (1, 30) from the fixture's rule texts — the fixture and the seat have drifted", lo, hi)
+	}
+	// behavioral face: the anchor actually drives the band face — a grant
+	// verdict at assets=31 (now OUTSIDE the fixture's open set) must pass
+	// the band face (it did not before the derive: the hardcoded 30 would
+	// have blocked it)
+	raw := rawEvidence{assetMillionsDeclared: 31, assetReportPresent: true}
+	cr := verify(s1Verdict{kind: "grant-50000", details: "healthy upper-band grant"}, spec, raw)
+	if !cr.ok {
+		t.Fatalf("M-3 anchor: a grant at assets=31 was refused (%s) — the band face is not anchored to the fixture's 30", cr.reason)
 	}
 }
