@@ -1,12 +1,13 @@
-import sys,os,json,hashlib,pathlib,subprocess,shutil,unittest
-sys.path.insert(0,'/opt/nga');import panel_score as S
-B=pathlib.Path('/mnt/cephfs/xingchao/experiments/jev/r3_runs/unified_score_20261105_v4'); T=B/'tests'; T.mkdir(exist_ok=True)
+import sys,os,json,hashlib,pathlib,subprocess,tempfile,unittest
+sys.path.insert(0,str(pathlib.Path(__file__).resolve().parent));import panel_score as S
+B=pathlib.Path('/mnt/cephfs/xingchao/experiments/jev/r3_runs/unified_score_20261105_v4')
 def sha(p):return hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
 def put(p,v):pathlib.Path(p).write_text(json.dumps(v,sort_keys=True)+'\n')
 def lines(p):return [json.loads(x) for x in open(p)]
+@unittest.skipUnless(pathlib.Path('/opt/nga/entrypoint.sh').is_file() and (B/'manifest.json').is_file(), 'requires installed image entrypoint and retained read-only fixture inputs')
 class RuntimeTests(unittest.TestCase):
  def setUp(self):
-  self.d=T/self._testMethodName;shutil.rmtree(self.d,ignore_errors=True);self.d.mkdir(); (self.d/'input').mkdir(); original=json.load(open(B/'manifest.json'));op=original['population'];items=lines(op['items']['path'])[:3];reqs=lines(op['requests']['path'])[:3];g=lines(op['gold']['path'])[:3]
+  tmp=tempfile.TemporaryDirectory(prefix='nga-panel-score-test-');self.addCleanup(tmp.cleanup);self.d=pathlib.Path(tmp.name); (self.d/'input').mkdir(); original=json.load(open(B/'manifest.json'));op=original['population'];items=lines(op['items']['path'])[:3];reqs=lines(op['requests']['path'])[:3];g=lines(op['gold']['path'])[:3]
   contract=S.P.make_contract(items,source_sha256=op['source']['sha256'],model_sha256=original['model_sha256'],runtime_protocol_sha256=op['protocol_binding_sha256']);pin=S.P.sha256_value(contract);pop=dict(op,count=3,kinds=dict(__import__('collections').Counter(x['kind'] for x in items)),contract_sha256=pin,ordered_inputs_sha256=S.N.digest(reqs))
   for name,value in [('items',items),('requests',reqs),('gold',g)]:
    p=self.d/'input'/(name+'.jsonl');p.write_text(''.join(json.dumps(x)+'\n' for x in value));pop[name]={'path':str(p),'sha256':sha(p)}
