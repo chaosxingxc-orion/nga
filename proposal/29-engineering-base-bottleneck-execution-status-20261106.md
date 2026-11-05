@@ -13,7 +13,7 @@
 | 流式 SHA-256 | 候选改动通过限定测试 | 1 MiB 读取保持 hash 一致；128 MiB 本地微测 RSS 约 146 MiB→20 MiB；无端到端提速结论 |
 | 安装诊断资格 | 未通过 | full3 controller exit 1，child exit 137 为失败后的清理终止；首错 `ValueError: parity mismatch`；评分子进程 exit 0，失败归档保留 |
 | full4 | 仅改配置执行成功 | 预期摘要 hash 被改为 full3 实际 hash `299447…`，不构成冻结 parity 修复或 finalization recovery 证据 |
-| Terra 候选 | v15 被 Astra 拒绝；v18 当前 focused integration 3/3 通过 | v15 14/14 仅 CPU/模拟；Astra 发现结果 hash 抄写错误、finalization 自调用假测试、输入 lineage 缺失、源码信任可被调用者重绑、OOM 等状态未完整绑定。v16 6/6 将兼容协议接入控制器候选，默认仍冻结 parity；v18 已修复中间复跑发现的 schema/metadata 接口差异，当前仍未重建镜像、未改生产源码。|
+| Terra 候选 | v15 被 Astra 拒绝；v18 focused integration 3/3 通过，但 Astra 独立审查 NO-GO | Astra 复现 policy self-pin 不一致、悬空 `INCOMPLETE.json` 被忽略、summary/receipt pins 未独立核验、外部 trust root 占位；v18 仍未安装、未重建镜像、未改生产源码。|
 | Sol 配对效率测量 | 候选拒绝 | 24 个 CPU fixture 试验保持共同 prediction/receipt digest；读 ahead/并行候选在全部 worker 数下均未快于参考 |
 | CPU 配置化启动器 | 有界 smoke 通过 | 本地主机 Docker smoke 的两个保留容器均 exit 0，输出位于本地工作区（非175/Ceph输出资格）；确认 pinned image、9009:9009、只读输入、可写输出、network=none、资源上限、持久日志和 EXIT.json。仅为启动器操作证据，不是语义、性能或 NPU 资格 |
 | NPU/真实设备 | 尚未资格化 | 没有设备映射、每芯片吞吐、内存和恢复证据；不据此判断主机空闲 |
@@ -43,7 +43,8 @@
 
 - v15 admission 候选不能接受：Astra 的独立反例证明输入树、可信源码身份和完整 child 生命周期状态仍未锁定。v17 最终为 17 项测试（16 通过、1 项 finalization 恢复跳过）；Astra 给出限定候选 GO，但要求修复悬空 sentinel、生成器自检、直接摘要/收据校验，并冻结源码后复验。安装资格未通过。
 - v16 controller 候选已把兼容协议接入控制器，但生产镜像仍包含旧控制器，且生产 admission 尚不识别 `COMPATIBILITY.json`；必须配套镜像构建、准入器变更和独立审查。
-- v18 已补 controller main 路径的模拟 Docker 故障测试；当前证明的是故障拒绝和证据保留，不是安装后的成功断点续跑。原 v15 直接 mock rename 的证据仍不算恢复。
+- v18 已补 controller main 路径的模拟 Docker 故障测试；当前证明的是故障拒绝和证据保留，不是安装后的成功断点续跑。原 v15 直接 mock rename 的证据仍不算恢复。Astra v2 另外确认 self-pin、dangling sentinel、独立摘要/收据校验和外部 trust root 均未达标。
+- CPU launcher 的本地主机 smoke 不能证明175/Ceph输出；Astra 发现 launcher 未限制 durable output root。
 
 ## 优化顺序
 
@@ -112,6 +113,10 @@ Sol v4 在本地主机、固定 1,024 条保存记录上完成分项计时。每
 4. **有限安装资格**：重建候选镜像并执行 CPU 安装资格；核对 UID/GID、输入只读、输出写入、日志、EXIT、重试路径和容器资源。完成条件是资格证据完整且经独立 Astra 审查。
 5. **真实设备资格**：只在前四步通过后执行有界 G4，记录真实设备映射、每芯片吞吐、保留内存、checkpoint/item 恢复；不把历史容器状态或 CPU smoke 当作 NPU 证据。
 6. **迁移**：G4 和发布审查通过后，才按 checkpoint/item 边界停止旧实验、替换工程基座并恢复研究队列；迁移前不修改旧实验的镜像、配置和输出。
+
+## Astra v2 独立复核结论
+
+`.local/reviews/engineering-v18-launcher-astra-review-20261106-v2/` 给出 `NO_GO_CANDIDATE_ONLY_ENGINEERING_HOLD`。v18 focused 3/3、launcher 9/9 和源码 pins 均通过，但不覆盖真实准入资格。Astra 的 V18-01/V18-04 为阻塞项，V18-02/V18-03 为高风险项，LCH-01 为启动器高风险项；安装、性能、NPU 和研究派发均未运行。
 
 ## 本轮核验更正与当前接续
 
