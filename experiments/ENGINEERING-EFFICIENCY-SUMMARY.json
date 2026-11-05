@@ -1,0 +1,225 @@
+{
+  "accepted_capabilities": {
+    "dag": "PASS_SCOPED",
+    "dag_production": "NOT_REVIEWED",
+    "dag_tests": {
+      "native": 27,
+      "passed": true,
+      "planner": 19,
+      "total": 46
+    },
+    "integration_v5": "ACCEPT_SCOPED_CPU_SCORE_AND_COMPONENT_INTEGRATION_BLOCK_NPU",
+    "managed_actions": 0,
+    "npu_ready_subset": [],
+    "score_v4": "ACCEPT_SCOPED_CPU_WHOLE_PANEL_SCORE"
+  },
+  "audit_scope": "eleven selected roots; not whole-host utilization or token accounting",
+  "audit_sha256": "98b5c522601527fbb686f73d4130df3170b4af504030f4b9b2a0dfc8aba4ffd6",
+  "code_duplication": {
+    "copied_bytes": 1563013,
+    "duplicate_bytes": 1351961,
+    "duplicate_instances": 113,
+    "files": 133,
+    "limitation": "Exact source copies across eleven roots; copy/review CPU cost not instrumented; copies may be intentional frozen provenance.",
+    "unique_byte_identities": 20
+  },
+  "collection_finished_utc": "2026-11-05T09:58:37.225003+00:00",
+  "engineering_action_priorities": [
+    {
+      "confidence": "high for durations/scope; avoidable fraction unknown",
+      "issue": "Fragmented delivery and serialized component review",
+      "measured_elapsed_seconds": 8658.293171167374,
+      "measured_worker_seconds": 6835.323354959488,
+      "outcome": "No integrated NPU-ready subset in reviewed v5/v6",
+      "rank": 1
+    },
+    {
+      "confidence": "high for same-boot gaps; not all gap is proven sleep",
+      "issue": "600s Kev CPU watcher fallback",
+      "measured_cpu_start_gap_sum_seconds": 1912.9200000000003,
+      "rank": 2
+    },
+    {
+      "confidence": "high for source path/logical bytes; missing measured hash seconds and physical I/O",
+      "issue": "Repeated model weight hashing across lifecycle/CPU boundaries",
+      "rank": 3
+    },
+    {
+      "confidence": "high for bytes and CPU microbenchmark; no production/Ceph speedup established",
+      "issue": "Full-vector JSON in unified v5 inference fixtures",
+      "rank": 4
+    },
+    {
+      "confidence": "high for observed reports; uncontrolled host/cache differences",
+      "issue": "CPU whole-panel replay variability and full recomputation recovery",
+      "rank": 5
+    },
+    {
+      "confidence": "high for 65 explicit edges; queue intent is not execution readiness",
+      "issue": "Dependency polling delay",
+      "rank": 6
+    }
+  ],
+  "full_vector_cost": {
+    "benchmark_scope": "One stdlib encode/decode per retained fixture in this CPU process; warm local filesystem. No Ceph I/O timing or NPU measured.",
+    "evidence": "Kev cells persist compact candidates; numeric runs persist NPZ. Retained unified v5 CPU fixtures persist full-vocabulary JSON.",
+    "float32_bytes_per_vector": 993280,
+    "theoretical_46320_vectors_binary_bytes": 46008729600,
+    "vocabulary": 248320,
+    "warning": "Projected population storage is not observed JSON I/O; fixture timings are not controlled production speedups."
+  },
+  "implementation_status": "engineering hold; no full-base release",
+  "observed_as_of": "2026-11-05T09:58:35.962706+00:00",
+  "occupancy": {
+    "ai_core_utilization": null,
+    "chips": 8,
+    "limits": [
+      "Selected exact roots only: other jobs may occupy every uncovered interval.",
+      "Container existence and ledger reservations are not AI Core utilization.",
+      "Release receipt contains retained physical container times; no fresh docker/NPU query.",
+      "UTC intervals are descriptive; known cross-host skew about 94.5 seconds. Same-host ordering preferred.",
+      "An eight-card-free ledger snapshot cannot establish a free interval.",
+      "No claim that unobserved time is idle; lease union and container union are separate."
+    ],
+    "selected_container_chip_seconds": 3519.7690098285675,
+    "selected_container_fraction": 0.03961663324841141,
+    "selected_lease_chip_seconds": 3597.2127525806427,
+    "whole_host_actual_occupancy_fraction_bounds": [
+      0.03961663324841141,
+      1
+    ],
+    "window_capacity_chip_seconds": 88845.73779296875
+  },
+  "priority_limit": "Engineering judgment, not measured avoidable-time dominance",
+  "prospective_engineering_targets": {
+    "activation_now": false,
+    "binary_vector_bytes_max": 1013280,
+    "checkpoint_resume_extra_committed_items_max": 100,
+    "cpu_fault_cycles_min": 20,
+    "duplicate_launches_allowed": 0,
+    "exit_to_release_p95_seconds": 10,
+    "full_panel_score_regression_max_fraction": 0.1,
+    "full_panel_score_warm_target_seconds": 150,
+    "note": "Recommendations for a future reviewed release; no current passing claim or NPU qualification granted",
+    "paired_serialization_bytes_reduction_min_fraction": 0.75,
+    "paired_serialization_cpu_reduction_min_fraction": 0.75,
+    "ready_to_dispatch_p95_seconds": 10,
+    "release_to_cpu_start_max_seconds": 15,
+    "release_to_cpu_start_p95_seconds": 5,
+    "scientific_metrics_changed": false,
+    "source_capture_bypasses_allowed": 0,
+    "synchronized_phase_timing_coverage_min_fraction": 0.99,
+    "synthetic_roundtrip_mismatches": 0,
+    "warm_admission_p95_seconds": 5,
+    "weight_full_hashes_per_immutable_generation_max": 1
+  },
+  "schema": "nga-engineering-efficiency-public-summary-v1",
+  "timing_limits": [
+    "Stage model_ready-to-complete includes forwards, CPU validation, serialization, Ceph fsync and Python scheduling.",
+    "Heartbeat inverse-rate duration is whole execute loop, including I/O and CPU; never isolated NPU compute.",
+    "Dependency waits use only explicit DEPENDENCY/SCHEDULER edges; scheduling intent is not a ready timestamp.",
+    "All thresholds in companion release plan are prospective engineering targets, not scientific metrics."
+  ],
+  "weight_hash_audit": {
+    "elapsed_seconds": null,
+    "inspected_boundaries": [
+      "Kev runtime verify model inventory",
+      "Kev generic CPU verify(cpu=True), default model_files=True",
+      "Kev consumer CPU verify(cpu=True), default model_files=True",
+      "numeric verify d.files includes model_files then full model inventory",
+      "host main start + main supervise + supervise verify; numeric approval rehashes d.files"
+    ],
+    "interpretation": "Logical hash bytes from successful required verifier paths; page cache may serve reads. Extra preflight/review calls unknown. Nominal totals require start/main/supervise call-path composition; not measured I/O counters.",
+    "kev_one_pass_weight_bytes": 69842606032,
+    "minimum_completed_runtime_and_two_kev_cpu_routes_logical_weight_bytes": 260730768032,
+    "numeric_manifest_and_inventory_passes_per_verify": 2,
+    "numeric_one_pass_weight_bytes": 25601474968,
+    "physical_ceph_bytes": null,
+    "source_path_nominal_total_passes": {
+      "instruct_numeric": 11,
+      "kev": 6
+    },
+    "source_path_nominal_weight_bytes": 700671860840
+  },
+  "worker_summary": {
+    "categories": {
+      "engineering_base_lifecycle": {
+        "durations": {
+          "maximum": 908.8759000301361,
+          "median": 313.55407190322876,
+          "minimum": 152.84815502166748,
+          "n": 19,
+          "p95": 908.8759000301361,
+          "sum": 7676.529601573944
+        },
+        "exit_zero": 19,
+        "explicit_limit_or_incomplete": 14,
+        "tasks": 20,
+        "union_seconds": 7189.935961723328
+      },
+      "experiment_preparation_integration": {
+        "durations": {
+          "maximum": 894.6593189239502,
+          "median": 316.7178919315338,
+          "minimum": 52.59046792984009,
+          "n": 61,
+          "p95": 687.5231580734253,
+          "sum": 21629.81642127037
+        },
+        "exit_zero": 59,
+        "explicit_limit_or_incomplete": 29,
+        "tasks": 63,
+        "union_seconds": 16567.72110104561
+      },
+      "orchestration_observability": {
+        "durations": {
+          "maximum": 837.7641739845276,
+          "median": 339.0045368671417,
+          "minimum": 72.64206099510193,
+          "n": 13,
+          "p95": 837.7641739845276,
+          "sum": 4343.192142724991
+        },
+        "exit_zero": 13,
+        "explicit_limit_or_incomplete": 6,
+        "tasks": 13,
+        "union_seconds": 4202.682733774185
+      },
+      "review_or_analysis": {
+        "durations": {
+          "maximum": 2159.3404228687286,
+          "median": 596.4584574699402,
+          "minimum": 188.55760788917542,
+          "n": 68,
+          "p95": 1243.1168038845062,
+          "sum": 44304.99124312401
+        },
+        "exit_zero": 65,
+        "explicit_limit_or_incomplete": 31,
+        "tasks": 78,
+        "union_seconds": 24669.64452314377
+      }
+    },
+    "classification": "lexical triage; no independent delivery acceptance inferred",
+    "elapsed_span_seconds": 29255.373355150223,
+    "exit_nonzero": 5,
+    "exit_zero": 156,
+    "queue_wait_seconds": {
+      "maximum": 108.64163780212402,
+      "median": 16.47788691520691,
+      "minimum": 0.6533780097961426,
+      "n": 65,
+      "p95": 36.464032888412476,
+      "sum": 1227.1395072937012
+    },
+    "started": 164,
+    "summed_worker_seconds": 77954.52940869331,
+    "terminal": 161,
+    "token_distribution": {
+      "available": false,
+      "reason": "CHILD/EXIT/FINAL contain no actual usage; raw token events deliberately excluded"
+    },
+    "union_worker_seconds": 28806.175979614258,
+    "zero_exit_with_explicit_limit": 80
+  }
+}
