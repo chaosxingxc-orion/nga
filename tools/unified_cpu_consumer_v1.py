@@ -160,12 +160,15 @@ class Docker:
     def call(self, *args):
         return subprocess.run(['docker',*args], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True).stdout
     def inspect(self, name):
+        need(type(name) is str and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', name), 'invalid container name')
         p = subprocess.run(['docker','inspect',name], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if p.returncode:
-            # Only an explicit not-found response permits create.
-            if 'No such object' in p.stderr or 'No such container' in p.stderr: return None
+            # Match one complete known diagnostic for this name, with no other output.
+            missing = (f'error: no such object: {name}', f'Error: No such object: {name}',
+                       f'Error response from daemon: No such container: {name}')
+            if p.stdout in ('', '[]', '[]\n', '[]\r\n') and any(p.stderr in (s, s+'\n', s+'\r\n') for s in missing): return None
             raise RuntimeError('docker inspect failed: '+p.stderr.strip())
-        v=json.loads(p.stdout); need(type(v) is list and len(v)==1, 'inspect result'); return v[0]
+        v=json.loads(p.stdout); need(type(v) is list and len(v)==1 and type(v[0]) is dict, 'inspect result'); return v[0]
     def create(self, c, mounts, name, launch): return self.call(*args(c,mounts,name,launch)).strip()
     def image_env(self, image):
         v=json.loads(self.call('image','inspect',image))

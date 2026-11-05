@@ -32,6 +32,48 @@ class FakeDocker:
         self.objects[name]['State']={'Status':'exited','Running':False,'ExitCode':0}; return 0
 
 
+class DockerInspectTest(unittest.TestCase):
+    def test_exact_missing_diagnostics(self):
+        import subprocess
+        name='nga-cpu-123'
+        for message in (f'error: no such object: {name}', f'Error: No such object: {name}',
+                        f'Error response from daemon: No such container: {name}'):
+            for stdout in ('', '[]\n'):
+                with self.subTest(message=message, stdout=stdout), mock.patch.object(M.subprocess,'run',return_value=subprocess.CompletedProcess([],1,stdout,message+'\n')) as run:
+                    self.assertIsNone(M.Docker().inspect(name))
+                    self.assertEqual(run.call_args.args[0],['docker','inspect',name])
+
+    def test_ambiguous_failures_raise(self):
+        import subprocess
+        name='nga-cpu-123'; missing=f'error: no such object: {name}'
+        cases=[('', 'error: no such object: other'), ('', missing+'4'),
+               ('', missing+'\npermission denied'), ('', 'transport failed\n'+missing),
+               ('', 'permission denied'), ('', 'Cannot connect to the Docker daemon'),
+               ('', 'No such object'), ('', 'ERROR: NO SUCH OBJECT: '+name),
+               ('', ' '+missing), ('', missing+'\n\n'), ('unexpected', missing),
+               ('[]\nwarning', missing)]
+        for stdout,stderr in cases:
+            with self.subTest(stdout=stdout,stderr=stderr), mock.patch.object(M.subprocess,'run',return_value=subprocess.CompletedProcess([],1,stdout,stderr)):
+                with self.assertRaises(RuntimeError): M.Docker().inspect(name)
+
+    def test_success_and_invalid_names(self):
+        import subprocess
+        with mock.patch.object(M.subprocess,'run',return_value=subprocess.CompletedProcess([],0,'[{"Id":"x"}]','')):
+            self.assertEqual(M.Docker().inspect('valid-name'),{'Id':'x'})
+        with mock.patch.object(M.subprocess,'run',return_value=subprocess.CompletedProcess([],0,'[]','error: no such object: valid-name')):
+            with self.assertRaises(ValueError): M.Docker().inspect('valid-name')
+        with mock.patch.object(M.subprocess,'run') as run:
+            for name in ('--help', '', 'bad/name', 'bad\nname', None):
+                with self.subTest(name=name), self.assertRaises(ValueError): M.Docker().inspect(name)
+            run.assert_not_called()
+
+    def test_success_nonobject_elements_rejected(self):
+        import subprocess
+        for element in (None, False, 0, 'x', []):
+            with self.subTest(element=element), mock.patch.object(M.subprocess,'run',return_value=subprocess.CompletedProcess([],0,json.dumps([element]),'')):
+                with self.assertRaisesRegex(ValueError,'inspect result'): M.Docker().inspect('valid-name')
+
+
 class ConsumerTest(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup); self.root=Path(self.tmp.name); self.d=FakeDocker()
@@ -93,6 +135,29 @@ class ConsumerTest(unittest.TestCase):
         def validate(c, result):
             self.assertFalse(list((self.root/'controller'/'slots').glob('*.json')))
         self.assertEqual(M.Consumer(self.d,validate).run(other)['exit_code'],0)
+    def test_ambiguous_inspect_retains_slot(self):
+        import subprocess
+        self.d.inspect=M.Docker().inspect
+        failure=subprocess.CompletedProcess([],1,'', 'error: no such object: wrong-name\n')
+        with mock.patch.object(M.subprocess,'run',return_value=failure):
+            with self.assertRaisesRegex(RuntimeError,'docker inspect failed'): M.Consumer(self.d).run(self.c)
+        self.assertEqual(self.d.creates,0)
+        self.assertEqual(len(list((self.root/'controller'/'slots').glob('*.json'))),1)
+        for filename in ('BINDING.json','TERMINAL.json','ACK.json','EXPORT.json'):
+            self.assertFalse(list((self.root/'controller').rglob(filename)))
+    def test_null_inspect_retains_reservation_without_create_or_start(self):
+        import subprocess
+        self.d.inspect=M.Docker().inspect
+        response=subprocess.CompletedProcess([],0,'[null]','')
+        with mock.patch.object(M.subprocess,'run',return_value=response), mock.patch.object(self.d,'create') as create, mock.patch.object(self.d,'start') as start:
+            with self.assertRaisesRegex(ValueError,'inspect result'): M.Consumer(self.d).run(self.c)
+        create.assert_not_called(); start.assert_not_called()
+        ctl=self.root/'controller'
+        self.assertEqual(len(list((ctl/'slots').glob('*.json'))),1)
+        for filename in ('OWNER.json','PENDING.json'):
+            self.assertEqual(len(list(ctl.rglob(filename))),1)
+        for filename in ('BINDING.json','TERMINAL.json','ACK.json','EXPORT.json'):
+            self.assertFalse(list(ctl.rglob(filename)))
     def test_historical_release_and_mismatch(self):
         # The consumer reads only the release snapshot, not a current NPU allocation.
         M.Consumer(self.d).run(self.c)
