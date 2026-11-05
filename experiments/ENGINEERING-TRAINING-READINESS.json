@@ -1,0 +1,98 @@
+{
+  "schema": "engineering-training-readiness-sol-v1",
+  "created_utc": "2026-11-05T10:43:41.935851+00:00",
+  "verdict": "HOLD_NEW_EXPERIMENTS_TRAINING_BASE_NOT_QUALIFIED",
+  "current_component": {
+    "actual_training_qualified": false,
+    "adapter": "k1-full-train-v1",
+    "cpu_fixture": "2-step linear AdamW/OneCycleLR, not LoRA",
+    "epochs": 2,
+    "pairs": 186,
+    "schema_sizes": [
+      "0.8B"
+    ],
+    "source_manifest_members_verified": 28,
+    "source_manifest_mismatches": [],
+    "steps": 3116,
+    "training_component_in_source_manifest": false
+  },
+  "numerics": {
+    "family_gradient_tolerance": null,
+    "historical_base_restart": "3000 to 3020; split after 10; 3 uninterrupted replicas; loss and weight distances only",
+    "historical_loss_bar": 2.4111758708953854e-07,
+    "historical_weight_relative_l2_bar": 1e-07,
+    "new_image_full_gradient_noise_floor": null,
+    "new_image_loss_noise_floor": null,
+    "new_image_resume_equivalence": "NOT_MEASURED"
+  },
+  "prior_scientific_result": {
+    "full_goal_complete": false,
+    "path": "experiments/FINAL-SAME-TEST-RESULTS-2026-11-05.json",
+    "scientific_acceptance": true,
+    "unchanged": true,
+    "verdict": "PASS_SCOPED_SAME_TEST_REPORT"
+  },
+  "blockers": [
+    "2B/4B/9B absent from registered training schema",
+    "training component absent from source manifest despite Docker COPY and adapter wiring",
+    "host rejects image-local manifest paths and writable checkpoint path",
+    "no bounded real training qualification dispatch; full wrapper always 3116 steps",
+    "legacy checkpoints lack wrapper identity; owner/output/component/source identity prevents migration",
+    "RNG/cursor reconstruction unqualified for exact new image; NPU seeding exceptions swallowed",
+    "no full-gradient comparison or new-image measured bf16 floor",
+    "completed-checkpoint/export recovery and canonical training progress/terminal integration missing"
+  ],
+  "next_implementation": "Versioned family recipe registry + typed bounded qualification adapter + checkpoint lineage/migration + host path classes; no changes to frozen trainer math or TEST roster",
+  "family": [
+    {
+      "size": "0.8B",
+      "seed": 2,
+      "lora_pairs": 186,
+      "trainable_parameters": 10822656,
+      "final_step": 3116
+    },
+    {
+      "size": "2B",
+      "seed": 2,
+      "lora_pairs": 186,
+      "trainable_parameters": 16819200,
+      "final_step": 3116
+    },
+    {
+      "size": "2B",
+      "seed": 3,
+      "lora_pairs": 186,
+      "trainable_parameters": 16819200,
+      "final_step": 3116
+    },
+    {
+      "size": "4B",
+      "seed": 2,
+      "lora_pairs": 248,
+      "trainable_parameters": 32464896,
+      "final_step": 3116
+    },
+    {
+      "size": "4B",
+      "seed": 3,
+      "lora_pairs": 248,
+      "trainable_parameters": 32464896,
+      "final_step": 3116
+    },
+    {
+      "size": "9B",
+      "seed": 2,
+      "lora_pairs": 248,
+      "trainable_parameters": 43278336,
+      "final_step": 3116
+    },
+    {
+      "size": "9B",
+      "seed": 3,
+      "lora_pairs": 248,
+      "trainable_parameters": 43278336,
+      "final_step": 3116
+    }
+  ],
+  "scope": "Retained metadata/source audit; no new training or NPU qualification; model payload hashes inherited."
+}
