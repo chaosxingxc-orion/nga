@@ -26,7 +26,7 @@
 
 ## 复核后的当前阻塞
 
-- v15 admission 候选不能接受：Astra 的独立反例证明输入树、可信源码身份和完整 child 生命周期状态仍未锁定。v17 正在隔离目录修复这些问题；安装证据仍未运行。
+- v15 admission 候选不能接受：Astra 的独立反例证明输入树、可信源码身份和完整 child 生命周期状态仍未锁定。v17 已提供隔离候选及 16 项测试（15 通过、1 项 finalization 恢复明确跳过），正在独立复核；安装证据仍未运行。
 - v16 controller 候选已把兼容协议接入控制器，但生产镜像仍包含旧控制器，且生产 admission 尚不识别 `COMPATIBILITY.json`；必须配套镜像构建、准入器变更和独立审查。
 - “finalization interruption” 目前只有 mock primitive 证据，不能算控制器恢复。
 
@@ -65,3 +65,11 @@ G1 测量、G2 正确性、G3 故障恢复通过并经 Astra 复核后执行有�
 ## 2026-11-06 核验更正
 
 上一版将最终配对测量误写为 4,096 条；终态、sample-before/after 和 24 个 trial 的权威样本数均为 1,024。百分比读数不变。Terra v15 的 14 项 CPU 测试通过不等于故障恢复成立：finalization 用例只直接调用模拟的 rename，没有驱动控制器恢复；该项不得标为恢复 PASS。v15 的 controller diff 为空，兼容协议尚未接入控制器，交由 v16 集成并专项审查。所有这些工作都不构成安装资格或研究放行。
+
+## 当前路径分项测量与下一项优化
+
+Sol v4 在本地主机、固定 1,024 条保存记录上完成分项计时。每条 record/commit 各读一次，共 2,048 次逻辑打开、2,048 次读取，1,150,635 字节。单线程插桩 CPU 分项：canonical JSON 序列化 0.4000 秒、native_read_logits 扣除嵌套项后 0.2806 秒、路径检查 0.2595 秒、isfinite 0.2518 秒、float64 转换 0.1914 秒、float32 转换 0.1025 秒。这里是插桩 CPU 归因，不是 175 的生产耗时比例；四线程插桩将 wall 中位数从 1.4822 秒扰动到 2.1088 秒，不能用插桩结果宣称提速。
+
+下一项具体候选是 `z.astype(np.float32, copy=False)`，保留全部有限值检查、float64 算术和决策协议。在独立目录测试 dtype、只读/非连续数组、极值、NaN/Inf、别名和输入不变性，然后在 175 CPU 容器做 6 对 AB/BA 比较。事前目标为配对 wall 比值中位数≤0.98、CPU≤1.0、RSS≤1.05，且所有有序 prediction/receipt 一致；不达标则不采用，不事后调整门槛。
+
+运行中的交付目录：`.local/preparations/engineering-copy-elision-terra-20261106-v1/`；v17 独立审查：`.local/reviews/engineering-admission-v17-astra-review-20261106-v1/`。两项均不得授予整个基座发布资格。
