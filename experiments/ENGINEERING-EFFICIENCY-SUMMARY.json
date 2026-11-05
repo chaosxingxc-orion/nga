@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T14:44:45.854465+00:00",
+    "observed_utc": "2026-11-05T15:02:24.802241+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -637,7 +637,7 @@
       "causal_speedup": false
     },
     "npu_numerical_protocol_v2": {
-      "status": "proposed pending independent review",
+      "status": "ACCEPT_PROTOCOL_AND_CPU_MATH_ONLY; production capture and realNPU pending",
       "parent_pins": 27,
       "parent_pin_mismatches": 0,
       "parent_synthetic_tests": 18,
@@ -679,7 +679,7 @@
       "live_source_delta": "panel_score.py modified by separate telemetry lane; acceptance bound to snapshot"
     },
     "score_observability_v6": {
-      "status": "source delivered independent review active",
+      "status": "CHANGES_REQUIRED",
       "parent_tests": 7,
       "parent_test_seconds": 0.12,
       "producer_selected_loader_tests": 4,
@@ -702,7 +702,51 @@
         "no perchunk CPU span",
         "no full timing overhead estimate",
         "no runtime config route yet"
-      ]
+      ],
+      "independent_cases": {
+        "positive": 9,
+        "rejection": 13,
+        "defect_reproductions": 3,
+        "unique_defects": 2
+      },
+      "parent_review_pins": 363,
+      "parent_pin_mismatches": 0,
+      "remaining": [
+        "D1 rejects unavailable device/PID identity",
+        "D2 unconditional heartbeat/lock cleanup and separate durable diagnostic failure",
+        "fixed runnable diagnostic entry and image assembly"
+      ],
+      "repair": "terra diagnostic route v7 running"
+    },
+    "configured_resource_service_v5": {
+      "status": "scoped feature delivered independent review running",
+      "parent_pins": 27,
+      "parent_pin_mismatches": 0,
+      "parent_tests": 8,
+      "parent_seconds": 10.573,
+      "covers": [
+        "optional configured provider unknown fallback",
+        "whole5s child deadline",
+        "HOLD and service restart",
+        "retainedcontainer reconcile after3failures",
+        "EOF lateACK reconcile without log replay",
+        "owned stale supervisor terminal"
+      ],
+      "missing": [
+        "deployable provider closure independent of.local reviewtree",
+        "enabled actualservice automaticCPU pipeline",
+        "physical175 qualification"
+      ],
+      "physical_docker": false
+    },
+    "score_observer_dependency": {
+      "package": "threadpoolctl",
+      "version": "3.6.0",
+      "wheel_sha256": "43a0b8fd5a2928500110039e43a5eed8480b918967083ea48dc3ab9f13c4a7fb",
+      "local_installed": true,
+      "ceph_wheel": "/mnt/cephfs/xingchao/experiments/jev/engineering_assets/threadpoolctl-3.6.0/threadpoolctl-3.6.0-py3-none-any.whl",
+      "image_installed": false,
+      "prior175effective_pools_still_unknown": true
     }
   }
 }
