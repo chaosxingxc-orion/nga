@@ -1,0 +1,898 @@
+{
+  "schema": "nga-kev-fixed-base-scoped-test-v1",
+  "date": "2026-11-05",
+  "model": "Qwen3.5-0.8B-Base",
+  "protocol": "adapted-label; FP32 HF32off batch1 max8192 no truncation; T=1",
+  "scope": "descriptive fixed-base public TEST; no training gain, native endpoint equivalence or causal consistency claim",
+  "documents": {
+    "metrics": {
+      "n": 936,
+      "correct": 606,
+      "accuracy": 0.6474358974358975,
+      "brier": 0.5523004123476688,
+      "exact_nll": 1.2025893622906914,
+      "infinite_nll_count": 0,
+      "public_probability_clipped_nll": 1.2025893622906914,
+      "ece10": 0.16238988145931485,
+      "mean_confidence": 0.493912333368887,
+      "ties": 0,
+      "missing_invalid": 0
+    },
+    "pairs": {
+      "n_pairs": 395,
+      "changed": 301,
+      "both_correct": 152
+    },
+    "controls": {
+      "constant_first": {
+        "metrics": {
+          "n": 936,
+          "correct": 296,
+          "accuracy": 0.3162393162393162,
+          "brier": 1.3675213675213675,
+          "exact_nll": null,
+          "infinite_nll_count": 640,
+          "public_probability_clipped_nll": 14.169754418424896,
+          "ece10": 0.6837606837606838,
+          "mean_confidence": 1.0
+        },
+        "pairs": {
+          "n_pairs": 395,
+          "changed": 0,
+          "both_correct": 0
+        }
+      },
+      "uniform": {
+        "metrics": {
+          "n": 936,
+          "correct": 296,
+          "accuracy": 0.3162393162393162,
+          "brier": 0.8389304368471036,
+          "exact_nll": 1.8992775862683873,
+          "infinite_nll_count": 0,
+          "public_probability_clipped_nll": 1.8992775862683873,
+          "ece10": 0.15516975308641975,
+          "mean_confidence": 0.1610695631528965
+        },
+        "pairs": {
+          "n_pairs": 395,
+          "changed": 0,
+          "both_correct": 0
+        },
+        "random_draw_expectations": {
+          "accuracy": 0.1610695631528965,
+          "changed": 0.8539943741209565,
+          "both_correct": 0.024307001093920925
+        }
+      },
+      "TEST_majority_oracle_by_schema": {
+        "metrics": {
+          "n": 936,
+          "correct": 302,
+          "accuracy": 0.32264957264957267,
+          "brier": 1.3547008547008548,
+          "exact_nll": null,
+          "infinite_nll_count": 634,
+          "public_probability_clipped_nll": 14.036912970752162,
+          "ece10": 0.6773504273504274,
+          "mean_confidence": 1.0
+        },
+        "pairs": {
+          "n_pairs": 395,
+          "changed": 0,
+          "both_correct": 0
+        }
+      }
+    },
+    "class_support": [
+      {
+        "task": "cfpb_issue_bank_account",
+        "key": "charged_by_another_company",
+        "n": 4,
+        "correct": 1,
+        "accuracy": 0.25
+      },
+      {
+        "task": "cfpb_issue_bank_account",
+        "key": "closing",
+        "n": 8,
+        "correct": 3,
+        "accuracy": 0.375
+      },
+      {
+        "task": "cfpb_issue_bank_account",
+        "key": "low_funds",
+        "n": 4,
+        "correct": 0,
+        "accuracy": 0.0
+      },
+      {
+        "task": "cfpb_issue_bank_account",
+        "key": "managing",
+        "n": 30,
+        "correct": 13,
+        "accuracy": 0.43333333333333335
+      },
+      {
+        "task": "cfpb_issue_bank_account",
+        "key": "opening",
+        "n": 2,
+        "correct": 0,
+        "accuracy": 0.0
+      },
+      {
+        "task": "cfpb_issue_card",
+        "key": "closing_the_account",
+        "n": 5,
+        "correct": 5,
+        "accuracy": 1.0
+      },
+      {
+        "task": "cfpb_issue_card",
+        "key": "fees_or_interest",
+        "n": 2,
+        "correct": 1,
+        "accuracy": 0.5
+      },
+      {
+        "task": "cfpb_issue_card",
+        "key": "getting_a_card",
+        "n": 3,
+        "correct": 1,
+        "accuracy": 0.3333333333333333
+      },
+      {
+        "task": "cfpb_issue_card",
+        "key": "making_payments",
+        "n": 8,
+        "correct": 4,
+        "accuracy": 0.5
+      },
+      {
+        "task": "cfpb_issue_card",
+        "key": "purchase_on_statement",
+        "n": 15,
+        "correct": 13,
+        "accuracy": 0.8666666666666667
+      },
+      {
+        "task": "cfpb_issue_credit_reporting",
+        "key": "fraud_alerts_or_freezes",
+        "n": 0,
+        "correct": 0,
+        "accuracy": null
+      },
+      {
+        "task": "cfpb_issue_credit_reporting",
+        "key": "improper_use",
+        "n": 10,
+        "correct": 0,
+        "accuracy": 0.0
+      },
+      {
+        "task": "cfpb_issue_credit_reporting",
+        "key": "incorrect_information",
+        "n": 27,
+        "correct": 27,
+        "accuracy": 1.0
+      },
+      {
+        "task": "cfpb_issue_credit_reporting",
+        "key": "investigation",
+        "n": 6,
+        "correct": 2,
+        "accuracy": 0.3333333333333333
+      },
+      {
+        "task": "cfpb_issue_credit_reporting",
+        "key": "unable_to_get_report",
+        "n": 0,
+        "correct": 0,
+        "accuracy": null
+      },
+      {
+        "task": "cfpb_issue_debt_collection",
+        "key": "communication_tactics",
+        "n": 2,
+        "correct": 1,
+        "accuracy": 0.5
+      },
+      {
+        "task": "cfpb_issue_debt_collection",
+        "key": "debt_not_owed",
+        "n": 32,
+        "correct": 32,
+        "accuracy": 1.0
+      },
+      {
+        "task": "cfpb_issue_debt_collection",
+        "key": "false_statements",
+        "n": 1,
+        "correct": 0,
+        "accuracy": 0.0
+      },
+      {
+        "task": "cfpb_issue_debt_collection",
+        "key": "negative_or_legal_action",
+        "n": 3,
+        "correct": 0,
+        "accuracy": 0.0
+      },
+      {
+        "task": "cfpb_issue_debt_collection",
+        "key": "written_notification",
+        "n": 7,
+        "correct": 0,
+        "accuracy": 0.0
+      },
+      {
+        "task": "cfpb_issue_money_transfer",
+        "key": "fraud_or_scam",
+        "n": 16,
+        "correct": 16,
+        "accuracy": 1.0
+      },
+      {
+        "task": "cfpb_issue_money_transfer",
+        "key": "mobile_wallet_account",
+        "n": 7,
+        "correct": 0,
+        "accuracy": 0.0
+      },
+      {
+        "task": "cfpb_issue_money_transfer",
+        "key": "money_not_available",
+        "n": 7,
+        "correct": 1,
+        "accuracy": 0.14285714285714285
+      },
+      {
+        "task": "cfpb_issue_money_transfer",
+        "key": "unauthorized_transactions",
+        "n": 9,
+        "correct": 2,
+        "accuracy": 0.2222222222222222
+      },
+      {
+        "task": "cfpb_issue_mortgage",
+        "key": "applying",
+        "n": 5,
+        "correct": 4,
+        "accuracy": 0.8
+      },
+      {
+        "task": "cfpb_issue_mortgage",
+        "key": "closing",
+        "n": 3,
+        "correct": 1,
+        "accuracy": 0.3333333333333333
+      },
+      {
+        "task": "cfpb_issue_mortgage",
+        "key": "payment_process",
+        "n": 30,
+        "correct": 20,
+        "accuracy": 0.6666666666666666
+      },
+      {
+        "task": "cfpb_issue_mortgage",
+        "key": "struggling_to_pay",
+        "n": 12,
+        "correct": 1,
+        "accuracy": 0.08333333333333333
+      },
+      {
+        "task": "cfpb_issue_personal_loan",
+        "key": "getting_the_loan",
+        "n": 7,
+        "correct": 5,
+        "accuracy": 0.7142857142857143
+      },
+      {
+        "task": "cfpb_issue_personal_loan",
+        "key": "making_payments",
+        "n": 6,
+        "correct": 3,
+        "accuracy": 0.5
+      },
+      {
+        "task": "cfpb_issue_personal_loan",
+        "key": "payoff",
+        "n": 7,
+        "correct": 0,
+        "accuracy": 0.0
+      },
+      {
+        "task": "cfpb_issue_personal_loan",
+        "key": "struggling_to_pay",
+        "n": 7,
+        "correct": 7,
+        "accuracy": 1.0
+      },
+      {
+        "task": "cfpb_issue_personal_loan",
+        "key": "unexpected_fees",
+        "n": 8,
+        "correct": 8,
+        "accuracy": 1.0
+      },
+      {
+        "task": "cfpb_issue_student_loan",
+        "key": "getting_a_loan",
+        "n": 0,
+        "correct": 0,
+        "accuracy": null
+      },
+      {
+        "task": "cfpb_issue_student_loan",
+        "key": "lender_or_servicer",
+        "n": 49,
+        "correct": 46,
+        "accuracy": 0.9387755102040817
+      },
+      {
+        "task": "cfpb_issue_student_loan",
+        "key": "struggling_to_repay",
+        "n": 7,
+        "correct": 3,
+        "accuracy": 0.42857142857142855
+      },
+      {
+        "task": "cfpb_issue_vehicle_loan",
+        "key": "end_of_loan",
+        "n": 13,
+        "correct": 0,
+        "accuracy": 0.0
+      },
+      {
+        "task": "cfpb_issue_vehicle_loan",
+        "key": "getting_a_loan",
+        "n": 13,
+        "correct": 3,
+        "accuracy": 0.23076923076923078
+      },
+      {
+        "task": "cfpb_issue_vehicle_loan",
+        "key": "managing",
+        "n": 7,
+        "correct": 1,
+        "accuracy": 0.14285714285714285
+      },
+      {
+        "task": "cfpb_issue_vehicle_loan",
+        "key": "repossession",
+        "n": 5,
+        "correct": 5,
+        "accuracy": 1.0
+      },
+      {
+        "task": "cfpb_issue_vehicle_loan",
+        "key": "struggling_to_pay",
+        "n": 5,
+        "correct": 5,
+        "accuracy": 1.0
+      },
+      {
+        "task": "cfpb_product",
+        "key": "bank_account",
+        "n": 60,
+        "correct": 27,
+        "accuracy": 0.45
+      },
+      {
+        "task": "cfpb_product",
+        "key": "card",
+        "n": 62,
+        "correct": 36,
+        "accuracy": 0.5806451612903226
+      },
+      {
+        "task": "cfpb_product",
+        "key": "credit_reporting",
+        "n": 82,
+        "correct": 72,
+        "accuracy": 0.8780487804878049
+      },
+      {
+        "task": "cfpb_product",
+        "key": "debt_collection",
+        "n": 55,
+        "correct": 42,
+        "accuracy": 0.7636363636363637
+      },
+      {
+        "task": "cfpb_product",
+        "key": "money_transfer",
+        "n": 52,
+        "correct": 36,
+        "accuracy": 0.6923076923076923
+      },
+      {
+        "task": "cfpb_product",
+        "key": "mortgage",
+        "n": 67,
+        "correct": 61,
+        "accuracy": 0.9104477611940298
+      },
+      {
+        "task": "cfpb_product",
+        "key": "personal_loan",
+        "n": 44,
+        "correct": 17,
+        "accuracy": 0.38636363636363635
+      },
+      {
+        "task": "cfpb_product",
+        "key": "student_loan",
+        "n": 60,
+        "correct": 42,
+        "accuracy": 0.7
+      },
+      {
+        "task": "cfpb_product",
+        "key": "vehicle_loan",
+        "n": 62,
+        "correct": 39,
+        "accuracy": 0.6290322580645161
+      }
+    ],
+    "native_reference": {
+      "n": 936,
+      "acc": 0.8514957264957265,
+      "brier": 0.24396285379541005,
+      "ece": 0.07104812104520286,
+      "confident_error_rate": 0.009615384615384616,
+      "coverage_at_5pct_error": 0.6164529914529915
+    },
+    "native_temperature": 2.3510958125672174,
+    "plan_sha256": "17b27999fcfd403ebbf89cc993128f6c0631ea5d3f8cc6f5c43a812d08476492",
+    "review_sha256": "0a0f56a9f304a32214d89a8c31b8a25e3c16615d5f0ae8bc58a09d0f91d4880c",
+    "limits": [
+      "Production summary omits uniform and TEST-majority controls and zero-support classes. Supply the verified additions separately and date them; do not silently rewrite the original or call the supplement fully preregistered.",
+      "Control names and per-schema majority intent were prospective. One-hot probabilities, first-index uniform hard ties and exact schema/tie implementation were not all frozen as control conventions; report these descriptive choices explicitly. TEST-majority is a label-informed oracle, not a fitted deployable candidate.",
+      "NLL is exact logit log-sum-exp for the model. One-hot controls have mathematical +infinity (640 and 634 zero-gold-probability rows); the public probability-only EPSILON=1e-9 convention instead gives 14.169754418424896 and 14.036912970752162 nats. Label both conventions; never mix them silently.",
+      "Uniform hard first-index scoring is 296/936, whereas independent random-draw expected accuracy is 0.1610695631528965. Its expected paired change is 0.8539943741209565 and both-correct is 0.024307001093920925; high change alone is not evidence of understanding.",
+      "All 574 source records and 936 question occurrences are retained by ordinal identity; this documents population has no repeated source IDs, ID/question keys or semantic requests. A no-deduplication policy must not be described as observed duplicate rows in this run.",
+      "Three task-qualified candidate classes have zero gold support: credit-reporting fraud_alerts_or_freezes and unable_to_get_report, and student-loan getting_a_loan. Their accuracy/recall is undefined, not zero. Small/perfect/zero observed strata remain descriptive; n<30 is not a registered scientific threshold.",
+      "The 395 pairs are same-schema different-input/different-label observational pairs with 790 distinct question occurrences, not minimal interventions or equivalence classes. Response change and both-correct are separate descriptive counts, not aggregate consistency. Questions can share a source record; no independent-question significance or confidence interval is established.",
+      "The published native endpoint uses trained LoRA/pointer-head weights, different rendering/readout and shipped T=2.3510958125672174. Its documents-v1 TEST training family is in distribution. Only same-source descriptive context is permitted; no matched paired native vectors were supplied or located by the prior audit, and published docs1_test NLL is absent.",
+      "Only candidate logits are saved. Full-vocabulary finiteness is supported by pinned producer checks and completed receipts, not independently replayable from these saved operands. Rehashing and token reconstruction do not prove historical hardware arithmetic or freedom from pretraining contamination.",
+      "This is one finite public TEST cell, without TEST fitting or selection in this review; it does not establish future generalization, scaling, mechanistic input use, a training effect, or a new quality threshold. Parent publication and acceptance-state handling remain separate."
+    ]
+  },
+  "devtools": {
+    "metrics": {
+      "n": 1073,
+      "correct": 467,
+      "accuracy": 0.43522833178005593,
+      "brier": 0.6760468289650478,
+      "exact_nll": 1.178862903562845,
+      "infinite_nll_count": 0,
+      "public_probability_clipped_nll": 1.178862903562845,
+      "ece10": 0.20051144800402956,
+      "mean_confidence": 0.6357397797840855,
+      "ties": 0,
+      "missing_invalid": 0
+    },
+    "pairs": {
+      "n_pairs": 454,
+      "changed": 12,
+      "both_correct": 1
+    },
+    "controls": {
+      "constant_first": {
+        "metrics": {
+          "n": 1073,
+          "correct": 451,
+          "accuracy": 0.42031686859273065,
+          "brier": 1.1593662628145387,
+          "exact_nll": null,
+          "infinite_nll_count": 622,
+          "public_probability_clipped_nll": 12.012927633346383,
+          "ece10": 0.5796831314072693,
+          "mean_confidence": 1.0
+        },
+        "pairs": {
+          "n_pairs": 454,
+          "changed": 0,
+          "both_correct": 0
+        }
+      },
+      "uniform": {
+        "metrics": {
+          "n": 1073,
+          "correct": 451,
+          "accuracy": 0.42031686859273065,
+          "brier": 0.5945834997559136,
+          "exact_nll": 1.006922119133103,
+          "infinite_nll_count": 0,
+          "public_probability_clipped_nll": 1.006922119133103,
+          "ece10": 0.014900368348644211,
+          "mean_confidence": 0.40541650024408643
+        },
+        "pairs": {
+          "n_pairs": 454,
+          "changed": 0,
+          "both_correct": 0
+        },
+        "random_draw_expectations": {
+          "accuracy": 0.40541650024408643,
+          "changed": 0.5896790434235368,
+          "both_correct": 0.19005476639995206
+        }
+      },
+      "TEST_majority_oracle_by_schema": {
+        "metrics": {
+          "n": 1073,
+          "correct": 500,
+          "accuracy": 0.4659832246039143,
+          "brier": 1.0680335507921714,
+          "exact_nll": null,
+          "infinite_nll_count": 573,
+          "public_probability_clipped_nll": 11.066571597921987,
+          "ece10": 0.5340167753960857,
+          "mean_confidence": 1.0
+        },
+        "pairs": {
+          "n_pairs": 454,
+          "changed": 0,
+          "both_correct": 0
+        }
+      }
+    },
+    "zero_support_classes": [
+      {
+        "task": "aegis_category",
+        "key": "harassment",
+        "n": 0,
+        "correct": 0,
+        "accuracy": null
+      },
+      {
+        "task": "aegis_category",
+        "key": "profanity",
+        "n": 0,
+        "correct": 0,
+        "accuracy": null
+      },
+      {
+        "task": "aegis_category",
+        "key": "sexual_minor",
+        "n": 0,
+        "correct": 0,
+        "accuracy": null
+      },
+      {
+        "task": "aegis_category",
+        "key": "substances",
+        "n": 0,
+        "correct": 0,
+        "accuracy": null
+      },
+      {
+        "task": "aegis_category",
+        "key": "threat",
+        "n": 0,
+        "correct": 0,
+        "accuracy": null
+      },
+      {
+        "task": "aegis_category",
+        "key": "violence",
+        "n": 0,
+        "correct": 0,
+        "accuracy": null
+      },
+      {
+        "task": "aegis_category",
+        "key": "weapons",
+        "n": 0,
+        "correct": 0,
+        "accuracy": null
+      },
+      {
+        "task": "when2call_action",
+        "key": "direct",
+        "n": 0,
+        "correct": 0,
+        "accuracy": null
+      }
+    ],
+    "by_task": {
+      "aegis_category": {
+        "metrics": {
+          "n": 25,
+          "correct": 8,
+          "accuracy": 0.32,
+          "brier": 0.7704683526309307,
+          "exact_nll": 1.9991052865416052,
+          "infinite_nll_count": 0,
+          "public_probability_clipped_nll": 1.9991052865416052,
+          "ece10": 0.12489682268737817,
+          "mean_confidence": 0.3351807036562715
+        },
+        "predictions": {
+          "self_harm": 21,
+          "sexual": 2,
+          "substances": 1,
+          "hate": 1
+        },
+        "gold": {
+          "hate": 7,
+          "pii": 4,
+          "sexual": 4,
+          "criminal_planning": 5,
+          "self_harm": 5
+        },
+        "distinct_vectors": 25,
+        "pairs": 12,
+        "changed": 3,
+        "both_correct": 1
+      },
+      "aegis_unsafe": {
+        "metrics": {
+          "n": 150,
+          "correct": 75,
+          "accuracy": 0.5,
+          "brier": 0.5434663219604773,
+          "exact_nll": 0.739343481655005,
+          "infinite_nll_count": 0,
+          "public_probability_clipped_nll": 0.739343481655005,
+          "ece10": 0.16984500073188769,
+          "mean_confidence": 0.6674394147498481
+        },
+        "predictions": {
+          "false": 150
+        },
+        "gold": {
+          "false": 75,
+          "true": 75
+        },
+        "distinct_vectors": 150,
+        "pairs": 75,
+        "changed": 0,
+        "both_correct": 0
+      },
+      "codereviewer_needs_comment": {
+        "metrics": {
+          "n": 150,
+          "correct": 75,
+          "accuracy": 0.5,
+          "brier": 0.5819679556037264,
+          "exact_nll": 0.7835062172328062,
+          "infinite_nll_count": 0,
+          "public_probability_clipped_nll": 0.7835062172328062,
+          "ece10": 0.19512764461320573,
+          "mean_confidence": 0.6897355474283489
+        },
+        "predictions": {
+          "false": 150
+        },
+        "gold": {
+          "true": 75,
+          "false": 75
+        },
+        "distinct_vectors": 150,
+        "pairs": 75,
+        "changed": 0,
+        "both_correct": 0
+      },
+      "commitpackft_message": {
+        "metrics": {
+          "n": 148,
+          "correct": 74,
+          "accuracy": 0.5,
+          "brier": 0.5357843956774146,
+          "exact_nll": 0.7315345228757965,
+          "infinite_nll_count": 0,
+          "public_probability_clipped_nll": 0.7315345228757965,
+          "ece10": 0.13932536021042582,
+          "mean_confidence": 0.6393253602104259
+        },
+        "predictions": {
+          "false": 148
+        },
+        "gold": {
+          "false": 74,
+          "true": 74
+        },
+        "distinct_vectors": 148,
+        "pairs": 27,
+        "changed": 0,
+        "both_correct": 0
+      },
+      "commitpackft_type": {
+        "metrics": {
+          "n": 150,
+          "correct": 35,
+          "accuracy": 0.23333333333333334,
+          "brier": 0.9099597163695601,
+          "exact_nll": 2.175221947888415,
+          "infinite_nll_count": 0,
+          "public_probability_clipped_nll": 2.175221947888415,
+          "ece10": 0.13510398801063425,
+          "mean_confidence": 0.36843732134396756
+        },
+        "predictions": {
+          "feature": 129,
+          "test": 14,
+          "change": 5,
+          "fix": 1,
+          "remove": 1
+        },
+        "gold": {
+          "docs": 22,
+          "revert": 21,
+          "test": 21,
+          "change": 22,
+          "fix": 21,
+          "feature": 22,
+          "remove": 21
+        },
+        "distinct_vectors": 150,
+        "pairs": 65,
+        "changed": 9,
+        "both_correct": 0
+      },
+      "flakeflagger_flaky": {
+        "metrics": {
+          "n": 150,
+          "correct": 75,
+          "accuracy": 0.5,
+          "brier": 0.5638267735654934,
+          "exact_nll": 0.7617178868657819,
+          "infinite_nll_count": 0,
+          "public_probability_clipped_nll": 0.7617178868657819,
+          "ece10": 0.1752947719009385,
+          "mean_confidence": 0.6699376325853966
+        },
+        "predictions": {
+          "false": 150
+        },
+        "gold": {
+          "true": 75,
+          "false": 75
+        },
+        "distinct_vectors": 150,
+        "pairs": 75,
+        "changed": 0,
+        "both_correct": 0
+      },
+      "prompt_injection": {
+        "metrics": {
+          "n": 150,
+          "correct": 75,
+          "accuracy": 0.5,
+          "brier": 0.5229258447511697,
+          "exact_nll": 0.716415603274507,
+          "infinite_nll_count": 0,
+          "public_probability_clipped_nll": 0.716415603274507,
+          "ece10": 0.19414491037828638,
+          "mean_confidence": 0.669575089181683
+        },
+        "predictions": {
+          "false": 150
+        },
+        "gold": {
+          "true": 75,
+          "false": 75
+        },
+        "distinct_vectors": 150,
+        "pairs": 75,
+        "changed": 0,
+        "both_correct": 0
+      },
+      "when2call_action": {
+        "metrics": {
+          "n": 150,
+          "correct": 50,
+          "accuracy": 0.3333333333333333,
+          "brier": 1.0567897084393436,
+          "exact_nll": 2.2016292229086503,
+          "infinite_nll_count": 0,
+          "public_probability_clipped_nll": 2.2016292229086503,
+          "ece10": 0.4625357467492486,
+          "mean_confidence": 0.7958690800825818
+        },
+        "predictions": {
+          "tool_call": 150
+        },
+        "gold": {
+          "cannot_answer": 50,
+          "request_for_info": 50,
+          "tool_call": 50
+        },
+        "distinct_vectors": 150,
+        "pairs": 50,
+        "changed": 0,
+        "both_correct": 0
+      }
+    },
+    "reference": {
+      "table": "runs/release/kev-08b-r15.json candidate.devtools_test",
+      "metrics": {
+        "n": 1071,
+        "acc": 0.6367880485527544,
+        "brier": 0.44233104950881036,
+        "ece": 0.08469318585511698,
+        "confident_error_rate": 0.0,
+        "coverage_at_5pct_error": 0.2819794584500467
+      },
+      "temperature": 2.3510958125672174,
+      "endpoint_equivalent": false,
+      "population_equivalent": false,
+      "native_test_vectors_available": false,
+      "native_nll_available": false,
+      "optional_mask": {
+        "n": 1071,
+        "correct": 465,
+        "accuracy": 0.4341736694677871,
+        "brier": 0.6769429475527315,
+        "exact_nll": 1.1803627604793345,
+        "infinite_nll_count": 0,
+        "public_probability_clipped_nll": 1.1803627604793345,
+        "ece10": 0.20147072285994005,
+        "mean_confidence": 0.6356443923277271
+      }
+    },
+    "limits": [
+      "Acceptance covers descriptive reporting of this exact finite public fixed-base adapted TEST cell only; no model quality gate, dispatch, production acceptance-state mutation or publication authority.",
+      "All 1073 questions remain primary; native release n1071 removes occurrences682/744. The 465/1071 source-frozen mask is descriptive only and never replaces the454 pairs.",
+      "All454 frozen pairs are observational same-schema changed-input/changed-label pairs with908 distinct question occurrences, not equivalence classes or minimal interventions. Neither prediction change nor aggregate accuracy measures invariance or causal input use.",
+      "The original ID-only pair list cannot uniquely identify duplicate source occurrences. The frozen earliest-unused-source-ordinal rule defines the reviewed protocol; it does not recover unrecorded original intent.",
+      "Control names and per-schema-majority intent appear in prior planning; exact probability/tie/grouping choices and token-length strata are descriptive supplements. Prelaunch wiki commit335b212 is unavailable locally; exact prospective wiki wording is not independently certified.",
+      "TEST-majority is a label-informed oracle with108 schema groups,66 singletons; input-specific commit-message wording makes it unsuitable as a deployable task prior. Uniform hard ties choose first index, unlike randomized sampling.",
+      "One-hot controls have mathematical infinite NLL; public probability-only NLL floors p at1e-9. Keep exact model NLL, mathematical control NLL and clipped diagnostics explicitly named.",
+      "Eight zero-support classes have undefined recall, not zero; n<30 flags are descriptive, not registered admission thresholds. Perfect/zero rates and repeated50% task accuracy were audited, not treated as generalization evidence.",
+      "Native Kev uses trained LoRA/pointer-head weights, key-plus-description rendering, false/no before true/yes, and T=2.3510958125672174. Adapted base uses choice letter logits and Yes/No logits, true then false, chat rendering, T=1. Population masking does not establish endpoint equivalence or training gain.",
+      "Published native devtools_test NLL is absent and exact native TEST vectors at release-spec path are absent; no matched native pair inference or significance claim. This absence check is path-specific, not an exhaustive filesystem search.",
+      "Only candidate vectors are persisted. Full-vocabulary finiteness and historical hardware execution cannot be independently replayed from compact records. Saved requests do not prove historical tensors; receipts and pinned producer checks are supporting evidence.",
+      "Historical service identity/release are receipt-backed; fresh Docker inspection validates retained container identity, not past process execution or current chip availability. Watcher ERR and heartbeat vocabulary flags remain undiagnosed here; no new false-positive claim.",
+      "Benchmark labels are not independently adjudicated; native card cautions on label quality. No pretraining-contamination exclusion, future generalization, scaling, mechanistic explanation, causal training effect, or independent-question uncertainty estimate follows."
+    ],
+    "publication_conditions": [
+      "Carry the complete scope and caveats with any future row.",
+      "Use adapted-label, not letter-logit-only, to include boolean Yes/No tokens.",
+      "Keep full1073 primary and release1071 subset separate, with frozen454 pairs unchanged.",
+      "State both NLL conventions and label supplemental controls/strata descriptive.",
+      "Replace pending Astra wording only in a future authorized publication with this exact scoped verdict."
+    ],
+    "duplicate_occurrences": [
+      {
+        "i": 682,
+        "source_row": 570,
+        "qid": "[570,0,\"codereviewer/cls-test/19245\",\"needs_comment\"]",
+        "source_id": "codereviewer/cls-test/19245",
+        "gold": "false",
+        "predicted": "false",
+        "correct": 1,
+        "pair_indices": [
+          28
+        ],
+        "request_sha256": "c2f19e6b51e3ec2ccfd0864c32f52988f602f5805fcf355be2be21dbb149cf89",
+        "record_sha256": "183ed1cc7cfbbb2218f872e06db6ca0d3c9ece1d0d48bcaf7d4cbb74e4080c5d"
+      },
+      {
+        "i": 744,
+        "source_row": 622,
+        "qid": "[622,0,\"codereviewer/cls-test/19245\",\"needs_comment\"]",
+        "source_id": "codereviewer/cls-test/19245",
+        "gold": "false",
+        "predicted": "false",
+        "correct": 1,
+        "pair_indices": [
+          29
+        ],
+        "request_sha256": "c9538be7b6e91134c5f586e96eecdca398f87987f5de283a6f2b1c3cb40ee8b9",
+        "record_sha256": "b54564d638fb196d68eb008643d35896ad8b624a9fda44633582c2921fc6cc85"
+      }
+    ],
+    "review_sha256": "13d36661d4a5e2bd3e665003533a69860b90f411e9c51a459e8c5422ad79c537",
+    "plan_sha256": "82cc6ef579311b4e607d7ad1dfbe081dd34e949465d56317c339ddccd9fdc1af"
+  },
+  "parent_verification": {
+    "distinct_original_remote_pins": 4166,
+    "original_remote_mismatches": 0,
+    "review_artifact_manifests_verified": true
+  }
+}

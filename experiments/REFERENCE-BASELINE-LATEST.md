@@ -1,6 +1,6 @@
 # Reference baseline — latest results
 
-Restored: **2026-11-01 UTC**; latest additive result update: **2026-11-04 UTC**. This is the current repository entry point for reference test/OOD metrics. It consolidates the frozen matrix and its accepted additive results without changing historical readings. The [GitHub Wiki](https://github.com/chaosxingxc-orion/nga/wiki/Current-Conclusions) maintains the wider four-dimensional conclusions, current engineering status and next steps. Process records remain local and are archived every three days.
+Restored: **2026-11-01 UTC**; latest additive result update: **2026-11-05 UTC**. This is the current repository entry point for reference test/OOD metrics. It consolidates the frozen matrix and its accepted additive results without changing historical readings. The [GitHub Wiki](https://github.com/chaosxingxc-orion/nga/wiki/Current-Conclusions) maintains the wider four-dimensional conclusions, current engineering status and next steps. Process records remain local and are archived every three days.
 
 **Coverage: 36 of the fixed 38 model × dataset units have results; 2 remain blocked with null metrics.** The base matrix has 58 protocol panels over 30 units (Kev 15, Nimble 7, Typed Decisions 6, Open-Jev original test 2). The increment adds four JEVal units and two Open-Jev OOD units. Temperature variants and full/release masks are separate panels, not additional model × dataset units. This is the agreed reference scope, not a complete cross-product of every model and every dataset.
 
@@ -604,3 +604,16 @@ Means are question-weighted within type; no pooled cross-type headline. Source t
 0.8B predicts No on650/659 soft Noul questions and index0 on226/280 soft choice questions. All reconstructed probability vectors are distinct within each type/model; constant-index strata are retained and diagnosed, without assigning a semantic cause. Original74 duplicate full-panel requests remain. No training gain, significance, decision consistency or publisher-native probability endpoint claim follows.
 
 [Exact results, formulas, strata and diagnostics](REFERENCE-SKILLS-SOFT-SUPPLEMENT-2026-11-04.json).
+
+## Qwen3.5-0.8B adapted Kev public TEST (2026-11-05)
+
+Independent scoped scientific review and parent input verification accepted these fixed-base results. [Exact metrics, controls, native context and limitations](KEV-FIXED-BASE-TEST-2026-11-05.json).
+
+| Task / population | Correct / n | Accuracy | Brier | Exact logit NLL | ECE10 | Observational changed / pairs | Both correct / pairs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| documents-v1 full | 606/936 | 64.743590% | 0.552300412 | 1.202589362 | 0.162389881 | 301/395 | 152/395 |
+| devtools-v1 full | 467/1073 | 43.522833% | 0.676046829 | 1.178862904 | 0.200511448 | 12/454 | 1/454 |
+
+All 748 devtools boolean predictions are false. Full1073 preserves duplicate source occurrences682/744; the separately frozen release1071 mask yields465/1071 and does not replace the454pairs. Native Kev reports documents936 at85.149573% and devtools1071 at63.678805%; its trained weights, pointer head, rendering, label order and T=2.3510958125672174 differ. These contextual numbers do not establish endpoint equivalence or a training effect. Native TEST vectors and NLL are unavailable in the reviewed evidence.
+
+Pairs are observational changed-input/changed-label pairs, not invariance tests or minimal causal interventions. Supplemental controls and support strata are descriptive; TEST-majority is a label-informed oracle. One-hot controls have infinite mathematical NLL; probability-only clipped NLL floors p at1e-9 and is reported separately in the artifact. Uniform hard ties use the first index. Zero-support recalls are undefined. Saved candidate logits cannot independently replay original full-vocabulary arithmetic. All mandatory scope limits accompany the machine-readable artifact.
