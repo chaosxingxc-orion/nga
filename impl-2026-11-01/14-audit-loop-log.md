@@ -128,3 +128,11 @@ R1 脏（1 MAJOR 修复+变异自证）→ **R2 净 → R3 净 → R4 净 = 连�
 - 全循环：R1 脏→R2-R5 净→R6 空白抓 2M（连胜重置）→修复→R7-R9 三连→R10 净→R11 脏（2M polarity）→修复→R12（C8 补 guard）→R13 审计净→**R14 空白终审净 = 二次 3 连收卷**。
 - 累计：5 个 MAJOR 被独立/自审混合循环抓获修复、18 条 minor 入账不修（L16-L36）、2 个 singularity 结构候选登记。
 - 增量覆盖：baca2dd..HEAD 全量（含 E0/E3 实验、polarity guard、文档）。
+
+## R12'（R+K 增量审核——脏轮：1 MAJOR → 修复 → 已提交已推）
+
+- 对象：t2host_test.go（T2 宿主层）+ t2host_rk_test.go（8 场景）——239eaba..80b04b7 增量。
+- **1 MAJOR**：adoptAndDispatch 调 T0 的 requestFor（硬编码 br-e2e-credit），store.put 用真实 brID——账本 Identity 与 T2 store 的 brID **不同源**。账本侧 per-brID 聚合（审计面）会错组。
+- 修复：requestForT2（brID 参数化）+ 5 处直接 Adopt 调用全改。L37（O(n) 遍历）+ L38（References 未用）入台账。
+- 全量回归绿（-race 21 包）。已提交已推（c23f344）。
+- 连胜状态：R12' 脏（1M 修复）→ R13' 起算。
