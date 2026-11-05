@@ -223,13 +223,42 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T12:15:59.701800+00:00",
+    "observed_utc": "2026-11-05T12:24:49.820206+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
-    "training_outer": "combined image delivered,review pending; unmodified shell full synthetic success missing",
-    "event_service": "policy/recovery scoped reviewed; exact typed receipt fix and worker liveness heartbeat delivered30tests,independent review pending; supervisor/log follower missing",
-    "matched_cpu_benchmark": "execution and diagnosis in progress; no matched speedup result accepted",
+    "training_outer": "source/host delta scoped accepted; full shell success missing; final gradient trace overwrite requires evidence fix",
+    "event_service": "supervisor delivered seven actual process tests, independent review pending; 5Hz full validation and no retry backoff identified",
+    "matched_cpu_benchmark": {
+      "status": "six_complete_independent_receipt_review_pending",
+      "source": "saved46320records,175,4threads,chunk100,librarythreads1",
+      "total_to_terminal_seconds": [
+        239.73803530004807,
+        108.06507735000923,
+        90.49856488988735,
+        90.79119857004844,
+        90.18221110012382,
+        88.11472220998257
+      ],
+      "order": [
+        "baseline",
+        "candidate",
+        "candidate",
+        "baseline",
+        "baseline",
+        "candidate"
+      ],
+      "pair_median_ratio": 1.0234636033376387,
+      "condition_median_ratio": 1.0032335726043518,
+      "all_reported_summary_hashes_equal": true,
+      "causal_speedup_established": false,
+      "limitations": [
+        "excludes Dockercreate",
+        "unknown cache and concurrency",
+        "first pair anomalous systemCPU/contextswitches",
+        "not fullbase end-to-end"
+      ]
+    },
     "audit_values_preserved": true
   }
 }

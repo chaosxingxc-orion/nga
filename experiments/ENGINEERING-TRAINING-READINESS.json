@@ -96,8 +96,8 @@
   ],
   "scope": "Retained metadata/source audit; no new training or NPU qualification; model payload hashes inherited.",
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T12:15:59.701800+00:00",
-    "status": "component_scoped_accepted_outer_delivered_review_pending",
+    "observed_utc": "2026-11-05T12:24:49.819477+00:00",
+    "status": "component_and_outer_source_delta_scoped_accepted_full_shell_qualification_missing",
     "supersedes": "Implementation status of initial metadata audit only; inherited counts and scientific conclusions unchanged",
     "handoff_sha256": "7d89cd1aeedc62b7008fd3daf1af598f417ef0b96985743ab2d9c40ebd7c13b8",
     "result_sha256": "be5e0e5095c0bfa773f4acda35cc762fec846372dc15d8f0f886b50b2c230e10",
@@ -190,7 +190,25 @@
         "RESULT.json": "aa83492e95d9179730330fd32706fba578311461e8e7b1d73b07ceb7e46ba12a",
         "PINS.json": "309452a2477b79b9e876af58930bcf25857b402b18e5a1622c36d57701479e7e"
       },
-      "prior_host_schema_acceptance_rebound": false
+      "prior_host_schema_acceptance_rebound": false,
+      "independent_review": {
+        "verdict": "REJECT_SCOPED",
+        "accepted": {
+          "source_schema_adapter_assets_delta": true,
+          "host_typed_mount_checkpoint_delta_cpu": true,
+          "component_v4_pins_preserved": true,
+          "partial_adapter_main_synthetic_proof": true,
+          "full_unmodified_shell_entrypoint_success": false
+        },
+        "test_methods": {
+          "passed": 18,
+          "failed": 0,
+          "errors": 0,
+          "skipped": 0
+        },
+        "result_sha256": "a33bd3b0ddb17299c3452773891d8b6101ba5b9d455ad9f36c000a7464e2c0b7",
+        "evidence_defect": "final update gradient trace overwritten by terminal zero-update retry; separate attempt evidence required"
+      }
     }
   }
 }
