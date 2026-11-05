@@ -321,6 +321,19 @@ func (kr *knowledgeRegistry) publish(m knowledgeMethod) error {
 		if target.ServesNode != m.ServesNode {
 			return fmt.Errorf("[T2.REGISTRY] publish: method %q (node %q) declares Replaces=%q serving node %q — supersession is same-node only; a cross-node Replaces silently removes the wrong node's coverage and leaves the stale method served (typo?) (fail-closed, R24 M-1)", m.ID, m.ServesNode, m.Replaces, target.ServesNode)
 		}
+		// R25 M-1: the target must not ALREADY be superseded by another
+		// live method — publishing v3{Replaces:v1} when v2{Replaces:v1}
+		// already exists (the intent was v3{Replaces:v2}) passes the
+		// existence and same-node gates silently: superseded={v1} and
+		// findForNode keeps serving v2 forever — the newest correction
+		// (v3) is NEVER served, with zero signal. Ambiguous supersession
+		// (two live methods replacing the same target) is a conflict the
+		// registry must refuse, not silently resolve by ID order.
+		for _, existing := range kr.methods {
+			if existing.Valid && existing.Replaces == m.Replaces && existing.ID != m.ID {
+				return fmt.Errorf("[T2.REGISTRY] publish: method %q declares Replaces=%q, but method %q already supersedes that target — ambiguous supersession (two live methods replacing the same target); the newest correction would silently never be served (typo?) (fail-closed, R25 M-1)", m.ID, m.Replaces, existing.ID)
+			}
+		}
 	}
 	kr.methods[m.ID] = m
 	return nil
@@ -623,7 +636,7 @@ func TestT2Lookup_TieBreakDeterminism(t *testing.T) {
 	// the RED-result key (the mutation fails on the first iteration where
 	// z is encountered first). The expected winner op-tie-a is the ~1/8
 	// underdog, so the silent-escape bound is (1/8)^500 ≈ 1e-451 (a
-	// 50-iteration loop would bound it at ≈ 1.3e-3).
+	// 50-iteration loop would bound it at (1/8)^50 ≈ 7e-46).
 	for i := 0; i < 500; i++ {
 		r, opID, found := rs.lookupByBusinessRequest("br-tie")
 		if !found {
@@ -949,6 +962,32 @@ func TestT2Registry_PublishValidation(t *testing.T) {
 	// must not mutate state)
 	if m, ok := krOther.findForNode("credit-scoring"); !ok || m.ID != "method-pv-b" {
 		t.Fatalf("M-1 probe: credit-scoring coverage lost after the rejected publish — found %q (ok=%v), want method-pv-b", m.ID, ok)
+	}
+
+	// R25 M-1 probe (a): AMBIGUOUS supersession — after v2{Replaces:v1},
+	// publishing v3{Replaces:v1} (the intent was v3{Replaces:v2}) must
+	// be refused; otherwise superseded={v1} and findForNode keeps serving
+	// v2 forever — the newest correction v3 is NEVER served, zero signal
+	krAmb := newKnowledgeRegistry()
+	krAmb.mustPublish(t, knowledgeMethod{ID: "method-amb-v1", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
+	krAmb.mustPublish(t, knowledgeMethod{ID: "method-amb-v2", Version: "2.0.0", ServesNode: "history-verification", Valid: true, Replaces: "method-amb-v1"})
+	err = krAmb.publish(knowledgeMethod{ID: "method-amb-v3", Version: "3.0.0", ServesNode: "history-verification", Valid: true, Replaces: "method-amb-v1"})
+	if err == nil {
+		t.Fatal("M-1 probe: ambiguous supersession accepted — two live methods replacing the same target; the newest correction would silently never be served")
+	}
+	if !strings.Contains(err.Error(), "ambiguous") {
+		t.Fatalf("M-1 probe: error = %q, want the ambiguous-supersession marker", err.Error())
+	}
+
+	// R25 M-1 probe (b): the CORRECT form — v3{Replaces:v2} chains the
+	// correction: v1 and v2 both superseded, the newest correction v3 is
+	// the one served
+	err = krAmb.publish(knowledgeMethod{ID: "method-amb-v3", Version: "3.0.0", ServesNode: "history-verification", Valid: true, Replaces: "method-amb-v2"})
+	if err != nil {
+		t.Fatalf("M-1 probe: correct chained supersession rejected: %v", err)
+	}
+	if m, ok := krAmb.findForNode("history-verification"); !ok || m.ID != "method-amb-v3" {
+		t.Fatalf("M-1 probe: after the chained correction, findForNode served %q (ok=%v), want method-amb-v3 — the newest correction must be the served one", m.ID, ok)
 	}
 
 	// R22 m-1 probe: invalidate v1, then republish the SAME ID with

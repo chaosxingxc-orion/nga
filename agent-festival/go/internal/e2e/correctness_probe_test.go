@@ -263,6 +263,19 @@ type fixtureSpec struct {
 	Rules []fixtureVetoRule `json:"rules"`
 }
 
+// countPrecedenceZero counts rules at precedence 0 — the veto layer must
+// be unique (R25 m-3: ambiguous precedence-0 is a conflict, not a
+// silently resolved array order).
+func countPrecedenceZero(rules []fixtureVetoRule) int {
+	n := 0
+	for _, r := range rules {
+		if r.Precedence == 0 {
+			n++
+		}
+	}
+	return n
+}
+
 // TestE3SpecSelfContradiction_WindowScope asserts the RESOLVED state of
 // the former window-scope contradiction: the fixture's veto is unbounded
 // ("at any time in the applicant's credit history on record") and T0's
@@ -302,6 +315,13 @@ func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
 	}
 	if vetoRule == nil {
 		t.Fatal("E3: no precedence-0 rule found in fixture")
+	}
+	// R25 m-3: precedence 0 is unique in the FIXTURE half too — a second
+	// rule relabeled precedence 0 (ambiguous precedence conflict) must
+	// not pass silently while the first-in-array rule keeps all other
+	// assertions green (the t1Spec half has had this count since R24 m-1)
+	if n := countPrecedenceZero(spec.Rules); n != 1 {
+		t.Fatalf("E3: fixture contains %d precedence-0 rules, want exactly 1 (the veto) — ambiguous precedence is a conflict, not a silently resolved order", n)
 	}
 
 	// ASSERTION 1: The fixture's veto is NOW unbounded (P3 correction landed)
@@ -343,8 +363,12 @@ func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
 	if !strings.Contains(t1Spec, "AT ANY TIME") {
 		t.Fatal("E3: t1Spec no longer contains 'AT ANY TIME' — the T1 veto clause is no longer unbounded")
 	}
-	if !strings.Contains(t1Spec, "limited to any recent window") {
-		t.Fatal("E3: t1Spec no longer contains 'limited to any recent window' — the T1 veto clause's no-window declaration is gone")
+	// R25 m-2: the marker is POLARITY-PINNED — the negation itself must
+	// be present (deleting the "NOT" re-windows the veto while the bare
+	// "limited to any recent window" substring stays green)
+	collapsedSpec := strings.Join(strings.Fields(t1Spec), " ")
+	if !strings.Contains(collapsedSpec, "NOT limited to any recent window") {
+		t.Fatal("E3: t1Spec's veto negation is gone or polarity-flipped — the no-window declaration 'NOT limited to any recent window' is no longer present verbatim")
 	}
 
 	// Proof complete: fixture and stand-in now AGREE on the unbounded veto
