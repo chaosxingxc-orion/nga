@@ -413,12 +413,17 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 			"(L23 fix: veto at precedence 0 fires before missing-evidence check)", v0.kind)
 	}
 
-	// R27 m-1: the C12 half is BEHAVIORALLY carried on the T0 side too —
-	// the lower-band branch fires AFTER the veto (a lower-band applicant
-	// with a historical overdue is deny, not grant-10000). Every other
-	// s1Judge drive point uses the 35M shape; this one pins the last
-	// branch-order face. Mutation probe: move the assetMillions<1 branch
-	// before the veto loop and this goes red.
+	// R27 m-1 + R28 m-2: the veto's priority over EVERY asset branch is
+	// behaviorally pinned — four branch-order faces, four drive shapes:
+	//   veto > missing-evidence (C8 shape, above)
+	//   veto > upper band      (35M+overdue, the T0 drive points)
+	//   veto > lower band      (C12 shape below)
+	//   veto > between-bands   (12M+overdue below — a middle-band
+	//                           applicant with a historical overdue is
+	//                           deny, NOT on_undefined_rule)
+	// Mutation probes: move ANY asset branch (or insert an explicit
+	// between-bands early return) before the veto loop and the matching
+	// shape below goes red.
 	c12e := creditEvidence{
 		assetMillions:   0, // below the lower cutoff
 		assetReportOK:   true,
@@ -426,6 +431,14 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 	}
 	if v := s1Judge(c12e); v.kind != "deny" {
 		t.Fatalf("E3-C8: T0 s1Judge returned %q for the C12 shape (lower band + historical overdue), want deny — the veto must fire before the lower-band branch", v.kind)
+	}
+	betweenBands := creditEvidence{
+		assetMillions:   12, // strictly between the bands (1 < x < 30)
+		assetReportOK:   true,
+		overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 2}},
+	}
+	if v := s1Judge(betweenBands); v.kind != "deny" {
+		t.Fatalf("E3-C8: T0 s1Judge returned %q for the between-bands shape (12M + historical overdue), want deny — the veto must fire before the between-bands default branch (rule 0: 'denies credit regardless of assets')", v.kind)
 	}
 
 	// Historical record (the former diseased state, fixed by L23): T0's
