@@ -94,5 +94,62 @@
       "final_step": 3116
     }
   ],
-  "scope": "Retained metadata/source audit; no new training or NPU qualification; model payload hashes inherited."
+  "scope": "Retained metadata/source audit; no new training or NPU qualification; model payload hashes inherited.",
+  "current_engineering_addendum": {
+    "observed_utc": "2026-11-05T11:30:31.190461+00:00",
+    "status": "component_delivery_pending_independent_review_and_outer_integration",
+    "supersedes": "Implementation status of initial metadata audit only; inherited counts and scientific conclusions unchanged",
+    "handoff_sha256": "7d89cd1aeedc62b7008fd3daf1af598f417ef0b96985743ab2d9c40ebd7c13b8",
+    "result_sha256": "be5e0e5095c0bfa773f4acda35cc762fec846372dc15d8f0f886b50b2c230e10",
+    "delivered": {
+      "family_recipes": [
+        "0.8B",
+        "2B",
+        "4B",
+        "9B"
+      ],
+      "bounded_updates_preserve_schedule": 3116,
+      "exact_ordered_topology": "actual retained builder with meta pretrained substitution, authenticated per-size config; no weight payloads read",
+      "topology_counts": {
+        "0.8B": [
+          186,
+          10822656
+        ],
+        "2B": [
+          186,
+          16819200
+        ],
+        "4B": [
+          248,
+          32464896
+        ],
+        "9B": [
+          248,
+          43278336
+        ]
+      },
+      "seed_errors": "family route propagates NPU seed failures; actual accelerator unqualified",
+      "checkpoint_semantics": "numeric validation and optimizer/scheduler checks implemented, review pending",
+      "publication": "PEFT-compatible adapter helper implemented and CPU reload/idempotence tested; actual terminal family route untested"
+    },
+    "evidence_limits": {
+      "candidate_image": "sha256:27b2f9a84cbc3bc3eca95bb5ded98431f1a87ca8f0ef5d895970f4060ec4f325",
+      "cpu_runtime": "torch 2.10.0+cpu, Transformers 5.14.1, PEFT 0.21.2; explicit NPU-availability substitutions for CPU probes",
+      "recovery": "six versus3+3 actual family/retainedtrainer separateCPUprocesses, postclip gradients/checkpoint/optimizer/scheduler/cursor exact; preclip and actualterminalroute not measured",
+      "scientific_acceptance": false
+    },
+    "remaining_release_gates": [
+      "Independent training component review and corrections",
+      "Root closed schema and adapter family routing",
+      "Complete authenticated training source manifest and immutable combined image",
+      "Typed host image asset/checkpoint paths, progress, terminal and lease integration",
+      "Actual terminal route zero-update publication and fault recovery",
+      "Exact accelerator runtime/dependency/device-mapping qualification",
+      "Measured per-size loss/full-gradient bf16 noise floor and discrimination controls",
+      "Matched end-to-end efficiency qualification",
+      "Explicit retained-checkpoint compatibility before migration"
+    ],
+    "new_research_dispatch": "hold",
+    "full_goal_complete": false
+  }
 }
