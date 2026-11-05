@@ -1049,7 +1049,7 @@
     }
   },
   "latest_execution_status": {
-    "as_of_utc": "2026-11-05T16:37:00Z",
+    "as_of_utc": "2026-11-05T16:47:00Z",
     "research_hold": true,
     "existing_runs": "preserved",
     "full_release": false,
@@ -1057,10 +1057,20 @@
       "independent_positive": 3,
       "failure_confirmations": 1,
       "limitations": 6,
-      "actual_service_attempts": 0,
+      "actual_service_attempts": 1,
       "parent_artifact_and_probe_pins_checked": 195,
       "mismatches": 0,
-      "next": "implement authenticated actual service transaction"
+      "next": "implement authenticated actual service transaction",
+      "status": "partial_actual_transaction_producer_delivered",
+      "docker_creates": 2,
+      "duplicate_restart_new_creates": 0,
+      "hold_blocks_new_npu": true,
+      "invalid_lineage_pre_create": true,
+      "pending": [
+        "late ACK capture",
+        "stage failure durability",
+        "Astra independent review"
+      ]
     },
     "capture_stream": {
       "status": "partial delivery; independent review running",
