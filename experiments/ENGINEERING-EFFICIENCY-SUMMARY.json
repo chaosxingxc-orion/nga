@@ -1049,7 +1049,7 @@
     }
   },
   "latest_execution_status": {
-    "as_of_utc": "2026-11-05T16:47:00Z",
+    "as_of_utc": "2026-11-05T16:53:00Z",
     "research_hold": true,
     "existing_runs": "preserved",
     "full_release": false,
@@ -1082,6 +1082,29 @@
     },
     "diagnostic_controller": "v12 failure repair running, independent review queued",
     "next_measurement": "bounded175CPU phase/memory/thread diagnostics after controller acceptance",
-    "end_to_end_speedup_demonstrated": false
+    "end_to_end_speedup_demonstrated": false,
+    "capture_stream_review": {
+      "verdict": "PARTIAL_CPU_ADMISSION_WITH_OPEN_LIMITATIONS",
+      "stream_cases": 166,
+      "normal_exact_matches": 20,
+      "open": [
+        "duplicate native checkpoint decode",
+        "iterator final artifact check deferred",
+        "full reader peak 16862630 bytes > 8388608 reserve"
+      ],
+      "production_qualification": false
+    },
+    "diagnostic_review": {
+      "verdict": "CHANGES_REQUIRED_CPU_DIAGNOSTIC_HOLD",
+      "actual175_positive_admitted": true,
+      "actual175_corrupt_failed_with_archive": true,
+      "open": [
+        "whole-run monotonic deadline",
+        "fail-closed durable terminal",
+        "complete failure evidence",
+        "safe fresh retry/finalization",
+        "installed process-boundary qualification"
+      ]
+    }
   }
 }
