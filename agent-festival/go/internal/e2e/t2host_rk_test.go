@@ -225,20 +225,41 @@ func TestT2R_StaleResultCorrection(t *testing.T) {
 		t.Fatalf("R-correction READ-3: history incomplete — original: %v, correction: %v", hasOriginal, hasCorrection)
 	}
 
-	// READ 4 (L40 fix — NOW an independent assertion, not a comment):
-	// knowledge search — a NEW task searching for methods must find the
-	// CORRECTION's method, not the stale one. We publish a correction
-	// method and verify the registry serves it for a new task.
-	// The correction knowledge method is associated with the business
-	// request's CORRECT semantic (deny), not the stale result (grant).
-	correctedReceipt := current.Receipt
-	if !strings.Contains(correctedReceipt, "deny") && !strings.Contains(correctedReceipt, "correction") {
-		t.Fatalf("R-correction READ-4: current receipt = %q — expected the correction (deny/correction), not the stale grant", correctedReceipt)
+	// READ 4 (R17 M-A fix — the knowledge-search face, asserted for REAL):
+	// the wrong result came from the stale knowledge method; the correction
+	// publishes the corrected method (v2, supersedes v1). A NEW task
+	// searching the registry must find the CORRECTION's method, not the
+	// stale one — this face is the REGISTRY (findForNode), independent of
+	// the store lookups in READ 1/2.
+	h.registry.publish(knowledgeMethod{
+		ID: "method-overdue-v1", Version: "1.0.0",
+		ServesNode: "history-verification", Valid: false, // superseded by the correction
+		Replaces: "",
+	})
+	h.registry.publish(knowledgeMethod{
+		ID: "method-overdue-v2", Version: "2.0.0",
+		ServesNode: "history-verification", Valid: true,
+		Replaces: "method-overdue-v1",
+	})
+	corrMethod, methodOK := h.registry.findForNode("history-verification")
+	if !methodOK {
+		t.Fatal("R-correction READ-4: no method found for a new task — the correction method must be discoverable")
 	}
-	// Independent assertion: the ORIGINAL (stale) result must NOT be served
-	// to new tasks for this business request
-	if orig.Receipt == current.Receipt {
-		t.Fatal("R-correction READ-4: original and current receipts are the same — the correction must produce a DIFFERENT result")
+	if corrMethod.ID != "method-overdue-v2" {
+		t.Fatalf("R-correction READ-4: new task found %q, want method-overdue-v2 — the stale method must not be served to new tasks", corrMethod.ID)
+	}
+	// Executing the correction's method on the corrected input reproduces
+	// the deny semantic — the knowledge face carries the correction, not
+	// just the store's projection.
+	kResult, err := corrMethod.execute(map[string]string{
+		"overdue_months":      "4", // the historical veto input (4 months, 2 years ago)
+		"business_request_id": "br-t2r-corr",
+	})
+	if err != nil {
+		t.Fatalf("R-correction READ-4: correction method execute failed: %v", err)
+	}
+	if !strings.Contains(kResult.Receipt, "veto-fired") {
+		t.Fatalf("R-correction READ-4: correction method receipt = %q, want veto-fired — the knowledge face must carry the corrected deny semantic", kResult.Receipt)
 	}
 }
 
@@ -280,10 +301,13 @@ func TestT2K_NewTaskZeroModelCalls(t *testing.T) {
 	}
 
 	// Execute the method with the new task's inputs — ZERO model calls
-	result := method.execute(map[string]string{
+	result, err := method.execute(map[string]string{
 		"overdue_months":      "0",
 		"business_request_id": brID,
 	})
+	if err != nil {
+		t.Fatalf("K: method execute failed: %v", err)
+	}
 
 	// The result is the NEW task's own (not another task's receipt)
 	if result.BusinessReqID != brID {

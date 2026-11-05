@@ -89,3 +89,11 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **L44**：Sscanf 失败从静默为 0 改为响亮追加 fact。
 - **L47**：extraction-miss 补 correctnessLayerLanded 极性守卫。
 - 残留：L45（原子写）/L46（店-账本一致性交叉核）——T2 夹具层声明不修，留 minor。
+
+## R17 复审记账（2026-11-05，先行批增量 059d198..c919009——0B/3M 全清偿，反突变五连红）
+
+- **M-A（L40 清偿幻影）**：清偿批的 READ-4「独立断言」实为幻影修复——注释宣称「发布修正方法→验证注册表服务新任务」，测试体从未触及 registry/findForNode/publish（grep 机械证实），断言与 READ-2 同面重复。族=「修复声明未机械落地」（V2 singularity「shares 双向」同形）。已修：READ-4 真知识检索断言（发布 v1 无效+v2 有效→findForNode 必须返回 v2→execute 复现 deny 语义）。反突变 A（findForNode 去 Valid 检查）→红。
+- **M-B（L42/L43 清偿零耦合）**：数值序+确定性两守卫无任何测试可证伪——突变1（字典序族回退）全绿、突变2（排序死分支化，-count=10）全绿。同族补充：nodeEntry 的 not-completed/no-stored-result 两分支也无探针。已修：TestT2Lookup_RevisionOrdering（er-10>er-2 数值序+er-x 最低）、TestT2Lookup_TieBreakDeterminism（同 rev 平局最低 opID 稳定 50 迭代）、TestT2NodeEntry_Branches（两分支拒绝）。反突变 B1（int(rev[0]) 字典序族）/B2（去排序）/B3（去状态检查）→三连红。
+- **M-C（L44 清偿偏离先验+fail-open）**：34 号先验明写「返回 error 而非静默为 0」，清偿实现为追加 fact 后 treating as 0——否决输入解析失败按无逾期处理=否决通道 fail-open（E0 extraction-miss 的方法形态）；且解析错误分支零测试触达。已修：execute 改 (storedResult, error)，否决输入不可解析即 fail-closed 报错；TestT2Method_ParseErrorFailsClosed（坏输入必须报错+好输入不受影响）。反突变 C（回退吞错）→红。
+- **过程事故（自记）**：反突变验证中误用 `git checkout --` 回滚了持有未提交修复的文件（t2host_test.go M-C+探针全灭），从备份重建；教训=持有未提交修复的工作树禁用 git checkout 做突变恢复，改用 /tmp 副本。另：一次突变形态错误（追加语句落在 return 后成不可达死代码，Go 合法但无效）被 -v 调试抓出——突变探针本身也要验证「突变真的改变了行为」。
+- **净计数**：本轮新增 0 minor（3 M 全清偿）；L45/L46 维持不修声明。测试面：t2host 0→4（四组件探针），t2host_rk 8。

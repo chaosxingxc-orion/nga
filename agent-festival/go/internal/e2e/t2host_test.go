@@ -196,19 +196,23 @@ type knowledgeMethod struct {
 }
 
 // execute runs the method deterministically (zero LLM) and returns the
-// node's result. The method body is a pure function of its declared inputs —
+// node's result, or an error when the declared input contract is violated.
+// The method body is a pure function of its declared inputs —
 // in production this would call a domain service or rule engine; in T2 it
 // is a deterministic function for test reproducibility.
-func (m knowledgeMethod) execute(inputs map[string]string) storedResult {
+func (m knowledgeMethod) execute(inputs map[string]string) (storedResult, error) {
 	// the T2 method: "history-overdue verification" — checks the input facts
 	// for any overdue > 3 months (the unbounded veto from the corrected spec)
 	facts := []string{}
 	receipt := fmt.Sprintf("method:%s:result", m.ID)
 	overdueMonths := 0
 	if v, ok := inputs["overdue_months"]; ok {
-		// L44 fix: Sscanf failure is now loud, not silently swallowed
+		// L44 fix (R17 M-C): the veto input is SAFETY-CRITICAL — an
+		// unparseable overdue_months FAILS CLOSED (error), never treated
+		// as 0. Treating it as 0 would mean a corrupted input silently
+		// disarms the veto (the E0 extraction-miss disease, method-shaped).
 		if _, err := fmt.Sscanf(v, "%d", &overdueMonths); err != nil {
-			facts = append(facts, fmt.Sprintf("overdue_months_parse_error: %q is not a number — treating as 0 (L44: loud, not silent)", v))
+			return storedResult{}, fmt.Errorf("[T2.METHOD %s] overdue_months input %q is not a number — refusing to produce a result on a corrupted veto input (fail-closed, L44)", m.ID, v)
 		}
 	}
 	if overdueMonths > 3 {
@@ -221,7 +225,7 @@ func (m knowledgeMethod) execute(inputs map[string]string) storedResult {
 		Receipt:       receipt,
 		Facts:         facts,
 		BusinessReqID: inputs["business_request_id"],
-	}
+	}, nil
 }
 
 // knowledgeRegistry is the T2 host's method registry (published methods).
@@ -383,4 +387,148 @@ func (h *t2Host) adoptAndDispatch(op, revision, evidence, digest, brID string, r
 // terminal state and calls the machine).
 func (h *t2Host) completeNode(op string) adopt.Outcome {
 	return h.machine.MarkCompleted(op)
+}
+
+// ---------------------------------------------------------------------------
+// R17 M-B probes: component-level red probes for the T2 bearing fixes
+// (L42 numeric revision ordering, L43 deterministic iteration, nodeEntry
+// branches) and the M-C fail-closed probe (L44). Each probe is coupled to
+// a mutation: reverting its fix must turn the probe RED.
+
+// TestT2Lookup_RevisionOrdering probes L42: the validity projection picks
+// the LATEST revision NUMERICALLY (er-10 > er-2), not lexically (where
+// "er-2" > "er-10"). Mutation probe: revert revisionNumber to a
+// lexical-family comparison and this test fails.
+func TestT2Lookup_RevisionOrdering(t *testing.T) {
+	rs, err := newResultStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := rs.put("op-ord-a", storedResult{Receipt: "r-er-2", BusinessReqID: "br-ord", EvaluationRev: "er-2"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := rs.put("op-ord-b", storedResult{Receipt: "r-er-10", BusinessReqID: "br-ord", EvaluationRev: "er-10"}); err != nil {
+		t.Fatal(err)
+	}
+	r, _, found := rs.lookupByBusinessRequest("br-ord")
+	if !found {
+		t.Fatal("L42 probe: no result found for br-ord")
+	}
+	if r.EvaluationRev != "er-10" {
+		t.Fatalf("L42 probe: current revision = %q, want er-10 — numeric ordering (er-10 > er-2); a lexical comparison would pick er-2", r.EvaluationRev)
+	}
+
+	// unparseable revision sorts lowest (revisionNumber = -1): er-x loses
+	// to er-1
+	rs2, err := newResultStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := rs2.put("op-un-a", storedResult{Receipt: "r-er-x", BusinessReqID: "br-un", EvaluationRev: "er-x"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := rs2.put("op-un-b", storedResult{Receipt: "r-er-1", BusinessReqID: "br-un", EvaluationRev: "er-1"}); err != nil {
+		t.Fatal(err)
+	}
+	r2, _, found2 := rs2.lookupByBusinessRequest("br-un")
+	if !found2 || r2.EvaluationRev != "er-1" {
+		t.Fatalf("L42 probe: unparseable-revision case = %q (found=%v), want er-1 — an unparseable revision must sort LOWEST", r2.EvaluationRev, found2)
+	}
+}
+
+// TestT2Lookup_TieBreakDeterminism probes L43: when two results share the
+// SAME revision, the winner is the lexicographically-lowest operation_id
+// (sortedKeys + strict >), and the winner is STABLE across iterations —
+// Go randomizes map iteration order per range, so only the sorted
+// iteration makes this deterministic. Mutation probe: disable the sort in
+// sortedKeys and this test fails within a few iterations.
+func TestT2Lookup_TieBreakDeterminism(t *testing.T) {
+	rs, err := newResultStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := rs.put("op-tie-z", storedResult{Receipt: "r-tie-z", BusinessReqID: "br-tie", EvaluationRev: "er-5"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := rs.put("op-tie-a", storedResult{Receipt: "r-tie-a", BusinessReqID: "br-tie", EvaluationRev: "er-5"}); err != nil {
+		t.Fatal(err)
+	}
+	// 50 iterations: each lookup ranges the map once; without sorted
+	// iteration the winner flips (random start offset per range)
+	for i := 0; i < 50; i++ {
+		r, opID, found := rs.lookupByBusinessRequest("br-tie")
+		if !found {
+			t.Fatal("L43 probe: no result found for br-tie")
+		}
+		if opID != "op-tie-a" {
+			t.Fatalf("L43 probe: iteration %d winner = %q, want op-tie-a (lexicographically-lowest op_id on equal revision) — iteration order is nondeterministic", i, opID)
+		}
+		if r.Receipt != "r-tie-a" {
+			t.Fatalf("L43 probe: iteration %d receipt = %q, want r-tie-a", i, r.Receipt)
+		}
+	}
+}
+
+// TestT2NodeEntry_Branches probes the nodeEntry component's error branches
+// (L41 extraction): not-completed operation and completed-but-unstored
+// operation both refuse. The unauthorized branch and the happy path are
+// asserted in TestT2R_PermissionRevoked (L39).
+func TestT2NodeEntry_Branches(t *testing.T) {
+	h := newT2Host(t, t.TempDir())
+
+	// adopt + dispatch but NOT completed → nodeEntry refuses
+	if o := h.adoptAndDispatch("op-branch-1", "er-1", "ev-1", t2Digest('a'), "br-branch", "receipt:op-branch-1", nil); o.Status != "dispatched" {
+		t.Fatalf("branch probe: adoptAndDispatch = %q: %s", o.Status, o.Detail)
+	}
+	if _, err := h.nodeEntry("op-branch-1", chainGrants()); err == nil {
+		t.Fatal("branch probe: nodeEntry served an operation that is dispatched but NOT completed — must refuse")
+	} else if !strings.Contains(err.Error(), "not completed") {
+		t.Fatalf("branch probe: error = %q, want 'not completed'", err.Error())
+	}
+
+	// completed but no stored result → nodeEntry refuses
+	if o := h.adoptAndDispatch("op-branch-2", "er-1", "ev-1", t2Digest('b'), "br-branch", "receipt:op-branch-2", nil); o.Status != "dispatched" {
+		t.Fatalf("branch probe: adoptAndDispatch = %q: %s", o.Status, o.Detail)
+	}
+	if o := h.completeNode("op-branch-2"); o.Status != "completed" {
+		t.Fatalf("branch probe: completeNode = %q: %s", o.Status, o.Detail)
+	}
+	// remove the stored result to simulate a host that completed the
+	// operation without persisting a result
+	delete(h.store.data, "op-branch-2")
+	if _, err := h.nodeEntry("op-branch-2", chainGrants()); err == nil {
+		t.Fatal("branch probe: nodeEntry served a completed operation with NO stored result — must refuse")
+	} else if !strings.Contains(err.Error(), "no stored result") {
+		t.Fatalf("branch probe: error = %q, want 'no stored result'", err.Error())
+	}
+}
+
+// TestT2Method_ParseErrorFailsClosed probes the L44 fix (R17 M-C): an
+// unparseable overdue_months input FAILS CLOSED — the method returns an
+// error instead of treating the corrupted veto input as 0. Mutation probe:
+// revert to swallowing the parse error (treat-as-0) and this test fails.
+func TestT2Method_ParseErrorFailsClosed(t *testing.T) {
+	m := knowledgeMethod{ID: "method-parse-probe", Version: "1.0.0", ServesNode: "history-verification", Valid: true}
+	_, err := m.execute(map[string]string{
+		"overdue_months":      "not-a-number",
+		"business_request_id": "br-parse",
+	})
+	if err == nil {
+		t.Fatal("L44 probe: unparseable overdue_months produced a result (fail-open) — the veto input must fail CLOSED")
+	}
+	if !strings.Contains(err.Error(), "fail-closed") {
+		t.Fatalf("L44 probe: error = %q, want the fail-closed marker", err.Error())
+	}
+	// valid input still works (the fail-closed gate does not break the
+	// happy path)
+	r, err := m.execute(map[string]string{
+		"overdue_months":      "4",
+		"business_request_id": "br-parse",
+	})
+	if err != nil {
+		t.Fatalf("L44 probe: valid input errored: %v", err)
+	}
+	if !strings.Contains(r.Receipt, "veto-fired") {
+		t.Fatalf("L44 probe: receipt = %q, want veto-fired for 4-month overdue", r.Receipt)
+	}
 }
