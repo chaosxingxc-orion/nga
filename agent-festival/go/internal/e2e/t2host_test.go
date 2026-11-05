@@ -215,8 +215,9 @@ func (m knowledgeMethod) execute(inputs map[string]string) (storedResult, error)
 	// key is a contract/consumption divergence and fails closed.
 	// EXCLUSIVE faces of this check (verified by probes):
 	//   - identity key undeclared + brID missing → orphan result (nothing
-	//     else checks business_request_id's presence — line ~270 consumes
-	//     it unconditionally as "")
+	//     else checks business_request_id's presence — the return
+	//     statement's BusinessReqID field consumes it unconditionally
+	//     as "")
 	//   - veto key undeclared + overdue_months PRESENT with a legal value →
 	//     contract hygiene: the method executes on an input it never
 	//     promised to require (the Atoi gate does NOT reject a legal value)
@@ -330,7 +331,10 @@ func (kr *knowledgeRegistry) publish(m knowledgeMethod) error {
 		// (two live methods replacing the same target) is a conflict the
 		// registry must refuse, not silently resolve by ID order.
 		for _, existing := range kr.methods {
-			if existing.Valid && existing.Replaces == m.Replaces && existing.ID != m.ID {
+			// R26 m-4: no self-exclusion needed — the duplicate-ID gate
+			// above already guarantees m.ID is not in the registry, so
+			// every existing entry is a DIFFERENT method
+			if existing.Valid && existing.Replaces == m.Replaces {
 				return fmt.Errorf("[T2.REGISTRY] publish: method %q declares Replaces=%q, but method %q already supersedes that target — ambiguous supersession (two live methods replacing the same target); the newest correction would silently never be served (typo?) (fail-closed, R25 M-1)", m.ID, m.Replaces, existing.ID)
 			}
 		}
@@ -628,7 +632,6 @@ func TestT2Lookup_TieBreakDeterminism(t *testing.T) {
 	}
 	// 500 iterations: each lookup ranges the map once; without sorted
 	// iteration the winner flips (random start offset per range).
-	// R21 m-3: statistical power recorded per the R18 methodology rule —
 	// R21 m-3/R24 m-2: statistical power recorded per the R18 methodology
 	// rule, direction MEASURED (200k raw ranges over this 2-key fixture,
 	// insertion order z-then-a): the first-ENCOUNTERED key under raw

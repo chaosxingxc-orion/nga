@@ -332,6 +332,14 @@ func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
 	if !strings.Contains(vetoRule.Coverage, "at any time") {
 		t.Fatalf("E3: fixture veto coverage = %q — expected 'at any time' (unbounded, P3 corrected)", vetoRule.Coverage)
 	}
+	// R26 m-3: the fixture half is POLARITY-PINNED too — the coverage's
+	// parenthetical negation must be present verbatim (flipping its "NOT"
+	// would re-window the veto in the prose while "at any time" stays,
+	// silently breaking the three-way agreement this file asserts)
+	collapsedCoverage := strings.Join(strings.Fields(vetoRule.Coverage), " ")
+	if !strings.Contains(collapsedCoverage, "NOT limited to the six-month window") {
+		t.Fatalf("E3: fixture veto coverage negation is gone or polarity-flipped — 'NOT limited to the six-month window' must be present verbatim: %q", vetoRule.Coverage)
+	}
 
 	// ASSERTION 2: T0's s1Judge uses UNBOUNDED veto
 	// (any >3-month overdue at any time → deny)
@@ -443,6 +451,7 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 	// entry is edited to any other expectation, the resolved-state claim
 	// loses its T1 half and this goes red).
 	c8Found := false
+	c12Found := false
 	for _, c := range t1Cases {
 		if c.id == "C8-veto-beats-missing-evidence" {
 			c8Found = true
@@ -450,9 +459,20 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 				t.Fatalf("E3-C8: t1Cases C8 entry = (expected=%q, hardBar=%v), want (deny, true) — the T1 half of the resolved state", c.expected, c.hardBar)
 			}
 		}
+		// R26 m-6: the C12 sister claim (s1Judge's L23 comment cites BOTH
+		// C8 and C12 as hardBar deny) is asserted too — not just narrated
+		if c.id == "C12-veto-beats-lower-band" {
+			c12Found = true
+			if c.expected != "deny" || !c.hardBar {
+				t.Fatalf("E3-C8: t1Cases C12 entry = (expected=%q, hardBar=%v), want (deny, true) — the T1 half of the resolved state (cited by the L23 comment)", c.expected, c.hardBar)
+			}
+		}
 	}
 	if !c8Found {
 		t.Fatal("E3-C8: t1Cases has no C8-veto-beats-missing-evidence entry — the case table changed")
+	}
+	if !c12Found {
+		t.Fatal("E3-C8: t1Cases has no C12-veto-beats-lower-band entry — the case table changed")
 	}
 }
 
