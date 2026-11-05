@@ -4,11 +4,11 @@
 
 ## 当前状态
 
-历史一次 175 `npu-smi` 快照显示 8 张 910B3 均无运行进程、AICore 为 0、HBM 约 3.45 GB（驱动基线）；这只能证明该采样时刻没有观测到 NPU 进程，不能证明当前或整段观察窗的主机利用率。监控目录的一次 watchdog 摘要为 418 个记录：26 failed、34 stalled、27 unknown、1 running、276 done、54 archived。这是监控目录统计，不能直接当作主机利用率；历史 stalled/unknown 也不能被调度器当作可复用资源。
+当前审查材料没有可用于资源分配的实时 NPU 占用、吞吐或 AI Core 利用率证据，不据此判断主机空闲。监控目录的一次 watchdog 摘要为 418 个记录：26 failed、34 stalled、27 unknown、1 running、276 done、54 archived。这是监控目录统计，不能直接当作主机利用率；历史 stalled/unknown 也不能被调度器当作可复用资源。
 
 正在执行的两个基座通道：
 
-- 诊断控制器安装资格 v14b：完整 46,320 条路径已形成结构化失败终态；controller exit 1，内部消费者 exit 137，`first_error=ValueError: parity mismatch`，保留 failure archive。该失败尚未修复，安装资格保持未通过。
+- 诊断控制器安装资格 v14b：完整 46,320 条路径已形成结构化失败终态；controller exit 1，内部保留容器 exit 137（评分子进程自身 exit 0；不能据此推断评分 OOM），`first_error=ValueError: parity mismatch`，保留 failure archive。该失败尚未修复，安装资格保持未通过。
 - 服务契约公共集成 v17：已完成，`EXIT.json` 为 0。原生桥接回归 6/6 通过；训练集成在依赖完整的本地 CPU 虚拟环境中 5/5 通过，但不是 Docker/NPU 资格。源预测/导出预测/contract 精确相等，输入变化和损坏身份会被拒绝。
 
 已证实的效率数据来自 Sol 的固定负载分析：统一基座 v1–v6 交付窗口 8,658.29 秒；8 个同主机 CPU 交接间隔合计 1,912.92 秒，中位数 243.17 秒，范围 82.02–586.70 秒；必经权重校验至少读取 260.73 GB 逻辑输入；46,320 条评分的记录阶段约占插桩调用 87.6%，历史评分耗时 88.46–307.86 秒；65 条显式依赖边等待中位 16.48 秒、p95 36.46 秒、最大 108.64 秒。
@@ -20,19 +20,19 @@
 | 优先级 | 瓶颈 | 证据 | 处理方式 | 放行条件 |
 |---|---|---|---|---|
 | P0 | 交接和终态碎片化 | CPU 交接中位 243.17 秒；大量目录只有 heartbeat 或不完整 marker | 以事件驱动 CPU 交接，600 秒轮询只作漏事件兜底；每阶段固定 `EXIT/TERMINAL/RELEASE` 和可重放 relaunch | 20 次故障/恢复事务，零重复派发、零丢失租约 |
-| P0 | 诊断资格不完整 | v14b 尚无终态；旧审查要求安装后 supervisor、归档故障、终态恢复和全量输入证据 | 完成 v14b，失败项保留 `NOT_RUN`，不以 CPU fixture 替代安装资格 | Astra 独立审查通过，报告和 pins 闭合 |
-| P0 | 服务契约身份传播 | v16 快照曾把 native 当 trained；v17 原生 6/6 修复 | 只接受当前公共源码的 native/trained 分支，训练路径在依赖完整镜像补跑 | native/trained focused tests 均通过，contract identity 字节一致 |
+| P0 | 诊断资格不完整 | full3 已形成 parity mismatch 失败终态；旧审查要求安装后 supervisor、归档故障、终态恢复和全量输入证据 | 完成 v14b，失败项记 `FAIL`、未执行项记 `NOT_RUN`，不以 CPU fixture 替代安装资格 | Astra 独立审查通过，报告和 pins 闭合 |
+| P0 | 服务契约身份传播 | v16 快照曾把 native 当 trained；v17 原生 6/6 修复 | 保留本地 native 6/6、trained 5/5 回归凭据；镜像闭包和安装资格另验 | native/trained focused tests 均通过，contract identity 字节一致 |
 | P1 | 重复权重哈希 | 逻辑输入至少 260.73 GB | 对每个不可变模型代次缓存一次可信 hash；变更、缺失或身份不确定时强制重验 | 每代最多一次完整 hash，warm admission p95 ≤5 秒 |
 | P1 | 评分记录和小文件开销 | 记录阶段占插桩调用 87.6%；小文件数量大 | 在身份绑定下做二进制/分块持久化，保持逐位一致和原摘要 hash；先做 matched benchmark | 46,320 条汇总 hash 不变；恢复最多重做 100 条 |
 | P1 | 监控噪声 | 34 stalled、27 unknown、历史目录多 | watchdog 只读日志、心跳、marker、report；智能体只读 digest；事件触发，10 分钟轮巡兜底 | digest 可解释，历史目录不参与新资源判定 |
-| P2 | NPU 真实性能 | 当前 8 卡快照为空闲；暂无 AI Core/吞吐证据 | 基座 G1–G3 通过后，再做真实模型/真实 NPU 有界资格；不以 CPU fixture 推断 | 每芯片吞吐、保留内存、设备映射和恢复数值证据齐全 |
+| P2 | NPU 真实性能 | 当前无实时资源分配证据；暂无 AI Core/吞吐资格 | 基座 G1–G3 通过后，再做真实模型/真实 NPU 有界资格；不以 CPU fixture 推断 | 每芯片吞吐、保留内存、设备映射和恢复数值证据齐全 |
 
 ## 下一阶段执行图
 
 CPU 侧工作与 NPU 队列保持异步，但在当前基座 HOLD 期间只运行资格和效率验证，不派发新的科学研究：
 
 1. v14b 完成并读取 `EXIT.json`、`FINAL.txt`、`QUALIFICATION-SUMMARY.json`；若成功，提交 Astra 独立审查；若失败，按具体 failure signature 做最小修复。
-2. 在依赖完整镜像内运行 v17 trained integration；核对源码 diff、PINS 和 native/trained 两条回归，禁止复制 replay shim。
+2. v17 已在本地 CPU 环境通过两类回归，命令、源码哈希与终态已存于 `.local/preparations/v17-cpu-receipt-20261106-v1/{RESULT.json,SOURCES.json,EXIT.json}`；trained 命令使用 `.local/venvs/trained-eval-component/bin/python -B -P -m unittest discover -s docker/engineering-base -p test_trained_integration.py -v`。该 receipt 不替代安装后的镜像资格，禁止复制 replay shim。
 3. 接入阶段计时、memory.stat、线程池、IO 和事件时间戳，覆盖至少 99% 的 CPU 资格阶段；计时必须带 boot/monotonic identity。
 4. 做四个 matched benchmark：事件交接、哈希冷/热路径、二进制持久化、评分分块恢复。每次只改变一个因素，固定数据、指标、阈值、并发和主机。
 5. 完成 G1（测量）→G2（正确性）→G3（20 次故障恢复）→G4（真实设备资格）。每一个 hash、事件、持久化或分块评分改动都必须逐项证明输入总体、split、顺序、阈值、算术/容差、typed decision、逐条 prediction、汇总字段和 decision-level paired metric 不变；仅 summary hash 不足以证明分块或重排实现等价。事件验收还必须覆盖丢失、重复、延迟事件，证明只派发一次、只释放一次，且 600 秒轮询是恢复路径而不是正常路径。任一证据绑定、数值、恢复或资源租约失败，继续保留旧路径。
@@ -42,8 +42,14 @@ CPU 侧工作与 NPU 队列保持异步，但在当前基座 HOLD 期间只运�
 
 当前已有决策足够执行：取消算力预算约束；真实业务收益暂不作为第一阶段放行条件；评测主要汇报测试集；配置文件是唯一输入；监控采用脚本和约 600 秒兜底轮询；LoRA 小模型暂不扩展多卡训练。27B 仅保留候选，不抢占小于 10B 主线。
 
-如果后续出现以下变化，再需要确认：是否允许在 G3 完成前占用空闲 NPU 做纯基座资格；是否把 27B 纳入同一轮资格；以及二进制结果格式在外部协作者已有读取器时的兼容窗口。当前按最保守的兼容方案继续。
+真实设备资格属于已授权工程范围：CPU 前置条件通过后，以独立有界配置执行 G4，不要求 G4 在其自身执行前通过。研究迁移/派发须等 G4 和发布审查通过。27B 保留原预算，当前不改变小于 10B 的目标范围；兼容现有结果读取协议。
 
 ## 事实边界
 
 CPU fixture 通过、镜像构建成功、watchdog 心跳和单次 `npu-smi` 快照都不能证明真实 NPU 科学结果。所有实验指标仍必须从测试集、预注册统计口径和自身 report 文件产生；工程效率优化不能改变数据集、拆分、阈值、指标定义或历史结果。
+
+## 本轮证据与明确限制
+
+full3 终态位于 `/mnt/cephfs/xingchao/experiments/jev/engineering-diagnostic-installed-qualification-20261106-v14/full3/run/TERMINAL.json`，配置位于同级上层 `config.json`；完整派发 v14b 的 `FINAL.txt/EXIT.json` 与资格汇总仍待生产者交付，不能把单个失败容器说成整张故障矩阵完成。
+
+流式 hash 改动由 Astra v2 限定接受，完整 CPU 流水线命名空间回归通过；它保留全部字节校验，未实现 hash 缓存。128MiB 本地单次微测仅支持峰值 RSS 降低，不支持端到端吞吐或 Ceph 流量收益。
