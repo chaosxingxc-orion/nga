@@ -374,7 +374,8 @@
           "image manifest/COPY assembly",
           "physical qualification"
         ],
-        "diagnostic_live_scorer_acceptance": false
+        "diagnostic_live_scorer_acceptance": false,
+        "source_commit": "ae71d02"
       }
     },
     "runtime_metadata": {
@@ -787,15 +788,48 @@
       "repo_lock": "docker/engineering-base/requirements-observer.txt"
     },
     "diagnostic_route_v7": {
-      "status": "delivered independent review active",
+      "status": "CHANGES_REQUIRED",
       "parent_tests": 32,
       "includes_inherited_discovery": true,
       "parent_seconds": 8.993,
       "parent_pins": 15,
       "pin_mismatch": 0,
       "image_built": false,
-      "actual175_cpu_build_queued_after_review": true,
-      "fullbenchmark": false
+      "actual175_cpu_build_queued_after_review": false,
+      "fullbenchmark": false,
+      "independent_cases": 47,
+      "independent_defects": 4,
+      "parent_review_pins": 210,
+      "parent_review_mismatch": 0,
+      "builder_current_task": "repair four reviewedsource defects; no rejectedsource build",
+      "remaining": [
+        "canonical path aliases",
+        "derived lock symlink",
+        "failedfsync parseable successmarker",
+        "outputdir replacement publication"
+      ]
+    },
+    "service_packaged_v8": {
+      "status": "INCOMPLETE_NO_GO",
+      "portable_package": false,
+      "automatic_cpu_transaction": false,
+      "one_sourceclosure_test_passed": true,
+      "regression_tests": {
+        "total": 22,
+        "passed": 20,
+        "errors": 1,
+        "failures": 1
+      },
+      "next": "portableprovider completefeature v9 active"
+    },
+    "full_gradient_capture_v1": {
+      "status": "INCOMPLETE_STORAGE_PRIMITIVE_ONLY",
+      "cpu_primitive_tests": 5,
+      "native_loop_integrated": false,
+      "npu_supported": false,
+      "strict8MiBtotal_staging_proven": false,
+      "next": "actualnative-loop CPUverticalslice after independentreview",
+      "full_protocol_remaining": true
     }
   }
 }
