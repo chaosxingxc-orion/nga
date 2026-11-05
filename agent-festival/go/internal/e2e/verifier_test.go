@@ -105,6 +105,21 @@ func isWordChar(c byte) bool {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
 }
 
+// R37 m-3: the veto word table is defined ONCE (collect and decide share
+// it — two inline copies could silently fork when one side gains a word).
+type vetoWord struct {
+	word string
+	n    int
+}
+
+var vetoWords = []vetoWord{
+	{"three", 3}, {"four", 4}, {"five", 5}, {"six", 6},
+}
+
+// compoundTokens are the number words that can precede a table word to
+// form a space-separated compound (R35 M-1/R36 m-2 family).
+var compoundTokens = []string{"three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety", "hundred", "thousand", "million"}
+
 // anchorVetoMonths derives the veto threshold from the fixture's rule-0
 // coverage text. R30 M-2: FAIL-CLOSED — an unparseable threshold returns
 // 0 (the sentinel: no anchor), NOT the historic default. The old
@@ -131,10 +146,7 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 	seen := map[int]string{}
 	for _, r := range spec.Rules {
 		if r.Precedence == 0 {
-			for _, w := range []struct {
-				word string
-				n    int
-			}{{"three", 3}, {"four", 4}, {"five", 5}, {"six", 6}} {
+			for _, w := range vetoWords {
 				if !strings.Contains(r.Coverage, w.word+" months") {
 					continue
 				}
@@ -149,51 +161,49 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 	if len(seen) > 1 {
 		return 0 // multiple distinct thresholds claimed — ambiguous
 	}
+	// R37 M-2: decide scans EVERY rule's EVERY occurrence — a compound
+	// anywhere (in any rule, at any position) poisons the anchor BEFORE
+	// any clean value returns (the previous per-rule early-return let a
+	// clean rule's hit exempt a later compound rule).
 	for _, r := range spec.Rules {
 		if r.Precedence == 0 {
-			for _, w := range []struct {
-				word string
-				n    int
-			}{{"three", 3}, {"four", 4}, {"five", 5}, {"six", 6}} {
-				if strings.Contains(r.Coverage, w.word+" months") {
-					// boundary check: the character before the word (if any)
-					// must not be a letter, hyphen, or a space preceded by a
-					// number word (R35 M-1: the SPACE-separated compound
-					// family — "twenty three months", "sixty six months" —
-					// slipped the letter/hyphen check because prev==' ';
-					// a preceding number word makes this a compound too).
-					idx := strings.Index(r.Coverage, w.word+" months")
-					if idx == 0 {
-						return w.n
+			for _, w := range vetoWords {
+				searchFrom := 0
+				for {
+					rel := strings.Index(r.Coverage[searchFrom:], w.word+" months")
+					if rel < 0 {
+						break
 					}
-					prev := r.Coverage[idx-1]
-					poisoned := false
-					if isWordChar(prev) || prev == '-' {
-						// R36 m-3: a compound hit's true value is not
-						// representable in the word table — if the text
-						// ALSO carries a clean hit (the collect phase saw
-						// the bare word), the two "agree" falsely; poison.
-						poisoned = true
-					}
-					if poisoned {
-						return 0
-					}
-					if prev == ' ' && idx >= 2 {
-						// R36 m-2: the magnitude words are in the family too
-						// ("hundred three months" parsed as 3 before)
-						for _, w2 := range []string{"three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety", "hundred", "thousand", "million"} {
-							start := idx - 1 - len(w2)
-							if start >= 0 && r.Coverage[start:idx-1] == w2 && (start == 0 || !isWordChar(r.Coverage[start-1])) {
-								return 0 // space-separated compound → sentinel
+					idx := searchFrom + rel
+					if idx > 0 {
+						prev := r.Coverage[idx-1]
+						if isWordChar(prev) || prev == '-' {
+							return 0 // letter/hyphen compound — unrepresentable value, poison
+						}
+						if prev == ' ' && idx >= 2 {
+							compound := false
+							for _, w2 := range compoundTokens {
+								start := idx - 1 - len(w2)
+								if start >= 0 && r.Coverage[start:idx-1] == w2 && (start == 0 || !isWordChar(r.Coverage[start-1])) {
+									compound = true
+									break
+								}
+							}
+							if compound {
+								return 0 // space-separated compound → poison
 							}
 						}
 					}
-					if !(prev >= 'A' && prev <= 'Z') && !(prev >= 'a' && prev <= 'z') && prev != '-' {
-						return w.n
-					}
-					// letter/hyphen compound — keep scanning (fail through to 0)
+					searchFrom = idx + 1
 				}
 			}
+		}
+	}
+	// no compound anywhere — the clean value (from the collect phase) is
+	// the anchor
+	for _, n := range []int{3, 4, 5, 6} {
+		if _, ok := seen[n]; ok {
+			return n
 		}
 	}
 	return 0 // unparseable/compound — fail-closed sentinel (the anchor test flags it)
@@ -317,20 +327,15 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	if kind == "on_undefined_rule" && raw.assetMillionsDeclared > hi {
 		return checkResult{ok: false, reason: "rule 1 covers this assets point (above the upper bound) — on_undefined_rule contradicts the rules instead of answering them"}
 	}
-	if kind == "grant-50000" {
-		for _, o := range raw.overdueOnRecord {
-			// R36 M-2: WINDOW-AWARE and TERM-CONSISTENT — the fixture's
-			// window is the recent six months (yearsAgo == 0), and its
-			// term "overdue" means longer than the anchored threshold
-			// (the same definition rule 0 uses — the previous months>0
-			// form invented a second definition and was record-global).
-			// A term-level overdue INSIDE the window violates rule 1's
-			// premise; anything else is spec-conforming.
-			if o.yearsAgo == 0 && o.months > vetoMonths {
-				return checkResult{ok: false, reason: "a grant-50000 verdict with a term-level overdue inside the recent window violates rule 1's window premise (with no overdue in the window)"}
-			}
-		}
-	}
+	// R37 M-1: the WINDOW-PREMISE face is RETIRED — under the unbounded
+	// veto (rule 0), any term-level overdue inside the window ALREADY
+	// fails the veto face (kind != deny), so this face's predicate domain
+	// was a strict SUBSET of rule 0's: a 1408-input brute scan found ZERO
+	// inputs where this face's reason was reachable (R36 M-1's dead-guard
+	// shape, re-introduced by R36 M-2's own addition). Rule 1's window
+	// premise is enforced BY rule 0 in this fixture — the enforcement
+	// exists, its carrier is the veto face, and the separate face was a
+	// second carrier claiming the same refusals.
 	return checkResult{ok: true, reason: "verdict conforms to the raw evidence under the corrected spec"}
 }
 
@@ -775,17 +780,23 @@ func TestE1_LevelBandConsistency(t *testing.T) {
 	// ① wrong-level grant: grant-10000 at assets=35 (rule 2 grants only
 	// below 1) — refused
 	wrongLevel := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true}
-	if cr := verify(s1Verdict{kind: "grant-10000", details: "wrong level"}, spec, wrongLevel); cr.ok {
+	var cr checkResult
+	cr = verify(s1Verdict{kind: "grant-10000", details: "wrong level"}, spec, wrongLevel)
+	if cr.ok {
 		t.Fatal("M-2 probe: a grant-10000 verdict at assets=35 passed — the level-band consistency face is not load-bearing")
 	}
-	// ② window-premise violation: grant-50000 with a TERM-level overdue
-	// INSIDE the window (4 months, yearsAgo=0) — the spec's answer is NOT
-	// a clean grant. (R36 M-2: the probe is now window-aware AND
-	// term-consistent — the old months=2 form invented a second definition
-	// of "overdue".)
+	// ② window-premise enforcement: a term-level overdue INSIDE the
+	// window still kills the grant — but the CARRIER is rule 0 (the R37
+	// M-1 retirement: the separate window face's domain was a strict
+	// subset of the veto's). The probe pins the veto reason so a future
+	// carrier change must re-declare itself.
 	window := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 0}}}
-	if cr := verify(s1Verdict{kind: "grant-50000", details: "in-window overdue ignored"}, spec, window); cr.ok {
+	cr = verify(s1Verdict{kind: "grant-50000", details: "in-window overdue ignored"}, spec, window)
+	if cr.ok {
 		t.Fatal("M-2 probe: a grant-50000 verdict with an in-window term-level overdue passed — rule 1's window premise is not enforced")
+	}
+	if !strings.Contains(cr.reason, "rule 0") {
+		t.Fatalf("M-2 probe: the in-window refusal came from %q — the declared carrier is the veto face (rule 0); a new carrier must re-pin this probe", cr.reason)
 	}
 	// ③ R36 M-2 positive control: a SUB-TERM record outside the window
 	// (1 month, 5 years ago — not an "overdue" under the fixture's term,
@@ -853,5 +864,27 @@ func TestE1_UndefinedRuleMirror(t *testing.T) {
 	open := rawEvidence{assetMillionsDeclared: 12, assetReportPresent: true}
 	if cr := verify(s1Verdict{kind: "on_undefined_rule", details: "genuinely open"}, spec, open); !cr.ok {
 		t.Fatalf("m-4 probe: the honest open-zone verdict was refused (%s) — the mirror over-blocks", cr.reason)
+	}
+}
+
+// TestE1_VetoAnchorMixedOrder is the R37 M-2 probe: a compound occurrence
+// anywhere in the text poisons the anchor regardless of ORDER — the clean
+// occurrence must not exempt a later compound (clean-first single rule),
+// and a clean RULE must not exempt a compound RULE (array order).
+// Mutation probe: revert decide to first-occurrence-only and both cases
+// parse the clean value — this goes red.
+func TestE1_VetoAnchorMixedOrder(t *testing.T) {
+	// ① clean-first single rule
+	cleanFirst := &fixtureSpec{Rules: []fixtureVetoRule{{Precedence: 0, Coverage: "three months for apprentices; denies beyond thirty-three months for everyone else"}}}
+	if got := anchorVetoMonths(cleanFirst); got != 0 {
+		t.Fatalf("M-2 probe: clean-first mixed text anchored = %d, want 0 — the later compound poisons", got)
+	}
+	// ② clean rule first, compound rule second
+	compoundLater := &fixtureSpec{Rules: []fixtureVetoRule{
+		{Precedence: 0, Coverage: "three months for apprentices"},
+		{Precedence: 0, Coverage: "denies beyond thirty-three months"},
+	}}
+	if got := anchorVetoMonths(compoundLater); got != 0 {
+		t.Fatalf("M-2 probe: clean-rule-first anchored = %d, want 0 — the compound rule poisons", got)
 	}
 }
