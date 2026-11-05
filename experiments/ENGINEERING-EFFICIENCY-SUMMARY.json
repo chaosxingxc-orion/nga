@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T13:56:19.033023+00:00",
+    "observed_utc": "2026-11-05T14:02:35.421028+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -344,7 +344,7 @@
         "tests": 5,
         "TORCH_DEVICE_BACKEND_AUTOLOAD": "0"
       },
-      "full_replay": "original46320record snapshot admission exit0, frozenBCCBBCprotocol, measuredrun1 started; fullresults pending"
+      "full_replay": "four of six measured runs completed; remaining running, no final performance or release acceptance"
     },
     "resource_provider": {
       "v2_verdict": "REQUEST_CHANGES",
@@ -361,7 +361,18 @@
       "malformed_free_reproducers": 2,
       "parent_review_pins": 62,
       "physical_qualified": false,
-      "service_wired": false
+      "service_wired": false,
+      "v3": {
+        "status": "fixes delivered, independent review active",
+        "parent_prior_review_tests": 12,
+        "parent_new_strict_tests": 4,
+        "parent_evidence_hashes": 51,
+        "prior_free_repro_now": [
+          "unknown",
+          "unknown"
+        ],
+        "physical_qualified": false
+      }
     },
     "log_service_integration": {
       "version": "v5",
@@ -419,6 +430,22 @@
       "scope": "running Docker inventory only; mappings not utilization; no release or stop authority",
       "running_containers": 6,
       "accelerator_or_broad_access": []
+    },
+    "bounded_training_configs": {
+      "sizes": [
+        "0.8B",
+        "2B",
+        "4B",
+        "9B"
+      ],
+      "schema_valid": true,
+      "seed": 2,
+      "updates": 2,
+      "schedule": 3116,
+      "model_config_and_train_hash_verified": true,
+      "weight_payloads_rehashed": false,
+      "launch": false,
+      "image_and_lease_bound": false
     }
   }
 }
