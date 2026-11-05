@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T12:57:51.105571+00:00",
+    "observed_utc": "2026-11-05T13:08:32.451953+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -288,11 +288,20 @@
       "review_sha256": "fdafc5fc227d2e95d7689a6fef50a8598c3450599519d7131536e026bf4fd163",
       "patch_parent_tests": {
         "passed": 5,
-        "seconds": 0.609,
+        "seconds": 0.726,
         "full_replay_completed": false,
         "independent_patch_acceptance": false
-      }
+      },
+      "frozen_build_context_files": 59,
+      "candidate_built": false
     },
-    "log_capture": "REJECT_SCOPED F1-F4 actual progress path, watchdog heartbeat/cadence, bounded heartbeat projection, cross-output per-consumer exclusion; fixes running"
+    "log_capture": "F1-F4 fixes delivered; parent9tests3.317s pass; independent review pending; no service integration",
+    "trained_evaluation": {
+      "status": "standalone component delivered, independent review pending",
+      "parent_tests": 3,
+      "parent_test_seconds": 0.479,
+      "fixture": "actual tiny PEFT publication/load/forward, patched registry; not realQwen or NPU",
+      "root_host_export_score_integration": false
+    }
   }
 }
