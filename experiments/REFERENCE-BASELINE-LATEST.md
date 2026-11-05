@@ -17,7 +17,7 @@ Execution status and dataset-admission progress are maintained in the Wiki. Fixe
 
 The fixed Qwen3.5-0.8B seven-member same-TEST report passed independent scientific review. Primary seed-mean accuracy is **83.333333%** on decision-v7 (1200 questions) and **67.530488%** on transfer-v4 (656), improving over its own Base by **28.500000 pp** and **4.725610 pp**. Frozen paired 90% intervals are [25.958333, 31.041667] and [1.448171, 7.926829] pp. Transfer ECE worsens; no uniform metric improvement or superiority over PT is claimed.
 
-[Accepted result artifact](FINAL-SAME-TEST-RESULTS-2026-11-05.json) · [Full tables and qualified local Kev comparison](https://github.com/chaosxingxc-orion/nga/wiki/Qwen35-Final-Same-TEST). Local Kev saved-item comparisons preserve native versus T=1 protocols and the missing historical audit-SHA binding; original-reference-to-converted semantic equivalence remains unproven. Historical reference tables below are unchanged.
+[Accepted result artifact](FINAL-SAME-TEST-RESULTS-2026-11-05.json) · [Full tables and qualified local Kev comparison](https://github.com/chaosxingxc-orion/nga/wiki/Qwen35-Final-Same-TEST). Local Kev saved-item comparisons preserve native versus T=1 protocols and the missing historical audit-SHA binding; the exact source-question mask and data mapping for all1,856 questions are now independently accepted. This is a field-mapping comparison across different interfaces: prompt-byte, tokenizer and numerical equivalence are not established; outer whitespace differs on36 decision input rows,1 transfer input row and8 transfer definitions. Historical reference tables below are unchanged.
 
 ## Large-candidate released TEST — local codebook protocol, 2026-11-04
 

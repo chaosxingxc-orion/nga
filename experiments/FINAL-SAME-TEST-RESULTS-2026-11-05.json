@@ -2925,5 +2925,26 @@
     "No production artifact is rewritten to scientific_acceptance=true. The completed producer/consumer artifacts deliberately retain false; this independent review is the scientific assessment for the scoped report, and does not perform publication, deployment, commit or push."
   ],
   "scientific_acceptance": true,
-  "full_goal_complete": false
+  "full_goal_complete": false,
+  "reference_mapping_addendum": {
+    "verdict": "ACCEPT_SCOPED_REFERENCE_TO_CONVERTED_MAPPING",
+    "review_sha256": "6c254968437ee196d59b6fbbc362eb33fc123cda54fa6614bc0f94ee2c6d86e0",
+    "mapped_questions": 1856,
+    "input_pins_reverified": 1667,
+    "scope": "Data mapping and descriptive matched-source local-reference comparison for already consumed decision-v7 TEST1200 and transfer-v4 TEST656 only; prior seven-member report remains accepted unchanged.",
+    "publication_safe_wording": "For the previously consumed decision-v7 TEST1200 and transfer-v4 TEST656 populations, an independent read-only audit authenticated the exact clean-question mask and the original-reference-to-converted data mapping for all 1,856 questions, including rendered inputs and instructions, ordered candidate IDs/names/definitions, and gold labels. The reconstructed converted files are byte-identical to the frozen files bound to all seven accepted final vectors. These results support the existing descriptive local-reference comparison on matched source questions under explicitly different input/output interfaces. They do not establish prompt-byte, tokenization, attention-mask, architectural, numerical or cross-hardware equivalence. The final prompt strips outer whitespace on 36 decision input rows, one transfer input row and eight transfer candidate definitions. The legacy reference audit still lacks an audit-SHA terminal binding; current envelope and EXPECTED hashes do not create historical terminal authentication.",
+    "residual_bounds": [
+      "Acceptance closes only the original-reference-to-converted data-field/mask/render mapping gap for the already consumed two clean TEST populations. It does not modify the prior seven-member scientific acceptance or reopen selection.",
+      "Historical reference terminal binds config stamp and suite row/report hashes. It does not separately bind the legacy audit SHA, EXPECTED file bytes or per-record envelope file bytes. Their present hashes and embedded commitments support current consistency, not independently witnessed historical creation or absence of an unobserved rewrite.",
+      "Pure API replay uses namespace objects and observed JSONContent; the full Pydantic/serving/model/tokenizer stack was not independently executed. Source inspection traces LocalPredictor through materialize/api_request/to_record; no opt-in date-facts transform occurs on the inspected reference driver path.",
+      "Inputs/instructions/option shown text map exactly at the audited data/API-render level. Added task definition, one row per question, fallback duplication, score-text duplication, false/true IDs with no/yes names, final option bullets/colons/answer cue and label continuation are explicit interface transformations. No serialized prompt-byte equivalence is claimed.",
+      "Outer whitespace counts are converted question-row counts: 36 decision input rows, one transfer input row, eight transfer definition options across two rows, zero question texts. These are retained differences, not silently normalized raw data or evidence that whitespace is behaviorally irrelevant.",
+      "QO is the existing dropped-input control; its binding to the converted dataset does not imply that it consumed input text. PT remains a control and the preselected primary remains unchanged.",
+      "Original annotation correctness, absence of leakage, reference checkpoint byte authentication, hidden runtime behavior, mechanism/architecture benefit and cross-hardware numerical equivalence are not newly established.",
+      "No new scores, probability arithmetic, uncertainty intervals, metric thresholds, selection or inference were produced. Prior T=1 descriptive comparison and its uncertainty limits remain; native T=2.3510958125672174 and upstream release metrics remain separate. Final item probability-loss vectors are not exported, so no new paired probability-loss claim follows.",
+      "All prior nonmapping scientific qualifications remain, including question-level rather than record-cluster/seed-population uncertainty, DEV adverse findings, shared metric primitives and limits of consistency claims.",
+      "Reads were limited to package evidence, its exact pinned sources/code/config/reports/envelopes and the seven prior-pinned final vectors. Nonclean original rows were inspected for count, canonical input commitment and exclusion/order only; no converted variants, train, calibration or development populations were opened."
+    ],
+    "supersedes": "Only the scoped data-mapping component of original stronger_claim_blockers; historical review content retained"
+  }
 }
