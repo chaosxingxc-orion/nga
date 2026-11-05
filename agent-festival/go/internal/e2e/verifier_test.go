@@ -138,9 +138,10 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 				if !strings.Contains(r.Coverage, w.word+" months") {
 					continue
 				}
-				if prev, ok := seen[w.n]; ok && prev != w.word {
-					return 0 // two different words claim the same face — ambiguous
-				}
+				// R36 m-1: no per-key conflict check here — the n→word
+				// table is a bijection, so a key can only ever map to one
+				// word; the REAL ambiguity check is len(seen) > 1 below
+				// (two different VALUES claimed).
 				seen[w.n] = w.word
 			}
 		}
@@ -166,8 +167,21 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 						return w.n
 					}
 					prev := r.Coverage[idx-1]
+					poisoned := false
+					if isWordChar(prev) || prev == '-' {
+						// R36 m-3: a compound hit's true value is not
+						// representable in the word table — if the text
+						// ALSO carries a clean hit (the collect phase saw
+						// the bare word), the two "agree" falsely; poison.
+						poisoned = true
+					}
+					if poisoned {
+						return 0
+					}
 					if prev == ' ' && idx >= 2 {
-						for _, w2 := range []string{"three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"} {
+						// R36 m-2: the magnitude words are in the family too
+						// ("hundred three months" parsed as 3 before)
+						for _, w2 := range []string{"three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety", "hundred", "thousand", "million"} {
 							start := idx - 1 - len(w2)
 							if start >= 0 && r.Coverage[start:idx-1] == w2 && (start == 0 || !isWordChar(r.Coverage[start-1])) {
 								return 0 // space-separated compound → sentinel
@@ -279,26 +293,41 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	if lo == 0 || hi == 0 {
 		return checkResult{ok: false, reason: "the fixture's band bounds are unparseable — the seat refuses to gate on an unanchored spec (fail-closed, R33 m-3: the two anchors now fail at the same depth)"}
 	}
-	inBand := raw.assetMillionsDeclared >= lo && raw.assetMillionsDeclared <= hi
-	if inBand && (kind == "grant-50000" || kind == "grant-10000") {
-		return checkResult{ok: false, reason: "assets in the closed between-bands zone (both cutoffs included) are an open specification question — a grant verdict is a model-authored default"}
-	}
 	// R35 M-2: the LEVEL-BAND CONSISTENCY face — the fixture's rule 1
 	// grants 50,000 only above the upper bound, rule 2 grants 10,000 only
 	// below the lower bound; a verdict in the wrong band for the declared
-	// assets contradicts the rules. (Plus the WINDOW-PREMISE face: rule
-	// 1's grant carries "with no overdue in the window" — an in-window
-	// overdue under a 50,000 verdict violates the premise.)
+	// assets contradicts the rules. R36 M-1: this face SUBSUMES the
+	// former between-bands face (inBand ⟹ the matching level-band
+	// condition for either grant kind — the old face was a dead guard
+	// whose "delete → red" probe was unreachable), so the band face is
+	// GONE and the between-bands semantics live entirely here: a grant
+	// in [lo,hi] is refused as a model-authored default in the open zone.
+	// (Plus the WINDOW-PREMISE face: rule 1's grant carries "with no
+	// overdue in the window" — see R36 M-2 for its window-aware form.)
 	if kind == "grant-10000" && raw.assetMillionsDeclared >= lo {
 		return checkResult{ok: false, reason: "a grant-10000 verdict with assets at or above the lower bound contradicts rule 2 (the level-band consistency face)"}
 	}
 	if kind == "grant-50000" && raw.assetMillionsDeclared <= hi {
-		return checkResult{ok: false, reason: "a grant-50000 verdict with assets at or below the upper bound contradicts rule 1 (the level-band consistency face)"}
+		return checkResult{ok: false, reason: "a grant-50000 verdict with assets in the closed between-bands zone or below it contradicts rule 1 (the level-band consistency face)"}
+	}
+	// R36 m-4: the on_undefined_rule MIRROR — a rule COVERS the assets
+	// point (35 > 30 is unambiguously rule 1), so answering
+	// on_undefined_rule there contradicts the rules just like a wrong
+	// grant does (the open-zone positive control below stays green).
+	if kind == "on_undefined_rule" && raw.assetMillionsDeclared > hi {
+		return checkResult{ok: false, reason: "rule 1 covers this assets point (above the upper bound) — on_undefined_rule contradicts the rules instead of answering them"}
 	}
 	if kind == "grant-50000" {
 		for _, o := range raw.overdueOnRecord {
-			if o.months > 0 { // any overdue on record: the window premise is violated for the recent-window band
-				return checkResult{ok: false, reason: "a grant-50000 verdict with an overdue on record violates rule 1's window premise (with no overdue in the window)"}
+			// R36 M-2: WINDOW-AWARE and TERM-CONSISTENT — the fixture's
+			// window is the recent six months (yearsAgo == 0), and its
+			// term "overdue" means longer than the anchored threshold
+			// (the same definition rule 0 uses — the previous months>0
+			// form invented a second definition and was record-global).
+			// A term-level overdue INSIDE the window violates rule 1's
+			// premise; anything else is spec-conforming.
+			if o.yearsAgo == 0 && o.months > vetoMonths {
+				return checkResult{ok: false, reason: "a grant-50000 verdict with a term-level overdue inside the recent window violates rule 1's window premise (with no overdue in the window)"}
 			}
 		}
 	}
@@ -536,9 +565,9 @@ func TestE1_MirrorAndBandFaces(t *testing.T) {
 	}
 
 	// face ② between-bands (open question → grant): refused at BOTH open
-	// edges. Mutation probe: delete the band-face block and these pass
-	// (red); the closed edges (exactly 1, exactly 30) pin the R29 M-4
-	// closure (exactly-30 = rule-1 exception; exactly-1 = fixture example).
+	// edges. R36 M-1: the carrier is now the LEVEL-BAND face (it subsumes
+	// the former band face); the probe pins its exclusive reason string —
+	// deleting the level-band face turns these red.
 	for _, assets := range []float64{12, 1, 30} {
 		rawBand := rawEvidence{
 			assetMillionsDeclared: assets,
@@ -548,6 +577,9 @@ func TestE1_MirrorAndBandFaces(t *testing.T) {
 		cr := verify(s1Verdict{kind: "grant-50000", details: "healthy"}, spec, rawBand)
 		if cr.ok {
 			t.Fatalf("E1 band: a grant verdict passed at assets=%v — an open-question zone produced a grant (model-authored default)", assets)
+		}
+		if !strings.Contains(cr.reason, "level-band consistency") {
+			t.Fatalf("E1 band: refusal at assets=%v came from %q — want the level-band face (the between-bands semantics' only carrier)", assets, cr.reason)
 		}
 	}
 
@@ -746,12 +778,22 @@ func TestE1_LevelBandConsistency(t *testing.T) {
 	if cr := verify(s1Verdict{kind: "grant-10000", details: "wrong level"}, spec, wrongLevel); cr.ok {
 		t.Fatal("M-2 probe: a grant-10000 verdict at assets=35 passed — the level-band consistency face is not load-bearing")
 	}
-	// ② window-premise violation: grant-50000 with an in-window overdue
-	// (2 months, inside the six-month window) — the spec's answer is NOT
-	// a clean grant
-	window := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{months: 2, yearsAgo: 0}}}
+	// ② window-premise violation: grant-50000 with a TERM-level overdue
+	// INSIDE the window (4 months, yearsAgo=0) — the spec's answer is NOT
+	// a clean grant. (R36 M-2: the probe is now window-aware AND
+	// term-consistent — the old months=2 form invented a second definition
+	// of "overdue".)
+	window := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 0}}}
 	if cr := verify(s1Verdict{kind: "grant-50000", details: "in-window overdue ignored"}, spec, window); cr.ok {
-		t.Fatal("M-2 probe: a grant-50000 verdict with an in-window overdue passed — rule 1's window premise is not enforced")
+		t.Fatal("M-2 probe: a grant-50000 verdict with an in-window term-level overdue passed — rule 1's window premise is not enforced")
+	}
+	// ③ R36 M-2 positive control: a SUB-TERM record outside the window
+	// (1 month, 5 years ago — not an "overdue" under the fixture's term,
+	// not in the window) must NOT be blocked — the old record-global form
+	// refused this spec-conforming verdict.
+	legacy := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{months: 1, yearsAgo: 5}}}
+	if cr := verify(s1Verdict{kind: "grant-50000", details: "old sub-term record"}, spec, legacy); !cr.ok {
+		t.Fatalf("M-2 probe: a spec-conforming verdict with an out-of-window sub-term record was refused (%s) — the window premise over-blocks", cr.reason)
 	}
 	// positive controls: the consistent forms still pass
 	if cr := verify(s1Verdict{kind: "grant-50000", details: "clean record"}, spec, rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true}); !cr.ok {
@@ -795,5 +837,21 @@ func TestE1_BandBoundsInvertedRefused(t *testing.T) {
 	cr := verify(s1Verdict{kind: "grant-50000", details: "healthy"}, inverted, rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true})
 	if cr.ok {
 		t.Fatal("m-2 probe: verify gated on an inverted-band spec — the fail-closed face is not load-bearing")
+	}
+}
+
+// TestE1_UndefinedRuleMirror is the R36 m-4 probe: a rule-covered point
+// answered on_undefined_rule is a contradiction (the mirror twin of the
+// deny mirror). Mutation probe: delete the mirror face and this goes red.
+func TestE1_UndefinedRuleMirror(t *testing.T) {
+	spec := loadE3Fixture(t)
+	covered := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true}
+	if cr := verify(s1Verdict{kind: "on_undefined_rule", details: "evasive non-answer"}, spec, covered); cr.ok {
+		t.Fatal("m-4 probe: an on_undefined_rule verdict at a rule-covered point passed — the under-execution form is not intercepted")
+	}
+	// positive control: the OPEN ZONE keeps its honest on_undefined_rule
+	open := rawEvidence{assetMillionsDeclared: 12, assetReportPresent: true}
+	if cr := verify(s1Verdict{kind: "on_undefined_rule", details: "genuinely open"}, spec, open); !cr.ok {
+		t.Fatalf("m-4 probe: the honest open-zone verdict was refused (%s) — the mirror over-blocks", cr.reason)
 	}
 }

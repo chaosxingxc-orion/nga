@@ -207,7 +207,7 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 
 ## R30 空白复审记账（2026-11-06，339b38b..7e4d4b7 六实验+R29 清偿——0B/4M/7m 全清偿；连净计数 0）
 
-- **M-1（E2 拦截无行为承载）**：测试全程不调 S1、无按 gap 条件化派发——「拦截」无可执行承载面，反突变声明不可达（缺席断言绿=方法论第 19 条形态）。已修：真条件流（gap 空→judge/adopt/dispatch/submit；非空→扣派发），双断言面。反突变（coverageGap 恒空）→门自由路径跑通→行为红。
+- **M-1（E2 拦截无行为承载）**：测试全程不调 S1、无按 gap 条件化派发——「拦截」无可执行承载面，反突变声明不可达（缺席断言绿=方法论第 19 条形态）。已修：真条件流（gap 空→judge/adopt/dispatch/submit；非空→扣派发），双断言面。反突变分形【R36 m-5 归因更正】：coverageGap 恒空→值断言红（gap 检查先行，行为段不可达）；宿主流删 gate 条件→门自由分支跑通→行为断言红（bankAPI/事件）——两个突变的红源分开写明。
 - **M-2（锚 fail-open）**：anchorVetoMonths 只识别 three/four，词表外措辞（six months）落默认 3——漂移探测器变漂移掩护者。已修：fail-closed（词表 three/four/five/six 映射；无解析→0 哨兵→verify 拒绝把关=对流程 fail-closed）+锚测试双断言（可解析+值）。反突变（夹具改 six）→双测试红。
 - **M-3（词表门缺失）**：三语义面全靠精确字符串——GRANT-50000 大小写变体/词表外 kind/无 veto 字样的伪造 deny 全部实测绕过。已修：词表门先行（夹具 levels+resolution 词；EqualFold），镜像面收窄为「!vetoFires 时一切 deny 皆伪造」（rule 0 是夹具唯一 deny 路径，不再关键词嗅探）。直检探针：变体必拒。
 - **M-4（账本系统性假 detail）**：DispatchIfCurrent 成功事件 100% 写「after the version check」而版本比较在可达态必然被跳过（observed 恒 -1）——审计统计「过版本门的派发」全数为假。已修：detail 按 form 分裂（conditional 命名实跑的检查/fresh-observation 诚实声明跳过）+TestE6 detail 分形钉（回退合一→红）。
@@ -253,3 +253,14 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **m-2（band 锚倒置区间）**：lo>hi（可解析但文本自相矛盾）→inBand 恒 false→带面静默失活（第三种 fail-open：既非不可解析也非多命中）。已修：倒置检查→sentinel+TestE1_BandBoundsInvertedRefused（探针+verify 拒关双断言）。反突变（去倒置检查）→红。
 - **m-3~m-5（随批清偿）**：phantom 族名实极性修正（TestE0DiseaseExists_*→TestE0_*_Caught+「Current state」叙事改为 R14' 修复后实态）；R34 账本头计数 4m→3m 更正（header 计数=body 条目数机械规则）；comma 死变量删。
 - **方法论入账（第 30/31 实证）**：header 的契约声明要逐条对照实现的语义面清单——「refuses under the fixture's rules」的 rules 是全集还是子集要写明（M-2——锚定住了数值锚不住未实现子句）；inline-return 的多源收集要在裁决前完成（m-1——词序压过文本序是 return-early 的结构性后果）。
+
+## R36 空白复审记账（2026-11-06，339b38b..ddcc06c 六实验+R29-R35 清偿——0B/2M/5m 全清偿；连净计数 0）
+
+- **M-1（带面被级档面吞成死守卫——R35 M-2 清偿自身的反噬）**：inBand ⟹ 级档面条件（对任一 grant kind），带面可拒集合 ⊆ 级档面可拒集合——带面删码全绿、「删除即红」探针声明不可达（R29 M-4 病形由清偿引入）。已修：带面删除+TestE1_MirrorAndBandFaces 探针改挂级档面独占 reason 字符串。反突变（删级档面）→双测试红。
+- **M-2（窗口前提无视窗口信号+重定义术语）**：months>0 record-global 检查——yearsAgo（唯一窗口信号）未读；months∈[1,3] 按夹具术语根本不是 overdue（同一字段两套定义）；过阻断言类无阳性对照。已修：窗口感知（yearsAgo==0）+术语一致（months>vetoMonths 与 rule 0 同一定义）+过阻阳性对照（months=1/yearsAgo=5 规范合流过闸）。反突变（回退 record-global）→过阻对照红（假 reason 亲证）。
+- **m-1（死分支）**：collect 相 per-key 冲突检查恒假（n→word 双射）——真歧义检查是 len(seen)>1。已修：死分支删+注释如实。
+- **m-2（量级词族漏）**：token 表无量级词——"hundred three months"→3（值保持型误解析，两轮形态族枚举均漏）。已修：token 表补 hundred/thousand/million。
+- **m-3（复合+裸词混排静默解析）**：复合命中的真值不可表示→被记为一致票——decide 相发现复合命中即置毒→0。
+- **m-4（on_undefined_rule 无带位镜像）**：恒答 on_undefined_rule 的病 S1 在全部非 veto 输入过席（欠执行形态）。已修：规则覆盖点上拒（assets>hi）+开放带阳性对照。反突变→红。
+- **m-5（账本归因错位）**：R30 M-1 行「coverageGap 恒空→行为红」不可达（值断言先行）——红源分形更正。
+- **方法论入账（第 32/33 实证）**：新增面与旧面的谓词域重叠要显式审计（M-1——后加面使前面失去唯一承载，探针声明随之失效）；面的 reason 文本不得断言 seat 输入无法建立的事实（M-2——窗口信号在读吗、术语定义与既有面一致吗）。
