@@ -1049,7 +1049,7 @@
     }
   },
   "latest_execution_status": {
-    "as_of_utc": "2026-11-05T16:53:00Z",
+    "as_of_utc": "2026-11-05T17:23:00Z",
     "research_hold": true,
     "existing_runs": "preserved",
     "full_release": false,
@@ -1105,6 +1105,32 @@
         "safe fresh retry/finalization",
         "installed process-boundary qualification"
       ]
-    }
+    },
+    "diagnostic_controller_v13": {
+      "status": "FUNCTIONAL_CLOSURE_COMPLETE_INSTALLED_QUALIFICATION_OPEN",
+      "tests": 8,
+      "open": [
+        "installed supervisor/partial receipt/copy faults",
+        "finalization recovery",
+        "daemon outage boundary",
+        "full46320 input/resource route"
+      ]
+    },
+    "capture_stream_v7": {
+      "status": "CPU_NATIVE_SLICE_DELIVERED_PARENT_ACCEPTANCE_PENDING",
+      "tests_stream": 17,
+      "tests_loop": 7,
+      "repairs": [
+        "shared trainer decoded checkpoint object",
+        "preflight complete inventory",
+        "reader scratch reserve 32MiB with scoped claim"
+      ],
+      "open": [
+        "Astra final scope review",
+        "tolerance comparator",
+        "production identity/input RNG/full-size/NPU"
+      ]
+    },
+    "service_transaction_review": "PARTIAL_FUNCTIONAL_COMPLETION; trained export/score fresh closure still blocked by nested pinned path visibility"
   }
 }
