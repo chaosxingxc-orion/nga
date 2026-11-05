@@ -96,7 +96,7 @@
   ],
   "scope": "Retained metadata/source audit; no new training or NPU qualification; model payload hashes inherited.",
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T15:43:38.775845+00:00",
+    "observed_utc": "2026-11-05T15:54:02.185511+00:00",
     "status": "CPU training shell and trained consumer accepted in scoped tests; production full capture and physical NPU qualification pending",
     "supersedes": "Implementation status of initial metadata audit only; inherited counts and scientific conclusions unchanged",
     "handoff_sha256": "7d89cd1aeedc62b7008fd3daf1af598f417ef0b96985743ab2d9c40ebd7c13b8",
@@ -304,7 +304,7 @@
     },
     "native_capture_cpu_current": {
       "version": "v2",
-      "status": "CPU_NATIVE_LOOP_DELIVERED_INDEPENDENT_REVIEW_PENDING",
+      "status": "ACCEPT_PARTIAL_CPU_NATIVE_LOOP_ONLY",
       "parent_pins": 15,
       "pin_mismatches": 0,
       "native_loop_tests": 10,
@@ -321,7 +321,12 @@
         "actual save/decode/live restore",
         "inputs/RNG evidence",
         "bounded NPU transfers and complete resource budgets"
-      ]
+      ],
+      "independent_tests": 16,
+      "parent_review_pins": 390,
+      "parent_review_mismatches": 0,
+      "source_commit": "cc9bace",
+      "independent_pretest_environment_failure": "one supplied-suite process ran zero tests because isolated Python hid user-site Torch; retained separately, no test failures in16 independent methods"
     }
   }
 }
