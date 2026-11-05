@@ -96,7 +96,7 @@
   ],
   "scope": "Retained metadata/source audit; no new training or NPU qualification; model payload hashes inherited.",
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T15:36:33.387944+00:00",
+    "observed_utc": "2026-11-05T15:43:38.775845+00:00",
     "status": "CPU training shell and trained consumer accepted in scoped tests; production full capture and physical NPU qualification pending",
     "supersedes": "Implementation status of initial metadata audit only; inherited counts and scientific conclusions unchanged",
     "handoff_sha256": "7d89cd1aeedc62b7008fd3daf1af598f417ef0b96985743ab2d9c40ebd7c13b8",
@@ -301,6 +301,27 @@
       "native_loop_integrated": false,
       "next": "actual native-loop two-update CPU integration; Adam/restore/NPU later gates",
       "real_npu_launch": false
+    },
+    "native_capture_cpu_current": {
+      "version": "v2",
+      "status": "CPU_NATIVE_LOOP_DELIVERED_INDEPENDENT_REVIEW_PENDING",
+      "parent_pins": 15,
+      "pin_mismatches": 0,
+      "native_loop_tests": 10,
+      "native_loop_seconds": 1.797,
+      "family_regression_tests": 5,
+      "family_regression_seconds": 23.336,
+      "test_environment": "existing trained-eval-component: torch2.10.0+cpu peft0.18.1 numpy1.26.4",
+      "prior_environment_errors": "family suite2missing-peft errors; all5 pass with existing provisioned venv",
+      "production_capture_qualified": false,
+      "full_protocol_complete": false,
+      "remaining": [
+        "trusted production topology/identity",
+        "Adam moments and optimizer/scheduler",
+        "actual save/decode/live restore",
+        "inputs/RNG evidence",
+        "bounded NPU transfers and complete resource budgets"
+      ]
     }
   }
 }

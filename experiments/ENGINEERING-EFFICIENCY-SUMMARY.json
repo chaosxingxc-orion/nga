@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T15:36:33.387944+00:00",
+    "observed_utc": "2026-11-05T15:43:38.773904+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -845,22 +845,29 @@
       ]
     },
     "diagnostic_completion_current": {
-      "version": "v8",
-      "status": "CHANGES_REQUIRED",
+      "version": "v9",
+      "status": "SOURCE_PROTOCOL_DELIVERED_INDEPENDENT_REVIEW_PENDING_CUSTODY_INCOMPLETE",
       "parent_review_pins": 226,
       "parent_pin_mismatches": 0,
       "accepted_scope": "double-slash and lock-symlink rejection; cleanup when unlink succeeds; descriptor-relative marker; three-record source parity",
       "remaining": [
-        "fsync plus unlink failure leaves readable success marker; actual supervisor and consumer protocol missing",
-        "mkdir/open replacement adopts foreign directory; private-parent custody missing"
+        "create/open directory ownership not enforced against sameUID",
+        "actual image/source/dependency assembly and installed validation"
       ],
       "image_built": false,
       "new_measurement": false,
-      "next": "v9 actual supervisor/consumer and enforced output custody, independent delta review queued"
+      "next": "independent delta review; enforce supported deployment custody before image qualification",
+      "parent_delivery_pins": 107,
+      "parent_delivery_mismatches": 0,
+      "supervisor_and_consumer_implemented": true,
+      "producer_tests": 9,
+      "known_directory_replacement_reproduction": true,
+      "scientific_acceptance": "no new scientific experiment; historical scoped results unchanged",
+      "performance_gate": "FAILED_UNCHANGED"
     },
     "portable_resource_current": {
       "version": "v9",
-      "status": "DELIVERED_PENDING_INDEPENDENT_REVIEW",
+      "status": "ACCEPT_PORTABLE_FEATURE_SCOPED_SIMULATION_ONLY",
       "runtime_root": "tools/resource-provider-v3-runtime",
       "historical_review_directory_required_at_runtime": false,
       "parent_pins": 11,
@@ -870,7 +877,37 @@
       "scope": "same six-file v3 simulation closure; ambient Python/jsonschema trusted",
       "physical_qualified": false,
       "full_service_qualified": false,
-      "legacy_regression": "one obsolete caller-executable timeout expectation remains; real child timeout test passes"
+      "legacy_regression": "one obsolete caller-executable timeout expectation remains; real child timeout test passes",
+      "source_commit": "5542d5c",
+      "parent_review_pins": 157,
+      "parent_review_mismatches": 0,
+      "independent_checks": 16,
+      "remaining": [
+        "actual trained service transaction",
+        "current trained host compatibility",
+        "175 trusted runtime and physical resource qualification"
+      ]
+    },
+    "native_capture_cpu_current": {
+      "version": "v2",
+      "status": "CPU_NATIVE_LOOP_DELIVERED_INDEPENDENT_REVIEW_PENDING",
+      "parent_pins": 15,
+      "pin_mismatches": 0,
+      "native_loop_tests": 10,
+      "native_loop_seconds": 1.797,
+      "family_regression_tests": 5,
+      "family_regression_seconds": 23.336,
+      "test_environment": "existing trained-eval-component: torch2.10.0+cpu peft0.18.1 numpy1.26.4",
+      "prior_environment_errors": "family suite2missing-peft errors; all5 pass with existing provisioned venv",
+      "production_capture_qualified": false,
+      "full_protocol_complete": false,
+      "remaining": [
+        "trusted production topology/identity",
+        "Adam moments and optimizer/scheduler",
+        "actual save/decode/live restore",
+        "inputs/RNG evidence",
+        "bounded NPU transfers and complete resource budgets"
+      ]
     }
   }
 }
