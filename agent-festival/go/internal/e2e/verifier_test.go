@@ -43,10 +43,12 @@ type rawEvidence struct {
 // M-1: the previous Contains+literal-copy form was blind to digit
 // extension, "above 30"→"above 300" matched and kept the stale 30). An
 // unparseable bound returns 0 (the fail-closed sentinel: the anchor test
-// flags it), never a historic default. R33 m-3 honesty: with bounds (0,0)
-// the band face's closed interval [0,0] fires only at assets==0 — the
-// "never fires" phrasing was false; the sentinel's real protection is the
-// TEST-layer value assertion, not gate inertness.
+// flags it), never a historic default. Sentinel protection state: the
+// VERIFY-side refusal (R40 M-2) rejects an unanchored spec outright
+// (TestE1_BandAnchorFailClosed pins that carrier — deleting the refusal
+// resurrects the drift cover). (R42 m-1: the older R33 m-3 note here
+// described the since-deleted band face and predated the verify-side
+// refusal.)
 func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 	var lo, hi float64
 	// R34 m-1: a digit run followed by a comma/digit means a GROUPED
@@ -67,7 +69,11 @@ func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 	// silently because hi != 0 was false).
 	seenAbove, seenBelow := false, false
 	for _, r := range spec.Rules {
-		for _, m := range aboveRe.FindAllStringSubmatch(r.Coverage, -1) {
+		// R42 M-1: the band anchor also runs on the NORMALIZED text (the
+		// single-space regex literals missed whitespace-variant conflict
+		// declarations — "above␣␣50" never matched and drifted silently)
+		normalizedBand := strings.Join(strings.Fields(r.Coverage), " ")
+		for _, m := range aboveRe.FindAllStringSubmatch(normalizedBand, -1) {
 			if m[2] != "" {
 				return 0, 0 // grouped/poisoned form — fail closed
 			}
@@ -80,7 +86,7 @@ func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 			}
 			hi, seenAbove = v, true
 		}
-		for _, m := range belowRe.FindAllStringSubmatch(r.Coverage, -1) {
+		for _, m := range belowRe.FindAllStringSubmatch(normalizedBand, -1) {
 			if m[2] != "" {
 				return 0, 0
 			}
@@ -158,18 +164,23 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 	// this arm too; the previous inline-return form let the word ORDER
 	// decide — "three" hit before "six" regardless of which rule the text
 	// meant). Same value repeats are agreement.
-	seen := map[int]string{}
+	seen := map[int]struct{}{}
 	for _, r := range spec.Rules {
+		// R42 M-1: the collect phase reads the NORMALIZED text — same as
+		// the decide phase (the two phases saw different texts before: a
+		// whitespace-variant conflict declaration slipped the bare
+		// Contains and the conflict was silently dropped)
+		normalized := strings.Join(strings.Fields(r.Coverage), " ")
 		if r.Precedence == 0 {
 			for _, w := range vetoWords {
-				if !strings.Contains(r.Coverage, w.word+" months") {
+				if !strings.Contains(normalized, w.word+" months") {
 					continue
 				}
 				// R36 m-1: no per-key conflict check here — the n→word
 				// table is a bijection, so a key can only ever map to one
 				// word; the REAL ambiguity check is len(seen) > 1 below
 				// (two different VALUES claimed).
-				seen[w.n] = w.word
+				seen[w.n] = struct{}{} // R42 m-2: the word form was never consumed (dead value) — the SET membership is the semantics
 			}
 		}
 	}
@@ -1114,5 +1125,32 @@ func TestE1_BandBoundsInvertedWithZero(t *testing.T) {
 	lo, hi := anchorBandBounds(invertedWithZero)
 	if lo != 0 || hi != 0 {
 		t.Fatalf("m-1 probe: zero-involved inversion = (%v, %v), want (0, 0) — the seen-flag form must catch it", lo, hi)
+	}
+}
+
+// TestE1_WhitespaceVariantConflictsCaught is the R42 M-1 probe: whitespace-
+// variant conflict declarations must be CAUGHT like their single-space
+// twins — the collect phase and the band regex both run on normalized
+// text. Mutation probe: revert either consumer to bare-text and the
+// matching case goes green (the conflict silently drops).
+func TestE1_WhitespaceVariantConflictsCaught(t *testing.T) {
+	// ① veto arm: a clean rule + a whitespace-variant conflicting
+	// declaration → conflict (previously parsed 3, the conflict dropped)
+	vetoConflict := &fixtureSpec{Rules: []fixtureVetoRule{
+		{Precedence: 0, Coverage: "denies beyond three months for standard applicants"},
+		{Precedence: 0, Coverage: "recap: six  months as before"},
+	}}
+	if got := anchorVetoMonths(vetoConflict); got != 0 {
+		t.Fatalf("M-1 probe: whitespace-variant veto conflict anchored = %d, want 0 — the conflict silently dropped", got)
+	}
+	// ② band arm: an appended clause with a whitespace-variant different
+	// bound → conflict (previously (1, 30), the drift silently kept)
+	bandConflict := &fixtureSpec{Rules: []fixtureVetoRule{
+		{Precedence: 1, Coverage: "assets above 30 (USD-millions) grant the line; recap: assets above  50 as before"},
+		{Precedence: 2, Coverage: "assets below 1 (USD-millions) grants the small line"},
+	}}
+	lo, hi := anchorBandBounds(bandConflict)
+	if lo != 0 || hi != 0 {
+		t.Fatalf("M-1 probe: whitespace-variant band conflict = (%v, %v), want (0, 0) — the appended-clause drift was silently kept", lo, hi)
 	}
 }
