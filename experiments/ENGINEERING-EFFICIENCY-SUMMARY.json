@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T14:32:24.343294+00:00",
+    "observed_utc": "2026-11-05T14:44:45.854465+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -410,13 +410,26 @@
       }
     },
     "log_service_integration": {
-      "version": "v5",
+      "version": "v6",
       "fixed_registry_and_preparation_api": true,
       "parent_actualsubprocess_tests": 3,
       "test_seconds": 4.123,
       "delivery_pins": 15,
-      "eventservice_automatic_start": false,
-      "independent_acceptance": false
+      "eventservice_automatic_start": "implemented but not qualified",
+      "independent_acceptance": false,
+      "status": "incomplete_no_go",
+      "remaining": [
+        "retainedworker reconciliation after retry exhaustion",
+        "logEOF delayedACK reconciliation",
+        "trainedconsumer dependency admission",
+        "legacy supervisor owner fixture",
+        "closed deployableconfig"
+      ],
+      "producer_focused_tests": 5,
+      "producer_broad_tests": 61,
+      "producer_broad_failures": 1,
+      "internal_review_is_independent_astra": false,
+      "nested_process_correction": "Repeated nested model dispatch: owned development root stopped SIGTERM exit-15; preserved incomplete artifacts explicitly handed to resource/service repair; experiments untouched"
     },
     "runtime_import": {
       "image": "sha256:a2b20ba160230b3e8c538ce588e256bec55cdb4b4e5e5a294e70ba9107dca6d9",
@@ -622,6 +635,40 @@
       "mechanism": "memory-limit pressure established; anon/cache/slab/reclaim attribution missing",
       "next": "fixed bounded phase+memory.stat+same-process pool telemetry before another hotpath change",
       "causal_speedup": false
+    },
+    "npu_numerical_protocol_v2": {
+      "status": "proposed pending independent review",
+      "parent_pins": 27,
+      "parent_pin_mismatches": 0,
+      "parent_synthetic_tests": 18,
+      "parent_test_output": "separate copied closure",
+      "claim": "bounded observed-repeat containment for first two fixed train updates only",
+      "prospective_recommended_per_size": {
+        "processes": 9,
+        "updates": 14
+      },
+      "sizes": [
+        "0.8B",
+        "2B",
+        "4B",
+        "9B"
+      ],
+      "tolerance": "baseline-only pairwise per-tensor maxabs and symmetric relativeL2, both required; no epsilon; unmeasured",
+      "baseline_and_candidate_resume": true,
+      "production_capture": false,
+      "launch": false
+    },
+    "attempt_identity_v5": {
+      "status": "partial source fix under independent review",
+      "parent_pins": 17,
+      "parent_pin_mismatches": 0,
+      "parent_focused_tests": 2,
+      "remaining": [
+        "legacy unowned fixture expects unsafewrite",
+        "verify actualnewattempt vs historicalevent selection",
+        "image closure"
+      ],
+      "fullacceptance": false
     }
   }
 }
