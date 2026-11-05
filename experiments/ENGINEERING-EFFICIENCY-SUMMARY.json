@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T14:20:37.877187+00:00",
+    "observed_utc": "2026-11-05T14:32:24.343294+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -327,6 +327,27 @@
           "standalone source manifest receipt field",
           "image stale/missing payload closure"
         ]
+      },
+      "v4": {
+        "independent_verdict": "bounded CPU transaction and ancestry accepted; attempt identity unresolved",
+        "current_supplied_tests": 14,
+        "independent_cases": {
+          "positive": 10,
+          "negative_rejections": 21,
+          "defect_reproductions": 3
+        },
+        "parent_transaction_exit": 0,
+        "parent_case_counts": {
+          "positive": 7,
+          "negative_rejections": 18,
+          "defect_reproductions": 1
+        },
+        "review_pin_verification": {
+          "matched": 139,
+          "mismatch": 1,
+          "reason": "parent rerun overwrote producer independent-results.json; separate independent review source/artifacts retained"
+        },
+        "image_assembled": false
       }
     },
     "runtime_metadata": {
@@ -543,6 +564,64 @@
         "final image and physical leases",
         "separate numeric capture and throughput measurements"
       ]
+    },
+    "score_bottleneck_diagnosis": {
+      "source": "retained six-run structured receipts; no new benchmark",
+      "audit_checks": 86,
+      "formula_tests": 21,
+      "parent_rerun": true,
+      "memory_limit_bytes": 12884901888,
+      "sampled_memory_max_bytes": [
+        12884901888,
+        12884893696,
+        12884840448,
+        12884901888,
+        862269440,
+        857042944
+      ],
+      "memory_max_events": [
+        1148811,
+        329810,
+        257770,
+        175066,
+        0,
+        0
+      ],
+      "memory_psi_some_seconds": [
+        65.104637,
+        16.139595,
+        13.537007,
+        9.936006,
+        0.0,
+        0.0
+      ],
+      "workflow": {
+        "after_fixture_to_workflow_terminal_wall_estimate_seconds": 1477.5886631011963,
+        "clock_scope": "host175 retained daemon/test and controller markers only",
+        "endpoints": {
+          "boot_id": "10521838-ac08-48fd-ac1c-8189552c864f",
+          "first_start_monotonic": 1568864.85151923,
+          "fixture_finished_at": "2026-11-05T13:38:02.12188765Z",
+          "gate_terminal_utc": 1793886563.3169537,
+          "last_wait_monotonic": 1569598.59004378,
+          "root_terminal_utc": 1793887359.71055
+        },
+        "full_admission_start_seconds": null,
+        "gate_terminal_to_first_start_wall_estimate_seconds": 38.301244258880615,
+        "interrun_gaps_seconds": 0.6660616700537503,
+        "last_wait_to_workflow_terminal_wall_estimate_seconds": 24.353825092315674,
+        "limitation": "Preaudit proxy includes manifest/population checks, snapshot/hash and gate publication after fixture. No exact audit start or monotonic gate endpoints; wall-clock stability before measurement unproven. Earlier failed/stopped admissions and build are outside this workflow proxy.",
+        "measurement_span_monotonic_seconds": 733.7385245498735,
+        "preaudit_after_fixture_to_gate_terminal_wall_estimate_seconds": 681.195066690445,
+        "pure_preaudit_duration_seconds": null,
+        "sum_create_seconds": 0.3867636900395155,
+        "sum_six_primary_seconds": 733.0724628798198,
+        "sum_six_scorer_seconds": 723.5615888498724,
+        "within_measurement_utc_minus_monotonic_offset_range_seconds": 2.6226043701171875e-06
+      },
+      "mechanism": "memory-limit pressure established; anon/cache/slab/reclaim attribution missing",
+      "next": "fixed bounded phase+memory.stat+same-process pool telemetry before another hotpath change",
+      "causal_speedup": false
     }
   }
 }
