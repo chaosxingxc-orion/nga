@@ -7,7 +7,7 @@
 | 工作 | 当前事实 | 尚未完成 |
 | --- | --- | --- |
 | 固定基座参考评测 | Qwen3.5 四规格 × 28 面板 112/112 验收；Jev-bench 88 格是其中子集；大候选五任务 × 四规格 20/20 验收 | 完整异构模型 × 数据集 × 协议矩阵仍未完成；D1 36/38，其余两格 Open-Jev × JEVal 为 blocked/null |
-| 0.8B 七成员最终同 TEST | 七个 score 终态与 retained 容器均 exit 0；decision-v7 TEST 1200、transfer-v4 TEST 656，另有独立 calibration | 独立 CPU 重算与 Astra 统计复核完成：63 份文件、49,448 行、12 组配对比较/区间及 49 个概率面板算术一致。release 修复已通过完整合成事务与主进程复跑，精确工程审查进行中；原始标签/算子核验、官方发布和同 TEST 收益验收尚未完成 |
+| 0.8B 七成员最终同 TEST | 七个 score 终态与 retained 容器均 exit 0；decision-v7 TEST 1200、transfer-v4 TEST 656，另有独立 calibration | 独立 CPU 重算与 Astra 统计复核完成：63 份文件、49,448 行、12 组配对比较/区间及 49 个概率面板算术一致。release 修复的 K0 完整合成事务及主进程复跑通过，但 Astra 已复现训练配方核验绕过代码捕获的问题，需修复并补 K1/PT 完整路径；原始标签/算子核验、官方发布和同 TEST 收益验收尚未完成 |
 | 交叉候选接口 DEV | 四规格各 672 请求的 NPU 推理均已完成；2B/4B 各 336 条 exploration CPU 重建及计分完成；0.8B 原协议 confirmation 已消费 | 独立限定范围复算完成：2B/4B exploration 为负，confirmation 保持锁定；0.8B 诊断 confirmation 的 18 项要求全部失败 |
 | 交叉候选 9B 诊断 | 原协议 confirmation 的 18 项筛选中 17 项失败；不晋级、不调整阈值或映射 | 原冻结记录的辅助分析哈希与最终分析不同；score/reconstruction 两个生效 pin 仍一致，已追加日期化说明，原记录保留 |
 | 新增 Kev 参考覆盖 | documents-v1/devtools-v1 × 四规格，共 8 个缺失单元已制作静态包，完整保留 936/1073 问题与重复原始 ID | CPU consumer 固定、ordinal pair 映射、资源绑定、可执行派发与独立审查仍在完成；目前不能算作已启动 |
