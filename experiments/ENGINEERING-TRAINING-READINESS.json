@@ -96,7 +96,7 @@
   ],
   "scope": "Retained metadata/source audit; no new training or NPU qualification; model payload hashes inherited.",
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T16:13:51.363995+00:00",
+    "observed_utc": "2026-11-05T16:28:59.826998+00:00",
     "status": "CPU training shell and trained consumer accepted in scoped tests; production full capture and physical NPU qualification pending",
     "supersedes": "Implementation status of initial metadata audit only; inherited counts and scientific conclusions unchanged",
     "handoff_sha256": "7d89cd1aeedc62b7008fd3daf1af598f417ef0b96985743ab2d9c40ebd7c13b8",
@@ -329,8 +329,8 @@
       "independent_pretest_environment_failure": "one supplied-suite process ran zero tests because isolated Python hid user-site Torch; retained separately, no test failures in16 independent methods"
     },
     "adam_checkpoint_capture_current": {
-      "version": "v4",
-      "status": "PARTIAL_CPU_HOOKS_VERIFIED_COMPLETE_ADMISSION_CHANGES_REQUIRED",
+      "version": "v5",
+      "status": "ACCEPT_SCOPED_CPU_OPTIMIZER_CHECKPOINT_ADMISSION",
       "parent_source_pins": 7,
       "pin_mismatches": 0,
       "producer_tests": 25,
@@ -341,26 +341,28 @@
         "comparator andacceleratortransferpending"
       ],
       "production_qualified": false,
-      "parent_review_pins": 244,
+      "parent_review_pins": 420,
       "parent_review_mismatches": 0,
       "parent_capture_tests": 15,
-      "parent_capture_seconds": 2.074,
-      "independent_distinct_methods": 20,
-      "independent_passed": 14,
-      "independent_failed": 6,
-      "independent_product_findings": 3,
+      "parent_capture_seconds": 2.042,
+      "independent_distinct_methods": 10,
+      "independent_passed": 10,
+      "independent_failed": 0,
+      "independent_product_findings": 0,
       "normal_capture_exact_observations": 20,
       "capture_event_counts": [
         13,
         8,
         10
       ],
-      "admission_defects": [
-        "uniform optimizer betas omission admitted",
-        "uniform scheduler _schedule_phases omission admitted",
-        "new typed state encoder/decoder bypass endian guard"
-      ],
-      "next": "fixed fullgroup/scheduler census and typedstate endian validation v5 queued"
+      "admission_defects": [],
+      "next": "wired bounded streaming trace storage v6 active",
+      "source_commit": "8e3d9a2",
+      "closed_v4_findings": [
+        "F1 full optimizer group census",
+        "F2 full scheduler recursive census",
+        "F3 typed-state encoder/decoder endian refusal"
+      ]
     }
   }
 }

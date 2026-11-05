@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T16:13:51.363995+00:00",
+    "observed_utc": "2026-11-05T16:28:59.826998+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -967,8 +967,8 @@
       "next": "durable configuration-driven controller v11 active"
     },
     "adam_checkpoint_capture_current": {
-      "version": "v4",
-      "status": "PARTIAL_CPU_HOOKS_VERIFIED_COMPLETE_ADMISSION_CHANGES_REQUIRED",
+      "version": "v5",
+      "status": "ACCEPT_SCOPED_CPU_OPTIMIZER_CHECKPOINT_ADMISSION",
       "parent_source_pins": 7,
       "pin_mismatches": 0,
       "producer_tests": 25,
@@ -979,26 +979,73 @@
         "comparator andacceleratortransferpending"
       ],
       "production_qualified": false,
-      "parent_review_pins": 244,
+      "parent_review_pins": 420,
       "parent_review_mismatches": 0,
       "parent_capture_tests": 15,
-      "parent_capture_seconds": 2.074,
-      "independent_distinct_methods": 20,
-      "independent_passed": 14,
-      "independent_failed": 6,
-      "independent_product_findings": 3,
+      "parent_capture_seconds": 2.042,
+      "independent_distinct_methods": 10,
+      "independent_passed": 10,
+      "independent_failed": 0,
+      "independent_product_findings": 0,
       "normal_capture_exact_observations": 20,
       "capture_event_counts": [
         13,
         8,
         10
       ],
-      "admission_defects": [
-        "uniform optimizer betas omission admitted",
-        "uniform scheduler _schedule_phases omission admitted",
-        "new typed state encoder/decoder bypass endian guard"
+      "admission_defects": [],
+      "next": "wired bounded streaming trace storage v6 active",
+      "source_commit": "8e3d9a2",
+      "closed_v4_findings": [
+        "F1 full optimizer group census",
+        "F2 full scheduler recursive census",
+        "F3 typed-state encoder/decoder endian refusal"
+      ]
+    },
+    "diagnostic_controller_current": {
+      "version": "v11",
+      "status": "PARTIAL_DELIVERED_INDEPENDENT_REVIEW_PENDING",
+      "parent_source_pins": 3,
+      "parent_pin_mismatches": 0,
+      "parent_tests_passed": 5,
+      "parent_initial_skipped": 1,
+      "skipped_test_repeated_with18hashed_fixturefiles": true,
+      "actual175_positive_attempt": 3,
+      "earlier_attempts": [
+        {
+          "attempt": 1,
+          "success": false,
+          "reason": "tar directory entry dot rejected"
+        },
+        {
+          "attempt": 2,
+          "success": false,
+          "reason": "tar score/chunks directory rejected"
+        }
       ],
-      "next": "fixed fullgroup/scheduler census and typedstate endian validation v5 queued"
+      "image": "sha256:55e7084617b30b2e0439ebfe8457885ddb3eb1e60456fe5cc492253af2627720",
+      "positive_container_exit": 0,
+      "positive_extraction_committed": true,
+      "physical_fault_attempts": 3,
+      "physical_faults_not_complete_qualification": true,
+      "remaining": [
+        "finalcleanup/terminal publication handling",
+        "bounded elapsed deadline",
+        "failure tmpfs evidence preservation",
+        "installed supervisor/child and copy/fsync processboundary coverage"
+      ],
+      "next": "review then failure-close v12"
+    },
+    "service_process_bridge_current": {
+      "version": "v12",
+      "status": "BRIDGE_DELIVERED_SERVICE_TRANSACTION_INCOMPLETE",
+      "actual_C_Docker_subprocess_stages": 2,
+      "trained_saved_records": 3,
+      "actual_service_positive": false,
+      "unconditional_guard_remains": true,
+      "completed_upstream_dag_attempt": false,
+      "independent_review": "running",
+      "next": "v13 implement candidate admission and authenticated completed upstream; actual service worker transaction"
     }
   }
 }
