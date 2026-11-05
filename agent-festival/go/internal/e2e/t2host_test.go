@@ -374,8 +374,9 @@ func (kr *knowledgeRegistry) invalidate(id string) error {
 // for new tasks.
 // R18 M-1: iteration is DETERMINISTIC via sortedKeys — among the
 // candidate (valid, non-superseded) methods the lexicographically-lowest
-// method ID wins. Raw map ranging made this choice random (~88/12 per
-// probe), silently nondeterministic.
+// method ID wins. Raw map ranging made this choice random (measured
+// 75/12.5/12.5 for this component's 3-key probe, ~87.5/12.5 for the
+// 2-key lookup-side probe), silently nondeterministic.
 // R19 M-3: SUPERSESSION is enforced mechanically, not by convention — a
 // method's Replaces names the method it supersedes, and the superseded
 // method is skipped even while still marked valid. In the correction

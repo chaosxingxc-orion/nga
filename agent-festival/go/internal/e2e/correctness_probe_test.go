@@ -413,6 +413,21 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 			"(L23 fix: veto at precedence 0 fires before missing-evidence check)", v0.kind)
 	}
 
+	// R27 m-1: the C12 half is BEHAVIORALLY carried on the T0 side too —
+	// the lower-band branch fires AFTER the veto (a lower-band applicant
+	// with a historical overdue is deny, not grant-10000). Every other
+	// s1Judge drive point uses the 35M shape; this one pins the last
+	// branch-order face. Mutation probe: move the assetMillions<1 branch
+	// before the veto loop and this goes red.
+	c12e := creditEvidence{
+		assetMillions:   0, // below the lower cutoff
+		assetReportOK:   true,
+		overdueOnRecord: []overdueEvent{{months: 5, yearsAgo: 2}},
+	}
+	if v := s1Judge(c12e); v.kind != "deny" {
+		t.Fatalf("E3-C8: T0 s1Judge returned %q for the C12 shape (lower band + historical overdue), want deny — the veto must fire before the lower-band branch", v.kind)
+	}
+
 	// Historical record (the former diseased state, fixed by L23): T0's
 	// s1Judge used to check the report FIRST and return
 	// on_missing_evidence for C8, while t1Spec puts the veto at precedence
@@ -427,12 +442,14 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 	// credit history on record, denies credit — regardless of assets. This
 	// veto is NOT limited to any recent window" — and C8 in t1Cases
 	// expects "deny", hardBar: true.
-	t1SpecContainsVetoFirst := strings.Contains(t1Spec, "Precedence 0") &&
-		strings.Contains(t1Spec, "ANY overdue") &&
-		strings.Contains(t1Spec, "regardless of assets")
+	// R27 m-3: the veto-first markers "Precedence 0" and "ANY overdue" are
+	// pinned by the contiguous and count assertions below (which imply
+	// them); the only independent marker left here is the
+	// regardless-of-assets clause
+	t1SpecContainsVetoFirst := strings.Contains(t1Spec, "regardless of assets")
 
 	if !t1SpecContainsVetoFirst {
-		t.Fatal("E3-C8: T1 spec text does not contain unbounded precedence-0 veto — spec may have changed")
+		t.Fatal("E3-C8: T1 spec text no longer contains 'regardless of assets' — spec may have changed")
 	}
 
 	// R24 m-1 (ordering half): precedence 0 is THE VETO and nothing else —
