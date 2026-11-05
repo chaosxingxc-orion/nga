@@ -1049,7 +1049,7 @@
     }
   },
   "latest_execution_status": {
-    "as_of_utc": "2026-11-05T17:43:00Z",
+    "as_of_utc": "2026-11-05T17:50:00Z",
     "research_hold": true,
     "existing_runs": "preserved",
     "full_release": false,
@@ -1141,6 +1141,25 @@
       "fresh_trained_export_score": false,
       "blocker": "nested pinned closure path visibility",
       "repair": "v14 running"
+    },
+    "service_closure_v14": {
+      "status": "PASS_CPU_FIXTURE_FUNCTIONAL_SCOPE_PARENT_REVIEW_PENDING",
+      "fresh_e2e": "daemon->worker->P.run->C.Consumer->trained export->trained score",
+      "regression_tests": 55,
+      "creates": 2,
+      "duplicate_restart_new_creates": 0,
+      "summary_counts": {
+        "choice": 1,
+        "yes_no": 1,
+        "score": 1
+      },
+      "exact_prediction_parity": true,
+      "hold_blocks_new_npu": true,
+      "invalid_lineage_pre_create": true,
+      "open": [
+        "Astra independent review",
+        "production identity/real Docker/NPU"
+      ]
     }
   }
 }
