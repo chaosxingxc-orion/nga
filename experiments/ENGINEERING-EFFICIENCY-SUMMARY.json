@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T15:54:02.185511+00:00",
+    "observed_utc": "2026-11-05T16:04:02.671920+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -917,6 +917,61 @@
       "parent_review_mismatches": 0,
       "source_commit": "cc9bace",
       "independent_pretest_environment_failure": "one supplied-suite process ran zero tests because isolated Python hid user-site Torch; retained separately, no test failures in16 independent methods"
+    },
+    "service_lifecycle_current": {
+      "status": "ACCEPT_SCOPED_LOG_LIFECYCLE",
+      "review": "v10",
+      "parent_review_pins": 301,
+      "parent_pin_mismatches": 0,
+      "independent_checks": 18,
+      "includes_limitation_confirmations": 2,
+      "parent_frozen_tests": 3,
+      "parent_frozen_seconds": 2.507,
+      "selected_source_commit": "f4f5c15",
+      "scope": "source closure includingpipeline, lateACK/EOF handling, supervisor ownership",
+      "actual_service_pipeline_accepted": false,
+      "remaining": [
+        "completed-host CPU HOLD exception",
+        "pipeline admission and runnable configs",
+        "independent export/score capture transaction"
+      ]
+    },
+    "diagnostic_image_current": {
+      "version": "v10",
+      "status": "ACTUAL175_CPU_CANDIDATE_INDEPENDENT_REVIEW_PENDING",
+      "image": "sha256:55e7084617b30b2e0439ebfe8457885ddb3eb1e60456fe5cc492253af2627720",
+      "parent_delivery_pins": 200,
+      "pin_mismatches": 0,
+      "source_config_recheck_fixed": true,
+      "actual_installed_three_saved_records": true,
+      "summary_sha256": "0c0e0f6a8392b02e2de56d26a5ef16717536acbf7edcc03a1464827788a8fba8",
+      "ordered_receipts_sha256": "b8184ccab0472e4f175d1a1072b11b183616ce707d7abaf6b3f5aaac6f669242",
+      "first_controller_exit": 1,
+      "qualification_controller_exit": 0,
+      "duplicate_rejected": true,
+      "observed_openblas_threads": 1,
+      "cgroup_privacy": "unverified byobserver",
+      "remaining": [
+        "installed completion-fault coverage",
+        "durable extraction fsync and terminal binding",
+        "independent image/dependency/custody review"
+      ],
+      "new_performance_measurement": false,
+      "release": false
+    },
+    "adam_checkpoint_capture_current": {
+      "version": "v4",
+      "status": "CPU_FIXTURE_DELIVERED_REVIEW_PENDING",
+      "parent_source_pins": 7,
+      "pin_mismatches": 0,
+      "producer_tests": 25,
+      "scope": "actualnativeoptimizer+save/decode/livehooks, continuous2 andsplit1+1 CPU",
+      "limitations": [
+        "inmemoryJSON/base64 receipts notproductionmemorybound",
+        "productionidentity andinputRNGpending",
+        "comparator andacceleratortransferpending"
+      ],
+      "production_qualified": false
     }
   }
 }
