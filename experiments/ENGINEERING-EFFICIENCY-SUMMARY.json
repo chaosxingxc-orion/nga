@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T13:16:45.036387+00:00",
+    "observed_utc": "2026-11-05T13:23:43.952063+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -304,7 +304,8 @@
       "parent_tests": 3,
       "parent_test_seconds": 0.479,
       "fixture": "actual tiny PEFT publication/load/forward, patched registry; not realQwen or NPU",
-      "root_host_export_score_integration": false
+      "root_host_export_score_integration": false,
+      "root_integration": "partial producer v2: root schema/adapter/export/host edits, no trained end-to-end; re-review and completion v3 running"
     },
     "runtime_metadata": {
       "image": "sha256:a2b20ba160230b3e8c538ce588e256bec55cdb4b4e5e5a294e70ba9107dca6d9",
@@ -319,6 +320,9 @@
         "jsonschema": "4.26.0"
       },
       "exit_code": 0
-    }
+    },
+    "candidate_build": "started after scorer functional acceptance; full image/tree/46320 replay pending",
+    "resource_provider": "Astra request_changes four findings; Terra fixes v2 running; physical qualification not done",
+    "log_service_integration": "incomplete: standalone accepted, supervisor/event service registration and recovery unimplemented"
   }
 }
