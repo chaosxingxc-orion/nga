@@ -22,6 +22,7 @@ package e2e
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -394,4 +395,113 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 	// 	"on_missing_evidence (report check first), T1 expects deny (veto at "+
 	// 	"precedence 0 fires first). The spec's own precedence rules say the "+
 	// 	"veto should fire before the report check. L23 is validated.")
+}
+
+// TestE0DiseaseExists_PhantomJSONMidFile is R14' M-1's deterministic red
+// probe (two assertions, one run): a "legal JSON object, not a machine
+// event" line ({"note":"out-of-band"}) inserted mid-file between two real
+// machine writes must be caught by the append-path write-time re-check —
+// per the P1-2 doctrine ("out-of-band damage between Open and write is
+// caught"). Current state: ParseLines' typed view accepts the phantom as
+// a complete event line, tornNow=false, STALE_WRITER passes (last-line seq
+// is the real event's), the rebuild preserves the phantom, and the write
+// returns success — poisoning the file so the NEXT Open rejects it.
+func TestE0DiseaseExists_PhantomJSONMidFile(t *testing.T) {
+	h := newTask(t)
+	if o := h.machine.Adopt(requestFor("op-phantom-1", "er-1", "ev-1", digestHex('8'))); o.Status != "adopted" {
+		t.Fatalf("adopt = %q: %s", o.Status, o.Detail)
+	}
+	if o := h.machine.Adopt(requestFor("op-phantom-2", "er-1", "ev-1", digestHex('9'))); o.Status != "adopted" {
+		t.Fatalf("adopt 2 = %q: %s", o.Status, o.Detail)
+	}
+
+	// external damage: insert a phantom JSON line mid-file (newline-terminated)
+	path := h.dir + "/adopt.jsonl"
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.SplitN(string(raw), "\n", 2) // after first line
+	if len(lines) < 2 {
+		t.Fatal("expected at least 2 lines in the file")
+	}
+	phantom := `{"note":"out-of-band"}` + "\n"
+	poisoned := lines[0] + "\n" + phantom + lines[1]
+	if err := os.WriteFile(path, []byte(poisoned), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	// ASSERTION A: the next Adopt must be rejected (the write-time re-check
+	// catches out-of-band damage per the P1-2 doctrine)
+	if o := h.machine.Adopt(requestFor("op-phantom-3", "er-1", "ev-1", digestHex('a'))); o.Status == "adopted" {
+		t.Fatalf("M-1 CONFIRMED: phantom JSON line accepted as a legal event — "+
+			"adopt returned %q (detail: %s); the file is now poisoned "+
+			"(the next Open will reject it)", o.Status, o.Detail)
+	}
+
+	// ASSERTION B (post-fix semantics): the phantom line is IN the file
+	// (external damage was done before the write was refused — the machine
+	// didn't write it, but the damaged bytes are there). The machine must
+	// refuse ALL writes on it (no false success), and a fresh Open must
+	// also detect the damage — this is the fail-closed doctrine: the file
+	// needs manual repair, exactly like a torn tail. The POST-FIX assertion
+	// is that Adopt was rejected (assertion A) and a fresh Open FAILS
+	// (the damage is detectable, not silently absorbed) — the anti-pattern
+	// was "write succeeds, next Open rejects"; the fixed pattern is
+	// "write refused, next Open also refuses (detectable damage)".
+	if _, err := adopt.Open(path); err == nil {
+		t.Fatal("M-1 REGRESSION: the poisoned file was silently accepted by a fresh Open — " +
+			"external damage must be detectable at load (fail-closed)")
+	}
+	// and the machine must not have made it worse: the file bytes are
+	// exactly what the external damage left (no machine write on top)
+	after, _ := os.ReadFile(path)
+	if string(after) != poisoned {
+		t.Fatal("M-1: the machine rewrote the poisoned file — damaged bytes must be preserved for manual repair")
+	}
+}
+
+// TestE0DiseaseExists_PhantomJSONEOF is M-1's sister probe (EOF form):
+// a phantom line appended at EOF with a MATCHING seq passes both the
+// torn check (it has a newline) and the STALE_WRITER check (seq == last+1
+// coincidentally), gets persisted, and poisons the file.
+func TestE0DiseaseExists_PhantomJSONEOF(t *testing.T) {
+	h := newTask(t)
+	if o := h.machine.Adopt(requestFor("op-phantom-eof", "er-1", "ev-1", digestHex('b'))); o.Status != "adopted" {
+		t.Fatalf("adopt = %q: %s", o.Status, o.Detail)
+	}
+
+	// external damage: append a phantom line with a MATCHING seq at EOF
+	path := h.dir + "/adopt.jsonl"
+	events, _ := h.machine.Events()
+	nextSeq := len(events) // next arbitration_seq
+	phantom := fmt.Sprintf(`{"arbitration_seq":%d}`+"\n", nextSeq)
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.WriteString(phantom); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// ASSERTION A: the next Adopt must be rejected (the phantom has a
+	// matching seq but is not a machine event)
+	if o := h.machine.Adopt(requestFor("op-phantom-eof-2", "er-1", "ev-1", digestHex('c'))); o.Status == "adopted" {
+		t.Fatalf("M-1 CONFIRMED (EOF form): phantom with matching seq accepted — "+
+			"adopt returned %q; the file is poisoned", o.Status)
+	}
+
+	// ASSERTION B (post-fix semantics): a fresh Open must DETECT the damage
+	// (fail-closed — the phantom line is a bypass write, not a machine
+	// event), and the machine must not have rewritten the file
+	if _, err := adopt.Open(path); err == nil {
+		t.Fatal("M-1 REGRESSION (EOF form): the poisoned file was silently accepted by a fresh Open")
+	}
+	after, _ := os.ReadFile(path)
+	if !strings.HasSuffix(string(after), phantom) {
+		t.Fatal("M-1 (EOF form): the machine rewrote the poisoned file — damaged bytes must be preserved")
+	}
 }

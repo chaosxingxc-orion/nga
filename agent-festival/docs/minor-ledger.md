@@ -63,3 +63,16 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - L29（minor，不修）：E3 的 replay 层（mode-2 重驱 drive+eventsEqual）零 control 事件夹具——机器/checker/e2e-Inspect 三层已钉，唯 replay 驱动面无红探针护体（R9 m-3；与 L24 可在未来结构战役合并考虑）。
 - L30（minor，不修）：T1 launch 命令密钥指针硬编码 providerRules[4]——配置重排后指错 key，失败形态响亮（401→fail-loud 门），纯文档脆性（R9 m-4）。
 - L31（minor，不修）：e2e 席位调用双形态——九个既有场景直调自由函数（s1Judge/s2Query/bankAPISubmit），零调用探针经 harness 计数方法（h.judge/h.query/h.submit）——最小侵入取舍，统一到方法形态留作 T0 场景族下次扩面时顺带。
+
+## R14' 空白终审（32 号）minor 记账（L39-L47，9 条积累不修）
+
+- L39：TestT2R_PermissionRevoked 名称/头注宣称撤销但测试体零撤销动作零拒绝断言——验收面向承诺兑现 0（Bearing），改名或补宿主授权判定面。
+- L40：四读承诺兑现 3/4（READ 4 无断言且注释错置——READ 2 是 store 投影非知识消费）。
+- L41：T2 头注宣称 node entry 组件不存在为命名工件（重提交逻辑内联在测试体）。
+- L42：lookupByBusinessRequest 字典序比 revision（er-10<er-2 错序）+同 rev 并列 map 序不定。
+- L43：findForNode 多 valid 同 node 时 map 迭代序不定；Replaces 字段无机制消费。
+- L44：knowledgeMethod.execute 用 fmt.Sscanf 静默吞解析失败。
+- L45：resultStore.put 非原子写（无 temp+rename）且损坏时整体拒载。
+- L46：T2 店与账本双持久形态无一致性交叉核（adopt 成功后 store.put 前崩溃窗口）。
+- L47：E0 extraction-miss 病态断言测试缺 polarity guard（家族 2/3——SickS1 与两个 E3 有开关，本测无）。
+- **结构候选加权（第 3 次）**：写时覆盖族（R10 evidlog face-B → R11 STALE_WRITER → R14' phantom 对象行）——形状判定单表化（ParseLines typed view 与跨事件 checker 共用同一形状判定，evidlog entryShapeError 单表双消费为仓内范式）登记为候选战役，与「event_type×规则家族分派表」同向可并场。

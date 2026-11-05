@@ -61,7 +61,18 @@ func ParseLines(raw []byte) ([]ParsedLine, bool, error) {
 			return nil, false, fmt.Errorf("durable form line is not valid UTF-8 — a bypass or corrupted write, not machine output (Go's json decoder would launder it to U+FFFD)")
 		}
 		var ev Event
-		typedOK := json.Unmarshal(line, &ev) == nil
+		// R14' M-1 fix: strict shape judgment (the evidlog entryShapeError
+		// twin — P1-2 claimed "unified doctrine" but adopt's typed view was
+		// non-strict: a legal JSON object with NO event fields — e.g.
+		// {"note":"out-of-band"} — unmarshal-OK'd into a zero-value Event,
+		// passed both write-time gates (tornNow=false, STALE_WRITER on the
+		// last REAL line's seq), got preserved by the rebuild, and poisoned
+		// the file for the next Open. DisallowUnknownFields + the two
+		// required-field probes close the phantom-object form; the schema
+		// check in checkLoaded remains the full-field authority.
+		dec := json.NewDecoder(bytes.NewReader(line))
+		dec.DisallowUnknownFields()
+		typedOK := dec.Decode(&ev) == nil && ev.ArbitrationSeq >= 0 && ev.EventType != "" && ev.Identity.OperationID != ""
 		doc, docErr := decodeUseNumber(line)
 		if typedOK && docErr == nil && doc != nil {
 			lines = append(lines, ParsedLine{Raw: line, Doc: doc, Event: ev})
@@ -74,7 +85,7 @@ func ParseLines(raw []byte) ([]ParsedLine, bool, error) {
 		if docErr != nil {
 			return nil, false, fmt.Errorf("durable form has an unparseable line where no torn tail can be (not the last byte range) — a bypass or corrupted write, not machine output")
 		}
-		return nil, false, fmt.Errorf("durable form line is valid JSON but not an event (field type mismatch) — a bypass or corrupted write, not machine output")
+		return nil, false, fmt.Errorf("durable form line is valid JSON but not an event (field type mismatch or missing required fields: event_type/arbitration_seq/identity.operation_id) — a bypass or corrupted write, not machine output")
 	}
 	return lines, torn, nil
 }
