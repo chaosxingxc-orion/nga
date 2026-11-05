@@ -38,6 +38,12 @@ type rawEvidence struct {
 	overdueOnRecord       []overdueEvent // the full-history ledger of record
 }
 
+// R43 m-2 declaration: rawEvidence's yearsAgo (inside overdueEvent) is
+// DECORATIVE at the seat — the unbounded veto ignores age by design (the
+// R37 M-1 window-face retirement removed the seat's only yearsAgo
+// reader); the S1 stand-in consumes it. Anyone re-introducing window
+// semantics must re-declare the consumption.
+
 // anchorBandBounds derives the open-question band's closed bounds from the
 // fixture's rule texts — the NUMBER IS PARSED from the matched text (R33
 // M-1: the previous Contains+literal-copy form was blind to digit
@@ -72,7 +78,7 @@ func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 		// R42 M-1: the band anchor also runs on the NORMALIZED text (the
 		// single-space regex literals missed whitespace-variant conflict
 		// declarations — "above␣␣50" never matched and drifted silently)
-		normalizedBand := strings.Join(strings.Fields(r.Coverage), " ")
+		normalizedBand := normalizeRuleText(r.Coverage)
 		for _, m := range aboveRe.FindAllStringSubmatch(normalizedBand, -1) {
 			if m[2] != "" {
 				return 0, 0 // grouped/poisoned form — fail closed
@@ -118,6 +124,14 @@ func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 // boundary predicate's helper).
 func isWordChar(c byte) bool {
 	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+}
+
+// normalizeRuleText is the SINGLE whitespace-normalization helper (R43
+// m-3: the Fields/Join expression lived inline in three consumption
+// faces — the R42 M-1 lesson was exactly that a new text treatment must
+// be sweepable, and a named function makes the sweep a one-line grep).
+func normalizeRuleText(s string) string {
+	return strings.Join(strings.Fields(s), " ")
 }
 
 // R37 m-3: the veto word table is defined ONCE (collect and decide share
@@ -170,7 +184,7 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 		// the decide phase (the two phases saw different texts before: a
 		// whitespace-variant conflict declaration slipped the bare
 		// Contains and the conflict was silently dropped)
-		normalized := strings.Join(strings.Fields(r.Coverage), " ")
+		normalized := normalizeRuleText(r.Coverage)
 		if r.Precedence == 0 {
 			for _, w := range vetoWords {
 				if !strings.Contains(normalized, w.word+" months") {
@@ -197,7 +211,7 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 		// normalization (R38 M-3) lives on a LOCAL copy instead of
 		// mutating the caller's spec (the mutation also depended on the
 		// early-return path, making it input-dependent).
-		normalized := strings.Join(strings.Fields(r.Coverage), " ")
+		normalized := normalizeRuleText(r.Coverage)
 		if r.Precedence == 0 {
 			for _, w := range vetoWords {
 				searchFrom := 0
@@ -660,14 +674,13 @@ func TestE1_MirrorAndBandFaces(t *testing.T) {
 }
 
 // TestE1_CaseVariantsRefused is the R31 M-1 direct probe (R41 M-1
-// re-pinned): case variants must be refused exactly like their canonical
-// forms. Carrier note — since R40 M-1's switch dispatch, arms ① and ②
-// (variant forgeries on clean/band records) are structurally caught by
-// the switch DEFAULT (an unnormalized variant lands in no case); the
-// normalization assignment's EXCLUSIVE face is arm ③: a variant-case
-// REAL deny must be ACCEPTED (normalized into the veto face) — removing
-// the normalization assignment turns arm ③ red. Arms ①② pin the default
-// refusal as their spec (reason contains "no semantic face consumes").
+// re-pinned, R43 m-1 header synced to the arm notes): case variants must
+// be refused exactly like their canonical forms. Carrier map — the
+// vocabulary gate NORMALIZES a variant to canonical form BEFORE the faces
+// run, so arm ① is refused by the DENY MIRROR and arm ② by the
+// LEVEL-BAND face; arm ③ is the normalization assignment's EXCLUSIVE
+// face (a variant-case REAL deny must be ACCEPTED — removing the
+// assignment turns arm ③ red).
 func TestE1_CaseVariantsRefused(t *testing.T) {
 	spec := loadE3Fixture(t)
 
@@ -878,10 +891,11 @@ func TestE1_LevelBandConsistency(t *testing.T) {
 	if !strings.Contains(cr.reason, "rule 0") {
 		t.Fatalf("M-2 probe: the in-window refusal came from %q — the declared carrier is the veto face (rule 0); a new carrier must re-pin this probe", cr.reason)
 	}
-	// ③ R36 M-2 positive control: a SUB-TERM record outside the window
-	// (1 month, 5 years ago — not an "overdue" under the fixture's term,
-	// not in the window) must NOT be blocked — the old record-global form
-	// refused this spec-conforming verdict.
+	// ③ R36 M-2 positive control: a SUB-TERM record (1 month, 5 years
+	// ago — not an "overdue" under the fixture's term; the yearsAgo value
+	// is decorative at the seat per the R43 m-2 declaration) must NOT be
+	// blocked — the old record-global form refused this spec-conforming
+	// verdict.
 	legacy := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{months: 1, yearsAgo: 5}}}
 	if cr := verify(s1Verdict{kind: "grant-50000", details: "old sub-term record"}, spec, legacy); !cr.ok {
 		t.Fatalf("M-2 probe: a spec-conforming verdict with an out-of-window sub-term record was refused (%s) — the window premise over-blocks", cr.reason)

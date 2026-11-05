@@ -226,7 +226,7 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 
 - **M-1（fail-closed 自身零探针）**：R30 M-2 的哨兵分支与 verify 拒面是装饰守卫（删码/回退 return 3 全套件绿——本仓 R29 M-4 自立标准），锚测试只钉值面。已修：TestE1_FailClosedAnchored（不可解析 spec→anchor 0+verify 拒+nil spec 拒）。反突变（回退 return 3）→红。
 - **M-2（assetReportPresent 死字段双向不设防）**：全仓只写不读——夹具第一条 evidence source 缺失时 grant 放行/报告在场时谎报缺证放行（E0 evasive-S1 家族双向）；未按 requiredSources 款式声明已知面。已修：消费字段（双向面：无报告出 grant 拒/有报告谎报缺证拒）+TestE1_EvidencePresenceMirror 双探针+诚实 gap 阳性对照。反突变（删双面）→红。
-- **M-3（带界硬编码未锚定）**：veto 阈值锚定了（R29 M-3）带界没锚——夹具 30→50 全套件照绿（31..50 规范内 grant 被静默 under-block（陈旧面对漂移后夹具放行过宽））；注释 "comes from" 制造已锚定假象。已修：anchorBandBounds 从夹具规则文本派生（fail-closed 哨兵 0,0）+TestE1_BandBoundsAnchored 锚测试（含 31 处行为面——【R33 m-1 更正】旧硬编码下 31 同样通过（>=1 && <=30 不含 31）；该面的真实承载是抓 verify 侧常量与锚分叉，非历史行为差异）。反突变（夹具 30→50/1→2）→bounds (0,0) 红。
+- **M-3（带界硬编码未锚定）**：veto 阈值锚定了（R29 M-3）带界没锚——夹具 30→50 全套件照绿（31..50 规范内 grant 被静默 under-block（陈旧面对漂移后夹具放行过宽））；注释 "comes from" 制造已锚定假象。已修：anchorBandBounds 从夹具规则文本派生（fail-closed 哨兵 0,0）+TestE1_BandBoundsAnchored 锚测试（含 31 处行为面——【R33 m-1 更正】旧硬编码下 31 同样通过（>=1 && <=30 不含 31）；该面的真实承载是抓 verify 侧常量与锚分叉，非历史行为差异）。反突变（夹具 30→50/1→2）→bounds (0,0) 红。【R43 m-5 更正】(0,0) 为 R32 Contains 形态的突变结果；R33 后 regex 形态同突变得 (2,50) 型可解析值，红源=TestE1_BandBoundsAnchored 的 (1,30) 值钉而非哨兵。
 - **m-1~m-6（随批清偿）**：dispatchGated 提交后 CAS 叙事注释如实（pin 无可达读者——replay 对称+未来文法预留）；镜像面重复句删；E-GR 演示头 17→19 对齐；graveyardSweep 同龄并列 id 决胜（确定性纪律落到切点）+TestEGr_TieAtExcessBoundaryIsDeterministic 50 迭代探针；raw 隔离措辞收窄（"dead in THIS wiring"——类型边界非强制，纪律面非机制面）；healthy 臂 E0 旧注释改真（测试故意派发=证明机器盲，非宿主政策）。
 - **方法论入账（第 24/25 实证）**：fail-closed 是守卫不是措辞——它的两面（哨兵值+拒面）同样需要红探针，否则就是装饰（M-1）；结构体字段「每个构造点都写、无人读」=未落地面（M-2——字段存在暗示的语义要消费或声明）；锚定纪律要横扫同组件的**全部数值字面量**（M-3——修了 veto 漏了带界）。
 
@@ -313,3 +313,10 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **M-1（空白归一未横扫同锚另两消费面）**：R38 M-3 的归一只落在毒扫描——collect 相 Contains 与 band regex 仍跑裸文本，冲突检测对空白变体族全盲（干净规则+"recap: six␣␣months"→3；"above 30…above␣␣50"→(1,30)——多命中冲突化纪律对空白族装饰守卫）。已修：collect 相与 band regex 全部改归一副本（与 decide 同源）+TestE1_WhitespaceVariantConflictsCaught 双探针。反突变（collect 回裸文本）→红。
 - **m-1~m-2（随批清偿）**：R33 m-3 诚实注残留改现态（band 面 R36 已删+R40 M-2 verify 侧拒面接管——注比指称对象活得久）；seen map 死值改 struct{}（词形从未被消费——R32 M-2 方法论在本批自家新代码执行）。
 - **方法论入账（第 42 实证）**：一个修复引入的新处理（归一化）要横扫同组件**全部**文本消费点（M-1——三个消费面只扫了一个）；诚实注比指称对象活得久（m-1——注的主体被删后该注必须随轮清偿）。
+
+## R43 空白复审记账（2026-11-06，339b38b..a86e796 六实验+R29-R42 清偿——0B/1M/5m 全清偿；连净计数 0）
+
+- **M-1（DispatchIfCurrent 首段 CAS 叙事与窗口声明自相矛盾——R29 M-2「doc 收窄」只落一半）**：首段仍声明「commit lands only if that version is still current」（R29-M-2 时代叙事）——observed>=0 不可达成功+canonical CAS 形不被拒，首段与同块窗口声明互斥；宿主按首段实现 D2 保护将得到零保护。已修：首段改真（observed>=0 一律拒=伪造观察门；-1 唯一可提交形；canonical CAS 形保护在宿主层）+TestE6_DocContractPinned doc 探针（docstring_pin 先例形态——"still current" 复活即红）。反突变（doc 恢复 CAS 句）→红。
+- **m-1~m-5（随批清偿）**：m-1 变体探针头部 Carrier note 改真（与臂注释一致——头部声称 default 载体而臂①实测镜像面）；m-2 yearsAgo 席位侧装饰声明（R37 窗口面退役移除唯一读者——字段存在暗示席位知道「何时」，声明+③注释因果从句改写）；m-3 normalizeRuleText 包级 helper（三处内联收敛——R42 方法论 42 的可执行形态）；m-4 Events 吞错包级横扫（R39/R40 对账规则的 grep 域从 diff 扩到包级——7 处残余全修，grep 包级零命中）；m-5 账本 R32 M-3 反突变结果标注（(0,0) 为 Contains 形态；R33 后 regex 形态 (2,50) 型红源=值钉）。
+- **过程记录：m-2 声明插入锚点匹配错位（插进 isWordChar 函数体内）——vet missing return 即抓，移动到真 rawEvidence 后。**
+- **方法论入账（第 43/44 实证）**：doc 收窄要逐段 grep 同一 doc 块（M-1——首段与窗口声明同块互斥八轮未扫）；对账规则的 grep 域要包级而非 diff 级（m-4——族名的落地集不等于增量的落地集）。

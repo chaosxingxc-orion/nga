@@ -259,7 +259,10 @@ func TestT0FullChainHappyPath(t *testing.T) {
 	if len(rep.Gaps) != 0 {
 		t.Fatalf("healthy chain has gaps: %v", rep.Gaps)
 	}
-	events, _ := h.machine.Events()
+	events, err := h.machine.Events()
+	if err != nil {
+		t.Fatalf("Events() failed — a load error must fail, not silently empty the assertion set (R43 m-4): %v", err)
+	}
 	if len(events) != 3 { // adoption, dispatched, completed
 		t.Fatalf("events = %d, want 3", len(events))
 	}
@@ -285,7 +288,10 @@ func TestT0HistoricalOverdueVeto(t *testing.T) {
 	// The machine does not interpret business semantics — the verdict lives
 	// in the payload, opaque to the gate — so what the gate pins is the
 	// control fact: an adopted decision record with ZERO effect events.
-	events, _ := h.machine.Events()
+	events, err := h.machine.Events()
+	if err != nil {
+		t.Fatalf("Events() failed — a load error must fail, not silently empty the assertion set (R43 m-4): %v", err)
+	}
 	if len(events) != 1 { // the adoption alone — nothing dispatched, nothing completed
 		t.Fatalf("events = %d, want 1 (a decision record, no effect)", len(events))
 	}
@@ -665,7 +671,10 @@ func TestT0FastPathFullHitZeroModelCalls(t *testing.T) {
 	if baseline != (standinCalls{s1Judge: 2, s2Query: 1, bankAPI: 1}) {
 		t.Fatalf("baseline seat calls = %+v, want {s1:2 s2:1 api:1} — the counters themselves are broken", baseline)
 	}
-	eventsBefore, _ := h.machine.Events()
+	eventsBefore, err := h.machine.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R43 m-4): %v", err)
+	}
 
 	// FAST-PATH FACE 1 (the read face, F-02B step 3 "先查执行记录"): the host
 	// answers the same request from the record — state and events — without
@@ -673,7 +682,10 @@ func TestT0FastPathFullHitZeroModelCalls(t *testing.T) {
 	if s := h.machine.State("op-fp-1"); s != adopt.StateCompleted {
 		t.Fatalf("recorded state = %q, want completed (the record answers the retry)", s)
 	}
-	eventsNow, _ := h.machine.Events()
+	eventsNow, err := h.machine.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R43 m-4): %v", err)
+	}
 	if len(eventsNow) != len(eventsBefore) {
 		t.Fatalf("read face wrote events: %d → %d", len(eventsBefore), len(eventsNow))
 	}

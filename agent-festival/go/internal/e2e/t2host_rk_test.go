@@ -80,8 +80,14 @@ func TestT2R_PersistedReceiptAcrossRestart(t *testing.T) {
 	_ = pAPI
 
 	// No new events in the ledger (the reuse is a read, not a write)
-	events1, _ := h1.machine.Events()
-	events2, _ := h2.machine.Events()
+	events1, err := h1.machine.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R43 m-4): %v", err)
+	}
+	events2, err := h2.machine.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R43 m-4): %v", err)
+	}
 	if len(events2) != len(events1) {
 		t.Fatalf("R restart: events changed %d → %d — reuse must not write new ledger events", len(events1), len(events2))
 	}
@@ -212,7 +218,10 @@ func TestT2R_StaleResultCorrection(t *testing.T) {
 
 	// READ 3: history replay — the machine's original events are unchanged
 	// (both operations coexist in the ledger; history is not rewritten)
-	events, _ := h.machine.Events()
+	events, err := h.machine.Events()
+	if err != nil {
+		t.Fatalf("Events() failed — a load error must fail, not silently empty the assertion set (R43 m-4): %v", err)
+	}
 	hasOriginal := false
 	hasCorrection := false
 	for _, e := range events {

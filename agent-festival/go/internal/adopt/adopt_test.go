@@ -2056,3 +2056,24 @@ func TestE6_NoVersionCheckDetailEverLands(t *testing.T) {
 		}
 	}
 }
+
+// TestE6_DocContractPinned is the R43 M-1 doc-text probe: the
+// DispatchIfCurrent doc must NOT claim a "still current at commit time"
+// CAS success story (the R29-M-2-era narrative retired by the R31/R43
+// truthfulness fixes) — a host reading the first paragraph implements the
+// host tier from it. Mutation probe: restore a "still current" claim in
+// the doc and this goes red (docstring-pin discipline, ledger
+// docstring_pin_test.go precedent form).
+func TestE6_DocContractPinned(t *testing.T) {
+	src, err := os.ReadFile("adopt.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(src)
+	if strings.Contains(text, "still current at commit time") {
+		t.Fatal("M-1 probe: the DispatchIfCurrent doc still claims a still-current CAS commit — the retired narrative resurrected")
+	}
+	if !strings.Contains(text, "forged or cross-wired") || !strings.Contains(text, "opt-in forged-observation gate") {
+		t.Fatal("M-1 probe: the truthful contract sentences are missing from the doc")
+	}
+}
