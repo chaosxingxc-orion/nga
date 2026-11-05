@@ -97,7 +97,7 @@
   "scope": "Retained metadata/source audit; no new training or NPU qualification; model payload hashes inherited.",
   "current_engineering_addendum": {
     "observed_utc": "2026-11-05T11:38:55.623118+00:00",
-    "status": "component_review_requests_publication_repairs",
+    "status": "component_scoped_accepted_outer_integration_pending",
     "supersedes": "Implementation status of initial metadata audit only; inherited counts and scientific conclusions unchanged",
     "handoff_sha256": "7d89cd1aeedc62b7008fd3daf1af598f417ef0b96985743ab2d9c40ebd7c13b8",
     "result_sha256": "be5e0e5095c0bfa773f4acda35cc762fec846372dc15d8f0f886b50b2c230e10",
@@ -164,6 +164,16 @@
         "torn publication BINDING JSON blocks identical retry"
       ],
       "additional_cpu_evidence": "synthetic terminal family.run twice zero optimizer updates; separate-process actual family/trainer preclip and postclip gradients exact; older local dependency environment, exact-image final route untested"
+    },
+    "final_publication_review": {
+      "verdict": "ACCEPT_SCOPED",
+      "closed": [
+        "F4 exact serialized runtime PEFT config semantics",
+        "F5 owned staging interruption retry"
+      ],
+      "review_sha256": "13672552ad5398c5ade5700b7b7c7a0bcfd164befd1abeb72ed6ac4b8ce4a03d",
+      "boundary": "bounded trainer checkpoint return followed by family publication; no claim of original trainer post-loop block or3116 actual updates",
+      "fault_evidence": "four abrupt child exits and retry in supplemental CPU runtime; no power-loss qualification"
     }
   }
 }

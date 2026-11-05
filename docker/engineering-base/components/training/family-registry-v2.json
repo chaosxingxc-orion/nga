@@ -1,0 +1,153 @@
+{
+  "recipes": {
+    "0.8B": {
+      "files": {
+        ".complete": "62b52c9db0dc5860230916a274fe5a4b13780642e871832d8b609d4b99de54f3",
+        ".gitattributes": "34448b82c17d60fec9b65b1f093c115ddbaadc04beb1b0140b6bfed2e012a930",
+        "LICENSE": "50cbab8a892c5f2993b8c7351a99182507472def3b1374558308605d99b86b32",
+        "README.md": "3cff39d2674e28b95e2df75cdb2d7a687ec391931065b05df83dbae12b447b11",
+        "config.json": "b90b86f35c8e6925ef74ee04d0e758f0a845c83a42089ad82bbaa948de9b4204",
+        "merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+        "model.safetensors-00001-of-00001.safetensors": "c2b1e5a17d9c1e27685d92ed9b382911ebb99955ecd89052d1721241adfbab6c",
+        "model.safetensors.index.json": "ce9a885efdf27d3664fdef5d512ad365216f1074051ef840c7cd8e5431495d0a",
+        "preprocessor_config.json": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516",
+        "tokenizer.json": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+        "tokenizer_config.json": "e611fbccc7c29ef3b1cafb1cb7ea548d189968632901d678fd62be68c47885de",
+        "video_preprocessor_config.json": "d039cd7d88b3502a99edd455496b75b44ecf7dd3b3669748bafac37e6cecc085",
+        "vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+      },
+      "id": "k1-base-0.8b-3116-v2",
+      "model_id": "Qwen3.5-0.8B-Base",
+      "pairs": 186,
+      "retained_manifest": {
+        "bytes": 1825,
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/formal_prospective_08b_20261102_v4/primary_s2/manifest.json",
+        "sha256": "d4a083cadef327517890a5f417a6e2d746f58c6315f55f873a1aceade864b054",
+        "verification": "small_artifact_rehashed_this_audit"
+      },
+      "retained_plan": {
+        "bytes": 42193,
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/formal_prospective_08b_20261102_v4/primary_s2/plan.json",
+        "sha256": "507f40a36c784b8f9893496b4fa794c440f7ff7badd95dcf98140a2b7c68c877",
+        "verification": "small_artifact_rehashed_this_audit"
+      },
+      "revision": "dc7cdfe2ee4154fa7e30f5b51ca41bfa40174e68",
+      "trainable_parameters": 10822656,
+      "topology_file": "topologies/topology-0.8B.json",
+      "topology_sha256": "5f5ebb226a8a724d69f215b77cc69b549abd3339713571bfd90df9afe745728a"
+    },
+    "2B": {
+      "files": {
+        ".complete": "cc1c00f1ab6f1b1fc7e1d0c74ef99ed01feac494c029df6f4b355350a31add2c",
+        ".gitattributes": "34448b82c17d60fec9b65b1f093c115ddbaadc04beb1b0140b6bfed2e012a930",
+        "LICENSE": "50cbab8a892c5f2993b8c7351a99182507472def3b1374558308605d99b86b32",
+        "README.md": "50ca45b87d976d9850de95ad00e76fba77e105c2cdef1093b8e3bb261d9a1787",
+        "config.json": "ed1c1723241f23f7f4e23430759cbd7dcfb4103cbdfe052bfe7626b57c2615b4",
+        "merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+        "model.safetensors-00001-of-00001.safetensors": "928acbf11878c32185bbd863514d191769285065ab9ea14fbfe431303f5fdf2d",
+        "model.safetensors.index.json": "74d2ddfe79f10f35b27b498632f02b97b60dd9ec39b35d7c5a890c399284e319",
+        "preprocessor_config.json": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516",
+        "tokenizer.json": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+        "tokenizer_config.json": "e611fbccc7c29ef3b1cafb1cb7ea548d189968632901d678fd62be68c47885de",
+        "video_preprocessor_config.json": "d039cd7d88b3502a99edd455496b75b44ecf7dd3b3669748bafac37e6cecc085",
+        "vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+      },
+      "id": "k1-base-2b-3116-v2",
+      "model_id": "Qwen3.5-2B-Base",
+      "pairs": 186,
+      "retained_manifest": {
+        "bytes": 1816,
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_2b_full_20261031_v1/seed2/manifest.json",
+        "sha256": "6010bb33f7f6fcca8195445afb16feb75155540908c5c89f9a6b61c57b869091",
+        "verification": "small_artifact_rehashed_this_audit"
+      },
+      "retained_plan": {
+        "bytes": 7818,
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_2b_full_20261031_v1/seed2/plan.json",
+        "sha256": "103d7c3b4fd5f954ed81e0586840ed28807a3425eac72401658b89f4ec27708d",
+        "verification": "small_artifact_rehashed_this_audit"
+      },
+      "revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+      "trainable_parameters": 16819200,
+      "topology_file": "topologies/topology-2B.json",
+      "topology_sha256": "284c0b2d5e2f046bf4933bc099ce42f91979388152561a76756decf3794d73c4"
+    },
+    "4B": {
+      "files": {
+        ".complete": "b854660a9a8268a79c18f44a32257ba1ec92ef41236884bdeaeead5ab6f3c1d6",
+        ".gitattributes": "34448b82c17d60fec9b65b1f093c115ddbaadc04beb1b0140b6bfed2e012a930",
+        "LICENSE": "50cbab8a892c5f2993b8c7351a99182507472def3b1374558308605d99b86b32",
+        "README.md": "76ead24ea3de5a52610c755ffa0b6e7cb51e3c413f124a3776bc6f16b694474e",
+        "config.json": "ddc63e1c717afa86c865bb5e01313d89d72bb53b97ad4a8a03ba8510c0621670",
+        "merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+        "model.safetensors-00001-of-00002.safetensors": "df547074dce70532a0493e5433152bd17a65efb89088cfabc2e7e2371a93d712",
+        "model.safetensors-00002-of-00002.safetensors": "590fbaac095dd31db886c322d9d2f7df47777966391acf306ddddc3e4e3a15ef",
+        "model.safetensors.index.json": "eae340074abb0a5f31a6621f7ae8e8248a7c1790df04a722c4e4b70c2a6d1dbb",
+        "preprocessor_config.json": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516",
+        "tokenizer.json": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+        "tokenizer_config.json": "3891e840d7dc5fca0af33d3a25083a735e36fe06214e3f707024820cb6b9f89c",
+        "video_preprocessor_config.json": "d039cd7d88b3502a99edd455496b75b44ecf7dd3b3669748bafac37e6cecc085",
+        "vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+      },
+      "id": "k1-base-4b-3116-v2",
+      "model_id": "Qwen3.5-4B-Base",
+      "pairs": 248,
+      "retained_manifest": {
+        "bytes": 1818,
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_4b_full_20261031_v1/seed2/manifest.json",
+        "sha256": "44a10e7af5c1a53c5b1435f6ea78c2a9df4d13ec1532281e3f74d5d5b758837d",
+        "verification": "small_artifact_rehashed_this_audit"
+      },
+      "retained_plan": {
+        "bytes": 8344,
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_4b_full_20261031_v1/seed2/plan.json",
+        "sha256": "05c53a99d2d7a0cc636781a806838d0aba973d63291b97445be879c37898cbd4",
+        "verification": "small_artifact_rehashed_this_audit"
+      },
+      "revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+      "trainable_parameters": 32464896,
+      "topology_file": "topologies/topology-4B.json",
+      "topology_sha256": "0941fd955c299ce22d815936abd85e1fa03f21821e85cbc9dd4afa1baa731c21"
+    },
+    "9B": {
+      "files": {
+        ".complete": "d20243aa56fda3f2372def93b97439fada2abfe803df6e5fdf7f9b1235f21c8c",
+        ".gitattributes": "34448b82c17d60fec9b65b1f093c115ddbaadc04beb1b0140b6bfed2e012a930",
+        "LICENSE": "50cbab8a892c5f2993b8c7351a99182507472def3b1374558308605d99b86b32",
+        "README.md": "e5fb9a49c5b5eea08839180eef484c97743be241189ccb4a1f4d830514c1f0cb",
+        "config.json": "d0883072e01861ed0b2d47be3c16c36a8e81c224c7ffaa310c6558fb3f932b05",
+        "merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+        "model.safetensors-00001-of-00004.safetensors": "862bf7bba8a50145d19d0ae463931fae515284024736592a73a336bc4dfa54ee",
+        "model.safetensors-00002-of-00004.safetensors": "bace8e115e11ca93c22f0352a60d2fb0c76ac6d7d1c2993c143b7ad2b6c8868c",
+        "model.safetensors-00003-of-00004.safetensors": "63a021ac0011cbfc66166e77103327a8b45dee95832e36551f6b4c3337448959",
+        "model.safetensors-00004-of-00004.safetensors": "1a643bbed669266917b5058b5d3f660c03233599249ff7d8fd083decfe662ae0",
+        "model.safetensors.index.json": "026b9d9fe03f19fd065f2a2f56a332c67640878106c0ca6be2f60c655ed5a8c1",
+        "preprocessor_config.json": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516",
+        "tokenizer.json": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+        "tokenizer_config.json": "3891e840d7dc5fca0af33d3a25083a735e36fe06214e3f707024820cb6b9f89c",
+        "video_preprocessor_config.json": "d039cd7d88b3502a99edd455496b75b44ecf7dd3b3669748bafac37e6cecc085",
+        "vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+      },
+      "id": "k1-base-9b-3116-v2",
+      "model_id": "Qwen3.5-9B-Base",
+      "pairs": 248,
+      "retained_manifest": {
+        "bytes": 1816,
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_9b_seed2_chip3_20261102_v1/manifest.json",
+        "sha256": "6362c53c11faf465de3682f68803c3284ea1b7ad3ff0a9d63405cc96989364a3",
+        "verification": "small_artifact_rehashed_this_audit"
+      },
+      "retained_plan": {
+        "bytes": 8353,
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_9b_seed2_chip3_20261102_v1/plan.json",
+        "sha256": "af37a0763bd7de5bc5ae8ac33d9df87bcb73d1e7484a29dc271ea1ce544b97f7",
+        "verification": "small_artifact_rehashed_this_audit"
+      },
+      "revision": "68c46c4b3498877f3ef123c856ecfde50c39f404",
+      "trainable_parameters": 43278336,
+      "topology_file": "topologies/topology-9B.json",
+      "topology_sha256": "4ba16a9f526a9eed9e98c4d12ca626d625b05d03711811823c20879b3c6238ca"
+    }
+  },
+  "version": "k1-family-v2"
+}
