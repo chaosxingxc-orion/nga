@@ -336,3 +336,13 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **m-2（band 拒面消息一锅烩）**：(0,0) 哨兵三条可达来源（真不可解析/多命中冲突/自相矛盾倒置）统一报 "unparseable"——②③下 bounds 实际解析成功，宿主会去修没坏的解析器；两条探针把错误语义钉成了契约。已修：消息穷举三来源（"no usable band bounds — unparseable, conflicting, or self-contradicting"）+双 reason 锚重钉。反突变（消息回单称）→红。
 - **方法论入账（第 46/47 实证）**：横扫声明的 grep 串要写进账行（m-1——对账的 grep 串本身可以比家族窄，下轮一行复算才可能）；一个哨兵多条可达来源时错误消息要穷举来源（m-2——单称消息把错误语义钉成契约）。
 - **正面确认（空白子 7 项突变全部实测转红）**：版本门收窄/replay sentinel/band 拒面/倒置 seen/doc 双向/版本门禁用/nodeEntry 回退——R29-R44 的反突变声明全部成立。
+
+## R46 收官轮记账（2026-11-06，339b38b..fbc4829 六实验+R29-R45 清偿——**0B/0M/5m 全清偿；连净 3/3：循环正式收官**）
+
+- **m-1（veto 拒面消息单称——R45 m-2 的孪生臂未横扫）**：veto 0 哨兵三条可达来源（真不可解析/多值冲突/复合毒化）统一报 "unparseable"——band 臂穷举落了、veto 臂漏了。已修：消息穷举三来源（"no usable veto threshold — unparseable, conflicting, or compound-poisoned"）。
+- **m-2（Events 家族第三包残留）**：grep 串入账后一行复算即暴露 replay_test 2 处——横扫域缺口第四次复发的终章。已修：2 处改检查+账本追加"grep 串模块域复算=replay 2 处已清偿"（证书串下次复算恒零）。
+- **m-3（PermissionRevoked ① 臂注释 E5 前叙事）**："non-empty = authorized — no grant-content matching" 与同增量 nodeEntry 升级（grantsCoverRead 内容匹配）直接矛盾。已修：注释改两态如实（内容匹配+空/降级拒+指向 TestE5）。
+- **m-4（消息穷举零红面）**：双 reason 锚只钉前缀 "no usable band bounds"——穷举后缀可静默脱落。已修：TestE1_FailClosedAnchored 改三关键词独立钉（unparseable/conflicting/compound 各一条——穷举本身成为承重断言）。
+- **m-5（band 锚头注单称哨兵来源）**：头注 "unparseable bound returns 0" 与实现四来源（+分组毒化）不同步。已修：头注与拒面消息同源措辞。
+- **收官判定（用户口径「3 连 0blocker 0major」）**：R44（0B/0M/4m）→R45（0B/0M/2m）→R46（0B/0M/5m）——**三轮连 0B/0M，循环正式收官**。5 minor 随收官清扫清偿；正式 verdict 立于被审提交 fbc4829，收官清扫提交只含消息措辞/注释/grep 收尾，不引入新守卫。
+- **本循环总账（R29-R46 十八轮）**：1 BLOCKER + 26 MAJOR + 48 minor 全部清偿；方法论 47 条实证入账；每轮探针绿+反突变红双验证；race 21 包绿贯穿；R45 空白子对 R29-R44 七项关键突变声明全部实测转红（独立复核）。

@@ -214,7 +214,10 @@ func TestRecoversToDispatchableNotBeyond(t *testing.T) {
 	if len(rep.Unresolved) != 1 || !strings.Contains(rep.Unresolved[0], "never re-dispatch") {
 		t.Fatalf("reconciliation exit report wrong: %v", rep.Unresolved)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R46 m-2): %v", err)
+	}
 	if len(events) != 3 {
 		t.Fatalf("Recover wrote to the durable form: %d events", len(events))
 	}
@@ -732,7 +735,10 @@ func TestRecoverDoesNotDispatchAdoptedWork(t *testing.T) {
 	if rep.States["op-d"] != "adopted" {
 		t.Fatalf("recovered state = %q, want adopted (dispatchable)", rep.States["op-d"])
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R46 m-2): %v", err)
+	}
 	if len(events) != 1 {
 		t.Fatalf("Recover moved a dispatchable operation: %d events, want 1 — the never-dispatch boundary regressed", len(events))
 	}

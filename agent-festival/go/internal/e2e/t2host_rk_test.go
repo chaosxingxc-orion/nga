@@ -119,13 +119,14 @@ func TestT2R_PermissionRevoked(t *testing.T) {
 	)
 	h.completeNode("op-t2r-perm")
 
-	// L39 fix: the host-side authorization check is now a REAL assertion,
-	// not just documentation. The T2 nodeEntry method checks the caller's
-	// grants before serving the stored result. We test both sides:
-	// ① caller with NON-EMPTY grants → result served (fixture-level
-	//    simplification: non-empty = authorized — no grant-content
-	//    matching, nodeEntry does not inspect selector/action)
-	// ② caller WITHOUT grants → result NOT served
+	// L39 fix + E5 upgrade (R46 m-3 honesty sync): the host-side
+	// authorization check is a REAL assertion. The T2 nodeEntry method
+	// checks the caller's grants via grantsCoverRead — kind/selector/
+	// actions CONTENT matching against the result's grants (not just
+	// non-emptiness; TestE5_ReadAuthorizationVariants proves the
+	// downgraded-selector form is refused). Both sides:
+	// ① caller whose grants COVER the result's → served
+	// ② caller WITHOUT grants → NOT served
 	stored, ok := h.store.get("op-t2r-perm")
 	if !ok || stored.Receipt == "" {
 		t.Fatal("stored result not found or empty — the store should have it")

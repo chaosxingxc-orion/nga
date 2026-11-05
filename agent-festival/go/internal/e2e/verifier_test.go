@@ -48,8 +48,10 @@ type rawEvidence struct {
 // fixture's rule texts — the NUMBER IS PARSED from the matched text (R33
 // M-1: the previous Contains+literal-copy form was blind to digit
 // extension, "above 30"→"above 300" matched and kept the stale 30). An
-// unparseable bound returns 0 (the fail-closed sentinel: the anchor test
-// flags it), never a historic default. Sentinel protection state: the
+// An unparseable, conflicting, or self-contradicting derivation returns
+// (0, 0) (the fail-closed sentinel: the anchor test flags it; the
+// verify-side refusal names all three sources — R46 m-1/m-5), never a
+// historic default. Sentinel protection state: the
 // VERIFY-side refusal (R40 M-2) rejects an unanchored spec outright
 // (TestE1_BandAnchorFailClosed pins that carrier — deleting the refusal
 // resurrects the drift cover). (R42 m-1: the older R33 m-3 note here
@@ -281,7 +283,11 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	}
 	vetoMonths := anchorVetoMonths(spec)
 	if vetoMonths == 0 {
-		return checkResult{ok: false, reason: "the fixture's rule-0 threshold is unparseable — the seat refuses to gate on an unanchored spec (fail-closed, R30 M-2)"}
+		// R46 m-1: the 0 sentinel has THREE reachable sources (unparseable
+		// text, multi-value conflicts, compound poisoning) — the message
+		// names all three (the band arm's R45 m-2 exhaustiveness, now on
+		// this twin arm too).
+		return checkResult{ok: false, reason: "no usable veto threshold — the fixture's rule-0 threshold is unparseable, conflicting, or compound-poisoned; the seat refuses to gate (fail-closed, R30 M-2/R46 m-1)"}
 	}
 	// R31 M-1: the VOCABULARY gate with NORMALIZATION comes first — a
 	// case variant that folds onto a fixture name takes the fixture's
@@ -746,8 +752,13 @@ func TestE1_FailClosedAnchored(t *testing.T) {
 	if cr.ok {
 		t.Fatal("M-1 probe: verify gated on an unanchored spec — the fail-closed face is not load-bearing")
 	}
-	if !strings.Contains(cr.reason, "unparseable") {
-		t.Fatalf("M-1 probe: refusal reason = %q, want the unparseable marker", cr.reason)
+	// R46 m-4: THREE independent keyword pins (the exhaustiveness is
+	// load-bearing — a prefix-only anchor let the enumeration silently
+	// drop)
+	for _, kw := range []string{"unparseable", "conflicting", "compound"} {
+		if !strings.Contains(cr.reason, kw) {
+			t.Fatalf("M-1 probe: refusal reason = %q, want the %q source named (R46 m-1 exhaustive message)", cr.reason, kw)
+		}
 	}
 
 	// ② nil spec → outright refusal
