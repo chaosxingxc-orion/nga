@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T13:23:43.952063+00:00",
+    "observed_utc": "2026-11-05T13:31:03.615525+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -293,7 +293,7 @@
         "independent_patch_acceptance": true
       },
       "frozen_build_context_files": 59,
-      "candidate_built": false,
+      "candidate_built": true,
       "patch_independent_checks": 143,
       "patch_parent_frozen_rerun_checks": 143,
       "patch_commit": "b76d2c7"
@@ -321,8 +321,64 @@
       },
       "exit_code": 0
     },
-    "candidate_build": "started after scorer functional acceptance; full image/tree/46320 replay pending",
+    "candidate_build": {
+      "image": "sha256:8e0de8b6fca61ed8fef87db65f4b029c2a6e2090a99dfc4da954dfbed98105a8",
+      "status": "built; independent image and full46320 comparison pending",
+      "manifest_entries": 57,
+      "tree_entries": 72,
+      "parent_nonlog_evidence_hashes": 14,
+      "controller_exit": 1,
+      "initial_test_failure": "torch_npu autoload missinglibascend_hal.so; no tests executed",
+      "distinct_cpu_retry": {
+        "exit": 0,
+        "tests": 5,
+        "TORCH_DEVICE_BACKEND_AUTOLOAD": "0"
+      },
+      "full_replay": "Sol task active, no result yet"
+    },
     "resource_provider": "Astra request_changes four findings; Terra fixes v2 running; physical qualification not done",
-    "log_service_integration": "incomplete: standalone accepted, supervisor/event service registration and recovery unimplemented"
+    "log_service_integration": "incomplete: standalone accepted, supervisor/event service registration and recovery unimplemented",
+    "runtime_import": {
+      "image": "sha256:a2b20ba160230b3e8c538ce588e256bec55cdb4b4e5e5a294e70ba9107dca6d9",
+      "report": {
+        "scope": "actual library imports and Qwen3.5 configuration class construction; no NPU device allocation or model weights",
+        "checks": {
+          "torch": {
+            "version": "2.10.0+cpu",
+            "cpu_sum": 6.0
+          },
+          "torch_npu": {
+            "version": "2.10.0.post7",
+            "imported": true
+          },
+          "transformers": {
+            "version": "5.14.1",
+            "config_types": {
+              "qwen3_5": true,
+              "qwen3_5_text": true
+            }
+          },
+          "peft": {
+            "version": "0.21.2"
+          },
+          "tbe": {
+            "imported": true,
+            "path": "/usr/local/Ascend/ascend-toolkit/latest/python/site-packages/tbe/__init__.py"
+          },
+          "qwen3_5": {
+            "config_class": "Qwen3_5Config",
+            "model_type": "qwen3_5"
+          },
+          "qwen3_5_text": {
+            "config_class": "Qwen3_5TextConfig",
+            "model_type": "qwen3_5_text"
+          }
+        },
+        "utc_seconds": 1793885080.7593746,
+        "exit_code": 0
+      },
+      "no_npu_devices": true,
+      "real_weights_or_models_loaded": false
+    }
   }
 }
