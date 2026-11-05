@@ -8,6 +8,6 @@
 | 样本分析、统计结果、指标复算、bad case 根因分析 | `gpt-6.1-sol` | 负责有证据的分析和诊断，不替代规划决策 |
 | 任务规划、结果评价、对抗式审查、go/no-go、重新规划 | `gpt-6-astra` | 只负责规划与评价，不承担工程实现或样本分析 |
 
-当前工具目录没有 `gpt-6.1-terra`，所以工程和文档任务必须标记为 queued/unavailable，不能自动改派给 Sol 或 Astra。配置不建立隐式 fallback；Terra 可调度后再按原任务启动。`gpt-6.1-sol` 和 `gpt-6-astra` 当前可调度。
+当前 Codex 模型目录已经包含 `gpt-6.1-terra`，并已验证为可见且支持 API。因此工程和文档任务可以按原分工派发给 Terra。配置不建立隐式 fallback；若后续目录再次移除 Terra，任务应标记为 queued/unavailable，不能自动改派给 Sol 或 Astra。`gpt-6.1-sol` 和 `gpt-6-astra` 当前也可调度。
 
 所有子智能体仍必须写完整 `HANDOFF.md`，包含目标、输入约束、实际方法、变更、证据、验证、结果范围、未完成事项和执行连续性。通信消息只是通知，不是交付物。NPU 资源 claim、detached 生命周期、TEST 门禁和 600 秒脚本监控规则保持不变。

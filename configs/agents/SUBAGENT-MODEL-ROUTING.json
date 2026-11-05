@@ -6,7 +6,7 @@
     "engineering_and_documentation": {
       "requested_model": "gpt-6.1-terra",
       "role": "implementation, test, integration, experiment package preparation, and documentation generation",
-      "dispatchable_in_current_tool_inventory": false,
+      "dispatchable_in_current_tool_inventory": true,
       "fallback": "none",
       "when_unavailable": "keep task queued and report the unavailable requested model; do not silently substitute another model"
     },

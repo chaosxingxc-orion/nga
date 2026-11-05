@@ -47,10 +47,10 @@ The current routing policy is pinned in
 Engineering development, experiment-package construction and documentation generation are
 assigned to `gpt-6.1-terra`; sample analysis, statistics and bad-case root-cause analysis are
 assigned to `gpt-6.1-sol`; task planning, evaluation, adversarial review and replanning are
-assigned to `gpt-6-astra`. The current tool inventory does not expose `gpt-6.1-terra`, so
-engineering/documentation tasks remain queued rather than silently falling back to another
-model. Astra does not implement or own sample analysis, and Sol reports evidence rather than
-making the final plan decision.
+assigned to `gpt-6-astra`. The current Codex model catalog exposes `gpt-6.1-terra`; if a future
+catalog no longer exposes it, engineering/documentation tasks remain queued rather than silently
+falling back to another model. Astra does not implement or own sample analysis, and Sol reports
+evidence rather than making the final plan decision.
 
 ## 3. What this repository is
 
