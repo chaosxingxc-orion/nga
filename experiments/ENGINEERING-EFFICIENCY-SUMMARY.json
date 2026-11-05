@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T13:48:40.809345+00:00",
+    "observed_utc": "2026-11-05T13:56:19.033023+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -305,7 +305,17 @@
       "parent_test_seconds": 0.479,
       "fixture": "actual tiny PEFT publication/load/forward, patched registry; not realQwen or NPU",
       "root_host_export_score_integration": false,
-      "root_integration": "v2 final independent audit:actualtiny248320PEFT3kind chain positive,15cases include defectreproducers;96reviewpinschecked. Wholeintegration rejected: CPU pipeline separatepublicationmounts, processglobalread_logitsrace, attemptlifecycle, imageclosure. v3fix running"
+      "root_integration": "v2 final independent audit:actualtiny248320PEFT3kind chain positive,15cases include defectreproducers;96reviewpinschecked. Wholeintegration rejected: CPU pipeline separatepublicationmounts, processglobalread_logitsrace, attemptlifecycle, imageclosure. v3fix running",
+      "v3": {
+        "status": "partial directtrainedtransaction and fixes pass, independentreviewactive",
+        "parent_chain_tests": 5,
+        "chain_seconds": 5.135,
+        "parent_mount_tests": 3,
+        "mount_seconds": 0.107,
+        "matched_delivery_pins": 16,
+        "actual_cpu_consumer_pipeline": false,
+        "image_assembled": false
+      }
     },
     "runtime_metadata": {
       "image": "sha256:a2b20ba160230b3e8c538ce588e256bec55cdb4b4e5e5a294e70ba9107dca6d9",
@@ -334,7 +344,7 @@
         "tests": 5,
         "TORCH_DEVICE_BACKEND_AUTOLOAD": "0"
       },
-      "full_replay": "Sol admission recovered name conflict; originalrecord snapshot inprogress, no sixrunresults yet"
+      "full_replay": "original46320record snapshot admission exit0, frozenBCCBBCprotocol, measuredrun1 started; fullresults pending"
     },
     "resource_provider": {
       "v2_verdict": "REQUEST_CHANGES",
@@ -353,7 +363,15 @@
       "physical_qualified": false,
       "service_wired": false
     },
-    "log_service_integration": "incomplete: standalone accepted, supervisor/event service registration and recovery unimplemented",
+    "log_service_integration": {
+      "version": "v5",
+      "fixed_registry_and_preparation_api": true,
+      "parent_actualsubprocess_tests": 3,
+      "test_seconds": 4.123,
+      "delivery_pins": 15,
+      "eventservice_automatic_start": false,
+      "independent_acceptance": false
+    },
     "runtime_import": {
       "image": "sha256:a2b20ba160230b3e8c538ce588e256bec55cdb4b4e5e5a294e70ba9107dca6d9",
       "report": {
