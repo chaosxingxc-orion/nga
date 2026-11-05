@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T13:08:32.451953+00:00",
+    "observed_utc": "2026-11-05T13:16:45.036387+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -290,18 +290,35 @@
         "passed": 5,
         "seconds": 0.726,
         "full_replay_completed": false,
-        "independent_patch_acceptance": false
+        "independent_patch_acceptance": true
       },
       "frozen_build_context_files": 59,
-      "candidate_built": false
+      "candidate_built": false,
+      "patch_independent_checks": 143,
+      "patch_parent_frozen_rerun_checks": 143,
+      "patch_commit": "b76d2c7"
     },
-    "log_capture": "F1-F4 fixes delivered; parent9tests3.317s pass; independent review pending; no service integration",
+    "log_capture": "ACCEPT_SCOPED F1-F4 47 independent checks +9tests; tested schema pins retained, current integration delta requires recheck",
     "trained_evaluation": {
-      "status": "standalone component delivered, independent review pending",
+      "status": "component scoped acceptance with qualifications,14independent checks; strict publication dtype and integration remain",
       "parent_tests": 3,
       "parent_test_seconds": 0.479,
       "fixture": "actual tiny PEFT publication/load/forward, patched registry; not realQwen or NPU",
       "root_host_export_score_integration": false
+    },
+    "runtime_metadata": {
+      "image": "sha256:a2b20ba160230b3e8c538ce588e256bec55cdb4b4e5e5a294e70ba9107dca6d9",
+      "scope": "175 retainedCPUcontainer metadata only; no torch import/device/op",
+      "packages": {
+        "torch": "2.10.0+cpu",
+        "torch-npu": "2.10.0.post7",
+        "transformers": "5.14.1",
+        "peft": "0.21.2",
+        "numpy": "1.26.4",
+        "safetensors": "0.8.0",
+        "jsonschema": "4.26.0"
+      },
+      "exit_code": 0
     }
   }
 }
