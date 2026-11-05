@@ -96,7 +96,7 @@
   ],
   "scope": "Retained metadata/source audit; no new training or NPU qualification; model payload hashes inherited.",
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T12:24:49.819477+00:00",
+    "observed_utc": "2026-11-05T12:42:58.670694+00:00",
     "status": "component_and_outer_source_delta_scoped_accepted_full_shell_qualification_missing",
     "supersedes": "Implementation status of initial metadata audit only; inherited counts and scientific conclusions unchanged",
     "handoff_sha256": "7d89cd1aeedc62b7008fd3daf1af598f417ef0b96985743ab2d9c40ebd7c13b8",
@@ -140,6 +140,7 @@
     },
     "remaining_release_gates": [
       "Independent outer schema/adapter/host/image integration review and corrections",
+      "Four-size trainedadapter inference including9B, publication identity and downstream score/protocol binding",
       "Unmodified shell entrypoint synthetic full checkpoint/resume/final artifact qualification",
       "Persistent supervision/logs, actual resource provider and automatic CPU pipeline composition",
       "Exact accelerator runtime/dependency/device-mapping qualification",
@@ -209,6 +210,46 @@
         "result_sha256": "a33bd3b0ddb17299c3452773891d8b6101ba5b9d455ad9f36c000a7464e2c0b7",
         "evidence_defect": "final update gradient trace overwritten by terminal zero-update retry; separate attempt evidence required"
       }
+    },
+    "trained_evaluation_gap": {
+      "current_base_inference_sizes": [
+        "0.8B",
+        "2B",
+        "4B"
+      ],
+      "9b_inference_registered": false,
+      "peft_adapter_load_implemented": false,
+      "family_output": "PEFT publication not mergedcheckpoint",
+      "requirement": "fourfamily trained-model runtime,base+adapter identity,actual load/discrimination,export/scorebinding",
+      "engineering_task": "queued directTerra componentimplementation; rootintegration later"
+    },
+    "shell_derivative_qualification": {
+      "status": "producer_scoped_pass_independent_review_pending",
+      "production_image": "sha256:a2b20ba160230b3e8c538ce588e256bec55cdb4b4e5e5a294e70ba9107dca6d9",
+      "qualification_image": "sha256:ea563b6d66ebde963b4a00cccdf684a49a23f716d0f811a194b3d5d0d766e16f",
+      "verification": {
+        "status": "PASS",
+        "preclip_final_exact_nonempty": true,
+        "postclip_final_exact_nonempty": true,
+        "terminal_retry_zero_updates": true,
+        "peft_tensors_exact_and_match_checkpoints": true,
+        "receipt_binding_exact": true,
+        "synthetic_counter": 3115,
+        "actual_previous_updates": 6,
+        "actual_final_updates": 1,
+        "schedule": 3116
+      },
+      "audit": {
+        "production_tree_equal": true,
+        "manifest_equal": true,
+        "manifest_count": 55,
+        "production_fixture_absent": true,
+        "derivative_fixture_present": true
+      },
+      "real_weights_validated": false,
+      "production_runtime_success": false,
+      "source_result_sha256": "df54cd18f872cb38e0118ad5c0fbfb37c3dc46c58c83375485d939b29dcdfee3",
+      "parent_nonlog_pin_checks": 48
     }
   }
 }
