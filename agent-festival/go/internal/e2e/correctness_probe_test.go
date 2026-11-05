@@ -38,8 +38,10 @@ import (
 // E0-sick tests were REWRITTEN to assert the blocking state in the same
 // commit the verification seat landed — no skip guards survive to turn
 // the rewritten assertions into dead code. The rewritten tests are
-// mutation-coupled: removing the verify gate from the harness turns the
-// sick-chain test red (the grant flows through again).
+// coupled to verify's ANSWER: a seat returning ok turns them red (the
+// conditional-flow face with full behavioral mass is TestE2's — R39 m-2:
+// the earlier "remove the verify gate from the harness" narrative was
+// false, there is no gate in the harness to remove).
 
 // p3FixtureCorrectionLanded was removed in R20 (B-1): its two skip guards
 // survived the rewrite of the E3 test bodies, leaving the rewritten
@@ -178,7 +180,10 @@ func TestE1_BlocksSickS1(t *testing.T) {
 	if h.calls.bankAPI != 0 {
 		t.Fatalf("E1: the business API was called %d times — the sick verdict reached execution despite the seat refusal", h.calls.bankAPI)
 	}
-	events, _ := h.machine.Events()
+	events, err := h.machine.Events()
+	if err != nil {
+		t.Fatalf("E1: Events() failed — a load error must fail, not silently empty the assertion set: %v", err)
+	}
 	for _, ev := range events {
 		if ev.Outcome.Status == "dispatched" || ev.Outcome.Status == "completed" {
 			t.Fatalf("E1: found a %q event — the sick verdict reached execution despite the seat refusal", ev.Outcome.Status)
@@ -269,7 +274,10 @@ func TestE1_SeatKillsExtractionInheritance(t *testing.T) {
 	if h.calls.bankAPI != 0 {
 		t.Fatalf("E1: the business API was called %d times — the extraction-miss grant reached execution", h.calls.bankAPI)
 	}
-	events, _ := h.machine.Events()
+	events, err := h.machine.Events()
+	if err != nil {
+		t.Fatalf("E1: Events() failed — a load error must fail, not silently empty the assertion set: %v", err)
+	}
 	for _, ev := range events {
 		if ev.Outcome.Status == "dispatched" || ev.Outcome.Status == "completed" {
 			t.Fatalf("E1: found a %q event — the extraction-miss grant reached execution", ev.Outcome.Status)
@@ -613,7 +621,10 @@ func TestE0_PhantomJSONEOFCaught(t *testing.T) {
 
 	// external damage: append a phantom line with a MATCHING seq at EOF
 	path := h.dir + "/adopt.jsonl"
-	events, _ := h.machine.Events()
+	events, err := h.machine.Events()
+	if err != nil {
+		t.Fatalf("E1: Events() failed — a load error must fail, not silently empty the assertion set: %v", err)
+	}
 	nextSeq := len(events) // next arbitration_seq
 	phantom := fmt.Sprintf(`{"arbitration_seq":%d}`+"\n", nextSeq)
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o600)

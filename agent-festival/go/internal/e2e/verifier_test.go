@@ -136,7 +136,9 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 	// while the fixture said >33). The R33 M-1 regex-digits discipline
 	// swept the band arm; this is the veto arm's word-form sweep. Compound
 	// forms land on the 0 sentinel (fail-closed — the anchor test flags
-	// them). R31 m-4: fixed order slice, first-hit-wins (deterministic).
+	// them). R31 m-4: fixed order slice (deterministic); collect-then-
+	// decide since R35 m-1 (R39 m-3: the old "first-hit-wins" phrasing
+	// described the pre-refactor inline-return form).
 	// R35 m-1: COLLECT-then-DECIDE — all precedence-0 word hits are
 	// gathered first; DIFFERENT values across hits are an ambiguous
 	// derivation → sentinel (the band arm's R34 m-2 discipline, now on
@@ -161,29 +163,28 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 	if len(seen) > 1 {
 		return 0 // multiple distinct thresholds claimed — ambiguous
 	}
-	// R37 M-2: decide scans EVERY rule's EVERY occurrence — a compound
-	// anywhere (in any rule, at any position) poisons the anchor BEFORE
+	// R37 M-2: decide scans EVERY precedence-0 rule's EVERY occurrence —
+	// a compound anywhere in those rules poisons the anchor BEFORE (R39
+	// m-3: the scan is precedence-0-scoped, matching the anchor's source;
 	// any clean value returns (the previous per-rule early-return let a
 	// clean rule's hit exempt a later compound rule).
-	// R38 M-3: whitespace-normalize the coverage text FIRST (the E3
-	// fixture assertions already collapse whitespace — "twenty␣␣three
-	// months" made the compound alignment miss and parse the bare-word
-	// suffix 3).
-	for ri := range spec.Rules {
-		spec.Rules[ri].Coverage = strings.Join(strings.Fields(spec.Rules[ri].Coverage), " ")
-	}
 	for _, r := range spec.Rules {
+		// R39 m-1: the anchor is a PURE function now — the whitespace
+		// normalization (R38 M-3) lives on a LOCAL copy instead of
+		// mutating the caller's spec (the mutation also depended on the
+		// early-return path, making it input-dependent).
+		normalized := strings.Join(strings.Fields(r.Coverage), " ")
 		if r.Precedence == 0 {
 			for _, w := range vetoWords {
 				searchFrom := 0
 				for {
-					rel := strings.Index(r.Coverage[searchFrom:], w.word+" months")
+					rel := strings.Index(normalized[searchFrom:], w.word+" months")
 					if rel < 0 {
 						break
 					}
 					idx := searchFrom + rel
 					if idx > 0 {
-						prev := r.Coverage[idx-1]
+						prev := normalized[idx-1]
 						if isWordChar(prev) || prev == '-' {
 							return 0 // letter/hyphen compound — unrepresentable value, poison
 						}
@@ -191,7 +192,7 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 							compound := false
 							for _, w2 := range compoundTokens {
 								start := idx - 1 - len(w2)
-								if start >= 0 && r.Coverage[start:idx-1] == w2 && (start == 0 || !isWordChar(r.Coverage[start-1])) {
+								if start >= 0 && normalized[start:idx-1] == w2 && (start == 0 || !isWordChar(normalized[start-1])) {
 									compound = true
 									break
 								}
@@ -296,6 +297,18 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	}
 	if raw.assetReportPresent && kind == "on_missing_evidence" {
 		return checkResult{ok: false, reason: "the asset valuation report is present but the verdict claims it missing — the spec's resolution scopes on_missing_evidence to the asset report alone (any other gap is the host's pre-judgment coverage route, E2), so this claim is the evasion mirror"}
+	}
+	// R39 M-1: the CONSUMPTION-COMPLETENESS gate — the vocabulary gate
+	// admits every spec.Levels name, but the semantic faces above enumerate
+	// only the known grant kinds; a NEW level (a legal spec evolution, e.g.
+	// grant-20000) used to pass the gate and fall through every face to
+	// ok=true — a silent fail-open channel. An admitted kind that no face
+	// CONSUMED is refused explicitly; a new level forces a new face, not a
+	// silent pass.
+	consumed := kind == "grant-50000" || kind == "grant-10000" ||
+		kind == "deny" || kind == "on_undefined_rule" || kind == "on_missing_evidence"
+	if !consumed {
+		return checkResult{ok: false, reason: "the verdict kind " + v.kind + " is in the fixture's vocabulary but no semantic face consumes it — add a face for the new level instead of passing it silently (fail-closed, R39 M-1)"}
 	}
 	// The between-bands face: the seat knows the open question and holds
 	// S1 to the spec's own vocabulary — a grant from an unsettled zone is
@@ -465,7 +478,10 @@ func TestE2_CoverageGapBlocksCounterexampleB(t *testing.T) {
 	if h.calls.bankAPI != 0 {
 		t.Fatalf("E2: the business API was called %d times — counterexample B's insufficient evidence reached execution", h.calls.bankAPI)
 	}
-	events, _ := h.machine.Events()
+	events, err := h.machine.Events()
+	if err != nil {
+		t.Fatalf("E2/E5: Events() failed — a load error must fail, not silently empty the assertion set: %v", err)
+	}
 	for _, ev := range events {
 		if ev.Outcome.Status == "dispatched" || ev.Outcome.Status == "completed" {
 			t.Fatalf("E2: found a %q event — counterexample B's insufficient evidence reached execution", ev.Outcome.Status)
@@ -935,3 +951,53 @@ func TestE1_AnchorWhitespaceAndMultiHit(t *testing.T) {
 		t.Fatalf("M-2 probe: intra-rule conflicting bounds = (%v, %v), want (0, 0) — the appended clause drifted silently", lo, hi)
 	}
 }
+
+// TestE1_VocabularyConsumptionComplete is the R39 M-1 probe: EVERY name in
+// spec.Levels (plus the resolution words) must be CONSUMED by a semantic
+// face — a new level added to the fixture (a legal spec evolution) must
+// turn this red instead of silently passing. Mutation probe: delete the
+// consumption-completeness gate in verify() and a synthetic new level
+// passes through (red).
+func TestE1_VocabularyConsumptionComplete(t *testing.T) {
+	spec := loadE3Fixture(t)
+	// the real fixture's levels are all consumed (the gate does not fire):
+	for _, lvl := range spec.Levels {
+		raw := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true}
+		cr := verify(s1Verdict{kind: lvl.Name, details: "probe"}, spec, raw)
+		if strings.Contains(cr.reason, "no semantic face consumes") {
+			t.Fatalf("M-1 probe: fixture level %q is admitted but unconsumed — the fail-open channel is live", lvl.Name)
+		}
+	}
+	// the synthetic new level: admitted by the vocabulary gate, refused by
+	// the completeness gate (no face consumes it)
+	newLevel := &fixtureSpec{
+		Levels: []fixtureLevel{{Name: "grant-20000"}, {Name: "deny"}},
+		Rules:  spec.Rules,
+	}
+	raw := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true}
+	cr := verify(s1Verdict{kind: "grant-20000", details: "a legal spec evolution"}, newLevel, raw)
+	if cr.ok {
+		t.Fatal("M-1 probe: a synthetic new level passed verify — the fail-open channel is live (add a face, not a pass)")
+	}
+	if !strings.Contains(cr.reason, "no semantic face consumes") {
+		t.Fatalf("M-1 probe: refusal reason = %q, want the consumption marker", cr.reason)
+	}
+}
+
+// TestE1_AnchorPurity is the R39 m-1 probe: anchorVetoMonths is a PURE
+// function — its input spec must be byte-identical after the call (the
+// whitespace normalization lives on a local copy). Mutation probe: revert
+// to in-place spec mutation and this goes red.
+func TestE1_AnchorPurity(t *testing.T) {
+	spec := loadE3Fixture(t)
+	before := fmt.Sprintf("%v", spec.Rules)
+	_ = anchorVetoMonths(spec)
+	after := fmt.Sprintf("%v", spec.Rules)
+	if before != after {
+		t.Fatal("m-1 probe: anchorVetoMonths mutated its input spec — the derive function carries a hidden write side effect")
+	}
+}
+
+// (R39 m-1 mutation-verification record: reverting the decide phase to
+// in-place spec mutation made THIS test red — verified before the revert
+// was restored. The probe is coupled to the purity property.)

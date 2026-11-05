@@ -282,3 +282,9 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **M-3（双空格复合）**："twenty␣␣three months" 对齐假设单空格——复合未毒化、解析后缀 3。已修：毒扫描前空白归一（Fields 折叠——E3 夹具断言同款先例）。探针入 TestE1_AnchorWhitespaceAndMultiHit（双空格+intra-rule 冲突双案例）。反突变→红。
 - **m-1~m-2（随批清偿）**：尾部返回循环第三份词表硬编码删（for n := range seen——vetoWords 单一真源消费完整）；37 号 E1 行补 R36/R38 更正标记（中带面已删、语义改挂级档面）。
 - **方法论入账（第 36/37 实证）**：修复声明的机械验证=探针绿+反突变红**留痕在当轮**（B-1——「反突变→红」三个字写了而突变对象不存在，patch 失败后必须重验再记账）；双侧落点的修复要双侧探针（M-1——live/replay 是同一语义的两个写点，单侧验证=另一侧可无声回退）。
+
+## R39 空白复审记账（2026-11-06，339b38b..66799a7 六实验+R29-R38 清偿——0B/1M/4m 全清偿；连净计数 0）
+
+- **M-1（词表门准入集与面消费集无完备性钉）**：词表门归一收 spec.Levels 任何名字，语义面只枚举字面量——夹具新增 level（合法规格演化）过门后无面消费直落 ok=true（在场双向面只认两个旧 grant 名）；锚只钉数值不枚举 levels。已修：verify 加消费完备性门（词表内但无面消费的 kind 显式拒绝——新 level 强制加新面而非静默过）+TestE1_VocabularyConsumptionComplete 双探针（真夹具 levels 全消费+合成新 level 拒）。反突变（删完备性门）→红。
+- **m-1~m-4（随批清偿）**：m-1 anchorVetoMonths 归一改局部副本（纯函数化——原地写副作用随 early-return 输入依赖）+TestE1_AnchorPurity 纯度探针（反突变：回退原地写→红，留痕）；m-2 文件头撤回残留改真（R31 m-2 更正声明只部分落地——「harness 有门可删」假叙事与同文件 118-121 撤回段矛盾）；m-3 双注释错位（EVERY rule→EVERY precedence-0 rule 收窄+first-hit-wins→collect-then-decide since R35）；m-4 三处 Events 吞错改检查（承重断言的静默绿路径——对齐 health_test 形态）。
+- **方法论入账（第 38 实证）**：门的准入集与面的消费集要钉完备性（M-1——准入 ⊋ 消费的 delta 是结构性 fail-open 通道；新 level 强制新面是规格演化的正确形态）；更正声明的落地要逐段 grep（m-2——R31 的「文件头改真」漏了一段，撤回残留与更正段同文件共存八轮）。
