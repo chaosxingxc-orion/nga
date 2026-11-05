@@ -61,6 +61,11 @@ func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 	// INTRA-RULE matches too (an appended clause "recap: assets above 50
 	// as before" was silently ignored by first-match); two different
 	// values in one rule are a conflict, same as cross-rule.
+	// R40 m-2: seenAbove/seenBelow separate "a value was recorded" from
+	// the recorded VALUE — the 0 sentinel used to collide with a
+	// legitimately-parsed 0 ("above 0" then "above 50" last-wins'd
+	// silently because hi != 0 was false).
+	seenAbove, seenBelow := false, false
 	for _, r := range spec.Rules {
 		for _, m := range aboveRe.FindAllStringSubmatch(r.Coverage, -1) {
 			if m[2] != "" {
@@ -70,10 +75,10 @@ func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 			if _, err := fmt.Sscanf(m[1], "%g", &v); err != nil {
 				return 0, 0
 			}
-			if hi != 0 && hi != v {
+			if seenAbove && hi != v {
 				return 0, 0 // two different "above" bounds (cross- or intra-rule) — ambiguous
 			}
-			hi = v
+			hi, seenAbove = v, true
 		}
 		for _, m := range belowRe.FindAllStringSubmatch(r.Coverage, -1) {
 			if m[2] != "" {
@@ -83,12 +88,13 @@ func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 			if _, err := fmt.Sscanf(m[1], "%g", &v); err != nil {
 				return 0, 0
 			}
-			if lo != 0 && lo != v {
+			if seenBelow && lo != v {
 				return 0, 0
 			}
-			lo = v
+			lo, seenBelow = v, true
 		}
 	}
+
 	// R35 m-2: an INVERTED interval (lo > hi — both parsed but the text
 	// contradicts itself) is neither unparseable nor multi-hit — it is
 	// the third fail-open form: inBand would be vacuously false and the
@@ -136,7 +142,11 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 	// while the fixture said >33). The R33 M-1 regex-digits discipline
 	// swept the band arm; this is the veto arm's word-form sweep. Compound
 	// forms land on the 0 sentinel (fail-closed — the anchor test flags
-	// them). R31 m-4: fixed order slice (deterministic); collect-then-
+	// them). R40 m-3: the CONJUNCTION sub-family ("a hundred AND three
+	// months" — preceding token is a plain article, not a number word) is
+	// a DECLARED blind spot: the token scan cannot distinguish it from
+	// prose; the anchor test pins the fixture to the canonical form.
+	// R31 m-4: fixed order slice (deterministic); collect-then-
 	// decide since R35 m-1 (R39 m-3: the old "first-hit-wins" phrasing
 	// described the pre-refactor inline-return form).
 	// R35 m-1: COLLECT-then-DECIDE — all precedence-0 word hits are
@@ -288,28 +298,36 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	if !vetoFires && kind == "deny" {
 		return checkResult{ok: false, reason: "the verdict is a deny but the raw record carries no overdue beyond the anchored threshold — rule 0 is the only deny path in this spec, so this deny is fabricated"}
 	}
-	// R32 M-2: the evidence-presence mirror faces — the fixture's FIRST
-	// evidence source (the asset valuation report) must be present for a
-	// grant to be honest, and a report that IS present must not be
-	// denied-by-evasion. Both directions of the E0 evasive-S1 family.
-	if !raw.assetReportPresent && (kind == "grant-50000" || kind == "grant-10000") {
-		return checkResult{ok: false, reason: "the asset valuation report (the fixture's first evidence source) is absent — a grant verdict without it is the evasive-S1 form (E0 family)"}
+	// R32 M-2 + R40 M-1: the evidence-presence faces, dispatched by switch
+	// — each case IS a face for its kind; the final default refuses any
+	// kind no case consumed (consumption completeness is structural: a new
+	// fixture level forces a new case, the fail-open channel is not
+	// expressible without adding BOTH the case AND its semantics — the old
+	// consumed-literal enumeration was a second hand-maintained list whose
+	// drift from the faces was pure convention).
+	switch kind {
+	case "grant-50000", "grant-10000":
+		if !raw.assetReportPresent {
+			return checkResult{ok: false, reason: "the asset valuation report (the fixture's first evidence source) is absent — a grant verdict without it is the evasive-S1 form (E0 family)"}
+		}
+	case "on_missing_evidence":
+		if raw.assetReportPresent {
+			return checkResult{ok: false, reason: "the asset valuation report is present but the verdict claims it missing — the spec's resolution scopes on_missing_evidence to the asset report alone (any other gap is the host's pre-judgment coverage route, E2), so this claim is the evasion mirror"}
+		}
+	case "deny", "on_undefined_rule":
+		// their semantic faces live below (deny: the veto mirror above;
+		// on_undefined_rule: the band mirrors after the band anchor)
+	default:
+		return checkResult{ok: false, reason: "the verdict kind " + v.kind + " is in the fixture's vocabulary but no semantic face consumes it — add a case (face) for the new level instead of passing it silently (fail-closed, R39 M-1/R40 M-1)"}
 	}
-	if raw.assetReportPresent && kind == "on_missing_evidence" {
-		return checkResult{ok: false, reason: "the asset valuation report is present but the verdict claims it missing — the spec's resolution scopes on_missing_evidence to the asset report alone (any other gap is the host's pre-judgment coverage route, E2), so this claim is the evasion mirror"}
-	}
-	// R39 M-1: the CONSUMPTION-COMPLETENESS gate — the vocabulary gate
-	// admits every spec.Levels name, but the semantic faces above enumerate
-	// only the known grant kinds; a NEW level (a legal spec evolution, e.g.
-	// grant-20000) used to pass the gate and fall through every face to
-	// ok=true — a silent fail-open channel. An admitted kind that no face
-	// CONSUMED is refused explicitly; a new level forces a new face, not a
-	// silent pass.
-	consumed := kind == "grant-50000" || kind == "grant-10000" ||
-		kind == "deny" || kind == "on_undefined_rule" || kind == "on_missing_evidence"
-	if !consumed {
-		return checkResult{ok: false, reason: "the verdict kind " + v.kind + " is in the fixture's vocabulary but no semantic face consumes it — add a face for the new level instead of passing it silently (fail-closed, R39 M-1)"}
-	}
+	// R40 M-1: the consumption-completeness gate is now STRUCTURAL — the
+	// old `consumed :=` literal enumeration was a SECOND hand-maintained
+	// list (adding a level to consumed without adding a face reopened the
+	// fail-open channel R39 M-1 closed; the two lists' sync was pure
+	// convention). The switch below is the single dispatch point: each
+	// case IS a face, the default refuses, and an unconsumed kind is not
+	// expressible (the vocabulary gate above still admits fixture names,
+	// but every admitted name must now land in a case).
 	// The between-bands face: the seat knows the open question and holds
 	// S1 to the spec's own vocabulary — a grant from an unsettled zone is
 	// a model-authored default (the spec forbids it). R29 M-4: the open
@@ -840,6 +858,12 @@ func TestE1_LevelBandConsistency(t *testing.T) {
 	if cr := verify(s1Verdict{kind: "grant-50000", details: "clean record"}, spec, rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true}); !cr.ok {
 		t.Fatalf("M-2 probe: the consistent grant-50000 was refused (%s) — the new faces over-block", cr.reason)
 	}
+	// R40 m-1: the grant-10000 下臂 positive control — a grant-10000 BELOW
+	// lo must pass (the only two grant-10000 verify calls before this were
+	// refusals; an over-block mutation on the lower-band face was green)
+	if cr := verify(s1Verdict{kind: "grant-10000", details: "clean record"}, spec, rawEvidence{assetMillionsDeclared: 0.5, assetReportPresent: true}); !cr.ok {
+		t.Fatalf("m-1 probe: the consistent grant-10000 was refused (%s) — the lower-band face over-blocks (over-block mutation invisible)", cr.reason)
+	}
 }
 
 // TestE1_VetoAnchorMultiHitConflicts is the R35 m-1 probe: the veto arm's
@@ -1001,3 +1025,45 @@ func TestE1_AnchorPurity(t *testing.T) {
 // (R39 m-1 mutation-verification record: reverting the decide phase to
 // in-place spec mutation made THIS test red — verified before the revert
 // was restored. The probe is coupled to the purity property.)
+
+// TestE1_BandAnchorFailClosed is the R40 M-2 probe: the band-anchor's
+// verify-side refusal (unparseable bounds → refuse to gate) had ZERO
+// reachable probes — every test spec with a broken band anchor ALSO broke
+// the veto anchor, whose face returned first. This spec breaks ONLY the
+// band anchor (veto parses fine), so the band-side refusal is what fires.
+// Mutation probe: delete the lo==0/hi==0 refusal in verify() and this
+// goes red (grant-50000@35 falls to the level-band face with hi=0 —
+// 35 <= 0 false — and passes, the drift-cover复活).
+func TestE1_BandAnchorFailClosed(t *testing.T) {
+	bandOnly := &fixtureSpec{
+		Levels: []fixtureLevel{{Name: "grant-50000"}, {Name: "deny"}},
+		Rules: []fixtureVetoRule{
+			{Precedence: 0, Coverage: "denies beyond three months for standard applicants"},
+			{Precedence: 1, Coverage: "assets above 30,000 (USD-millions) grant the line"},
+			{Precedence: 2, Coverage: "assets below 1 (USD-millions) grants the small line"},
+		},
+	}
+	cr := verify(s1Verdict{kind: "grant-50000", details: "healthy"}, bandOnly, rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true})
+	if cr.ok {
+		t.Fatal("M-2 probe: verify gated on a band-unparseable spec — the band-side fail-closed face is not load-bearing")
+	}
+	if !strings.Contains(cr.reason, "band bounds are unparseable") {
+		t.Fatalf("M-2 probe: refusal reason = %q, want the band-unparseable marker", cr.reason)
+	}
+}
+
+// TestE1_BandBoundsZeroSentinelCollision is the R40 m-2 probe: "above 0"
+// parses to the same value as the un-parsed sentinel — a second DIFFERENT
+// hit ("above 50") used to last-wins silently. Mutation probe: remove the
+// zero-collision re-scan and this returns (1, 50) (red).
+func TestE1_BandBoundsZeroSentinelCollision(t *testing.T) {
+	zeroThenFifty := &fixtureSpec{Rules: []fixtureVetoRule{
+		{Precedence: 1, Coverage: "assets above 0 (USD-millions) technically grants everything"},
+		{Precedence: 2, Coverage: "assets below 1 (USD-millions) grants the small line"},
+		{Precedence: 3, Coverage: "recap: assets above 50 as before"},
+	}}
+	lo, hi := anchorBandBounds(zeroThenFifty)
+	if lo != 0 || hi != 0 {
+		t.Fatalf("m-2 probe: zero-collision bounds = (%v, %v), want (0, 0) — the sentinel collision must conflict, not last-wins", lo, hi)
+	}
+}

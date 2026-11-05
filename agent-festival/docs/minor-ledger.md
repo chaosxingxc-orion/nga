@@ -286,5 +286,15 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 ## R39 空白复审记账（2026-11-06，339b38b..66799a7 六实验+R29-R38 清偿——0B/1M/4m 全清偿；连净计数 0）
 
 - **M-1（词表门准入集与面消费集无完备性钉）**：词表门归一收 spec.Levels 任何名字，语义面只枚举字面量——夹具新增 level（合法规格演化）过门后无面消费直落 ok=true（在场双向面只认两个旧 grant 名）；锚只钉数值不枚举 levels。已修：verify 加消费完备性门（词表内但无面消费的 kind 显式拒绝——新 level 强制加新面而非静默过）+TestE1_VocabularyConsumptionComplete 双探针（真夹具 levels 全消费+合成新 level 拒）。反突变（删完备性门）→红。
-- **m-1~m-4（随批清偿）**：m-1 anchorVetoMonths 归一改局部副本（纯函数化——原地写副作用随 early-return 输入依赖）+TestE1_AnchorPurity 纯度探针（反突变：回退原地写→红，留痕）；m-2 文件头撤回残留改真（R31 m-2 更正声明只部分落地——「harness 有门可删」假叙事与同文件 118-121 撤回段矛盾）；m-3 双注释错位（EVERY rule→EVERY precedence-0 rule 收窄+first-hit-wins→collect-then-decide since R35）；m-4 三处 Events 吞错改检查（承重断言的静默绿路径——对齐 health_test 形态）。
+- **m-1~m-4（随批清偿）**：m-1 anchorVetoMonths 归一改局部副本（纯函数化——原地写副作用随 early-return 输入依赖）+TestE1_AnchorPurity 纯度探针（反突变：回退原地写→红，留痕）；m-2 文件头撤回残留改真（R31 m-2 更正声明只部分落地——「harness 有门可删」假叙事与同文件 118-121 撤回段矛盾）；m-3 双注释错位（EVERY rule→EVERY precedence-0 rule 收窄+first-hit-wins→collect-then-decide since R35）；m-4 【R40 m-4 更正】四处 Events 吞错改检查（correctness_probe_test.go 3 处+verifier_test.go 1 处——原记「三处」漏数 verifier_test 1 处；对齐 health_test 形态）。
 - **方法论入账（第 38 实证）**：门的准入集与面的消费集要钉完备性（M-1——准入 ⊋ 消费的 delta 是结构性 fail-open 通道；新 level 强制新面是规格演化的正确形态）；更正声明的落地要逐段 grep（m-2——R31 的「文件头改真」漏了一段，撤回残留与更正段同文件共存八轮）。
+
+## R40 空白复审记账（2026-11-06，339b38b..46c9402 六实验+R29-R39 清偿——0B/2M/4m 全清偿；连净计数 0）
+
+- **M-1（consumed 枚举第二清单漂移）**：R39 M-1 的 `consumed :=` 字面量枚举是第二张手维护清单——加 level 进 consumed 不加面即重开 fail-open（探针结构性不可达）；R37 m-3 用单一真源退役过的同族病。已修（结构性预防）：verify 按 kind 的 switch 派发（在场面 case 化+default 显式拒）——准入集与消费集合一，delta 不可表达。完备性探针（TestE1_VocabularyConsumptionComplete）保留。
+- **M-2（带锚 verify 侧拒面装饰守卫）**：lo==0/hi==0 拒面全套件零可达（全部带锚损坏的 spec 同时 veto 锚也坏——veto 拒面先行）；其守卫的形态真实存在（veto 可解析+带不可解析→漂移掩护复活）。已修：TestE1_BandAnchorFailClosed 探针（veto-only-broken spec——注意 Levels 必须带，否则词表门先拦）。反突变（删拒面）→红。
+- **m-1（grant-10000 下臂过阻对照缺）**：grant-10000 仅有的两个 verify 调用都是拒——下臂恒拒突变全绿（R36 M-2 过阻对照纪律在下臂漏扫）。已修：assets=0.5 合流阳性对照。反突变（下臂恒拒）→红。
+- **m-2（零值哨兵碰撞）**："above 0" 解析值与未解析哨兵共用 0——"above 0"+"above 50" 静默 last-wins。已修：seenAbove/seenBelow 标志分离「已记录」与「记录值」+TestE1_BandBoundsZeroSentinelCollision 探针。反突变（回退 hi!=0 短路）→红。
+- **m-3（连词族盲区声明）**："a hundred and three months" 前一 token 是冠词非数词——token 扫描结构性盲。已修：契约句收窄为 DECLARED blind spot（与 R32 m-5 款式一致）——全称句不再宽于机制面。
+- **m-4（账本计数）**：R39 m-4「三处 Events 吞错」实为四处（verifier_test 1 处漏数）——更正+机械规则（账行计数与 diff 模式命中数 grep 对账）。
+- **方法论入账（第 39/40 实证）**：清偿 fail-open 时问一句「能不能换结构消灭而不是换位置补丁」（M-1——consumed 枚举→switch 派发，delta 从约定同步变不可表达）；探针的 spec 构造要过全部前置门（M-2——band-only 探针先被词表门拦，Levels 必须带上）。
