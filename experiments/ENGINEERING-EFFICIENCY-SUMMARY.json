@@ -285,7 +285,14 @@
       "causal_speedup_established": false,
       "next_patch": "read each record and commit once; hash and parse identical bytes; keep arithmetic and validation; full replay after reviewed rebuild",
       "effective_library_threads_verified": false,
-      "review_sha256": "fdafc5fc227d2e95d7689a6fef50a8598c3450599519d7131536e026bf4fd163"
-    }
+      "review_sha256": "fdafc5fc227d2e95d7689a6fef50a8598c3450599519d7131536e026bf4fd163",
+      "patch_parent_tests": {
+        "passed": 5,
+        "seconds": 0.609,
+        "full_replay_completed": false,
+        "independent_patch_acceptance": false
+      }
+    },
+    "log_capture": "REJECT_SCOPED F1-F4 actual progress path, watchdog heartbeat/cadence, bounded heartbeat projection, cross-output per-consumer exclusion; fixes running"
   }
 }
