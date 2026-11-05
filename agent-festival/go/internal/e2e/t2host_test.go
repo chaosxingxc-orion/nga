@@ -34,6 +34,7 @@ import (
 	"testing"
 
 	"github.com/openjiuwen/agent-festival/go/internal/adopt"
+	"github.com/openjiuwen/agent-festival/go/internal/ledger"
 )
 
 // ---------------------------------------------------------------------------
@@ -279,10 +280,25 @@ func (h *t2Host) addProbe(name string) *failingProbe {
 	return p
 }
 
+// requestForT2 builds the adoption request with the T2 scenario's OWN
+// business_request_id (the T0 requestFor hardcodes "br-e2e-credit" — using
+// it here would put a wrong brID in the ledger Identity while the T2 store
+// records the real one. R12' review found this MAJOR; this is the fix).
+func requestForT2(op, revision, evidence, digest, brID string) *adopt.Request {
+	return &adopt.Request{
+		AdoptionVersion:  "0.1.0",
+		Identity:         ledger.Identity{BusinessRequestID: brID, EvaluationRevision: revision, OperationID: op},
+		Versions:         ledger.Versions{Evidence: evidence, Rule: "rule-credit-v1", Model: "s1-standin", Readout: "r-1", Policy: "p-1"},
+		PayloadDigest:    digest,
+		GrantsAtDecision: chainGrants(),
+		Accountability:   &ledger.Accountability{Session: "sess-t2", Skill: "skill-credit", Role: "employee"},
+	}
+}
+
 // adoptAndDispatch is the standard first-pass flow: adopt + dispatch +
 // store the receipt. Returns the outcome for assertions.
 func (h *t2Host) adoptAndDispatch(op, revision, evidence, digest, brID string, receipt string, facts []string) adopt.Outcome {
-	o := h.machine.Adopt(requestFor(op, revision, evidence, digest))
+	o := h.machine.Adopt(requestForT2(op, revision, evidence, digest, brID))
 	if o.Status != "adopted" {
 		return o
 	}

@@ -91,11 +91,11 @@ func TestT2R_PersistedReceiptAcrossRestart(t *testing.T) {
 // a DIFFERENT payload digest → conflict, never silent overwrite.
 func TestT2R_SameKeyDifferentPayload(t *testing.T) {
 	h := newT2Host(t, t.TempDir())
-	if o := h.machine.Adopt(requestFor("op-t2r-diff", "er-1", "ev-1", t2Digest('a'))); o.Status != "adopted" {
+	if o := h.machine.Adopt(requestForT2("op-t2r-diff", "er-1", "ev-1", t2Digest('a'), "br-t2r")); o.Status != "adopted" {
 		t.Fatalf("adopt = %q: %s", o.Status, o.Detail)
 	}
 	// same key, different content → conflict
-	o := h.machine.Adopt(requestFor("op-t2r-diff", "er-1", "ev-1", t2Digest('b')))
+	o := h.machine.Adopt(requestForT2("op-t2r-diff", "er-1", "ev-1", t2Digest('b'), "br-t2r"))
 	if o.Status != "rejected" {
 		t.Fatalf("same-key-different-payload = %q, want rejected (conflict)", o.Status)
 	}
@@ -146,7 +146,7 @@ func TestT2R_StaleResultCorrection(t *testing.T) {
 
 	// First pass: a WRONG result (the sick S1 gave grant when it should deny)
 	badReceipt := "receipt:op-t2r-corr:wrong-grant"
-	if o := h.machine.Adopt(requestFor("op-t2r-corr", "er-1", "ev-1", t2Digest('d'))); o.Status != "adopted" {
+	if o := h.machine.Adopt(requestForT2("op-t2r-corr", "er-1", "ev-1", t2Digest('d'), "br-t2r-corr")); o.Status != "adopted" {
 		t.Fatalf("wrong result adopt = %q: %s", o.Status, o.Detail)
 	}
 	if o := h.machine.Dispatch("op-t2r-corr", chainGrants()); o.Status != "dispatched" {
@@ -167,7 +167,7 @@ func TestT2R_StaleResultCorrection(t *testing.T) {
 	// CORRECTION: the error is discovered — a new revision (er-2) is created
 	// with the corrected verdict (deny), same business_request_id.
 	// This is NOT a retry — it's a new adopted decision.
-	if o := h.machine.Adopt(requestFor("op-t2r-corr-fix", "er-2", "ev-2", t2Digest('e'))); o.Status != "adopted" {
+	if o := h.machine.Adopt(requestForT2("op-t2r-corr-fix", "er-2", "ev-2", t2Digest('e'), "br-t2r-corr")); o.Status != "adopted" {
 		t.Fatalf("correction adopt = %q: %s", o.Status, o.Detail)
 	}
 	if err := h.store.put("op-t2r-corr-fix", storedResult{
@@ -280,7 +280,7 @@ func TestT2K_NewTaskZeroModelCalls(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Adopt the result as a decision (the framework's role)
-	if o := h.machine.Adopt(requestFor("op-t2k-new", "er-1", "ev-1", t2Digest('f'))); o.Status != "adopted" {
+	if o := h.machine.Adopt(requestForT2("op-t2k-new", "er-1", "ev-1", t2Digest('f'), "br-t2k-new")); o.Status != "adopted" {
 		t.Fatalf("K: adopt = %q: %s", o.Status, o.Detail)
 	}
 
