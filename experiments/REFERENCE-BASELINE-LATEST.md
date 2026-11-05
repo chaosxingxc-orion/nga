@@ -13,6 +13,12 @@ Current coverage snapshot (2026-11-04): **112 inferred/scored and parent-accepte
 Execution status and dataset-admission progress are maintained in the Wiki. Fixed reference-model TEST evaluation can proceed per admitted panel; final evaluation of newly trained candidates follows DEV selection and a frozen TEST plan. Training progress is not a reference TEST metric.
 
 
+## Accepted training comparison — 2026-11-05
+
+The fixed Qwen3.5-0.8B seven-member same-TEST report passed independent scientific review. Primary seed-mean accuracy is **83.333333%** on decision-v7 (1200 questions) and **67.530488%** on transfer-v4 (656), improving over its own Base by **28.500000 pp** and **4.725610 pp**. Frozen paired 90% intervals are [25.958333, 31.041667] and [1.448171, 7.926829] pp. Transfer ECE worsens; no uniform metric improvement or superiority over PT is claimed.
+
+[Accepted result artifact](FINAL-SAME-TEST-RESULTS-2026-11-05.json) · [Full tables and qualified local Kev comparison](https://github.com/chaosxingxc-orion/nga/wiki/Qwen35-Final-Same-TEST). Local Kev saved-item comparisons preserve native versus T=1 protocols and the missing historical audit-SHA binding; original-reference-to-converted semantic equivalence remains unproven. Historical reference tables below are unchanged.
+
 ## Large-candidate released TEST — local codebook protocol, 2026-11-04
 
 Twenty cells independently reconstructed and diagnosed from all20,000 saved records. [Full metrics and evidence](REFERENCE-LARGE-CANDIDATE-INCREMENT-2026-11-04.json). Each cell uses1,000 released TEST rows, float32, HF32off, batch1, all77/151/60/100 candidates for Banking77/CLINC150/MASSIVE/LEDGAR respectively, one forward; this local interface is not the original publisher endpoint. Other cells remain pending acceptance.
