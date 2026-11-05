@@ -99,7 +99,10 @@ func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 	// contradicts itself) is neither unparseable nor multi-hit — it is
 	// the third fail-open form: inBand would be vacuously false and the
 	// band face silently inert. Refuse it like the others.
-	if lo != 0 && hi != 0 && lo > hi {
+	// R41 m-1: the seen flags (R40 m-2) decide "inverted" — the old
+	// lo != 0 && hi != 0 form skipped a TRUE inversion when one bound was
+	// a legitimately-parsed 0 ("above 0" + "below 5" → (5,0) slipped).
+	if seenAbove && seenBelow && lo > hi {
 		return 0, 0
 	}
 	return lo, hi
@@ -645,30 +648,48 @@ func TestE1_MirrorAndBandFaces(t *testing.T) {
 	}
 }
 
-// TestE1_CaseVariantsRefused is the R31 M-1 direct probe — the probe the
-// R30 M-3 ledger entry CLAIMED existed ("直检探针：变体必拒") but didn't.
-// Case variants must be refused exactly like their canonical forms: the
-// vocabulary gate normalizes them, so every semantic face sees the
-// canonical kind. Mutation probe: remove the normalization assignment
-// (kind = lvl.Name) and "DENY" on a clean record passes (red).
+// TestE1_CaseVariantsRefused is the R31 M-1 direct probe (R41 M-1
+// re-pinned): case variants must be refused exactly like their canonical
+// forms. Carrier note — since R40 M-1's switch dispatch, arms ① and ②
+// (variant forgeries on clean/band records) are structurally caught by
+// the switch DEFAULT (an unnormalized variant lands in no case); the
+// normalization assignment's EXCLUSIVE face is arm ③: a variant-case
+// REAL deny must be ACCEPTED (normalized into the veto face) — removing
+// the normalization assignment turns arm ③ red. Arms ①② pin the default
+// refusal as their spec (reason contains "no semantic face consumes").
 func TestE1_CaseVariantsRefused(t *testing.T) {
 	spec := loadE3Fixture(t)
 
-	// "DENY" on a clean record = fabricated deny in variant case — refused
+	// ① "DENY" on a clean record — refused BY THE DENY MIRROR (the
+	// vocabulary gate NORMALIZES "DENY"→canonical "deny" BEFORE the
+	// faces run, so the mirror sees the canonical form; the switch
+	// default is NOT the carrier — R41 M-1 first-draft error, the mirror
+	// is and the reason is pinned)
 	rawClean := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true}
-	if cr := verify(s1Verdict{kind: "DENY", details: "fabricated in caps"}, spec, rawClean); cr.ok {
-		t.Fatal("M-1 probe: DENY on a clean record was served — the variant escaped the mirror face (normalization not load-bearing)")
+	cr1 := verify(s1Verdict{kind: "DENY", details: "fabricated in caps"}, spec, rawClean)
+	if cr1.ok {
+		t.Fatal("M-1 probe: DENY on a clean record was served — the variant escaped the mirror face")
 	}
-	// "GRANT-50000" in the open band — refused
+	if !strings.Contains(cr1.reason, "rule 0 is the only deny path") {
+		t.Fatalf("M-1 probe: arm ① refusal reason = %q, want the deny-mirror marker (the pinned carrier)", cr1.reason)
+	}
+	// ② "GRANT-50000" in the open band — normalized to canonical by the
+	// vocabulary gate, then refused BY THE LEVEL-BAND FACE (its carrier)
 	rawBand := rawEvidence{assetMillionsDeclared: 12, assetReportPresent: true}
-	if cr := verify(s1Verdict{kind: "GRANT-50000", details: "variant grant"}, spec, rawBand); cr.ok {
-		t.Fatal("M-1 probe: GRANT-50000 in the open band was served — the variant escaped the band face")
+	cr2 := verify(s1Verdict{kind: "GRANT-50000", details: "variant grant"}, spec, rawBand)
+	if cr2.ok {
+		t.Fatal("M-1 probe: GRANT-50000 in the open band was served — the variant escaped the level-band face")
 	}
-	// the variant honored as a REAL deny when the veto fires (the seat
-	// accepts the normalized form's verdict — normalization is symmetric)
+	if !strings.Contains(cr2.reason, "level-band consistency") {
+		t.Fatalf("M-1 probe: arm ② refusal reason = %q, want the level-band marker (the pinned carrier)", cr2.reason)
+	}
+	// ③ the normalization assignment's EXCLUSIVE face: the variant honored
+	// as a REAL deny when the veto fires (the seat accepts the normalized
+	// form's verdict — normalization is symmetric). Mutation probe:
+	// remove the normalization assignment and THIS arm goes red.
 	rawVeto := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 2}}}
 	if cr := verify(s1Verdict{kind: "DENY", details: "real veto in caps"}, spec, rawVeto); !cr.ok {
-		t.Fatalf("M-1 probe: a variant-case REAL deny was refused (%s) — normalization broke the happy path", cr.reason)
+		t.Fatalf("M-1 probe: a variant-case REAL deny was refused (%s) — normalization broke the happy path (the assignment's exclusive face)", cr.reason)
 	}
 }
 
@@ -888,13 +909,22 @@ func TestE1_VetoAnchorMultiHitConflicts(t *testing.T) {
 
 // TestE1_BandBoundsInvertedRefused is the R35 m-2 probe: a parseable but
 // SELF-CONTRADICTING interval ("above 30 … below 40" → lo=40 > hi=30) is
-// refused — the band face must not silently go inert. Mutation probe:
-// remove the inversion check and this goes red.
+// refused — the band face must not silently go inert. R41 m-2: the spec
+// CARRIES a parseable precedence-0 rule (veto anchor resolves) so the
+// verify-side arm's refusal genuinely lands on the BAND face (the old
+// veto-broken form was refused by the veto anchor first, mis-attributing
+// the carrier); the reason is now pinned. Mutation probe: remove the
+// inversion check and both the anchor value and the verify-side reason
+// go red.
 func TestE1_BandBoundsInvertedRefused(t *testing.T) {
-	inverted := &fixtureSpec{Rules: []fixtureVetoRule{
-		{Precedence: 1, Coverage: "assets above 30 (USD-millions) grant the line"},
-		{Precedence: 2, Coverage: "exception: assets below 40 (USD-millions) may also qualify"},
-	}}
+	inverted := &fixtureSpec{
+		Levels: []fixtureLevel{{Name: "grant-50000"}, {Name: "deny"}},
+		Rules: []fixtureVetoRule{
+			{Precedence: 0, Coverage: "denies beyond three months for standard applicants"},
+			{Precedence: 1, Coverage: "assets above 30 (USD-millions) grant the line"},
+			{Precedence: 2, Coverage: "exception: assets below 40 (USD-millions) may also qualify"},
+		},
+	}
 	lo, hi := anchorBandBounds(inverted)
 	if lo != 0 || hi != 0 {
 		t.Fatalf("m-2 probe: inverted interval = (%v, %v), want (0, 0) — a self-contradicting band is a conflict", lo, hi)
@@ -902,6 +932,9 @@ func TestE1_BandBoundsInvertedRefused(t *testing.T) {
 	cr := verify(s1Verdict{kind: "grant-50000", details: "healthy"}, inverted, rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true})
 	if cr.ok {
 		t.Fatal("m-2 probe: verify gated on an inverted-band spec — the fail-closed face is not load-bearing")
+	}
+	if !strings.Contains(cr.reason, "band bounds are unparseable") {
+		t.Fatalf("m-2 probe: refusal reason = %q, want the band-side carrier (the veto anchor parses, so the band face is what refused)", cr.reason)
 	}
 }
 
@@ -1065,5 +1098,21 @@ func TestE1_BandBoundsZeroSentinelCollision(t *testing.T) {
 	lo, hi := anchorBandBounds(zeroThenFifty)
 	if lo != 0 || hi != 0 {
 		t.Fatalf("m-2 probe: zero-collision bounds = (%v, %v), want (0, 0) — the sentinel collision must conflict, not last-wins", lo, hi)
+	}
+}
+
+// TestE1_BandBoundsInvertedWithZero is the R41 m-1 probe: a TRUE inversion
+// where one bound is a legitimately-parsed 0 ("above 0" + "below 5" →
+// lo=5 > hi=0) must be refused — the seen-flag form of the inversion
+// check. Mutation probe: revert to the lo != 0 && hi != 0 form and this
+// returns (5, 0) (red).
+func TestE1_BandBoundsInvertedWithZero(t *testing.T) {
+	invertedWithZero := &fixtureSpec{Rules: []fixtureVetoRule{
+		{Precedence: 1, Coverage: "assets above 0 (USD-millions) technically grants everything"},
+		{Precedence: 2, Coverage: "assets below 5 (USD-millions) grants the small line"},
+	}}
+	lo, hi := anchorBandBounds(invertedWithZero)
+	if lo != 0 || hi != 0 {
+		t.Fatalf("m-1 probe: zero-involved inversion = (%v, %v), want (0, 0) — the seen-flag form must catch it", lo, hi)
 	}
 }

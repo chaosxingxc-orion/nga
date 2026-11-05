@@ -298,3 +298,12 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **m-3（连词族盲区声明）**："a hundred and three months" 前一 token 是冠词非数词——token 扫描结构性盲。已修：契约句收窄为 DECLARED blind spot（与 R32 m-5 款式一致）——全称句不再宽于机制面。
 - **m-4（账本计数）**：R39 m-4「三处 Events 吞错」实为四处（verifier_test 1 处漏数）——更正+机械规则（账行计数与 diff 模式命中数 grep 对账）。
 - **方法论入账（第 39/40 实证）**：清偿 fail-open 时问一句「能不能换结构消灭而不是换位置补丁」（M-1——consumed 枚举→switch 派发，delta 从约定同步变不可表达）；探针的 spec 构造要过全部前置门（M-2——band-only 探针先被词表门拦，Levels 必须带上）。
+
+## R41 空白复审记账（2026-11-06，339b38b..36ec163 六实验+R29-R40 清偿——0B/1M/3m 全清偿；连净计数 0）
+
+- **M-1（变体探针 2/3 臂被 switch default 结构性兜底——R40 M-1 清偿自身的新缝）**：switch default 的谓词域与镜像「变体伪造拒」域重叠（R36 方法论 32 的包含审计未跑）——臂①② 的「remove the normalization → red」声明失效。已修：探针声明改挂臂③独占面（归一化赋值的对称接受）+臂①② carrier 按实测钉（臂①=镜像面 reason——词表门归一化先于面运行，default 非载体；臂②=级档面 reason）。反突变（去归一化赋值）→臂① marker-mismatch 红。
+- **m-1（倒置检查零值哨兵碰撞残留）**：R40 m-2 的 seen 标志纪律未横扫姊妹检查——lo!=0 && hi!=0 前置跳过真倒置（above 0 + below 5 → (5,0) 滑过）。已修：seenAbove && seenBelow && lo > hi。探针 TestE1_BandBoundsInvertedWithZero。
+- **m-2（inverted 探针 verify 臂恒绿）**：spec 无 precedence-0 规则→veto 锚拒关先行——失败消息错误归因载体。已修：spec 加可解析 precedence-0 规则+reason 锚 band 载体。
+- **m-3（E-GR 头注释「until the remainder fits」与定长超额算术不符）**：注释改如实（fixed arithmetic + over-includes 方向安全声明）。
+- **过程记录：M-1 反突变一次 patch 破坏词表门内层闭合（break 行丢失）——415 行语法级联错，gofmt -d 零 diff（格式对）定位困难，awk 分段找到；修复后反突变以安全形态重跑（cp 备份→突变→验证红→恢复）。教训：反突变的 patch 目标串要含足够上下文防误匹配；patch 后立即 gofmt+build 再继续。**
+- **方法论入账（第 40/41 实证）**：switch 结构消灭清单漂移后，旧探针的突变耦合要逐臂重验（M-1——default 兜底吞掉两个臂的耦合）；探针的失败消息必须与真实拒绝载体一致（m-2——veto 先行拒关时 band 面的「not load-bearing」是假消息）。

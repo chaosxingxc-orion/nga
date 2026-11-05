@@ -228,8 +228,12 @@ type sweepThreshold struct {
 
 // graveyardSweep returns the entries that must be reviewed for recovery or
 // retirement (sorted for determinism). Count face: if the ledger exceeds
-// maxEntries, the OLDEST entries are listed until the remainder fits.
-// Age face: any entry older than maxAgeDays is listed regardless of count.
+// maxEntries, EXACTLY len−maxEntries oldest non-age-listed entries are
+// listed (R41 m-3: this is a fixed arithmetic, NOT a "list until the
+// remainder fits" minimal-cut — when the age face has already listed
+// entries the two faces can over-list combined; direction is safe — the
+// sweep list over-includes, it never under-reviews). Age face: any entry
+// older than maxAgeDays is listed regardless of count.
 func graveyardSweep(entries []graveyardEntry, th sweepThreshold) []string {
 	var out []string
 	// age face first (deterministic order: entries are walked in given order)
