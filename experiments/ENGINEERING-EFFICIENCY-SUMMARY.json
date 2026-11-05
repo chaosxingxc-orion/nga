@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T13:39:51.600763+00:00",
+    "observed_utc": "2026-11-05T13:48:40.809345+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -336,7 +336,23 @@
       },
       "full_replay": "Sol admission recovered name conflict; originalrecord snapshot inprogress, no sixrunresults yet"
     },
-    "resource_provider": "four findings fixed in simulated v2; parent11newregressions pass0.319s; independent review running, actualphysical and service missing",
+    "resource_provider": {
+      "v2_verdict": "REQUEST_CHANGES",
+      "accepted_simulation": [
+        "managerprofile",
+        "terminalfreshness",
+        "host/batchdiagnostics"
+      ],
+      "remaining": [
+        "duplicateJSONmembers",
+        "contradictoryDockerstateflags",
+        "RepoDigeststype"
+      ],
+      "malformed_free_reproducers": 2,
+      "parent_review_pins": 62,
+      "physical_qualified": false,
+      "service_wired": false
+    },
     "log_service_integration": "incomplete: standalone accepted, supervisor/event service registration and recovery unimplemented",
     "runtime_import": {
       "image": "sha256:a2b20ba160230b3e8c538ce588e256bec55cdb4b4e5e5a294e70ba9107dca6d9",
@@ -379,6 +395,12 @@
       },
       "no_npu_devices": true,
       "real_weights_or_models_loaded": false
+    },
+    "running_container_observation": {
+      "utc": "2026-11-05T13:40:23.790570+00:00",
+      "scope": "running Docker inventory only; mappings not utilization; no release or stop authority",
+      "running_containers": 6,
+      "accelerator_or_broad_access": []
     }
   }
 }
