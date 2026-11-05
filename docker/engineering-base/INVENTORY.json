@@ -1,0 +1,1428 @@
+{
+  "base_distributions": [
+    {
+      "name": "absl-py",
+      "version": "2.5.1"
+    },
+    {
+      "name": "accelerate",
+      "version": "1.15.0"
+    },
+    {
+      "name": "agent-detector",
+      "version": "2.0.0"
+    },
+    {
+      "name": "aiofiles",
+      "version": "25.1.0"
+    },
+    {
+      "name": "aiohappyeyeballs",
+      "version": "2.7.1"
+    },
+    {
+      "name": "aiohttp",
+      "version": "3.14.5"
+    },
+    {
+      "name": "aiosignal",
+      "version": "1.4.0"
+    },
+    {
+      "name": "annotated-doc",
+      "version": "0.0.5"
+    },
+    {
+      "name": "annotated-types",
+      "version": "0.8.0"
+    },
+    {
+      "name": "anthropic",
+      "version": "1.13.0"
+    },
+    {
+      "name": "antlr4-python3-runtime",
+      "version": "4.9.3"
+    },
+    {
+      "name": "anyio",
+      "version": "4.15.1"
+    },
+    {
+      "name": "apache-tvm-ffi",
+      "version": "0.1.14.post1"
+    },
+    {
+      "name": "arctic_inference",
+      "version": "0.1.1"
+    },
+    {
+      "name": "asc_op_compile_base",
+      "version": "0.1.0"
+    },
+    {
+      "name": "asc_op_compile_base",
+      "version": "0.1.0"
+    },
+    {
+      "name": "asc_opc_tool",
+      "version": "0.1.0"
+    },
+    {
+      "name": "asc_opc_tool",
+      "version": "0.1.0"
+    },
+    {
+      "name": "astor",
+      "version": "0.8.1"
+    },
+    {
+      "name": "attrs",
+      "version": "24.2.0"
+    },
+    {
+      "name": "auto_tune",
+      "version": "0.1.0"
+    },
+    {
+      "name": "auto_tune",
+      "version": "0.1.0"
+    },
+    {
+      "name": "av",
+      "version": "19.0.1"
+    },
+    {
+      "name": "batch_invariant_ops",
+      "version": "1.0.0"
+    },
+    {
+      "name": "blake3",
+      "version": "1.0.11"
+    },
+    {
+      "name": "blinker",
+      "version": "1.9.0"
+    },
+    {
+      "name": "cachetools",
+      "version": "7.2.1"
+    },
+    {
+      "name": "cann_ops_nn",
+      "version": "1.0.1"
+    },
+    {
+      "name": "cann_ops_nn",
+      "version": "1.0.1"
+    },
+    {
+      "name": "cann_ops_transformer",
+      "version": "1.0.0"
+    },
+    {
+      "name": "cann_ops_transformer",
+      "version": "1.0.0"
+    },
+    {
+      "name": "cannsim",
+      "version": "0.1.0"
+    },
+    {
+      "name": "cannsim",
+      "version": "0.1.0"
+    },
+    {
+      "name": "cbor2",
+      "version": "6.1.5"
+    },
+    {
+      "name": "certifi",
+      "version": "2026.7.22"
+    },
+    {
+      "name": "cffi",
+      "version": "2.1.1"
+    },
+    {
+      "name": "charset-normalizer",
+      "version": "3.5.2"
+    },
+    {
+      "name": "click",
+      "version": "8.5.0"
+    },
+    {
+      "name": "cloudpickle",
+      "version": "3.1.2"
+    },
+    {
+      "name": "cmake",
+      "version": "4.4.4"
+    },
+    {
+      "name": "codetiming",
+      "version": "1.4.0"
+    },
+    {
+      "name": "compressed-tensors",
+      "version": "0.17.0"
+    },
+    {
+      "name": "concurrent-log-handler",
+      "version": "0.9.30"
+    },
+    {
+      "name": "cryptography",
+      "version": "50.0.2"
+    },
+    {
+      "name": "Cython",
+      "version": "3.3.0"
+    },
+    {
+      "name": "dataflow",
+      "version": "0.0.1"
+    },
+    {
+      "name": "dataflow",
+      "version": "0.0.1"
+    },
+    {
+      "name": "datasets",
+      "version": "4.5.0"
+    },
+    {
+      "name": "decorator",
+      "version": "5.1.1"
+    },
+    {
+      "name": "depyf",
+      "version": "0.20.0"
+    },
+    {
+      "name": "detect-installer",
+      "version": "0.2.1"
+    },
+    {
+      "name": "dill",
+      "version": "0.4.1"
+    },
+    {
+      "name": "dnspython",
+      "version": "2.9.0"
+    },
+    {
+      "name": "docstring_parser",
+      "version": "0.18.0"
+    },
+    {
+      "name": "einops",
+      "version": "0.8.2"
+    },
+    {
+      "name": "email-validator",
+      "version": "2.3.0"
+    },
+    {
+      "name": "es_cv",
+      "version": "1.0.0"
+    },
+    {
+      "name": "es_cv",
+      "version": "1.0.0"
+    },
+    {
+      "name": "es_hccl",
+      "version": "1.0.0"
+    },
+    {
+      "name": "es_hccl",
+      "version": "1.0.0"
+    },
+    {
+      "name": "es_math",
+      "version": "1.0.0"
+    },
+    {
+      "name": "es_math",
+      "version": "1.0.0"
+    },
+    {
+      "name": "es_nn",
+      "version": "1.0.0"
+    },
+    {
+      "name": "es_nn",
+      "version": "1.0.0"
+    },
+    {
+      "name": "es_transformer",
+      "version": "1.0.0"
+    },
+    {
+      "name": "es_transformer",
+      "version": "1.0.0"
+    },
+    {
+      "name": "execnet",
+      "version": "2.1.2"
+    },
+    {
+      "name": "fastapi",
+      "version": "0.123.10"
+    },
+    {
+      "name": "fastapi-cli",
+      "version": "0.0.32"
+    },
+    {
+      "name": "fastapi-cloud-cli",
+      "version": "0.26.0"
+    },
+    {
+      "name": "fastar",
+      "version": "0.12.0"
+    },
+    {
+      "name": "fastokens",
+      "version": "0.2.0"
+    },
+    {
+      "name": "filelock",
+      "version": "4.1.1"
+    },
+    {
+      "name": "flash-linear-attention-npu-a2",
+      "version": "26.9.1+deva4a7958"
+    },
+    {
+      "name": "Flask",
+      "version": "3.1.3"
+    },
+    {
+      "name": "frozenlist",
+      "version": "1.8.0"
+    },
+    {
+      "name": "fsspec",
+      "version": "2026.9.0"
+    },
+    {
+      "name": "ge-py",
+      "version": "0.0.1"
+    },
+    {
+      "name": "ge-py",
+      "version": "0.0.1"
+    },
+    {
+      "name": "ge-py-custom-op-bridge",
+      "version": "0.0.1"
+    },
+    {
+      "name": "ge-py-custom-op-bridge",
+      "version": "0.0.1"
+    },
+    {
+      "name": "ge-py-pass-bridge",
+      "version": "0.0.1"
+    },
+    {
+      "name": "ge-py-pass-bridge",
+      "version": "0.0.1"
+    },
+    {
+      "name": "ge-py-runtime-native",
+      "version": "0.0.1"
+    },
+    {
+      "name": "ge-py-runtime-native",
+      "version": "0.0.1"
+    },
+    {
+      "name": "gitdb",
+      "version": "4.0.12"
+    },
+    {
+      "name": "GitPython",
+      "version": "3.2.1"
+    },
+    {
+      "name": "googleapis-common-protos",
+      "version": "1.75.5"
+    },
+    {
+      "name": "grpcio",
+      "version": "1.84.0"
+    },
+    {
+      "name": "h11",
+      "version": "0.16.0"
+    },
+    {
+      "name": "h2",
+      "version": "4.4.1"
+    },
+    {
+      "name": "hccl",
+      "version": "0.1.0"
+    },
+    {
+      "name": "hccl",
+      "version": "0.1.0"
+    },
+    {
+      "name": "hf-xet",
+      "version": "1.7.0"
+    },
+    {
+      "name": "hf_transfer",
+      "version": "0.1.9"
+    },
+    {
+      "name": "hixl",
+      "version": "0.0.1"
+    },
+    {
+      "name": "hixl",
+      "version": "0.0.1"
+    },
+    {
+      "name": "hpack",
+      "version": "4.2.0"
+    },
+    {
+      "name": "httpcore",
+      "version": "1.0.9"
+    },
+    {
+      "name": "httpcore2",
+      "version": "2.13.1"
+    },
+    {
+      "name": "httptools",
+      "version": "0.9.0"
+    },
+    {
+      "name": "httpx",
+      "version": "0.28.1"
+    },
+    {
+      "name": "httpx2",
+      "version": "2.13.1"
+    },
+    {
+      "name": "huggingface_hub",
+      "version": "1.33.0"
+    },
+    {
+      "name": "hydra-core",
+      "version": "1.3.2"
+    },
+    {
+      "name": "Hypercorn",
+      "version": "0.18.0"
+    },
+    {
+      "name": "hyperframe",
+      "version": "6.1.0"
+    },
+    {
+      "name": "idna",
+      "version": "3.20"
+    },
+    {
+      "name": "ijson",
+      "version": "3.6.0"
+    },
+    {
+      "name": "importlib_metadata",
+      "version": "10.1.0"
+    },
+    {
+      "name": "iniconfig",
+      "version": "2.3.1"
+    },
+    {
+      "name": "interegular",
+      "version": "0.3.3"
+    },
+    {
+      "name": "itsdangerous",
+      "version": "2.2.0"
+    },
+    {
+      "name": "Jinja2",
+      "version": "3.1.6"
+    },
+    {
+      "name": "jiter",
+      "version": "0.17.0"
+    },
+    {
+      "name": "jmespath",
+      "version": "1.1.0"
+    },
+    {
+      "name": "jsonschema",
+      "version": "4.26.0"
+    },
+    {
+      "name": "jsonschema-specifications",
+      "version": "2025.9.1"
+    },
+    {
+      "name": "lark",
+      "version": "1.2.2"
+    },
+    {
+      "name": "llguidance",
+      "version": "1.7.6"
+    },
+    {
+      "name": "llm_datadist",
+      "version": "0.0.1"
+    },
+    {
+      "name": "llm_datadist",
+      "version": "0.0.1"
+    },
+    {
+      "name": "llm_datadist_v1",
+      "version": "0.0.1"
+    },
+    {
+      "name": "llm_datadist_v1",
+      "version": "0.0.1"
+    },
+    {
+      "name": "llvmlite",
+      "version": "0.50.0"
+    },
+    {
+      "name": "lm-format-enforcer",
+      "version": "0.11.3"
+    },
+    {
+      "name": "loguru",
+      "version": "0.7.3"
+    },
+    {
+      "name": "Markdown",
+      "version": "3.11.2"
+    },
+    {
+      "name": "markdown-it-py",
+      "version": "4.2.0"
+    },
+    {
+      "name": "MarkupSafe",
+      "version": "3.0.4"
+    },
+    {
+      "name": "mathruler",
+      "version": "0.1.0"
+    },
+    {
+      "name": "mcp",
+      "version": "2.3.0"
+    },
+    {
+      "name": "mcp-types",
+      "version": "2.3.0"
+    },
+    {
+      "name": "mdurl",
+      "version": "0.1.2"
+    },
+    {
+      "name": "memcache_hybrid",
+      "version": "1.3.0"
+    },
+    {
+      "name": "memfabric_hybrid",
+      "version": "1.3.0"
+    },
+    {
+      "name": "mindstudio-kl",
+      "version": "26.2.0"
+    },
+    {
+      "name": "mindstudio-kl",
+      "version": "26.2.0"
+    },
+    {
+      "name": "mindstudio-kpp",
+      "version": "26.2.0"
+    },
+    {
+      "name": "mindstudio-kpp",
+      "version": "26.2.0"
+    },
+    {
+      "name": "mindstudio-opgen",
+      "version": "26.0.0"
+    },
+    {
+      "name": "mindstudio-opgen",
+      "version": "26.0.0"
+    },
+    {
+      "name": "mindstudio-opgen",
+      "version": "26.2.0"
+    },
+    {
+      "name": "mindstudio-opgen",
+      "version": "26.2.0"
+    },
+    {
+      "name": "mindstudio-opst",
+      "version": "26.0.0"
+    },
+    {
+      "name": "mindstudio-opst",
+      "version": "26.0.0"
+    },
+    {
+      "name": "mindstudio-opst",
+      "version": "26.2.0"
+    },
+    {
+      "name": "mindstudio-opst",
+      "version": "26.2.0"
+    },
+    {
+      "name": "mistral_common",
+      "version": "1.12.0"
+    },
+    {
+      "name": "model-hosting-container-standards",
+      "version": "0.1.16"
+    },
+    {
+      "name": "modelscope",
+      "version": "1.37.1"
+    },
+    {
+      "name": "mooncake-transfer-engine-npu",
+      "version": "0.3.11.post1"
+    },
+    {
+      "name": "mpmath",
+      "version": "1.3.0"
+    },
+    {
+      "name": "ms_service_profiler",
+      "version": "26.0.0"
+    },
+    {
+      "name": "ms_service_profiler",
+      "version": "26.0.0"
+    },
+    {
+      "name": "msboost",
+      "version": "26.2.0"
+    },
+    {
+      "name": "msboost",
+      "version": "26.2.0"
+    },
+    {
+      "name": "msgpack",
+      "version": "1.2.3"
+    },
+    {
+      "name": "msgspec",
+      "version": "0.22.0"
+    },
+    {
+      "name": "msobjdump",
+      "version": "0.1.0"
+    },
+    {
+      "name": "msobjdump",
+      "version": "0.1.0"
+    },
+    {
+      "name": "mspti",
+      "version": "26.2.0"
+    },
+    {
+      "name": "mspti",
+      "version": "26.2.0"
+    },
+    {
+      "name": "multidict",
+      "version": "7.1.0"
+    },
+    {
+      "name": "multiprocess",
+      "version": "0.70.19"
+    },
+    {
+      "name": "networkx",
+      "version": "3.7"
+    },
+    {
+      "name": "ninja",
+      "version": "1.13.2"
+    },
+    {
+      "name": "numba",
+      "version": "0.68.0"
+    },
+    {
+      "name": "numpy",
+      "version": "1.26.4"
+    },
+    {
+      "name": "omegaconf",
+      "version": "2.3.0"
+    },
+    {
+      "name": "op_compile_tool",
+      "version": "0.1.0"
+    },
+    {
+      "name": "op_compile_tool",
+      "version": "0.1.0"
+    },
+    {
+      "name": "opc_tool",
+      "version": "0.1.0"
+    },
+    {
+      "name": "opc_tool",
+      "version": "0.1.0"
+    },
+    {
+      "name": "openai",
+      "version": "3.29.0"
+    },
+    {
+      "name": "openai-harmony",
+      "version": "0.0.8"
+    },
+    {
+      "name": "opencv-python-headless",
+      "version": "5.0.0.93"
+    },
+    {
+      "name": "opentelemetry-api",
+      "version": "1.45.1"
+    },
+    {
+      "name": "opentelemetry-exporter-http-transport",
+      "version": "0.66b1"
+    },
+    {
+      "name": "opentelemetry-exporter-otlp",
+      "version": "1.45.1"
+    },
+    {
+      "name": "opentelemetry-exporter-otlp-common",
+      "version": "0.66b1"
+    },
+    {
+      "name": "opentelemetry-exporter-otlp-proto-common",
+      "version": "1.45.1"
+    },
+    {
+      "name": "opentelemetry-exporter-otlp-proto-grpc",
+      "version": "1.45.1"
+    },
+    {
+      "name": "opentelemetry-exporter-otlp-proto-http",
+      "version": "1.45.1"
+    },
+    {
+      "name": "opentelemetry-proto",
+      "version": "1.45.1"
+    },
+    {
+      "name": "opentelemetry-sdk",
+      "version": "1.45.1"
+    },
+    {
+      "name": "opentelemetry-semantic-conventions",
+      "version": "0.66b1"
+    },
+    {
+      "name": "opentelemetry-semantic-conventions-ai",
+      "version": "0.5.1"
+    },
+    {
+      "name": "optype_collector",
+      "version": "0.1.0"
+    },
+    {
+      "name": "optype_collector",
+      "version": "0.1.0"
+    },
+    {
+      "name": "orjson",
+      "version": "3.13.0"
+    },
+    {
+      "name": "outlines_core",
+      "version": "0.2.14"
+    },
+    {
+      "name": "packaging",
+      "version": "26.3"
+    },
+    {
+      "name": "pandas",
+      "version": "3.0.6"
+    },
+    {
+      "name": "pandas-stubs",
+      "version": "3.0.5.260914"
+    },
+    {
+      "name": "partial-json-parser",
+      "version": "0.2.1.1.post7"
+    },
+    {
+      "name": "pathlib2",
+      "version": "2.3.7.post1"
+    },
+    {
+      "name": "peft",
+      "version": "0.21.2"
+    },
+    {
+      "name": "pillow",
+      "version": "12.3.0"
+    },
+    {
+      "name": "pip",
+      "version": "26.2.1"
+    },
+    {
+      "name": "platformdirs",
+      "version": "4.14.0"
+    },
+    {
+      "name": "pluggy",
+      "version": "1.6.0"
+    },
+    {
+      "name": "portalocker",
+      "version": "4.4.0"
+    },
+    {
+      "name": "priority",
+      "version": "2.0.0"
+    },
+    {
+      "name": "prometheus-fastapi-instrumentator",
+      "version": "8.1.0"
+    },
+    {
+      "name": "prometheus_client",
+      "version": "0.26.0"
+    },
+    {
+      "name": "propcache",
+      "version": "0.5.4"
+    },
+    {
+      "name": "protobuf",
+      "version": "7.36.2"
+    },
+    {
+      "name": "psutil",
+      "version": "6.0.0"
+    },
+    {
+      "name": "ptoas",
+      "version": "0.65"
+    },
+    {
+      "name": "ptoas",
+      "version": "0.65"
+    },
+    {
+      "name": "py-cpuinfo",
+      "version": "9.0.0"
+    },
+    {
+      "name": "pyarrow",
+      "version": "23.0.0"
+    },
+    {
+      "name": "pybase64",
+      "version": "1.5.1"
+    },
+    {
+      "name": "pybind11",
+      "version": "3.1.0"
+    },
+    {
+      "name": "pycountry",
+      "version": "26.2.16"
+    },
+    {
+      "name": "pycparser",
+      "version": "3.0"
+    },
+    {
+      "name": "pydantic",
+      "version": "2.14.1"
+    },
+    {
+      "name": "pydantic-extra-types",
+      "version": "2.11.2"
+    },
+    {
+      "name": "pydantic-settings",
+      "version": "2.15.0"
+    },
+    {
+      "name": "pydantic_core",
+      "version": "2.50.1"
+    },
+    {
+      "name": "pyelftools",
+      "version": "0.33"
+    },
+    {
+      "name": "Pygments",
+      "version": "2.21.0"
+    },
+    {
+      "name": "PyJWT",
+      "version": "2.15.1"
+    },
+    {
+      "name": "pylatexenc",
+      "version": "2.11"
+    },
+    {
+      "name": "pypto",
+      "version": "0.3.0"
+    },
+    {
+      "name": "pypto",
+      "version": "0.3.0"
+    },
+    {
+      "name": "pytest",
+      "version": "8.3.2"
+    },
+    {
+      "name": "pytest-xdist",
+      "version": "3.6.1"
+    },
+    {
+      "name": "python-dateutil",
+      "version": "2.9.0.post0"
+    },
+    {
+      "name": "python-dotenv",
+      "version": "1.2.4"
+    },
+    {
+      "name": "python-json-logger",
+      "version": "4.2.0"
+    },
+    {
+      "name": "python-multipart",
+      "version": "0.0.32"
+    },
+    {
+      "name": "pyvers",
+      "version": "0.2.3"
+    },
+    {
+      "name": "PyYAML",
+      "version": "6.0.3"
+    },
+    {
+      "name": "pyzmq",
+      "version": "27.2.0"
+    },
+    {
+      "name": "Quart",
+      "version": "0.22.0"
+    },
+    {
+      "name": "qwen-vl-utils",
+      "version": "0.0.14"
+    },
+    {
+      "name": "ray",
+      "version": "2.48.0"
+    },
+    {
+      "name": "referencing",
+      "version": "0.37.0"
+    },
+    {
+      "name": "regex",
+      "version": "2026.9.29"
+    },
+    {
+      "name": "requests",
+      "version": "2.34.2"
+    },
+    {
+      "name": "rich",
+      "version": "15.0.0"
+    },
+    {
+      "name": "rich-toolkit",
+      "version": "0.20.6"
+    },
+    {
+      "name": "rignore",
+      "version": "0.8.1"
+    },
+    {
+      "name": "rpds-py",
+      "version": "2026.9.1"
+    },
+    {
+      "name": "safetensors",
+      "version": "0.8.0"
+    },
+    {
+      "name": "schedule_search",
+      "version": "0.0.1"
+    },
+    {
+      "name": "schedule_search",
+      "version": "0.0.1"
+    },
+    {
+      "name": "scipy",
+      "version": "1.13.1"
+    },
+    {
+      "name": "semantic-version",
+      "version": "2.10.0"
+    },
+    {
+      "name": "sentencepiece",
+      "version": "0.2.2"
+    },
+    {
+      "name": "sentry-sdk",
+      "version": "2.73.0"
+    },
+    {
+      "name": "setproctitle",
+      "version": "1.3.8"
+    },
+    {
+      "name": "setuptools",
+      "version": "80.10.2"
+    },
+    {
+      "name": "setuptools-rust",
+      "version": "1.13.0"
+    },
+    {
+      "name": "setuptools-scm",
+      "version": "10.3.4"
+    },
+    {
+      "name": "shellingham",
+      "version": "1.5.4"
+    },
+    {
+      "name": "show_kernel_debug_data",
+      "version": "0.1.0"
+    },
+    {
+      "name": "show_kernel_debug_data",
+      "version": "0.1.0"
+    },
+    {
+      "name": "six",
+      "version": "1.17.0"
+    },
+    {
+      "name": "smmap",
+      "version": "5.0.3"
+    },
+    {
+      "name": "sniffio",
+      "version": "1.3.1"
+    },
+    {
+      "name": "soundfile",
+      "version": "0.14.0"
+    },
+    {
+      "name": "soxr",
+      "version": "1.1.0"
+    },
+    {
+      "name": "sse-starlette",
+      "version": "3.5.0"
+    },
+    {
+      "name": "starlette",
+      "version": "0.50.0"
+    },
+    {
+      "name": "superkernel",
+      "version": "0.1.0"
+    },
+    {
+      "name": "superkernel",
+      "version": "0.1.0"
+    },
+    {
+      "name": "supervisor",
+      "version": "4.3.0"
+    },
+    {
+      "name": "sympy",
+      "version": "1.14.0"
+    },
+    {
+      "name": "te",
+      "version": "0.4.0"
+    },
+    {
+      "name": "te",
+      "version": "0.4.0"
+    },
+    {
+      "name": "tensorboard",
+      "version": "2.21.0"
+    },
+    {
+      "name": "tensorboard-data-server",
+      "version": "0.7.2"
+    },
+    {
+      "name": "tensordict",
+      "version": "0.10.0"
+    },
+    {
+      "name": "tiktoken",
+      "version": "0.14.0"
+    },
+    {
+      "name": "tokenizers",
+      "version": "0.22.2"
+    },
+    {
+      "name": "torch",
+      "version": "2.10.0+cpu"
+    },
+    {
+      "name": "torch_npu",
+      "version": "2.10.0.post7"
+    },
+    {
+      "name": "torchaudio",
+      "version": "2.10.0+cpu"
+    },
+    {
+      "name": "torchdata",
+      "version": "0.11.0"
+    },
+    {
+      "name": "torchvision",
+      "version": "0.25.0+cpu"
+    },
+    {
+      "name": "tqdm",
+      "version": "4.70.1"
+    },
+    {
+      "name": "transformers",
+      "version": "5.14.1"
+    },
+    {
+      "name": "triton",
+      "version": "3.6.0"
+    },
+    {
+      "name": "triton_ascend",
+      "version": "3.6.0+dev20260923230212"
+    },
+    {
+      "name": "truststore",
+      "version": "0.10.4"
+    },
+    {
+      "name": "typer",
+      "version": "0.27.3"
+    },
+    {
+      "name": "typing-inspection",
+      "version": "0.4.4"
+    },
+    {
+      "name": "typing_extensions",
+      "version": "4.16.0"
+    },
+    {
+      "name": "urllib3",
+      "version": "2.8.0"
+    },
+    {
+      "name": "uvicorn",
+      "version": "0.54.0"
+    },
+    {
+      "name": "uvloop",
+      "version": "0.23.0"
+    },
+    {
+      "name": "vcs-versioning",
+      "version": "2.6.0"
+    },
+    {
+      "name": "verl",
+      "version": "0.8.0.dev0"
+    },
+    {
+      "name": "verl",
+      "version": "0.8.0.dev0"
+    },
+    {
+      "name": "vllm",
+      "version": "0.30.0+empty"
+    },
+    {
+      "name": "vllm_ascend",
+      "version": "0.30.0rc2"
+    },
+    {
+      "name": "wandb",
+      "version": "0.31.0"
+    },
+    {
+      "name": "watchfiles",
+      "version": "1.3.0"
+    },
+    {
+      "name": "websockets",
+      "version": "17.2"
+    },
+    {
+      "name": "Werkzeug",
+      "version": "3.1.9"
+    },
+    {
+      "name": "wheel",
+      "version": "0.48.0"
+    },
+    {
+      "name": "wsproto",
+      "version": "1.3.2"
+    },
+    {
+      "name": "xgrammar",
+      "version": "0.2.8"
+    },
+    {
+      "name": "xxhash",
+      "version": "4.0.2"
+    },
+    {
+      "name": "yarl",
+      "version": "1.25.1"
+    },
+    {
+      "name": "zipp",
+      "version": "4.1.2"
+    }
+  ],
+  "base_image_id": "sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7",
+  "boundaries": [
+    "Final plan pins a separate executable closure and CPU interpreter.",
+    "Kev v7 plan pins original absolute executable paths and checks source hashes.",
+    "Native 9B replay recursively verifies original source plans and runtime paths.",
+    "Qwen3.8 v9 forward uses pinned image, installed torch and external configured package; no real model-load or forward qualification is established.",
+    "Existing training driver executes plan command; a declarative adapter must reconstruct only registered trainer arguments and preserve checkpoint semantics."
+  ],
+  "cpu_reference": {
+    "receipts_sha256": "832f0583a7aa00d07f24dec4f2ab313bd621632f4848c14d3a0dd372a1f8095c",
+    "records": 46320,
+    "source": "prior accepted saved-readout CPU benchmark; no new image test",
+    "summary_sha256": "5809e7cded0944611d701e850639b1c9030d3e5693966a427f2af8c10c677368"
+  },
+  "host": "npu / k8s-node1 / uid 9009",
+  "image_platform": "linux/arm64",
+  "inputs": {
+    "cpu_benchmark": {
+      "path": "/home/xingchao/workspace/nga/.local/preparations/cpu-parallel-numeric-20261104-v1/BENCHMARK-ACCEPTANCE.json",
+      "sha256": "66441f1746251be0b543e4019960957e32fc61935e8d94b52f9c622a59061aca"
+    },
+    "final_closure_manifest": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/review_final_async_lifecycle_v2_20261104_v1/manifest.json",
+      "sha256": "80fb490eca8ae7dfb8037e0e0b642fa9eb1d55668ec8d964f7ceb177be281aff"
+    },
+    "final_primary_plan": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/final_test_seven_20261104_v2/plans/primary_s2.json",
+      "sha256": "203fd5e51bd8e4c276b27a01c123389f8b8bcef6f68340d42f0ebe3e1d239683"
+    },
+    "k1_2b_plan": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_2b_20261031_v1/seed2/plan.json",
+      "sha256": "d10f5270da3e1bf5b70a5a80c3435f343936647824dee97a5b05bb293c263645"
+    },
+    "k1_4b_plan": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_4b_20261031_v1/seed3/plan.json",
+      "sha256": "e26fdf557bd232afd63926db1dc385c75fecd4c7e8cf304eb9fe4cdb5aa54d59"
+    },
+    "k1_9b_plan": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_9b_20261031_v1/seed3/plan.json",
+      "sha256": "2597fe13771cc4b815b94edc0eb35920e5bb15541baa051cbe473a39494a8daf"
+    },
+    "kev_v7_plan": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_documents-v1_08b_20261105_v7_configured/PLAN.json",
+      "sha256": "17b27999fcfd403ebbf89cc993128f6c0631ea5d3f8cc6f5c43a812d08476492"
+    },
+    "native_9b_plan": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_resume_20261104_v1/PLAN.json",
+      "sha256": "847343a8e8e843f5b60d855539dda1979583c9d775d479cebae3ea64ac52cc5d"
+    },
+    "qwen38_policy": {
+      "path": "/home/xingchao/workspace/nga/experiments/configs/qwen38-27b-resource-policy.json",
+      "sha256": "00c46b6454d8c8e20621bd9e570d76d4118266c6b914988ece5449e5d85674ab"
+    },
+    "qwen38_v9_config": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/qwen38-controller-ready-20261105-v9/package/CONFIG.json",
+      "sha256": "2c37e0d6cc8c53576f7803ba1560e775787e77151a17239b99832d1b1af2bf46"
+    }
+  },
+  "retained_training": {
+    "2b": {
+      "argv": [
+        "python3",
+        "-P",
+        "/workspace/train_r3.py",
+        "--out",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_2b_20261031_v1/seed2",
+        "--arm",
+        "k1",
+        "--seed",
+        "2",
+        "--model-path",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base",
+        "--kernel",
+        "ref",
+        "--grad-ckpt",
+        "--micro-tokens",
+        "12000",
+        "--max-len",
+        "4096",
+        "--save-every",
+        "200",
+        "--no-merge",
+        "--epochs",
+        "2",
+        "--total-steps",
+        "3116",
+        "--expect-pairs",
+        "0",
+        "--stop-after",
+        "100"
+      ],
+      "image": "sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7",
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_2b_20261031_v1/seed2/plan.json",
+        "sha256": "d10f5270da3e1bf5b70a5a80c3435f343936647824dee97a5b05bb293c263645"
+      },
+      "trainer": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_2b_20261031_v1/seed2/code/train_r3.py",
+        "sha256": "56bf1c3317ed8d9a75514a2c3c331f03117f9bb00e23ce29153d9c2ab7b3e78a"
+      }
+    },
+    "4b": {
+      "argv": [
+        "python3",
+        "-P",
+        "/workspace/train_r3.py",
+        "--out",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_4b_20261031_v1/seed3",
+        "--arm",
+        "k1",
+        "--seed",
+        "3",
+        "--model-path",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base",
+        "--kernel",
+        "ref",
+        "--grad-ckpt",
+        "--micro-tokens",
+        "12000",
+        "--max-len",
+        "4096",
+        "--save-every",
+        "200",
+        "--no-merge",
+        "--epochs",
+        "2",
+        "--total-steps",
+        "3116",
+        "--expect-pairs",
+        "0",
+        "--stop-after",
+        "100"
+      ],
+      "image": "sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7",
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_4b_20261031_v1/seed3/plan.json",
+        "sha256": "e26fdf557bd232afd63926db1dc385c75fecd4c7e8cf304eb9fe4cdb5aa54d59"
+      },
+      "trainer": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_4b_20261031_v1/seed3/code/train_r3.py",
+        "sha256": "56bf1c3317ed8d9a75514a2c3c331f03117f9bb00e23ce29153d9c2ab7b3e78a"
+      }
+    },
+    "9b": {
+      "argv": [
+        "python3",
+        "-P",
+        "/workspace/train_r3.py",
+        "--out",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_9b_20261031_v1/seed3",
+        "--arm",
+        "k1",
+        "--seed",
+        "3",
+        "--model-path",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base",
+        "--kernel",
+        "ref",
+        "--grad-ckpt",
+        "--micro-tokens",
+        "12000",
+        "--max-len",
+        "4096",
+        "--save-every",
+        "200",
+        "--no-merge",
+        "--epochs",
+        "2",
+        "--total-steps",
+        "3116",
+        "--expect-pairs",
+        "0",
+        "--stop-after",
+        "100"
+      ],
+      "image": "sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7",
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_9b_20261031_v1/seed3/plan.json",
+        "sha256": "2597fe13771cc4b815b94edc0eb35920e5bb15541baa051cbe473a39494a8daf"
+      },
+      "trainer": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_9b_20261031_v1/seed3/code/train_r3.py",
+        "sha256": "56bf1c3317ed8d9a75514a2c3c331f03117f9bb00e23ce29153d9c2ab7b3e78a"
+      }
+    }
+  },
+  "schema": "nga-unified-base-inventory-v0",
+  "status": "INVENTORY_ONLY_NOT_A_RELEASE"
+}

@@ -1,0 +1,145 @@
+{
+  "schema": "nga-source-manifest-v1",
+  "files": [
+    {
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_2b_full_20261031_v1/seed2/code/train_r3.py",
+      "image": "/opt/nga/source/train/train_r3.py",
+      "sha256": "56bf1c3317ed8d9a75514a2c3c331f03117f9bb00e23ce29153d9c2ab7b3e78a"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_2b_full_20261031_v1/seed2/code/build_kev_sft.py",
+      "image": "/opt/nga/source/train/build_kev_sft.py",
+      "sha256": "356da5eb4667eb9c3349e26b088b2bd0fac5cd30acea548a3d92bed2adcf0b98"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_2b_full_20261031_v1/seed2/code/kev_aug.py",
+      "image": "/opt/nga/source/train/kev_aug.py",
+      "sha256": "696da28b06a7e902197806bfb4969586ee050877e93e49a744e7a1df4ebf4542"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_k1_2b_full_20261031_v1/seed2/code/r0_code/prompt.py",
+      "image": "/opt/nga/source/train/r0_code/prompt.py",
+      "sha256": "84c99aec2817de3365e650c7c6c846aeddc1ec675b3321cf80be267a7557f0fc"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_config_20261103_v6/code/bev_native_runtime.py",
+      "image": "/opt/nga/source/native/bev_native_runtime.py",
+      "sha256": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_config_20261103_v6/code/bev_native_protocol.py",
+      "image": "/opt/nga/source/native/bev_native_protocol.py",
+      "sha256": "a61a8c91bfafaaa3a7761a6e36ea1d5189cbe3ca6f0f86bf9de2645d7b06023a"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_config_20261103_v6/code/bev_native_panel_runner.py",
+      "image": "/opt/nga/source/native/bev_native_panel_runner.py",
+      "sha256": "235aacea657ed7d7b6d85e16397634d3d3b19a983a6c33a5a8352786d038511d"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_config_20261103_v6/code/bev_native_dev_runner.py",
+      "image": "/opt/nga/source/native/bev_native_dev_runner.py",
+      "sha256": "09adcc2407423cb62ff95400f4db8566faf9fedf3b35a238486bc74ec161aa15"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_resume_20261104_v1/code/bev_native_panel_resume_v1.py",
+      "image": "/opt/nga/source/native/bev_native_panel_resume_v1.py",
+      "sha256": "207e4371ab2c99d4a428c5fcd8739153f4761c9450f458e91192f0cb5c66503e"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_resume_20261104_v1/code/bev_native_panel_resume_consume_v1.py",
+      "image": "/opt/nga/source/native/bev_native_panel_resume_consume_v1.py",
+      "sha256": "5aacc1b30e9488b0262333ec5c69ec82813fa6df62551767a90d93b8e323b395"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_config_20261103_v6/code/bev_native_config_panel_host.py",
+      "image": "/opt/nga/source/native/bev_native_config_panel_host.py",
+      "sha256": "13dcb623d88e61ab6ff296d51ccec8b3c2703ac8119640d63daf0136258d4654"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_resume_20261104_v1/code/bev_native_panel_resume_resource_v1.py",
+      "image": "/opt/nga/source/native/bev_native_panel_resume_resource_v1.py",
+      "sha256": "f697d975076ecc39ec11519f78ed734fcef1656a498800e099304115e092ce78"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_9b_panel_config_20261103_v6/code/r3_resource_adapter.py",
+      "image": "/opt/nga/source/native/r3_resource_adapter.py",
+      "sha256": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/omni/repos/jev/nokia-applied-research__AnyJev/anyjev/question.py",
+      "image": "/opt/nga/source/native/anyjev/question.py",
+      "sha256": "72e61e3b846e9efa76cbe5b1f5c8fdc5ffa5e5f9eb86de17bcbae5ffdd4ac368"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/omni/repos/jev/nokia-applied-research__AnyJev/anyjev/readout.py",
+      "image": "/opt/nga/source/native/anyjev/readout.py",
+      "sha256": "cb13450f4a54b892bc0be1145d3da00bf89013b4fd321df89927c37bd945d973"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/omni/repos/jev/nokia-applied-research__AnyJev/anyjev/tacit.py",
+      "image": "/opt/nga/source/native/anyjev/tacit.py",
+      "sha256": "5c470f2521fa01ebf3be9117339939c7575181a452f226d728caa18ccce9b39d"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/cpu_parallel_numeric_20261104_v2/code/bev_native_cpu_replay_v1.py",
+      "image": "/opt/nga/source/native/bev_native_cpu_replay_v1.py",
+      "sha256": "a0d2f3cbd8ead097569a1ecf0a848182fee87693c760a63befaf03e2b0386e44"
+    },
+    {
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/cpu_parallel_numeric_20261104_v2/code/bev_native_cpu_parallel_v1.py",
+      "image": "/opt/nga/source/native/bev_native_cpu_parallel_v1.py",
+      "sha256": "356e4538ac407a797dc749dc01d6da40ce2c21334942f99b475254b4664d94ff"
+    },
+    {
+      "source": "docker/engineering-base/adapter.py",
+      "image": "/opt/nga/adapter.py",
+      "sha256": "65c43c4f290001eca5236cd35f23ad111753bf27e87099406c69e338deb918eb"
+    },
+    {
+      "source": "docker/engineering-base/schema.json",
+      "image": "/opt/nga/schema.json",
+      "sha256": "52dd84a1e196e2cad1c49352bfdb46c602350aaf0fdca73347f3d804279f7c14"
+    },
+    {
+      "source": "docker/engineering-base/components/inference/native_inference.py",
+      "image": "/opt/nga/components/inference/native_inference.py",
+      "sha256": "82d96efa075ffaea0bf466a7992e5fa9e885e063e56ab7ef0b4dedd88fb588c5"
+    },
+    {
+      "source": "docker/engineering-base/components/inference/test_native_inference.py",
+      "image": "/opt/nga/components/inference/test_native_inference.py",
+      "sha256": "4a0fc2fa7e9a030958f1b8d80c1b3819e916ea6d86068b26dfac123e0970caad"
+    },
+    {
+      "source": "docker/engineering-base/components/inference/benchmark_io.py",
+      "image": "/opt/nga/components/inference/benchmark_io.py",
+      "sha256": "d669aa8441b6dc3838c1f34275d1f9427a80c2b125fdafb231efa7d7ca0b4f11"
+    },
+    {
+      "source": "docker/engineering-base/components/inference/schema-fragment.json",
+      "image": "/opt/nga/components/inference/schema-fragment.json",
+      "sha256": "191638a0052ac5c99e0564ec5ed5030a458d491173b29b713c3ad332101f2415"
+    },
+    {
+      "source": "docker/engineering-base/panel_export.py",
+      "image": "/opt/nga/panel_export.py",
+      "sha256": "ef0fc6350ef407d78f3d235ed4a5b932dc7409bb263062c516cec3c00520ff33"
+    },
+    {
+      "source": "docker/engineering-base/panel_score.py",
+      "image": "/opt/nga/panel_score.py",
+      "sha256": "26b0213ff0f7cbda7eb8b513d443f9a938aa43800e60fc6f57316300cf296afd"
+    },
+    {
+      "source": "docker/engineering-base/entrypoint.sh",
+      "image": "/opt/nga/entrypoint.sh",
+      "sha256": "36ea20e74dfcdf724a429c31bd4ddf0ce7db198ee91ea2eb8e02a8aa32f37f3f"
+    },
+    {
+      "source": "docker/engineering-base/test_panel_bridge.py",
+      "image": "/opt/nga/test_panel_bridge.py",
+      "sha256": "ec4833e81e78ade6d3822bf26a1a86836d25992f8fe0c2d351b3109204dcd051"
+    }
+  ]
+}

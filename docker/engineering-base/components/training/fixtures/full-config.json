@@ -1,0 +1,18 @@
+{
+  "adapter": "k1-full-train-v1",
+  "owner": "fixture-owner",
+  "seed": 2,
+  "model": {
+    "id": "Qwen3.5-0.8B-Base",
+    "path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base",
+    "manifest": "/opt/nga/components/training/full-model-manifest.json",
+    "manifest_sha256": "be86fe36b583c689176412e644011c37caba660f85e190bc6f7ffa7a803127b4"
+  },
+  "dataset": {
+    "id": "decision-v7-train",
+    "path": "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/train.jsonl",
+    "manifest": "/opt/nga/components/training/dataset-manifest.json",
+    "manifest_sha256": "2d71ef2dee50883d6e42c4b3a2e8217c8c0e69aea41d447071fe945881431831"
+  },
+  "resume": null
+}

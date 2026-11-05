@@ -1,0 +1,16 @@
+{
+  "$id": "https://nga.local/schema/registered-lora-training-v1.json",
+  "title": "Registered LoRA K1 training component",
+  "type": "object", "additionalProperties": false,
+  "required": ["adapter", "owner", "seed", "model", "dataset", "resume"],
+  "properties": {
+    "adapter": {"const": "k1-full-train-v1"},
+    "owner": {"type":"string", "minLength":1},
+    "seed": {"type":"integer", "minimum":0},
+    "model": {"type":"object", "additionalProperties":false, "required":["id","path","manifest","manifest_sha256"], "properties":{
+      "id":{"const":"Qwen3.5-0.8B-Base"}, "path":{"type":"string","pattern":"^/"}, "manifest":{"type":"string","pattern":"^/"}, "manifest_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}},
+    "dataset": {"type":"object", "additionalProperties":false, "required":["id","path","manifest","manifest_sha256"], "properties":{
+      "id":{"const":"decision-v7-train"}, "path":{"type":"string","pattern":"^/"}, "manifest":{"type":"string","pattern":"^/"}, "manifest_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}},
+    "resume": {"type":["object","null"], "additionalProperties":false, "required":["path","sha256"], "properties":{"path":{"type":"string","pattern":"^/"},"sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}}
+  }
+}

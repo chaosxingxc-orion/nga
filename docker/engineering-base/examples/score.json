@@ -1,0 +1,9 @@
+{
+  "schema": "nga-unified-config-v1",
+  "adapter": "native-saved-score-v1",
+  "runtime": "cpu",
+  "request": "/input/saved-request.json",
+  "request_sha256": "6105b430c8ff2ebd2e5d8d7b3e765ec1fb1b64badb57e5c6033f3373e5082e2f",
+  "record": "/input/saved-record.json",
+  "record_sha256": "52ef290eb12b2cfc86bdf7055d26cf486c8bf6ca700bd79c58c95d3385afeb2f"
+}
