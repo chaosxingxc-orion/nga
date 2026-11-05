@@ -1,1 +1,0 @@
-{"config": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_matched_cpu_score_20261105_v1/run3/config.json", "config_sha256": "0c234ec23a148321e91e25342c4878b1b34e40b457795e20bf3f2828d2a6982e", "instruction": "Relaunch the same image and config with the same mounts."}

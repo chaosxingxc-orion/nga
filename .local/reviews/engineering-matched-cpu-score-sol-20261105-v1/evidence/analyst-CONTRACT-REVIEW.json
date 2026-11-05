@@ -1,4 +1,0 @@
-{
-  "make_contract_signature": "items, *, source_sha256, model_sha256, runtime_protocol_sha256, tau=0.5",
-  "interpretation": "baseline default tau must match frozen contract; six exact summary runs provide end-to-end comparison, no scientific change"
-}
