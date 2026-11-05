@@ -226,13 +226,16 @@ func TestT2R_StaleResultCorrection(t *testing.T) {
 	}
 
 	// READ 4 (R17 M-A fix + R18 m-1 honesty fix — the registry-filter face):
-	// the correction's method lifecycle mirrors K-expired: v1 is published
-	// valid, the correction publishes v2 (supersedes v1), then v1 is
-	// flipped invalid. A NEW task searching the registry must find v2, not
-	// v1 — this face is the REGISTRY (findForNode), independent of the
-	// store lookups in READ 1/2. (v1 and v2 share the same deterministic
-	// body in this fixture — the correction here is the REGISTRY
-	// transition, not a logic change.)
+	// the correction's method lifecycle: v1 is published valid, the
+	// correction publishes v2 (Replaces v1), then v1 is invalidated. A NEW
+	// task searching the registry must find v2, not v1 — this face is the
+	// REGISTRY (findForNode), independent of the store lookups in READ 1/2.
+	// (v1 and v2 share the same deterministic body in this fixture — the
+	// correction here is the REGISTRY transition, not a logic change.)
+	// Both mechanisms are in play here: supersession (v2.Replaces=v1) AND
+	// invalidation — each has its own dedicated mutation-coupled probe
+	// (TestT2FindForNode_SupersessionWindow / TestT2K_ExpiredKnowledgeNotConsumed);
+	// this scenario-level assertion checks their coexistence.
 	h.registry.publish(knowledgeMethod{
 		ID: "method-overdue-v1", Version: "1.0.0",
 		ServesNode:  "history-verification",
@@ -246,13 +249,8 @@ func TestT2R_StaleResultCorrection(t *testing.T) {
 		Valid:       true,
 		Replaces:    "method-overdue-v1",
 	})
-	// flip v1 invalid (superseded by the correction) — the K-expired form
-	h.registry.methods["method-overdue-v1"] = knowledgeMethod{
-		ID: "method-overdue-v1", Version: "1.0.0",
-		ServesNode:  "history-verification",
-		InputFields: []string{"overdue_months", "business_request_id"},
-		Valid:       false,
-	}
+	// invalidate v1 (superseded by the correction) — the single flip path
+	h.registry.invalidate("method-overdue-v1")
 	corrMethod, methodOK := h.registry.findForNode("history-verification")
 	if !methodOK {
 		t.Fatal("R-correction READ-4: no method found for a new task — the correction method must be discoverable")
@@ -344,35 +342,36 @@ func TestT2K_NewTaskZeroModelCalls(t *testing.T) {
 }
 
 // TestT2K_ExpiredKnowledgeNotConsumed is K variant 1: the knowledge method
-// has been superseded/invalidated — a new task must NOT consume it.
+// has been invalidated — a new task must NOT consume it.
+// R19 M-2/m-2 fix: the INVALID one is named "method-a-old" (sorts BELOW
+// "method-b-new") so this probe is COUPLED to the Valid filter — removing
+// the Valid check would serve the expired method and turn this red (the
+// old IDs, "method-current" < "method-expired", made the sorted-order
+// winner identical with or without the Valid check — silently disarmed).
+// No Replaces here: this probe guards the F-04 VALIDITY face alone (the
+// supersession face has its own probe, TestT2FindForNode_SupersessionWindow).
 func TestT2K_ExpiredKnowledgeNotConsumed(t *testing.T) {
 	h := newT2Host(t, t.TempDir())
 
-	// Publish v1 (valid), then v2 (supersedes v1)
+	// Publish the (about-to-expire) old method, then the current one
 	h.registry.publish(knowledgeMethod{
-		ID: "method-expired", Version: "1.0.0",
+		ID: "method-a-old", Version: "1.0.0",
 		ServesNode: "history-verification", Valid: true,
 	})
 	h.registry.publish(knowledgeMethod{
-		ID: "method-current", Version: "2.0.0",
+		ID: "method-b-new", Version: "2.0.0",
 		ServesNode: "history-verification", Valid: true,
-		Replaces: "method-expired",
 	})
-	// Mark v1 invalid (superseded)
-	for id, m := range h.registry.methods {
-		if m.ID == "method-expired" {
-			m.Valid = false
-			h.registry.methods[id] = m
-		}
-	}
+	// The old method expires (invalidated) — the single flip write path
+	h.registry.invalidate("method-a-old")
 
 	// A new task should find only the CURRENT method
 	method, ok := h.registry.findForNode("history-verification")
 	if !ok {
 		t.Fatal("K-expired: no method found — the current method should be discoverable")
 	}
-	if method.ID != "method-current" {
-		t.Fatalf("K-expired: found %q, want %q — the expired method must not be consumed", method.ID, "method-current")
+	if method.ID != "method-b-new" {
+		t.Fatalf("K-expired: found %q, want %q — the expired method must not be consumed", method.ID, "method-b-new")
 	}
 }
 

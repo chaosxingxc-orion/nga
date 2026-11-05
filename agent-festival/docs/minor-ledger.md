@@ -105,3 +105,14 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **M-3（Sscanf 前缀解析放行腐坏输入）**：Sscanf 前缀解析使 "0abc"→0 / "2xyz"→2 / "0.5"→0 全部静默过 fail-closed 门——门的存在面≠声称面（防「腐坏输入解除否决」实际只防「首字符非数字」）。同族：revisionNumber 共用宽松解析。已修：execute 与 revisionNumber 全改 strconv.Atoi（全串严格解析，骑上游标准轮）；探针扩至五种腐坏形态（not-a-number/0abc/2xyz/0.5/空串）。反突变 M3→红（"0abc" 首个命中）。
 - **m-1/m-2（新鲜码诚实修正，随批清偿不入积累账）**：READ-4 叙事收窄到注册表过滤面+改 K-expired 真过渡形态（v1 先 valid→发 v2→翻 v1 invalid——旧形态 v1 出生即 invalid 是手工摆拍）；分支探针改直接驱动 machine（Adopt/Dispatch/MarkCompleted 不经 store.put，真「完成未持久化」场景——旧形态先持久化再删内存 map，文件里结果仍存活）。
 - **族复发警示（入方法论）**：L40 幻影族在 L43 上复发（修复声称的面＞实际治的面）；且反突变的「红」本身要区分确定性红与概率红（88/12 的红是掷骰子）——「修复声明必须机械验证」纪律的第三、第四实证。
+
+## R19 空白复审记账（2026-11-05，R18 修复增量 5f47936..3661235——0B/5M/2m 全清偿，反突变六连红）
+
+- **M-1（revisionNumber 同族修复零探针）**：R18 把 revisionNumber 改 Atoi 是「同族顺修」，但探针只耦合了 execute 半面——"er-2x" 前缀垃圾形态新旧两版行为相同，回退 Sscanf 全套测试恒绿（探针侧的「修复验证面＜实际修的面」镜像）。已修：TestT2Lookup_RevisionOrdering 加 "er-2x" vs "er-1" 子场景。反突变 M1→红。
+- **M-2（排序修复解除既有探针武装）**：R18 的 sortedKeys 使 TestT2K_ExpiredKnowledgeNotConsumed 的 ID 命运反转——"method-current" 字典序低于 "method-expired"，去 Valid 检查突变下由 ~87% 概率红变恒绿（探针静默失效未记账）。已修：改名 method-a-old（失效者排更低）+删该夹具的 Replaces（纯 Valid 面——留着会被 supersession 机制掩蔽 Valid 突变）。反突变 M2→红（K-expired+确定性探针 kr2 子面双重红）。
+- **M-3（supersession 声称面无机制）**：F-04 注释宣称「superseded 不被消费」但 Replaces 全仓零消费；修正窗口内最低 ID tiebreak 确定性服务 stale v1；宿主忘翻转时 stale 不仅是可达态且是确定性首选。已修：findForNode 机械化消费 Replaces（superseded 集合跳过——窗口内确定性服务 v2）+ TestT2FindForNode_SupersessionWindow 探针。反突变 M3→红。
+- **M-4（欠声明方法重开缺键 fail-open）**：必填门信任锚=声明、解析门信任锚=硬编码键——InputFields 不含 overdue_months 的方法缺键时两门全空转=0（E0 缺键形态经声明缝重开）。已修：契约/消费分叉检查（execute 消费 overdue_months 则必须声明，分叉即 fail-closed）+探针。反突变 M4→红。
+- **M-5（负值过门）**：Atoi("-4") 无错、-4>3 假→否决静默解除（域上不可能的计数仍放行）；注释「ALL corrupted forms」名实不符。已修：负值 fail-closed+badInputs 加 "-4"。反突变 M5→红。
+- **m-1/m-2（随批清偿）**：必填门空值检查（空串 business_request_id 产孤儿结果）+ invalidate(id) 单一翻转写径（三写位收敛为一——整结构体覆写会丢未列字段）。
+- **方法论入账（第 5/6 实证）**：修复可能解除既有探针的武装（M-2——探针与守卫的耦合是双向的，改守卫要复检所有既有探针的突变耦合）；声称的治理语义（superseded）若无机制消费则声称面即坏状态可达（M-3）。
+- **中断封存与恢复**：R19 修复中途用户断网——65a077d WIP 封存（4M+2m 已修），恢复后完成 M-2 收尾+六连反突变+race 21 包绿+本记账。快照 35 号。
