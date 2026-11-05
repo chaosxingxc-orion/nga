@@ -221,5 +221,15 @@
     },
     "union_worker_seconds": 28806.175979614258,
     "zero_exit_with_explicit_limit": 80
+  },
+  "current_engineering_addendum": {
+    "observed_utc": "2026-11-05T12:15:59.701800+00:00",
+    "new_research_dispatch": "hold",
+    "full_base_released": false,
+    "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
+    "training_outer": "combined image delivered,review pending; unmodified shell full synthetic success missing",
+    "event_service": "policy/recovery scoped reviewed; exact typed receipt fix and worker liveness heartbeat delivered30tests,independent review pending; supervisor/log follower missing",
+    "matched_cpu_benchmark": "execution and diagnosis in progress; no matched speedup result accepted",
+    "audit_values_preserved": true
   }
 }

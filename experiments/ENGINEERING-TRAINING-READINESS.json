@@ -96,8 +96,8 @@
   ],
   "scope": "Retained metadata/source audit; no new training or NPU qualification; model payload hashes inherited.",
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T11:38:55.623118+00:00",
-    "status": "component_scoped_accepted_outer_integration_pending",
+    "observed_utc": "2026-11-05T12:15:59.701800+00:00",
+    "status": "component_scoped_accepted_outer_delivered_review_pending",
     "supersedes": "Implementation status of initial metadata audit only; inherited counts and scientific conclusions unchanged",
     "handoff_sha256": "7d89cd1aeedc62b7008fd3daf1af598f417ef0b96985743ab2d9c40ebd7c13b8",
     "result_sha256": "be5e0e5095c0bfa773f4acda35cc762fec846372dc15d8f0f886b50b2c230e10",
@@ -129,21 +129,19 @@
         ]
       },
       "seed_errors": "family route propagates NPU seed failures; actual accelerator unqualified",
-      "checkpoint_semantics": "numeric validation and optimizer/scheduler checks implemented, review pending",
-      "publication": "PEFT-compatible adapter helper implemented and CPU reload/idempotence tested; actual terminal family route untested"
+      "checkpoint_semantics": "numeric input, ordered topology and enumerated optimizer/scheduler controls independently reviewed; final publication F4/F5 scoped accepted",
+      "publication": "actual image CPU family terminal publication/reload/retry validated with explicit synthetic boundaries; not3116 actual updates"
     },
     "evidence_limits": {
       "candidate_image": "sha256:27b2f9a84cbc3bc3eca95bb5ded98431f1a87ca8f0ef5d895970f4060ec4f325",
       "cpu_runtime": "torch 2.10.0+cpu, Transformers 5.14.1, PEFT 0.21.2; explicit NPU-availability substitutions for CPU probes",
-      "recovery": "six versus3+3 actual family/retainedtrainer separateCPUprocesses, postclip gradients/checkpoint/optimizer/scheduler/cursor exact; preclip and actualterminalroute not measured",
+      "recovery": "six versus3+3 actual family/retainedtrainer separateCPUprocesses with preclip/postclip gradients and state; synthetic3115 counter+one actual final update; no NPU",
       "scientific_acceptance": false
     },
     "remaining_release_gates": [
-      "Independent training component review and corrections",
-      "Root closed schema and adapter family routing",
-      "Complete authenticated training source manifest and immutable combined image",
-      "Typed host image asset/checkpoint paths, progress, terminal and lease integration",
-      "Actual terminal route zero-update publication and fault recovery",
+      "Independent outer schema/adapter/host/image integration review and corrections",
+      "Unmodified shell entrypoint synthetic full checkpoint/resume/final artifact qualification",
+      "Persistent supervision/logs, actual resource provider and automatic CPU pipeline composition",
       "Exact accelerator runtime/dependency/device-mapping qualification",
       "Measured per-size loss/full-gradient bf16 noise floor and discrimination controls",
       "Matched end-to-end efficiency qualification",
@@ -163,7 +161,9 @@
         "rehashed semantic adapter-config changes accepted",
         "torn publication BINDING JSON blocks identical retry"
       ],
-      "additional_cpu_evidence": "synthetic terminal family.run twice zero optimizer updates; separate-process actual family/trainer preclip and postclip gradients exact; older local dependency environment, exact-image final route untested"
+      "additional_cpu_evidence": "synthetic terminal family.run twice zero optimizer updates; separate-process actual family/trainer preclip and postclip gradients exact; older local dependency environment, exact-image final route untested",
+      "historical": true,
+      "superseded_by": "final_publication_review for F4/F5 only; remaining outer/NPU gates continue"
     },
     "final_publication_review": {
       "verdict": "ACCEPT_SCOPED",
@@ -174,6 +174,23 @@
       "review_sha256": "13672552ad5398c5ade5700b7b7c7a0bcfd164befd1abeb72ed6ac4b8ce4a03d",
       "boundary": "bounded trainer checkpoint return followed by family publication; no claim of original trainer post-loop block or3116 actual updates",
       "fault_evidence": "four abrupt child exits and retry in supplemental CPU runtime; no power-loss qualification"
+    },
+    "outer_integration": {
+      "status": "PARTIAL_REVIEW_REQUIRED",
+      "image": "sha256:a2b20ba160230b3e8c538ce588e256bec55cdb4b4e5e5a294e70ba9107dca6d9",
+      "image_manifest_files": 55,
+      "producer_tests": {
+        "passed": 111,
+        "skipped": 6
+      },
+      "parent_pin_checks": 27,
+      "shell_evidence": "expected missing model rejection only; separate adapter.main synthetic final artifact does not close shell success",
+      "source_hashes": {
+        "HANDOFF.md": "37b95f3a3c255737d04d95f4fccd430929d53b72336303ca983d034e1da01b85",
+        "RESULT.json": "aa83492e95d9179730330fd32706fba578311461e8e7b1d73b07ceb7e46ba12a",
+        "PINS.json": "309452a2477b79b9e876af58930bcf25857b402b18e5a1622c36d57701479e7e"
+      },
+      "prior_host_schema_acceptance_rebound": false
     }
   }
 }
