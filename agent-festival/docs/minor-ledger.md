@@ -141,3 +141,11 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **m-1（同 ID 重发布静默复活已失效方法）**：失效翻转存在第二条静默写径——republish 同 ID Valid:true 无声重武装已知 stale 知识（取代不可撤销 vs 失效可经重声明撤销的族内不对称）。已修：publish 拒绝一切重复 ID（redeclaration is not a flip——结构性预防：复活危害不可表达）+探针+mustPublish 测试助手（13 调用点统一转换）。
 - **m-2（文件头第四处旧叙事）**：R21 M-1 清了三处，「If E3 shows the fixture and stand-ins are actually consistent…」将来时句漏网（grep 词形不在搜索面）。已修：改历史语式（E3 已跑完、矛盾已 resolve）。grep "If E3 shows" 零命中。
 - **方法论入账（第 11/12 实证）**：给某道门补独占面纪律后，要横向扫同函数/同族的姊妹门——立法不同步等于只治了报案的那个（M-1）；「声明的效果未发生」族要族内全覆盖（invalidate 响亮了、publish 的 typo-Replaces 与重复 ID 还静默——M-2/m-1）；grep 证伪的搜索面要覆盖将来时/假设语气词形（m-2）。
+
+## R23 空白复审记账（2026-11-05，全量面 c919009..081c41e——**0B/0M/3m，第一个 0B/0M 轮：连净计数 1/3**）
+
+- **m-1（T1 侧事实零断言承载）**：E3-C8 叙事引用「t1Cases C8 expects deny, hardBar」但断言面只有 t1Spec 三子串——C8 条目被改时零 LLM 套件恒绿、解决声明的 T1 半静默蒸发。已修（随批清偿）：E3-C8 内遍历 t1Cases 断言 C8 条目 (expected=deny, hardBar=true)。反突变（改 C8 期望）→红。
+- **m-2（「only code consumer」不真）**：cmd/judgment 的 must-accept 循环也读该夹具（schema 校验、不钉单文件）——语义独占性成立但字面断言为假。已修：改「only SEMANTIC consumer」+括注实际读者面。
+- **m-3（reopen 注释与 R22 门矛盾）**：「survive via re-publication in the test」描述的存活机制既非实际机制（共享指针）也不再是被允许的操作（R22 重声明门）——立法后未横扫相邻叙事（R22 M-1 自己的立法语言）。已修：改「SHARED across reopen via pointer；真进程重启应向 FRESH 注册表重发布」。
+- **轮次判定**：0B/0M——**连净第 1 轮**。minor 三条随批清偿（全部增量触及面：m-1/m-2 在 R21 改写物上、m-3 是 R22 门立法后的新矛盾），不入积累账。
+- **空白子证伪未破的高危面**（择要）：全部已声称突变探针耦合逐条复算成立（含独占行为红与 marker 红之辨、双覆盖诚实注与代码事实一致）；registry 不可达坏态排查（复活/自引用/前向引用/取代环均结构性不可表达）；账本 R17-R22 与代码逐条相符。

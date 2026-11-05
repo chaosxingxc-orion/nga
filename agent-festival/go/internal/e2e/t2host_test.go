@@ -429,11 +429,15 @@ func (h *t2Host) reopen() *t2Host {
 		h.t.Fatal(err)
 	}
 	return &t2Host{
-		t:        h.t,
-		dir:      h.dir,
-		machine:  m,
-		store:    rs,
-		registry: h.registry, // registry is in-memory (published methods survive via re-publication in the test)
+		t:       h.t,
+		dir:     h.dir,
+		machine: m,
+		store:   rs,
+		// R23 m-3: the registry is in-memory and SHARED across reopen via
+		// this pointer (methods survive through the shared pointer; a real
+		// process restart would re-publish into a FRESH registry — the R22
+		// redeclaration gate only forbids re-publishing into the LIVE one)
+		registry: h.registry,
 		probes:   h.probes,
 	}
 }

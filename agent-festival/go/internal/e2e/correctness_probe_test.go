@@ -276,9 +276,12 @@ type fixtureSpec struct {
 // denies" → assertion 1 fails; window the stand-in → assertion 2 fails.
 func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
 	// Read the fixture. R21 M-3: a missing fixture is a RED, not a skip —
-	// this test is the fixture's only code consumer; skipping on a
-	// missing/moved file would silently evaporate the P3 correction's
-	// active coverage (the B-1 disease shape via an environmental guard).
+	// this test is the fixture's only SEMANTIC consumer (cmd/judgment's
+	// must-accept loop also reads it, but only schema-validates the whole
+	// examples/judgment/valid/ directory and does not pin this single
+	// file); skipping on a missing/moved file would silently evaporate
+	// the P3 correction's active coverage (the B-1 disease shape via an
+	// environmental guard).
 	fixturePath := filepath.Join("..", "..", "..", "schema", "examples", "judgment", "valid", "judgment-spec-credit.json")
 	raw, err := os.ReadFile(fixturePath)
 	if err != nil {
@@ -387,6 +390,23 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 
 	if !t1SpecContainsVetoFirst {
 		t.Fatal("E3-C8: T1 spec text does not contain unbounded precedence-0 veto — spec may have changed")
+	}
+
+	// R23 m-1: the T1-side half is ASSERTED, not just narrated — the C8
+	// case-table entry itself must expect deny at the hard bar (if this
+	// entry is edited to any other expectation, the resolved-state claim
+	// loses its T1 half and this goes red).
+	c8Found := false
+	for _, c := range t1Cases {
+		if c.id == "C8-veto-beats-missing-evidence" {
+			c8Found = true
+			if c.expected != "deny" || !c.hardBar {
+				t.Fatalf("E3-C8: t1Cases C8 entry = (expected=%q, hardBar=%v), want (deny, true) — the T1 half of the resolved state", c.expected, c.hardBar)
+			}
+		}
+	}
+	if !c8Found {
+		t.Fatal("E3-C8: t1Cases has no C8-veto-beats-missing-evidence entry — the case table changed")
 	}
 }
 
