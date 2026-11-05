@@ -17,13 +17,17 @@ import time
 try:
     from . import unified_cpu_consumer_v1 as C
 except ImportError:
+    # Supervisor runs scripts with -P, so explicitly admit only our own
+    # protected source directory for the sibling consumer module.
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     import unified_cpu_consumer_v1 as C
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 PIN_PATHS = [Path(__file__).resolve(), HERE/'unified_cpu_consumer_v1.py',
+             HERE/'unified_cpu_pipeline_v1.py',
              HERE/'unified_resource_lease_v1.py', HERE/'unified_container_host_v1.py',
-             HERE/'r3_resource_adapter.py',
+             HERE/'r3_resource_adapter.py', HERE/'experiment_dag.py',
              REPO/'docker/engineering-base/schema.json']
 
 
@@ -91,7 +95,7 @@ def inspect(c, mounts, name, launch, ident):
 
 def completion(job, event, launch, ident, ob):
     tpath, apath = job/'TERMINAL.json', job/'ACK.json'
-    if not tpath.exists() and not apath.exists(): return None
+    if not tpath.exists() or not apath.exists(): return None
     C.need(tpath.exists() and apath.exists(), 'incomplete consumer completion evidence')
     t, a = C.read(tpath), C.read(apath)
     state = ob.get('State') or {}
@@ -101,6 +105,30 @@ def completion(job, event, launch, ident, ob):
     ack = {'schema':'unified-cpu-ack-v1','event_id':event['event_id'],'launch_sha256':launch,'container_id':ident,'exit_code':code,'terminal_sha256':sha(tpath),'scientific_acceptance':False,'meaning':'physical completion'}
     C.need(type(t) is dict and type(a) is dict and type(t.get('exit_code')) is int and type(a.get('exit_code')) is int and t.get('scientific_acceptance') is False and a.get('scientific_acceptance') is False and t == terminal and a == ack, 'consumer completion differs')
     return {'exit_code':code,'terminal_sha256':sha(tpath),'ack_sha256':sha(apath)}
+
+
+def reconcile(ref, output):
+    """Attach late completion evidence to the last successful EOF, without replay."""
+    root = C.safe(output)
+    c, event, mounts, job, name, launch, ident = authorize(ref)
+    with C.lock(job/'log-follower.lock', True), C.lock(root/'follower.lock', True):
+        c, event, mounts, job, name, launch, ident = authorize(ref)
+        owner = C.read(root/'OWNER.json')
+        C.need(typed_equal(owner, {'schema':'unified-log-capture-owner-v1','consumer_config':ref,
+                                  'container_id':ident,'launch_sha256':launch,'code_pins':pins()}), 'capture owner changed')
+        attempts = sorted((root/'attempts').glob('*/TERMINAL.json'))
+        if not attempts: return None
+        candidates = [p for p in attempts if C.read(p).get('status') == 'stream_eof_not_completion' and type(C.read(p).get('stream_returncode')) is int and C.read(p)['stream_returncode'] == 0]
+        if not candidates: return None
+        capture_terminal = candidates[-1]
+        proof = completion(job, event, launch, ident, inspect(c, mounts, name, launch, ident))
+        if proof is None: return None
+        C.need(pins() == owner['code_pins'], 'code pins changed during reconciliation')
+        record = {'schema':'unified-log-capture-reconciliation-v1','capture_terminal_sha256':sha(capture_terminal),'consumer_completion':proof}
+        path = root/'RECONCILED.json'
+        if path.exists(): C.need(typed_equal(C.read(path), record), 'reconciliation changed')
+        else: C.write(path, record)
+        return record
 
 
 def progress(task, mounts, attempt, streams, ident):
@@ -226,13 +254,14 @@ def main():
         if a.op == 'serve':
             C.need(a.output is None and a.heartbeat_seconds == 10, 'serve uses closed configuration')
             cfg=C.pin({'path':a.config,'sha256':a.sha256})
-            C.need(type(cfg) is dict and set(cfg) == {'schema','consumer_config','output','heartbeat_seconds'} and cfg['schema'] == 'unified-log-capture-v1', 'closed capture config required')
+            C.need(type(cfg) is dict and set(cfg) == {'schema','consumer_config','output','heartbeat_seconds','code_pins'} and cfg['schema'] == 'unified-log-capture-v1' and cfg['code_pins'] == pins(), 'closed capture config or closure differs')
             result=run(cfg['consumer_config'],cfg['output'],cfg['heartbeat_seconds'],a.config)
         else:
             C.need(a.output is not None, 'output required')
             result=run({'path':a.config,'sha256':a.sha256},a.output,a.heartbeat_seconds)
         print(json.dumps(result,sort_keys=True))
-        return 0 if result['status']=='completed' and result['stream_returncode']==0 and result['consumer_completion']['exit_code']==0 else 1
+        # A clean EOF is a finished stream, with completion reconciled separately.
+        return 0 if result['status']=='completed' or (a.op == 'serve' and result['status']=='stream_eof_not_completion') else 1
     except Exception as e:
         print(type(e).__name__+': '+str(e),file=sys.stderr); return 1
 

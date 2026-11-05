@@ -19,6 +19,7 @@ import uuid
 
 HERE = Path(__file__).resolve().parent
 REGISTRY = {'unified_event_service_v1': (HERE / 'unified_event_service_v1.py', 'serve'),
+            'unified_container_log_follower_v1': (HERE / 'unified_container_log_follower_v1.py', 'serve'),
             'synthetic_fake_physical_v1': (HERE / 'test_unified_service_supervisor_v1.py', '--fake-service')}
 
 
@@ -48,6 +49,13 @@ def load(path, sha):
     require(type(c['max_retries']) is int and 0 <= c['max_retries'] <= 100, 'invalid retry budget')
     require(type(c['retry_backoff_seconds']) is int and 1 <= c['retry_backoff_seconds'] <= 3600, 'invalid retry backoff')
     pin(c['entry'], REGISTRY[c['service']][0]); pin(c['python']); pin(c['service_config']); pin(c['supervisor'], Path(__file__))
+    if c['service'] == 'unified_container_log_follower_v1':
+        capture = json.loads(Path(c['service_config']['path']).read_bytes())
+        paths = [HERE/'unified_container_log_follower_v1.py', HERE/'unified_cpu_consumer_v1.py',
+                 HERE/'unified_cpu_pipeline_v1.py', HERE/'unified_resource_lease_v1.py',
+                 HERE/'unified_container_host_v1.py', HERE/'r3_resource_adapter.py',
+                 HERE/'experiment_dag.py', HERE.parent/'docker/engineering-base/schema.json']
+        require(capture.get('code_pins') == {str(p.resolve()): digest(p) for p in paths}, 'capture closure changed')
     require(type(c['state_dir']) is str and Path(c['state_dir']).is_absolute() and str(Path(c['state_dir']).resolve()) == c['state_dir'], 'invalid state directory')
     require(os.access(c['python']['path'], os.X_OK), 'interpreter not executable')
     return c
@@ -107,7 +115,24 @@ def start(path, sha):
     c = load(path, sha); root = Path(c['state_dir']); root.mkdir(parents=True, exist_ok=True, mode=0o700)
     lock = (root / 'owner.lock').open('a')
     try: fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError: return 0
+    except BlockingIOError:
+        # The lock winner may still be publishing its durable owner.
+        deadline = time.monotonic() + 2
+        while not (root / 'OWNER.json').exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        try:
+            require((root / 'OWNER.json').exists() and read(root / 'OWNER.json') == {'config': path, 'sha256': sha}, 'busy supervisor owner differs or is uninitialized')
+            return 0
+        finally: lock.close()
+    owner = root / 'OWNER.json'
+    expected = {'config': path, 'sha256': sha}
+    try:
+        if owner.exists(): require(read(owner) == expected, 'supervisor owner differs')
+        else:
+            require(not any(p.name != 'owner.lock' for p in root.iterdir()), 'unowned supervisor state')
+            atomic(owner, expected)
+    except BaseException:
+        lock.close(); raise
     relaunch(c, path, sha, root)
     # A separate session and inherited lock remove the caller's lifetime from ownership.
     with (root / 'supervisor.log').open('ab', buffering=0) as log:

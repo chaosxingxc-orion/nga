@@ -89,6 +89,8 @@ class Functional(unittest.TestCase):
     def test_terminal_and_stale_terminal(self):
         self.service.write_text('{"mode":"terminal"}'); self.write_config()
         self.state.mkdir(); (self.state / 'TERMINAL.json').write_text('{"exit_code":0}')
+        self.assertNotEqual(self.call().returncode, 0)
+        (self.state / 'OWNER.json').write_text(json.dumps({'config':str(self.config), 'sha256':self.config_sha}))
         self.assertEqual(self.call().returncode, 0)
         self.wait(lambda: json.loads((self.state / 'status.json').read_text())['state'] == 'completed')
         t = json.loads((self.state / 'attempts/1/terminal.json').read_text()); self.assertEqual((t['generation'], t['exit_code']), ('1', 0))
