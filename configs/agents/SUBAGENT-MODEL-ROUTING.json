@@ -1,0 +1,48 @@
+{
+  "schema": "nga-subagent-model-routing-v1",
+  "updated_utc": "2026-11-04",
+  "authority": "user-directed-routing",
+  "policy": {
+    "engineering_and_documentation": {
+      "requested_model": "gpt-6.1-terra",
+      "role": "implementation, test, integration, experiment package preparation, and documentation generation",
+      "dispatchable_in_current_tool_inventory": false,
+      "fallback": "none",
+      "when_unavailable": "keep task queued and report the unavailable requested model; do not silently substitute another model"
+    },
+    "sample_analysis_statistics_bad_case_root_cause": {
+      "requested_model": "gpt-6.1-sol",
+      "role": "sample analysis, metric/statistical recomputation, error analysis, and bad-case root-cause analysis",
+      "dispatchable_in_current_tool_inventory": true,
+      "fallback": "none"
+    },
+    "planning_evaluation_replanning": {
+      "requested_model": "gpt-6-astra",
+      "role": "task planning, result evaluation, adversarial review, go/no-go judgment, and replanning",
+      "dispatchable_in_current_tool_inventory": true,
+      "fallback": "none",
+      "restriction": "must not be used as the implementation or sample-analysis owner"
+    }
+  },
+  "handoff_requirements": {
+    "record_path": "task-local HANDOFF.md or CephFS task directory",
+    "required_sections": [
+      "goal_and_acceptance",
+      "inputs_and_constraints",
+      "actual_method",
+      "changes_or_actions",
+      "findings_with_evidence",
+      "verification_and_limits",
+      "results_and_scope",
+      "open_work_and_parent_decisions",
+      "execution_continuity"
+    ],
+    "message_is_not_deliverable": true
+  },
+  "routing_invariants": [
+    "Astra decisions must be based on bounded artifacts and must not replace implementation evidence.",
+    "Sol analysis must report measurements and causes with evidence, not make final plan decisions.",
+    "Terra engineering/documentation tasks must not be silently reassigned while Terra is unavailable.",
+    "NPU execution remains detached and script-controlled; model routing does not change resource or TEST gates."
+  ]
+}

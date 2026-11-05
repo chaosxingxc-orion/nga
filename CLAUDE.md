@@ -40,6 +40,18 @@ Follow [the handoff contract](configs/experiments/SUBAGENT-HANDOFF.md); process
 records remain local/Ceph and only accepted conclusions go to the GitHub Wiki.
 Write records alongside execution without pausing already admitted NPU work.
 
+### 2.2 User-directed model routing (2026-11-04)
+
+The current routing policy is pinned in
+[`configs/agents/SUBAGENT-MODEL-ROUTING.json`](configs/agents/SUBAGENT-MODEL-ROUTING.json).
+Engineering development, experiment-package construction and documentation generation are
+assigned to `gpt-6.1-terra`; sample analysis, statistics and bad-case root-cause analysis are
+assigned to `gpt-6.1-sol`; task planning, evaluation, adversarial review and replanning are
+assigned to `gpt-6-astra`. The current tool inventory does not expose `gpt-6.1-terra`, so
+engineering/documentation tasks remain queued rather than silently falling back to another
+model. Astra does not implement or own sample analysis, and Sol reports evidence rather than
+making the final plan decision.
+
 ## 3. What this repository is
 
 A survey and research program on Jev-class single-pass typed-readout decision models ("System One"
