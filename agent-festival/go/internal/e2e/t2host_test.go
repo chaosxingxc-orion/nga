@@ -209,16 +209,37 @@ func (m knowledgeMethod) execute(inputs map[string]string) (storedResult, error)
 	facts := []string{}
 	receipt := fmt.Sprintf("method:%s:result", m.ID)
 	overdueMonths := 0
+	// R19 M-4: the method body CONSUMES overdue_months (the veto carrier) —
+	// a declaration that omits it is a contract/consumption divergence and
+	// fails closed. Without this check, an under-declared method let the
+	// veto input arrive absent, skip both gates, and default to 0 (the E0
+	// extraction-miss form reopened through the declaration seam).
+	declaresOverdue := false
+	for _, f := range m.InputFields {
+		if f == "overdue_months" {
+			declaresOverdue = true
+		}
+	}
+	if !declaresOverdue {
+		return storedResult{}, fmt.Errorf("[T2.METHOD %s] consumes overdue_months but does not declare it in input_fields — contract/consumption divergence (fail-closed, R19 M-4)", m.ID)
+	}
 	// R18 M-2: the DECLARED required inputs must be PRESENT — a missing
 	// key fails closed. The extraction-miss disease (E0) is exactly the
 	// missing-key form: the upstream never extracted the field, so the
 	// veto input arrives absent and must not default to 0.
+	// R19 m-1: an EMPTY value fails closed too — a present-but-empty field
+	// produced orphan results (BusinessReqID "" never matches a lookup).
 	for _, f := range m.InputFields {
-		if _, ok := inputs[f]; !ok {
+		v, ok := inputs[f]
+		if !ok {
 			return storedResult{}, fmt.Errorf("[T2.METHOD %s] required input %q is missing — refusing to produce a result without a declared contract input (fail-closed, R18 M-2)", m.ID, f)
 		}
+		if v == "" {
+			return storedResult{}, fmt.Errorf("[T2.METHOD %s] required input %q is empty — refusing to produce a result on an empty contract input (fail-closed, R19 m-1)", m.ID, f)
+		}
 	}
-	if v, ok := inputs["overdue_months"]; ok {
+	{
+		v := inputs["overdue_months"]
 		// L44 fix (R17 M-C) + R18 M-3: the veto input is SAFETY-CRITICAL —
 		// an unparseable overdue_months FAILS CLOSED (error), never treated
 		// as 0. Treating it as 0 would mean a corrupted input silently
@@ -226,9 +247,14 @@ func (m knowledgeMethod) execute(inputs map[string]string) (storedResult, error)
 		// R18 M-3: strconv.Atoi is a STRICT full-string parse — fmt.Sscanf
 		// prefix-parses ("0abc"→0, "2xyz"→2, "0.5"→0 with no error), which
 		// let corrupted inputs through the fail-closed gate.
+		// R19 M-5: a NEGATIVE month count is domain corruption (a count
+		// cannot be negative) and also fails closed.
 		n, err := strconv.Atoi(v)
 		if err != nil {
 			return storedResult{}, fmt.Errorf("[T2.METHOD %s] overdue_months input %q is not a number — refusing to produce a result on a corrupted veto input (fail-closed, L44)", m.ID, v)
+		}
+		if n < 0 {
+			return storedResult{}, fmt.Errorf("[T2.METHOD %s] overdue_months input %q is negative — a month count cannot be negative (fail-closed, R19 M-5)", m.ID, v)
 		}
 		overdueMonths = n
 	}
@@ -258,16 +284,41 @@ func (kr *knowledgeRegistry) publish(m knowledgeMethod) {
 	kr.methods[m.ID] = m
 }
 
+// invalidate marks a published method invalid (expired/superseded) — the
+// single write path for validity flips (R19 m-2: one idiom, no
+// whole-struct-rewrite field loss, no third flip form).
+func (kr *knowledgeRegistry) invalidate(id string) {
+	if m, ok := kr.methods[id]; ok {
+		m.Valid = false
+		kr.methods[id] = m
+	}
+}
+
 // findForNode returns the valid method serving the given node kind, or
-// false. Validity is checked (F-04: expired/superseded methods are not
-// consumed for new tasks).
-// R18 M-1: iteration is DETERMINISTIC via sortedKeys — on multiple valid
-// methods serving the same node kind (e.g. the correction window where
-// v2 is published before v1 is flipped invalid), the
-// lexicographically-lowest method ID wins. Raw map ranging made this
-// choice random (~88/12 per probe), silently nondeterministic.
+// false. F-04: expired (invalid) AND superseded methods are not consumed
+// for new tasks.
+// R18 M-1: iteration is DETERMINISTIC via sortedKeys — among the
+// candidate (valid, non-superseded) methods the lexicographically-lowest
+// method ID wins. Raw map ranging made this choice random (~88/12 per
+// probe), silently nondeterministic.
+// R19 M-3: SUPERSESSION is enforced mechanically, not by convention — a
+// valid method's Replaces names the method it supersedes, and the
+// superseded method is skipped even while still marked valid. In the
+// correction window (v2 published, v1 not yet flipped invalid) the window
+// deterministically serves v2, the correction — previously the lowest-ID
+// tiebreak deterministically served the STALE v1, and Replaces was
+// decorative (zero consumers).
 func (kr *knowledgeRegistry) findForNode(nodeKind string) (knowledgeMethod, bool) {
+	superseded := map[string]bool{}
+	for _, m := range kr.methods {
+		if m.Valid && m.Replaces != "" {
+			superseded[m.Replaces] = true
+		}
+	}
 	for _, id := range sortedKeys(kr.methods) {
+		if superseded[id] {
+			continue
+		}
 		m := kr.methods[id]
 		if m.ServesNode == nodeKind && m.Valid {
 			return m, true
@@ -457,6 +508,25 @@ func TestT2Lookup_RevisionOrdering(t *testing.T) {
 	if !found2 || r2.EvaluationRev != "er-1" {
 		t.Fatalf("L42 probe: unparseable-revision case = %q (found=%v), want er-1 — an unparseable revision must sort LOWEST", r2.EvaluationRev, found2)
 	}
+
+	// R19 M-1 probe: a PREFIX-GARBAGE revision ("er-2x") sorts lowest
+	// under strconv.Atoi (strict full-string parse → -1) but would parse
+	// as 2 under fmt.Sscanf prefix parsing — distinguishing the
+	// revisionNumber half of the R18 M-3 family fix
+	rs3, err := newResultStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := rs3.put("op-pg-a", storedResult{Receipt: "r-er-2x", BusinessReqID: "br-pg", EvaluationRev: "er-2x"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := rs3.put("op-pg-b", storedResult{Receipt: "r-er-1", BusinessReqID: "br-pg", EvaluationRev: "er-1"}); err != nil {
+		t.Fatal(err)
+	}
+	r3, _, found3 := rs3.lookupByBusinessRequest("br-pg")
+	if !found3 || r3.EvaluationRev != "er-1" {
+		t.Fatalf("R19 M-1 probe: prefix-garbage revision case = %q (found=%v), want er-1 — a prefix-garbage revision must sort LOWEST (strict full-string parse), not parse as its numeric prefix", r3.EvaluationRev, found3)
+	}
 }
 
 // TestT2Lookup_TieBreakDeterminism probes L43: when two results share the
@@ -535,12 +605,17 @@ func TestT2NodeEntry_Branches(t *testing.T) {
 }
 
 // TestT2Method_ParseErrorFailsClosed probes the L44 fix (R17 M-C) and its
-// R18 M-2/M-3 extensions: the veto input fails closed on ALL corrupted
-// forms — unparseable ("not-a-number"), prefix-parseable garbage that
-// Sscanf would have accepted ("0abc", "2xyz", "0.5"), and MISSING (the
-// extraction-miss form — the declared required input absent). Mutation
-// probes: revert Atoi to Sscanf and the "0abc" case fails; remove the
-// InputFields presence loop and the missing-key case fails.
+// R18 M-2/M-3 + R19 M-4/M-5/m-1 extensions: the veto input fails closed
+// on ALL corrupted forms — unparseable ("not-a-number"),
+// prefix-parseable garbage that Sscanf would have accepted ("0abc",
+// "2xyz", "0.5"), empty, NEGATIVE (a month count cannot be negative),
+// MISSING (the extraction-miss form — the declared required input
+// absent), and under-declared methods (contract/consumption divergence).
+// Mutation probes: revert Atoi to Sscanf and the "0abc" case fails;
+// remove the InputFields presence loop and the missing-key case fails;
+// remove the divergence check and the under-declared case fails; remove
+// the negative check and the "-4" case fails; remove the empty-value
+// check and the empty-brID case fails.
 func TestT2Method_ParseErrorFailsClosed(t *testing.T) {
 	m := knowledgeMethod{
 		ID:          "method-parse-probe",
@@ -549,17 +624,17 @@ func TestT2Method_ParseErrorFailsClosed(t *testing.T) {
 		InputFields: []string{"overdue_months", "business_request_id"},
 		Valid:       true,
 	}
-	badInputs := []string{"not-a-number", "0abc", "2xyz", "0.5", ""}
+	badInputs := []string{"not-a-number", "0abc", "2xyz", "0.5", "", "-4"}
 	for _, bad := range badInputs {
 		_, err := m.execute(map[string]string{
 			"overdue_months":      bad,
 			"business_request_id": "br-parse",
 		})
 		if err == nil {
-			t.Fatalf("L44/M-3 probe: overdue_months=%q produced a result (fail-open) — the veto input must fail CLOSED on every corrupted form", bad)
+			t.Fatalf("L44/M-3/M-5 probe: overdue_months=%q produced a result (fail-open) — the veto input must fail CLOSED on every corrupted form (including negative)", bad)
 		}
 		if !strings.Contains(err.Error(), "fail-closed") {
-			t.Fatalf("L44/M-3 probe: error for %q = %q, want the fail-closed marker", bad, err.Error())
+			t.Fatalf("L44/M-3/M-5 probe: error for %q = %q, want the fail-closed marker", bad, err.Error())
 		}
 	}
 
@@ -576,6 +651,41 @@ func TestT2Method_ParseErrorFailsClosed(t *testing.T) {
 		t.Fatalf("M-2 probe: error = %q, want the missing-input marker", err.Error())
 	}
 
+	// R19 m-1 probe: a present-but-EMPTY declared input fails closed (an
+	// empty business_request_id produced orphan results that never match
+	// a lookup)
+	_, err = m.execute(map[string]string{
+		"overdue_months":      "4",
+		"business_request_id": "",
+	})
+	if err == nil {
+		t.Fatal("m-1 probe: an empty business_request_id produced a result — empty contract inputs must fail CLOSED")
+	}
+	if !strings.Contains(err.Error(), "empty") {
+		t.Fatalf("m-1 probe: error = %q, want the empty-input marker", err.Error())
+	}
+
+	// R19 M-4 probe: an UNDER-DECLARED method (consumes overdue_months but
+	// does not declare it) fails closed on the contract/consumption
+	// divergence — previously the veto input could arrive absent, skip
+	// both gates, and default to 0 through the declaration seam
+	underDeclared := knowledgeMethod{
+		ID:          "method-under-declared",
+		Version:     "1.0.0",
+		ServesNode:  "history-verification",
+		InputFields: []string{"business_request_id"}, // overdue_months NOT declared
+		Valid:       true,
+	}
+	_, err = underDeclared.execute(map[string]string{
+		"business_request_id": "br-parse",
+	})
+	if err == nil {
+		t.Fatal("M-4 probe: an under-declared method produced a result — contract/consumption divergence must fail CLOSED")
+	}
+	if !strings.Contains(err.Error(), "divergence") {
+		t.Fatalf("M-4 probe: error = %q, want the divergence marker", err.Error())
+	}
+
 	// valid input still works (the fail-closed gates do not break the
 	// happy path)
 	r, err := m.execute(map[string]string{
@@ -587,6 +697,26 @@ func TestT2Method_ParseErrorFailsClosed(t *testing.T) {
 	}
 	if !strings.Contains(r.Receipt, "veto-fired") {
 		t.Fatalf("L44 probe: receipt = %q, want veto-fired for 4-month overdue", r.Receipt)
+	}
+}
+
+// TestT2FindForNode_SupersessionWindow probes R19 M-3: during the
+// correction window — v2 published (Replaces v1) while v1 is STILL VALID —
+// findForNode serves v2 (the correction), not the stale v1. Supersession
+// is enforced mechanically via Replaces. Mutation probe: remove the
+// supersession skip and this test fails (the lowest-ID tiebreak would
+// deterministically serve the stale v1).
+func TestT2FindForNode_SupersessionWindow(t *testing.T) {
+	kr := newKnowledgeRegistry()
+	kr.publish(knowledgeMethod{ID: "method-overdue-v1", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
+	kr.publish(knowledgeMethod{ID: "method-overdue-v2", Version: "2.0.0", ServesNode: "history-verification", Valid: true, Replaces: "method-overdue-v1"})
+	// NO invalidation — the window state: both valid, v2 supersedes v1
+	m, ok := kr.findForNode("history-verification")
+	if !ok {
+		t.Fatal("M-3 probe: no method found for history-verification")
+	}
+	if m.ID != "method-overdue-v2" {
+		t.Fatalf("M-3 probe: window winner = %q, want method-overdue-v2 — during the correction window the superseding method must be served, not the stale lowest-ID one", m.ID)
 	}
 }
 
