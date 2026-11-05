@@ -96,8 +96,8 @@
   ],
   "scope": "Retained metadata/source audit; no new training or NPU qualification; model payload hashes inherited.",
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T12:42:58.670694+00:00",
-    "status": "component_and_outer_source_delta_scoped_accepted_full_shell_qualification_missing",
+    "observed_utc": "2026-11-05T12:52:02.436647+00:00",
+    "status": "component_outer_and_shell_derivative_scoped_accepted_realruntime_trainedeval_integration_missing",
     "supersedes": "Implementation status of initial metadata audit only; inherited counts and scientific conclusions unchanged",
     "handoff_sha256": "7d89cd1aeedc62b7008fd3daf1af598f417ef0b96985743ab2d9c40ebd7c13b8",
     "result_sha256": "be5e0e5095c0bfa773f4acda35cc762fec846372dc15d8f0f886b50b2c230e10",
@@ -139,9 +139,8 @@
       "scientific_acceptance": false
     },
     "remaining_release_gates": [
-      "Independent outer schema/adapter/host/image integration review and corrections",
+      "Integrated production image/source/runtime closure and explicit event/pipeline pin binding",
       "Four-size trainedadapter inference including9B, publication identity and downstream score/protocol binding",
-      "Unmodified shell entrypoint synthetic full checkpoint/resume/final artifact qualification",
       "Persistent supervision/logs, actual resource provider and automatic CPU pipeline composition",
       "Exact accelerator runtime/dependency/device-mapping qualification",
       "Measured per-size loss/full-gradient bf16 noise floor and discrimination controls",
@@ -224,7 +223,7 @@
       "engineering_task": "queued directTerra componentimplementation; rootintegration later"
     },
     "shell_derivative_qualification": {
-      "status": "producer_scoped_pass_independent_review_pending",
+      "status": "ACCEPT_SCOPED_CPU_DERIVATIVE",
       "production_image": "sha256:a2b20ba160230b3e8c538ce588e256bec55cdb4b4e5e5a294e70ba9107dca6d9",
       "qualification_image": "sha256:ea563b6d66ebde963b4a00cccdf684a49a23f716d0f811a194b3d5d0d766e16f",
       "verification": {
@@ -249,7 +248,25 @@
       "real_weights_validated": false,
       "production_runtime_success": false,
       "source_result_sha256": "df54cd18f872cb38e0118ad5c0fbfb37c3dc46c58c83375485d939b29dcdfee3",
-      "parent_nonlog_pin_checks": 48
+      "parent_nonlog_pin_checks": 48,
+      "independent_review": {
+        "result_sha256": "4cdcc427a43fde6a8c94a36ddd6c3b37c50eb7aeffb4fc295ebef4cfbf017288",
+        "counts": {
+          "manifest_files": 55,
+          "all_tree_children": 70,
+          "tar_entries_including_root": 71,
+          "producer_pins_verified": 105,
+          "producer_log_heartbeat_pins_excluded": 23,
+          "config_negative_cases": 64,
+          "actual_updates_per_path": 7,
+          "final_trace_updates_per_path": 1,
+          "retry_updates_per_path": 0,
+          "adapter_tensors": 14
+        },
+        "findings": [],
+        "parent_review_evidence_rehashes": 269,
+        "fixture_commit": "bb772c3"
+      }
     }
   }
 }
