@@ -536,16 +536,17 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 	}
 }
 
-// TestE0DiseaseExists_PhantomJSONMidFile is R14' M-1's deterministic red
-// probe (two assertions, one run): a "legal JSON object, not a machine
-// event" line ({"note":"out-of-band"}) inserted mid-file between two real
-// machine writes must be caught by the append-path write-time re-check —
-// per the P1-2 doctrine ("out-of-band damage between Open and write is
-// caught"). Current state: ParseLines' typed view accepts the phantom as
-// a complete event line, tornNow=false, STALE_WRITER passes (last-line seq
-// is the real event's), the rebuild preserves the phantom, and the write
-// returns success — poisoning the file so the NEXT Open rejects it.
-func TestE0DiseaseExists_PhantomJSONMidFile(t *testing.T) {
+// TestE0_PhantomJSONMidFileCaught is R14' M-1's deterministic probe (two
+// assertions, one run): a "legal JSON object, not a machine event" line
+// ({"note":"out-of-band"}) inserted mid-file between two real machine
+// writes must be caught by the append-path write-time re-check. State
+// since the R14' fix: ParseLines' strict shape judgment REJECTS the
+// phantom (valid JSON but not an event), the append refuses ("ledger
+// append failed"), and the operation stays adopted — the file is not
+// poisoned. The test name says the catch; the assertions verify it.
+// (R35 m-3: formerly named TestE0DiseaseExists_* with a "Current state:
+// accepts the phantom" narrative that predated the R14' fix.)
+func TestE0_PhantomJSONMidFileCaught(t *testing.T) {
 	h := newTask(t)
 	if o := h.machine.Adopt(requestFor("op-phantom-1", "er-1", "ev-1", digestHex('8'))); o.Status != "adopted" {
 		t.Fatalf("adopt = %q: %s", o.Status, o.Detail)
@@ -600,11 +601,11 @@ func TestE0DiseaseExists_PhantomJSONMidFile(t *testing.T) {
 	}
 }
 
-// TestE0DiseaseExists_PhantomJSONEOF is M-1's sister probe (EOF form):
+// TestE0_PhantomJSONEOFCaught is M-1's sister probe (EOF form):
 // a phantom line appended at EOF with a MATCHING seq passes both the
 // torn check (it has a newline) and the STALE_WRITER check (seq == last+1
 // coincidentally), gets persisted, and poisons the file.
-func TestE0DiseaseExists_PhantomJSONEOF(t *testing.T) {
+func TestE0_PhantomJSONEOFCaught(t *testing.T) {
 	h := newTask(t)
 	if o := h.machine.Adopt(requestFor("op-phantom-eof", "er-1", "ev-1", digestHex('b'))); o.Status != "adopted" {
 		t.Fatalf("adopt = %q: %s", o.Status, o.Detail)

@@ -89,7 +89,20 @@ func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 			lo = v
 		}
 	}
+	// R35 m-2: an INVERTED interval (lo > hi — both parsed but the text
+	// contradicts itself) is neither unparseable nor multi-hit — it is
+	// the third fail-open form: inBand would be vacuously false and the
+	// band face silently inert. Refuse it like the others.
+	if lo != 0 && hi != 0 && lo > hi {
+		return 0, 0
+	}
 	return lo, hi
+}
+
+// isWordChar reports whether c is an ASCII letter (the compound-word
+// boundary predicate's helper).
+func isWordChar(c byte) bool {
+	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
 }
 
 // anchorVetoMonths derives the veto threshold from the fixture's rule-0
@@ -109,6 +122,32 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 	// swept the band arm; this is the veto arm's word-form sweep. Compound
 	// forms land on the 0 sentinel (fail-closed — the anchor test flags
 	// them). R31 m-4: fixed order slice, first-hit-wins (deterministic).
+	// R35 m-1: COLLECT-then-DECIDE — all precedence-0 word hits are
+	// gathered first; DIFFERENT values across hits are an ambiguous
+	// derivation → sentinel (the band arm's R34 m-2 discipline, now on
+	// this arm too; the previous inline-return form let the word ORDER
+	// decide — "three" hit before "six" regardless of which rule the text
+	// meant). Same value repeats are agreement.
+	seen := map[int]string{}
+	for _, r := range spec.Rules {
+		if r.Precedence == 0 {
+			for _, w := range []struct {
+				word string
+				n    int
+			}{{"three", 3}, {"four", 4}, {"five", 5}, {"six", 6}} {
+				if !strings.Contains(r.Coverage, w.word+" months") {
+					continue
+				}
+				if prev, ok := seen[w.n]; ok && prev != w.word {
+					return 0 // two different words claim the same face — ambiguous
+				}
+				seen[w.n] = w.word
+			}
+		}
+	}
+	if len(seen) > 1 {
+		return 0 // multiple distinct thresholds claimed — ambiguous
+	}
 	for _, r := range spec.Rules {
 		if r.Precedence == 0 {
 			for _, w := range []struct {
@@ -117,16 +156,28 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 			}{{"three", 3}, {"four", 4}, {"five", 5}, {"six", 6}} {
 				if strings.Contains(r.Coverage, w.word+" months") {
 					// boundary check: the character before the word (if any)
-					// must not be a letter or hyphen
+					// must not be a letter, hyphen, or a space preceded by a
+					// number word (R35 M-1: the SPACE-separated compound
+					// family — "twenty three months", "sixty six months" —
+					// slipped the letter/hyphen check because prev==' ';
+					// a preceding number word makes this a compound too).
 					idx := strings.Index(r.Coverage, w.word+" months")
 					if idx == 0 {
 						return w.n
 					}
 					prev := r.Coverage[idx-1]
+					if prev == ' ' && idx >= 2 {
+						for _, w2 := range []string{"three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"} {
+							start := idx - 1 - len(w2)
+							if start >= 0 && r.Coverage[start:idx-1] == w2 && (start == 0 || !isWordChar(r.Coverage[start-1])) {
+								return 0 // space-separated compound → sentinel
+							}
+						}
+					}
 					if !(prev >= 'A' && prev <= 'Z') && !(prev >= 'a' && prev <= 'z') && prev != '-' {
 						return w.n
 					}
-					// compound form — keep scanning (fail through to 0)
+					// letter/hyphen compound — keep scanning (fail through to 0)
 				}
 			}
 		}
@@ -231,6 +282,25 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	inBand := raw.assetMillionsDeclared >= lo && raw.assetMillionsDeclared <= hi
 	if inBand && (kind == "grant-50000" || kind == "grant-10000") {
 		return checkResult{ok: false, reason: "assets in the closed between-bands zone (both cutoffs included) are an open specification question — a grant verdict is a model-authored default"}
+	}
+	// R35 M-2: the LEVEL-BAND CONSISTENCY face — the fixture's rule 1
+	// grants 50,000 only above the upper bound, rule 2 grants 10,000 only
+	// below the lower bound; a verdict in the wrong band for the declared
+	// assets contradicts the rules. (Plus the WINDOW-PREMISE face: rule
+	// 1's grant carries "with no overdue in the window" — an in-window
+	// overdue under a 50,000 verdict violates the premise.)
+	if kind == "grant-10000" && raw.assetMillionsDeclared >= lo {
+		return checkResult{ok: false, reason: "a grant-10000 verdict with assets at or above the lower bound contradicts rule 2 (the level-band consistency face)"}
+	}
+	if kind == "grant-50000" && raw.assetMillionsDeclared <= hi {
+		return checkResult{ok: false, reason: "a grant-50000 verdict with assets at or below the upper bound contradicts rule 1 (the level-band consistency face)"}
+	}
+	if kind == "grant-50000" {
+		for _, o := range raw.overdueOnRecord {
+			if o.months > 0 { // any overdue on record: the window premise is violated for the recent-window band
+				return checkResult{ok: false, reason: "a grant-50000 verdict with an overdue on record violates rule 1's window premise (with no overdue in the window)"}
+			}
+		}
 	}
 	return checkResult{ok: true, reason: "verdict conforms to the raw evidence under the corrected spec"}
 }
@@ -612,15 +682,26 @@ func TestE1_VetoAnchorCompoundWords(t *testing.T) {
 		t.Fatalf("M-1 probe: the real fixture anchored = %d, want 3 — the boundary check broke the happy path", got)
 	}
 
+	// R35 M-1: the SPACE-separated compound family ("twenty three months",
+	// "sixty six months") — prev==' ' passes the letter/hyphen check, so
+	// these were value-preserving misparses (3 and 6). Mutation probe:
+	// remove the space-token check and these go red.
+	space1 := &fixtureSpec{Rules: []fixtureVetoRule{{Precedence: 0, Coverage: "any overdue longer than twenty three months at any time denies credit"}}}
+	if got := anchorVetoMonths(space1); got != 0 {
+		t.Fatalf("M-1 probe: space compound (twenty three) anchored = %d, want 0 — a space-separated compound is a different number", got)
+	}
+	space2 := &fixtureSpec{Rules: []fixtureVetoRule{{Precedence: 0, Coverage: "any overdue longer than sixty six months at any time denies credit"}}}
+	if got := anchorVetoMonths(space2); got != 0 {
+		t.Fatalf("M-1 probe: space compound (sixty six) anchored = %d, want 0", got)
+	}
+
 	// R34 m-1: the SEPARATOR form ("30,000") must fail closed — the digit
 	// regex stops at the comma and would silently capture "30"; the
 	// declared contract is sentinel-0 for any form the parser can't take
 	// whole. Mutation probe: widen the digit class to include commas and
 	// this red expectation changes shape (re-pin it).
-	comma := &fixtureSpec{Rules: []fixtureVetoRule{}} // band-arm form via anchorBandBounds below
 	bandSpec := &fixtureSpec{Rules: []fixtureVetoRule{{Precedence: 1, Coverage: "assets above 30,000 (USD-millions) grant the line"}, {Precedence: 2, Coverage: "assets below 1 (USD-millions) grants the small line"}}}
 	blo, bhi := anchorBandBounds(bandSpec)
-	_ = comma
 	if blo != 0 || bhi != 0 {
 		t.Fatalf("m-1 probe: separator-form bounds = (%v, %v), want (0, 0) — the digit regex captured a prefix of a grouped number (fail-closed violated)", blo, bhi)
 	}
@@ -650,5 +731,69 @@ func TestE1_BandBoundsMultiHitConflicts(t *testing.T) {
 	lo, hi = anchorBandBounds(agreeing)
 	if lo != 1 || hi != 30 {
 		t.Fatalf("m-2 probe: agreeing derivations = (%v, %v), want (1, 30) — agreement must not be treated as conflict", lo, hi)
+	}
+}
+
+// TestE1_LevelBandConsistency is the R35 M-2 probe: the two semantic faces
+// the header promised but the seat lacked. Mutation probes: delete either
+// new face and the matching case passes silently (red).
+func TestE1_LevelBandConsistency(t *testing.T) {
+	spec := loadE3Fixture(t)
+
+	// ① wrong-level grant: grant-10000 at assets=35 (rule 2 grants only
+	// below 1) — refused
+	wrongLevel := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true}
+	if cr := verify(s1Verdict{kind: "grant-10000", details: "wrong level"}, spec, wrongLevel); cr.ok {
+		t.Fatal("M-2 probe: a grant-10000 verdict at assets=35 passed — the level-band consistency face is not load-bearing")
+	}
+	// ② window-premise violation: grant-50000 with an in-window overdue
+	// (2 months, inside the six-month window) — the spec's answer is NOT
+	// a clean grant
+	window := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{months: 2, yearsAgo: 0}}}
+	if cr := verify(s1Verdict{kind: "grant-50000", details: "in-window overdue ignored"}, spec, window); cr.ok {
+		t.Fatal("M-2 probe: a grant-50000 verdict with an in-window overdue passed — rule 1's window premise is not enforced")
+	}
+	// positive controls: the consistent forms still pass
+	if cr := verify(s1Verdict{kind: "grant-50000", details: "clean record"}, spec, rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true}); !cr.ok {
+		t.Fatalf("M-2 probe: the consistent grant-50000 was refused (%s) — the new faces over-block", cr.reason)
+	}
+}
+
+// TestE1_VetoAnchorMultiHitConflicts is the R35 m-1 probe: the veto arm's
+// multi-hit discipline (band arm's twin). Two precedence-0 rules claiming
+// different thresholds → sentinel; the same threshold twice → agreement.
+func TestE1_VetoAnchorMultiHitConflicts(t *testing.T) {
+	conflicting := &fixtureSpec{Rules: []fixtureVetoRule{
+		{Precedence: 0, Coverage: "denies beyond six months for standard applicants"},
+		{Precedence: 0, Coverage: "three months for apprentices"},
+	}}
+	if got := anchorVetoMonths(conflicting); got != 0 {
+		t.Fatalf("m-1 probe: conflicting veto claims anchored = %d, want 0 — ambiguity is a conflict", got)
+	}
+	agreeing := &fixtureSpec{Rules: []fixtureVetoRule{
+		{Precedence: 0, Coverage: "denies beyond three months for standard applicants"},
+		{Precedence: 0, Coverage: "recap: three months as before"},
+	}}
+	if got := anchorVetoMonths(agreeing); got != 3 {
+		t.Fatalf("m-1 probe: agreeing claims anchored = %d, want 3 — agreement is not a conflict", got)
+	}
+}
+
+// TestE1_BandBoundsInvertedRefused is the R35 m-2 probe: a parseable but
+// SELF-CONTRADICTING interval ("above 30 … below 40" → lo=40 > hi=30) is
+// refused — the band face must not silently go inert. Mutation probe:
+// remove the inversion check and this goes red.
+func TestE1_BandBoundsInvertedRefused(t *testing.T) {
+	inverted := &fixtureSpec{Rules: []fixtureVetoRule{
+		{Precedence: 1, Coverage: "assets above 30 (USD-millions) grant the line"},
+		{Precedence: 2, Coverage: "exception: assets below 40 (USD-millions) may also qualify"},
+	}}
+	lo, hi := anchorBandBounds(inverted)
+	if lo != 0 || hi != 0 {
+		t.Fatalf("m-2 probe: inverted interval = (%v, %v), want (0, 0) — a self-contradicting band is a conflict", lo, hi)
+	}
+	cr := verify(s1Verdict{kind: "grant-50000", details: "healthy"}, inverted, rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true})
+	if cr.ok {
+		t.Fatal("m-2 probe: verify gated on an inverted-band spec — the fail-closed face is not load-bearing")
 	}
 }

@@ -236,10 +236,20 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **m-1~m-9（随批清偿）**：带界锚行为面的历史声明改真（前身形态全通过 31——真实承载是抓 verify 侧常量与锚分叉；账本方向词 over/under 更正）；on_missing_evidence 镜像面消息依据如实（resolution 主语限定+coverageGap 前置）；双锚 fail-closed 深度对齐+「never fires」假句修正；带面消息 "strictly between"→"closed between-bands zone"（与闭区间一致）；E4 phase-2 注释 adoption 不计（与 guardDied 实际计数一致）；nodeEntry doc 错挂归位；E3 双测试改调 loadE3Fixture（三处解析点收敛）；E-GR 并列探针改输入排列扫描（50 迭代恒真——确定性买的是输入序无关非 run 重复）；37 号「实跑」改「合成形状演示」。
 - **方法论入账（第 26/27 实证）**：锚定用 Contains 匹配+字面量复制=值可与文本分叉——数字要从匹配文本**解析**（前缀子串是扩展漂移的天然盲区，M-1）；探针声称的确定性质要指认真实来源（并列决胜买的是输入序无关——50 迭代重复循环是恒真断言，m-8）。
 
-## R34 空白复审记账（2026-11-06，339b38b..4210084 六实验+R29-R33 清偿——0B/1M/4m 全清偿；连净计数 0）
+## R34 空白复审记账（2026-11-06，339b38b..4210084 六实验+R29-R33 清偿——0B/1M/3m 全清偿；连净计数 0）
+  - 【R35 m-4 更正】原头计数「4m」与 body 三条不符（m-3 内含两事按一编号计）——按机械规则 header 计数=body 条目数改为 3m。
 
 - **M-1（veto 锚复合数词盲区）**："thirty-three months" Contains "three months"→解析 3（值保持型误解析）——R33 M-1 的 regex 纪律横扫了带界臂的数字形态、没横扫 veto 臂的词形（R32 M-3 方法论的横扫缺口）。已修：边界感知匹配（裸词前紧跟字母/连字符=复合形态→落 0 哨兵 fail-closed）+TestE1_VetoAnchorCompoundWords 直检探针（复合→0+verify 拒关+真夹具仍 3）。反突变（去边界检查）→红。
 - **m-1（分组数字前缀捕获）**："30,000" 的数字 regex 静默捕获 30——探针先红实锤。已修：分组形态（[,.]\d 后继）毒化→sentinel (0,0)+Sscanf 错误显式面。探针入 TestE1_VetoAnchorCompoundWords。
 - **m-2（多命中静默消解）**：双规则不同 "above" 值按数组序 last-wins——与 countPrecedenceZero「歧义=冲突」纪律分叉。已修：同面异值→sentinel 冲突化+同值 agreeing 阳性对照。反突变（回退 last-wins）→红。
 - **m-3（doc 名/retract 残留）**：TestE0DiseaseExists_HealthyS1 doc 名未随 R31 m-8 同步；healthy 臂失败消息保留 R32 m-6 刚 retract 的「host decides not to dispatch」从句。已修：双处同步；retract 短语全仓唯一命中=更正注释自己（合规引用）。
 - **方法论入账（第 28/29 实证）**：横扫纪律的宾语要按**形态族**枚举（regex 数字形态/词形是两族——修一族漏一族，M-1）；解析器的边界形态（分组符/复合词）与解析成功同权入探针（m-1/m-2——失败形态静默落陈旧值是最隐蔽的 fail-open）。
+
+## R35 空白复审记账（2026-11-06，339b38b..4dc831f 六实验+R29-R34 清偿——0B/2M/5m 全清偿；连净计数 0）
+
+- **M-1（空格分隔复合族漏——R34 M-1 清偿自身的新缝）**："twenty three months"/"sixty six months" 的 prev=' ' 通过字母/连字符检查→值保持型误解析（3/6）；R34 的全称声明「Compound forms land on the 0 sentinel」对空格子族为假。已修：前一词 token 亦为数词→复合落 0（25 个数词 token 扫描）+TestE1_VetoAnchorCompoundWords 双空格案例。反突变（去空格 token 检查）→红。
+- **M-2（级档-带位一致面+窗口前提面未实现）**：header 声明「contradicts the raw evidence under the fixture's rules」而实现只覆盖 rule 0/开放带/在场三面——grant-10000@35（错误级档）与 grant-50000+窗口内逾期（rule-1 前提违反）实测过闸；锚定机制锚得住数值锚不住未实现的规则子句。已修：级档-带位一致性面（grant-10000⇔<lo；grant-50000⇔>hi）+窗口前提面（grant-50000+任何在录逾期→拒）+TestE1_LevelBandConsistency 双探针+阳性对照。反突变（删级档面）→红。
+- **m-1（veto 臂多命中静默词序消解）**：双规则异值按词序取（three 先于 six）——band 臂 R34 m-2 冲突化纪律未横扫孪生臂。已修：COLLECT-then-DECIDE 重构（先收集全部命中再裁决——inline-return 形态让词序压过文本序）+TestE1_VetoAnchorMultiHitConflicts 双臂探针。反突变（去冲突检查）→红。
+- **m-2（band 锚倒置区间）**：lo>hi（可解析但文本自相矛盾）→inBand 恒 false→带面静默失活（第三种 fail-open：既非不可解析也非多命中）。已修：倒置检查→sentinel+TestE1_BandBoundsInvertedRefused（探针+verify 拒关双断言）。反突变（去倒置检查）→红。
+- **m-3~m-5（随批清偿）**：phantom 族名实极性修正（TestE0DiseaseExists_*→TestE0_*_Caught+「Current state」叙事改为 R14' 修复后实态）；R34 账本头计数 4m→3m 更正（header 计数=body 条目数机械规则）；comma 死变量删。
+- **方法论入账（第 30/31 实证）**：header 的契约声明要逐条对照实现的语义面清单——「refuses under the fixture's rules」的 rules 是全集还是子集要写明（M-2——锚定住了数值锚不住未实现子句）；inline-return 的多源收集要在裁决前完成（m-1——词序压过文本序是 return-early 的结构性后果）。
