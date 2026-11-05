@@ -192,3 +192,15 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **m-2（分支序完备性声明不成立）**：「pins the last branch-order face」实际只钉 3/4 半面——**中带（between-bands）分支**对否决的从属序零承载（全套件 assetMillions 只有 35 与 0，无 1<x<30 驱动点）；中带检查前移突变全套件恒绿，而 12M+4 个月历史逾期的规范答案是 deny（规则 0「regardless of assets」）——静默降级为 on_undefined_rule。已修：E3-C8 加第三形状探针（12M+reportOK+历史逾期→deny），四个分支序半面全钉（注释同步枚举四面四形状）。反突变（中带前移）→红。
 - **收官判定（按用户裁定口径「3 连 0blocker 0major」）**：R26（0B/0M/6m）→R27（0B/0M/3m）→R28（0B/0M/2m）——**三轮连 0B/0M，循环收敛收官**。两 minor 随收官清扫清偿（m-2 探针反突变红）；正式 verdict 立于被审提交 5f71a0f，收官清扫提交不引入新守卫外代码。
 - **循环总账（R17-R28 十二轮）**：1 BLOCKER + 17 MAJOR + 26 minor 全部清偿（B/M 当轮修复+反突变红探针；minor 随批清偿或账本更正，无积累残留）；账本方法论实证 18 条入账；测试面从 25 函数扩至 33（t2host 0→7，correctness E3 双测试复活为活断言）；每轮 race 21 包绿。
+
+## R29 空白复审记账（2026-11-06，六实验增量 339b38b..8f77bb7——1B/6M/8m 全清偿）
+
+- **B-1（E4 死亡探针把授权流量当死亡证据）**：lastTraffic 只数 effect（成功 dispatch），最后一次拦截后任何授权派发即报死——健康流误报面未钉，两个绿灯用例 effect 数均为 0（靠缺席将证伪它的流量而绿），37 号「健康流不误报」声称超事件流表达力。已修：死亡语义收窄（「控制面静默+effect 持续」=review 信号非裁决；混合流与死亡不可区分=机器盲的事件流表达力边界）+混合流钉子用例（文档化该边界）+phase-1 注释诚实化（op-e4-live 有意不派发）。反突变：混合流钉子在语义变化时红。
+- **M-1（sentinel 文档与实际值不符）**：dispatchedSeq 注释声明 -1，实际 pre-dispatch 是 Go 零值 0——observed=0 的裁决与文档推理相反。已修：Adopt/replay 双侧真初始化 -1+sentinel 契约探针（observed=0 必拒、-1 放行）。
+- **M-2（窗口 1 全覆盖声明宽于机制面）**：版本门可达保护面=伪造/跨线观察——canonical CAS 竞态（干预在另一操作、调用者持 -1）不可检（adopted 无回边、版本不可能 stale）；测试注释诚实但生产 doc/37 号保留全量声称。已修：doc 收窄+37 号同步。
+- **M-3（verify 阈值硬编码与夹具漂移不可检）**：spec 参数只做 nil 检查，3 个月/带界全字面量——夹具阈值改 4 个月全 E3 照绿而 verify 仍在 3（三方一致第三腿静默断裂）。已修：anchorVetoMonths 从夹具文本派生（three/four 词映射）+锚测试。反突变（夹具改 four）→红。
+- **M-4（镜像面/中带面零测试覆盖=死守卫）**：两面定义后无任何断言，删码全绿（装饰守卫）；中带谓词 `>1 && <30` 漏夹具开放集的两端（恰 1/恰 30）。已修：inBand 改闭区间+TestE1_MirrorAndBandFaces 双面红探针+on_undefined_rule 阳性对照。反突变（删镜像面）→红。
+- **M-5（MarkUnresolved 写假对账事实）**：席位拒绝发生在派发前——从 adopted 调 MarkUnresolved 对从未存在的派发断言「结果未知」（对账者可合法找外部效果）；病臂注释「nothing was adopted」与同段 Adopt 调用直接矛盾。已修：三臂（sick/extract/E2）全改——记录被采纳（机器盲设计如实声明）、宿主扣派发、operation 停 adopted（无假 unresolved 事实）；「零外部调用」改 measured（h.calls.bankAPI==0）；37 号 E1/E2 行更正。
+- **M-6（named guard 名不副实+掩盖形态）**：全 control 事件共享唯一 status "rejected"——按 status 无法点名单个守卫，其他守卫持续拦截掩盖特定守卫死亡。已修：参数改名 controlStatus+表达力边界声明（点名守卫需 refuse detail 前缀解析——夹具层故意不做）。
+- **m-1~m-8（随批清偿）**：m-1 Dispatch/DispatchIfCurrent 30+ 行重复收敛 dispatchGated helper（46 调用点零改动承诺保持）；m-2 「Wait —」草稿叙事改 Reachability note；m-3 不可达 else 删+零调用改 measured；m-4 requiredSources 死 value 删+sourceSources 死字段删+夹具联动声称如实化；m-5 grantsCoverRead 语义差声明（无 effect 级/空 pinned 反转/常量 pin vs per-result——0.2.0 面）；m-6 age 面精确边界钉（30 静默/31 列）；m-7 gofmt -l 修复+纪律账声明更正（收官提交时 adopt.go 实有命中）；m-8 命名统一 TestE<N>_YYY。
+- **方法论入账（第 19/20 实证）**：健康断言不得靠缺席将证伪它的流量而绿（B-1——绿灯用例的 effect 数为 0 恰是盲区所在）；新组件的参数若「存在即被忽略」（M-3 spec 只做 nil 检查）=参数承载失败，锚定测试是廉价闭环。

@@ -1897,7 +1897,7 @@ func TestDurableModeStatErrorFailsLoud(t *testing.T) {
 // never be silently reordered behind an older world-view.
 // Mutation probe: remove the version gate in DispatchIfCurrent and the
 // stale-commit case below succeeds (red).
-func TestE6ConditionalCommit(t *testing.T) {
+func TestE6_ConditionalCommit(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "adopt.jsonl")
 	m := mustOpen(t, path)
 
@@ -1909,16 +1909,14 @@ func TestE6ConditionalCommit(t *testing.T) {
 	// already DISPATCHED at seq N (that was its world-view when it
 	// planned the submit), a reconciliation event (A's unresolved) lands
 	// in between, and the host re-submits B with the seq it observed.
-	// Wait — B, once dispatched, is gated by the STATE gate (dispatched is
-	// not adoptable), which precedes the version gate by design. The race
-	// that reaches the version gate is exactly: an operation still in the
-	// ADOPTED state whose PREVIOUS dispatch attempt was recorded and then
-	// reverted… which the state machine does not have (adopted → dispatched
-	// → unresolved, and unresolved refuses re-dispatch: no auto-retry).
-	// So within ONE operation the version gate is unreachable from the
-	// plain flow — and that is itself a finding: the version gate's real
-	// face is the host submitting a seq it observed for a DIFFERENT
-	// operation, or a seq from a speculative/future reading. Drive it
+	// Reachability note (the finding, stated): B, once dispatched, is
+	// gated by the STATE gate (dispatched is not adoptable), which
+	// precedes the version gate by design; and an operation still ADOPTED
+	// never had a dispatch seq to go stale (adopted → dispatched →
+	// unresolved, unresolved refuses re-dispatch: no auto-retry). So
+	// within one operation the version gate is unreachable from the plain
+	// flow — its real face is the host submitting a seq observed for a
+	// DIFFERENT operation, or from a speculative/future reading. Drive it
 	// directly: the host submits A with a seq it "observed" that A never
 	// had (a corrupted or cross-wired observation):
 	if o := m.Adopt(testRequest("op-e6-a", digestA, pinGrants())); o.Status != "adopted" {
@@ -1969,5 +1967,24 @@ func TestE6ConditionalCommit(t *testing.T) {
 	o = m.DispatchIfCurrent("op-e6-a", pinGrants(), -1)
 	if o.Status != "rejected" || !strings.Contains(o.Detail, "not adoptable for dispatch") {
 		t.Fatalf("second conditional commit = %q (%s), want the state-gate rejection", o.Status, o.Detail)
+	}
+
+	// R29 M-1: the sentinel contract pinned — observedDispatchSeq 0 is NOT
+	// a valid fresh observation (0 is the seq of the first adoption event;
+	// dispatch seqs are >= 1, and -1 is the pre-dispatch sentinel). A
+	// never-dispatched operation submitted with observed=0 must be
+	// REFUSED (0 >= 0 and 0 != -1): the documented sentinel semantics
+	// actually hold.
+	m2 := mustOpen(t, filepath.Join(t.TempDir(), "adopt2.jsonl"))
+	if o := m2.Adopt(testRequest("op-e6-s", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("sentinel: adopt = %q", o.Status)
+	}
+	o = m2.DispatchIfCurrent("op-e6-s", pinGrants(), 0)
+	if o.Status != "rejected" || !strings.Contains(o.Detail, "stale") {
+		t.Fatalf("sentinel: observed=0 on a never-dispatched op = %q (%s), want the stale-observation rejection (0 is not the -1 sentinel)", o.Status, o.Detail)
+	}
+	o = m2.DispatchIfCurrent("op-e6-s", pinGrants(), -1)
+	if o.Status != "dispatched" {
+		t.Fatalf("sentinel: observed=-1 on a never-dispatched op = %q (%s), want dispatched", o.Status, o.Detail)
 	}
 }

@@ -499,10 +499,14 @@ func requestForT2(op, revision, evidence, digest, brID string) *adopt.Request {
 // caller's authorization (L39 fix: host-side read authorization), checks
 // the machine state, and serves the stored result if the operation is
 // complete — or errors if the caller is not authorized.
-// grantsCoverRead is the T2 fixture's grant-coverage check (same shape as
-// the machine's grantsCover — the fixture is self-contained by design):
-// every pinned requirement must be covered by a live grant with matching
-// kind/selector/actions.
+// grantsCoverRead is the T2 fixture's grant-coverage check — SAME SHAPE
+// as the machine's grantsCover but a DELIBERATE SUBSET (R29 m-5 honesty):
+// no effect-rank comparison (reads are Effect:"none" in this fixture) and
+// empty pinned returns false (the machine's vacuous-covered is inverted —
+// here an empty requirement list is a fixture bug, not a permit). The
+// pinned requirement at the call site is the fixture's single result
+// class — a second result class would need per-result grants on
+// storedResult (0.2.0 schema face), not this constant.
 func grantsCoverRead(live, pinned []ledger.Grant) bool {
 	for _, p := range pinned {
 		covered := false

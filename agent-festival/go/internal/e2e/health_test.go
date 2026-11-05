@@ -64,17 +64,29 @@ func (r frequencyReport) sortedStatuses() []string {
 	return keys
 }
 
-// guardDied reports whether the flow is live but the named guard has gone
-// quiet: traffic continues AFTER the guard's last interception with zero
-// further interceptions. A guard that never intercepted at all is NOT
-// "dead" by this probe (it may simply never have been challenged — the
-// false-positive face); death requires prior activity then silence under
-// continued load.
-func guardDied(events []ledger.Event, guardStatus string) bool {
+// guardDied reports whether the control face has gone quiet under
+// continued EFFECT traffic: effect events continue AFTER the last control
+// interception with no further interception. B-1 (R29) honesty scope: the
+// event stream cannot distinguish an AUTHORIZED effect from one the dead
+// guard should have intercepted (the machine is semantically blind — the
+// same blindness E0/E1 recorded), so a rejection followed by a healthy
+// authorized dispatch is INDISTINGUISHABLE from death by this probe. The
+// probe therefore answers a narrower question: "did the control face go
+// quiet while effects kept flowing" — a review signal, not a verdict. A
+// guard never challenged at all is not "dead" (no false positive there).
+// R29 M-6 honesty note: the parameter is named controlStatus, not
+// guardStatus — every control event shares the single status "rejected"
+// (revocation, state gates, torn tail, E6 version gate all refuse via the
+// same refuse() path), so the event stream CANNOT name an individual
+// guard. The probe therefore watches the CONTROL FACE as a whole: one
+// guard dying while others still fire is masked (a known, declared
+// blind spot — naming guards would require refuse() detail-prefix
+// parsing, deliberately out of scope for this fixture-tier probe).
+func guardDied(events []ledger.Event, controlStatus string) bool {
 	lastIntercept := -1
 	lastTraffic := -1
 	for i, e := range events {
-		if e.EventType == "control" && e.Outcome.Status == guardStatus {
+		if e.EventType == "control" && e.Outcome.Status == controlStatus {
 			lastIntercept = i
 		}
 		if e.EventType == "effect" {
@@ -96,7 +108,10 @@ func TestE4_FrequencyAggregationAndGuardDeath(t *testing.T) {
 	m := mustOpenAdopt(t, path)
 
 	// Phase 1 — the guard is ALIVE: three revocation rejections land
-	// (control events), interleaved with live traffic (adoptions).
+	// (control events). No effect dispatch happens in this phase — under
+	// the B-1 narrowed semantics, a rejection followed by an authorized
+	// dispatch is indistinguishable from death (the machine is blind), so
+	// the alive assertion requires an effect-free tail.
 	for _, op := range []string{"op-e4-1", "op-e4-2", "op-e4-3"} {
 		if o := m.Adopt(adoptRequest(t, op)); o.Status != "adopted" {
 			t.Fatalf("E4: adopt %s = %q: %s", op, o.Status, o.Detail)
@@ -108,6 +123,8 @@ func TestE4_FrequencyAggregationAndGuardDeath(t *testing.T) {
 	if o := m.Adopt(adoptRequest(t, "op-e4-live")); o.Status != "adopted" {
 		t.Fatalf("E4: live adopt = %q", o.Status)
 	}
+	// op-e4-live is deliberately NOT dispatched: dispatching it would be a
+	// post-interception effect, which the narrowed probe reads as death.
 
 	events, err := m.Events()
 	if err != nil {
@@ -147,6 +164,42 @@ func TestE4_FrequencyAggregationAndGuardDeath(t *testing.T) {
 	}
 	if died := guardDied(events, "rejected"); !died {
 		t.Fatal("E4: the guard went quiet under continued traffic and the probe did NOT flag it — the death probe is not load-bearing")
+	}
+}
+
+// TestE4_MixedFlowIsIndistinguishableFromDeath pins the B-1 narrowed
+// semantics with the MIXED flow: one rejection → one AUTHORIZED dispatch.
+// Under the event stream's expressiveness this reads as death (the probe
+// cannot tell an authorized effect from an intercepted one) — the test
+// documents that limitation as a pinned fact, and 37号's "健康流不误报"
+// claim is corrected to "纯控制尾流不误报；混合流的死亡/授权不可区分"
+// (the review signal, not a verdict). Mutation probe: if someone later
+// makes the event stream expressive (a challenge channel), this test
+// documents the old bound and should be rewritten with it.
+func TestE4_MixedFlowIsIndistinguishableFromDeath(t *testing.T) {
+	path := newLedgerPath(t)
+	m := mustOpenAdopt(t, path)
+	if o := m.Adopt(adoptRequest(t, "op-e4-mix-a")); o.Status != "adopted" {
+		t.Fatalf("E4-mix: adopt = %q", o.Status)
+	}
+	if o := m.Dispatch("op-e4-mix-a", nil); o.Status != "rejected" {
+		t.Fatalf("E4-mix: revoked dispatch = %q, want rejected", o.Status)
+	}
+	if o := m.Adopt(adoptRequest(t, "op-e4-mix-b")); o.Status != "adopted" {
+		t.Fatalf("E4-mix: adopt b = %q", o.Status)
+	}
+	// the AUTHORIZED dispatch after the interception:
+	if o := m.Dispatch("op-e4-mix-b", fullGrants()); o.Status != "dispatched" {
+		t.Fatalf("E4-mix: authorized dispatch = %q", o.Status)
+	}
+	events, err := m.Events()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// the pinned limitation: the mixed flow READS as death under the
+	// current probe semantics — a documented bound, not a desired state
+	if died := guardDied(events, "rejected"); !died {
+		t.Fatal("E4-mix: expected the mixed flow to read as death under the narrowed semantics — if this went false, the event stream became expressive and the pinned bound is obsolete (rewrite the E4 tests with the new expressiveness)")
 	}
 }
 
@@ -231,6 +284,17 @@ type graveyardEntry struct {
 func TestEGr_GraveyardSweep(t *testing.T) {
 	th := sweepThreshold{maxEntries: 3, maxAgeDays: 30}
 
+	// R29 m-6: the AGE face's exact boundary — ageDays == maxAgeDays stays
+	// silent, ageDays == maxAgeDays+1 sweeps (the count face has its N/N+1
+	// pin below; the age face gets its own here)
+	ageBoundary := []graveyardEntry{
+		{id: "L-at", ageDays: 30}, {id: "L-over", ageDays: 31},
+	}
+	got := graveyardSweep(ageBoundary, th)
+	if len(got) != 1 || got[0] != "L-over" {
+		t.Fatalf("E-GR: age boundary = %v, want [L-over] (ageDays==maxAgeDays stays, +1 sweeps)", got)
+	}
+
 	// boundary: exactly maxEntries → no count-face sweep. The entries sit
 	// just inside the age face (1..3 days vs 30) so ONLY the count
 	// boundary is under test — a >= mutation sweeps all three (they become
@@ -250,7 +314,7 @@ func TestEGr_GraveyardSweep(t *testing.T) {
 	// zero excess lists nothing), so the doc's mutation claim is scoped
 	// to the excess arithmetic only.
 	four := append(three, graveyardEntry{id: "L-d", ageDays: 4})
-	got := graveyardSweep(four, th)
+	got = graveyardSweep(four, th)
 	if len(got) != 1 || got[0] != "L-d" {
 		t.Fatalf("E-GR: one-over sweep = %v, want [L-d] (the oldest)", got)
 	}

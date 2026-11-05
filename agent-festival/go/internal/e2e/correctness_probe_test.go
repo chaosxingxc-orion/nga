@@ -65,7 +65,7 @@ func s1AlwaysGrant(e creditEvidence) s1Verdict {
 // correctly denies the counterexample evidence (4-month overdue 2 years ago).
 // This must pass, proving the test harness works. If this fails, E0's
 // negative result is meaningless.
-func TestE0DiseaseExists_HealthyS1(t *testing.T) {
+func TestE1_PositiveControlHealthyS1(t *testing.T) {
 	h := newTask(t)
 	e := creditEvidence{
 		assetMillions:   35,
@@ -109,7 +109,7 @@ func TestE0DiseaseExists_HealthyS1(t *testing.T) {
 // passing adopt→dispatch→API→completed with zero resistance, WGR 1/1.
 // E1 flipped the polarity: the verification seat now sits judge→verify→
 // adopt and the test asserts the INTERCEPTION — see the rewritten body.)
-func TestE0CorrectnessLayerBlocksSickS1(t *testing.T) {
+func TestE1_BlocksSickS1(t *testing.T) {
 	// E1 flipped the polarity (33号 B1): the verification seat is in the
 	// chain, so the sick grant is BLOCKED — this test now asserts the
 	// interception, not the disease. The disease's FORMER existence is
@@ -147,31 +147,33 @@ func TestE0CorrectnessLayerBlocksSickS1(t *testing.T) {
 		t.Fatalf("E1: seat rejection reason = %q, want the rule-0 (unbounded veto) marker", cr.reason)
 	}
 
-	// The host honors the refusal: no adoption, no dispatch, no external
-	// call — the wrong verdict never enters the machine. The refusal is
-	// the host-tier gate (the machine stays semantically blind by design;
-	// the E3 control-event face here is the HOST's audit log, not the
-	// machine's ledger — nothing was adopted, so the machine has no event
-	// to write).
+	// The record IS adopted (the machine stays semantically blind by
+	// design — R29 M-5 honesty fix: the previous comment claimed "nothing
+	// was adopted", which contradicted the Adopt call below; the truth is
+	// the DECISION RECORD enters the machine, the DISPATCH is what the
+	// host withholds).
 	if o := h.machine.Adopt(requestFor("op-e0-sick", "er-1", "ev-1", digestHex('2'))); o.Status != "adopted" {
 		t.Fatalf("E1: adopt = %q: %s — unexpected: the machine refused on its own (it must stay blind; the HOST is the correctness seat)", o.Status, o.Detail)
 	}
-	// The host checks the seat result before dispatching:
+	// The host checks the seat result before dispatching. It does NOT
+	// call MarkUnresolved for a seat refusal: unresolved asserts "a
+	// dispatch attempt happened whose outcome is unknown" (the machine's
+	// own contract) — no attempt happened here, so writing unresolved
+	// would plant a FALSE reconciliation fact (a reconciler could legally
+	// look for an external effect that never existed). The host's refusal
+	// fact lives at the host tier; the operation simply stays adopted
+	// with no dispatch (the ledger truth: adopted, never dispatched).
 	if !cr.ok {
-		// the host does NOT dispatch; the operation is parked unresolved
-		// (its permit is real but the seat said no — the host records the
-		// refusal and does not send the request)
-		if o := h.machine.MarkUnresolved("op-e0-sick"); o.Status != "unresolved" {
-			t.Fatalf("E1: parked unresolved = %q: %s", o.Status, o.Detail)
+		if s := h.machine.State("op-e0-sick"); s != adopt.StateAdopted {
+			t.Fatalf("E1: state after seat refusal = %q, want adopted (parked, never dispatched — no false unresolved fact)", s)
 		}
-	} else {
-		t.Fatal("E1: unreachable — the seat passed a sick grant")
 	}
 
-	// Zero external effect: the business API was never called (the submit
-	// never happens on a refused verdict). The zero-invocation proof is
-	// by construction here: h.submit is simply not reached. The machine's
-	// events show adoption + unresolved — no dispatched, no completed:
+	// Zero external effect, now MEASURED not by construction alone (R29
+	// m-3): the stand-in API call counter must be zero.
+	if h.calls.bankAPI != 0 {
+		t.Fatalf("E1: the business API was called %d times — the sick verdict reached execution despite the seat refusal", h.calls.bankAPI)
+	}
 	events, _ := h.machine.Events()
 	for _, ev := range events {
 		if ev.Outcome.Status == "dispatched" || ev.Outcome.Status == "completed" {
@@ -201,7 +203,7 @@ func loadE3Fixture(t *testing.T) *fixtureSpec {
 // a verifier consuming the SAME extracted input would inherit the error.
 // E1's answer: the seat reads the RAW dossier, so the trap is dead —
 // asserted below.)
-func TestE1SeatKillsExtractionInheritance(t *testing.T) {
+func TestE1_SeatKillsExtractionInheritance(t *testing.T) {
 	// E1's extraction arm (33号 B1 step 6): the extraction layer drops the
 	// overdue, S1 sees a clean record and grants — but the seat reads the
 	// RAW evidence, so the extraction error does NOT inherit into the
@@ -251,13 +253,17 @@ func TestE1SeatKillsExtractionInheritance(t *testing.T) {
 	if !strings.Contains(cr.reason, "rule 0") {
 		t.Fatalf("E1: seat rejection reason = %q, want the rule-0 marker", cr.reason)
 	}
-	// The host parks the operation unresolved; the wrong grant never
-	// dispatches (zero external effect, same as the sick-chain arm).
+	// Same host-tier discipline as the sick arm (R29 M-5): the record is
+	// adopted, the DISPATCH is withheld (no false unresolved fact), the
+	// API counter stays zero.
 	if o := h.machine.Adopt(requestFor("op-e0-extract", "er-1", "ev-1", digestHex('3'))); o.Status != "adopted" {
 		t.Fatalf("E1: adopt = %q: %s", o.Status, o.Detail)
 	}
-	if o := h.machine.MarkUnresolved("op-e0-extract"); o.Status != "unresolved" {
-		t.Fatalf("E1: parked unresolved = %q: %s", o.Status, o.Detail)
+	if s := h.machine.State("op-e0-extract"); s != adopt.StateAdopted {
+		t.Fatalf("E1: state after seat refusal = %q, want adopted (never dispatched)", s)
+	}
+	if h.calls.bankAPI != 0 {
+		t.Fatalf("E1: the business API was called %d times — the extraction-miss grant reached execution", h.calls.bankAPI)
 	}
 	events, _ := h.machine.Events()
 	for _, ev := range events {
