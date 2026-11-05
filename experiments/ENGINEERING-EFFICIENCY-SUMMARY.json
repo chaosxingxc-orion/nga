@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T14:12:13.593324+00:00",
+    "observed_utc": "2026-11-05T14:20:37.877187+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -345,7 +345,7 @@
     },
     "candidate_build": {
       "image": "sha256:8e0de8b6fca61ed8fef87db65f4b029c2a6e2090a99dfc4da954dfbed98105a8",
-      "status": "Sol verified installed72entry tree and six exact46320 replays; independent release review pending; performance gate FAILED",
+      "status": "independent image and six exact46320 replays accepted; performance gate FAILED",
       "manifest_entries": 57,
       "tree_entries": 72,
       "parent_nonlog_evidence_hashes": 14,
@@ -516,10 +516,13 @@
           "records": 46320
         }
       ],
-      "independent_review": "pending",
+      "independent_review": "ACCEPT_SAVED_SCORE_IMAGE_AND_NUMERICS_ONLY_NONREGRESSION_FAIL",
       "scope": "CPU saved records only; six runs; no new model forwards",
       "prospective_threshold": 1.1,
-      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_readonce_comparison_sol_20261105_v4"
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_readonce_comparison_sol_20261105_v4",
+      "independent_checks": 713,
+      "parent_review_pins": 455,
+      "parent_audit_rerun_exit": 0
     },
     "service_pipeline_v4": {
       "status": "INCOMPLETE",
@@ -527,6 +530,19 @@
       "new_transaction_tested": false,
       "baseline_regression_tests": 30,
       "next": "finish configured provider then actual service transaction; disabled scaffold is not completion"
+    },
+    "npu_numerical_qualification": {
+      "full_production_gradient_capture": false,
+      "cpu_trace_helper_is_not_npu_qualification": true,
+      "draft_protocol_prepared": true,
+      "tolerance_frozen": false,
+      "launch": false,
+      "remaining": [
+        "registered full preclip/postclip capture",
+        "baseline repeat-derived tolerance with independent review",
+        "final image and physical leases",
+        "separate numeric capture and throughput measurements"
+      ]
     }
   }
 }
