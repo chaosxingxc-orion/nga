@@ -114,6 +114,12 @@ Sol v4 在本地主机、固定 1,024 条保存记录上完成分项计时。每
 5. **真实设备资格**：只在前四步通过后执行有界 G4，记录真实设备映射、每芯片吞吐、保留内存、checkpoint/item 恢复；不把历史容器状态或 CPU smoke 当作 NPU 证据。
 6. **迁移**：G4 和发布审查通过后，才按 checkpoint/item 边界停止旧实验、替换工程基座并恢复研究队列；迁移前不修改旧实验的镜像、配置和输出。
 
+## Astra v3 独立复核结论
+
+`.local/reviews/engineering-v18-repaired-astra-review-20261106-v3/` 仍给出 `NO_GO_ENGINEERING_HOLD`。v18 当前候选虽然 focused 6/6 通过、dangling sentinel 与 summary pin 反例已关闭，但审查期间候选字节发生漂移，且 `receipts_sha256` 仍只是复述 report 自报字段，没有由实际 committed receipt/report source 重新计算；trust root 和 release identity 仍是占位符。v18 不得进入安装资格。
+
+当前正在生成全新 v19 候选目录，冻结后再复核；不得把 v18 共享目录的后续修改当作冻结证据。
+
 ## Astra v2 独立复核结论
 
 `.local/reviews/engineering-v18-launcher-astra-review-20261106-v2/` 给出 `NO_GO_CANDIDATE_ONLY_ENGINEERING_HOLD`。v18 focused 3/3、launcher 9/9 和源码 pins 均通过，但不覆盖真实准入资格。Astra 的 V18-01/V18-04 为阻塞项，V18-02/V18-03 为高风险项，LCH-01 为启动器高风险项；安装、性能、NPU 和研究派发均未运行。
