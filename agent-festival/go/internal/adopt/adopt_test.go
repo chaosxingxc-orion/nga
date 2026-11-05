@@ -1990,6 +1990,29 @@ func TestE6_ConditionalCommit(t *testing.T) {
 	if o.Status != "dispatched" {
 		t.Fatalf("sentinel: observed=-1 on a never-dispatched op = %q (%s), want dispatched", o.Status, o.Detail)
 	}
+
+	// R38 M-1: the REPLAY-side sentinel — the live path's probes never
+	// reopen; a reopened machine must reject observed=0 the same way (the
+	// replay-side -1 initialization is a SECOND write site whose removal
+	// was previously invisible). Mutation probe: delete the replay-side
+	// -1 initialization and this arm turns dispatched (red).
+	path3 := filepath.Join(t.TempDir(), "adopt3.jsonl")
+	m3 := mustOpen(t, path3)
+	if o := m3.Adopt(testRequest("op-e6-r", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("reopen: adopt = %q", o.Status)
+	}
+	m3reopened, err := Open(path3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	o = m3reopened.DispatchIfCurrent("op-e6-r", pinGrants(), 0)
+	if o.Status != "rejected" || !strings.Contains(o.Detail, "never this operation's version") {
+		t.Fatalf("reopen: observed=0 after replay = %q (%s), want the forged-observation rejection — the replay-side sentinel is broken", o.Status, o.Detail)
+	}
+	o = m3reopened.DispatchIfCurrent("op-e6-r", pinGrants(), -1)
+	if o.Status != "dispatched" {
+		t.Fatalf("reopen: observed=-1 after replay = %q (%s), want dispatched", o.Status, o.Detail)
+	}
 	// R30 M-4: the ledger detail must not claim a version check the
 	// fresh-observation form skipped — pinned by form. Mutation probe:
 	// collapse the detail back to one "after the version check" string

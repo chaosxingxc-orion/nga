@@ -57,12 +57,12 @@ func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 	aboveRe := regexp.MustCompile(`above (\d+(?:\.\d+)?)([,.]\d)?`)
 	belowRe := regexp.MustCompile(`below (\d+(?:\.\d+)?)([,.]\d)?`)
 	// R34 m-2: MULTIPLE hits for the same face are a CONFLICT, not a
-	// silently-resolved array order (the countPrecedenceZero discipline —
-	// ambiguous derivation refuses). First hit wins only within ONE rule;
-	// a second rule deriving the same face with a different value is
-	// ambiguous → sentinel.
+	// silently-resolved array order. R38 M-2: FindAllStringSubmatch —
+	// INTRA-RULE matches too (an appended clause "recap: assets above 50
+	// as before" was silently ignored by first-match); two different
+	// values in one rule are a conflict, same as cross-rule.
 	for _, r := range spec.Rules {
-		if m := aboveRe.FindStringSubmatch(r.Coverage); m != nil {
+		for _, m := range aboveRe.FindAllStringSubmatch(r.Coverage, -1) {
 			if m[2] != "" {
 				return 0, 0 // grouped/poisoned form — fail closed
 			}
@@ -71,11 +71,11 @@ func anchorBandBounds(spec *fixtureSpec) (float64, float64) {
 				return 0, 0
 			}
 			if hi != 0 && hi != v {
-				return 0, 0 // two rules derive different "above" bounds — ambiguous
+				return 0, 0 // two different "above" bounds (cross- or intra-rule) — ambiguous
 			}
 			hi = v
 		}
-		if m := belowRe.FindStringSubmatch(r.Coverage); m != nil {
+		for _, m := range belowRe.FindAllStringSubmatch(r.Coverage, -1) {
 			if m[2] != "" {
 				return 0, 0
 			}
@@ -165,6 +165,13 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 	// anywhere (in any rule, at any position) poisons the anchor BEFORE
 	// any clean value returns (the previous per-rule early-return let a
 	// clean rule's hit exempt a later compound rule).
+	// R38 M-3: whitespace-normalize the coverage text FIRST (the E3
+	// fixture assertions already collapse whitespace — "twenty␣␣three
+	// months" made the compound alignment miss and parse the bare-word
+	// suffix 3).
+	for ri := range spec.Rules {
+		spec.Rules[ri].Coverage = strings.Join(strings.Fields(spec.Rules[ri].Coverage), " ")
+	}
 	for _, r := range spec.Rules {
 		if r.Precedence == 0 {
 			for _, w := range vetoWords {
@@ -200,11 +207,11 @@ func anchorVetoMonths(spec *fixtureSpec) int {
 		}
 	}
 	// no compound anywhere — the clean value (from the collect phase) is
-	// the anchor
-	for _, n := range []int{3, 4, 5, 6} {
-		if _, ok := seen[n]; ok {
-			return n
-		}
+	// the anchor. R38 m-1: iterate SEEN, not a third hardcoded copy of the
+	// word table (len(seen) <= 1 is guaranteed by the conflict check) —
+	// a new word added to vetoWords flows through without touching here.
+	for n := range seen {
+		return n
 	}
 	return 0 // unparseable/compound — fail-closed sentinel (the anchor test flags it)
 }
@@ -326,6 +333,13 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	// grant does (the open-zone positive control below stays green).
 	if kind == "on_undefined_rule" && raw.assetMillionsDeclared > hi {
 		return checkResult{ok: false, reason: "rule 1 covers this assets point (above the upper bound) — on_undefined_rule contradicts the rules instead of answering them"}
+	}
+	// R38 B-1: the LOWER-half mirror — actually landed this time (the R37
+	// m-1 patch failed to match and the ledger claimed it anyway; this is
+	// the "修复声明必须机械验证" discipline's own recurrence). rule 2
+	// covers assets below lo the same way rule 1 covers above hi.
+	if kind == "on_undefined_rule" && raw.assetMillionsDeclared < lo {
+		return checkResult{ok: false, reason: "rule 2 covers this assets point (below the lower bound) — on_undefined_rule contradicts the rules instead of answering them"}
 	}
 	// R37 M-1: the WINDOW-PREMISE face is RETIRED — under the unbounded
 	// veto (rule 0), any term-level overdue inside the window ALREADY
@@ -860,6 +874,17 @@ func TestE1_UndefinedRuleMirror(t *testing.T) {
 	if cr := verify(s1Verdict{kind: "on_undefined_rule", details: "evasive non-answer"}, spec, covered); cr.ok {
 		t.Fatal("m-4 probe: an on_undefined_rule verdict at a rule-covered point passed — the under-execution form is not intercepted")
 	}
+	// R38 B-1 third arm: the LOWER-half covered point (assets=0.5, rule 2
+	// "below 1") — the form the R37 m-1 ledger entry claimed was fixed but
+	// never landed
+	lower := rawEvidence{assetMillionsDeclared: 0.5, assetReportPresent: true}
+	cr2 := verify(s1Verdict{kind: "on_undefined_rule", details: "evasive non-answer below"}, spec, lower)
+	if cr2.ok {
+		t.Fatal("B-1 probe: an on_undefined_rule verdict at a rule-2-covered point passed — the lower mirror is not load-bearing")
+	}
+	if !strings.Contains(cr2.reason, "rule 2") {
+		t.Fatalf("B-1 probe: lower refusal reason = %q, want the rule-2 carrier", cr2.reason)
+	}
 	// positive control: the OPEN ZONE keeps its honest on_undefined_rule
 	open := rawEvidence{assetMillionsDeclared: 12, assetReportPresent: true}
 	if cr := verify(s1Verdict{kind: "on_undefined_rule", details: "genuinely open"}, spec, open); !cr.ok {
@@ -886,5 +911,27 @@ func TestE1_VetoAnchorMixedOrder(t *testing.T) {
 	}}
 	if got := anchorVetoMonths(compoundLater); got != 0 {
 		t.Fatalf("M-2 probe: clean-rule-first anchored = %d, want 0 — the compound rule poisons", got)
+	}
+}
+
+// TestE1_AnchorWhitespaceAndMultiHit is the R38 M-2/M-3 probe pair:
+// ① double-space compound poisons (whitespace normalization), ② an
+// appended clause with a different bound inside ONE rule conflicts.
+// Mutation probes: remove the whitespace normalization (① parses 3) or
+// revert to first-match (② returns (1,30)) — either goes red.
+func TestE1_AnchorWhitespaceAndMultiHit(t *testing.T) {
+	// ① double-space compound
+	doubleSpace := &fixtureSpec{Rules: []fixtureVetoRule{{Precedence: 0, Coverage: "any overdue longer than twenty  three months at any time denies credit"}}}
+	if got := anchorVetoMonths(doubleSpace); got != 0 {
+		t.Fatalf("M-3 probe: double-space compound anchored = %d, want 0 — whitespace normalization is not load-bearing", got)
+	}
+	// ② intra-rule second different bound
+	intra := &fixtureSpec{Rules: []fixtureVetoRule{
+		{Precedence: 1, Coverage: "assets above 30 (USD-millions) grant the line; recap: assets above 50 as before"},
+		{Precedence: 2, Coverage: "assets below 1 (USD-millions) grants the small line"},
+	}}
+	lo, hi := anchorBandBounds(intra)
+	if lo != 0 || hi != 0 {
+		t.Fatalf("M-2 probe: intra-rule conflicting bounds = (%v, %v), want (0, 0) — the appended clause drifted silently", lo, hi)
 	}
 }
