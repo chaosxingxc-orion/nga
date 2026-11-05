@@ -96,8 +96,8 @@
   ],
   "scope": "Retained metadata/source audit; no new training or NPU qualification; model payload hashes inherited.",
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T11:30:31.190461+00:00",
-    "status": "component_delivery_pending_independent_review_and_outer_integration",
+    "observed_utc": "2026-11-05T11:38:55.623118+00:00",
+    "status": "component_review_requests_publication_repairs",
     "supersedes": "Implementation status of initial metadata audit only; inherited counts and scientific conclusions unchanged",
     "handoff_sha256": "7d89cd1aeedc62b7008fd3daf1af598f417ef0b96985743ab2d9c40ebd7c13b8",
     "result_sha256": "be5e0e5095c0bfa773f4acda35cc762fec846372dc15d8f0f886b50b2c230e10",
@@ -150,6 +150,20 @@
       "Explicit retained-checkpoint compatibility before migration"
     ],
     "new_research_dispatch": "hold",
-    "full_goal_complete": false
+    "full_goal_complete": false,
+    "independent_review": {
+      "verdict": "INCOMPLETE_HOLD",
+      "review_sha256": "c08b64e714a82bb7ec2b1773d53390e3072dc4a9eb2164cf688c68417973b590",
+      "closed_scoped": [
+        "numeric input/early actual parser",
+        "ordered topology guard and retained meta inventories",
+        "enumerated optimizer/scheduler state controls"
+      ],
+      "remaining_concrete": [
+        "rehashed semantic adapter-config changes accepted",
+        "torn publication BINDING JSON blocks identical retry"
+      ],
+      "additional_cpu_evidence": "synthetic terminal family.run twice zero optimizer updates; separate-process actual family/trainer preclip and postclip gradients exact; older local dependency environment, exact-image final route untested"
+    }
   }
 }
