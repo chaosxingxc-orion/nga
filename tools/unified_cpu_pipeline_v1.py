@@ -14,7 +14,11 @@ except ImportError:
 
 
 def sha(path):
-    return hashlib.sha256(C.safe(str(path)).read_bytes()).hexdigest()
+    digest = hashlib.sha256()
+    with C.safe(str(path)).open('rb') as source:
+        for chunk in iter(lambda: source.read(1 << 20), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def ref(path):
@@ -129,6 +133,7 @@ def run(config_ref, consumer=None, hook=None):
         exp_consumer_ref=persist(state/'export-consumer.json',exp)
         persist(state/'EXPORT-STAGE.json',{'task':exp_ref,'consumer':exp_consumer_ref})
         C.validate(exp)
+        if hook: hook('after_export_config')
         worker=consumer or C.Consumer()
         ack=worker.run(exp); C.need(ack['exit_code']==0, 'export failed')
         jid=C.digest({'event_id':event['event_id'],'stage':export['adapter'],'config_sha256':exp_ref['sha256']})
