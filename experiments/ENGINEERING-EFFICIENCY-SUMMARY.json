@@ -1049,7 +1049,7 @@
     }
   },
   "latest_execution_status": {
-    "as_of_utc": "2026-11-05T17:23:00Z",
+    "as_of_utc": "2026-11-05T17:43:00Z",
     "research_hold": true,
     "existing_runs": "preserved",
     "full_release": false,
@@ -1117,20 +1117,30 @@
       ]
     },
     "capture_stream_v7": {
-      "status": "CPU_NATIVE_SLICE_DELIVERED_PARENT_ACCEPTANCE_PENDING",
-      "tests_stream": 17,
-      "tests_loop": 7,
-      "repairs": [
-        "shared trainer decoded checkpoint object",
-        "preflight complete inventory",
-        "reader scratch reserve 32MiB with scoped claim"
-      ],
+      "status": "SCOPED_CPU_REPAIRS_VERIFIED_PARENT_ACCEPTANCE_PENDING",
+      "stream_cases": 166,
+      "v5_delta_passed": 10,
+      "v5_delta_failures": 0,
+      "pins_verified": {
+        "v7": 12,
+        "v6": 67,
+        "overlay": 8,
+        "drift": 0
+      },
       "open": [
-        "Astra final scope review",
-        "tolerance comparator",
-        "production identity/input RNG/full-size/NPU"
+        "registered tolerance comparator",
+        "production identity/input RNG/full-size/source-image custody",
+        "accelerator/NPU"
       ]
     },
-    "service_transaction_review": "PARTIAL_FUNCTIONAL_COMPLETION; trained export/score fresh closure still blocked by nested pinned path visibility"
+    "service_transaction_review": {
+      "status": "PARTIAL_FUNCTIONAL_COMPLETION",
+      "fresh_regressions_passed": 55,
+      "late_ack_recovery": true,
+      "capture_recovery": true,
+      "fresh_trained_export_score": false,
+      "blocker": "nested pinned closure path visibility",
+      "repair": "v14 running"
+    }
   }
 }
