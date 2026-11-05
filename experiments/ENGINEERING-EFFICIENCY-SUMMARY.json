@@ -223,7 +223,7 @@
     "zero_exit_with_explicit_limit": 80
   },
   "current_engineering_addendum": {
-    "observed_utc": "2026-11-05T14:02:35.421028+00:00",
+    "observed_utc": "2026-11-05T14:12:13.593324+00:00",
     "new_research_dispatch": "hold",
     "full_base_released": false,
     "automatic_cpu_pipeline": "scoped actualDocker qualification,429 independentchecks; production supervision excluded",
@@ -307,14 +307,26 @@
       "root_host_export_score_integration": false,
       "root_integration": "v2 final independent audit:actualtiny248320PEFT3kind chain positive,15cases include defectreproducers;96reviewpinschecked. Wholeintegration rejected: CPU pipeline separatepublicationmounts, processglobalread_logitsrace, attemptlifecycle, imageclosure. v3fix running",
       "v3": {
-        "status": "partial directtrainedtransaction and fixes pass, independentreviewactive",
+        "status": "ACCEPT_BOUNDED_CPU_PIPELINE; complete integration withheld",
         "parent_chain_tests": 5,
         "chain_seconds": 5.135,
         "parent_mount_tests": 3,
         "mount_seconds": 0.107,
         "matched_delivery_pins": 16,
-        "actual_cpu_consumer_pipeline": false,
-        "image_assembled": false
+        "actual_cpu_consumer_pipeline": true,
+        "image_assembled": false,
+        "physical_docker": false,
+        "independent_cases": {
+          "positive": 6,
+          "negative_rejections": 12,
+          "defect_reproductions": 3
+        },
+        "supplied_tests": 71,
+        "remaining": [
+          "failure attempt config/launch binding",
+          "standalone source manifest receipt field",
+          "image stale/missing payload closure"
+        ]
       }
     },
     "runtime_metadata": {
@@ -333,7 +345,7 @@
     },
     "candidate_build": {
       "image": "sha256:8e0de8b6fca61ed8fef87db65f4b029c2a6e2090a99dfc4da954dfbed98105a8",
-      "status": "built; independent image and full46320 comparison pending",
+      "status": "Sol verified installed72entry tree and six exact46320 replays; independent release review pending; performance gate FAILED",
       "manifest_entries": 57,
       "tree_entries": 72,
       "parent_nonlog_evidence_hashes": 14,
@@ -344,7 +356,7 @@
         "tests": 5,
         "TORCH_DEVICE_BACKEND_AUTOLOAD": "0"
       },
-      "full_replay": "four of six measured runs completed; remaining running, no final performance or release acceptance"
+      "full_replay": "six of six complete; all summary bytes and ordered receipts identical; median ratio1.1012367395074592 >1.10"
     },
     "resource_provider": {
       "v2_verdict": "REQUEST_CHANGES",
@@ -354,16 +366,16 @@
         "host/batchdiagnostics"
       ],
       "remaining": [
-        "duplicateJSONmembers",
-        "contradictoryDockerstateflags",
-        "RepoDigeststype"
+        "physical Docker/driver qualification",
+        "configured provider deadline and service wiring",
+        "current host/schema integrated closure"
       ],
       "malformed_free_reproducers": 2,
       "parent_review_pins": 62,
       "physical_qualified": false,
       "service_wired": false,
       "v3": {
-        "status": "fixes delivered, independent review active",
+        "status": "ACCEPT_SCOPED_SIMULATION_ONLY",
         "parent_prior_review_tests": 12,
         "parent_new_strict_tests": 4,
         "parent_evidence_hashes": 51,
@@ -371,7 +383,9 @@
           "unknown",
           "unknown"
         ],
-        "physical_qualified": false
+        "physical_qualified": false,
+        "independent_tests": 50,
+        "parent_review_pins_verified": 50
       }
     },
     "log_service_integration": {
@@ -446,6 +460,73 @@
       "weight_payloads_rehashed": false,
       "launch": false,
       "image_and_lease_bound": false
+    },
+    "readonce_comparison": {
+      "baseline_image": "sha256:27b2f9a84cbc3bc3eca95bb5ded98431f1a87ca8f0ef5d895970f4060ec4f325",
+      "candidate_image": "sha256:8e0de8b6fca61ed8fef87db65f4b029c2a6e2090a99dfc4da954dfbed98105a8",
+      "candidate_over_baseline_median_ratio": 1.1012367395074592,
+      "descriptive_nonregression_pass": false,
+      "numerical_gate_pass": true,
+      "ordered_receipts_sha256": "832f0583a7aa00d07f24dec4f2ab313bd621632f4848c14d3a0dd372a1f8095c",
+      "expected_summary_sha256": "5809e7cded0944611d701e850639b1c9030d3e5693966a427f2af8c10c677368",
+      "protocol_sha256": "f6e0d7496c54544d33b952420d72214f80dcab8be303adbffba4fc4a04ec94b4",
+      "performance_causal_claim": false,
+      "release_acceptance": false,
+      "runs": [
+        {
+          "run": 1,
+          "condition": "baseline",
+          "total_to_terminal_seconds": 223.11864866991527,
+          "summary_sha256": "5809e7cded0944611d701e850639b1c9030d3e5693966a427f2af8c10c677368",
+          "records": 46320
+        },
+        {
+          "run": 2,
+          "condition": "candidate",
+          "total_to_terminal_seconds": 114.97416241001338,
+          "summary_sha256": "5809e7cded0944611d701e850639b1c9030d3e5693966a427f2af8c10c677368",
+          "records": 46320
+        },
+        {
+          "run": 3,
+          "condition": "candidate",
+          "total_to_terminal_seconds": 114.59959957003593,
+          "summary_sha256": "5809e7cded0944611d701e850639b1c9030d3e5693966a427f2af8c10c677368",
+          "records": 46320
+        },
+        {
+          "run": 4,
+          "condition": "baseline",
+          "total_to_terminal_seconds": 104.0644535899628,
+          "summary_sha256": "5809e7cded0944611d701e850639b1c9030d3e5693966a427f2af8c10c677368",
+          "records": 46320
+        },
+        {
+          "run": 5,
+          "condition": "baseline",
+          "total_to_terminal_seconds": 90.97439001989551,
+          "summary_sha256": "5809e7cded0944611d701e850639b1c9030d3e5693966a427f2af8c10c677368",
+          "records": 46320
+        },
+        {
+          "run": 6,
+          "condition": "candidate",
+          "total_to_terminal_seconds": 85.3412086199969,
+          "summary_sha256": "5809e7cded0944611d701e850639b1c9030d3e5693966a427f2af8c10c677368",
+          "records": 46320
+        }
+      ],
+      "independent_review": "pending",
+      "scope": "CPU saved records only; six runs; no new model forwards",
+      "prospective_threshold": 1.1,
+      "source": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/engineering_readonce_comparison_sol_20261105_v4"
+    },
+    "service_pipeline_v4": {
+      "status": "INCOMPLETE",
+      "pipeline_action_enabled": false,
+      "new_transaction_tested": false,
+      "baseline_regression_tests": 30,
+      "next": "finish configured provider then actual service transaction; disabled scaffold is not completion"
     }
   }
 }
