@@ -28,8 +28,8 @@
       "accepted_for_release": false,
       "candidate_workspace": ".local/releases/engineering-base-rc1/components/supervisor",
       "integration_state": "unaccepted_working_copy_imported",
-      "repair_task": ".local/releases/engineering-base-rc1/tasks/supervisor/complete-path",
-      "candidate_review": ".local/releases/engineering-base-rc1/tasks/supervisor/complete-path-review/RESULT.json",
+      "repair_task": ".local/releases/engineering-base-rc1/tasks/supervisor/access-layout",
+      "candidate_review": ".local/releases/engineering-base-rc1/tasks/supervisor/access-layout-review/RESULT.json",
       "incoming_verdict": "changes_required_normal_cli_absent",
       "local_review": ".local/releases/engineering-base-rc1/tasks/supervisor/connect-review/RESULT.json",
       "local_status": "real_worker_scorer_owned_gate_positive_and_no_spawn_replay_accepted_bounded_synthetic_external_runtime; UID9009_access_unresolved"
@@ -73,7 +73,7 @@
       "title": "Complete configured supervisor and worker/gate lifecycle",
       "state": "open",
       "component": "supervisor",
-      "current_action": "Independent normal CLI exact three predictions and no-spawn replay passed with synthetic external Docker/proc; repair real UID9009 output/socket permissions and remaining failure/resume probes"
+      "current_action": "MappedUID9009 confirmed shared output/socket denies access; naive access grant exposes controller authority. Separate candidate output and controller authority plus socket access in same component, then real mappedUID integrated tests"
     },
     {
       "id": "RC-02",
@@ -121,7 +121,7 @@
     "assembly_task": ".local/releases/engineering-base-rc1/tasks/integration/assemble",
     "review_task": ".local/releases/engineering-base-rc1/tasks/integration/review",
     "waits_for": [
-      "supervisor/complete-path-review",
+      "supervisor/access-layout-review",
       "snapshot/provision-review",
       "capture/target-review"
     ],
