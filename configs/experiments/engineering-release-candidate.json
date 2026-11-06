@@ -28,11 +28,11 @@
       "accepted_for_release": false,
       "candidate_workspace": ".local/releases/engineering-base-rc1/components/supervisor",
       "integration_state": "unaccepted_working_copy_imported",
-      "repair_task": ".local/releases/engineering-base-rc1/tasks/supervisor/authority-implementation",
-      "candidate_review": ".local/releases/engineering-base-rc1/tasks/supervisor/authority-review/RESULT.json",
+      "repair_task": ".local/releases/engineering-base-rc1/tasks/supervisor/split-paths",
+      "candidate_review": ".local/releases/engineering-base-rc1/tasks/supervisor/uid-review/RESULT.json",
       "incoming_verdict": "changes_required_normal_cli_absent",
       "local_review": ".local/releases/engineering-base-rc1/tasks/supervisor/connect-review/RESULT.json",
-      "local_status": "real_worker_scorer_owned_gate_positive_and_no_spawn_replay_accepted_bounded_synthetic_external_runtime; UID9009_access_unresolved"
+      "local_status": "authority task no code delivered; coordinated pathsplit then mappedUID execution staged"
     },
     "capture": {
       "incoming_workspace": ".local/preparations/engineering-capture-ledger-implementation-20261106-v19",
@@ -51,8 +51,8 @@
       "target_review_sha256": "9e1851d63830304d9f18918747364604887d1c133cbe11dd9bc0d1c27ec2bd06",
       "native_qualification_task": ".local/releases/engineering-base-rc1/tasks/capture/native-target",
       "native_review": ".local/releases/engineering-base-rc1/tasks/capture/native-review/RESULT.json",
-      "remaining_target": "full native chain and independent reader; timestamped counted monitoring and durable stage receipts; end-to-end performance and NPU",
-      "native_target_status": "producer_PASS_BOUNDED_CPU_CEPH_NATIVE_WITH_QUALIFICATIONS; independent_review_running",
+      "remaining_target": "integrated outer and actual process success binding; real model/data authentication; interruption recovery and final fsync authority; end-to-end performance and actual NPU qualification",
+      "native_target_status": "PASS_BOUNDED_CPU_CEPH_NATIVE_WITH_QUALIFICATIONS independently accepted",
       "native_target_result": ".local/releases/engineering-base-rc1/tasks/capture/native-target/RESULT.json"
     },
     "snapshot": {
@@ -65,8 +65,8 @@
       "repair_task": ".local/releases/engineering-base-rc1/tasks/snapshot/receipt-repair",
       "candidate_review": ".local/releases/engineering-base-rc1/tasks/snapshot/receipt-review/RESULT.json",
       "incoming_verdict": "rejected_combined_lifecycle_absent",
-      "local_delivery": ".local/releases/engineering-base-rc1/tasks/snapshot/provision/RESULT.json",
-      "local_status": "replay_input_report_fixes_verified; missing_verifier_terminal_accepted_and_provision_partial_on_bad_pin_rejected",
+      "local_delivery": ".local/releases/engineering-base-rc1/tasks/snapshot/receipt-repair/RESULT.json",
+      "local_status": "verifier_terminal_and_provision_retry_repairs_delivered_independent_review_running",
       "local_review": ".local/releases/engineering-base-rc1/tasks/snapshot/provision-review/RESULT.json"
     }
   },
@@ -76,14 +76,14 @@
       "title": "Complete configured supervisor and worker/gate lifecycle",
       "state": "open",
       "component": "supervisor",
-      "current_action": "Prior repair misidentified itself and made no source change; actual runner PID/task identity now prepended to future subprocess prompts, concrete authority separation queued"
+      "current_action": "Split implementation into coordinated five-role mount/path binding then mappedUID normal execution; same source directory, no release until full review"
     },
     {
       "id": "RC-02",
       "title": "Finish actual capture ledger, boundary accounting and independent validation",
       "state": "open",
       "component": "capture",
-      "current_action": "Actual175 tinyPEFT native continuous/plain/prefix/resume and fullreader producer pass; independent review running; future digest disk-read cap repair queued"
+      "current_action": "Finite actual175 tinyPEFT fullreader/plannedresume independently accepted; integrated outer+actualprocess success binding, true Qwen/NPU and interruption recovery remain"
     },
     {
       "id": "RC-03",
@@ -104,7 +104,7 @@
       "title": "Validate four-family NPU numerical behavior, resume and throughput",
       "state": "open",
       "component": "integration",
-      "current_action": "Fixed36-process56-update four-family config generator and Astra review queued after native capture review; final source/image/device leases remain unbound"
+      "current_action": "Initial generator only sketch, no executable acceptance; binding/schema/quota implementation then full-trace comparator queued in fixed directory, each independently reviewed"
     },
     {
       "id": "RC-06",
@@ -125,7 +125,7 @@
     "assembly_task": ".local/releases/engineering-base-rc1/tasks/integration/assemble",
     "review_task": ".local/releases/engineering-base-rc1/tasks/integration/review",
     "waits_for": [
-      "supervisor/authority-review",
+      "supervisor/uid-review",
       "snapshot/receipt-review",
       "capture/target-review"
     ],
@@ -139,7 +139,11 @@
     "native_review": ".local/releases/engineering-base-rc1/tasks/capture/native-review",
     "npu_configure": ".local/releases/engineering-base-rc1/tasks/npu/configure",
     "npu_config_review": ".local/releases/engineering-base-rc1/tasks/npu/config-review",
-    "note": "tasks are same rc1 work packages; terminal alone is not acceptance; no NPU authorization from placeholders"
+    "note": "tasks are same rc1 work packages; terminal alone is not acceptance; no NPU authorization from placeholders",
+    "npu_binding_task": ".local/releases/engineering-base-rc1/tasks/npu/bind-config",
+    "npu_binding_review": ".local/releases/engineering-base-rc1/tasks/npu/bind-review",
+    "npu_comparator_task": ".local/releases/engineering-base-rc1/tasks/npu/compare-traces",
+    "npu_comparator_review": ".local/releases/engineering-base-rc1/tasks/npu/compare-review"
   },
   "efficiency_queue": {
     "prepare": ".local/releases/engineering-base-rc1/tasks/efficiency/prepare",

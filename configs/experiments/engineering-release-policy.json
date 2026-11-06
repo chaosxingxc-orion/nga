@@ -35,7 +35,14 @@
     "ongoing_work": "complete_existing_jobs_then_import_into_candidate_without_moving_live_sources",
     "scope_changes": "defer_nonblocking_features_to_backlog",
     "promotion": "freeze_exact_commit_source_closure_image_digest_configuration_and_independent_review",
-    "released_artifacts": "immutable; fixes after release use a new candidate",
-    "research_hold_until_release": true
+    "released_artifacts": "immutable; never overwrite an accepted release; successor changes are grouped into a deliberate release",
+    "research_hold_until_release": true,
+    "lifecycle": [
+      "stabilizing",
+      "qualified",
+      "released"
+    ],
+    "experiment_consumption": "released immutable image digest and pinned host adapter; experiment changes enter through validated configuration",
+    "post_release_change_policy": "keep current released baseline authoritative; accumulate nonblocking changes in backlog; create a successor only for a deliberate release, never per repair or experiment"
   }
 }
