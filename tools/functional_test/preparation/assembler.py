@@ -38,8 +38,8 @@ def assemble(roster_path, resources_path, campaign):
   C.require(len({str(Path(r['model']).resolve()) for r in rows if r['status']=='available' and r['id'].startswith(size+'-')})<=1,'same-size base differs')
  for member,x in resources.items():
   C.require(set(x)=={'chip','dependencies'} and type(x['chip']) is int and 0<=x['chip']<8,'resource config')
-  C.require(isinstance(x['dependencies'],list) and len(set(x['dependencies']))==len(x['dependencies']) and all(z in ('K0','27B') for z in x['dependencies']),'dependencies')
-  C.require(('27B' if x['chip']<4 else 'K0') in x['dependencies'],'resource successor dependency missing')
+  C.require(isinstance(x['dependencies'],list) and len(set(x['dependencies']))==len(x['dependencies']) and all(z in ('K0','TRAIN_DEV','QWEN27B_ENVFIX') for z in x['dependencies']),'dependencies')
+  C.require(set(['K0','QWEN27B_ENVFIX'] if x['chip']<4 else ['TRAIN_DEV']).issubset(x['dependencies']),'resource successor dependency missing')
  camp=Path(campaign).resolve(); camp.mkdir(parents=True,exist_ok=False)
  for p in ('round','state','configs','reviews','drafts','transactions','runs'): (camp/p).mkdir()
  rt=STAGE/'runtime-environment.json'; image=C.read(rt)['image']; entry=STAGE/'rc1_trackk.py'; source={p:C.sha(p) for p in sorted(C.required_sources())}

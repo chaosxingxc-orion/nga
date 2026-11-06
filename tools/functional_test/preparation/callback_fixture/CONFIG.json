@@ -1,0 +1,70 @@
+{
+  "allocation": "/mnt/cephfs/xingchao/experiments/jev/CHIP-ALLOCATION.json",
+  "chips": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "cpu_python": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-post-k0-queue-rc1/cpu_python",
+  "dependencies": [
+    {
+      "chip": 0,
+      "dev": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/followup-cpu-separated-rc1/full-q0p8b-s2",
+      "id": "q0p8b-s2",
+      "train": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/q0p8b-s2"
+    },
+    {
+      "chip": 1,
+      "dev": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/followup-cpu-separated-rc1/full-q0p8b-s3",
+      "id": "q0p8b-s3",
+      "train": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/q0p8b-s3"
+    },
+    {
+      "chip": 2,
+      "dev": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/followup-cpu-separated-rc1/full-q2b-s2",
+      "id": "q2b-s2",
+      "train": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/q2b-s2"
+    },
+    {
+      "chip": 3,
+      "dev": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/followup-cpu-separated-rc1/full-q2b-s3",
+      "id": "q2b-s3",
+      "train": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/q2b-s3"
+    }
+  ],
+  "dev_dependency": {
+    "artifact_file": "result/INFERENCE-READY.json",
+    "container_name_template": "nga-rc1-cpu-full-{id}-infer",
+    "exit_file": "infer-EXIT.json",
+    "launch_file": "infer-LAUNCH.json"
+  },
+  "host_ownership_probe": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-post-k0-queue-rc1/package/host_ownership_probe.py",
+  "name": "qwen38-dev-host-smoke-envfix-rc1",
+  "out": "/mnt/cephfs/xingchao/experiments/jev/qwen38-dev-host-smoke-envfix-rc1",
+  "queue_drained": false,
+  "schema": "qwen38-dev-controller-v1",
+  "source_pins": {
+    "DEV-MASKS.json": "df9da52a09bed12d562aad304d59863f9c90cc7a46c27b87c818a580774db03d",
+    "PROTOCOL.md": "4c0a55a01ff802401f3e06712de605f714f27d78321aa09fab9820aac9f6e5bb",
+    "TENSOR-DIFF.json": "87d318e24afe18eac9c8487135ebc4ca655d5d1899beea100bad9ad8c5873ab9",
+    "WORKLOAD.json": "aecae025bd75e40d5aa1b62c3d61209fc94c20409465edfae3a2dc0e853cfb7c",
+    "adapter/group_adapter.py": "0ef2c047800e729703bb1c45c07047455aefa8b6fd17b6425d2b1df4b18c89a2",
+    "adapter/r3_resource_adapter.py": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a",
+    "code/core.py": "b4f74814274434b6bee12e5c7e136ea50a00fd3045a6edb2e21b95e5b5fa47da",
+    "code/cpu_reference.py": "fc4d74522d8a15cfb32d9caf630ae754a26ba963dec33ca572c816964801b44b",
+    "code/freeze.py": "fee5e11c395890e83e3301dd1eeca72b1841b3ac22b64b80e02ce4c6b17dfe6f",
+    "code/inner.sh": "1e64bdefc2c90c42c816f7f89dd1a38e79823ab3554f346e39c5beb1ce2503e3",
+    "code/prompt.py": "84c99aec2817de3365e650c7c6c846aeddc1ec675b3321cf80be267a7557f0fc",
+    "code/raw_loading.py": "74025f7aba84ece145073c69fcdddb4033b6cbfefb4a2b6409f124c5147f71f3",
+    "code/score.py": "d5b9f0e476a90c7e9d57399128f998a13429c3f616fb9c559665cf2626bd813d",
+    "code/test_cpu.py": "75fc6d8c3cf17b03ce1545eab631adfcc6c60b6a70becdf41088679f501a9586",
+    "controller.py": "f50742c6afd3fa67c97e9ec407d95cf990a4a56cb43669ad07e5755d7dc91589",
+    "cpu_python": "22f978444927fdf4b84976a6d7aa9a10cb25a968f015857a95e9087a4f138ae2",
+    "host_ownership_probe.py": "970990a82c773af9738c9e0f0a8fc89720271874e9a26ef6a2c27168cbc8a259",
+    "launch.py": "7e27cf1b1bacb8034c2af92a9e52227abc2bd7fd397e27de1b254f4ddfb58298",
+    "test_fixes.py": "2d834631985dda01557a9f9615d23b8491683e4b9b6b4fe0b13f76f54ea43981",
+    "test_host.py": "f20e2072a4f8e89a67a9756faa1d16fe219375bc2f69a124c56c5a4314ce4332",
+    "waiter.py": "716950cad7369fef7d1e129d606e8c777912471b1d23bc523a1774fb7e2499e0"
+  }
+}

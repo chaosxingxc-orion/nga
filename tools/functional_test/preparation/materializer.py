@@ -99,7 +99,7 @@ def step(out,devdir=DEV):
  snapshot=out/'dev-comparison.json';save(snapshot,fresh)
  evidence={'config':config_path,'review':Path(config['review']),'comparison':snapshot}
  rows=roster(config,statuses,train,evidence,out/'identity-cache');rp=out/'roster.json';save(rp,rows)
- resources={i:{'chip':k%8,'dependencies':['27B' if k%8<4 else 'K0']} for k,i in enumerate(C.LANES+C.BASES)};res=out/'resources.json';save(res,resources)
+ resources={i:{'chip':k%8,'dependencies':(['K0','QWEN27B_ENVFIX'] if k%8<4 else ['TRAIN_DEV'])} for k,i in enumerate(C.LANES+C.BASES)};res=out/'resources.json';save(res,resources)
  # Exclusive intent: a crash during assembly requires human reconciliation, never re-invoke.
  intent=out/'ASSEMBLY-INTENT.json';fd=os.open(intent,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o644)
  with os.fdopen(fd,'w') as f:json.dump({'utc':now(),'roster':pin(rp),'resources':pin(res)},f);f.flush();os.fsync(f.fileno())

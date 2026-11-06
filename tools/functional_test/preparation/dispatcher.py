@@ -29,7 +29,7 @@ def step(graph, callbacks, start=None):
   draft=Path(node['draft']); review=Path(node['review']); config=Path(node['config'])
   H.need(H.sha(draft)==node['draft_sha256'],'draft changed')
   c=H.read(draft); H.need(C.campaign_digest(c)==graph['campaign_sha256'] and c['member']==member and c['container']['chip']==node['chip'],'graph differs')
-  H.need(node['dependencies'] and ('27B' if node['chip']<4 else 'K0') in node['dependencies'],'resource dependency differs')
+  H.need(node['dependencies'] and set(['K0','QWEN27B_ENVFIX'] if node['chip']<4 else ['TRAIN_DEV']).issubset(node['dependencies']),'resource dependency differs')
   state=Path(c['host']['state_dir'])/member;state.mkdir(parents=True,exist_ok=True)
   marker=state/'SUPERVISOR-EXIT.json'; intent=state/'DISPATCH-INTENT.json'; receipt=state/'DISPATCH-START.json'
   if marker.exists():
@@ -63,7 +63,7 @@ def launch(config):
 def main():
  p=argparse.ArgumentParser();p.add_argument('--graph',required=True);p.add_argument('--callbacks',required=True);a=p.parse_args()
  graph_path=Path(a.graph).resolve(); graph=H.read(graph_path); callbacks=H.read(a.callbacks); root=graph_path.parent; expected=H.sha(graph_path)
- H.need(graph.get('schema')=='rc1-dispatch-graph-v1','graph schema'); H.need(set(callbacks)=={'K0','27B'} and all(isinstance(v,list) and v and all(isinstance(s,str) for s in v) for v in callbacks.values()),'callback config')
+ H.need(graph.get('schema')=='rc1-dispatch-graph-v1','graph schema'); H.need(set(callbacks)=={'K0','TRAIN_DEV','QWEN27B_ENVFIX'} and all(isinstance(v,list) and v and all(isinstance(s,str) for s in v) for v in callbacks.values()),'callback config')
  with (root/'dispatcher.lock').open('a') as lock:
   fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB); marker=root/'DISPATCH-EXIT.json';H.need(not marker.exists(),'terminal exists; reconcile')
   (root/'DISPATCH-RELAUNCH.txt').write_text(shlex.join([sys.executable,'-P',str(Path(__file__).resolve()),'--graph',str(graph_path),'--callbacks',str(Path(a.callbacks).resolve())])+'\n')

@@ -20,7 +20,7 @@ class Pipeline(unittest.TestCase):
     else:sys.modules.pop(name,None)
    status=P.examine(config,result,train,F.M);self.assertTrue(all(x['status']=='ready' for x in status),status)
    evidence={'config':root/'fixture-config.json','review':root/'existing-fixture-review.json','comparison':root/'comparison.json'};F.put(evidence['review'],{'fixture_only':True});F.put(evidence['comparison'],result)
-   rows=P.roster(config,status,train,evidence,root/'identity-cache');rp=root/'roster.json';F.put(rp,rows);resources=root/'resources.json';F.put(resources,{i:{'chip':n%8,'dependencies':['27B' if n%8<4 else 'K0']} for n,i in enumerate(C.LANES+C.BASES)})
+   rows=P.roster(config,status,train,evidence,root/'identity-cache');rp=root/'roster.json';F.put(rp,rows);resources=root/'resources.json';F.put(resources,{i:{'chip':n%8,'dependencies':(['K0','QWEN27B_ENVFIX'] if n%8<4 else ['TRAIN_DEV'])} for n,i in enumerate(C.LANES+C.BASES)})
    g=P.A.assemble(str(rp),str(resources),str(root/'campaign'));self.assertEqual(len(g['members']),12)
    for m,node in g['members'].items():
     draft=C.read(node['draft']);review=Path(node['review']);F.put(review,{'schema':'rc1-trackk-review-v1','reviewed':True,'config_sha256':C.digest(draft),'fixture_only':True});draft['review']=P.pin(review);P.A.H.validate(draft,node['config']);C.validate(draft)

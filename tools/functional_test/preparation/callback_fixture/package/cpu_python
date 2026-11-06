@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+PKG=/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-dev-host-rc1/package
+OUT=/mnt/cephfs/xingchao/experiments/jev/qwen38-dev-host-smoke-rc1
+exec docker run --rm --pull=never --network none --runtime runc -e TORCH_DEVICE_BACKEND_AUTOLOAD=0 --mount type=bind,src="$PKG",dst="$PKG",readonly --mount type=bind,src="$OUT",dst="$OUT" --entrypoint python3 sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d "$@"

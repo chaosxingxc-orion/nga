@@ -65,12 +65,12 @@ class Step(unittest.TestCase):
    F.put(node['review'],{'schema':'rc1-trackk-review-v1','reviewed':True,'config_sha256':C.digest(draft),'fixture_only':True})
    draft['review']=P.pin(node['review']);P.A.H.validate(draft,node['config']);C.validate(draft)
   with patch.object(D,'callback',return_value={'status':'pending'}):
-   self.assertEqual(set(D.step(graph,{'K0':['fixture'],'27B':['fixture']}).values()),{'waiting-dependency'})
+   self.assertEqual(set(D.step(graph,{k:['fixture'] for k in ('K0','TRAIN_DEV','QWEN27B_ENVFIX')}).values()),{'waiting-dependency'})
   # Exercise actual dispatcher validation and durable intents, substituting only process launch.
   with patch.object(D,'callback',return_value={'status':'ready'}):
    def start(path):
     c=C.read(path);calls.append(path);return {'pid':os.getpid(),'state_dir':str(Path(c['host']['state_dir'])/c['member'])}
-   self.assertEqual(set(D.step(graph,{'K0':['fixture'],'27B':['fixture']},start).values()),{'started'})
+   self.assertEqual(set(D.step(graph,{k:['fixture'] for k in ('K0','TRAIN_DEV','QWEN27B_ENVFIX')},start).values()),{'started'})
    self.assertEqual(len(calls),12)
    self.assertEqual(set(D.step(graph,{},start).values()),{'started'});self.assertEqual(len(calls),12)
   self.assertFalse((self.out/'campaign/round/TEST-READS.log').exists())
