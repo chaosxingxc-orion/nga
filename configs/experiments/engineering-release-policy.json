@@ -23,5 +23,19 @@
     "mode": "event_with_fallback",
     "fallback_seconds": 600
   },
-  "purpose": "Owner update 2026-11-05 overrides urgent queue replenishment. This policy records an admission hold; it is not a scientific acceptance or a runtime resource lease."
+  "purpose": "Owner update 2026-11-05 overrides urgent queue replenishment. This policy records an admission hold; it is not a scientific acceptance or a runtime resource lease.",
+  "release_management": {
+    "active_candidate": "engineering-base-rc1",
+    "candidate_manifest": "configs/experiments/engineering-release-candidate.json",
+    "workspace": ".local/releases/engineering-base-rc1",
+    "single_active_candidate": true,
+    "increment_version_per_fix": false,
+    "repair_mode": "in_place_in_active_candidate_with_git_diff_and_targeted_regression",
+    "evidence_mode": "immutable_attempt_receipts_under_same_candidate_not_product_versions",
+    "ongoing_work": "complete_existing_jobs_then_import_into_candidate_without_moving_live_sources",
+    "scope_changes": "defer_nonblocking_features_to_backlog",
+    "promotion": "freeze_exact_commit_source_closure_image_digest_configuration_and_independent_review",
+    "released_artifacts": "immutable; fixes after release use a new candidate",
+    "research_hold_until_release": true
+  }
 }

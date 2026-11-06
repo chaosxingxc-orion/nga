@@ -1,0 +1,83 @@
+{
+  "schema": "nga-engineering-release-candidate",
+  "candidate": "engineering-base-rc1",
+  "state": "stabilizing",
+  "released": false,
+  "source_directory": "docker/engineering-base",
+  "integration_workspace": ".local/releases/engineering-base-rc1",
+  "baseline_image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+  "baseline_scope": "historical bounded CPU qualification only; not final release",
+  "release_commit": null,
+  "release_image_digest": null,
+  "release_source_manifest_sha256": null,
+  "release_configuration_sha256": null,
+  "independent_release_review": null,
+  "fixed_scope": [
+    "configured_default_execution_and_scoring",
+    "resumable_protected_input_snapshot",
+    "bounded_capture_with_independent_reader",
+    "script_monitoring_and_logs",
+    "fixed_workload_efficiency",
+    "four_family_NPU_numerical_and_resume_qualification"
+  ],
+  "components": {
+    "supervisor": {
+      "incoming_workspace": ".local/preparations/engineering-supervisor-integrated-20261106-v17",
+      "review": ".local/dispatch/engineering-supervisor-integrated-astra-20261106-v17/RESULT.json",
+      "integrated": false,
+      "accepted_for_release": false
+    },
+    "capture": {
+      "incoming_workspace": ".local/preparations/engineering-capture-ledger-implementation-20261106-v19",
+      "review": ".local/dispatch/engineering-capture-ledger-implementation-astra-20261106-v19/RESULT.json",
+      "integrated": false,
+      "accepted_for_release": false
+    },
+    "snapshot": {
+      "incoming_workspace": ".local/preparations/engineering-snapshot-custody-chain-20261106-v3",
+      "review": ".local/dispatch/engineering-snapshot-custody-chain-astra-20261106-v3/RESULT.json",
+      "integrated": false,
+      "accepted_for_release": false
+    }
+  },
+  "blocking_issues": [
+    {
+      "id": "RC-01",
+      "title": "Complete configured supervisor and worker/gate lifecycle",
+      "state": "open",
+      "component": "supervisor"
+    },
+    {
+      "id": "RC-02",
+      "title": "Finish actual capture ledger, boundary accounting and independent validation",
+      "state": "open",
+      "component": "capture"
+    },
+    {
+      "id": "RC-03",
+      "title": "Finish protected copy/verifier custody, resume and external identity binding",
+      "state": "open",
+      "component": "snapshot"
+    },
+    {
+      "id": "RC-04",
+      "title": "Validate actual175 CPU/Ceph behavior and fixed-load efficiency",
+      "state": "open",
+      "component": "integration"
+    },
+    {
+      "id": "RC-05",
+      "title": "Validate four-family NPU numerical behavior, resume and throughput",
+      "state": "open",
+      "component": "integration"
+    },
+    {
+      "id": "RC-06",
+      "title": "Freeze Docker/source/config closure and obtain independent release verdict",
+      "state": "open",
+      "component": "release"
+    }
+  ],
+  "nonblocking_work": "backlog; cannot create a new version or expand current release gate",
+  "migration": "only after all existing policy gates accepted; preserve evidence and old image at resumable boundary"
+}
