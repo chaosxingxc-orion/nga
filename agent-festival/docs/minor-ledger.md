@@ -487,3 +487,80 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **m-4（协议生效日两套口径）**：裁定记录——立法原文「从 R56 起」（不追溯）为准；火力面「R47 以后」是 R56 审查 prompt 抄写走样（我方引入，非立法文本冲突）。空白子按立法原文执行并补偿性 git show 抽验 R48-R55 六条清偿（共享夹具/HalfReal 换守卫/纯函数+探针/自守卫构造器/重写/熔块删+len 替换）**全部实锤落地**。后续火力面模板与立法对齐。
 - **六形突变电池当轮全跑**：M-A（掐构造器守卫调用）/M-B（守卫体 no-op）/re-route×2（`_ =` 形+吞错形）/PI（参数忽略）/BF（if-false 埋葬）全红；健康基线绿；还原全包绿+gofmt 干净+vet 干净。
 - **方法论入账（第 66/67 实证）**：**参数布线断言的判别性**（被声称的两态〔参数被用/被忽略〕输出必须可区分——载体传默认本体则 len 检查恒真）；**文字钉不得冒称结构性**（「结构性」在 2026-11-02 立法语义下=不可表达；文字钉穷举不可达，re-route 形是其天敌——语义边界必须显式声明，冒称即过强声明）。
+
+## R57 架构批记账（2026-11-06，C1' 换观测面——元分析 v2 第 1 步 + P0 债务清零）
+
+> 本轮承接 `impl-2026-11-01/42-review-meta-analysis-v2.md`（该档经空白子 4-lens+singularity
+> 深审，裁定 **4B/9M/3m** 全数接受后重构）。核心动作：**放弃形态钉，换观测面**。
+
+### 一、C1'：错误返回式守卫构造器 + 形式无关探针对
+
+- **改前**：`canaryMaskingStreamGuarded(t *testing.T, streams ...) []ledger.Event`——t.Fatal
+  式，连接层红面靠 `TestE7b_GuardCallChainPinned`（文字钉）。空白子以**第七形**（守卫调用前
+  插 `return stream`，守卫成死代码、钉的两枚子串原样保留）实测：全包绿。**六形电池的 ✅ 是假的。**
+- **改后**：`canaryMaskingStreamGuarded(streams ...[]ledger.Event) ([]ledger.Event, error)`——
+  守卫的失败成为**返回值**。红面换成两枚行为探针（不读源码任何形态）：
+  - `TestE7b_GuardedPathRejectsDrift`：五形漂移表（无 canary / canary 非 rejected /
+    无业务拒绝 / 无死亡形态 / canary 埋在流量下）+ 空流，逐行必须 `err != nil`
+  - `TestE7b_GuardedPathAcceptsHealthy`：健康流必须过**且返回入参本体**（identity 逐事件
+    投影相等——杀「参数忽略、恒验默认夹具」形）
+- **退休**：`TestE7b_GuardCallChainPinned`（文字钉）与 `TestE7b_GuardedStreamWiredToCheck`
+  （行为层接线钉）**删除**——职责被探针对严格覆盖。退休理由：形态是开放集，钉形态只能
+  枚举；第七形即反例。**P0 债务 0.1（RR2/BF 两形无 token）随退休关闭**：被指认的钉已不存在，
+  其职责由十形电池整体承担。
+- **保守留件**：`canaryMaskingFixtureGuard(t, stream)` 保留为**直接调用点便利件**（半真流
+  测试用），doc 明写「自身无红面、不是连接层」——R53-R56 saga 的结构成因即 t.Fatal 式
+  签名制造「连接不可观测」，此处不再让它承担任何红面声明。
+
+### 二、十形突变电池（仓内可复跑——token 不再是散文）
+
+新增 `agent-festival/tools/guard-battery.py`：对守卫构造器逐形施加退化、跑探针、要求全红，
+每形后自动还原源码；基线红则拒跑；锚点失配即报「电池的锚也是形态绑定」这一自身边界。
+
+```
+[mutation-proof: cd agent-festival && python3 tools/guard-battery.py → PASS, all 10 mutations turned the probes red]
+[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only seventh_early_return → 行含 FAIL red (6 subtest(s))]
+[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only ignore_param → 行含 FAIL red (8 subtest(s))]
+[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only hardcoded_err → 行含 FAIL red (4 subtest(s))（反向形：接受面红）]
+```
+
+十形与红面子测试数（当轮实跑）：
+
+| 形 | 语义 | 红 |
+|---|---|---|
+| drop_call | 删守卫调用（M-A） | 6 |
+| body_noop | 调而不判（M-B） | 6 |
+| discard_result | `_ =` 丢弃 | 6 |
+| swallow_error | if 块吞错 | 6 |
+| if_false_burial | `if false{}` 埋葬 | 6 |
+| **seventh_early_return** | **守卫前早退（R57 B3 实证击败全部文字钉）** | **6** |
+| ignore_param | 忽略入参、恒验默认夹具（R56 M-1） | 8 |
+| hardcoded_nil | 恒 nil error | 6 |
+| **hardcoded_err** | **恒 error（反向形——只有接受面能抓）** | **4** |
+| check_gutted | 纯检查被掏空（检查层+路径层共用 oracle） | 7 |
+
+### 三、P0 债务清零
+
+- **0.2 判据**：`fixture-guard-pattern.md` 由七件改**六件**（件 7 退休并留退休理由），
+  新增判据 13-16（第七形早退死代码 / 形态钉开放集 / 声明失实是最大族 / 声明先于调用）。
+- **0.3 数字更正**：前批元分析 v1 的「~40m」膨胀，**台账机械累加 = 29m**
+  （R47 4 / R48 3 / R49 6 / R50 5 / R51 0 / R52 4 / R53 1 / R54 1 / R55 1 / R56 4）。
+  M 总数 **20**（各轮头部累加，可复算）。族结构更正为**五族**（明细见
+  `42-review-meta-analysis-v2.md` §一）：**声明失实 5**（R47 M-2 / R48 M-2 / R49 M-2 /
+  R54 M-2 / R56 M-2——v1 完全漏立的最大族）、恒真 3、守卫红面缺失 3、熔块 3、虚假清偿 3，
+  一次性 3（观测面/谓词）。跨族条目按「缺陷本质」归主族，不重复计数。
+- **0.4 假声明 #10（自首）**：元分析 v2 首次交付时，我在回复中写「档已存」，而
+  `42-review-meta-analysis-v2.md` **文件不存在**——声明先于工具调用，是
+  **假声明第十次实证**，且发生在「声明失实是最大族」这一结论写出之后。教训入判据 16：
+  说「已存/已提交/已跑」时，对应的工具调用必须已返回成功，**不许预报**。
+
+### 四、方法论入账（第 68/69/70 实证）
+
+- **68**：**形态钉的开放集**——文字钉/AST 钉都枚举形态，形态不封闭即不可能胜；唯一切换
+  观测面（让失败成为返回值）才能一次杀掉「删除/埋葬/早退/丢弃/吞错/参数忽略/未来形」全族。
+  证据：第七形使六形文字钉全绿，而错误返回值使十形全红。
+- **69**：**反向形需要反向探针**——`hardcoded_err` 只被接受面抓（4 红），仅漂移面探针
+  会漏它。任何「单侧断言」的守卫都要问：它的否定形态是否也被测？
+- **70**：**电池的锚也是形态绑定**（本脚本自身边界）——`guard-battery.py` 以构造器源码片段
+  为锚，构造器被改写时脚本会主动报错而非静默跳过；这是自我诚实，不是免疫：真正形式无关的
+  是探针，电池只是探针的回归语料。

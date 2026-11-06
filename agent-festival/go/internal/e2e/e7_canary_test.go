@@ -303,9 +303,14 @@ func canaryMaskingStream() []ledger.Event {
 	}
 }
 
-// canaryMaskingFixtureGuard asserts the fixture's FULL precondition set
-// (five checks — see canaryMaskingFixtureCheck; R53 m-1: the "BOTH" from
-// R49 predates the death-shape and third-ordering checks).
+// canaryMaskingFixtureGuard is the t.Fatal CONVENIENCE form for direct-call
+// fixture sites (the half-real test builds its own stream and guards it
+// here). It is NOT the connection layer (R57 C1'): the guarded path's red
+// face is the error-returning canaryMaskingStreamGuarded plus its
+// form-independent probe pair — a t.Fatal expectation cannot be asserted
+// in-test (asserting "should have died here" turns red when the guard
+// WORKS), which is why the t.Fatal form was the structural cause of the
+// R53-R56 connection-layer saga.
 func canaryMaskingFixtureGuard(t *testing.T, stream []ledger.Event) {
 	t.Helper()
 	if err := canaryMaskingFixtureCheck(stream); err != nil {
@@ -313,26 +318,50 @@ func canaryMaskingFixtureGuard(t *testing.T, stream []ledger.Event) {
 	}
 }
 
-// canaryMaskingStreamGuarded (R55/56 structural form): the self-guarding
-// fixture — constructs the shared stream AND runs the check, OR guards
-// a CALLER-PROVIDED stream (the parameterized form: a drifted stream
-// passed here fatals WHILE THE GUARD IS ALIVE — the parameterization
-// makes drift injection possible through the wrapper path). HONEST
-// BOUNDARY (R56 mutation-measured): deleting the guard call here, or
-// no-oping the guard body, turns NOTHING behavioral red (a t.Fatal
-// expectation is not assertable in-test) — the connection-layer red
-// face is the SOURCE pin (TestE7b_GuardCallChainPinned). The dual
-// tests use the no-arg form; the wiring probe uses the parameterized
-// form to prove the parameter is wired.
-func canaryMaskingStreamGuarded(t *testing.T, streams ...[]ledger.Event) []ledger.Event {
-	t.Helper()
+// canaryMaskingStreamGuarded (R57 C1' — the structural form): the
+// self-guarding fixture returns the caller's stream AND the guard's
+// verdict as an ERROR, so the declaration's negation becomes an observable
+// VALUE. This is the observation-face switch that retires the
+// form-enumeration problem: R54 M-1 (tautological nil check) → R55 M-2
+// (len check tautology) → R56 M-1 (default-fixture tautology) → R57
+// meta-analysis B3 (the "seventh form": an early `return` before the guard
+// call leaves every text pin intact while the guard becomes dead code).
+// Every text/AST pin enumerates shapes and shapes are an OPEN SET; but a
+// constructor that deletes the call, buries it after a return, swallows
+// the error, `_ =`-discards it, wraps it in `if false`, or ignores the
+// stream parameter all produce the SAME observable — a nil error on a
+// drifted stream.
+//
+// Red face (form-independent — inspects no source text):
+// TestE7b_GuardedPathRejectsDrift / TestE7b_GuardedPathAcceptsHealthy.
+//
+// Known boundary (declared, not claimed away): a constructor that
+// re-implements the five checks inline instead of calling
+// canaryMaskingFixtureCheck, and does so faithfully, stays green — that is
+// duplication, not a guard death; the meta probe (TestE7b_GuardChecksProbed)
+// remains the completeness face for check-level drift.
+func canaryMaskingStreamGuarded(streams ...[]ledger.Event) ([]ledger.Event, error) {
 	var stream []ledger.Event
 	if len(streams) > 0 {
 		stream = streams[0]
 	} else {
 		stream = canaryMaskingStream()
 	}
-	canaryMaskingFixtureGuard(t, stream)
+	if err := canaryMaskingFixtureCheck(stream); err != nil {
+		return nil, err
+	}
+	return stream, nil
+}
+
+// mustGuardedStream is the fixture-SETUP convenience (success expectation
+// only). It is deliberately not used by the guard's own probes — those call
+// canaryMaskingStreamGuarded directly so the error stays observable.
+func mustGuardedStream(t *testing.T, streams ...[]ledger.Event) []ledger.Event {
+	t.Helper()
+	stream, err := canaryMaskingStreamGuarded(streams...)
+	if err != nil {
+		t.Fatalf("guarded fixture precondition: %v", err)
+	}
 	return stream
 }
 
@@ -404,7 +433,7 @@ func TestE7b_CanaryFeedsDeathProbe(t *testing.T) {
 	// continues, no more business rejections), then canary injections
 	// keep coming — the unfiltered probe sees the canary rejections as
 	// interceptions and reports ALIVE
-	stream := canaryMaskingStreamGuarded(t)
+	stream := mustGuardedStream(t)
 	if died := guardDied(stream, "rejected", ""); died {
 		t.Fatal("E7b disease: unfiltered guardDied reported DEATH — the canary failed to mask it (the disease is gone; rewrite this test)")
 	}
@@ -417,7 +446,7 @@ func TestE7b_CanaryFeedsDeathProbe(t *testing.T) {
 // third-ordering checks). Mutation probe: remove the filter guard
 // (prefix != "") or the filter branch → this goes red or the E4 suite breaks.
 func TestE7b_FilterClosesMasking(t *testing.T) {
-	stream := canaryMaskingStreamGuarded(t)
+	stream := mustGuardedStream(t)
 
 	// the filter face: with the canary prefix, the death is correctly
 	// reported (canary rejections no longer count as interceptions)
@@ -551,112 +580,104 @@ func TestE7b_GuardChecksProbed(t *testing.T) {
 	}
 }
 
-// TestE7b_GuardedStreamWiredToCheck (R56 form): the PARAMETERIZED guarded
-// form exists, its parameter is REALLY wired (R56 M-1: the first version
-// passed the default fixture itself and len-checked — a tautology, since
-// "parameter ignored, default returned" also yields 5 events; the fixed
-// form passes a DISTINGUISHABLE healthy variant and asserts per-event
-// identity, so the ignore-the-parameter mutation goes red here), and the
-// check it runs is live on drift. HONEST BOUNDARY (R56 mutation-measured):
-// this test stays green under the DELETION-form connection-layer mutations
-// (the constructor dropping its guard call; the guard body no-oping) —
-// a t.Fatal expectation cannot be asserted in-test (asserting "should
-// have died here" makes the test red when the guard WORKS too). The drift
-// line below calls the CHECK directly (that is the meta-probe layer);
-// the connection layer's red face for the deletion forms is the SOURCE
-// pin in TestE7b_GuardCallChainPinned — this test is the behavioral half
-// (parameter wiring + constructor liveness on healthy streams).
-func TestE7b_GuardedStreamWiredToCheck(t *testing.T) {
-	// the drift forms (probed exhaustively in GuardChecksProbed) are
-	// detected by the CHECK — the wrapper calls this same check (the
-	// connection is the wrapper's canaryMaskingFixtureGuard call)
-	drifted := []ledger.Event{
-		{EventType: "control", ArbitrationSeq: 0, Outcome: ledger.Outcome{Status: "rejected", Detail: "business"}},
-		{EventType: "effect", ArbitrationSeq: 1, Outcome: ledger.Outcome{Status: "dispatched"}},
-		canaryEvent(2, "op-c"),
-		{EventType: "effect", ArbitrationSeq: 3, Outcome: ledger.Outcome{Status: "dispatched"}},
+// TestE7b_GuardedPathRejectsDrift (R57 C1'): the FORM-INDEPENDENT red face
+// of the guarded path — no source text is inspected, so every re-shape that
+// drops the semantics fails here identically: the call deleted, buried after
+// an early return (the R57 meta-analysis B3 "seventh form"), `_ =`-discarded,
+// swallowed behind an if without the error path, wrapped in `if false`, or
+// applied to the default fixture while the caller's stream is discarded.
+// The drift table is the same five-shape set the meta probe enumerates, so
+// the check layer and the path layer share one oracle.
+func TestE7b_GuardedPathRejectsDrift(t *testing.T) {
+	driftForms := []struct {
+		name   string
+		stream []ledger.Event
+	}{
+		{"no-canary", []ledger.Event{
+			{EventType: "control", ArbitrationSeq: 0, Outcome: ledger.Outcome{Status: "rejected", Detail: "business guard rejection"}},
+			{EventType: "effect", ArbitrationSeq: 1, Outcome: ledger.Outcome{Status: "dispatched"}},
+		}},
+		{"canary-not-rejected", []ledger.Event{
+			{EventType: "control", ArbitrationSeq: 0, Outcome: ledger.Outcome{Status: "rejected", Detail: "business guard rejection"}},
+			{EventType: "effect", ArbitrationSeq: 1, Outcome: ledger.Outcome{Status: "dispatched"}},
+			{EventType: "control", ArbitrationSeq: 2, Outcome: ledger.Outcome{Status: "adopted", Detail: canaryPrefix + " probe injection"}},
+			{EventType: "effect", ArbitrationSeq: 3, Outcome: ledger.Outcome{Status: "dispatched"}},
+		}},
+		{"no-business-rejection", []ledger.Event{
+			{EventType: "effect", ArbitrationSeq: 0, Outcome: ledger.Outcome{Status: "dispatched"}},
+			canaryEvent(1, "op-c"),
+			{EventType: "effect", ArbitrationSeq: 2, Outcome: ledger.Outcome{Status: "dispatched"}},
+			canaryEvent(3, "op-c"),
+		}},
+		{"no-death-shape", []ledger.Event{
+			{EventType: "control", ArbitrationSeq: 0, Outcome: ledger.Outcome{Status: "rejected", Detail: "business guard rejection"}},
+			canaryEvent(1, "op-c"),
+		}},
+		{"canary-under-traffic", []ledger.Event{
+			{EventType: "control", ArbitrationSeq: 0, Outcome: ledger.Outcome{Status: "rejected", Detail: "business guard rejection"}},
+			canaryEvent(1, "op-c"),
+			{EventType: "effect", ArbitrationSeq: 2, Outcome: ledger.Outcome{Status: "dispatched"}},
+		}},
 	}
-	if err := canaryMaskingFixtureCheck(drifted); err == nil {
-		t.Fatal("wiring probe: the check accepted a drifted stream — drift detection lost")
+	for _, tc := range driftForms {
+		t.Run(tc.name, func(t *testing.T) {
+			stream, err := canaryMaskingStreamGuarded(tc.stream)
+			if err == nil {
+				t.Fatalf("guarded path accepted a drifted stream (%s) and returned %d events — the guard is not on the path", tc.name, len(stream))
+			}
+		})
 	}
-	// R56 M-1 fix: the parameterized form must return the CALLER's stream,
-	// not the default fixture. Passing the default fixture itself made the
-	// len check a tautology ("parameter ignored, default returned" also
-	// yields 5 events) — the variant below (default + one trailing canary,
-	// still healthy) makes the two states distinguishable: the
-	// ignore-the-parameter mutation returns 5, this asserts 6 + per-event
-	// projection equality (seq/type/outcome — Event carries slice fields
-	// and is not ==-comparable)
-	variant := append(canaryMaskingStream(), canaryEvent(5, "op-variant"))
-	guarded := canaryMaskingStreamGuarded(t, variant)
-	if len(guarded) != len(variant) {
-		t.Fatalf("wiring probe: parameterized form returned %d events, want %d — the stream parameter is ignored (the default fixture was returned)", len(guarded), len(variant))
-	}
-	for i := range variant {
-		if guarded[i].ArbitrationSeq != variant[i].ArbitrationSeq || guarded[i].EventType != variant[i].EventType || guarded[i].Outcome != variant[i].Outcome {
-			t.Fatalf("wiring probe: returned stream diverges from the caller's stream at %d (seq %d) — the guarded stream is not the one passed in", i, variant[i].ArbitrationSeq)
-		}
-	}
-	// the no-arg form also works (the default constructor path)
-	stream := canaryMaskingStreamGuarded(t)
-	if len(stream) == 0 {
-		t.Fatal("wiring probe: no-arg form returned an empty stream")
+	// an empty stream is a drift form too (no canary, no rejection, no traffic)
+	if stream, err := canaryMaskingStreamGuarded([]ledger.Event{}); err == nil {
+		t.Fatalf("guarded path accepted an EMPTY stream and returned %d events — the guard is not on the path", len(stream))
 	}
 }
 
-// TestE7b_GuardCallChainPinned (R56): the CONNECTION-LAYER pin — a
-// LEXICAL source pin of the guard call chain, generalizing the ledger
-// package's docstring_pin pattern (doc-phrase pinning → call-chain
-// pinning). R56 mutation-measured fact motivating this pin: the
-// behavioral wiring probe stays green under the DELETION-form
-// connection-layer mutations (M-A: the constructor drops its
-// canaryMaskingFixtureGuard call; M-B: the guard body no-ops) — a
-// t.Fatal expectation cannot be asserted in-test without turning the
-// test red when the guard works. The pin's covered forms (all
-// mutation-verified red):
-//   - M-A → the constructor slice loses the one-tab statement form
-//     "\n\tcanaryMaskingFixtureGuard(t, stream)\n" (the two-tab `if
-//     false { ... }` burial form also misses the pin)
-//   - M-B → the wrapper slice loses "canaryMaskingFixtureCheck(stream)"
-//   - re-route forms (R56 M-2): call text preserved, semantics dropped —
-//     `_ = canaryMaskingFixtureCheck(stream)` or an if-block without the
-//     t.Fatal — both miss the FULL-BLOCK pin below
-//
-// HONEST BOUNDARY (R56 M-2): this is a LEXICAL pin, not a structural
-// retirement — form enumeration is unreachable (a novel re-shape that
-// keeps both pinned substrings while dropping the semantics would pass);
-// the 0.2.0 machine-parseable form is where "connection can't silently
-// degenerate" becomes enforceable rather than enumerated.
-func TestE7b_GuardCallChainPinned(t *testing.T) {
-	src, err := os.ReadFile("e7_canary_test.go")
-	if err != nil {
-		t.Fatalf("guard-chain pin: cannot read own source: %v", err)
+// TestE7b_GuardedPathAcceptsHealthy (R57 C1'): the positive face. A healthy
+// stream must pass AND be returned IDENTICALLY to what the caller passed —
+// the identity assertions kill the "ignore the parameter, validate the
+// default fixture" mutation (R56 M-1: the earlier form validated the default
+// fixture and len-checked, which is a tautology — both states yield 5
+// events). The variants differ from the default in length and tail shape so
+// an ignored parameter cannot pass by coincidence.
+func TestE7b_GuardedPathAcceptsHealthy(t *testing.T) {
+	forms := []struct {
+		name string
+		in   []ledger.Event
+	}{
+		{"default-no-arg", nil},
+		{"default-explicit", canaryMaskingStream()},
+		{"longer-variant", append(canaryMaskingStream(), canaryEvent(5, "op-variant"))},
 	}
-	// funcBody slices the source from a top-level func declaration to the
-	// next one (these helpers contain no nested func literals, so the
-	// textual slice IS the function body plus its trailing comment block)
-	funcBody := func(fn string) string {
-		i := strings.Index(string(src), "func "+fn)
-		if i < 0 {
-			t.Fatalf("guard-chain pin: function %s not found in source", fn)
-		}
-		rest := string(src)[i:]
-		j := strings.Index(rest[1:], "\nfunc ")
-		if j < 0 {
-			return rest
-		}
-		return rest[:1+j]
-	}
-	// M-A face: the guarded constructor must route through the guard as a
-	// LIVE one-tab statement (burial forms put the same text at two tabs)
-	if !strings.Contains(funcBody("canaryMaskingStreamGuarded"), "\n\tcanaryMaskingFixtureGuard(t, stream)\n") {
-		t.Fatal("guard-chain pin: canaryMaskingStreamGuarded no longer calls canaryMaskingFixtureGuard as a live statement — the connection is lost (M-A)")
-	}
-	// M-B face + re-route forms: the wrapper must route through the pure
-	// check AND propagate the error to t.Fatal — the FULL-BLOCK form
-	// (call text without the error handling, e.g. `_ = check(stream)`,
-	// and the if-block with a swallowed error both miss this pin)
-	if !strings.Contains(funcBody("canaryMaskingFixtureGuard"), "\n\tif err := canaryMaskingFixtureCheck(stream); err != nil {\n\t\tt.Fatal(err)\n\t}\n") {
-		t.Fatal("guard-chain pin: canaryMaskingFixtureGuard no longer propagates canaryMaskingFixtureCheck's error to t.Fatal — the guard body degenerated (M-B / re-route)")
+	for _, tc := range forms {
+		t.Run(tc.name, func(t *testing.T) {
+			var streams [][]ledger.Event
+			if tc.in != nil {
+				streams = append(streams, tc.in)
+			}
+			got, err := canaryMaskingStreamGuarded(streams...)
+			if err != nil {
+				t.Fatalf("guarded path rejected a healthy stream: %v", err)
+			}
+			if tc.in == nil {
+				// no-arg form: the default fixture must come back non-empty
+				if len(got) == 0 {
+					t.Fatal("guarded path: no-arg form returned an empty stream")
+				}
+				return
+			}
+			if len(got) != len(tc.in) {
+				t.Fatalf("guarded path returned %d events for a %d-event input — the stream parameter is being ignored (the default fixture was returned)", len(got), len(tc.in))
+			}
+			// Event carries slice fields and is not ==-comparable: compare the
+			// projection that identifies the event identity on this fixture.
+			for i := range tc.in {
+				if got[i].ArbitrationSeq != tc.in[i].ArbitrationSeq ||
+					got[i].EventType != tc.in[i].EventType ||
+					got[i].Outcome != tc.in[i].Outcome {
+					t.Fatalf("guarded path returned a stream that diverges from the caller's at index %d (seq %d) — the guarded stream is not the one passed in", i, tc.in[i].ArbitrationSeq)
+				}
+			}
+		})
 	}
 }
