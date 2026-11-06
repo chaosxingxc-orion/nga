@@ -3,7 +3,7 @@
   "model": "Qwen/Qwen3.8-27B",
   "revision": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
   "model_path": "/mnt/cephfs/models/Qwen3.8-27B",
-  "status": "waiting_for_training_and_dev_inference",
+  "status": "inference_task_smoke_accepted_full_reference_and_training_pending",
   "engineering_base": "engineering-base-rc1",
   "resource": {
     "host": "175",
@@ -29,9 +29,10 @@
       "depends_on": [
         "prepare"
       ],
-      "status": "waiting_dependencies",
+      "status": "complete_exit0_released_limited_review_pass",
       "resource": "npu4",
-      "dispatchable": true
+      "dispatchable": false,
+      "evidence": "https://github.com/chaosxingxc-orion/nga/wiki/Qwen38-27B-Engineering-Forward"
     },
     {
       "id": "fixed-reference-test",
@@ -108,7 +109,7 @@
       "dispatchable": false
     }
   ],
-  "note": "Planning DAG with the reviewed inference smoke waiter deployed. dispatchable means admitted conditional dispatch, not NPU execution or success. Full reference protocol and trainable LoRA sharding remain pending.",
+  "note": "Planning DAG, not a launcher. Five-input DEV smoke completed and independently accepted within its limited scope. Full reference protocol and trainable LoRA sharding remain pending; completed work is not dispatchable work.",
   "inference_dispatch": {
     "host": "175",
     "chips": [
@@ -117,8 +118,7 @@
       2,
       3
     ],
-    "config": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-dev-host-rc1/CONFIG.json",
-    "output": "/mnt/cephfs/xingchao/experiments/jev/qwen38-dev-host-smoke-rc1",
+    "output": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-reference-save-retry-rc1",
     "dependency_poll_seconds": 600,
     "wait_for_cpu_score": false,
     "workload": {
@@ -131,6 +131,17 @@
       "candidate_forwards": 723,
       "maximum_full_tokens": 1033
     },
-    "review": "PASS_FOR_WAITING_DISPATCH_AND_BOUNDED_SMOKE"
+    "review": "PASS_LIMITED_FIVE_INPUT_DEV_AND_SAVED_LOGIT_CPU_REDUCTION",
+    "initial_attempt": {
+      "config": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-dev-host-rc1/CONFIG.json",
+      "output": "/mnt/cephfs/xingchao/experiments/jev/qwen38-dev-host-smoke-rc1",
+      "status": "historical_failed_preserved"
+    },
+    "terminal": {
+      "exit_code": 0,
+      "utc": "2026-11-06T16:41:07Z",
+      "released_utc": "2026-11-06T16:41:21.978694Z",
+      "analysis_sha256": "8642466c5fef9779fcb78c58c6984b8c869f5269bd389b2c0044a880abe5c0a9"
+    }
   }
 }
