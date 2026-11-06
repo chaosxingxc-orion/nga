@@ -196,6 +196,18 @@ def identity_valid(role,identity):
              {'kind':'lora-adapter-unmerged','adapter_files':files,'base_revision':identity['base_revision'],'base_path':identity['base_path']})
     require(identity['sha256']==role['identity_sha256']==digest(payload),'model identity digest')
 
+def base_identity_for(role, ident, inventory):
+    if inventory.get('schema') == 'matched-current-dev-consumer-config-v1':
+        matches = [entry for entry in inventory['models'] if entry['model']['path'] == role['model']]
+        require(len(matches) == 1, 'base inventory model missing or ambiguous')
+        identity = dict(matches[0]['model'], files=matches[0]['weight_shard_pins'])
+    else:
+        identity = inventory['identity']
+    require(identity['kind']=='checkpoint' and identity['base_path']==ident['base_path'] and identity['base_revision']==ident['base_revision'], 'base inventory/revision differs')
+    base_role = dict(role, arm='K0', adapter=None, identity_sha256=identity['sha256'])
+    identity_valid(base_role, identity)
+    return identity
+
 def check_header(header,role,ident,desc,stage,C):
     require(header['model']=={k:ident[k] for k in ('path','sha256','kind','base_path','base_revision')},'report model identity differs')
     require(header['arm']==role['arm'] and header['checkpoint_revision']==ident['base_revision'],'header arm/revision differs')
@@ -335,10 +347,8 @@ def member(packet,role,pop,mods):
     token_audit=ready['header']['duplicate_candidate_safeguard']
     require(token_audit.get('scorer_counts_this_process') is not None,'missing inference token duplicate audit')
     base_inventory=read(role['evidence']['base_inventory']['path'])
-    require(base_inventory['identity']['kind']=='checkpoint' and base_inventory['identity']['base_path']==ident['base_path'] and base_inventory['identity']['base_revision']==ident['base_revision'],'base inventory/revision differs')
-    base_role=dict(role,arm='K0',adapter=None,identity_sha256=base_inventory['identity']['sha256'])
-    identity_valid(base_role,base_inventory['identity'])
-    return {'status':'reconstructed','identity':ident,'base_identity':base_inventory['identity'],
+    base_identity=base_identity_for(role,ident,base_inventory)
+    return {'status':'reconstructed','identity':ident,'base_identity':base_identity,
             'runtime':role['evidence']['runtime'],'tokenizer':role['evidence']['tokenizer'],
             'descriptor':{k:v for k,v in desc.items() if k not in ('model_path','adapter')},'vectors':vectors,
             'panels':{'partitions':parts,'operator_fit':expected_op,'probability_panels':prob,'token_duplicate_audit':token_audit,
