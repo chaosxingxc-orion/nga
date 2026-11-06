@@ -1,0 +1,30 @@
+{
+  "legacy_consumer": {
+    "path": "/home/xingchao/workspace/nga/tools/functional_dev/comparison/compare_dev.py",
+    "sha256": "ebb72d61bd3c7d0605860893803944d0ec9e6e1382283ebd544b7c3b5e9f7903"
+  },
+  "accepted_producer": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/matched-k0-fix/producer.py",
+    "sha256": "3416d76eb32e61a43deeec1797401c01dd5544d8f59c7f04d875848fdc7a2179"
+  },
+  "contracts": {
+    "experiments/RC1-MATCHED-K0.md": "5e8e3b22ef0536f27fe8ce8cd9037cf8784fa3a5ec956225f78b995736ca4f81",
+    "experiments/RC1-FUNCTIONAL-TEST.md": "7c464d587f746b18237ee14c7ab46dea8e950f0ed7406552ff6b62cb29a85739",
+    "experiments/R3-REFERENCE-METRICS-SUPPLEMENT-2026-11-01.md": "d400164a5dd2a75e62150eb46d02c7aeaeb164b011a82912f025949b82f99fed"
+  },
+  "numeric_sources": {
+    "common": "d2a39b65dd34c330c6972b2e77b66bab5d331f70f36000973107370eafa65a52",
+    "split": "5cb8610091eded85d788e690e1231fc6cf8e8f258afd76daf7e155c2d929b416",
+    "decision": "92b78843545b733ef8a8fee3b7c5b9f8762a73f32472567720ce00d0774ae0b3",
+    "thresholds": "88c196459af8d27336549b6b7d3c9013208538423d5469afb882c2822c7e5de3",
+    "metrics": "1b6a0f9d8a427895ef2e5ef6295a92c18e6f51265a2173aac2ceaccee86e73a9",
+    "core_r3": "bd9c30c4f7b040a88b42ba130b01721154a0bb9224ae25ad174ae7dfec811679",
+    "variants_r3": "76ac32e66581a4fbdaa5ca0cb0a25d24ab096b4281ee47f2ba292e944d70f5a2",
+    "degenerate_r3": "0165e2014b5f338d2df4c6586b73fba932fce1e5bef38f8721b13c4e11a00a01",
+    "provenance_r3": "b87c7f42ff39eca3bd5d92a14c3ddffdb8a4a92ee28cd5e736328392d97877c9"
+  },
+  "probability_reference": {
+    "path": "tools/r3_reference_metrics.py",
+    "sha256": "63dc4c106a541e5d99b3acfdb3811279675f62f6cc5ae082da9774359dc97466"
+  }
+}

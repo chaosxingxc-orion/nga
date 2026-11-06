@@ -1,0 +1,23 @@
+{
+  "legacy_consumer.py": "ebb72d61bd3c7d0605860893803944d0ec9e6e1382283ebd544b7c3b5e9f7903",
+  "config.json": "1bb6bc89c22b64546529a252d87cad0dd7d6130dfa8e089e48bd15cceb42a602",
+  "watcher.py": "48185386282e045c7966d0018dedafd6ebe4d0591d525c7187df44cad3a04325",
+  "fixtures.py": "661ae2afd3b7b84908a5310ee347d7a92e36a0e8c0ca76d2be7109fb31112b99",
+  "producer-config.json": "168ad5806028142e7f81f3dc232f8640157fa043d38c7aa5b4a2dccd9a76053f",
+  "run_tests.py": "2969a8c5ef0f3ad50215221de4983e56527db46f9a48cfe10ab2221b4231b8c6",
+  "SOURCE-ORIGINS.json": "04ea73a78f000ca0bc078df0ac00f2d36c3baff70a685521fb139254d668c460",
+  "reference_metrics.py": "63dc4c106a541e5d99b3acfdb3811279675f62f6cc5ae082da9774359dc97466",
+  "test_frozen_integration.py": "7184834a66f9fec12ff93dcfb5e78093e5d89950950a5bf6ec6d04b593af2ab8",
+  "test_consumer.py": "4d36304cb3fc76fa51cf6d97079d1a17810b2445f63db46db3cf38f0f7c8d471",
+  "test_watcher.py": "72b6b058bef14498a42844098ea646a4b00a08e5c4baddd6714870179779683c",
+  "consumer.py": "0bb6a7ad35f04e8810e6e5a1ffb3a982aae4052025af56e23bd2c8507502848c",
+  "numeric_sources/provenance_r3.py": "b87c7f42ff39eca3bd5d92a14c3ddffdb8a4a92ee28cd5e736328392d97877c9",
+  "numeric_sources/degenerate_r3.py": "0165e2014b5f338d2df4c6586b73fba932fce1e5bef38f8721b13c4e11a00a01",
+  "numeric_sources/decision.py": "92b78843545b733ef8a8fee3b7c5b9f8762a73f32472567720ce00d0774ae0b3",
+  "numeric_sources/metrics.py": "1b6a0f9d8a427895ef2e5ef6295a92c18e6f51265a2173aac2ceaccee86e73a9",
+  "numeric_sources/variants_r3.py": "76ac32e66581a4fbdaa5ca0cb0a25d24ab096b4281ee47f2ba292e944d70f5a2",
+  "numeric_sources/thresholds.py": "88c196459af8d27336549b6b7d3c9013208538423d5469afb882c2822c7e5de3",
+  "numeric_sources/core_r3.py": "bd9c30c4f7b040a88b42ba130b01721154a0bb9224ae25ad174ae7dfec811679",
+  "numeric_sources/common.py": "d2a39b65dd34c330c6972b2e77b66bab5d331f70f36000973107370eafa65a52",
+  "numeric_sources/split.py": "5cb8610091eded85d788e690e1231fc6cf8e8f258afd76daf7e155c2d929b416"
+}

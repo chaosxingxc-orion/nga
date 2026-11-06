@@ -1,0 +1,260 @@
+{
+  "schema": "matched-current-dev-consumer-config-v1",
+  "mode": "production",
+  "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+  "closure": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1",
+  "producer_config_sha256": "168ad5806028142e7f81f3dc232f8640157fa043d38c7aa5b4a2dccd9a76053f",
+  "producer_py_sha256": "3416d76eb32e61a43deeec1797401c01dd5544d8f59c7f04d875848fdc7a2179",
+  "legacy_consumer_sha256": "ebb72d61bd3c7d0605860893803944d0ec9e6e1382283ebd544b7c3b5e9f7903",
+  "numeric_sources": {
+    "common": "d2a39b65dd34c330c6972b2e77b66bab5d331f70f36000973107370eafa65a52",
+    "split": "5cb8610091eded85d788e690e1231fc6cf8e8f258afd76daf7e155c2d929b416",
+    "decision": "92b78843545b733ef8a8fee3b7c5b9f8762a73f32472567720ce00d0774ae0b3",
+    "thresholds": "88c196459af8d27336549b6b7d3c9013208538423d5469afb882c2822c7e5de3",
+    "metrics": "1b6a0f9d8a427895ef2e5ef6295a92c18e6f51265a2173aac2ceaccee86e73a9",
+    "core_r3": "bd9c30c4f7b040a88b42ba130b01721154a0bb9224ae25ad174ae7dfec811679",
+    "variants_r3": "76ac32e66581a4fbdaa5ca0cb0a25d24ab096b4281ee47f2ba292e944d70f5a2",
+    "degenerate_r3": "0165e2014b5f338d2df4c6586b73fba932fce1e5bef38f8721b13c4e11a00a01",
+    "provenance_r3": "b87c7f42ff39eca3bd5d92a14c3ddffdb8a4a92ee28cd5e736328392d97877c9"
+  },
+  "source_pins": {
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r0_code/thresholds.py": "88c196459af8d27336549b6b7d3c9013208538423d5469afb882c2822c7e5de3",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r0_code/common.py": "d2a39b65dd34c330c6972b2e77b66bab5d331f70f36000973107370eafa65a52",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r0_code/prompt.py": "84c99aec2817de3365e650c7c6c846aeddc1ec675b3321cf80be267a7557f0fc",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r0_code/decision.py": "92b78843545b733ef8a8fee3b7c5b9f8762a73f32472567720ce00d0774ae0b3",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r0_code/scorer.py": "558cf96fee82a083c370e754b85d190990b708a56ed2f71259f99d135f800db5",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r0_code/metrics.py": "1b6a0f9d8a427895ef2e5ef6295a92c18e6f51265a2173aac2ceaccee86e73a9",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r0_code/split.py": "5cb8610091eded85d788e690e1231fc6cf8e8f258afd76daf7e155c2d929b416",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/selection_evidence_r3.py": "655444d945b9e4d9570186a1b86f78338a36eef5c2552dfb3596812b0df4f38a",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/full_eval_r3.py": "16e8401a2b90dbafbdbe6f82f0bbfa25aab48e51fb4ed1b4ce842e25d88d0b8c",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/scorer_r3.py": "f1de708a28b47cdb513eb79c7306510df8312f6a92f96a75adcfe59ba0cf6a49",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/admissible_store_r3.py": "65b83675baa9e570a1912c7a7c117f06dae6bb559e16dc7853be260242b4ebbe",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/gdn_fast_ref.py": "7e68b36105d1c2e9e4b02c04c9a420e446cc3db0b7a6693d01d7f35cfab4788b",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/variants_r3.py": "76ac32e66581a4fbdaa5ca0cb0a25d24ab096b4281ee47f2ba292e944d70f5a2",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/k2_shared.py": "f461a5e77d393782489c5bcda78e27866ffe8b3a84a1e6213bcced44b7afed10",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/train_r3.py": "d6313c527b38b455ac4cc8b8f4fade972bcaabce1d3c1fa22fc57e4b3f064968",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/build_kev_sft.py": "bd5c1ada52811dcef35a6399ae2cf650b1bec860b4d83543b76aaafa12f173fc",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/core_r3.py": "bd9c30c4f7b040a88b42ba130b01721154a0bb9224ae25ad174ae7dfec811679",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/provenance_r3.py": "b87c7f42ff39eca3bd5d92a14c3ddffdb8a4a92ee28cd5e736328392d97877c9",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/clauses_r3.py": "8220cb6e4b00808258358d2262a411683cc7ad5920057f9de47cd1a8a46ae84d",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/r3_scoring_entry.py": "6d8d008b95bb200521915d75b9f6d3c45df5cc939841ffac9aadeab11e489437",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/degenerate_r3.py": "0165e2014b5f338d2df4c6586b73fba932fce1e5bef38f8721b13c4e11a00a01",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/r0rescore_verify.py": "3d310cd092e9c78839af6a3b68ae2f4d5e153eb5c2512b3a97cfe0c358d52028",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/eval_r3.py": "79e9a55f6673cc9aa3cca6f3c20d2e00a5e64cb3d3f8b8c976ebb8cf05865947",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/kev_aug.py": "696da28b06a7e902197806bfb4969586ee050877e93e49a744e7a1df4ebf4542",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/testlock_r3.py": "9b9b85220c493ee301c9bcdb7fd74d036e8cb1ed442500923f9ac41a3698cbba",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/track_t_r3.py": "834e872593f9bc6013f1d4131e33bfabb0194ac618abd66052be177a67217127",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/prechecks_r3.py": "1135c5eebc0f1380add95fa6b4c5b086fc6f7f88158dff8b7f6726393665e174"
+  },
+  "closure_manifest_sha256": "69ec7d7c78df080eff6645393a00c6ab3b485fd16e5f99a5c347dc866354b64a",
+  "adapter_wrapper_sha256": "e2df9e312d1109ed570038af84220a111ce6d41f5dd4d305b3b82ad03b3517f6",
+  "adapter_deployment_id": "rc1-track-k-cpu-separated-20261106",
+  "models": [
+    {
+      "id": "08b-k0",
+      "size": "0.8B",
+      "model": {
+        "base_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base",
+        "base_revision": "dc7cdfe2ee4154fa7e30f5b51ca41bfa40174e68",
+        "kind": "checkpoint",
+        "path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base",
+        "sha256": "601ef4f4410b50267af92fd06c3fa538f83b93847a538e7d01824563a77fe894"
+      },
+      "weight_shard_pins": {
+        "model.safetensors-00001-of-00001.safetensors": "c2b1e5a17d9c1e27685d92ed9b382911ebb99955ecd89052d1721241adfbab6c"
+      },
+      "asset_pins": {
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/.complete": "62b52c9db0dc5860230916a274fe5a4b13780642e871832d8b609d4b99de54f3",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/config.json": "b90b86f35c8e6925ef74ee04d0e758f0a845c83a42089ad82bbaa948de9b4204",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/tokenizer.json": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/tokenizer_config.json": "e611fbccc7c29ef3b1cafb1cb7ea548d189968632901d678fd62be68c47885de",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+      }
+    },
+    {
+      "id": "2b-k0",
+      "size": "2B",
+      "model": {
+        "base_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base",
+        "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+        "kind": "checkpoint",
+        "path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base",
+        "sha256": "16ecdd1e308738719dd3053dc3caa35b30ac9212bfa19a34c9b5f2e063855e5a"
+      },
+      "weight_shard_pins": {
+        "model.safetensors-00001-of-00001.safetensors": "928acbf11878c32185bbd863514d191769285065ab9ea14fbfe431303f5fdf2d"
+      },
+      "asset_pins": {
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/.complete": "cc1c00f1ab6f1b1fc7e1d0c74ef99ed01feac494c029df6f4b355350a31add2c",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/config.json": "ed1c1723241f23f7f4e23430759cbd7dcfb4103cbdfe052bfe7626b57c2615b4",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/tokenizer.json": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/tokenizer_config.json": "e611fbccc7c29ef3b1cafb1cb7ea548d189968632901d678fd62be68c47885de",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+      }
+    },
+    {
+      "id": "4b-k0",
+      "size": "4B",
+      "model": {
+        "base_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base",
+        "base_revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+        "kind": "checkpoint",
+        "path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base",
+        "sha256": "63e90604402524dfc41ad8882cf4268a389f5a963c7d2d574ea9d87cb686cc5c"
+      },
+      "weight_shard_pins": {
+        "model.safetensors-00001-of-00002.safetensors": "df547074dce70532a0493e5433152bd17a65efb89088cfabc2e7e2371a93d712",
+        "model.safetensors-00002-of-00002.safetensors": "590fbaac095dd31db886c322d9d2f7df47777966391acf306ddddc3e4e3a15ef"
+      },
+      "asset_pins": {
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base/.complete": "b854660a9a8268a79c18f44a32257ba1ec92ef41236884bdeaeead5ab6f3c1d6",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base/config.json": "ddc63e1c717afa86c865bb5e01313d89d72bb53b97ad4a8a03ba8510c0621670",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base/tokenizer.json": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base/tokenizer_config.json": "3891e840d7dc5fca0af33d3a25083a735e36fe06214e3f707024820cb6b9f89c",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base/merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base/vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+      }
+    },
+    {
+      "id": "9b-k0",
+      "size": "9B",
+      "model": {
+        "base_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base",
+        "base_revision": "68c46c4b3498877f3ef123c856ecfde50c39f404",
+        "kind": "checkpoint",
+        "path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base",
+        "sha256": "e24d5d10b1f4e6a0fb301bd11e7dfb6aea0eafb1adfe6ef59a37dda5c0cd16bc"
+      },
+      "weight_shard_pins": {
+        "model.safetensors-00001-of-00004.safetensors": "862bf7bba8a50145d19d0ae463931fae515284024736592a73a336bc4dfa54ee",
+        "model.safetensors-00002-of-00004.safetensors": "bace8e115e11ca93c22f0352a60d2fb0c76ac6d7d1c2993c143b7ad2b6c8868c",
+        "model.safetensors-00003-of-00004.safetensors": "63a021ac0011cbfc66166e77103327a8b45dee95832e36551f6b4c3337448959",
+        "model.safetensors-00004-of-00004.safetensors": "1a643bbed669266917b5058b5d3f660c03233599249ff7d8fd083decfe662ae0"
+      },
+      "asset_pins": {
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base/.complete": "d20243aa56fda3f2372def93b97439fada2abfe803df6e5fdf7f9b1235f21c8c",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base/config.json": "d0883072e01861ed0b2d47be3c16c36a8e81c224c7ffaa310c6558fb3f932b05",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base/tokenizer.json": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base/tokenizer_config.json": "3891e840d7dc5fca0af33d3a25083a735e36fe06214e3f707024820cb6b9f89c",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base/merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base/vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+      }
+    }
+  ],
+  "new_contract": {
+    "source": "experiments/RC1-FUNCTIONAL-DEV.md",
+    "scorer": {
+      "mode": "rightpad",
+      "dtype": "float32",
+      "token_budget": 16384,
+      "score_chunk_questions": 32,
+      "render": "record_name",
+      "dedup": true,
+      "record_grade": true,
+      "record_grade_problems": [],
+      "hf32": {
+        "conv": false,
+        "hf32": false,
+        "matmul": false
+      }
+    },
+    "current_train_image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+    "wrapper_verified": false,
+    "expected_populations": {
+      "decision-v7/dev": 1264,
+      "transfer-v4/dev": 656,
+      "decision-v7/calibration": 1148
+    },
+    "data_pins": {
+      "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/dev.jsonl": "b36f7544d8ef22b298eecbeb0e7cd26395529d6627a618127bed0fd7738ceab4",
+      "/mnt/cephfs/xingchao/experiments/jev/KEV/transfer-v4/dev.jsonl": "1afdbca928bfcd8a5c5ce43b041738a1b3cfd557dd64f99117c070abf35b49e9",
+      "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/calibration.jsonl": "c3eeeda72740fbde6fbcc28e1dff0928c98407242543d0bd8f0819497f502b69",
+      "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/dev.variants.jsonl": "3a6447dc60b00d7a291acb80c3aedfa3a76d8ba4283def3bf2592ea7afa970de",
+      "/mnt/cephfs/xingchao/experiments/jev/KEV/transfer-v4/dev.variants.jsonl": "039ecd0ed53b1698cc565d6784dcdc93a206386611e2c2a5599ddc1cb0741598"
+    },
+    "source_pins": [
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r0_code/prompt.py",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r0_code/scorer.py",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/core_r3.py",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/degenerate_r3.py",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/eval_r3.py",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/provenance_r3.py",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/scorer_r3.py",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/selection_evidence_r3.py"
+    ]
+  },
+  "lanes": [
+    {
+      "lane": "q0p8b-s2",
+      "size": "0.8B",
+      "seed": 2,
+      "new_adapter": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/q0p8b-s2/result/adapter",
+      "baseline_id": "08b-k0",
+      "comparison_status": "BLOCKED_PENDING_NEW_WRAPPER_DESCRIPTOR_AND_DEV_RESULTS"
+    },
+    {
+      "lane": "q0p8b-s3",
+      "size": "0.8B",
+      "seed": 3,
+      "new_adapter": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/q0p8b-s3/result/adapter",
+      "baseline_id": "08b-k0",
+      "comparison_status": "BLOCKED_PENDING_NEW_WRAPPER_DESCRIPTOR_AND_DEV_RESULTS"
+    },
+    {
+      "lane": "q2b-s2",
+      "size": "2B",
+      "seed": 2,
+      "new_adapter": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/q2b-s2/result/adapter",
+      "baseline_id": "2b-k0",
+      "comparison_status": "BLOCKED_PENDING_NEW_WRAPPER_DESCRIPTOR_AND_DEV_RESULTS"
+    },
+    {
+      "lane": "q2b-s3",
+      "size": "2B",
+      "seed": 3,
+      "new_adapter": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/q2b-s3/result/adapter",
+      "baseline_id": "2b-k0",
+      "comparison_status": "BLOCKED_PENDING_NEW_WRAPPER_DESCRIPTOR_AND_DEV_RESULTS"
+    },
+    {
+      "lane": "q4b-s2",
+      "size": "4B",
+      "seed": 2,
+      "new_adapter": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/q4b-s2/result/adapter",
+      "baseline_id": "4b-k0",
+      "comparison_status": "BLOCKED_PENDING_NEW_WRAPPER_DESCRIPTOR_AND_DEV_RESULTS"
+    },
+    {
+      "lane": "q4b-s3",
+      "size": "4B",
+      "seed": 3,
+      "new_adapter": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/q4b-s3/result/adapter",
+      "baseline_id": "4b-k0",
+      "comparison_status": "BLOCKED_PENDING_NEW_WRAPPER_DESCRIPTOR_AND_DEV_RESULTS"
+    },
+    {
+      "lane": "q9b-s2",
+      "size": "9B",
+      "seed": 2,
+      "new_adapter": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/q9b-s2/result/adapter",
+      "baseline_id": "9b-k0",
+      "comparison_status": "BLOCKED_PENDING_NEW_WRAPPER_DESCRIPTOR_AND_DEV_RESULTS"
+    },
+    {
+      "lane": "q9b-s3",
+      "size": "9B",
+      "seed": 3,
+      "new_adapter": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/q9b-s3/result/adapter",
+      "baseline_id": "9b-k0",
+      "comparison_status": "BLOCKED_PENDING_NEW_WRAPPER_DESCRIPTOR_AND_DEV_RESULTS"
+    }
+  ],
+  "k0_root": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/matched-k0-clean-dev",
+  "adapter_root": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/followup-cpu-separated-rc1",
+  "poll_seconds": 600,
+  "cpu_workers": 1,
+  "output": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/matched-current-dev-comparison",
+  "review": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/matched-current-dev-consumer-source/REVIEW.json"
+}

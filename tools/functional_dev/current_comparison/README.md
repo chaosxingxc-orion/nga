@@ -1,0 +1,11 @@
+# Current-runtime RC1 DEV comparison
+
+Exact source snapshot independently reviewed and deployed on175 on2026-11-06. This package consumes the eight fixed terminal3116 adapter DEV/calibration operands and four matched-runtime Base operands. Numerical metrics remain separate by size, suite and seed; complete pending operands are required before paired effects. No TEST or NPU execution is performed by this consumer.
+
+Run the configured HOST-RELAUNCH.sh only after checking the recorded HOST-LAUNCH process identity and existing terminal state. It targets the deployed source at functional-20261106/matched-current-dev-consumer-source and output matched-current-dev-comparison. Do not start a second instance while the recorded host/watcher is live. Existing watcher review input must match these exact bytes; this repository snapshot is not a new approval or launch.
+
+Recovery preserves original queue failures. Only exact pre-inference publication permission errors with matching recovery disposition and unchanged producer bindings can become pending retry; completed retries require validated full phase artifacts. Unknown errors and actual failed phases remain failures. Existing numerical and actual container checks are retained.
+
+CPU runner has durable exit, process identity and watchdog-compatible heartbeat, signal forwarding and600-second monitoring. The first real deployment status was INCOMPLETE_PENDING with12 pending operands and4 pending retries; this is not a numerical result.
+
+SOURCE-PINS-DEPLOY.json records this deployment snapshot. SOURCE-PINS.json and SOURCE-ORIGINS.json preserve inherited baseline provenance and must not be confused with current approval. Independent review passed12 recovery/watcher tests,41 baseline tests and3 focused adversarial cases; no actual DEV gain was asserted. Operational receipts and review process files stay local; latest conclusions live in the GitHub Wiki.
