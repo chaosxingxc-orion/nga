@@ -25,19 +25,30 @@
       "incoming_workspace": ".local/preparations/engineering-supervisor-integrated-20261106-v17",
       "review": ".local/dispatch/engineering-supervisor-integrated-astra-20261106-v17/RESULT.json",
       "integrated": false,
-      "accepted_for_release": false
+      "accepted_for_release": false,
+      "candidate_workspace": ".local/releases/engineering-base-rc1/components/supervisor",
+      "integration_state": "unaccepted_working_copy_imported",
+      "repair_task": ".local/releases/engineering-base-rc1/tasks/supervisor/implement",
+      "candidate_review": ".local/releases/engineering-base-rc1/tasks/supervisor/review/RESULT.json",
+      "incoming_verdict": "changes_required_normal_cli_absent"
     },
     "capture": {
       "incoming_workspace": ".local/preparations/engineering-capture-ledger-implementation-20261106-v19",
       "review": ".local/dispatch/engineering-capture-ledger-implementation-astra-20261106-v19/RESULT.json",
       "integrated": false,
-      "accepted_for_release": false
+      "accepted_for_release": false,
+      "integration_state": "actual_ledger_delivered_review_running_original_timing_evidence_mismatch"
     },
     "snapshot": {
       "incoming_workspace": ".local/preparations/engineering-snapshot-custody-chain-20261106-v3",
       "review": ".local/dispatch/engineering-snapshot-custody-chain-astra-20261106-v3/RESULT.json",
       "integrated": false,
-      "accepted_for_release": false
+      "accepted_for_release": false,
+      "candidate_workspace": ".local/releases/engineering-base-rc1/components/snapshot",
+      "integration_state": "unaccepted_working_copy_imported",
+      "repair_task": ".local/releases/engineering-base-rc1/tasks/snapshot/implement",
+      "candidate_review": ".local/releases/engineering-base-rc1/tasks/snapshot/review/RESULT.json",
+      "incoming_verdict": "rejected_combined_lifecycle_absent"
     }
   },
   "blocking_issues": [
@@ -45,19 +56,22 @@
       "id": "RC-01",
       "title": "Complete configured supervisor and worker/gate lifecycle",
       "state": "open",
-      "component": "supervisor"
+      "component": "supervisor",
+      "current_action": "Repair default production integration in fixed supervisor workspace; predecessor review rejected"
     },
     {
       "id": "RC-02",
       "title": "Finish actual capture ledger, boundary accounting and independent validation",
       "state": "open",
-      "component": "capture"
+      "component": "capture",
+      "current_action": "Independent ledger review; original timing samples overwritten, no historical timing acceptance"
     },
     {
       "id": "RC-03",
       "title": "Finish protected copy/verifier custody, resume and external identity binding",
       "state": "open",
-      "component": "snapshot"
+      "component": "snapshot",
+      "current_action": "Integrate producer custody and terminal recovery in fixed snapshot workspace"
     },
     {
       "id": "RC-04",
@@ -79,5 +93,11 @@
     }
   ],
   "nonblocking_work": "backlog; cannot create a new version or expand current release gate",
-  "migration": "only after all existing policy gates accepted; preserve evidence and old image at resumable boundary"
+  "migration": "only after all existing policy gates accepted; preserve evidence and old image at resumable boundary",
+  "evidence_rules": {
+    "review_inputs": "freeze source and reports; execute copies only",
+    "measurement_output": "new exclusive attempt output under rc1/evidence; never overwrite retained samples",
+    "timing_scope": "original summary cannot be validated using replacement reviewer samples",
+    "affected_gate_invalidation": "changed source or evidence invalidates affected acceptance only; keep historical findings"
+  }
 }
