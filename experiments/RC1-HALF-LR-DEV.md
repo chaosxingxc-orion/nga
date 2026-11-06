@@ -38,6 +38,8 @@ All following criteria are conjunctive. They define this bounded exploratory dec
 
 5. Both seeds complete exact terminal3116 and all registered DEV panels; any incomplete lane is unavailable, no replacement. Failure of any conjunct is not supported by this bounded DEV experiment; no tuning ladder follows automatically.
 
+For avoidance of ambiguity before execution, source-count retention and NOTA both-right retention above apply separately under **both raw and R0** conventions. Accepted baseline source counts are identical under these rules. Decision NOTA baseline both-right is47/60 (seed2),50/60 (seed3); transfer is16/36,15/36 respectively. These explicit baseline operands clarify the unchanged retention rule and do not introduce new thresholds.
+
 Any failed conjunct means the stated bounded improvement is unsupported. Missing output remains unavailable. Publish adverse results; do not use outcomes to relax criteria. Positive evidence does not prove generalization beyond these DEV populations or an overtraining mechanism.
 
 ## Execution and efficiency
