@@ -1,0 +1,77 @@
+{
+  "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+  "root": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106",
+  "train": "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/train.jsonl",
+  "jobs": [
+    {
+      "id": "q0p8b-s2",
+      "chip": 0,
+      "size": "0.8B",
+      "seed": 2,
+      "config": "q0p8b-s2.json",
+      "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base"
+    },
+    {
+      "id": "q0p8b-s3",
+      "chip": 1,
+      "size": "0.8B",
+      "seed": 3,
+      "config": "q0p8b-s3.json",
+      "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base"
+    },
+    {
+      "id": "q2b-s2",
+      "chip": 2,
+      "size": "2B",
+      "seed": 2,
+      "config": "q2b-s2.json",
+      "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base"
+    },
+    {
+      "id": "q2b-s3",
+      "chip": 3,
+      "size": "2B",
+      "seed": 3,
+      "config": "q2b-s3.json",
+      "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base"
+    },
+    {
+      "id": "q4b-s2",
+      "chip": 4,
+      "size": "4B",
+      "seed": 2,
+      "config": "q4b-s2.json",
+      "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base"
+    },
+    {
+      "id": "q4b-s3",
+      "chip": 5,
+      "size": "4B",
+      "seed": 3,
+      "config": "q4b-s3.json",
+      "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base"
+    },
+    {
+      "id": "q9b-s2",
+      "chip": 6,
+      "size": "9B",
+      "seed": 2,
+      "config": "q9b-s2.json",
+      "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base"
+    },
+    {
+      "id": "q9b-s3",
+      "chip": 7,
+      "size": "9B",
+      "seed": 3,
+      "config": "q9b-s3.json",
+      "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base"
+    }
+  ],
+  "total_steps": 3116,
+  "smoke_steps": 2,
+  "monitor_seconds": 600,
+  "full_train_after_smoke": true,
+  "closure": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1",
+  "deployment_id": "rc1-track-k-20261106-v1"
+}
