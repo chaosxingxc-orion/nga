@@ -3,13 +3,19 @@
 记账规则：外环/内环发现的 MINOR 一律不入修复循环——修 B/M + 同族穷举，
 minor 只记账。本文件即台账；每轮新增追加，不删除（退役另标）。
 
-**清偿证明协议（R55 后立法——虚假清偿八次实证的结构性退役）**：
-从 R56 起每条 M/B 清偿的台账条目**必须内嵌突变命令 token**——形式
-`[mutation-proof: <可复跑命令> → FAIL]`。没有 token 的清偿条目 =
-**自动 M**（空白子审核火力面新增此项）。token 必须在提交前当轮跑过
-且输出含 FAIL——声称跑过而 grep/测试结果可当场证伪（R55 M-1 形态）
-= 比虚假清偿更重半级（伪造验证证据级）。纯文本 token 仍可伪造——
-0.2.0 批将其机器解析（CI 可跑）后彻底不可伪造。
+**清偿证明协议（R55 后立法；R57 C2' 机器化——虚假清偿九次实证的结构性退役）**：
+从 R56 起每条 M/B 清偿的台账条目**必须内嵌突变命令 token**，规范语法两形：
+`[mutation-proof: <cmd> → FAIL]`（cmd 重跑退出码必须 ≠0——突变后测试必须红）或
+`[mutation-proof: <cmd> → OK]`（退出码必须 =0——验证脚本自身断言全红）。没有**未退休**
+token 的清偿条目 = **自动 M**。token 必须在提交前当轮跑过；声称跑过而结果可当场证伪
+（R55 M-1 形态）= 比虚假清偿更重半级（伪造验证证据级）。载体退休时原 token 加
+`[retired-by: <commit> — 理由]` 标记并由承接 token 接力（退休 token 不参与在场/执行检查）。
+**机器执行（R57 C2'，TestSettlementAudit）**：每枚活跃 token 在工作树副本（git ls-files
+全量拷贝，原件零接触）中以仓根为 cwd 重跑、断言退出码——缺席/语法漂移/echo-FAIL 形/
+载体陈旧四类全部机器可抓（本批即抓到 4 枚 C1' 退休导致的陈旧 token）；`go test -short`
+跳过；审计本体的篡改电池在 tools/settlement-audit-tamper.py。**信任边界（诚实）**：
+机器解析杀「缺席/语法/执行失真/陈旧」；恶意作者的语义假 token（如 `true → OK`）不可机检
+——信任根=仓库提交者，与任何 CI 同界；OK 形的漂移保护来自验证脚本做真活。
 
 ## R20-R21 前转入（R18 内环六 m + R19 内环二 m 的遗留）
 
@@ -461,8 +467,8 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
   +re-route 形）。docstring_pin 形态从「doc 短语钉」泛化为「守卫调用链钉」——连接层
   由此获得**文字钉红面**（R56 复审 M-2 定谳：非「结构性不可表达」——穷举不可达，
   0.2.0 机器解析形态才可执行化）。六形突变电池全红（token 见下条复审清偿记账）。
-  [mutation-proof: cd go && python3 -c $'import pathlib\np=pathlib.Path("internal/e2e/e7_canary_test.go");s=p.read_text();p.write_text(s.replace("\\tcanaryMaskingFixtureGuard(t, stream)\\n\\treturn stream","\\treturn stream"))' && go test ./internal/e2e/ -run TestE7b_GuardCallChainPinned -count=1 → 输出含 FAIL（M-A）]
-  [mutation-proof: cd go && python3 -c $'import pathlib\np=pathlib.Path("internal/e2e/e7_canary_test.go");s=p.read_text();p.write_text(s.replace("\\tif err := canaryMaskingFixtureCheck(stream); err != nil {\\n\\t\\tt.Fatal(err)\\n\\t}","\\t_ = stream"))' && go test ./internal/e2e/ -run TestE7b_GuardCallChainPinned -count=1 → 输出含 FAIL（M-B）]
+  [mutation-proof: cd go && python3 -c $'import pathlib\np=pathlib.Path("internal/e2e/e7_canary_test.go");s=p.read_text();p.write_text(s.replace("\\tcanaryMaskingFixtureGuard(t, stream)\\n\\treturn stream","\\treturn stream"))' && go test ./internal/e2e/ -run TestE7b_GuardCallChainPinned -count=1 → FAIL] [retired-by: b3fd7bf — C1' 退休了文字钉与旧构造器；承接面=十形电池 drop_call/body_noop]
+  [mutation-proof: cd go && python3 -c $'import pathlib\np=pathlib.Path("internal/e2e/e7_canary_test.go");s=p.read_text();p.write_text(s.replace("\\tif err := canaryMaskingFixtureCheck(stream); err != nil {\\n\\t\\tt.Fatal(err)\\n\\t}","\\t_ = stream"))' && go test ./internal/e2e/ -run TestE7b_GuardCallChainPinned -count=1 → FAIL] [retired-by: b3fd7bf — 同上；承接面=十形电池 discard_result/swallow_error]
   （双 token 为可复跑命令形态〔R56 复审 m-3 后重写，原散文形态作废〕，均在收紧后的
   钉上当轮实跑、输出含 FAIL；还原后 e2e 全包绿、gofmt 干净。）
 - **方法论入账（第 64/65 实证）**：**t.Fatal 期望不可断言**（期望守卫 fatal 的测试在
@@ -478,9 +484,11 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 > 无病漏网、无守卫在现状代码下失效。
 
 - **M-1（接线钉「parameter is wired」恒真断言——修恒真的替换件自带新恒真，R55 M-2 教训一轮后复发）**：参数化布线断言传的是**默认夹具本体**+len 检查——「参数被忽略恒返默认」与「参数被用」两态皆 5 事件，恒真；失败消息恰写着「not wired」正是它检不出的病。空白子实证：构造器改忽略参数（守卫调用文字保留）→整包全绿。已修：传入**可区分健康变体**（默认+尾加 canary@5 六事件）+逐事件投影相等（seq/type/outcome——Event 含 slice 字段不可 ==）。
-  [mutation-proof: cd go && python3 -c $'import pathlib\np=pathlib.Path("internal/e2e/e7_canary_test.go");s=p.read_text();p.write_text(s.replace("\\tif len(streams) > 0 {\\n\\t\\tstream = streams[0]\\n\\t} else {\\n\\t\\tstream = canaryMaskingStream()\\n\\t}","\\t_ = streams\\n\\tstream = canaryMaskingStream()"))' && go test ./internal/e2e/ -run TestE7b_GuardedStreamWired -count=1 → 输出含 FAIL]
+  [mutation-proof: cd go && python3 -c $'import pathlib\np=pathlib.Path("internal/e2e/e7_canary_test.go");s=p.read_text();p.write_text(s.replace("\\tif len(streams) > 0 {\\n\\t\\tstream = streams[0]\\n\\t} else {\\n\\t\\tstream = canaryMaskingStream()\\n\\t}","\\t_ = streams\\n\\tstream = canaryMaskingStream()"))' && go test ./internal/e2e/ -run TestE7b_GuardedStreamWired -count=1 → FAIL] [retired-by: b3fd7bf — 接线钉退休；承接面=十形电池 ignore_param]
+  [mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only ignore_param → OK]
 - **M-2（「结构性红面」措辞过强——文字钉被升格为结构性）**：批件 3b/件 7 用「结构性」「真承担者」，但 re-route 形突变（`_ = canaryMaskingFixtureCheck(stream)`——调用文字保留、错误忽略，R54 M-2 同族编辑）守卫功能性死亡而钉绿、行为面绿——退化仍**可表达**，与模式文档头注「换结构让守卫退化不可表达」（2026-11-02 立法语义）直接冲突。已修：钉收紧两跳（wrapper 跳钉完整 if 块「调用+错误传播到 t.Fatal」——`_ =` 形与吞错形同灭；构造器跳钉一 tab 活语句形——if-false 两 tab 埋葬形同灭）+措辞全面降格（「文字钉」+穷举不可达边界声明；可执行化归 0.2.0 机器解析形态）。
-  [mutation-proof: cd go && python3 -c $'import pathlib\np=pathlib.Path("internal/e2e/e7_canary_test.go");s=p.read_text();p.write_text(s.replace("\\tif err := canaryMaskingFixtureCheck(stream); err != nil {\\n\\t\\tt.Fatal(err)\\n\\t}","\\t_ = canaryMaskingFixtureCheck(stream)"))' && go test ./internal/e2e/ -run TestE7b_GuardCallChainPinned -count=1 → 输出含 FAIL]
+  [mutation-proof: cd go && python3 -c $'import pathlib\np=pathlib.Path("internal/e2e/e7_canary_test.go");s=p.read_text();p.write_text(s.replace("\\tif err := canaryMaskingFixtureCheck(stream); err != nil {\\n\\t\\tt.Fatal(err)\\n\\t}","\\t_ = canaryMaskingFixtureCheck(stream)"))' && go test ./internal/e2e/ -run TestE7b_GuardCallChainPinned -count=1 → FAIL] [retired-by: b3fd7bf — 同上；承接面=十形电池 discard_result]
+  [mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only discard_result → OK]
 - **m-1（计数三处失配）**：模式文档「五件套/八轮/九判据」vs 表 7 行/复审 9 轮/判据 11 行（R56 加件 6/7 行与判据行后未同步）。已修：七件形态/九轮/十一条（ledger 批件 2 同步）。
 - **m-2（件 2 行无时间限定自相矛盾）**：「wrapper 掏空→红面为零」是 pre-件-7 历史事实，与件 7 行「M-B 双面红」同表冲突。已修：pre-件-7 标注+「件 7 落地后掏空由源码钉红」。
 - **m-3（token 散文形态不可复跑）**：批件 3b 原 token 突变部分是散文（「掐调用」「no-op 化」），复跑需人工重建突变。已修：重写为命令形态（批件 3b 双 token），四 token（M-A/M-B/PI/RR1）全部原样复跑、输出含 FAIL。
@@ -518,10 +526,10 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 每形后自动还原源码；基线红则拒跑；锚点失配即报「电池的锚也是形态绑定」这一自身边界。
 
 ```
-[mutation-proof: cd agent-festival && python3 tools/guard-battery.py → PASS, all 10 mutations turned the probes red]
-[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only seventh_early_return → 行含 FAIL red (6 subtest(s))]
-[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only ignore_param → 行含 FAIL red (8 subtest(s))]
-[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only hardcoded_err → 行含 FAIL red (4 subtest(s))（反向形：接受面红）]
+[mutation-proof: cd agent-festival && python3 tools/guard-battery.py → OK]
+[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only seventh_early_return → OK]
+[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only ignore_param → OK]
+[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only hardcoded_err → OK]（反向形：接受面红）
 ```
 
 十形与红面子测试数（当轮实跑）：
@@ -564,3 +572,54 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **70**：**电池的锚也是形态绑定**（本脚本自身边界）——`guard-battery.py` 以构造器源码片段
   为锚，构造器被改写时脚本会主动报错而非静默跳过；这是自我诚实，不是免疫：真正形式无关的
   是探针，电池只是探针的回归语料。
+
+## R57 续记账（2026-11-06，C2' 落地——清偿证明协议机器化：TestSettlementAudit）
+
+> 元分析 v2 第 2 步。协议从「文本要求」升为「机器执行的回归测试」——台账里每一枚
+> token 从此由 `go test ./...` 自动重跑，文本声明与执行现实的分叉在提交面即被抓。
+
+- **机制（internal/settlement，TestSettlementAudit）**：
+  (1) **在场**：R56 起每条 B/M 清偿 bullet 必须有 ≥1 枚**未退休** token（缺席=自动 M，
+  机器执行而非火力面约定）；
+  (2) **语法**：只认两形（FAIL 形=cmd 重跑退出码≠0，OK 形=退出码=0）——叙述性期望
+  （「输出含 FAIL」）=语法违规；行内反引号包裹的
+  语法示例是文档不是 token（剥除后再解析——否则 `<cmd>` 占位符退出 127 会对 → FAIL 假通过）；
+  (3) **执行**：真审计语境下每枚活跃 token 在**工作树副本**中重跑（git ls-files 全量
+  拷贝到 t.TempDir，原件零接触——token 会突变源码）；harness 语境（SETTLEMENT_AUDIT_LEDGER
+  覆盖，即篡改电池的内层）用普通临时目录——合成 token 与 cwd 无关，且 harness 可能嵌在
+  无 .git 的副本内，两语境的分界显式声明，断言退出码符合声明——`echo FAIL` 形（退出码 0 冒充
+  FAIL）被退出码检查直接杀死；
+  (4) **陈旧报警**：载体被改导致 token 不再复现声明结果 → 红——本批落地前实测抓到
+  **4 枚陈旧 token**（C1' 退休了 R56-era 四枚 token 的载体：文字钉与接线钉），全部以
+  `[retired-by: b3fd7bf]` 退休并由承接 token（十形电池对应形）接力——机器审计的第一次
+  实战就是抓立法者自己的陈旧账；
+  (5) **递归护栏**：token 子进程带 `SETTLEMENT_AUDIT_NESTED=1`，嵌套审计降级为
+  在场+语法（一层封顶）——自指 token（审计引用审计）不可能无限递归；
+  (6) **协议钉**：台账头部的协议段落被删 → 红（scope 空/协议段消失即 Fail-loud）。
+- **审计本体的红面（tools/settlement-audit-tamper.py）**：合成台账篡改电池——违规台账
+  （缺席/echo假/false-OK/语法漂移/退休跳过五面）必须红且四类 kind 逐一被报；对照台账
+  必须绿。合成 token 只用 echo/false/exit N——结构性无递归。自测七面另有进程内快版
+  （TestSettlementAuditSelfTest）。
+- **信任边界（诚实声明）**：机器解析杀四类（缺席/语法/执行失真/陈旧）；**恶意作者的
+  语义假 token（`true → OK`）不可机检**——信任根=仓库提交者，与任何 CI 同界；OK 形的
+  漂移保护来自验证脚本做真活（电池真跑突变），FAIL 形的假 token 被退出码直接杀死。
+- **成本声明**：TestSettlementAudit 全跑 ~17s（构建缓存热；冷 ~60s）——`go test -short`
+  跳过。原「0.2.0 批机器解析」提前落地。
+- **过程发现（机器审计首跑三连抓——猎物全是立法者自己）**：
+  (a) 新段落 prose 的反引号 span 跨行（`[mutation-proof:` 开在行尾、闭在下一行）→ 语法
+  违规被机器抓——熔块教训的当轮复发，机器面前无豁免；
+  (b) self-token 写成 `cd agent-festival && go test ./internal/settlement/`（go.mod 实在
+  agent-festival/go）→ token 自身退出 1 被机器抓——「可复跑」不是修辞是退出码；
+  (c) tamper 内层审计嵌在无 .git 的档案副本中 → git ls-files fatal 污染对照例——语境
+  切换点（harness/真审计）必须显式声明，修为 OVERRIDE 语境用普通临时目录。
+- **方法论入账（第 71-75 实证）**：**反引号是文档不是 token**（语法示例若不被剥除，
+  占位符命令的 127 退出码会对 → FAIL 假通过——文档引用面与执行面的分界必须机器化）；
+  **机器审计的第一批猎物是立法者的陈旧账**（协议机器化的当轮就抓到 4 枚载体已退休的
+  token——声明与现实的分叉不在立法时出现，在载体演化时出现，这正是陈旧报警的价值）；
+  **反引号 span 不得跨行**（73——跨行 span 在逐行剥除器下退化为裸标记，prose 引用语法
+  示例必须单行闭合）；**token 的「可复跑」由退出码定义**（74——路径错一位即退出 1，
+  机器不原谅修辞）；**语境切换点必须显式声明**（75——harness/真审计的执行面分界不声明，
+  内层 fatal 会以错误理由变红，红不等于对）。
+
+[mutation-proof: cd agent-festival/go && go test ./internal/settlement/ -run TestSettlementAudit -count=1 → OK]
+[mutation-proof: cd agent-festival && python3 tools/settlement-audit-tamper.py → OK]
