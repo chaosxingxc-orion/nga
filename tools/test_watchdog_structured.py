@@ -53,6 +53,24 @@ class StructuredWatchdog(unittest.TestCase):
         r=self.result();self.assertEqual(r['state'],'running')
         self.assertIsNone(r['progress']['done']);self.assertIsNone(r['perf'])
 
+    def test_queue_iso_timestamp(self):
+        import datetime
+        for age, state in ((10, 'running'), (4000, 'stalled')):
+            stamp=datetime.datetime.fromtimestamp(NOW-age, datetime.timezone.utc).isoformat()
+            self.put('heartbeat.json',dict(utc=stamp,completed=0,total=4))
+            result=self.result()
+            self.assertEqual(result['state'],state)
+            self.assertEqual(result['heartbeat_epoch'],NOW-age)
+            self.assertEqual(result['progress']['done'],0)
+
+    def test_queue_iso_invalid_cannot_use_mtime(self):
+        for stamp in ('not-a-date','2026-11-06T12:34:05',None,False):
+            self.put('heartbeat.json',dict(utc=stamp,completed=0,total=4))
+            self.assertEqual(self.result()['state'],'unknown')
+        self.put('heartbeat.json',dict(utc='2026-11-06T12:34:05+00:00',
+                                      utc_seconds=None,completed=0,total=4))
+        self.assertEqual(self.result()['state'],'unknown')
+
     def test_invalid_json_not_fresh_mtime(self):
         bad=[dict(completed=True),dict(total=False),dict(completed=46321),
              dict(utc_seconds=float('nan')),dict(questions_per_second_per_chip=float('inf')),

@@ -8,6 +8,7 @@ report.json, and writes a small, bounded digest.json + digest.md. See tools/READ
 Run with:  python3 -P tools/watchdog.py [--root DIR ...] [--out-dir DIR] [--watch --interval 600]
 """
 import copy
+import datetime
 from decimal import Decimal, InvalidOperation
 import argparse
 import calendar
@@ -532,6 +533,14 @@ def read_json_heartbeat(path):
         if not isinstance(obj, dict):
             raise ValueError("heartbeat is not an object")
         ts = obj.get("utc_seconds")
+        if "utc_seconds" not in obj and "utc" in obj:
+            value = obj["utc"]
+            if not isinstance(value, str):
+                raise ValueError("invalid ISO utc")
+            parsed = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+            if parsed.tzinfo is None or parsed.utcoffset() is None:
+                raise ValueError("ISO utc requires timezone")
+            ts = parsed.timestamp()
         if type(ts) not in (int, float) or not math.isfinite(ts) or ts <= 0:
             raise ValueError("invalid utc_seconds")
         done_keys = [k for k in ("completed", "completed_items", "completed_questions") if k in obj]
