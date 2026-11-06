@@ -1,0 +1,10 @@
+{
+  "consumer": "/work/compare_dev.py",
+  "consumer_sha256": "ebb72d61bd3c7d0605860893803944d0ec9e6e1382283ebd544b7c3b5e9f7903",
+  "verdict": "/work/VERDICT.json",
+  "verdict_sha_field": "approved_consumer_sha256",
+  "catalog": "/work/BASE-REUSE.json",
+  "run_root": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/followup-cpu-separated-rc1",
+  "output": "/output",
+  "fallback_seconds": 600
+}
