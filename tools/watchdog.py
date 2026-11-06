@@ -549,6 +549,17 @@ def read_json_heartbeat(path):
             raise ValueError("ambiguous progress fields")
         done = obj[done_keys[0]] if done_keys else None
         total = obj[total_keys[0]] if total_keys else None
+        recovery_attempts = False
+        if not done_keys and set(obj) == {"utc", "results", "total"} and type(total) is int and total == 8:
+            results = obj["results"]
+            if not isinstance(results, dict) or len(results) > total or any(
+                not isinstance(k, str) or not k or not isinstance(v, str)
+                or not (v == "complete" or v.startswith("FAILED: "))
+                for k, v in results.items()
+            ):
+                raise ValueError("invalid recovery results")
+            done = len(results)
+            recovery_attempts = True
         if done is not None and (type(done) is not int or done < 0):
             raise ValueError("invalid completed count")
         if total is not None and (type(total) is not int or total <= 0 or done is None or done > total):
@@ -569,7 +580,8 @@ def read_json_heartbeat(path):
             perf = dict(tok_s=None, ex_s=rate, ex_unit="q", scope="chip", window=None,
                         chips=chips, procs_on_chip=None, reserved_gib=memory, step_s=None, chip_id=None)
         return dict(ts=ts, done=done, total=total, counters={}, fields={}, perf=perf,
-                    source=JSON_HEARTBEAT, snapshot=True, phase=obj.get("phase")), None
+                    source=JSON_HEARTBEAT, snapshot=True, phase=obj.get("phase"),
+                    recovery_attempts=recovery_attempts), None
     except (OSError, ValueError, TypeError) as e:
         return None, "JSON heartbeat invalid: " + str(e)[:100]
 
@@ -635,6 +647,9 @@ def summarize_progress(samples, rundir, cfg, declared=None, uniform=True):
         return prog
     last = withdone[-1]
     prog["done"] = last["done"]
+    if last.get("recovery_attempts"):
+        prog["note"] = "terminal lane attempts, including failures; not NPU progress or success"
+        prog["unit"] = "terminal attempts (includes failures)"
     prog["counters"] = dict(list(last["counters"].items())[:6]) or None
     prog["fields"] = dict(list(last["fields"].items())[:6]) or None
     if declared:
@@ -2922,6 +2937,8 @@ def _prog_cell(p):
         s += "/%d %s" % (p["total"], ">100%" if p["done"] > p["total"] else "%.0f%%" % (p["percent"] or 0))
     else:
         s += " (total unknown)"
+    if p.get("unit"):
+        s += " " + p["unit"]
     if p.get("rate_per_min") is not None:
         s += " %g/min" % p["rate_per_min"]
     if p.get("eta_quality") == "suppressed":
