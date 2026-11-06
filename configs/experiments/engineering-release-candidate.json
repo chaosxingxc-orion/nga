@@ -106,7 +106,7 @@
       "title": "Validate four-family NPU numerical behavior, resume and throughput",
       "state": "open",
       "component": "integration",
-      "current_action": "Independent bind-review rejects eight continuation output ownership mismatches, unconsumed resource limits, incomplete receipt/closure/default CLI. Comparator running; default CLI/ownership then resource consumer implementation and reviews queued in same rc1"
+      "current_action": "After config/resource/comparator repairs, verify full-byte Qwen3.5 0.8B/2B/4B/9B and TRAIN custody on 175, then prepare/review executable NPU DAG; no launch from placeholder manifests"
     },
     {
       "id": "RC-06",
@@ -130,7 +130,8 @@
       "supervisor/pipeline-review",
       "snapshot/mode-review",
       "capture/target-review",
-      "npu/resource-review"
+      "npu/resource-review",
+      "npu/device-review"
     ],
     "required_artifact": "reproducible_image_closure_and_pinned_host_companion_plus_configs",
     "release_authorized_by_task_exit": false,
@@ -152,7 +153,11 @@
     "npu_default_config": ".local/releases/engineering-base-rc1/tasks/npu/default-config",
     "npu_default_review": ".local/releases/engineering-base-rc1/tasks/npu/default-review",
     "npu_resource_enforcement": ".local/releases/engineering-base-rc1/tasks/npu/resource-enforcement",
-    "npu_resource_review": ".local/releases/engineering-base-rc1/tasks/npu/resource-review"
+    "npu_resource_review": ".local/releases/engineering-base-rc1/tasks/npu/resource-review",
+    "npu_target_custody": ".local/releases/engineering-base-rc1/tasks/npu/target-custody",
+    "npu_custody_review": ".local/releases/engineering-base-rc1/tasks/npu/custody-review",
+    "npu_device_prepare": ".local/releases/engineering-base-rc1/tasks/npu/device-prepare",
+    "npu_device_review": ".local/releases/engineering-base-rc1/tasks/npu/device-review"
   },
   "efficiency_queue": {
     "prepare": ".local/releases/engineering-base-rc1/tasks/efficiency/prepare",
