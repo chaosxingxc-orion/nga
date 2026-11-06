@@ -269,10 +269,11 @@ func TestE7b_HalfRealStreamFace(t *testing.T) {
 	stream = append(stream, canaryEvent(len(stream), "op-c"))
 	stream = append(stream, ledger.Event{EventType: "effect", ArbitrationSeq: int64(len(stream)), Outcome: ledger.Outcome{Status: "dispatched"}})
 	stream = append(stream, canaryEvent(len(stream), "op-c"))
-	// fixture precondition: the canary is alive
-	if canarySilent(stream) {
-		t.Fatal("half-real fixture error — the canary died")
-	}
+	// fixture precondition (R51 M-1: the shared, status-aligned guard —
+	// R50 m-2 claimed this swap but never landed it; the status-blind
+	// canarySilent form misdiagnosed a drifted canary as "disease
+	// narrower than pinned" here)
+	canaryMaskingFixtureGuard(t, stream)
 	// the filter closes the masking on the half-real stream too
 	if died := guardDied(stream, "rejected", canaryPrefix); !died {
 		t.Fatal("E7b half-real: filtered guardDied missed the business guard's death — the canary masks even on machine-form streams")
@@ -345,6 +346,14 @@ func canaryMaskingFixtureGuard(t *testing.T, stream []ledger.Event) {
 	// the green face misattributes "the canary still masks it")
 	if lastBusiness > lastTraffic {
 		t.Fatal("fixture error — no traffic after the business rejection; the masking dual requires the death shape (rejection, then quiet under traffic)")
+	}
+	// R51 M-2: the third ordering — traffic ≤ canary (R50's status
+	// alignment DROPPED the positional guard canarySilent used to carry:
+	// the disease face needs lastIntercept_U = lastCanary ≥ lastTraffic,
+	// otherwise "not died" flips to "died" and the pin misdiagnoses a
+	// fixture drift as "the disease is gone")
+	if lastTraffic > lastCanary {
+		t.Fatal("fixture error — the canary went silent under traffic; the masking dual requires the canary alive at the tail")
 	}
 }
 

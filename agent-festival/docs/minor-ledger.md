@@ -388,3 +388,9 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **m-3（双注释段三提交字节不变——两轮台账宣称合并而位点无 hunk）**：虚假清偿族又一实证。已修：真合并为一段（三件套 pin+ATTRIBUTION_DIVERGENCE 规则）。
 - **m-4/m-5**：夹具 doc「guards live here」改真（住隔壁、调用方必须显式调）；HalfReal 开头空行删。
 - **方法论入账（第 53/54 实证）**：守卫谓词集要按对偶的真实定义式枚举（M-1——三条次序少一条=「not died」归因歧义）；「注释合并」类零行为清偿声明同样要逐 hunk 核对（m-3——三提交字节不变被两轮台账宣称已合并）。
+
+## R51 复审记账（2026-11-06，E7 全增量 9140e5e..37278d0——0B/2M/0m 全清偿；连净计数 0）
+
+- **M-1（R50 m-2 HalfReal 守卫替换虚假清偿——第五实证）**：R50 台账+提交信息+任务简报三层都声称「三面守卫统一」，git show 无任何守卫替换 hunk——HalfReal 仍是 status 盲 canarySilent 前置。虚假清偿谱系第五实证（R38 B-1→R49 M-1→R50 m-3→R51 M-1）。已修（真落地）：HalfReal 换用 canaryMaskingFixtureGuard。探针复验：status 漂移→fixture error（非「disease narrower」误诊）。
+- **M-2（status 对齐换丢了位置守卫——三序钉二）**：R50 m-1 用「末位 canary status 对齐」**替换**了 canarySilent 调用——status 盲洞换成位置盲洞（病面载荷需 lastCanary≥lastTraffic=guardDied 定义式第三条，守卫只钉两条）。漂移流 [business, canary, traffic] 四检查全过→病钉翻转误诊「病消退」。已修：守卫追加第三条次序检查（lastTraffic>lastCanary→fixture error）。探针复验：位置漂移→fixture error（非「disease is gone」误诊）。
+- **方法论入账（第 55/56 实证）**：守卫改写要用**增量替换**而非整块替换（M-2——canarySilent 删除时它承载的位置语义被无声丢弃；「替换」类修复先列旧件承载面清单）；虚假清偿谱系已经五轮（M-1）——**下一步的结构性预防**：清偿提交后跑「git show 逐 hunk vs 台账清单」的机械核对应入 review-loop 协议本身（而非依赖下一轮空白子抓）。
