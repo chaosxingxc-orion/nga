@@ -833,3 +833,51 @@ N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是
   （replay.py：每轮开轮全红面重证，保留率门）。载体与程序=skill 自带变更门三件套
   （parity 重注入+变异自测+diff 空白评审——GATE/RECON 块改动刚性），按 review-loop skill
   「单一真源：改律先改正本、复述跟随」执行。来源=本战役 R55-R60（台账各段+runbook §四）。
+
+## R61 复审记账（2026-11-07，E7 全增量 7ea8428..c549c9f——1B/2M/3m：B/M 全清偿，minor 积累不修；连净计数 0）
+
+> 空白子第 61 轮（审 R60 清偿+挂起登记——30% 律第四连：四轮四抓）。本轮起立法生效：
+> **minor 只积累不修**、**退出判据 2 连 0B/0M**（用户 2026-11-06）、**标定单审核位**
+> （A/B 双审查员路退役——同模型双位目的不清晰，与 R12 双审核位退役同构）。
+
+- **标定记账：R61 标定（植入 2 检出 2/2）**——known（battery:seventh_early_return）经机械检查
+  路径检出（探针 6/6 红+vet unreachable+变异修复=删一行，三路坐实）；OOD（ood-skip-subtest）经
+  skip 卫生审查检出（父级 t.Skip=Goexit 截断后续红面+陈旧+路径探针盲区三层）。诚实注记：OOD 仍为
+  池内族（skip 滥用与静默家族同源），campaign 外模式池中持续缺位；检出旁获两条 M 级真发现
+  （canarySilent doc 指路退役形式/IDENTICALLY 声明宽于投影）转主审交叉核验。结构变更：本标定为
+  A/B 双审查员路的末次运行，R62 起单克隆双植入+一路审核位（runbook §一.4 已改）。
+- **B-1（fence 豁免行粒度逃逸——混合行让活格式 token 静默隐身）**：R60 形状封闭封住了「占位符
+  本身的形状」，没封「豁免的行粒度」——MatchString 按行整行豁免，同行混含占位符+活 token 时后者
+  全免（端到端实测：`[echo hi → OK] and also [<cmd> → FAIL]` 静默过）。已修：豁免改**状态剥离**
+  ——剥除全部占位符形后行内仍含 mutation-proof 标记即响（自测面收编空白子 T1 台账）。
+  [mutation-proof: cd agent-festival/go && go test ./internal/settlement/ -run TestSettlementAuditSelfTest -count=1 → OK]
+- **M-1（「tamper id 断言不再骑 presence」为假——突变实测不敏感）**：R60 m-6 修复的解析器侧为真
+  （id 在场），但 tamper 侧断言是全输出子串检查，id 从 presence 行来也一样过——「变异复验双侧
+  对跑」纪律在该清偿未闭环。已修：EXPECT_IDS 对 M-6 改 **kind 级绑定**（id 必须出现在 fence
+  违规行内）+ **变异回归探针**（拆 id 附着 → tamper FAIL 于新断言，当轮实跑 rc=1）——R60 的
+  声明由「事实」升格为「可机械复验」。
+  [mutation-proof: python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();p.write_text(s.replace("curEntry.id","__MUTATED__"))' && python3 agent-festival/tools/settlement-audit-tamper.py; rc=$?; python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();p.write_text(s.replace("__MUTATED__","curEntry.id"))'; test $rc -ne 0 → OK]（变异回归探针：tamper 必 FAIL 于 id 级绑定断言；还原=逆替换——R61 自抓：cd 链在审计副本语境断裂致 restore 未跑=变异残留污染后续 token，token 命令一律根锚定零 cd）
+- **M-2（裸行占位符假满足 presence+execution——病族第三变体，机器有能力抓而未抓）**：裸行
+  `[mutation-proof: <cmd> → FAIL]` 被 tokenRe 当活 token，bash 退出 1≠0 假满足 FAIL——行内
+  backtick（C2'）与围栏（R58 M-2）两变体已杀，裸行自始存活且从未声明为残差；R60 刚建的
+  fencePlaceholderRe 就是现成判别器只装了围栏分支。已修：token 提取处应用同一形状判定，裸占位符
+  → grammar violation + 不计活 token（自测面+tamper M-7 面在册）。
+- **m-1/m-2/m-3（积累不修——R61 起新律首批）**：①replay docstring「twelve」落地即漂（同提交
+  新增第 13 子测——同病第三犯）；②R60/R59 段头部「0B」与正文 B-1 矛盾（先例均计 1B——头部数字
+  是元分析既定输入）；③runbook §一.4 模式转写缺四分之一（真源 9 模式缺 3——建议指针化待 R62+
+  采纳）。三条入台账清单轮转，不修。
+- **条款双源（三条全采纳，全部本批实现）**：①豁免行级锚定→**状态剥离**实现（B-1）；②裸行占位符
+  形状判定→**提取处 grammar 面**实现（M-2）；③tamper id 断言 kind 级绑定+回归探针→实现（M-1）。
+  裁决=操作员。
+- **本批附带（R61 自有工作收尾）**：E7a② 负孪生（pin 错配必拒——洞形精确锁定）+AcceptsHealthy
+  默认路径 identity（返回已检被改流形的默认载体闭面）+电池第 11 形 mutate_after_check（11/11 红）
+  +replay 失败成因行+三连反引号中和（prose 引用围栏语法的错配修）+runbook v3 立法（2 连/minor
+  积累/恒积累）。
+- **方法论入账（第 86/87/88 实证）**：**豁免必须状态剥离而非行粒度**（B-1——R60 封了形状没封
+  粒度，混合行是同族第四形）；**同族第三变体的判别器往往已经建好**（M-2——占位符正则就在围栏
+  分支里，裸行分支没装；「机器有能力抓而未抓」是最便宜的病）；**修复声明的变异复验必须双侧对跑**
+  （M-1——解析器侧真+tamper 侧断言不敏感=整体仍是假闭环，R57 七轮「声明虚报被当场抓获」的同族
+  精细化形态）。
+
+[mutation-proof: cd agent-festival/go && go test ./internal/settlement/ -run TestSettlementAuditSelfTest -count=1 → OK]
+[mutation-proof: cd agent-festival && python3 tools/settlement-audit-tamper.py → OK]

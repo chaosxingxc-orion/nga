@@ -141,9 +141,15 @@ func parseLedger(data []byte) *audit {
 			// illustration stays quiet. R60 clause-3: the violation carries
 			// the owning entry id when one is open (the tamper battery's
 			// id-level assertions must not ride on other kinds).
-			cleanedFence := inlineRe.ReplaceAllString(raw, "")
-			isPlaceholder := fencePlaceholderRe.MatchString(cleanedFence)
-			if curScoped && strings.Contains(cleanedFence, "[mutation-proof:") && !strings.Contains(cleanedFence, retiredMark) && !isPlaceholder {
+			cleanedFence := inlineRe.ReplaceAllString(strings.ReplaceAll(raw, "```", "\x00"), "")
+			// R61 B-1: the exemption is STATE-STRIPPED, not line-granular —
+			// strip every placeholder illustration first; if a
+			// mutation-proof marker SURVIVES the stripping, the line carried
+			// a live-format token alongside the illustration (the mixed-line
+			// vector: "[live] and [placeholder]" was fully exempted by the
+			// MatchString form).
+			stripped := fencePlaceholderRe.ReplaceAllString(cleanedFence, "")
+			if curScoped && strings.Contains(stripped, "[mutation-proof:") && !strings.Contains(stripped, retiredMark) {
 				where := fmt.Sprintf("%s:%d", ledgerName, lineNo)
 				if curEntry != nil {
 					where = fmt.Sprintf("%s (%s)", where, curEntry.id)
@@ -174,8 +180,14 @@ func parseLedger(data []byte) *audit {
 		}
 
 		// Backtick spans are documentation (the protocol header quotes the
-		// grammar itself) — strip before token extraction.
-		cleaned := inlineRe.ReplaceAllString(raw, "")
+		// grammar itself) — strip before token extraction. R61: neutralize
+		// TRIPLE-backtick runs FIRST — prose that mentions the fence syntax
+		// itself corrupts span pairing and pushed a real inline span
+		// outside the strip (the R58 M-2 narrative quote became a phantom
+		// placeholder under the bare-placeholder face). Markdown
+		// semantics: a 3+ run is a fence mention, not an inline span.
+		neutralized := strings.ReplaceAll(raw, "```", "\x00")
+		cleaned := inlineRe.ReplaceAllString(neutralized, "")
 		matches := tokenRe.FindAllStringSubmatch(cleaned, -1)
 		retired := strings.Contains(raw, retiredMark)
 		if len(matches) == 0 && strings.Contains(cleaned, "[mutation-proof:") && !retired && curScoped {
@@ -188,6 +200,19 @@ func parseLedger(data []byte) *audit {
 		for _, m := range matches {
 			if retired {
 				continue // historical token; its carrier is retired, proof superseded
+			}
+			// R61 M-2: the placeholder illustration is NOT a mutation proof —
+			// as a bare line it false-satisfies presence (it counts) AND
+			// execution (bash "<cmd>" exits non-zero, "satisfying" FAIL).
+			// Third variant of the family: inline-backtick (C2'), fenced
+			// (R58 M-2), bare (this fix) — one shape-closed discriminator,
+			// applied at extraction.
+			if fencePlaceholderRe.MatchString(m[0]) {
+				a.violations = append(a.violations, violation{
+					kind: "grammar", where: fmt.Sprintf("%s:%d", ledgerName, lineNo),
+					msg: "placeholder illustration is not a mutation proof — quote it inside a code fence as documentation instead",
+				})
+				continue
 			}
 			tk := token{cmd: m[1], expect: m[2], lineNo: lineNo, retired: false}
 			if curEntry != nil && lineNo >= curEntry.start {
@@ -491,6 +516,68 @@ func TestSettlementAuditSelfTest(t *testing.T) {
 		}
 		if !found {
 			t.Fatalf("a < -prefixed command with shell metachars must be a loud fence violation, got %+v", a.violations)
+		}
+	})
+	t.Run("fenced_mixed_line_loud", func(t *testing.T) {
+		// R61 B-1: a fence line carrying BOTH a live token and a placeholder
+		// illustration must be loud — the line-granular exemption silenced
+		// the whole line whenever one placeholder appeared.
+		a := parseLedger([]byte("## R56 复审记账\n- **M-1**: settled.\n  [mutation-proof: exit 3 → FAIL]\n```\n[mutation-proof: echo hi → OK] and also [mutation-proof: <cmd> → FAIL]\n```\n"))
+		found := false
+		for _, v := range a.violations {
+			if v.kind == "fence" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("mixed fence line must be a loud fence violation, got %+v", a.violations)
+		}
+	})
+	t.Run("fenced_lt_redirect_loud", func(t *testing.T) {
+		// R60 B-1 closure verification: "<"-prefixed REAL commands escape
+		// the prefix-form exemption (bash allows leading redirects) — the
+		// shape-closed exemption must stay loud here.
+		a := parseLedger([]byte("## R56 复审记账\n- **M-1**: settled.\n  [mutation-proof: exit 3 → FAIL]\n```\n[mutation-proof: < /dev/null; echo REAL-COMMAND-RAN → OK]\n```\n"))
+		found := false
+		for _, v := range a.violations {
+			if v.kind == "fence" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("a < -prefixed command with shell metachars must be a loud fence violation, got %+v", a.violations)
+		}
+	})
+	t.Run("bare_placeholder_grammar_loud", func(t *testing.T) {
+		// R61 M-2: a BARE placeholder token (no fence, no backticks)
+		// false-satisfies presence AND execution — grammar violation, not
+		// an active token.
+		a := parseLedger([]byte("## R56 复审记账\n- **M-1**: settled.\n  [mutation-proof: <cmd> → FAIL]\n"))
+		if len(a.activeTokens) != 0 {
+			t.Fatalf("bare placeholder must not become an active token, got %+v", a.activeTokens)
+		}
+		found := false
+		for _, v := range a.violations {
+			if v.kind == "grammar" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("bare placeholder must be a grammar violation, got %+v", a.violations)
+		}
+	})
+	t.Run("prose_fence_mention_no_phantom", func(t *testing.T) {
+		// R61: prose mentioning the fence syntax itself corrupts backtick
+		// span pairing — the neutralization keeps the inline-quoted
+		// placeholder stripped (no phantom grammar violation).
+		a := parseLedger([]byte("## R56 复审记账\n- **M-1**: settled.\n  [mutation-proof: exit 3 → FAIL]\n叙述引用未覆盖 ``` 围栏——围栏内 `[mutation-proof: <cmd> → FAIL]` 被当活 token 的历史。\n"))
+		if len(a.activeTokens) != 1 {
+			t.Fatalf("the real token must parse, got %+v", a.activeTokens)
+		}
+		for _, v := range a.violations {
+			if v.kind == "grammar" || v.kind == "fence" {
+				t.Fatalf("prose fence mention must not produce phantom violations, got %+v", a.violations)
+			}
 		}
 	})
 	t.Run("fenced_placeholder_illustration_quiet", func(t *testing.T) {

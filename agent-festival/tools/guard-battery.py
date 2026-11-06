@@ -68,7 +68,7 @@ ROOT = TOOLS_DIR.parent.parent  # repo root (tools/ -> agent-festival/ -> root)
 MUTATION_ORDER = [
     "drop_call", "body_noop", "discard_result", "swallow_error",
     "if_false_burial", "seventh_early_return", "ignore_param",
-    "hardcoded_nil", "hardcoded_err", "check_gutted",
+    "hardcoded_nil", "hardcoded_err", "check_gutted", "mutate_after_check",
 ]
 
 MUTATION_DOC = {
@@ -82,6 +82,10 @@ MUTATION_DOC = {
     "hardcoded_nil": "always return nil error (check bypassed wholesale)",
     "hardcoded_err": "always return an error (the ACCEPT face must go red)",
     "check_gutted": "gut the pure check itself (check layer == path layer oracle)",
+    # R61: the R58 carried clause — check passes, then the returned stream
+    # is MUTATED in transit (check-then-swap). Spec-neutral (generic slice
+    # operation — no type literals), so the fake module compiles it too.
+    "mutate_after_check": "return a MUTATED stream after the check passed (the accept face's identity assertion is the only red face)",
 }
 
 
@@ -110,6 +114,15 @@ def mutant(spec, name):
         return gb, "\t_ = %s\n\treturn nil, fmt.Errorf(\"always\")\n}" % chk
     if name == "check_gutted":
         return co, co + "\n\tif true {\n\t\treturn nil\n\t}"
+    if name == "mutate_after_check":
+        return gb, """\tif err := %s; err != nil {
+\t\treturn nil, err
+\t}
+\tif len(stream) > 0 {
+\t\tstream = stream[:len(stream)-1]
+\t}
+\treturn stream, nil
+}""" % chk
     raise SystemExit(f"battery: unknown mutation {name!r}")
 
 
@@ -321,8 +334,13 @@ func TestFakeGuardedPath(t *testing.T) {
 	if _, err := fakeGuarded([]int{}); err == nil {
 		t.Fatal("accepted an empty stream")
 	}
-	if _, err := fakeGuarded(); err != nil {
+	got, err := fakeGuarded()
+	if err != nil {
 		t.Fatalf("rejected the default: %v", err)
+	}
+	def := theDefault()
+	if len(got) != len(def) || got[0] != def[0] {
+		t.Fatalf("default-path identity violated: got %v, want %v (R61: the check-then-mutate return face's red carrier)", got, def)
 	}
 }
 ''')

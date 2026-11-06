@@ -199,6 +199,41 @@ func TestE7a_CanaryControlEventProbeFace(t *testing.T) {
 	}
 }
 
+// TestE7a_CanaryDurablePinMismatchRefused (R61: E7a②'s negative twin —
+// R58 adopted clause landed): the positive face (E7a②) proved a PIN-MATCHED
+// canary hand-append passes Open; this twin proves the pass-gate is
+// pin-CONDITIONED — one drifted version field bricks the same form. The
+// hole's shape is exactly "pin matches the adopted op", nothing wider; if
+// Open ever accepts a pin-mismatched canary, the E7a② reachability
+// boundary declaration is narrower than the machine fact.
+func TestE7a_CanaryDurablePinMismatchRefused(t *testing.T) {
+	path := newLedgerPath(t)
+	m := mustOpenAdopt(t, path)
+	if o := m.Adopt(adoptRequest(t, "op-canary-2")); o.Status != "adopted" {
+		t.Fatalf("E7a② twin: adopt = %q: %s", o.Status, o.Detail)
+	}
+	canary := canaryEvent(1, "op-canary-2")
+	canary.Identity = ledger.Identity{BusinessRequestID: "br-e4", EvaluationRevision: "er-1", OperationID: "op-canary-2"}
+	canary.Versions = ledger.Versions{Evidence: "ev-1", Rule: "rule-1", Model: "m-9", Readout: "r-1", Policy: "p-1"} // Model drifted: pin mismatch
+	canary.Accountability = &ledger.Accountability{Session: "sess-e4", Skill: "skill-e4", Role: "employee"}
+	line, err := json.Marshal(canary)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write(append(line, '\n')); err != nil {
+		f.Close()
+		t.Fatal(err)
+	}
+	f.Close()
+	if _, err := adopt.Open(path); err == nil {
+		t.Fatal("E7a② twin: Open accepted a pin-MISMATCHED canary — the pass-gate is not pin-conditioned and the E7a② hole is wider than declared")
+	}
+}
+
 // TestE7a_CanaryDurableGrammarBoundary pins the durable-layer grammar
 // fact (face ③): a ledger file containing a control event for an
 // operation with NO prior adoption is REFUSED at Open
@@ -666,9 +701,17 @@ func TestE7b_GuardedPathAcceptsHealthy(t *testing.T) {
 				t.Fatalf("guarded path rejected a healthy stream: %v", err)
 			}
 			if tc.in == nil {
-				// no-arg form: the default fixture must come back non-empty
-				if len(got) == 0 {
-					t.Fatal("guarded path: no-arg form returned an empty stream")
+				// no-arg form: the default fixture must come back WHOLE
+				// (R61: identity on the default path — the check-then-mutate
+				// return face must not survive on the no-arg carrier)
+				def := canaryMaskingStream()
+				if len(got) != len(def) {
+					t.Fatalf("guarded path: no-arg form returned %d events, want %d — the default fixture was mutated in transit", len(got), len(def))
+				}
+				for i := range def {
+					if got[i].ArbitrationSeq != def[i].ArbitrationSeq || got[i].EventType != def[i].EventType || got[i].Outcome != def[i].Outcome {
+						t.Fatalf("guarded path: no-arg form diverges from the default fixture at %d — the returned stream is not the checked one", i)
+					}
 				}
 				return
 			}

@@ -10,7 +10,7 @@ corrupt shows up here as a table row, not as a surprise mid-round.
 Faces (the inventory lives in docs/attack-corpus.md — the single source):
   M1 registry-gate     unregistered guards / drifted spec anchors /
                        bypassed consumers (M-5)
-  M2 battery           ten mutation forms × every registered spec
+  M2 battery           eleven mutation forms × every registered spec
   M3 battery-selftest  the battery's own six faces
   M4 settlement-audit  every ledger token re-runs to its declared outcome
                        (presence / grammar / execution / staleness) — note
@@ -27,6 +27,7 @@ of which carries its own red face and its own ledger token. Replay adds no
 new checking; it adds the round gate and one table.
 """
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -61,6 +62,17 @@ def main():
         print(f"REPLAY: {len(failed)} face(s) FAILED — fix before dispatching a reviewer")
         for fid, name, out in failed:
             print(f"\n=== {fid} {name} ===\n{out[-1200:]}")
+        # R61: the carried clause — a failure CAUSE line per face (the first
+        # machine-recognizable signal in the output), so the operator reads
+        # the cause before the raw tail.
+        print("\n--- failure causes ---")
+        cause_re = re.compile(
+            r"(settlement-audit/\w+|BATTERY FAILURE.*|MUTANT-BROKEN.*|"
+            r"BASELINE IS RED.*|TAMPER BATTERY FAILURE.*|REGISTRY GATE: FAIL.*|"
+            r"--- FAIL: \S+|DISPATCH HYGIENE VIOLATION.*|STALE ANCHOR.*)")
+        for fid, name, out in failed:
+            cause = next((l.strip() for l in out.splitlines() if cause_re.search(l)), "no recognizable cause signal — read the raw tail above")
+            print(f"{fid} {name}: {cause[:160]}")
         return 1
     print(f"REPLAY: all {len(FACES)} face(s) green — retention proven, round may open")
     return 0

@@ -38,6 +38,7 @@ be re-run is not proof (R56 m-3).
 """
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -49,7 +50,7 @@ OVERRIDE = "SETTLEMENT_AUDIT_LEDGER"
 
 # Expected violation kinds and entry ids in the violation ledger.
 EXPECT_KINDS = ["presence", "grammar", "execution", "fence"]
-EXPECT_IDS = ["M-1", "M-2", "M-3", "M-4", "M-6"]
+EXPECT_IDS = ["M-1", "M-2", "M-3", "M-4", "M-6", "M-7"]
 
 VIOLATION_LEDGER = """**清偿证明协议（synthetic tamper fixture）**：
 从 R56 起每条 M/B 清偿的台账条目必须内嵌突变命令 token。
@@ -72,6 +73,10 @@ VIOLATION_LEDGER = """**清偿证明协议（synthetic tamper fixture）**：
   ```
   [mutation-proof: echo FAIL → FAIL]
   ```
+- **M-7（bare placeholder token）**：settled with a placeholder as the only
+  proof — grammar violation (not a token, R61 M-2) AND presence violation
+  (no active proof on the entry).
+  [mutation-proof: <cmd> → FAIL]
 """
 
 CONTROL_LEDGER = """**清偿证明协议（synthetic control fixture）**：
@@ -150,7 +155,15 @@ def main() -> int:
             if f"settlement-audit/{kind}" not in out:
                 failures.append(f"violation ledger: expected kind {kind!r} not reported")
         for eid in EXPECT_IDS:
-            if eid not in out:
+            if eid == "M-6":
+                # R61 M-1: kind-BOUND assertion — the id must appear on a
+                # FENCE violation line, not anywhere in the output (a
+                # substring check rides on whatever kind happens to mention
+                # the entry; the Mut1-class regression — id attachment
+                # removed from the parser — must fail HERE).
+                if not re.search(r"settlement-audit/fence:.*M-6", out):
+                    failures.append("violation ledger: M-6 not reported on a fence violation line (id-level binding)")
+            elif eid not in out:
                 failures.append(f"violation ledger: expected entry id {eid!r} not reported")
 
         ctrl_path = tmp / "control-ledger.md"

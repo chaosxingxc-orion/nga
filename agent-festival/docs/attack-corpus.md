@@ -10,7 +10,7 @@
 | id | 面 | 命令（cwd=agent-festival，M4/M6 cwd=go） | 杀什么 |
 |---|---|---|---|
 | M1 | registry-gate | `python3 tools/guard-battery.py --check` | 未注册守卫 / spec 锚漂移 / **消费者锚漂移（调用方绕过守卫路径——R58 M-5）** |
-| M2 | battery | `python3 tools/guard-battery.py` | 守卫退化十形（探针对形式无关红面的回归）+ 编译检查（BROKEN≠红）+ **基线 vet（不可达死代码——第三机检路径，R58 采纳）**；**真树零接触（副本化——R58 M-3，并发互踩面结构性消解）** |
+| M2 | battery | `python3 tools/guard-battery.py` | 守卫退化十一形（探针对形式无关红面的回归；R61 增**返回已检被改流**形——接受面 identity 唯一红载体）+ 编译检查（BROKEN≠红）+ **基线 vet（不可达死代码——第三机检路径，R58 采纳）**；**真树零接触（副本化——R58 M-3，并发互踩面结构性消解）** |
 | M3 | battery-selftest | `python3 tools/guard-battery.py --selftest` | 电池自身面（A 未注册/B 锚漂移/C 良构/D 破损不计红/**E 消费者计数漂移/F vet-dirty baseline-red**） |
 | M4 | settlement-audit | `go test ./internal/settlement/ -run 'TestSettlementAudit$'` | token 在场/语法/**围栏惰化**/执行失真/陈旧（内含 M1-M3、M5、M7 的 token 重跑——**回放=纵深非最小集**） |
 | M5 | audit-tamper | `python3 tools/settlement-audit-tamper.py` | 审计本体的篡改面（违规台账红/对照绿；R58 增 letter 条目面+围栏面） |
