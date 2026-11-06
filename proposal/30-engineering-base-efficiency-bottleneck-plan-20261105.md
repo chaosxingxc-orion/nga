@@ -1,6 +1,6 @@
 # 工程基座效率瓶颈分析与优化计划
 
-更新时间：2026-11-05 23:32 UTC。研究实验仍处于 HOLD；已运行容器和其镜像、配置、输出不修改。本文只记录工程基座的效率收敛，不把 CPU fixture 或历史评分结果写成 NPU 性能结论。
+更新时间：2026-11-06 00:52 UTC。研究实验仍处于 HOLD；已运行容器和其镜像、配置、输出不修改。本文只记录工程基座的效率收敛，不把 CPU fixture 或历史评分结果写成 NPU 性能结论。
 
 ## 当前结论
 
@@ -50,6 +50,16 @@ NPU/设备队列保持 detached、连续消费；CPU 只消费结构化事件。
 
 当前没有新的阻塞性决策。更正上一版对重复审批的要求：用户已授权基座通过资格后迁移，无需再次批准迁移窗口；可选优化是否采用，按预注册等价性、资源和实用收益门槛判断。27B 多卡、业务数据集扩展和新的研究训练均不属于本轮效率收敛范围。
 
+
+## 最新审查状态
+
+- **v21 controller/admission**：Astra PASS，仅表示可进入有限 installed CPU qualification；真实发布仍 NO_GO。
+- **v22/v23 controller/admission**：真实 Docker inspect 已按顶层 `Path`/`Args` 校正；v23 修复历史 evidence helper 的 checkout 路径。Astra 对 v23 的有限审查通过，历史 digest 固定为 `5163259a0d14fad45545b6a3cd9ebab9102cc98594a185041f11bcdc710c02dc`、46,320 条；没有执行安装或全量重哈希。
+- **benchmark driver v1**：Astra 拒绝运行资格，原因是 analyzer 信任自报资源/终态字段、completion witness 和 prediction digest 未独立绑定，worker/attestation 仍 fail-closed。
+- **benchmark driver v2**：已加入 raw witness、cpuset、deadline、phase endpoint 和 v4 schema 草案，但仍需独立审查；没有 actual175 计时。
+- **benchmark driver v3**：正在修复 v2 的 F1–F9；在 v3 通过 Astra 前，禁止任何 full-panel timing。所有历史 driver 均未运行 Docker、SSH、NPU 或完整评测。
+
+因此当前工程基座尚未满足“可发布、可对齐参考基线”的条件。训练、优化和同测试集参考模型评测仍保持 HOLD；已有运行任务及其镜像、配置和输出未停止或修改。
 
 ## 当前可核对的里程碑证据
 
