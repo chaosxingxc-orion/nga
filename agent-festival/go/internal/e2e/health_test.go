@@ -74,11 +74,20 @@ func (r frequencyReport) sortedStatuses() []string {
 // guard dying while others still fire is masked (a known, declared
 // blind spot — naming guards would require refuse() detail-prefix
 // parsing, deliberately out of scope for this fixture-tier probe).
-func guardDied(events []ledger.Event, controlStatus string) bool {
+func guardDied(events []ledger.Event, controlStatus string, canaryDetailPrefix string) bool {
 	lastIntercept := -1
 	lastTraffic := -1
 	for i, e := range events {
 		if e.EventType == "control" && e.Outcome.Status == controlStatus {
+			// R46/E7b canary filter (xia round-4 §2 discipline 2 extension):
+			// an alive canary stream masks business-guard death by keeping
+			// lastIntercept fresh — probe-injected rejections carrying the
+			// reserved prefix are excluded from the interception face. The
+			// empty prefix = NO filtering (guard against the strings.HasPrefix
+			// always-true trap; E4 semantics preserved).
+			if canaryDetailPrefix != "" && strings.HasPrefix(e.Outcome.Detail, canaryDetailPrefix) {
+				continue
+			}
 			lastIntercept = i
 		}
 		if e.EventType == "effect" {
@@ -133,7 +142,7 @@ func TestE4_FrequencyAggregationAndGuardDeath(t *testing.T) {
 	if got != "rejected" {
 		t.Fatalf("E4: sorted statuses = %q, want \"rejected\" (deterministic walk)", got)
 	}
-	if died := guardDied(events, "rejected"); died {
+	if died := guardDied(events, "rejected", ""); died {
 		t.Fatal("E4: guard reported dead while actively intercepting — false positive")
 	}
 
@@ -154,7 +163,7 @@ func TestE4_FrequencyAggregationAndGuardDeath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if died := guardDied(events, "rejected"); !died {
+	if died := guardDied(events, "rejected", ""); !died {
 		t.Fatal("E4: the guard went quiet under continued traffic and the probe did NOT flag it — the death probe is not load-bearing")
 	}
 }
@@ -190,7 +199,7 @@ func TestE4_MixedFlowIsIndistinguishableFromDeath(t *testing.T) {
 	}
 	// the pinned limitation: the mixed flow READS as death under the
 	// current probe semantics — a documented bound, not a desired state
-	if died := guardDied(events, "rejected"); !died {
+	if died := guardDied(events, "rejected", ""); !died {
 		t.Fatal("E4-mix: expected the mixed flow to read as death under the narrowed semantics — if this went false, the event stream became expressive and the pinned bound is obsolete (rewrite the E4 tests with the new expressiveness)")
 	}
 }
@@ -208,7 +217,7 @@ func TestE4_GuardNeverChallengedIsNotDeath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if died := guardDied(events, "rejected"); died {
+	if died := guardDied(events, "rejected", ""); died {
 		t.Fatal("E4: a never-challenged guard reported dead — false positive")
 	}
 }

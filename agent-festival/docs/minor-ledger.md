@@ -346,3 +346,12 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **m-5（band 锚头注单称哨兵来源）**：头注 "unparseable bound returns 0" 与实现四来源（+分组毒化）不同步。已修：头注与拒面消息同源措辞。
 - **收官判定（用户口径「3 连 0blocker 0major」）**：R44（0B/0M/4m）→R45（0B/0M/2m）→R46（0B/0M/5m）——**三轮连 0B/0M，循环正式收官**。5 minor 随收官清扫清偿；正式 verdict 立于被审提交 fbc4829，收官清扫提交只含消息措辞/注释/grep 收尾，不引入新守卫。
 - **本循环总账（R29-R46 十八轮）**：1 BLOCKER + 26 MAJOR + 48 minor 全部清偿；方法论 47 条实证入账；每轮探针绿+反突变红双验证；race 21 包绿贯穿；R45 空白子对 R29-R44 七项关键突变声明全部实测转红（独立复核）。
+
+## E7a/E7b 实验记账（2026-11-06，夏四裁 §2 canary 纪律的落地面实验——41 号报告 §四）
+
+- **先验（frame-bench 碰撞）**：E7a/E7b 纯测试形态全覆盖、**零生产件改动**——判定依据：生产注入 API 会自砖（canary 合成身份控制事件被 ledger 文法 EVENT_BEFORE_ADOPTION 在耐久层结构性拒收——机器会写出自己拒收的文件；schema+checker+oracle lockstep 属 0.2.0 面）。生态复核：15 仓无运行时 canary 先例（41 号判定成立）；hermes constraints 只支撑声明面（构造时能力）；pi DO heartbeat=自愈向同源体；langgraph Runtime.heartbeat=刷新向（恰是 E7b 要防的力学）。**E7b 病存在性=guardDied 代码面直接可见（无跨期外推）。**
+- **E7a（注入点位文法）三层+元探针**：①未知 op 直注=纯返回值零事件（文法缺口钉死——pinned）；②探针层 [CANARY] 前缀合成事件（带标记/零状态转移/零注册表——注册表证明锚在字段缺失+耐久层）；③耐久层文法边界（含 canary 控制事件的文件 Open 拒收——pinned，0.2.0 字段化时翻转重写）；canarySilent 元探针（canary 自身死亡检出——声明面守构造/canary 守运行/**探测面守 canary 流**=三层闭合自守的机器面）。
+- **E7b（guardDied 过滤面）**：guardDied 加 canaryDetailPrefix 参数（空串=不过滤——防 strings.HasPrefix 恒真陷阱，4 个 E4 调用点传 "" 语义不变由全包回归证明）；病钉死（TestE7b_CanaryFeedsDeathProbe——**活 canary 掩盖业务守卫死亡**，现版误报存活）；过滤面绿（FilterClosesMasking+双前置反恒真+never-challenge 面）；空串陷阱钉（EmptyPrefixNoFilter）；中缀 [CANARY] 不被过滤（MidDetail——前缀约定边界）。
+- **反突变矩阵**：M1 去过滤→FilterClosesMasking 红；M2 去空串守卫→EmptyPrefix+E4 两测试红（空串变全过滤）；M3 canarySilent 去流量前置→SilentProbe 红；race 21 包绿；gofmt/vet 干净。
+- **实验结论（供 R-1 回执引用）**：夏四裁 canary 纪律 2（显式标记）**需扩到死亡探针面**（纪律原文只点名频次读数）——E7b 实证；注入点位文法两形态：真机走采纳门必然入注册表（M-2a 结构冲突的机器面复现——判据三缺一）；探针层合成事件满足三判据但不可耐久化（0.2.0 前的形态边界）；canarySilent 使三层证明**闭合自守**（元检测=canary 停跳由探测面守）。
+- **过程失误一次（入账）**：E7b_EmptyPrefixNoFilter 首版断言方向写反（E4 语义=拒绝后跟流量报死，测试却断言不报死）——方向认知错误被测试自己抓出即修。教训：写探针前先默背被测件的现行语义再定断言方向。
