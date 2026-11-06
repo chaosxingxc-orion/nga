@@ -1,0 +1,26 @@
+{
+  "schema": "rc1-same-test-consumer-v1",
+  "packet": {
+    "path": "/REPLACE/completed-packet.json",
+    "sha256": "REPLACE_WITH_ACTUAL_PACKET_SHA256"
+  },
+  "allow_generated": false,
+  "allow_production": false,
+  "workers": 2,
+  "completed_access_review": {
+    "path": "/REPLACE/existing-completed-access-review.json",
+    "sha256": "REPLACE_WITH_ACTUAL_REVIEW_SHA256"
+  },
+  "source_acceptance": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/rc1-test-integrated-review/CORE-ACCEPTANCE.json",
+    "sha256": "REPLACE_WITH_ACTUAL_ACCEPTANCE_SHA256"
+  },
+  "reference_metadata": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/evidence/current-execution/REFERENCE-MAPPING-METADATA.json",
+    "sha256": "b4175ae1d3f750d49b415dc9891c1e1773dab016c7468df816ede9dabb076184"
+  },
+  "reference_performance_export": {
+    "path": "/home/xingchao/workspace/nga/.local/reviews/final-reference-alignment-sol-20261105-v1/ALIGNMENT.json",
+    "sha256": "e166e5fff7c5e866b0a31b335481f29e01e980d9fa4cbd485709ca0ac3aad316"
+  }
+}

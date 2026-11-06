@@ -1,0 +1,9 @@
+{
+  "consumer.py": "0175b541393104297295fe6ad36bfcbba61509fc80c6b186b251af8f2400dde6",
+  "reference.py": "db00e09da2bfbf62b3aad8829d66c1897746f68eddca3e79311cae7fe6c8f3fa",
+  "fixture.py": "c581c800ff957c483ae4d694f899e92c8a23a3dc1e87b9d26236eac490a080e5",
+  "test_consumer.py": "3d36717961478e09fce085898a600558ae91eb82276207e672c7b76b603f7ff1",
+  "test_reference.py": "38c3d9c566b40cf71c50055897f0b1342a4c94960d36f604c673bc53546de7a4",
+  "packet.schema.json": "cb3500bd387c3a0b4765baef153b3a5433587c6df5cd98e4ec8da16ff72f7e45",
+  "config.example.json": "bb4e43886ce495bf0179f45e751c42db834df9a23c571b33bf922e20b8e4c42f"
+}

@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rc1-same-test-packet-v1",
+  "title": "RC1 same-TEST completed evidence packet",
+  "type": "object",
+  "$defs": {
+    "pin": {
+      "type": "object",
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema": {
+      "const": "rc1-same-test-packet-v1"
+    },
+    "kind": {
+      "enum": [
+        "generated",
+        "production"
+      ]
+    },
+    "fixture_only": {
+      "type": "boolean"
+    },
+    "producer": {
+      "$ref": "#/$defs/pin"
+    },
+    "bootstrap_wrapper": {
+      "$ref": "#/$defs/pin"
+    },
+    "protocol": {
+      "$ref": "#/$defs/pin"
+    },
+    "manifest": {
+      "$ref": "#/$defs/pin"
+    },
+    "image": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "roster": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "q0p8b-s2",
+              "q0p8b-s3",
+              "q2b-s2",
+              "q2b-s3",
+              "q4b-s2",
+              "q4b-s3",
+              "q9b-s2",
+              "q9b-s3",
+              "q0p8b-base",
+              "q2b-base",
+              "q4b-base",
+              "q9b-base"
+            ]
+          },
+          "status": {
+            "enum": [
+              "available",
+              "unavailable",
+              "failed"
+            ]
+          }
+        }
+      }
+    },
+    "members": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "q0p8b-s2",
+          "q0p8b-s3",
+          "q2b-s2",
+          "q2b-s3",
+          "q4b-s2",
+          "q4b-s3",
+          "q9b-s2",
+          "q9b-s3",
+          "q0p8b-base",
+          "q2b-base",
+          "q4b-base",
+          "q9b-base"
+        ]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "config",
+          "identity",
+          "ready",
+          "infer_exit",
+          "report",
+          "fit",
+          "final",
+          "access",
+          "owner",
+          "run_identity",
+          "producer_manifest",
+          "host_release_verified"
+        ],
+        "additionalProperties": {
+          "$ref": "#/$defs/pin"
+        }
+      }
+    },
+    "source_files": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "authorized_files": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "module_dirs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^/"
+      }
+    },
+    "populations": {
+      "type": "object",
+      "minProperties": 6,
+      "maxProperties": 6,
+      "additionalProperties": {
+        "$ref": "#/$defs/pin"
+      }
+    },
+    "data_pins": {
+      "type": "object",
+      "minProperties": 6,
+      "maxProperties": 6,
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "n",
+          "sha256"
+        ],
+        "properties": {
+          "n": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "reference_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mapping_metadata"
+      ],
+      "properties": {
+        "mapping_metadata": {
+          "$ref": "#/$defs/pin"
+        }
+      }
+    }
+  },
+  "required": [
+    "schema",
+    "kind",
+    "roster",
+    "members",
+    "producer",
+    "bootstrap_wrapper",
+    "source_files",
+    "module_dirs",
+    "populations",
+    "data_pins",
+    "image",
+    "protocol",
+    "manifest",
+    "authorized_files"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "generated"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "fixture_only"
+        ],
+        "properties": {
+          "fixture_only": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "production"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "fixture_only": {
+            "const": false
+          },
+          "members": {
+            "additionalProperties": {
+              "required": [
+                "launch_receipt",
+                "release",
+                "claim",
+                "container_observation"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "description": "Structural interchange only. consumer.py validates bytes, identity, population, phases, arithmetic and externally trusted completed-access scope; schema validation alone authenticates nothing."
+}
