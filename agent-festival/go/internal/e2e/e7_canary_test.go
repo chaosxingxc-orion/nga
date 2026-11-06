@@ -294,11 +294,11 @@ func TestE7b_HalfRealStreamFace(t *testing.T) {
 // death is masked (the unfiltered probe reports alive). This test asserts
 // the CURRENT unfiltered behavior; it flips when guardDied defaults to
 // filtering (rewrite, not fix — the disease documentation form).
-// canaryMaskingStream (R49 m-5/M-1): the SHARED 5-event fixture for the
-// disease/green DUAL tests — "the same stream" is now structurally
-// expressed (a drifted copy is not expressible). The guards live in
-// canaryMaskingFixtureGuard below — each consumer MUST call it (the
-// fixture function itself does not self-guard).
+// canaryMaskingStream (R49 m-5/M-1, R53 M-2 superseded): the SHARED
+// 5-event fixture for the disease/green DUAL tests. R53 M-2 retired the
+// "callers must guard" convention — use canaryMaskingStreamGuarded for
+// the self-guarding form; this bare constructor remains for the meta
+// probe (which needs the raw stream).
 func canaryMaskingStream() []ledger.Event {
 	return []ledger.Event{
 		{EventType: "control", ArbitrationSeq: 0, Outcome: ledger.Outcome{Status: "rejected", Detail: "business guard rejection"}},
@@ -309,15 +309,27 @@ func canaryMaskingStream() []ledger.Event {
 	}
 }
 
-// canaryMaskingFixtureGuard asserts BOTH payload preconditions of the
-// masking stream (R49 m-4: the predicate matches guardDied's feeding —
-// prefix AND rejected status — so a status drift in canaryEvent fails
-// here as a fixture error, not as a "disease is gone" misdiagnosis).
+// canaryMaskingFixtureGuard asserts the fixture's FULL precondition set
+// (five checks — see canaryMaskingFixtureCheck; R53 m-1: the "BOTH" from
+// R49 predates the death-shape and third-ordering checks).
 func canaryMaskingFixtureGuard(t *testing.T, stream []ledger.Event) {
 	t.Helper()
 	if err := canaryMaskingFixtureCheck(stream); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// canaryMaskingStreamGuarded (R53 M-2): the SELF-GUARDING fixture —
+// constructs the shared stream AND runs the check, so the connection
+// between check and payload is structural, not a convention. The dual
+// tests (disease/green) and the half-real face use this; deleting the
+// guard from any of them is a compile error (they call THIS function,
+// not the bare constructor).
+func canaryMaskingStreamGuarded(t *testing.T) []ledger.Event {
+	t.Helper()
+	stream := canaryMaskingStream()
+	canaryMaskingFixtureGuard(t, stream)
+	return stream
 }
 
 // canaryMaskingFixtureCheck (R52 M-1): the guard as a PURE function —
@@ -376,13 +388,19 @@ func canaryMaskingFixtureCheck(stream []ledger.Event) error {
 	return nil
 }
 
+// TestE7b_CanaryFeedsDeathProbe pins the DISEASE (R53 M-1: doc restored
+// to its carrier — R49's fixture insertion fused this doc onto the
+// fixture constructor): an alive canary stream keeps refreshing
+// guardDied's lastIntercept — the business guard's REAL death is masked
+// (the unfiltered probe reports alive). This test asserts the CURRENT
+// unfiltered behavior; it flips when guardDied defaults to filtering
+// (rewrite, not fix — the disease documentation form).
 func TestE7b_CanaryFeedsDeathProbe(t *testing.T) {
 	// business guard alive (real rejection), then dies (traffic
 	// continues, no more business rejections), then canary injections
 	// keep coming — the unfiltered probe sees the canary rejections as
 	// interceptions and reports ALIVE
-	stream := canaryMaskingStream()
-	canaryMaskingFixtureGuard(t, stream)
+	stream := canaryMaskingStreamGuarded(t)
 	if died := guardDied(stream, "rejected", ""); died {
 		t.Fatal("E7b disease: unfiltered guardDied reported DEATH — the canary failed to mask it (the disease is gone; rewrite this test)")
 	}
@@ -395,8 +413,7 @@ func TestE7b_CanaryFeedsDeathProbe(t *testing.T) {
 // Mutation probe: remove the filter guard (prefix != "") or the filter
 // branch → this goes red or the E4 suite breaks.
 func TestE7b_FilterClosesMasking(t *testing.T) {
-	stream := canaryMaskingStream()
-	canaryMaskingFixtureGuard(t, stream)
+	stream := canaryMaskingStreamGuarded(t)
 
 	// the filter face: with the canary prefix, the death is correctly
 	// reported (canary rejections no longer count as interceptions)
@@ -527,5 +544,22 @@ func TestE7b_GuardChecksProbed(t *testing.T) {
 	// the healthy fixture passes (no fixture error)
 	if err := canaryMaskingFixtureCheck(canaryMaskingStream()); err != nil {
 		t.Fatalf("guard-checks probe: the healthy fixture tripped %v — a check is over-broad", err)
+	}
+}
+
+// TestE7b_GuardedStreamWiredToCheck (R53 M-2 connection-layer probe):
+// the guarded form must call the check. This is a WIRING pin — the
+// meta-probe (GuardChecksProbed) covers the CHECK layer; this covers
+// the CONNECTION layer: if the guarded wrapper drops its guard call, the
+// structural coupling breaks silently — until a drifted fixture makes it
+// observable. We make it observable NOW by asserting the guarded call
+// and the bare check agree (the guard inside the wrapper would have
+// fatal'd on drift; the same stream re-checked outside must also pass —
+// and if the wrapper had skipped the check while the stream were
+// drifted, the outside check catches it here).
+func TestE7b_GuardedStreamWiredToCheck(t *testing.T) {
+	stream := canaryMaskingStreamGuarded(t)
+	if err := canaryMaskingFixtureCheck(stream); err != nil {
+		t.Fatalf("guarded stream failed its own check: %v — the wiring dropped or a check is over-broad", err)
 	}
 }
