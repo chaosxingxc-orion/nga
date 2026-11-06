@@ -275,6 +275,14 @@ def selftest():
     """
     failures = []
     tmp = Path(tempfile.mkdtemp(prefix="guard-battery-selftest-"))
+    try:
+        return _selftest_body(tmp)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)  # R59 m-4: selftest dirs leaked (26 found in TMPDIR)
+
+
+def _selftest_body(tmp):
+    failures = []
     fake_pkg = tmp / "fake"
     fake_pkg.mkdir()
     (fake_pkg / "go.mod").write_text("module fakeguard\n\ngo 1.24\n")

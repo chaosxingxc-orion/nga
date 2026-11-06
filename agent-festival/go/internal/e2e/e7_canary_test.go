@@ -86,7 +86,7 @@ func canarySilent(events []ledger.Event) bool {
 // dispatch attempt on an operation that was never adopted is rejected as a
 // PURE RETURN VALUE — no control event is written (unknown ops return
 // before refuse() is ever reached — adopt.go dispatchGated returns bare on
-// !ok; refuse() serves known ops whose state is not adopted, adopt.go:368).
+// !ok; refuse() serves known ops whose state is not adopted, adopt.go:367).
 // This is the fact behind xia's canary discipline
 // being unimplementable in this form today; it flips when the grammar
 // grows a traceable unknown-op refusal (rewrite, not fix).

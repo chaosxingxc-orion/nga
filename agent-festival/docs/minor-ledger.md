@@ -537,10 +537,10 @@ N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是
 每形后自动还原源码；基线红则拒跑；锚点失配即报「电池的锚也是形态绑定」这一自身边界。
 
 ```
-[mutation-proof: cd agent-festival && python3 tools/guard-battery.py → OK]
-[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only seventh_early_return → OK]
-[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only ignore_param → OK]
-[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only hardcoded_err → OK]（反向形：接受面红）
+[mutation-proof: cd agent-festival && python3 tools/guard-battery.py → OK] [retired-by: 26e4ae9 — R58 M-2 围栏立法惰化（配平围栏静默吞 token，无报警）；承接=R58 M-2 条目内四枚活跃 token，R59 B-1 补标记]
+[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only seventh_early_return → OK] [retired-by: 26e4ae9 — R58 M-2 围栏立法惰化（配平围栏静默吞 token，无报警）；承接=R58 M-2 条目内四枚活跃 token，R59 B-1 补标记]
+[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only ignore_param → OK] [retired-by: 26e4ae9 — R58 M-2 围栏立法惰化（配平围栏静默吞 token，无报警）；承接=R58 M-2 条目内四枚活跃 token，R59 B-1 补标记]
+[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only hardcoded_err → OK]（反向形：接受面红） [retired-by: 26e4ae9 — R58 M-2 围栏立法惰化（配平围栏静默吞 token，无报警）；承接=R58 M-2 条目内四枚活跃 token，R59 B-1 补标记]
 ```
 
 十形与红面子测试数（当轮实跑）：
@@ -714,7 +714,7 @@ N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是
 
 - **M-1（在场闸盲 letter 条目形态）**：`bulletRe=[BM]-(\d+)` 只认数字 id，而 M-A/M-B/M-C 是仓内既定约定（R17 节）——合成台账实证：letter 条目无 token 静默过闸。在场闸是协议的机器信任根，声明（每条 B/M 必有 token）与实现面不齐=约定形态免检。已修：bulletRe 放宽 `[BM]-([A-Za-z0-9]+)`（minSection=56 不追溯不变）+解析器 selftest 面+tamper LETTER 面（letter 条目无 token 须红）。
   [mutation-proof: cd agent-festival/go && go test ./internal/settlement/ -count=1 → OK]
-- **M-2（解析器围栏盲——围栏示例假满足 presence+execution）**：行内反引号剥除（71 号教训）未覆盖 ``` 围栏——围栏内 `[mutation-proof: <cmd> → FAIL]` 被当活 token：`<cmd>` bash 重定向错误退出 1≠0 假满足 FAIL 形+计入 tokCount 假满足 presence。C2' 杀掉的占位符假通过只修了行内面，围栏面重开；C1' 节真 token 恰在围栏内——围栏样式是既成风格，一处无辜语法引用即触发。已修：**立法「围栏内容=文档不是 token」**+解析器围栏态（bullet/token/grammar 三跳过）+selftest 围栏面+tamper FENCE 面（围栏示例单独在场须红；CONTROL 面围栏惰性）。C1' 四枚围栏内真 token 承接重挂裸行（围栏语义变更，载体与命令不变）：
+- **M-2（解析器围栏盲——围栏示例假满足 presence+execution）**：行内反引号剥除（71 号教训）未覆盖 ``` 围栏——围栏内 `[mutation-proof: <cmd> → FAIL]` 被当活 token：`<cmd>` bash 重定向语法错误退出 2≠0 假满足 FAIL 形（R59 m-2 纠正：原述 1，实测语法错误为 2——方向≠0 不变）+计入 tokCount 假满足 presence。C2' 杀掉的占位符假通过只修了行内面，围栏面重开；C1' 节真 token 恰在围栏内——围栏样式是既成风格，一处无辜语法引用即触发。已修：**立法「围栏内容=文档不是 token」**+解析器围栏态（bullet/token/grammar 三跳过）+selftest 围栏面+tamper FENCE 面（围栏示例单独在场须红；CONTROL 面围栏惰性）。C1' 四枚围栏内真 token 处置（原述「承接重挂裸行」失实——R59 B-1 纠正：四行原地未动、无退休标记，围栏立法使其静默惰化）：实际承接=本条目内重挂的四枚活跃 token；退休标记由 R59 B-1 清偿补挂；围栏可见性由 R59 B-1 新增 fence 对账面看守（占位符示例豁免）：
   [mutation-proof: cd agent-festival && python3 tools/guard-battery.py → OK]
   [mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only seventh_early_return → OK]
   [mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only ignore_param → OK]
@@ -746,3 +746,29 @@ N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是
 - 检出路径：known 族=空白子跑**机械检查**（vet unreachable 一秒定位+探针 6 红+电池 BASELINE RED）定谳第七形，附突变-恢复闭环+md5 复原——known 族的测量目标（审不审机械面）成立；OOD 族=**判别突变**（构造器改写返回流的 Outcome：现行两字段投影放行=GREEN、恢复三字段=RED）+R56 M-1 台账 vs 代码一致性走读（4-lens）定谳投影削弱。
 - **诚实注记（泛化率=近似度量，本轮按上限读）**：(1) OOD 族定义在仓内 seed.py 且描述与植入逐字同构，审查者引用其为证据——检出带**强分布内成分**；(2) 克隆审查范围聚焦 e2e（重点文件即植入文件）——聚焦度高于全增量轮；(3) OOD 审查者对两枚连锁伪影（seed 锚失配/token 假陈旧）正确归因于树态而非环境——归因质量好，但属植入间接信号。**下次标定改进**：OOD 族取 campaign 外模式（语料 §三既定优先级；本轮池中无外族，如实声明）。
 - 克隆处置：/tmp/ngaf-r58-* 及 manifest 于本节记账后清理（证据=本节+上节）。
+
+## R59 复审记账（2026-11-06，E7 全增量 727950f..a93376f——0B/1M/5m 全清偿+三条条款采纳；连净计数 0）
+
+> 空白子第 59 轮（审 R58 清偿提交——30% 律火力面：围栏感知/克隆卫生/M7 面/篡改电池新缝）。
+> 基线：replay 7/7 + race 22 包绿（空白子自跑）。
+
+- **B-1（围栏立法静默惰化 R57 节四枚真 token——修复叙述失实+退休通道被静默绕过）**：R58 M-2 围栏立法使围栏内 token 不可见，但 C1' 节四枚真 token（539-544 围栏内）原地未动、无 [retired-by] 标记——M4 从「执行它们」变「不执行它们」零报警；R58 M-2 原述「承接重挂裸行」失实（实为主审另挂四枚新 token，原四行未搬）。**新缝自证**：修复（围栏立法）自身的新缝无面看守。已修（三件）：①解析器新增 **fence 对账面**——R56+ 段围栏内 mutation-proof 形行、无 [retired-by:]、非占位符（`<` 开头的语法示例豁免——不可执行=文档）→ 响亮；②四枚尸位 token 补挂退休标记（行级围栏态处理，与审计同构）；③R58 M-2 叙述改真。**面首证**：新面落地的第一跑就在真台账点出 540-543 四行——机器面为它而生的病当场现形。
+  [mutation-proof: cd agent-festival && python3 tools/settlement-audit-tamper.py → OK]
+- **M-1（标定派发卫生无机制承载——下轮标定结构性复发）**：R58 标定节声称克隆剔除会话残留，但 seed.py copy_tree 只剥 .git/.DS_Store——R58 的剥离是一次性手工动作（克隆已删不可复核）。已修（结构化）：copy_tree 剥离清单入 **SESSION_ARTIFACTS**（HANDOFF/KICKOFF/loop-progress/ngaf-launch.sh/impl-2026-11-01/.zcodeignore）+ **assert_dispatch_hygiene** 闸（verify 路径强制，发现残留即拒派发）+ **seed.py --selftest** 两面（A 剥离面：合成树七残留全剥且不误伤 keepme；B 闸红面：植入 KICKOFF 必 SystemExit）+ runbook §一.4 对齐。
+  [mutation-proof: cd agent-festival && python3 tools/seed.py --selftest → OK]
+  [mutation-proof: cd agent-festival && python3 tools/seed.py --family ood-loose-assert --out /tmp/seed-r59-h --verify → OK]
+- **m-1（replay docstring 与 corpus M4 行计数不同步）**：corpus 声称 M4 内含 M7 token 重跑，但 --check-anchors token 不在册。已修：token 补挂（下）+ replay docstring 改「M1-M3, M5 and M7」——声明自此为真。
+  [mutation-proof: cd agent-festival && python3 tools/seed.py --check-anchors → OK]
+- **m-2（`<cmd>` 退出码数字失实）**：R58 M-2 原述「重定向错误退出 1≠0」——实测语法错误为 2。已修：台账改 2（方向≠0 不变）。
+- **m-3（立法首单锚差一行）**：e7_canary_test.go:89 的代码锚 adopt.go:368 → 实为 367。已修。
+- **m-4（电池 selftest 临时目录泄漏）**：guard-battery.py selftest mkdtemp 无清理（审查时 TMPDIR 已积 26；触发条件「下次触碰电池」本轮已满足）。已修：try/finally rmtree；验收=自跑 selftest 后泄漏数 0→0。
+  [mutation-proof: cd agent-festival && python3 tools/guard-battery.py --selftest → OK]
+- **m-5（seed.py copy_tree 在 try 外）**：copytree 中途失败遗留部分克隆。已修：copy_tree 移入 try（R58 M-4 的清理路径覆盖 copy 自身）。
+- **条款双源（三条全采纳，裁决=操作员）**：①真实台账围栏 token 对账面——**本批即实现**（B-1 ①）；②标定派发卫生结构化——**本批即实现**（M-1，copy_tree+卫生闸+selftest）；③解析可见性立法的 token 普查义务——采纳为流程义务，入 runbook §四（任何改变解析器 token 可见性的立法，当轮 grep 真台账枚举受影响 token 并逐枚声明去向）。
+- **方法论入账（第 80/81/82 实证）**：**立法改变可见性必须同轮普查受害面**（B-1——围栏立法的受害 token 就在立法者自己上一节的围栏里；机器面对账让「静默惰化」不可表达）；**一次性手工动作必须降为机制**（M-1——R58 的克隆剥离手工完成、克隆已删不可复核，下轮必复发；strip-at-copy+闸+自测三件让「忘剥离」不可表达）；**面首证即猎物**（fence 面第一跑点出的就是它要防的四具尸体——机器面的验收标准是「在真实病床上抓到真病」而非「自测绿」）。
+
+[mutation-proof: cd agent-festival && python3 tools/settlement-audit-tamper.py → OK]
+[mutation-proof: cd agent-festival && python3 tools/seed.py --selftest → OK]
+[mutation-proof: cd agent-festival && python3 tools/seed.py --family ood-loose-assert --out /tmp/seed-r59-h --verify → OK]
+[mutation-proof: cd agent-festival && python3 tools/seed.py --check-anchors → OK]
+[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --selftest → OK]

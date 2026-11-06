@@ -48,8 +48,8 @@ NESTED = "SETTLEMENT_AUDIT_NESTED"
 OVERRIDE = "SETTLEMENT_AUDIT_LEDGER"
 
 # Expected violation kinds and entry ids in the violation ledger.
-EXPECT_KINDS = ["presence", "grammar", "execution"]
-EXPECT_IDS = ["M-1", "M-2", "M-3", "M-4"]
+EXPECT_KINDS = ["presence", "grammar", "execution", "fence"]
+EXPECT_IDS = ["M-1", "M-2", "M-3", "M-4", "M-6"]
 
 VIOLATION_LEDGER = """**清偿证明协议（synthetic tamper fixture）**：
 从 R56 起每条 M/B 清偿的台账条目必须内嵌突变命令 token。
@@ -67,6 +67,11 @@ VIOLATION_LEDGER = """**清偿证明协议（synthetic tamper fixture）**：
   active successor carries the proof.
   [mutation-proof: false → FAIL] [retired-by: deadbeef superseded by the battery]
   [mutation-proof: exit 3 → FAIL]
+- **M-6（fence-buried live token）**：settled with a token buried in a
+  code fence — invisible to the machine contract, must be loud (R59 B-1).
+  ```
+  [mutation-proof: echo FAIL → FAIL]
+  ```
 """
 
 CONTROL_LEDGER = """**清偿证明协议（synthetic control fixture）**：

@@ -120,8 +120,32 @@ def materialize_battery_edit(family):
     return [(spec["file"], anchor, replacement)], spec
 
 
+# R59 M-1: the calibration dispatch hygiene, STRUCTURAL at last. A clone
+# carrying session artifacts (KICKOFF.md describes the implant protocol —
+# a reviewer reading it collapses the calibration) invalidates the seeding.
+# Stripping at copy time means a forgotten manual step is structurally
+# impossible (2026-11-02 legislation, process-tool layer).
+SESSION_ARTIFACTS = (
+    "HANDOFF.md", "KICKOFF.md", "loop-progress.log", "ngaf-launch.sh",
+    "impl-2026-11-01", ".zcodeignore",
+)
+
+
 def copy_tree(dst: Path):
-    shutil.copytree(ROOT, dst, ignore=shutil.ignore_patterns(".git", ".DS_Store"))
+    shutil.copytree(ROOT, dst, ignore=shutil.ignore_patterns(".git", ".DS_Store", *SESSION_ARTIFACTS))
+
+
+def assert_dispatch_hygiene(clone: Path):
+    """Loud gate: the clone must NOT contain session artifacts even after
+    copy-time stripping (defense in depth — the ignore list is the first
+    face, this is the second)."""
+    present = [a for a in SESSION_ARTIFACTS if (clone / a).exists()]
+    if present:
+        raise SystemExit(
+            f"seed: DISPATCH HYGIENE VIOLATION — session artifacts leaked into "
+            f"the clone: {present}; a calibration reviewer reading them would "
+            "collapse the seeding. Refusing to dispatch."
+        )
 
 
 def apply_edits(clone: Path, edits):
@@ -192,6 +216,54 @@ def check_anchors():
     return 0
 
 
+def selftest():
+    """The hygiene gate's own red faces — synthetic trees, no repo contact:
+    A. copy_tree strips every session artifact from the clone
+    B. assert_dispatch_hygiene raises loudly on a planted artifact
+    """
+    failures = []
+    tmp = Path(tempfile.mkdtemp(prefix="seed-hygiene-selftest-"))
+    try:
+        fake_src = tmp / "src"
+        fake_src.mkdir()
+        for name in ("KICKOFF.md", "HANDOFF.md", "loop-progress.log", "ngaf-launch.sh"):
+            (fake_src / name).write_text("session artifact")
+        (fake_src / "impl-2026-11-01").mkdir()
+        (fake_src / "impl-2026-11-01" / "42-review-meta-analysis-v2.md").write_text("draft")
+        (fake_src / "keepme.txt").write_text("real content")
+        dst = tmp / "clone"
+        # A: stripping face (monkeypatch the module ROOT for this call)
+        global ROOT
+        saved_root, ROOT = ROOT, fake_src
+        try:
+            copy_tree(dst)
+        finally:
+            ROOT = saved_root
+        leaked = [a for a in SESSION_ARTIFACTS if (dst / a).exists()]
+        if leaked:
+            failures.append(f"A: copy_tree leaked session artifacts: {leaked}")
+        if not (dst / "keepme.txt").exists():
+            failures.append("A: copy_tree stripped non-artifact content (over-broad)")
+        # B: hygiene-gate red face
+        (dst / "KICKOFF.md").write_text("planted")
+        try:
+            assert_dispatch_hygiene(dst)
+            failures.append("B: hygiene gate did NOT raise on a planted artifact")
+        except SystemExit as e:
+            if "DISPATCH HYGIENE VIOLATION" not in str(e):
+                failures.append(f"B: wrong error surface: {e}")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    if failures:
+        print("SEED SELFTEST FAILURE")
+        for f in failures:
+            print(f"  - {f}")
+        return 1
+    print("SEED SELFTEST PASS — copy_tree strips session artifacts, "
+          "hygiene gate raises on planted artifacts")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--list", action="store_true")
@@ -199,6 +271,7 @@ def main():
     ap.add_argument("--out", help="clone target directory")
     ap.add_argument("--verify", action="store_true", help="prove the expected color, then clean up unless --keep")
     ap.add_argument("--keep", action="store_true", help="keep the clone for reviewer dispatch")
+    ap.add_argument("--selftest", action="store_true", help="the hygiene gate's own red faces (synthetic trees)")
     ap.add_argument("--check-anchors", action="store_true",
                     help="dry run: every catalog family's anchors must match the real tree "
                          "exactly once each (zero writes; mutually exclusive with --family/--out)")
@@ -208,6 +281,8 @@ def main():
         if args.family or args.out:
             raise SystemExit("seed: --check-anchors is a dry run and takes no --family/--out")
         return check_anchors()
+    if args.selftest:
+        return selftest()
     if args.list:
         for fid, fam in CATALOG.items():
             print(f"{fid}\t[{fam['color']}] {fam['desc']}")
@@ -229,7 +304,6 @@ def main():
     if edits is None:  # battery family: single-source the edits
         edits, _ = materialize_battery_edit(args.family)
 
-    copy_tree(out)
     manifest_path = out.parent / (out.name + ".seed-manifest.json")
     # R58 M-4: any failure after the clone exists (stale edit anchor, verify
     # red, interrupt) must remove the clone AND the manifest before
@@ -239,6 +313,11 @@ def main():
     # failure class the audit exists to catch. The pre-copytree failure
     # (target already exists) has nothing to clean.
     try:
+        # R59 m-5: the copy itself is inside the try — a copytree failure
+        # (disk full, permission) previously left a PARTIAL clone behind
+        # with no cleanup.
+        copy_tree(out)
+        assert_dispatch_hygiene(out)
         apply_edits(out, edits)
         manifest = {
             "family": args.family,

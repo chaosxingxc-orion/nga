@@ -31,6 +31,10 @@ const (
 
 var (
 	sectionRe = regexp.MustCompile(`^## R(\d+)\b`)
+	// fencePlaceholderRe: a fenced "[mutation-proof: <...> → ...]" line
+	// whose command starts with "<" is a grammar ILLUSTRATION, not an
+	// executable token — exempt from the fence-visibility face (R59 B-1).
+	fencePlaceholderRe = regexp.MustCompile(`\[mutation-proof:\s*<`)
 	// bulletRe matches numeric AND letter-suffix entry ids (M-1/M-A/M-B —
 	// the ledger's established letter-id convention, e.g. R17 M-A/M-B/M-C):
 	// a scoped letter entry without a token must be presence-checked, not
@@ -113,6 +117,26 @@ func parseLedger(data []byte) *audit {
 			continue
 		}
 		if inFence {
+			// R59 B-1: the fence VISIBILITY face. Fence legislation (R58
+			// M-2) changed token visibility here with no accounting face —
+			// the four C1' tokens died silently inside this very ledger's
+			// own fence while the settlement narrative claimed they had
+			// been re-hung. A fenced mutation-proof-format line is retired
+			// history ONLY if it carries the retired-by marker; otherwise
+			// it is a live-format token buried where nothing can execute
+			// it — loud, always (either move it out of the fence or mark
+			// it [retired-by: ...]). EXEMPT: placeholder illustration
+			// forms ("[mutation-proof: <...> → ...]") — they cannot
+			// execute, they are grammar documentation (R59 B-1 settlement:
+			// the tamper control ledger's fence-inert control depends on
+			// this exemption; a real command still trips).
+			isPlaceholder := fencePlaceholderRe.MatchString(raw)
+			if curScoped && strings.Contains(raw, "[mutation-proof:") && !strings.Contains(raw, retiredMark) && !isPlaceholder {
+				a.violations = append(a.violations, violation{
+					kind: "fence", where: fmt.Sprintf("%s:%d", ledgerName, lineNo),
+					msg: "mutation-proof-format line inside a code fence is invisible to the machine contract — move it out of the fence or mark it [retired-by: ...]",
+				})
+			}
 			continue
 		}
 		if m := sectionRe.FindStringSubmatch(raw); m != nil {
@@ -406,12 +430,63 @@ func TestSettlementAuditSelfTest(t *testing.T) {
 		// parses as nothing, and the entry's proof obligation stands
 		// (presence), even though the fenced <cmd> placeholder would exit
 		// non-zero and false-satisfy a FAIL expectation if it were counted.
+		// R59 B-1: the placeholder form is EXEMPT from the fence face (a
+		// grammar illustration cannot execute — see
+		// fenced_placeholder_illustration_quiet); a REAL command in a
+		// fence stays loud (fenced_live_token_loud).
 		a := parseLedger([]byte("## R56 review ledger\n- **M-1**: settled.\n```\n[mutation-proof: <cmd> → FAIL]\n```\n"))
 		if len(a.activeTokens) != 0 {
 			t.Fatalf("fenced token must not become an active token; got %+v", a.activeTokens)
 		}
+		for _, v := range a.violations {
+			if v.kind == "fence" {
+				t.Fatalf("fenced placeholder illustration must stay quiet (exempt), got %+v", a.violations)
+			}
+		}
 		if len(a.violations) != 1 || a.violations[0].kind != "presence" {
 			t.Fatalf("fenced-only proof must leave the presence obligation standing, got %+v", a.violations)
+		}
+	})
+	t.Run("fenced_live_token_loud", func(t *testing.T) {
+		// R59 B-1: a fenced LIVE token (no retired-by marker) must be a
+		// loud fence violation — R58's fence legislation made fenced
+		// tokens invisible, which let the four C1' tokens die silently.
+		a := parseLedger([]byte("## R56 复审记账\n- **M-1**: settled.\n```\n[mutation-proof: echo hi → OK]\n```\n"))
+		found := false
+		for _, v := range a.violations {
+			if v.kind == "fence" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("fenced live token must be a loud fence violation, got %+v", a.violations)
+		}
+	})
+	t.Run("fenced_placeholder_illustration_quiet", func(t *testing.T) {
+		// R59 B-1 exemption: a fenced grammar ILLUSTRATION (placeholder
+		// command, cannot execute) is documentation — quiet, exactly like
+		// the tamper control ledger's fence-inert control.
+		a := parseLedger([]byte("## R56 复审记账\n- **M-1**: settled.\n  [mutation-proof: exit 3 → FAIL]\n```\n[mutation-proof: <reproducible command> → FAIL]\n```\n"))
+		for _, v := range a.violations {
+			if v.kind == "fence" {
+				t.Fatalf("fenced placeholder illustration must stay quiet, got %+v", a.violations)
+			}
+		}
+		if len(a.activeTokens) != 1 {
+			t.Fatalf("the real token must still parse, got %+v", a.activeTokens)
+		}
+	})
+	t.Run("fenced_retired_token_quiet", func(t *testing.T) {
+		// R59 B-1: a fenced token WITH the retired-by marker is documented
+		// history — quiet.
+		a := parseLedger([]byte("## R56 复审记账\n- **M-1**: settled.\n  [mutation-proof: exit 3 → FAIL]\n```\n[mutation-proof: echo hi → OK] [retired-by: 26e4ae9 superseded]\n```\n"))
+		for _, v := range a.violations {
+			if v.kind == "fence" {
+				t.Fatalf("fenced retired token must stay quiet, got %+v", a.violations)
+			}
+		}
+		if len(a.activeTokens) != 1 {
+			t.Fatalf("the active successor token must still parse, got %+v", a.activeTokens)
 		}
 	})
 	t.Run("retired_token_skipped", func(t *testing.T) {

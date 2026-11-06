@@ -14,7 +14,7 @@ Faces (the inventory lives in docs/attack-corpus.md — the single source):
   M3 battery-selftest  the battery's own six faces
   M4 settlement-audit  every ledger token re-runs to its declared outcome
                        (presence / grammar / execution / staleness) — note
-                       M4 internally re-runs M1-M3 and M5 as tokens: the
+                       M4 internally re-runs M1-M3, M5 and M7 as tokens: the
                        replay is defense-in-depth, not a minimal set
   M5 audit-tamper      the audit's own tamper battery
   M6 audit-selftest    the ledger parser's nine in-process faces
