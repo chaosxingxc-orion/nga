@@ -28,8 +28,8 @@
       "accepted_for_release": false,
       "candidate_workspace": ".local/releases/engineering-base-rc1/components/supervisor",
       "integration_state": "unaccepted_working_copy_imported",
-      "repair_task": ".local/releases/engineering-base-rc1/tasks/supervisor/access-layout",
-      "candidate_review": ".local/releases/engineering-base-rc1/tasks/supervisor/access-layout-review/RESULT.json",
+      "repair_task": ".local/releases/engineering-base-rc1/tasks/supervisor/authority-implementation",
+      "candidate_review": ".local/releases/engineering-base-rc1/tasks/supervisor/authority-review/RESULT.json",
       "incoming_verdict": "changes_required_normal_cli_absent",
       "local_review": ".local/releases/engineering-base-rc1/tasks/supervisor/connect-review/RESULT.json",
       "local_status": "real_worker_scorer_owned_gate_positive_and_no_spawn_replay_accepted_bounded_synthetic_external_runtime; UID9009_access_unresolved"
@@ -51,7 +51,9 @@
       "target_review_sha256": "9e1851d63830304d9f18918747364604887d1c133cbe11dd9bc0d1c27ec2bd06",
       "native_qualification_task": ".local/releases/engineering-base-rc1/tasks/capture/native-target",
       "native_review": ".local/releases/engineering-base-rc1/tasks/capture/native-review/RESULT.json",
-      "remaining_target": "full native chain and independent reader; timestamped counted monitoring and durable stage receipts; end-to-end performance and NPU"
+      "remaining_target": "full native chain and independent reader; timestamped counted monitoring and durable stage receipts; end-to-end performance and NPU",
+      "native_target_status": "producer_PASS_BOUNDED_CPU_CEPH_NATIVE_WITH_QUALIFICATIONS; independent_review_running",
+      "native_target_result": ".local/releases/engineering-base-rc1/tasks/capture/native-target/RESULT.json"
     },
     "snapshot": {
       "incoming_workspace": ".local/preparations/engineering-snapshot-custody-chain-20261106-v3",
@@ -63,8 +65,8 @@
       "repair_task": ".local/releases/engineering-base-rc1/tasks/snapshot/provision",
       "candidate_review": ".local/releases/engineering-base-rc1/tasks/snapshot/provision-review/RESULT.json",
       "incoming_verdict": "rejected_combined_lifecycle_absent",
-      "local_delivery": ".local/releases/engineering-base-rc1/tasks/snapshot/complete-lifecycle/RESULT.json",
-      "local_status": "finite_detached_UID9009_signal_resume_alias_fixes_accepted; replay_source_report_validation_and_normal_provision_rejected",
+      "local_delivery": ".local/releases/engineering-base-rc1/tasks/snapshot/provision/RESULT.json",
+      "local_status": "configured_inside_runtime_and_replay_input_report_checks_delivered_under_review; ordinary_host_setup_owned_by_integration",
       "local_review": ".local/releases/engineering-base-rc1/tasks/snapshot/complete-lifecycle-review/RESULT.json"
     }
   },
@@ -74,14 +76,14 @@
       "title": "Complete configured supervisor and worker/gate lifecycle",
       "state": "open",
       "component": "supervisor",
-      "current_action": "MappedUID9009 confirmed shared output/socket denies access; naive access grant exposes controller authority. Separate candidate output and controller authority plus socket access in same component, then real mappedUID integrated tests"
+      "current_action": "Prior repair misidentified itself and made no source change; actual runner PID/task identity now prepended to future subprocess prompts, concrete authority separation queued"
     },
     {
       "id": "RC-02",
       "title": "Finish actual capture ledger, boundary accounting and independent validation",
       "state": "open",
       "component": "capture",
-      "current_action": "Independent actual175 CPU/Ceph finite acceptance; next full native chain queued with monitor fix, no unchanged suite rerun"
+      "current_action": "Actual175 tinyPEFT native continuous/plain/prefix/resume and fullreader producer pass; independent review running; future digest disk-read cap repair queued"
     },
     {
       "id": "RC-03",
@@ -94,7 +96,8 @@
       "id": "RC-04",
       "title": "Validate actual175 CPU/Ceph behavior and fixed-load efficiency",
       "state": "open",
-      "component": "integration"
+      "component": "integration",
+      "current_action": "Actual175 finite capture accepted; integrated smoke then exact2B46320 ABBA BAAB prepare/admit/execute/review queued; historical6run/9B contract cannot substitute"
     },
     {
       "id": "RC-05",
@@ -122,7 +125,7 @@
     "assembly_task": ".local/releases/engineering-base-rc1/tasks/integration/assemble",
     "review_task": ".local/releases/engineering-base-rc1/tasks/integration/review",
     "waits_for": [
-      "supervisor/access-layout-review",
+      "supervisor/authority-review",
       "snapshot/provision-review",
       "capture/target-review"
     ],
@@ -137,5 +140,13 @@
     "npu_configure": ".local/releases/engineering-base-rc1/tasks/npu/configure",
     "npu_config_review": ".local/releases/engineering-base-rc1/tasks/npu/config-review",
     "note": "tasks are same rc1 work packages; terminal alone is not acceptance; no NPU authorization from placeholders"
+  },
+  "efficiency_queue": {
+    "prepare": ".local/releases/engineering-base-rc1/tasks/efficiency/prepare",
+    "admission_review": ".local/releases/engineering-base-rc1/tasks/efficiency/prepare-review",
+    "execute": ".local/releases/engineering-base-rc1/tasks/efficiency/execute",
+    "result_review": ".local/releases/engineering-base-rc1/tasks/efficiency/result-review",
+    "contract_sha256": "52cf2748b9107f5d3193eaf2d57f30588babdac2da9f3f525327f5261b76f485",
+    "execution_requires": "accepted integrated175 smallqualification + protected fullsnapshot + frozen orderedprediction/receipt identities + adopted preregistration/wiki + independent explicit admission"
   }
 }
