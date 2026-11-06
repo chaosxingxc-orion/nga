@@ -1,0 +1,31 @@
+def apply_fsdp2(model, fsdp_kwargs, config):
+    """model: AutoModelForCausalLM"""
+    assert CPUOffloadPolicy is not None, "PyTorch version >= 2.4 is required for using fully_shard API (FSDP2)"
+
+    default_transformer_cls_names_to_wrap = getattr(model, "_no_split_modules", None)
+    fsdp_transformer_layer_cls_to_wrap = config.get("wrap_policy", {}).get(
+        "transformer_layer_cls_to_wrap", default_transformer_cls_names_to_wrap
+    )
+
+    if isinstance(fsdp_transformer_layer_cls_to_wrap, str):
+        fsdp_transformer_layer_cls_to_wrap = [fsdp_transformer_layer_cls_to_wrap]
+
+    assert len(fsdp_transformer_layer_cls_to_wrap) > 0 and fsdp_transformer_layer_cls_to_wrap[0] is not None
+
+    modules = []
+    for name, module in model.named_modules():
+        if module.__class__.__name__ in fsdp_transformer_layer_cls_to_wrap or (
+            isinstance(module, nn.Embedding) and not model.config.tie_word_embeddings
+        ):
+            modules.append(module)
+
+    for idx, module in enumerate(modules):
+        # if torch.distributed.is_initialized() and torch.distributed.get_rank() == 0:
+        #     print(f"wrap module {module.__class__.__name__}")
+        with maybe_patch_fsdp_module(module):
+            fully_shard(module, **fsdp_kwargs)
+
+    # if torch.distributed.is_initialized() and torch.distributed.get_rank() == 0:
+    #     print(f"wrap module {model.__class__.__name__}")
+    with maybe_patch_fsdp_module(model):
+        fully_shard(model, **fsdp_kwargs)  # fsdp2 will not reshard_after_forward for root module

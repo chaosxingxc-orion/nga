@@ -27,3 +27,24 @@ Config SHA256 `b1f5ec09d233436ede103be77b223f73c5f5975635030b4c8d7aa9ba32cb2bab`
 Finish CPU preparation and publish this record before admission. Existing TEST work on chips0–3 has priority through all assigned successors; no reservation, drain or preemption. Wait on durable inference/release metadata with low-cost scripts, then let the accepted group controller verify current physical ownership and atomically claim all four cards. Do not run its10-second full-probe wait while known TEST work is still active. CPU scoring/analysis is not a resource prerequisite. Fresh host-memory/checkpoint-space sufficiency and exact persistent bindings must be checked before admission; CPU staging observed about2TB available RAM and714GB Ceph space, transient values rather than reservations.
 
 Run detached with persistent launch/controller logs and exit marker, retained Docker container, per-rank progress and phase marker. Reuse the exact stored relaunch/observe records. Unknown launch or existing claim/intent must be reconciled, never blindly replayed. Release proof can fail after the ledger commit; reconcile ledger, intent and proof together. Source/configuration copies remain protected throughout execution. A failed phase preserves evidence and requires a separately identified retry; no automatic outcome-driven rerun.
+
+## 2026-11-06 compatibility correction and separately identified retry
+
+The first attempt loaded the actual model and constructed LoRA on all ranks, then failed before FSDP completion: VERL `apply_fsdp2` validated its nonempty class-name collection with `[0]`, but the effective collection was a set (`TypeError: 'set' object is not subscriptable`). Phase/controller/gate exited1; the retained container and guarded release of physical0–3 at21:16:25 UTC are preserved. No optimizer update or checkpoint success is claimed.
+
+The retry installs a candidate-local replacement at the actual `transformer_impl.apply_fsdp2` call binding. It requires the exact upstream function source SHA256 `438b1857e20f35d9ddac6cafef07b4c39aba7db36fbb3b9b468c9696bec87e4d`, and changes only the indexed assertion to a nonempty/all-non-None collection assertion. Class membership, embedding handling, child/root sharding order and kwargs remain the upstream implementation. Shared VERL files and the failed attempt remain unchanged. The compatibility source is preserved under `tools/qwen38_first_update/fsdp_set_compat/`.
+
+Five focused CPU tests reproduce the original exception before any sharding, then check default and explicit sets, string/list/tuple inputs, invalid selections, tied/untied embeddings and installation at the called symbol. These tests establish the specific correction only. The retry still owes all actual device acceptance above; neither source checks nor exit0 establish a training update. Independent review of the exact corrected package precedes dispatch.
+
+Model/revision, image, fixture and selected rows, precision, determinism, four-rank FSDP2, LoRA, optimizer, seeds, batching, schedule and step-one checkpoint/stop criteria remain unchanged. This amendment records an implementation compatibility correction, not new metric thresholds or a new release.
+
+Retry stage: `qwen38-first-update-runtime/retry-fsdp-set-20261106`. Distinct run/container: `qwen38-first-update-fsdp-set-retry-20261106`; output under the existing runtime's `runs/` and attempt under its matching `attempts/` child.
+
+| Retry artifact | SHA256 |
+| --- | --- |
+| Host configuration | `e5b15f15d823c9ef0816bd1c8f6936141b327c6f4cdbedc6f0ae8afb65117a4c` |
+| Prepared STAGED | `38fda7929a64c85fae760450a6c4addc3ce75a3b767bf121c59d2ef6bc54eb6a` |
+| Candidate hooks.py | `b8b1960c349e472a19ba32735043c861e59edce530ebdc32a8a54c0f146274f3` |
+| Compatibility source | `3f8589550f7f60cbb61136502ae682372ffee4f34b819dd242af0dc12089a159` |
+
+The prior guarded release is historical evidence; the existing controller must check current physical ownership and host memory/disk sufficiency before a fresh group claim. CPU result analysis does not gate that claim. No old gate or failed container is restarted, and no automatic retry follows a future failure.
