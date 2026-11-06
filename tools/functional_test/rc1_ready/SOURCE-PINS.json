@@ -1,0 +1,35 @@
+{
+  "description": "SHA-256 of preserved source bytes; paths relative to this manifest.",
+  "source_candidate": ".local/releases/engineering-base-rc1/tasks/execution/test-coherent-package/candidate",
+  "accepted_reviews": [
+    {
+      "path": ".local/releases/engineering-base-rc1/tasks/science/test-async-source-delta-review/VERDICT.json",
+      "sha256": "981cde8d3a8fde6a235b36e06ca8c823144ba8f9e4b62c59434863dd0c62a812"
+    },
+    {
+      "path": ".local/releases/engineering-base-rc1/tasks/science/test-ready-accept-activate/BINDING-ACCEPTANCE.json",
+      "sha256": "a127e11e21b96846a15df40b9e15d25d162a1f6d0c59ace2114685015afd6874"
+    }
+  ],
+  "files": {
+    "rc1_trackk.py": "a24c27e80f6d5023a490f41ae51d0ea08c3f54b10cae183f0a7a7bd3302d88f6",
+    "host/assembler.py": "baa1faa98f24d1ed43c2ca1ef6168e83c66bff03871fa1318104225bec862ecb",
+    "host/collector.py": "9505ba07804c422c8ff4895b5e099b3e1e0f6dfd1fe18e2e72ba1e39186c29cc",
+    "host/config_builder.py": "1e8240b445c9ae6de30f473f9e3c9010d1192d91872b0d5d450860d6aa73a80b",
+    "host/dev_binding.py": "609dcf39d737d3d244dcff9ed20f3af0659b466cfcbfa51d3bca5a720306fd9e",
+    "host/dispatcher.py": "158862d6b6cdc25a492e445dd716780e0895164d0e05ef9877575ba64587114d",
+    "host/exporter.py": "56fec9e88018a4c10d5b7aac6ac948a8f37b01579cf53f586ae274d26533fe40",
+    "host/identity_reuse.py": "0f68e4d16b3e1be8822853b4d743f882f31665dd475a8263192cb469056b6a8f",
+    "host/materializer.py": "444f4d45d95c13b834f8f76a8ab6a45dad50abdbbe591c907639c348df3f7f0f",
+    "host/site_dependencies.py": "f73dc5d84d3deee637c7046488852a83379a715062b660a8e9e3cec333be1c85",
+    "host/supervisor.py": "d9165f00ae80b32087633a4fc8d41431cc08cdb115a70725491c73b8cd8601f4",
+    "package/collector.py": "93d257e9d317a98a2014418062a120cb96953854c04c73d87d18fe186e1ecb32",
+    "package/exporter.py": "56fec9e88018a4c10d5b7aac6ac948a8f37b01579cf53f586ae274d26533fe40",
+    "package/integration.py": "fc75c4be8ba83abd1c41635943c8821d3dca9f4e1f78037d215d1c241f15379c",
+    "package/make_config.py": "97b4a6ddde5aed54150ac9bc68a0f775002fd8af244a83634dceca7997d0e7e2",
+    "package/watcher.py": "681d76b7947c4c137794b4eadc638cffb1b7f8f25f4584c16e340b52e0c2e96c",
+    "comparison/consumer.py": "a4ea865d926c296ddcc4b049dfe0631eccb4fc3f638a3c04953bb65d6847efc1",
+    "comparison/r3_final_gain_compare.py": "10534f805f2c2f9b259a27f7f23c3c03fb7b0fc6845eae525a47ed06ca6f8433",
+    "comparison/reference.py": "db00e09da2bfbf62b3aad8829d66c1897746f68eddca3e79311cae7fe6c8f3fa"
+  }
+}
