@@ -1,0 +1,76 @@
+{
+  "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+  "closure": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1",
+  "root": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106",
+  "data_pins": {
+    "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/dev.jsonl": "b36f7544d8ef22b298eecbeb0e7cd26395529d6627a618127bed0fd7738ceab4",
+    "/mnt/cephfs/xingchao/experiments/jev/KEV/transfer-v4/dev.jsonl": "1afdbca928bfcd8a5c5ce43b041738a1b3cfd557dd64f99117c070abf35b49e9",
+    "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/calibration.jsonl": "c3eeeda72740fbde6fbcc28e1dff0928c98407242543d0bd8f0819497f502b69",
+    "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/dev.variants.jsonl": "3a6447dc60b00d7a291acb80c3aedfa3a76d8ba4283def3bf2592ea7afa970de",
+    "/mnt/cephfs/xingchao/experiments/jev/KEV/transfer-v4/dev.variants.jsonl": "039ecd0ed53b1698cc565d6784dcdc93a206386611e2c2a5599ddc1cb0741598"
+  },
+  "models": [
+    {
+      "id": "08b-k0",
+      "size": "0.8B",
+      "model": {
+        "base_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base",
+        "base_revision": "dc7cdfe2ee4154fa7e30f5b51ca41bfa40174e68",
+        "kind": "checkpoint",
+        "path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base",
+        "sha256": "601ef4f4410b50267af92fd06c3fa538f83b93847a538e7d01824563a77fe894"
+      },
+      "weight_shard_pins": {
+        "model.safetensors-00001-of-00001.safetensors": "c2b1e5a17d9c1e27685d92ed9b382911ebb99955ecd89052d1721241adfbab6c"
+      }
+    },
+    {
+      "id": "2b-k0",
+      "size": "2B",
+      "model": {
+        "base_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base",
+        "base_revision": "b1485b2fa6dfa1287294f269f5fb618e03d52d7c",
+        "kind": "checkpoint",
+        "path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base",
+        "sha256": "16ecdd1e308738719dd3053dc3caa35b30ac9212bfa19a34c9b5f2e063855e5a"
+      },
+      "weight_shard_pins": {
+        "model.safetensors-00001-of-00001.safetensors": "928acbf11878c32185bbd863514d191769285065ab9ea14fbfe431303f5fdf2d"
+      }
+    },
+    {
+      "id": "4b-k0",
+      "size": "4B",
+      "model": {
+        "base_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base",
+        "base_revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+        "kind": "checkpoint",
+        "path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base",
+        "sha256": "63e90604402524dfc41ad8882cf4268a389f5a963c7d2d574ea9d87cb686cc5c"
+      },
+      "weight_shard_pins": {
+        "model.safetensors-00001-of-00002.safetensors": "df547074dce70532a0493e5433152bd17a65efb89088cfabc2e7e2371a93d712",
+        "model.safetensors-00002-of-00002.safetensors": "590fbaac095dd31db886c322d9d2f7df47777966391acf306ddddc3e4e3a15ef"
+      }
+    },
+    {
+      "id": "9b-k0",
+      "size": "9B",
+      "model": {
+        "base_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base",
+        "base_revision": "68c46c4b3498877f3ef123c856ecfde50c39f404",
+        "kind": "checkpoint",
+        "path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base",
+        "sha256": "e24d5d10b1f4e6a0fb301bd11e7dfb6aea0eafb1adfe6ef59a37dda5c0cd16bc"
+      },
+      "weight_shard_pins": {
+        "model.safetensors-00001-of-00004.safetensors": "862bf7bba8a50145d19d0ae463931fae515284024736592a73a336bc4dfa54ee",
+        "model.safetensors-00002-of-00004.safetensors": "bace8e115e11ca93c22f0352a60d2fb0c76ac6d7d1c2993c143b7ad2b6c8868c",
+        "model.safetensors-00003-of-00004.safetensors": "63a021ac0011cbfc66166e77103327a8b45dee95832e36551f6b4c3337448959",
+        "model.safetensors-00004-of-00004.safetensors": "1a643bbed669266917b5058b5d3f660c03233599249ff7d8fd083decfe662ae0"
+      }
+    }
+  ],
+  "plan_sha256": "3f96c2f54ab57e6bbdb27249d5eef3bb3d27bc5bb020757e347d6b8d83502ac5",
+  "source_pins_sha256": "56089db0b3891c312a17086731164493f1779127addab238ac5123d5eb8d2253"
+}
