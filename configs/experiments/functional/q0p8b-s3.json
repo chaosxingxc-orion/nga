@@ -1,0 +1,22 @@
+{
+  "schema": "nga-unified-config-v1",
+  "adapter": "k1-family-train-v2",
+  "recipe_id": "k1-base-0.8b-3116-v2",
+  "owner": "rc1-functional-q0p8b-s3",
+  "seed": 3,
+  "model": {
+    "id": "Qwen3.5-0.8B-Base",
+    "path": "/model/base",
+    "manifest": "/opt/nga/components/training/family-assets-v2/model-0.8B.json",
+    "manifest_sha256": "042f1303b1542254e0a7696bbf95938e7bc947de556e7937448f94611507ce7f"
+  },
+  "dataset": {
+    "id": "decision-v7-train",
+    "path": "/data/train.jsonl",
+    "manifest": "/opt/nga/components/training/family-assets-v2/dataset.json",
+    "manifest_sha256": "2d71ef2dee50883d6e42c4b3a2e8217c8c0e69aea41d447071fe945881431831"
+  },
+  "resume": null,
+  "engineering_stop_after": 2,
+  "output": "/run/nga/output/result"
+}

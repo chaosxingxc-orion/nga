@@ -79,41 +79,47 @@
       "title": "Complete configured supervisor and worker/gate lifecycle",
       "state": "open",
       "component": "supervisor",
-      "current_action": "Access contract independently accepted scoped; real UID9009 waiting/worker/scorer normal pipeline, replay and fault lifecycle running before pipeline-review"
+      "current_action": "Access contract independently accepted scoped; real UID9009 waiting/worker/scorer normal pipeline, replay and fault lifecycle running before pipeline-review",
+      "blocks_experiment_dispatch": false
     },
     {
       "id": "RC-02",
       "title": "Finish actual capture ledger, boundary accounting and independent validation",
       "state": "open",
       "component": "capture",
-      "current_action": "Finite actual175 tinyPEFT fullreader/plannedresume independently accepted; integrated outer+actualprocess success binding, true Qwen/NPU and interruption recovery remain"
+      "current_action": "Finite actual175 tinyPEFT fullreader/plannedresume independently accepted; integrated outer+actualprocess success binding, true Qwen/NPU and interruption recovery remain",
+      "blocks_experiment_dispatch": false
     },
     {
       "id": "RC-03",
       "title": "Finish protected copy/verifier custody, resume and external identity binding",
       "state": "open",
       "component": "snapshot",
-      "current_action": "R5/R6 independently accepted exact source verified; remaining ordinary host setup and actual175 integration owned by assembly/target"
+      "current_action": "R5/R6 independently accepted exact source verified; remaining ordinary host setup and actual175 integration owned by assembly/target",
+      "blocks_experiment_dispatch": false
     },
     {
       "id": "RC-04",
       "title": "Validate actual175 CPU/Ceph behavior and fixed-load efficiency",
       "state": "open",
       "component": "integration",
-      "current_action": "Actual175 finite capture accepted; integrated smoke then exact2B46320 ABBA BAAB prepare/admit/execute/review queued; historical6run/9B contract cannot substitute"
+      "current_action": "Actual175 finite capture accepted; integrated smoke then exact2B46320 ABBA BAAB prepare/admit/execute/review queued; historical6run/9B contract cannot substitute",
+      "blocks_experiment_dispatch": false
     },
     {
       "id": "RC-05",
       "title": "Validate four-family NPU numerical behavior, resume and throughput",
       "state": "open",
       "component": "integration",
-      "current_action": "57-file/35.05GB payload matches observed on 175, but shared roots and 777 output fail custody; protected copy/permission review now precedes device driver and NPU queue preparation"
+      "current_action": "57-file/35.05GB payload matches observed on 175, but shared roots and 777 output fail custody; protected copy/permission review now precedes device driver and NPU queue preparation",
+      "blocks_experiment_dispatch": false
     },
     {
       "id": "RC-06",
       "title": "Freeze Docker/source/config closure and obtain independent release verdict",
       "state": "open",
-      "component": "release"
+      "component": "release",
+      "blocks_experiment_dispatch": false
     }
   ],
   "nonblocking_work": "backlog; cannot create a new version or expand current release gate",
@@ -180,5 +186,9 @@
     "result_review": ".local/releases/engineering-base-rc1/tasks/efficiency/result-review",
     "contract_sha256": "52cf2748b9107f5d3193eaf2d57f30588babdac2da9f3f525327f5261b76f485",
     "execution_requires": "accepted integrated175 smallqualification + protected fullsnapshot + frozen orderedprediction/receipt identities + adopted preregistration/wiki + independent explicit admission"
-  }
+  },
+  "execution_priority": "functional experiments now; optional hardening backlog; formal release remains separate",
+  "active_experiment_queue": ".local/releases/engineering-base-rc1/execution/functional/QUEUE.json",
+  "active_execution_task": ".local/releases/engineering-base-rc1/tasks/execution/maintain",
+  "release_gate_blocks_experiments": false
 }

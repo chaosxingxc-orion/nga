@@ -1,9 +1,9 @@
 {
   "schema": "nga-engineering-release-policy-v1",
-  "phase": "engineering_optimization",
-  "new_experiment_dispatch": "hold",
+  "phase": "functional_execution",
+  "new_experiment_dispatch": "allow",
   "running_experiments": "preserve_until_qualified_replacement",
-  "qualification": "bounded_engineering_validation_only",
+  "qualification": "minimal_functional_smoke_then_configured_experiments",
   "release_requirements": [
     "functional_contract_tests_pass",
     "fault_and_resume_tests_pass",
@@ -23,7 +23,7 @@
     "mode": "event_with_fallback",
     "fallback_seconds": 600
   },
-  "purpose": "Owner update 2026-11-05 overrides urgent queue replenishment. This policy records an admission hold; it is not a scientific acceptance or a runtime resource lease.",
+  "purpose": "Latest owner instruction: stop repeated hardening, prioritize working experiments and keep NPUs supplied. Formal release and adversarial result review continue asynchronously; no fake scientific acceptance.",
   "release_management": {
     "active_candidate": "engineering-base-rc1",
     "candidate_manifest": "configs/experiments/engineering-release-candidate.json",
@@ -36,13 +36,25 @@
     "scope_changes": "defer_nonblocking_features_to_backlog",
     "promotion": "freeze_exact_commit_source_closure_image_digest_configuration_and_independent_review",
     "released_artifacts": "immutable; never overwrite an accepted release; successor changes are grouped into a deliberate release",
-    "research_hold_until_release": true,
+    "research_hold_until_release": false,
     "lifecycle": [
       "stabilizing",
       "qualified",
       "released"
     ],
-    "experiment_consumption": "released immutable image digest and pinned host adapter; experiment changes enter through validated configuration",
+    "experiment_consumption": "existing pinned runnable image plus validated experiment configuration; release hardening is not a dispatch prerequisite",
     "post_release_change_policy": "keep current released baseline authoritative; accumulate nonblocking changes in backlog; create a successor only for a deliberate release, never per repair or experiment"
-  }
+  },
+  "deferred_hardening": [
+    "admin-resistant immutable custody",
+    "expanded UID isolation matrix",
+    "resource threat-model hardening"
+  ],
+  "execution_requirements": [
+    "free device check",
+    "model and TRAIN identity",
+    "unchanged preregistered recipe",
+    "durable logs and checkpoints",
+    "actual result review before publication"
+  ]
 }
