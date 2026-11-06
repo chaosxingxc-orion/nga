@@ -79,7 +79,8 @@ func guardDied(events []ledger.Event, controlStatus string, canaryDetailPrefix s
 	lastTraffic := -1
 	for i, e := range events {
 		if e.EventType == "control" && e.Outcome.Status == controlStatus {
-			// R46/E7b canary filter (xia round-4 §2 discipline 2 extension):
+			// E7b canary filter (xia round-4 §2 discipline 2 extension,
+			// 41号 report):
 			// an alive canary stream masks business-guard death by keeping
 			// lastIntercept fresh — probe-injected rejections carrying the
 			// reserved prefix are excluded from the interception face. The

@@ -372,3 +372,10 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **M-3（病钉 doc 错挂）**：R47 插入 HalfReal 时插在注释与函数之间——病钉翻转契约挂到了 HalfReal 头上（名字/行为/翻转指令三处失实），真病钉失去全部 godoc。已修：doc 归位+HalfReal 写自己的文档。
 - **m-1~m-3（随批清偿）**：FilterClosesMasking 补 canary 存活前置（对称守卫——绿面夹具空心化面）；health_test helper 作用域注释更新（package-scoped：health_test/e7_canary）；双注释块合并+canaryEvent helper 注释改述（默认 pin 供内存态、耐久调用方须覆写）。
 - **方法论入账（第 50/51 实证）**：观测面选择必须经**真实失败成因推演**（M-1——「若 X 坏会怎样」要推到机器哪条路径读什么字段，不能停在返回值形态）；可达性声明的每个机制断言须有代码锚（M-2——「only yields」三个字无实现支撑，方向性错误把坏状态报窄）。
+
+## R49 复审记账（2026-11-06，E7 全增量 9140e5e..176e20a——0B/2M/6m 全清偿；连净计数 0）
+
+- **M-1（R48 m-1 清偿声明未落地——虚假清偿族复发）**：台账写「FilterClosesMasking 补 canary 存活前置」而 diff 无此 hunk——删 canary 反突变实测仍全绿（绿面空心化复现）。R38 B-1 同族的第四实证：**清偿声明写进台账≠代码里有**。已修（真落地）：共享夹具函数 canaryMaskingStream+共享守卫 canaryMaskingFixtureGuard（病/绿对偶两测试都换用——"the same stream" 结构性表达+守卫内聚一处）。
+- **M-2（探针承载归因失实）**：「Adopt 面探针使注册表污染文法回归可见」实测不成立（去早退突变在 Open 期先崩——reused 断言永远到不了；探针红面=崩溃前 Open 红非 reused 断言红）。已修：归因改真（防线=Open 期结构性早退；reused 断言钉可观测面 st.digest→reused，非防线）。
+- **m-1~m-8（随批清偿）**：m-1=M-1 共享守卫（绿面空心化落地）；m-4 守卫谓词对齐 guardDied 喂入形（前缀+status——status 漂移防误诊）；m-5 共享夹具（双测试手抄字面量结构性退役）；m-3 helper 注释改述落地+E7a② 双注释合并+HalfReal doc/inline 重复删；m-6 E7a 两处手搭行换 newLedgerPath；m-7 函数头 doc 残留（"not a reused"）改述；m-8 guardDied 注释轮次 R46→E7b（41号）。
+- **方法论入账（第 52 实证）**：虚假清偿的检出依赖逐条 diff 对照（R49 M-1 用三重证据：diff hunk 缺失+调用点零+反突变复现——「全清偿」的台账声明要用 git show 逐 hunk 核对，不能信提交信息）。
