@@ -48,3 +48,5 @@ Retry stage: `qwen38-first-update-runtime/retry-fsdp-set-20261106`. Distinct run
 | Compatibility source | `3f8589550f7f60cbb61136502ae682372ffee4f34b819dd242af0dc12089a159` |
 
 The prior guarded release is historical evidence; the existing controller must check current physical ownership and host memory/disk sufficiency before a fresh group claim. CPU result analysis does not gate that claim. No old gate or failed container is restarted, and no automatic retry follows a future failure.
+
+Independent bounded compatibility review passed before retry dispatch. Verdict SHA256 `d07afd85e07cb25c328d7afe0ec35d5382a88c37298c1ad67acce9701ac429b5` binds the exact retry CONFIG/STAGED/hooks above; five CPU regressions and an independent AST comparison passed. Fresh attempt/ownership and memory/space checks remain launch-time conditions. This review does not accept any future NPU result.
