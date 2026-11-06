@@ -754,7 +754,7 @@ N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是
 
 - **B-1（围栏立法静默惰化 R57 节四枚真 token——修复叙述失实+退休通道被静默绕过）**：R58 M-2 围栏立法使围栏内 token 不可见，但 C1' 节四枚真 token（539-544 围栏内）原地未动、无 [retired-by] 标记——M4 从「执行它们」变「不执行它们」零报警；R58 M-2 原述「承接重挂裸行」失实（实为主审另挂四枚新 token，原四行未搬）。**新缝自证**：修复（围栏立法）自身的新缝无面看守。已修（三件）：①解析器新增 **fence 对账面**——R56+ 段围栏内 mutation-proof 形行、无 [retired-by:]、非占位符（`<` 开头的语法示例豁免——不可执行=文档）→ 响亮；②四枚尸位 token 补挂退休标记（行级围栏态处理，与审计同构）；③R58 M-2 叙述改真。**面首证**：新面落地的第一跑就在真台账点出 540-543 四行——机器面为它而生的病当场现形。
   [mutation-proof: cd agent-festival && python3 tools/settlement-audit-tamper.py → OK]
-- **M-1（标定派发卫生无机制承载——下轮标定结构性复发）**：R58 标定节声称克隆剔除会话残留，但 seed.py copy_tree 只剥 .git/.DS_Store——R58 的剥离是一次性手工动作（克隆已删不可复核）。已修（结构化）：copy_tree 剥离清单入 **SESSION_ARTIFACTS**（HANDOFF/KICKOFF/loop-progress/ngaf-launch.sh/impl-2026-11-01/.zcodeignore）+ **assert_dispatch_hygiene** 闸（verify 路径强制，发现残留即拒派发）+ **seed.py --selftest** 两面（A 剥离面：合成树七残留全剥且不误伤 keepme；B 闸红面：植入 KICKOFF 必 SystemExit）+ runbook §一.4 对齐。
+- **M-1（标定派发卫生无机制承载——下轮标定结构性复发）**：R58 标定节声称克隆剔除会话残留，但 seed.py copy_tree 只剥 .git/.DS_Store——R58 的剥离是一次性手工动作（克隆已删不可复核）。已修（结构化）：copy_tree 剥离清单入 **SESSION_ARTIFACTS**（HANDOFF/KICKOFF/loop-progress/ngaf-launch.sh/impl-2026-11-01/.zcodeignore）+ **assert_dispatch_hygiene** 闸（verify 路径强制，发现残留即拒派发）+ **seed.py --selftest** 两面（A 剥离面：合成树七残留全剥且不误伤 keepme——R60 m-4 纠正：实植五件，清单七项中 .zcodeignore 未植入、.DS_Store 非会话件；B 闸红面：植入 KICKOFF 必 SystemExit）+ runbook §一.4 对齐——R60 M-1 纠正：该对齐当时未做，§一.4 卫生步骤系 R60 清偿补上。
   [mutation-proof: cd agent-festival && python3 tools/seed.py --selftest → OK]
   [mutation-proof: cd agent-festival && python3 tools/seed.py --family ood-loose-assert --out /tmp/seed-r59-h --verify → OK]
 - **m-1（replay docstring 与 corpus M4 行计数不同步）**：corpus 声称 M4 内含 M7 token 重跑，但 --check-anchors token 不在册。已修：token 补挂（下）+ replay docstring 改「M1-M3, M5 and M7」——声明自此为真。
@@ -772,3 +772,53 @@ N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是
 [mutation-proof: cd agent-festival && python3 tools/seed.py --family ood-loose-assert --out /tmp/seed-r59-h --verify → OK]
 [mutation-proof: cd agent-festival && python3 tools/seed.py --check-anchors → OK]
 [mutation-proof: cd agent-festival && python3 tools/guard-battery.py --selftest → OK]
+
+## R60 复审记账（2026-11-06，E7 全增量 a93376f..7ea8428——0B/2M/8m 全清偿+三条条款全实现；连净计数 0）
+
+> 空白子第 60 轮（审 R59 清偿提交——30% 律三连中：R58 标定抓 B、R59 抓 B+M、R60 又抓 B——
+> 新缝生育率稳定为正，这正是循环存在的理由）。
+
+- **B-1（fence 占位符豁免的语义洞——`<` 前缀真命令静默逃逸，豁免理由为假声明）**：R59 豁免正则
+  `\[mutation-proof:\s*<` 把「命令以 `<` 开头」当「语法示例不可执行」——bash 允许重定向前置，
+  `< /dev/null; echo REAL-COMMAND-RAN` 是完全可执行的真命令，三步实测（bash 可跑/正则命中/端到端
+  审计静默过）。豁免注释的两条声明（cannot execute / real command still trips）对该命令族均为假——
+  第 80 号方法论被构造性证伪一次。已修：**豁免形状封闭**——仅单 `<name>` 占位符（字母/数字/空格、CJK
+  在册）紧随箭头；shell 元字符结构性不可通过；新增自测响面（`<` 前缀含 `;` 必响）。缓解面如实：当日
+  台账零现症、恶意向量在信任根内（提交者可裸行 `true → OK`）。
+  [mutation-proof: cd agent-festival/go && go test ./internal/settlement/ -run TestSettlementAuditSelfTest -count=1 → OK]
+- **M-1（清偿条目声称「runbook §一.4 对齐」——组件不存在，声明失实族再犯）**：R59 M-1 修复组件列
+  具名「runbook §一.4 对齐」，grep 实测 §一.4 零改动——runbook 是每轮 prompt 唯一真源，下个标定操作
+  者看不到任何卫生要求。已修：§一.4 真正补上派发卫生步骤（机制内建声明+残差声明）+R59 M-1 原述加
+  R60 纠正注记。
+  [mutation-proof: cd agent-festival && grep -q assert_dispatch_hygiene docs/review-loop-runbook.md && grep -q SESSION_ARTIFACT_PATTERNS docs/review-loop-runbook.md → OK]
+- **M-2（SESSION_ARTIFACTS 静态清单不完备——改名/新名变体双面静默穿透）**：实测 KICKOFF-R60.md/
+  HANDOFF.md.bak/loop-progress-2026-11-07.log 全泄漏、嵌套同名反而被剥、闸与 strip 深度不一致——
+  第 81 号「忘剥离不可表达」的普遍量词被构造性证伪（对当前仓根六件属实，对演化仓根不属实）。已修：
+  清单升级为**模式**（HANDOFF*/KICKOFF*/loop-progress*/loop-transcript*/ngaf-*/impl-2026-11-01*/
+  *.log 等）+ 闸升级**全深度**（basename+相对路径匹配）——两 face 共享一模式源一深度；selftest 增
+  变体面（改名/嵌套/植入三态）。**声明残差**：全新文件名匹配不到任何模式——runbook §一.4 的派发前
+  扫视是第二线。
+  [mutation-proof: cd agent-festival && python3 tools/seed.py --selftest → OK]
+- **m-1（replay docstring 九→实为十二面）**：R59 新增三面后计数漂移，与 m-1 修的 replay:17 同块三行外
+  同病复发（30% 律活标本）。已修：twelve。
+- **m-2（tamper docstring kinds 陈旧）**：缺 fence。已修：presence/grammar/execution/fence。
+- **m-3（corpus 单一真源缺 R59/R60 新面）**：M4 行缺围栏惰化 kind；§二围栏行只述 R58 语义。已修：两处补齐（B-1 语义链完整在册）。
+- **m-4（「合成树七残留全剥」数字失实）**：selftest 实植五件。已修：五件+清单/实植差额注明。
+- **m-5（guard-battery 死变量 failures=[]）**：R59 重构残留。已修：删除。
+- **m-6（fence violation where 无条目 id——tamper id 断言骑 presence）**：已修：fence 面 where 携带所属
+  条目 id（条款 3），tamper M-6 断言自此真骑 fence 违规。
+- **m-7（R58 三条「下轮实现」无声陈旧）**：runbook §四 **结转机制化**——显式结转 R61（E7a② 负孪生/
+  电池返回已检被改流形/replay 失败成因行），不再无声陈旧。
+- **m-8（fence 面用 raw 与 grammar 面剥 backtick 不一致）**：双重文档围栏引用会假响（fail-safe 方向，
+  当日无受害者）。已修：围栏内同样先剥 inline backtick（两 face 一致）。
+- **条款双源（三条全采纳，全部本批实现）**：①豁免形状封闭面（B-1）；②清单演化对账面（M-2）；③违规
+  归因带条目 id（m-6）。裁决=操作员。
+- **方法论入账（第 83/84/85 实证）**：**豁免必须形状封闭**（R59 的 `<` 前缀豁免被 `< /dev/null; echo`
+  构造性打穿——「以某字符开头」不是形状，「只能是占位符」才是）；**静态枚举清单守不住演化的仓根**
+  （M-2——清单改模式+闸全深度， rename 族闭合；全新文件名是声明残差，双线对策）；**声明的组件必须
+  当场 grep**（M-1——「runbook §一.4 对齐」写了，组件不存在；声明失实族的根治=每个具名组件一个
+  grep 级对账）。
+
+[mutation-proof: cd agent-festival/go && go test ./internal/settlement/ -run TestSettlementAuditSelfTest -count=1 → OK]
+[mutation-proof: cd agent-festival && python3 tools/seed.py --selftest → OK]
+[mutation-proof: cd agent-festival && python3 tools/settlement-audit-tamper.py → OK]

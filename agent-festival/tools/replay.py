@@ -17,7 +17,7 @@ Faces (the inventory lives in docs/attack-corpus.md — the single source):
                        M4 internally re-runs M1-M3, M5 and M7 as tokens: the
                        replay is defense-in-depth, not a minimal set
   M5 audit-tamper      the audit's own tamper battery
-  M6 audit-selftest    the ledger parser's nine in-process faces
+  M6 audit-selftest    the ledger parser's twelve in-process faces
   M7 seed-anchors      every seed.py catalog anchor matches the real tree
                        exactly once (dry run — catalog staleness is loud at
                        round open, not first-discovered by a failed plant)

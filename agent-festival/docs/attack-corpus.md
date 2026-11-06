@@ -12,7 +12,7 @@
 | M1 | registry-gate | `python3 tools/guard-battery.py --check` | 未注册守卫 / spec 锚漂移 / **消费者锚漂移（调用方绕过守卫路径——R58 M-5）** |
 | M2 | battery | `python3 tools/guard-battery.py` | 守卫退化十形（探针对形式无关红面的回归）+ 编译检查（BROKEN≠红）+ **基线 vet（不可达死代码——第三机检路径，R58 采纳）**；**真树零接触（副本化——R58 M-3，并发互踩面结构性消解）** |
 | M3 | battery-selftest | `python3 tools/guard-battery.py --selftest` | 电池自身面（A 未注册/B 锚漂移/C 良构/D 破损不计红/**E 消费者计数漂移/F vet-dirty baseline-red**） |
-| M4 | settlement-audit | `go test ./internal/settlement/ -run 'TestSettlementAudit$'` | token 在场/语法/执行失真/陈旧（内含 M1-M3、M5、M7 的 token 重跑——**回放=纵深非最小集**） |
+| M4 | settlement-audit | `go test ./internal/settlement/ -run 'TestSettlementAudit$'` | token 在场/语法/**围栏惰化**/执行失真/陈旧（内含 M1-M3、M5、M7 的 token 重跑——**回放=纵深非最小集**） |
 | M5 | audit-tamper | `python3 tools/settlement-audit-tamper.py` | 审计本体的篡改面（违规台账红/对照绿；R58 增 letter 条目面+围栏面） |
 | M6 | audit-selftest | `go test ./internal/settlement/ -run TestSettlementAuditSelfTest` | ledger 解析器面（进程内；R58 增 letter-条目面+围栏面） |
 | M7 | seed-anchors | `python3 tools/seed.py --check-anchors` | 植入目录锚漂移（开轮面——锚失配开轮即响，不再等有人手跑 seed；R58 采纳 S3 提案） |
@@ -43,7 +43,7 @@ replay 是编排件（自身无新检查，红面在组件工具里、各有 led
 | 声明失实是最大族 | M4+审查 | 「已做/✅/已存/已推」当轮机械核验（台账级=审计；doc 级=审查） |
 | 声明先于调用 | 审查 | 说「已存/已提交/已跑」时工具调用返回了吗（自检动作） |
 | letter 条目在场闸 | M4+M5 | R58 M-1——`- **M-A**` 形无 token 条目必须红（bulletRe 放宽 `[BM]-[A-Za-z0-9]+`；tamper LETTER 面+selftest 面） |
-| 围栏=文档 | M4+M5 | R58 M-2——围栏内 `[mutation-proof: …]` 不是 token（presence/grammar 双跳过；tamper FENCE 面：围栏示例单独在场必红，CONTROL 面围栏惰性） |
+| 围栏=文档 | M4+M5 | R58 M-2——围栏内 `[mutation-proof: …]` 不是 token（presence/grammar 双跳过；tamper FENCE 面）；**R59 B-1/R60 B-1 增**：围栏内活格式真命令无 retired-by=响（fence kind）、`<` 前缀真命令不豁免（形状封闭：仅单 `<name>` 占位符+紧随箭头）、violation 携带条目 id |
 | 调用方绕过面 | M1+审查 | R58 M-5——调用点换裸构造器全包绿（亲手实证 0.068s）；consumers 锚计数漂移=--check 红 + docstring/模式文档边界声明（新调用点须同 diff 更新锚或声明绕过） |
 | 返回已检被改流 | 审查（待电池形） | R58 S3 提案采纳——「检查后改写返回流的 Outcome」今日无电池形；审查面核对 AcceptsHealthy 投影含 seq/type/outcome 三字段（丢 Outcome=ood-loose-assert 本体） |
 | E7a② 负孪生 | 审查（待实现） | R58 S3 提案采纳——伪造 pin 的手工 control 事件必须被 Open 以 ATTRIBUTION_DIVERGENCE 拒；今日唯一红面在 cmd/ledger 语料套件，e7 无本测（下轮补） |

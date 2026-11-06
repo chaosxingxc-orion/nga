@@ -9,9 +9,9 @@ SETTLEMENT_AUDIT_LEDGER override, so the real ledger is never touched),
 runs the audit against each, and requires:
 
   violation ledger  → audit RED, with every expected kind reported
-                      (presence / grammar / execution×2)
-  control ledger    → audit GREEN (retired skipping + both token shapes
-                      passing)
+                      (presence / grammar / execution×2 / fence)
+  control ledger    → audit GREEN (retired skipping, letter form, fence
+                      illustration inert, both token shapes passing)
 
 R58 adds three faces to the same contrast pattern (each a minimal ledger,
 so a regression turns the face green instead of just changing the kind):

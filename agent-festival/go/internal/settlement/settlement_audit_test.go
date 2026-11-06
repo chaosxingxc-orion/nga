@@ -31,10 +31,17 @@ const (
 
 var (
 	sectionRe = regexp.MustCompile(`^## R(\d+)\b`)
-	// fencePlaceholderRe: a fenced "[mutation-proof: <...> → ...]" line
-	// whose command starts with "<" is a grammar ILLUSTRATION, not an
-	// executable token — exempt from the fence-visibility face (R59 B-1).
-	fencePlaceholderRe = regexp.MustCompile(`\[mutation-proof:\s*<`)
+	// fencePlaceholderRe: a fenced "[mutation-proof: <...> → ...]" line is
+	// a grammar ILLUSTRATION — exempt from the fence-visibility face —
+	// ONLY in the shape-closed form: the command is a SINGLE placeholder
+	// name wrapped in angle brackets (letters/digits/spaces, CJK included)
+	// immediately followed by →. R60 B-1: the R59 prefix form
+	// (`\[mutation-proof:\s*<`) let any "<"-prefixed REAL command escape
+	// (bash allows leading redirects: "< /dev/null; echo X" executes) —
+	// the exemption is now shape-closed: no shell metacharacters can
+	// appear because only letters/digits/spaces are allowed between the
+	// brackets, and nothing may follow the closing ">" but the arrow.
+	fencePlaceholderRe = regexp.MustCompile(`\[mutation-proof:\s*<\p{L}[\p{L}\p{N} ]*>\s*→\s*(?:FAIL|OK)\]`)
 	// bulletRe matches numeric AND letter-suffix entry ids (M-1/M-A/M-B —
 	// the ledger's established letter-id convention, e.g. R17 M-A/M-B/M-C):
 	// a scoped letter entry without a token must be presence-checked, not
@@ -125,15 +132,24 @@ func parseLedger(data []byte) *audit {
 			// history ONLY if it carries the retired-by marker; otherwise
 			// it is a live-format token buried where nothing can execute
 			// it — loud, always (either move it out of the fence or mark
-			// it [retired-by: ...]). EXEMPT: placeholder illustration
-			// forms ("[mutation-proof: <...> → ...]") — they cannot
-			// execute, they are grammar documentation (R59 B-1 settlement:
-			// the tamper control ledger's fence-inert control depends on
-			// this exemption; a real command still trips).
-			isPlaceholder := fencePlaceholderRe.MatchString(raw)
-			if curScoped && strings.Contains(raw, "[mutation-proof:") && !strings.Contains(raw, retiredMark) && !isPlaceholder {
+			// it [retired-by: ...]). EXEMPT (R60 B-1, shape-closed):
+			// placeholder illustration forms — a single <name> token
+			// immediately followed by the arrow; "<"-prefixed shell
+			// constructs (redirects, process substitution) are NOT exempt.
+			// R59 m-8: inline backticks are stripped first (same rule as
+			// the grammar face) — a double-documented backtick-quoted
+			// illustration stays quiet. R60 clause-3: the violation carries
+			// the owning entry id when one is open (the tamper battery's
+			// id-level assertions must not ride on other kinds).
+			cleanedFence := inlineRe.ReplaceAllString(raw, "")
+			isPlaceholder := fencePlaceholderRe.MatchString(cleanedFence)
+			if curScoped && strings.Contains(cleanedFence, "[mutation-proof:") && !strings.Contains(cleanedFence, retiredMark) && !isPlaceholder {
+				where := fmt.Sprintf("%s:%d", ledgerName, lineNo)
+				if curEntry != nil {
+					where = fmt.Sprintf("%s (%s)", where, curEntry.id)
+				}
 				a.violations = append(a.violations, violation{
-					kind: "fence", where: fmt.Sprintf("%s:%d", ledgerName, lineNo),
+					kind: "fence", where: where,
 					msg: "mutation-proof-format line inside a code fence is invisible to the machine contract — move it out of the fence or mark it [retired-by: ...]",
 				})
 			}
@@ -460,6 +476,21 @@ func TestSettlementAuditSelfTest(t *testing.T) {
 		}
 		if !found {
 			t.Fatalf("fenced live token must be a loud fence violation, got %+v", a.violations)
+		}
+	})
+	t.Run("fenced_lt_redirect_loud", func(t *testing.T) {
+		// R60 B-1: the R59 prefix exemption let "<"-prefixed REAL commands
+		// escape (bash allows leading redirects — "< /dev/null; echo X"
+		// executes). The shape-closed exemption must stay loud here.
+		a := parseLedger([]byte("## R56 复审记账\n- **M-1**: settled.\n  [mutation-proof: exit 3 → FAIL]\n```\n[mutation-proof: < /dev/null; echo REAL-COMMAND-RAN → OK]\n```\n"))
+		found := false
+		for _, v := range a.violations {
+			if v.kind == "fence" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("a < -prefixed command with shell metachars must be a loud fence violation, got %+v", a.violations)
 		}
 	})
 	t.Run("fenced_placeholder_illustration_quiet", func(t *testing.T) {

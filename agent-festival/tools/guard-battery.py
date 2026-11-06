@@ -273,7 +273,6 @@ def selftest():
     F. a module that compiles but fails `go vet` (unreachable code) is
        baseline-red (exit 2) before any mutation runs (R58 vet clause)
     """
-    failures = []
     tmp = Path(tempfile.mkdtemp(prefix="guard-battery-selftest-"))
     try:
         return _selftest_body(tmp)

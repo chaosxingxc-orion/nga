@@ -41,6 +41,7 @@ does not mean ground truth — declared, not claimed away).
 """
 
 import argparse
+import fnmatch
 import json
 import shutil
 import subprocess
@@ -125,25 +126,40 @@ def materialize_battery_edit(family):
 # a reviewer reading it collapses the calibration) invalidates the seeding.
 # Stripping at copy time means a forgotten manual step is structurally
 # impossible (2026-11-02 legislation, process-tool layer).
-SESSION_ARTIFACTS = (
-    "HANDOFF.md", "KICKOFF.md", "loop-progress.log", "ngaf-launch.sh",
-    "impl-2026-11-01", ".zcodeignore",
+#
+# R60 M-2: exact names were a FROZEN enumeration of the past — renamed or
+# new variants (KICKOFF-R60.md, HANDOFF.md.bak, loop-progress-<date>.log)
+# leaked through BOTH faces silently. The list is now GLOB PATTERNS, and
+# the gate is FULL-DEPTH (basename + relative-path matching) instead of
+# root-level-only — the two faces now share one pattern source and one
+# depth. Declared residual: a session artifact under an entirely new NAME
+# matches no pattern; the runbook §一.4 step is the second line (and the
+# reviewer's zero-context briefing says what a clone must not contain).
+SESSION_ARTIFACT_PATTERNS = (
+    "HANDOFF*", "KICKOFF*", "loop-progress*", "loop-transcript*",
+    "ngaf-*", "impl-2026-11-01*", ".zcodeignore", ".DS_Store", "*.log",
 )
 
 
 def copy_tree(dst: Path):
-    shutil.copytree(ROOT, dst, ignore=shutil.ignore_patterns(".git", ".DS_Store", *SESSION_ARTIFACTS))
+    shutil.copytree(ROOT, dst, ignore=shutil.ignore_patterns(".git", *SESSION_ARTIFACT_PATTERNS))
 
 
 def assert_dispatch_hygiene(clone: Path):
     """Loud gate: the clone must NOT contain session artifacts even after
     copy-time stripping (defense in depth — the ignore list is the first
-    face, this is the second)."""
-    present = [a for a in SESSION_ARTIFACTS if (clone / a).exists()]
-    if present:
+    face, this is the second). R60 M-2: full-depth, pattern-matched —
+    renamed variants are no longer invisible."""
+    leaked = []
+    for path in sorted(clone.rglob("*")):
+        rel = str(path.relative_to(clone))
+        if any(fnmatch.fnmatch(path.name, pat) or fnmatch.fnmatch(rel, pat)
+               for pat in SESSION_ARTIFACT_PATTERNS):
+            leaked.append(rel)
+    if leaked:
         raise SystemExit(
             f"seed: DISPATCH HYGIENE VIOLATION — session artifacts leaked into "
-            f"the clone: {present}; a calibration reviewer reading them would "
+            f"the clone: {leaked}; a calibration reviewer reading them would "
             "collapse the seeding. Refusing to dispatch."
         )
 
@@ -226,10 +242,13 @@ def selftest():
     try:
         fake_src = tmp / "src"
         fake_src.mkdir()
-        for name in ("KICKOFF.md", "HANDOFF.md", "loop-progress.log", "ngaf-launch.sh"):
+        for name in ("KICKOFF.md", "HANDOFF.md", "loop-progress.log", "ngaf-launch.sh",
+                     "KICKOFF-R60.md", "HANDOFF.md.bak", "loop-progress-2026-11-07.log"):
             (fake_src / name).write_text("session artifact")
         (fake_src / "impl-2026-11-01").mkdir()
         (fake_src / "impl-2026-11-01" / "42-review-meta-analysis-v2.md").write_text("draft")
+        (fake_src / "session-notes").mkdir()
+        (fake_src / "session-notes" / "KICKOFF.md").write_text("nested artifact")
         (fake_src / "keepme.txt").write_text("real content")
         dst = tmp / "clone"
         # A: stripping face (monkeypatch the module ROOT for this call)
@@ -239,19 +258,27 @@ def selftest():
             copy_tree(dst)
         finally:
             ROOT = saved_root
-        leaked = [a for a in SESSION_ARTIFACTS if (dst / a).exists()]
+        leaked = [str(r) for r in sorted(dst.rglob("*"))
+                  if any(fnmatch.fnmatch(r.name, pat) or fnmatch.fnmatch(str(r.relative_to(dst)), pat)
+                         for pat in SESSION_ARTIFACT_PATTERNS)]
         if leaked:
             failures.append(f"A: copy_tree leaked session artifacts: {leaked}")
         if not (dst / "keepme.txt").exists():
             failures.append("A: copy_tree stripped non-artifact content (over-broad)")
-        # B: hygiene-gate red face
-        (dst / "KICKOFF.md").write_text("planted")
-        try:
-            assert_dispatch_hygiene(dst)
-            failures.append("B: hygiene gate did NOT raise on a planted artifact")
-        except SystemExit as e:
-            if "DISPATCH HYGIENE VIOLATION" not in str(e):
-                failures.append(f"B: wrong error surface: {e}")
+        # B: hygiene-gate red face — planted exact name AND a renamed
+        # variant AND a nested one; the gate must catch all three.
+        for planted in ("KICKOFF.md", "KICKOFF-R60.md", "session-notes/HANDOFF.md.bak"):
+            victim = dst / planted
+            victim.parent.mkdir(parents=True, exist_ok=True)
+            victim.write_text("planted")
+            try:
+                assert_dispatch_hygiene(dst)
+                failures.append(f"B: hygiene gate did NOT raise on planted {planted}")
+            except SystemExit as e:
+                if "DISPATCH HYGIENE VIOLATION" not in str(e):
+                    failures.append(f"B: wrong error surface for {planted}: {e}")
+            finally:
+                victim.unlink()
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     if failures:
