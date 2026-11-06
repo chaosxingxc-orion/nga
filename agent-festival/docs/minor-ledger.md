@@ -445,23 +445,45 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **批件 1（review-loop 协议增条）**：ledger 头部清偿证明协议——M/B 清偿条目必须内嵌
   `[mutation-proof: <cmd> → FAIL]` token，无 token = 自动 M；纯文本 token 仍可伪造，
   0.2.0 批机器解析。已落地（本条目自身即首批 token 载体）。
-- **批件 2（守卫五件模式文档化）**：`docs/fixture-guard-pattern.md`——五件形态表+落地
-  纪律 grep 清单+九判据对照表。R56 修正：件 6* 行原声明「删守卫→接线钉真红」**未实测
+- **批件 2（守卫模式文档化）**：`docs/fixture-guard-pattern.md`——七件形态表+落地
+  纪律 grep 清单+十一条判据对照表（计数 R56 复审 m-1 后修正——原「五件/八轮/九判据」
+  与表/轮次/行数失配）。R56 修正：件 6* 行原声明「删守卫→接线钉真红」**未实测
   即入 doc**——突变一跑双面全绿（M-A 掐构造器守卫调用→行为面零红；M-B 守卫体 no-op→
   行为面零红；t.Fatal 期望不可断言——断言「应死」则守卫活着也红）。已诚实回收：
-  件 6 改述为漂移注入使能面（非红面承担者），新增**件 7 调用链源码钉**为连接层红面
-  真承担者。
+  件 6 改述为漂移注入使能面（非红面承担者），新增**件 7 调用链源码钉**（文字钉——
+  R56 复审 M-2 定谳后从「真承担者」降格，语义边界声明入档）。
 - **批件 3a（守卫参数化）**：`canaryMaskingStreamGuarded(t, streams ...[]ledger.Event)`——
   漂移流可注入 wrapper 路径（守卫活着时 fatal）。构造器/接线钉 doc 的过度声明已改真
   （HONEST BOUNDARY 段落——参数化使能面，红面归件 7）。
 - **批件 3b（调用链源码钉——docstring_pin 泛化）**：`TestE7b_GuardCallChainPinned`——
-  源码级文字钉两跳：构造器含 `canaryMaskingFixtureGuard(t, stream)`（M-A 面）+
-  wrapper 含 `canaryMaskingFixtureCheck(stream)`（M-B 面）。docstring_pin 形态从
-  「doc 短语钉」泛化为「守卫调用链钉」——连接层由此获得结构性红面。
-  [mutation-proof: 掐构造器 canaryMaskingFixtureGuard 调用 → go test -run TestE7b_GuardCallChainPinned → FAIL]
-  [mutation-proof: canaryMaskingFixtureGuard 体 no-op 化 → go test -run TestE7b_GuardCallChainPinned → FAIL]
-  （双 token 当轮实跑输出均含 FAIL；还原后 e2e 全包绿、gofmt 干净。）
+  源码级**文字钉**两跳：构造器含一 tab 活语句形 `canaryMaskingFixtureGuard(t, stream)`
+  （M-A 面+if-false 埋葬形）+ wrapper 含完整 if 块「调用+错误传播到 t.Fatal」（M-B 面
+  +re-route 形）。docstring_pin 形态从「doc 短语钉」泛化为「守卫调用链钉」——连接层
+  由此获得**文字钉红面**（R56 复审 M-2 定谳：非「结构性不可表达」——穷举不可达，
+  0.2.0 机器解析形态才可执行化）。六形突变电池全红（token 见下条复审清偿记账）。
+  [mutation-proof: cd go && python3 -c $'import pathlib\np=pathlib.Path("internal/e2e/e7_canary_test.go");s=p.read_text();p.write_text(s.replace("\\tcanaryMaskingFixtureGuard(t, stream)\\n\\treturn stream","\\treturn stream"))' && go test ./internal/e2e/ -run TestE7b_GuardCallChainPinned -count=1 → 输出含 FAIL（M-A）]
+  [mutation-proof: cd go && python3 -c $'import pathlib\np=pathlib.Path("internal/e2e/e7_canary_test.go");s=p.read_text();p.write_text(s.replace("\\tif err := canaryMaskingFixtureCheck(stream); err != nil {\\n\\t\\tt.Fatal(err)\\n\\t}","\\t_ = stream"))' && go test ./internal/e2e/ -run TestE7b_GuardCallChainPinned -count=1 → 输出含 FAIL（M-B）]
+  （双 token 为可复跑命令形态〔R56 复审 m-3 后重写，原散文形态作废〕，均在收紧后的
+  钉上当轮实跑、输出含 FAIL；还原后 e2e 全包绿、gofmt 干净。）
 - **方法论入账（第 64/65 实证）**：**t.Fatal 期望不可断言**（期望守卫 fatal 的测试在
   守卫活着时也红——连接层红面只有两条真路：纯函数探针〔件 4〕或源码钉〔件 7〕）；
   **架构批自身的声明同受突变协议辖**（件 6* 教训：红面声明未实测即写「真红」→ 突变
   一跑即假——立法者、审查者、doc 作者三重身份在突变实测面前无豁免）。
+
+## R56 复审记账（2026-11-06，E7 全增量 9140e5e..6fbf722——0B/2M/4m 全清偿；连净计数 0）
+
+> 空白子第 56 轮（含 R56 架构批自身——立法过自己立的枪）。两条 M 全长在架构批上
+> （「修复自带新缝」当轮实例：M-1 是 R55 M-2 同一教训在替换件上复发；M-2 是文字钉
+> 被「结构性」措辞升格）。协议（token 机制）运转正常：双 token 复跑真实、无虚假清偿、
+> 无病漏网、无守卫在现状代码下失效。
+
+- **M-1（接线钉「parameter is wired」恒真断言——修恒真的替换件自带新恒真，R55 M-2 教训一轮后复发）**：参数化布线断言传的是**默认夹具本体**+len 检查——「参数被忽略恒返默认」与「参数被用」两态皆 5 事件，恒真；失败消息恰写着「not wired」正是它检不出的病。空白子实证：构造器改忽略参数（守卫调用文字保留）→整包全绿。已修：传入**可区分健康变体**（默认+尾加 canary@5 六事件）+逐事件投影相等（seq/type/outcome——Event 含 slice 字段不可 ==）。
+  [mutation-proof: cd go && python3 -c $'import pathlib\np=pathlib.Path("internal/e2e/e7_canary_test.go");s=p.read_text();p.write_text(s.replace("\\tif len(streams) > 0 {\\n\\t\\tstream = streams[0]\\n\\t} else {\\n\\t\\tstream = canaryMaskingStream()\\n\\t}","\\t_ = streams\\n\\tstream = canaryMaskingStream()"))' && go test ./internal/e2e/ -run TestE7b_GuardedStreamWired -count=1 → 输出含 FAIL]
+- **M-2（「结构性红面」措辞过强——文字钉被升格为结构性）**：批件 3b/件 7 用「结构性」「真承担者」，但 re-route 形突变（`_ = canaryMaskingFixtureCheck(stream)`——调用文字保留、错误忽略，R54 M-2 同族编辑）守卫功能性死亡而钉绿、行为面绿——退化仍**可表达**，与模式文档头注「换结构让守卫退化不可表达」（2026-11-02 立法语义）直接冲突。已修：钉收紧两跳（wrapper 跳钉完整 if 块「调用+错误传播到 t.Fatal」——`_ =` 形与吞错形同灭；构造器跳钉一 tab 活语句形——if-false 两 tab 埋葬形同灭）+措辞全面降格（「文字钉」+穷举不可达边界声明；可执行化归 0.2.0 机器解析形态）。
+  [mutation-proof: cd go && python3 -c $'import pathlib\np=pathlib.Path("internal/e2e/e7_canary_test.go");s=p.read_text();p.write_text(s.replace("\\tif err := canaryMaskingFixtureCheck(stream); err != nil {\\n\\t\\tt.Fatal(err)\\n\\t}","\\t_ = canaryMaskingFixtureCheck(stream)"))' && go test ./internal/e2e/ -run TestE7b_GuardCallChainPinned -count=1 → 输出含 FAIL]
+- **m-1（计数三处失配）**：模式文档「五件套/八轮/九判据」vs 表 7 行/复审 9 轮/判据 11 行（R56 加件 6/7 行与判据行后未同步）。已修：七件形态/九轮/十一条（ledger 批件 2 同步）。
+- **m-2（件 2 行无时间限定自相矛盾）**：「wrapper 掏空→红面为零」是 pre-件-7 历史事实，与件 7 行「M-B 双面红」同表冲突。已修：pre-件-7 标注+「件 7 落地后掏空由源码钉红」。
+- **m-3（token 散文形态不可复跑）**：批件 3b 原 token 突变部分是散文（「掐调用」「no-op 化」），复跑需人工重建突变。已修：重写为命令形态（批件 3b 双 token），四 token（M-A/M-B/PI/RR1）全部原样复跑、输出含 FAIL。
+- **m-4（协议生效日两套口径）**：裁定记录——立法原文「从 R56 起」（不追溯）为准；火力面「R47 以后」是 R56 审查 prompt 抄写走样（我方引入，非立法文本冲突）。空白子按立法原文执行并补偿性 git show 抽验 R48-R55 六条清偿（共享夹具/HalfReal 换守卫/纯函数+探针/自守卫构造器/重写/熔块删+len 替换）**全部实锤落地**。后续火力面模板与立法对齐。
+- **六形突变电池当轮全跑**：M-A（掐构造器守卫调用）/M-B（守卫体 no-op）/re-route×2（`_ =` 形+吞错形）/PI（参数忽略）/BF（if-false 埋葬）全红；健康基线绿；还原全包绿+gofmt 干净+vet 干净。
+- **方法论入账（第 66/67 实证）**：**参数布线断言的判别性**（被声称的两态〔参数被用/被忽略〕输出必须可区分——载体传默认本体则 len 检查恒真）；**文字钉不得冒称结构性**（「结构性」在 2026-11-02 立法语义下=不可表达；文字钉穷举不可达，re-route 形是其天敌——语义边界必须显式声明，冒称即过强声明）。

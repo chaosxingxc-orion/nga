@@ -552,15 +552,19 @@ func TestE7b_GuardChecksProbed(t *testing.T) {
 }
 
 // TestE7b_GuardedStreamWiredToCheck (R56 form): the PARAMETERIZED guarded
-// form exists, its parameter is wired (not silently ignored), and the
+// form exists, its parameter is REALLY wired (R56 M-1: the first version
+// passed the default fixture itself and len-checked — a tautology, since
+// "parameter ignored, default returned" also yields 5 events; the fixed
+// form passes a DISTINGUISHABLE healthy variant and asserts per-event
+// identity, so the ignore-the-parameter mutation goes red here), and the
 // check it runs is live on drift. HONEST BOUNDARY (R56 mutation-measured):
-// this test stays green under BOTH connection-layer mutations — the
-// constructor dropping its guard call, and the guard body no-oping —
-// because a t.Fatal expectation cannot be asserted in-test (asserting
-// "should have died here" makes the test red when the guard WORKS too).
-// The drift line below calls the CHECK directly (that is the meta-probe
-// layer); the connection layer's red face is the SOURCE pin in
-// TestE7b_GuardCallChainPinned — this test is the behavioral half
+// this test stays green under the DELETION-form connection-layer mutations
+// (the constructor dropping its guard call; the guard body no-oping) —
+// a t.Fatal expectation cannot be asserted in-test (asserting "should
+// have died here" makes the test red when the guard WORKS too). The drift
+// line below calls the CHECK directly (that is the meta-probe layer);
+// the connection layer's red face for the deletion forms is the SOURCE
+// pin in TestE7b_GuardCallChainPinned — this test is the behavioral half
 // (parameter wiring + constructor liveness on healthy streams).
 func TestE7b_GuardedStreamWiredToCheck(t *testing.T) {
 	// the drift forms (probed exhaustively in GuardChecksProbed) are
@@ -575,12 +579,23 @@ func TestE7b_GuardedStreamWiredToCheck(t *testing.T) {
 	if err := canaryMaskingFixtureCheck(drifted); err == nil {
 		t.Fatal("wiring probe: the check accepted a drifted stream — drift detection lost")
 	}
-	// the parameterized form on a HEALTHY caller stream works (proves the
-	// parameter is wired to the guard, not silently ignored)
-	healthy := canaryMaskingStream()
-	guarded := canaryMaskingStreamGuarded(t, healthy)
-	if len(guarded) != len(healthy) {
-		t.Fatalf("wiring probe: parameterized form returned %d events, want %d — the stream parameter is not wired", len(guarded), len(healthy))
+	// R56 M-1 fix: the parameterized form must return the CALLER's stream,
+	// not the default fixture. Passing the default fixture itself made the
+	// len check a tautology ("parameter ignored, default returned" also
+	// yields 5 events) — the variant below (default + one trailing canary,
+	// still healthy) makes the two states distinguishable: the
+	// ignore-the-parameter mutation returns 5, this asserts 6 + per-event
+	// projection equality (seq/type/outcome — Event carries slice fields
+	// and is not ==-comparable)
+	variant := append(canaryMaskingStream(), canaryEvent(5, "op-variant"))
+	guarded := canaryMaskingStreamGuarded(t, variant)
+	if len(guarded) != len(variant) {
+		t.Fatalf("wiring probe: parameterized form returned %d events, want %d — the stream parameter is ignored (the default fixture was returned)", len(guarded), len(variant))
+	}
+	for i := range variant {
+		if guarded[i].ArbitrationSeq != variant[i].ArbitrationSeq || guarded[i].EventType != variant[i].EventType || guarded[i].Outcome != variant[i].Outcome {
+			t.Fatalf("wiring probe: returned stream diverges from the caller's stream at %d (seq %d) — the guarded stream is not the one passed in", i, variant[i].ArbitrationSeq)
+		}
 	}
 	// the no-arg form also works (the default constructor path)
 	stream := canaryMaskingStreamGuarded(t)
@@ -589,20 +604,29 @@ func TestE7b_GuardedStreamWiredToCheck(t *testing.T) {
 	}
 }
 
-// TestE7b_GuardCallChainPinned (R56): the CONNECTION-LAYER red face —
-// source-level pin of the guard call chain, generalizing the ledger
+// TestE7b_GuardCallChainPinned (R56): the CONNECTION-LAYER pin — a
+// LEXICAL source pin of the guard call chain, generalizing the ledger
 // package's docstring_pin pattern (doc-phrase pinning → call-chain
 // pinning). R56 mutation-measured fact motivating this pin: the
-// behavioral wiring probe above stays green under BOTH connection-layer
-// mutations (M-A: the constructor drops its canaryMaskingFixtureGuard
-// call; M-B: the guard body no-ops) — a t.Fatal expectation cannot be
-// asserted in-test without turning the test red when the guard works.
-// The source pin closes both faces textually:
-//   - M-A → the constructor slice loses "canaryMaskingFixtureGuard(t, stream)"
+// behavioral wiring probe stays green under the DELETION-form
+// connection-layer mutations (M-A: the constructor drops its
+// canaryMaskingFixtureGuard call; M-B: the guard body no-ops) — a
+// t.Fatal expectation cannot be asserted in-test without turning the
+// test red when the guard works. The pin's covered forms (all
+// mutation-verified red):
+//   - M-A → the constructor slice loses the one-tab statement form
+//     "\n\tcanaryMaskingFixtureGuard(t, stream)\n" (the two-tab `if
+//     false { ... }` burial form also misses the pin)
 //   - M-B → the wrapper slice loses "canaryMaskingFixtureCheck(stream)"
+//   - re-route forms (R56 M-2): call text preserved, semantics dropped —
+//     `_ = canaryMaskingFixtureCheck(stream)` or an if-block without the
+//     t.Fatal — both miss the FULL-BLOCK pin below
 //
-// Mutation probe: apply either mutation, this test goes red (tokens
-// embedded in the R56 ledger entry).
+// HONEST BOUNDARY (R56 M-2): this is a LEXICAL pin, not a structural
+// retirement — form enumeration is unreachable (a novel re-shape that
+// keeps both pinned substrings while dropping the semantics would pass);
+// the 0.2.0 machine-parseable form is where "connection can't silently
+// degenerate" becomes enforceable rather than enumerated.
 func TestE7b_GuardCallChainPinned(t *testing.T) {
 	src, err := os.ReadFile("e7_canary_test.go")
 	if err != nil {
@@ -623,12 +647,16 @@ func TestE7b_GuardCallChainPinned(t *testing.T) {
 		}
 		return rest[:1+j]
 	}
-	// M-A face: the guarded constructor must route through the guard
-	if !strings.Contains(funcBody("canaryMaskingStreamGuarded"), "canaryMaskingFixtureGuard(t, stream)") {
-		t.Fatal("guard-chain pin: canaryMaskingStreamGuarded no longer calls canaryMaskingFixtureGuard — the connection is lost (M-A)")
+	// M-A face: the guarded constructor must route through the guard as a
+	// LIVE one-tab statement (burial forms put the same text at two tabs)
+	if !strings.Contains(funcBody("canaryMaskingStreamGuarded"), "\n\tcanaryMaskingFixtureGuard(t, stream)\n") {
+		t.Fatal("guard-chain pin: canaryMaskingStreamGuarded no longer calls canaryMaskingFixtureGuard as a live statement — the connection is lost (M-A)")
 	}
-	// M-B face: the guard wrapper must route through the pure check
-	if !strings.Contains(funcBody("canaryMaskingFixtureGuard"), "canaryMaskingFixtureCheck(stream)") {
-		t.Fatal("guard-chain pin: canaryMaskingFixtureGuard no longer calls canaryMaskingFixtureCheck — the guard body degenerated (M-B)")
+	// M-B face + re-route forms: the wrapper must route through the pure
+	// check AND propagate the error to t.Fatal — the FULL-BLOCK form
+	// (call text without the error handling, e.g. `_ = check(stream)`,
+	// and the if-block with a swallowed error both miss this pin)
+	if !strings.Contains(funcBody("canaryMaskingFixtureGuard"), "\n\tif err := canaryMaskingFixtureCheck(stream); err != nil {\n\t\tt.Fatal(err)\n\t}\n") {
+		t.Fatal("guard-chain pin: canaryMaskingFixtureGuard no longer propagates canaryMaskingFixtureCheck's error to t.Fatal — the guard body degenerated (M-B / re-route)")
 	}
 }
