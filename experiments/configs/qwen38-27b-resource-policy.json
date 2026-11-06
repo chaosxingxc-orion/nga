@@ -55,7 +55,9 @@
     "Retaineddetachedcontainers,persistentlogs,heartbeats,terminalmarkers,resumeandexactrelaunch"
   ],
   "launch_authorized": false,
-  "note": "Resource policy only; concrete controllers consume separately reviewed CONFIG.json. Four-card inference v7 actually ran on host175 physical4-7, failed before a valid forward, and released all four cards. Diagnose before successor retry. LoRA four-card recipe remains to implement and validate; two-card execution is authorized by budget but still needs measured capacity/numerical/efficiency qualification.",
+  "note": "Active technical branch by owner instruction. Accepted v10 four-card short-input forward exited successfully; earlier v7 failure remains historical evidence. Public-task inference and trainable sharded LoRA still require concrete configurations. Resource authorization does not assert implementation readiness. Current eight training lanes remain uninterrupted; group collection begins only once a concrete 27B task is ready.",
   "resource_budget_authorized": true,
-  "updated_utc": "2026-11-05T06:15:46.286930+00:00"
+  "updated_utc": "2026-11-06",
+  "technical_plan": "proposal/31-qwen38-27b-technical-plan.md",
+  "task_graph": "configs/experiments/qwen38-27b-plan.json"
 }

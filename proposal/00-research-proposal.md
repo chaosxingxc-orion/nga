@@ -29,6 +29,8 @@ Two further limits come from the report's self-review and must stay attached to 
 
 **Endgame size**: Qwen 27B dense, or 35B-A3B (MoE, about 3B active). The 0.6B / 0.8B / 2B / 4B / 9B ladder is **not a scaled-down endgame**; it is a testbed for structural changes (§6.1.5). The consequence of this reframing is written in R6.
 
+**Current execution update (2026-11-06):** The user has included the exact `Qwen/Qwen3.8-27B` checkpoint as an active technical branch alongside the Qwen3.5 Base ladder. See the [27B technical plan](31-qwen38-27b-technical-plan.md) for reference inference, four-card LoRA preparation and same-TEST comparisons. This released post-trained checkpoint is not a pure parameter-scaling control; the existing R6 hypotheses remain hypotheses.
+
 **Three stage gates** (no gate passed, no next stage):
 
 | Gate | Criterion | If not passed |

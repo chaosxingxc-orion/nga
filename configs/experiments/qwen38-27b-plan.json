@@ -1,0 +1,112 @@
+{
+  "schema": "nga-experiment-plan-v1",
+  "model": "Qwen/Qwen3.8-27B",
+  "revision": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
+  "model_path": "/mnt/cephfs/models/Qwen3.8-27B",
+  "status": "preparing",
+  "engineering_base": "engineering-base-rc1",
+  "resource": {
+    "host": "175",
+    "initial_chips": 4,
+    "allowed_chips": [
+      2,
+      4
+    ],
+    "group_start": true,
+    "interrupt_running_training": false,
+    "gather_only_when_executable": true
+  },
+  "nodes": [
+    {
+      "id": "prepare",
+      "depends_on": [],
+      "status": "running",
+      "resource": "cpu",
+      "dispatchable": false
+    },
+    {
+      "id": "inference-task-smoke",
+      "depends_on": [
+        "prepare"
+      ],
+      "status": "planned",
+      "resource": "npu4",
+      "dispatchable": false
+    },
+    {
+      "id": "fixed-reference-test",
+      "depends_on": [
+        "inference-task-smoke"
+      ],
+      "status": "blocked_on_frozen_panel_protocol",
+      "resource": "npu4",
+      "dispatchable": false
+    },
+    {
+      "id": "lora-update-resume-smoke",
+      "depends_on": [
+        "prepare"
+      ],
+      "status": "blocked_on_trainable_sharding_config",
+      "resource": "npu4",
+      "dispatchable": false
+    },
+    {
+      "id": "lora-seed2",
+      "depends_on": [
+        "lora-update-resume-smoke"
+      ],
+      "status": "blocked_on_frozen_training_recipe",
+      "resource": "npu4",
+      "dispatchable": false
+    },
+    {
+      "id": "lora-seed3",
+      "depends_on": [
+        "lora-update-resume-smoke"
+      ],
+      "status": "blocked_on_frozen_training_recipe",
+      "resource": "npu4",
+      "dispatchable": false
+    },
+    {
+      "id": "trained-dev",
+      "depends_on": [
+        "lora-seed2",
+        "lora-seed3"
+      ],
+      "status": "planned",
+      "resource": "npu4",
+      "dispatchable": false
+    },
+    {
+      "id": "freeze-final-test",
+      "depends_on": [
+        "trained-dev"
+      ],
+      "status": "planned",
+      "resource": "cpu",
+      "dispatchable": false
+    },
+    {
+      "id": "trained-same-test",
+      "depends_on": [
+        "freeze-final-test",
+        "fixed-reference-test"
+      ],
+      "status": "planned",
+      "resource": "npu4",
+      "dispatchable": false
+    },
+    {
+      "id": "score-review",
+      "depends_on": [
+        "trained-same-test"
+      ],
+      "status": "planned",
+      "resource": "cpu",
+      "dispatchable": false
+    }
+  ],
+  "note": "Planning DAG, not an executable admission manifest. Exact commands, protocols and recipe must be fixed before dispatch; CPU preparation is already running."
+}
