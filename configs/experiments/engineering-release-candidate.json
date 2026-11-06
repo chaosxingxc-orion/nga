@@ -30,7 +30,9 @@
       "integration_state": "unaccepted_working_copy_imported",
       "repair_task": ".local/releases/engineering-base-rc1/tasks/supervisor/complete-path",
       "candidate_review": ".local/releases/engineering-base-rc1/tasks/supervisor/complete-path-review/RESULT.json",
-      "incoming_verdict": "changes_required_normal_cli_absent"
+      "incoming_verdict": "changes_required_normal_cli_absent",
+      "local_review": ".local/releases/engineering-base-rc1/tasks/supervisor/connect-review/RESULT.json",
+      "local_status": "real_worker_scorer_owned_gate_positive_and_no_spawn_replay_accepted_bounded_synthetic_external_runtime; UID9009_access_unresolved"
     },
     "capture": {
       "incoming_workspace": ".local/preparations/engineering-capture-ledger-implementation-20261106-v19",
@@ -45,7 +47,11 @@
       "qualification_task": ".local/releases/engineering-base-rc1/tasks/capture/target-cpu",
       "candidate_review": ".local/releases/engineering-base-rc1/tasks/capture/target-review/RESULT.json",
       "target_delivery": ".local/releases/engineering-base-rc1/tasks/capture/target-cpu/RESULT.json",
-      "target_status": "producer_reports_bounded_actual175_CPU_Ceph_pass; independent_review_pending; full_native_chain_not_qualified"
+      "target_status": "PASS_BOUNDED_CPU_CEPH_WITH_QUALIFICATIONS",
+      "target_review_sha256": "9e1851d63830304d9f18918747364604887d1c133cbe11dd9bc0d1c27ec2bd06",
+      "native_qualification_task": ".local/releases/engineering-base-rc1/tasks/capture/native-target",
+      "native_review": ".local/releases/engineering-base-rc1/tasks/capture/native-review/RESULT.json",
+      "remaining_target": "full native chain and independent reader; timestamped counted monitoring and durable stage receipts; end-to-end performance and NPU"
     },
     "snapshot": {
       "incoming_workspace": ".local/preparations/engineering-snapshot-custody-chain-20261106-v3",
@@ -65,21 +71,21 @@
       "title": "Complete configured supervisor and worker/gate lifecycle",
       "state": "open",
       "component": "supervisor",
-      "current_action": "Default bridge connected but smoke fails init-cgroup fixture and UID9009/socket access unresolved; complete-path repair queued after review"
+      "current_action": "Independent normal CLI exact three predictions and no-spawn replay passed with synthetic external Docker/proc; repair real UID9009 output/socket permissions and remaining failure/resume probes"
     },
     {
       "id": "RC-02",
       "title": "Finish actual capture ledger, boundary accounting and independent validation",
       "state": "open",
       "component": "capture",
-      "current_action": "Exact capture closure imported; actual175 finite CPU/Ceph controls reported passed, independent review pending; full native chain and final image pending"
+      "current_action": "Independent actual175 CPU/Ceph finite acceptance; next full native chain queued with monitor fix, no unchanged suite rerun"
     },
     {
       "id": "RC-03",
       "title": "Finish protected copy/verifier custody, resume and external identity binding",
       "state": "open",
       "component": "snapshot",
-      "current_action": "Previous lifecycle task misidentified its own worker and delivered no repair; process identity verified terminal; complete-lifecycle queued after review with explicit ownership instructions"
+      "current_action": "Astra confirms missing detached observer, missing signal terminal and completed replay binding mismatch; complete-lifecycle repair now executing"
     },
     {
       "id": "RC-04",
@@ -91,7 +97,8 @@
       "id": "RC-05",
       "title": "Validate four-family NPU numerical behavior, resume and throughput",
       "state": "open",
-      "component": "integration"
+      "component": "integration",
+      "current_action": "Fixed36-process56-update four-family config generator and Astra review queued after native capture review; final source/image/device leases remain unbound"
     },
     {
       "id": "RC-06",
@@ -118,5 +125,12 @@
     ],
     "required_artifact": "reproducible_image_closure_and_pinned_host_companion_plus_configs",
     "release_authorized_by_task_exit": false
+  },
+  "qualification_queue": {
+    "native_target": ".local/releases/engineering-base-rc1/tasks/capture/native-target",
+    "native_review": ".local/releases/engineering-base-rc1/tasks/capture/native-review",
+    "npu_configure": ".local/releases/engineering-base-rc1/tasks/npu/configure",
+    "npu_config_review": ".local/releases/engineering-base-rc1/tasks/npu/config-review",
+    "note": "tasks are same rc1 work packages; terminal alone is not acceptance; no NPU authorization from placeholders"
   }
 }
