@@ -32,8 +32,8 @@
       "candidate_review": ".local/releases/engineering-base-rc1/tasks/supervisor/pipeline-review/RESULT.json",
       "incoming_verdict": "changes_required_normal_cli_absent",
       "local_review": ".local/releases/engineering-base-rc1/tasks/supervisor/split-review/RESULT.json",
-      "local_status": "canonical role validation fixed; requested mapped UID lifecycle not implemented; concrete access contract then actual pipeline queued",
-      "local_delivery": ".local/releases/engineering-base-rc1/tasks/supervisor/uid-execution/RESULT.json"
+      "local_status": "connected access contract delivered with real namespace DAC/socket tests; independent access-review running; full worker/scorer pipeline not yet accepted",
+      "local_delivery": ".local/releases/engineering-base-rc1/tasks/supervisor/access-contract/RESULT.json"
     },
     "capture": {
       "incoming_workspace": ".local/preparations/engineering-capture-ledger-implementation-20261106-v19",
@@ -166,7 +166,10 @@
     "digest_source_sha256": "0eb2cec7795b849cdecdd94dbe0799fdf9f056ceccf1feec4034c13cb8b7d4f8",
     "digest_acceptance": ".local/releases/engineering-base-rc1/evidence/digest-local-acceptance/RESULT.json",
     "npu_protected_assets": ".local/releases/engineering-base-rc1/tasks/npu/protected-assets",
-    "npu_protected_review": ".local/releases/engineering-base-rc1/tasks/npu/protected-review"
+    "npu_protected_review": ".local/releases/engineering-base-rc1/tasks/npu/protected-review",
+    "npu_custody_observation_status": "review_complete_observed_hash_agreement_accepted_custody_not_established",
+    "npu_custody_observation_acceptance": ".local/releases/engineering-base-rc1/evidence/custody-observation-acceptance/RESULT.json",
+    "npu_custody_observation_limits": "project-pinned payload agreement only; mutable evidence, forged resume and failure overwrite defects; protected-assets implementation running"
   },
   "efficiency_queue": {
     "prepare": ".local/releases/engineering-base-rc1/tasks/efficiency/prepare",
