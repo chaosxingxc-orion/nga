@@ -17,11 +17,11 @@
 | M6 | audit-selftest | `go test ./internal/settlement/ -run TestSettlementAuditSelfTest` | ledger 解析器面（进程内；R58 增 letter-条目面+围栏面） |
 | M7 | seed-anchors | `python3 tools/seed.py --check-anchors` | 植入目录锚漂移（开轮面——锚失配开轮即响，不再等有人手跑 seed；R58 采纳 S3 提案） |
 
-**机械回放（开轮保留率门）**：`python3 tools/replay.py` —— 六面全 PASS 才开轮。
+**机械回放（开轮保留率门）**：`python3 tools/replay.py` —— 七面（M1-M7）全 PASS 才开轮。
 replay 是编排件（自身无新检查，红面在组件工具里、各有 ledger token）；其组件清单若被
-删面，本表（M1-M6 六行）即对账基准——人工对表是声明的边界。
+删面，本表（M1-M7 七行）即对账基准——人工对表是声明的边界。
 
-## 二、判据 × 用例映射（15 行——机器面行给命令，审查面行给出处+探查动作）
+## 二、判据 × 用例映射（20 行——机器面行给命令，审查面行给出处+探查动作）
 
 > R58 增五行（20 行）：letter 闸/围栏=文档/调用方绕过/两个下轮待实现项。
 
