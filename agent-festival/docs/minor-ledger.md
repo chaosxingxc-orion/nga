@@ -377,7 +377,7 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 
 - **M-1（R48 m-1 清偿声明未落地——虚假清偿族复发）**：台账写「FilterClosesMasking 补 canary 存活前置」而 diff 无此 hunk——删 canary 反突变实测仍全绿（绿面空心化复现）。R38 B-1 同族的第四实证：**清偿声明写进台账≠代码里有**。已修（真落地）：共享夹具函数 canaryMaskingStream+共享守卫 canaryMaskingFixtureGuard（病/绿对偶两测试都换用——"the same stream" 结构性表达+守卫内聚一处）。
 - **M-2（探针承载归因失实）**：「Adopt 面探针使注册表污染文法回归可见」实测不成立（去早退突变在 Open 期先崩——reused 断言永远到不了；探针红面=崩溃前 Open 红非 reused 断言红）。已修：归因改真（防线=Open 期结构性早退；reused 断言钉可观测面 st.digest→reused，非防线）。
-- **m-1~m-8（随批清偿）**：m-1=M-1 共享守卫（绿面空心化落地）；m-4 守卫谓词对齐 guardDied 喂入形（前缀+status——status 漂移防误诊）；m-5 共享夹具（双测试手抄字面量结构性退役）；m-3 helper 注释改述落地+E7a② 双注释合并+HalfReal doc/inline 重复删；m-6 E7a 两处手搭行换 newLedgerPath；m-7 函数头 doc 残留（"not a reused"）改述；m-8 guardDied 注释轮次 R46→E7b（41号）。
+- **m-1~m-8（随批清偿）**：m-1=M-1 共享守卫（绿面空心化落地）；m-2=并入 M-1（同一共享守卫落地，不单列）【R52 m-4 补注：编号洞闭合】；m-4 守卫谓词对齐 guardDied 喂入形（前缀+status——status 漂移防误诊）；m-5 共享夹具（双测试手抄字面量结构性退役）；m-3 helper 注释改述落地+E7a② 双注释合并+HalfReal doc/inline 重复删；m-6 E7a 两处手搭行换 newLedgerPath；m-7 函数头 doc 残留（"not a reused"）改述；m-8 guardDied 注释轮次 R46→E7b（41号）。
 - **方法论入账（第 52 实证）**：虚假清偿的检出依赖逐条 diff 对照（R49 M-1 用三重证据：diff hunk 缺失+调用点零+反突变复现——「全清偿」的台账声明要用 git show 逐 hunk 核对，不能信提交信息）。
 
 ## R50 复审记账（2026-11-06，E7 全增量 9140e5e..77d63e8——0B/1M/5m 全清偿；连净计数 0）
@@ -394,3 +394,12 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **M-1（R50 m-2 HalfReal 守卫替换虚假清偿——第五实证）**：R50 台账+提交信息+任务简报三层都声称「三面守卫统一」，git show 无任何守卫替换 hunk——HalfReal 仍是 status 盲 canarySilent 前置。虚假清偿谱系第五实证（R38 B-1→R49 M-1→R50 m-3→R51 M-1）。已修（真落地）：HalfReal 换用 canaryMaskingFixtureGuard。探针复验：status 漂移→fixture error（非「disease narrower」误诊）。
 - **M-2（status 对齐换丢了位置守卫——三序钉二）**：R50 m-1 用「末位 canary status 对齐」**替换**了 canarySilent 调用——status 盲洞换成位置盲洞（病面载荷需 lastCanary≥lastTraffic=guardDied 定义式第三条，守卫只钉两条）。漂移流 [business, canary, traffic] 四检查全过→病钉翻转误诊「病消退」。已修：守卫追加第三条次序检查（lastTraffic>lastCanary→fixture error）。探针复验：位置漂移→fixture error（非「disease is gone」误诊）。
 - **方法论入账（第 55/56 实证）**：守卫改写要用**增量替换**而非整块替换（M-2——canarySilent 删除时它承载的位置语义被无声丢弃；「替换」类修复先列旧件承载面清单）；虚假清偿谱系已经五轮（M-1）——**下一步的结构性预防**：清偿提交后跑「git show 逐 hunk vs 台账清单」的机械核对应入 review-loop 协议本身（而非依赖下一轮空白子抓）。
+
+## R52 复审记账（2026-11-06，E7 全增量 9140e5e..aeb191d——0B/1M/4m 全清偿；连净计数 0）
+
+- **M-1（守卫五查零红面——五突变实证全绿）**：守卫作为清偿主件（三面统一后的单点防线）自身五条检查可被静默删除（守卫退化无声——恰是本增量实测发生三次的失效形态）。已修：守卫改纯函数 canaryMaskingFixtureCheck+表驱动 meta 探针 TestE7b_GuardChecksProbed（五漂移流各钉一检查+健康夹具过）。**五删突变全红**（逐检查删除→meta 探针红×2）。
+- **m-1（check3 被蕴含）**：canary≥business 由死亡形态+第三序蕴含（触 check3 的流必触 check4/5）——诊断细分非独立不变量。已修：蕴含声明入注+表项改为蕴含形态（删 check3 该流落 check5——蕴含可见化）。
+- **m-2（轮次引用错位）**：「R48 m-2→M-3」「R48 M-1/m-7」实为「R47 m-2 → R48 M-3」「R48 M-1 / R49 m-7」。已修：双处完整轮次。
+- **m-3（canarySilent 双实现陷阱）**：status 盲谓词无「勿复用为夹具守卫」警示——向 canarySilent 合并即无声重现 R50 m-1 误诊。已修：doc 警示（status-blind by design / use canaryMaskingFixtureGuard）。
+- **m-4（R49 台账 m 编号洞）**：「m-1~m-8」缺 m-2——「全清偿」对该槽不可验证。已修：补注（m-2 并入 M-1）。
+- **方法论入账（第 57 实证）**：守卫本身需要红面（M-1——防误诊的守卫自己无守卫=三面防线单点无声退化；表驱动 meta 探针是夹具守卫的标准闭合形态）。

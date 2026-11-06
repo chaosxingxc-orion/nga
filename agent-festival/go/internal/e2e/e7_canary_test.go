@@ -28,6 +28,7 @@ package e2e
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -60,6 +61,10 @@ func canaryEvent(seq int, op string) ledger.Event {
 // effect traffic continues — the canary's own death probe (the meta layer
 // of xia round-4 §2: who watches the watcher — the probe face watches the
 // canary stream). Zero canary events → never injected → NOT silent.
+// NOTE (R52 m-3): canarySilent is STATUS-BLIND by design (an injection
+// is alive regardless of its status) — it is the canary's own death
+// probe, NOT a fixture guard for the masking dual (guardDied only
+// consumes rejected events; use canaryMaskingFixtureGuard for fixtures).
 func canarySilent(events []ledger.Event) bool {
 	lastCanary := -1
 	lastTraffic := -1
@@ -112,7 +117,7 @@ func TestE7a_UnknownOpDispatchUntraceable(t *testing.T) {
 // one), and the experiment proves the two remaining criteria on the
 // replay side: zero state transfer (the op stays adopted — the control
 // event does not project state) and zero idempotency-registry effect
-// (R48 M-1/m-7: a same-key same-digest Adopt retry must return REUSED —
+// (R48 M-1 / R49 m-7: a same-key same-digest Adopt retry must return REUSED —
 // the registry's observable face is st.digest, not the Dispatch return).
 func TestE7a_CanaryControlEventProbeFace(t *testing.T) {
 	path := newLedgerPath(t)
@@ -246,7 +251,7 @@ func TestE7a_CanarySilentProbe(t *testing.T) {
 // ---------------------------------------------------------------------------
 // E7b: the guardDied canary filter face.
 
-// TestE7b_HalfRealStreamFace (R48 m-2→M-3 home fix): the filter face on
+// TestE7b_HalfRealStreamFace (R47 m-2 → R48 M-3 home fix): the filter face on
 // a HALF-REAL stream — a real machine's business rejection (refuse()
 // output via revoked-grants Dispatch) spliced with synthesized canary
 // events, so the filter is exercised on a machine-form detail.
@@ -310,6 +315,15 @@ func canaryMaskingStream() []ledger.Event {
 // here as a fixture error, not as a "disease is gone" misdiagnosis).
 func canaryMaskingFixtureGuard(t *testing.T, stream []ledger.Event) {
 	t.Helper()
+	if err := canaryMaskingFixtureCheck(stream); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// canaryMaskingFixtureCheck (R52 M-1): the guard as a PURE function —
+// five checks, each mutation-deletable and table-driven probed
+// (TestE7b_GuardChecksProbed). The t.Fatal form is a thin wrapper.
+func canaryMaskingFixtureCheck(stream []ledger.Event) error {
 	// R50 m-1: the canary-alive check is STATUS-ALIGNED (the last
 	// prefix-carrying control event must be a rejected one — the one
 	// guardDied's lastIntercept actually consumes; a status-blind
@@ -332,20 +346,24 @@ func canaryMaskingFixtureGuard(t *testing.T, stream []ledger.Event) {
 		}
 	}
 	if lastCanary < 0 || stream[lastCanary].Outcome.Status != "rejected" {
-		t.Fatal("fixture error — the canary is absent or its last event drifted off rejected; the masking dual requires an ALIVE (rejected) canary")
+		return fmt.Errorf("fixture error — the canary is absent or its last event drifted off rejected; the masking dual requires an ALIVE (rejected) canary")
 	}
 	if !hasReal {
-		t.Fatal("fixture error — no business rejection in the fixture; the masking dual requires a real death to mask")
+		return fmt.Errorf("fixture error — no business rejection in the fixture; the masking dual requires a real death to mask")
 	}
+	// R52 m-1: ENTAILED by the death-shape and third-ordering checks
+	// (any stream tripping this also trips one of those) — kept as a
+	// diagnostic subdivision with its own message, not an independent
+	// invariant
 	if lastCanary < lastBusiness {
-		t.Fatal("fixture error — the canary went silent BEFORE the business rejection; the masking dual requires the canary alive AFTER it")
+		return fmt.Errorf("fixture error — the canary went silent BEFORE the business rejection; the masking dual requires the canary alive AFTER it")
 	}
 	// R50 M-1: the DEATH SHAPE — the business rejection must precede the
 	// traffic tail (died ⟺ lastTraffic > lastBusiness; without this
 	// check, "not died" has two causes — masked or no death at all — and
 	// the green face misattributes "the canary still masks it")
 	if lastBusiness > lastTraffic {
-		t.Fatal("fixture error — no traffic after the business rejection; the masking dual requires the death shape (rejection, then quiet under traffic)")
+		return fmt.Errorf("fixture error — no traffic after the business rejection; the masking dual requires the death shape (rejection, then quiet under traffic)")
 	}
 	// R51 M-2: the third ordering — traffic ≤ canary (R50's status
 	// alignment DROPPED the positional guard canarySilent used to carry:
@@ -353,8 +371,9 @@ func canaryMaskingFixtureGuard(t *testing.T, stream []ledger.Event) {
 	// otherwise "not died" flips to "died" and the pin misdiagnoses a
 	// fixture drift as "the disease is gone")
 	if lastTraffic > lastCanary {
-		t.Fatal("fixture error — the canary went silent under traffic; the masking dual requires the canary alive at the tail")
+		return fmt.Errorf("fixture error — the canary went silent under traffic; the masking dual requires the canary alive at the tail")
 	}
+	return nil
 }
 
 func TestE7b_CanaryFeedsDeathProbe(t *testing.T) {
@@ -424,5 +443,89 @@ func TestE7b_MidDetailCanaryNotFiltered(t *testing.T) {
 	// the mid-detail event counts as a real interception (not filtered)
 	if died := guardDied(stream, "rejected", canaryPrefix); !died {
 		t.Fatal("E7b: a mid-detail [CANARY] was filtered — only the PREFIX form is the reserved convention")
+	}
+}
+
+// TestE7b_GuardChecksProbed (R52 M-1): the table-driven meta-probe —
+// each row is a DRIFTED stream that must trip exactly one named check.
+// Mutation probe: delete any check from canaryMaskingFixtureCheck and
+// the matching row goes silent (the error message changes or vanishes)
+// → this test goes red.
+func TestE7b_GuardChecksProbed(t *testing.T) {
+	canaryStatusDrift := canaryEvent(4, "op-c")
+	canaryStatusDrift.Outcome.Status = "granted" // drift off rejected
+	cases := []struct {
+		name   string
+		stream []ledger.Event
+		want   string // substring of the expected fixture error
+	}{
+		{
+			name: "status-drifted canary",
+			stream: []ledger.Event{
+				{EventType: "control", ArbitrationSeq: 0, Outcome: ledger.Outcome{Status: "rejected", Detail: "business"}},
+				{EventType: "effect", ArbitrationSeq: 1, Outcome: ledger.Outcome{Status: "dispatched"}},
+				canaryStatusDrift,
+			},
+			want: "drifted off rejected",
+		},
+		{
+			name: "no business rejection",
+			stream: []ledger.Event{
+				{EventType: "effect", ArbitrationSeq: 0, Outcome: ledger.Outcome{Status: "dispatched"}},
+				canaryEvent(1, "op-c"),
+			},
+			want: "no business rejection",
+		},
+		// R52 m-1 (ENTAILMENT observation): the canary≥business check is
+		// entailed by the death-shape + third-ordering checks — a stream
+		// that would trip it (canary only BEFORE business, none after)
+		// also trips "silent under traffic" — so the check is a diagnostic
+		// subdivision, not an independent invariant. The row probes the
+		// entailing check instead:
+		{
+			// the entailed form: canary only BEFORE business — trips the
+			// subdivision check first ("BEFORE the business"); deleting
+			// that check lets it fall through to "silent under traffic"
+			// (the entailment made visible by the row)
+			name: "canary before business (entailed form)",
+			stream: []ledger.Event{
+				canaryEvent(0, "op-c"),
+				{EventType: "control", ArbitrationSeq: 1, Outcome: ledger.Outcome{Status: "rejected", Detail: "business"}},
+				{EventType: "effect", ArbitrationSeq: 2, Outcome: ledger.Outcome{Status: "dispatched"}},
+			},
+			want: "BEFORE the business rejection",
+		},
+		{
+			name: "no death shape (no traffic after business)",
+			stream: []ledger.Event{
+				{EventType: "control", ArbitrationSeq: 0, Outcome: ledger.Outcome{Status: "rejected", Detail: "business"}},
+				canaryEvent(1, "op-c"),
+			},
+			want: "death shape",
+		},
+		{
+			name: "canary silent under traffic (positional drift)",
+			stream: []ledger.Event{
+				{EventType: "control", ArbitrationSeq: 0, Outcome: ledger.Outcome{Status: "rejected", Detail: "business"}},
+				canaryEvent(1, "op-c"),
+				{EventType: "effect", ArbitrationSeq: 2, Outcome: ledger.Outcome{Status: "dispatched"}},
+				canaryEvent(3, "op-c"),
+				{EventType: "effect", ArbitrationSeq: 4, Outcome: ledger.Outcome{Status: "dispatched"}},
+			},
+			want: "silent under traffic",
+		},
+	}
+	for _, tc := range cases {
+		err := canaryMaskingFixtureCheck(tc.stream)
+		if err == nil {
+			t.Fatalf("guard-checks probe [%s]: drifted stream PASSED the guard — a check was silently dropped", tc.name)
+		}
+		if !strings.Contains(err.Error(), tc.want) {
+			t.Fatalf("guard-checks probe [%s]: error = %q, want substring %q — wrong check tripped (or the check drifted)", tc.name, err.Error(), tc.want)
+		}
+	}
+	// the healthy fixture passes (no fixture error)
+	if err := canaryMaskingFixtureCheck(canaryMaskingStream()); err != nil {
+		t.Fatalf("guard-checks probe: the healthy fixture tripped %v — a check is over-broad", err)
 	}
 }
