@@ -130,8 +130,7 @@
       "supervisor/pipeline-review",
       "snapshot/mode-review",
       "capture/target-review",
-      "npu/resource-review",
-      "npu/device-review"
+      "npu/resource-review"
     ],
     "required_artifact": "reproducible_image_closure_and_pinned_host_companion_plus_configs",
     "release_authorized_by_task_exit": false,
@@ -157,7 +156,12 @@
     "npu_target_custody": ".local/releases/engineering-base-rc1/tasks/npu/target-custody",
     "npu_custody_review": ".local/releases/engineering-base-rc1/tasks/npu/custody-review",
     "npu_device_prepare": ".local/releases/engineering-base-rc1/tasks/npu/device-prepare",
-    "npu_device_review": ".local/releases/engineering-base-rc1/tasks/npu/device-review"
+    "npu_device_review": ".local/releases/engineering-base-rc1/tasks/npu/device-review",
+    "device_preparation_requires": [
+      "npu/custody-review",
+      "npu/resource-review",
+      "integration/target-review"
+    ]
   },
   "efficiency_queue": {
     "prepare": ".local/releases/engineering-base-rc1/tasks/efficiency/prepare",
