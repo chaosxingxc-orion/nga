@@ -7,11 +7,18 @@ def trusted(name):
  spec=importlib.util.spec_from_file_location(name,R/(name+'.py')); module=importlib.util.module_from_spec(spec); spec.loader.exec_module(module); return module
 P=trusted('producer'); HP=trusted('host_ownership_probe')
 C=P.CONFIG; ROOT=Path(C['root']); OUT=ROOT/'matched-k0-clean-dev'; ADAPTER=ROOT/'followup-cpu-separated-rc1'
-JOBS=[('08b-k0',4,'q4b-s2'),('2b-k0',5,'q4b-s3'),('4b-k0',6,'q9b-s2'),('9b-k0',7,'q9b-s3')]
+DEFAULT_RESOURCE={'jobs': [{'id': '08b-k0', 'chip': 4, 'lane': 'q4b-s2', 'dependency_chip': 4, 'train_config': '70d1cb768b290041624bcb0541d903b6f8631e90eed2e3ae4c5a3e2936224607', 'dev_model': '4b-k0'}, {'id': '2b-k0', 'chip': 5, 'lane': 'q4b-s3', 'dependency_chip': 5, 'train_config': '465368bf1e0e24293faf6364ab2da38b146025dbe12bc153f98dbff24472860e', 'dev_model': '4b-k0'}, {'id': '4b-k0', 'chip': 6, 'lane': 'q9b-s2', 'dependency_chip': 6, 'train_config': '1e3f4642fc7d1ac8e58e359fa1c712eebab53ae746ddf732a354834ed4b9f8d3', 'dev_model': '9b-k0'}, {'id': '9b-k0', 'chip': 7, 'lane': 'q9b-s3', 'dependency_chip': 7, 'train_config': 'cfc782f53365994b42eacd5b89aa9a052074873cb3efc0876b9ef7604b87902d', 'dev_model': '9b-k0'}]}
+RESOURCE=json.loads((R/'resource.json').read_text()) if (R/'resource.json').exists() else DEFAULT_RESOURCE
+P.require(set(RESOURCE)=={'jobs'} and len(RESOURCE['jobs'])==4,'resource config')
+P.require({x['id'] for x in RESOURCE['jobs']}=={x['id'] for x in C['models']},'resource roster')
+P.require(all(set(x)=={'id','chip','lane','dependency_chip','train_config','dev_model'} and type(x['chip']) is int and x['chip'] in range(8) and type(x['dependency_chip']) is int and x['dependency_chip'] in range(8) and re.fullmatch('[a-f0-9]{64}',x['train_config']) and x['dev_model'] in {m['id'] for m in C['models']} for x in RESOURCE['jobs']),'resource entries')
+P.require(len({x['chip'] for x in RESOURCE['jobs']})==4 and len({x['lane'] for x in RESOURCE['jobs']})==4,'duplicate resource')
+JOBS=[(x['id'],x['chip'],x['lane']) for x in RESOURCE['jobs']]
+TRAIN_CONFIG={x['lane']:x['train_config'] for x in RESOURCE['jobs']}
+DEV_MODEL={x['lane']:x['dev_model'] for x in RESOURCE['jobs']}
+DEPENDENCY_CHIP={x['lane']:x['dependency_chip'] for x in RESOURCE['jobs']}
 DEADLINE=time.monotonic()+7*24*3600
 CPU_SLOTS=threading.BoundedSemaphore(2)
-TRAIN_CONFIG={'q4b-s2':'70d1cb768b290041624bcb0541d903b6f8631e90eed2e3ae4c5a3e2936224607','q4b-s3':'465368bf1e0e24293faf6364ab2da38b146025dbe12bc153f98dbff24472860e','q9b-s2':'1e3f4642fc7d1ac8e58e359fa1c712eebab53ae746ddf732a354834ed4b9f8d3','q9b-s3':'cfc782f53365994b42eacd5b89aa9a052074873cb3efc0876b9ef7604b87902d'}
-DEV_MODEL={'q4b-s2':'4b-k0','q4b-s3':'4b-k0','q9b-s2':'9b-k0','q9b-s3':'9b-k0'}
 
 
 def command(*x):return subprocess.run(x,check=True,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE).stdout.strip()
@@ -51,13 +58,13 @@ def ready(lane,chip):
  return True
 
 def free(chip):
- P.require(chip in (4,5,6,7),'reserved chip')
+ P.require(chip in [j[1] for j in JOBS],'unconfigured chip')
  probe=HP.check([chip]);P.require(probe.get('certain') is True,'host ownership uncertain');return not probe['unmanaged_owners']
 
 def reviewed():
  p=OUT/'REVIEW-APPROVED.json'
  if not p.is_file():return False
- x=json.loads(p.read_text());artifact=Path(x.get('review_artifact','/nonexistent'));return x.get('verdict')=='pass' and artifact.is_file() and x.get('review_artifact_sha256')==P.sha(artifact) and all(x.get(n.replace('.','_')+'_sha256')==P.sha(R/n) for n in ('queue.py','producer.py','config.json','compare_dev.py','host_ownership_probe.py'))
+ x=json.loads(p.read_text());artifact=Path(x.get('review_artifact','/nonexistent'));return x.get('verdict')=='pass' and artifact.is_file() and x.get('review_artifact_sha256')==P.sha(artifact) and all(x.get(n.replace('.','_')+'_sha256')==P.sha(R/n) for n in (('queue.py','producer.py','config.json','compare_dev.py','host_ownership_probe.py') + (('resource.json',) if (R/'resource.json').exists() else ())))
 
 def artifact_evidence(mid,result,phase):
  receipt=result/'INFERENCE-READY.json';h=json.loads(receipt.read_text());model=next(x for x in C['models'] if x['id']==mid)
@@ -97,7 +104,7 @@ def phase(mid,chip,phase):
   P.require(not term.exists(),'terminal without launch; manual reconciliation required')
   P.require(subprocess.run(['docker','inspect',name],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode!=0,'unreceipted container');P.save(cp,cmd);verify_sources();P.require(reviewed(),'review pin missing or stale');
   if phase=='infer':
-   owner=next(j[2] for j in JOBS if j[0]==mid and j[1]==chip);P.require(ready(owner,chip) and free(chip),'dependency or chip no longer ready')
+   owner=next(j[2] for j in JOBS if j[0]==mid and j[1]==chip);P.require(ready(owner,DEPENDENCY_CHIP[owner]) and free(chip),'dependency or chip no longer ready')
   cid=command(*cmd);P.save(launch,{'container_id':cid,'command_sha256':P.sha(cp),'chip':chip if phase=='infer' else None,'started':utc()})
  i=inspect(cid);P.require(i['Name']=='/'+name and i['Image']==C['image'] and i['Config']['Labels'].get('nga.rc1.matched-k0')==mid and json.loads(launch.read_text())['command_sha256']==P.sha(cp),'container binding')
  if term.exists():
@@ -114,7 +121,7 @@ def phase(mid,chip,phase):
 def lane(mid,chip,owner):
  if not (OUT/mid/'infer-LAUNCH.json').exists():
   while time.monotonic()<DEADLINE:
-   if ready(owner,chip) and free(chip):break
+   if ready(owner,DEPENDENCY_CHIP[owner]) and free(chip):break
    time.sleep(600)
   else:raise TimeoutError('resource readiness deadline')
  phase(mid,chip,'infer')

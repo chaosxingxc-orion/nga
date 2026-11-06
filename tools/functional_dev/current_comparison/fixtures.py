@@ -41,6 +41,8 @@ def variants(rows):
 def build(root):
     root=Path(root).resolve();root.mkdir(parents=True,exist_ok=True)
     c=copy.deepcopy(M.obj(HERE/'config.json'));c.update(mode='synthetic-fixture',k0_root=str(root/'k0'),adapter_root=str(root/'adapters'),output=str(root/'comparison'),review=str(root/'REVIEW-NOT-CREATED.json'))
+    resource=root/'resource.json';put(resource,json.loads((HERE.parent/'matched_k0/resource.json').read_text()))
+    c['k0_resource']={'path':str(resource),'sha256':M.sha(resource)}
     # Frozen numerical source copies, with explicit synthetic paths/identities.
     C,V,PV=M.numerics(c);c['closure']=str(root/'fixture-closure');closure=Path(c['closure'])
     put(closure/'manifest.json',{'synthetic_fixture':True})
@@ -140,7 +142,7 @@ def build(root):
                 put(run/'report.json',{'header':scoreh,'track_k':track})
             for phase in ('infer','score'):
                 name='nga-rc1-matched-k0-'+rid+'-'+phase if isbase else 'nga-rc1-cpu-full-'+rid+'-'+phase
-                cid=M.canonical(['fixture-container',rid,phase]);chip=c['models'].index(model)+4 if isbase else c['lanes'].index(lane)
+                cid=M.canonical(['fixture-container',rid,phase]);chip={x['id']:x['chip'] for x in M.obj(c['k0_resource']['path'])['jobs']}[rid] if isbase else c['lanes'].index(lane)
                 mounts=[{'Source':str(base),'Destination':str(base),'RW':False},
                         {'Source':c['closure']+'/r0_code','Destination':'/mnt/cephfs/xingchao/experiments/jev/r0_code','RW':False}]
                 if isbase:mounts += [{'Source':c['closure'],'Destination':c['closure'],'RW':False},{'Source':str(packet),'Destination':'/run/packet','RW':False}]
@@ -158,6 +160,7 @@ def build(root):
                 inspections[cid]={'Id':cid,'Name':'/'+name,'Image':c['image'],'Config':{'Entrypoint':['/bin/bash'],'Cmd':cmd[cmd.index(c['image'])+1:],'Labels':{'nga.rc1.matched-k0':rid} if isbase else {'nga.rc1.record-grade':c['adapter_deployment_id']}},
                     'State':{'Status':'exited','ExitCode':0},'HostConfig':{'AutoRemove':False,'Devices':[{'PathOnHost':'/dev/davinci'+str(chip)}] if phase=='infer' else []},'Mounts':mounts}
     put(root/'fixture-config.json',c);put(root/'fixture-inspections.json',inspections)
+    c['source_pins'][str(resource)]=M.sha(resource)
     return c,inspections
 
 if __name__=='__main__':

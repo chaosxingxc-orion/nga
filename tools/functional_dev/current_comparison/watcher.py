@@ -60,14 +60,16 @@ def review(config):
 
 
 def pending_store_writes(config,before,after,result,code):
-    """Only unread, still-producing stores may change in an all-pending poll."""
+    """Only unread stores of pending, still-producing operands may change."""
     operands=result.get('operands',[])
-    if code!=2 or len(operands)!=12 or any(x['status']!='PENDING_MISSING_INPUT' for x in operands):return False
+    if code!=2 or len(operands)!=12 or any(x['status'] not in ('PENDING_MISSING_INPUT','VALIDATED_OPERAND') for x in operands):return False
+    pending={x['role'] for x in operands if x['status']=='PENDING_MISSING_INPUT'}
     old={x[0]:x[1:] for x in before};new={x[0]:x[1:] for x in after}
     changed={p for p in old.keys()|new.keys() if old.get(p)!=new.get(p)}
     allowed=set()
     for model in config['models']:
         for lane in [None]+[x for x in config['lanes'] if x['baseline_id']==model['id']]:
+            if (model['id'] if lane is None else lane['lane']) not in pending:continue
             d=Path(config['k0_root'])/model['id'] if lane is None else Path(config['adapter_root'])/('full-'+lane['lane'])
             run=d/'result'
             # A published handoff or inference terminal freezes these stores even
@@ -99,7 +101,7 @@ def run(config,once=False):
                     after=fingerprint(config)
                     if after!=before:
                         M.require(pending_store_writes(config,before,after,result,code),'source/input changed during reconstruction; packet refused')
-                        result['detail']='Unpublished producer stores changed during an all-pending poll; retry required; no validated snapshot accepted.'
+                        result['detail']='Unpublished producer stores changed during a pending poll; retry required; no validated snapshot accepted for changing stores.'
                         last=None
                     else:last=fp
                     M.persist(output,result)

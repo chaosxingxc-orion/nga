@@ -14,8 +14,8 @@ class QueueTests(unittest.TestCase):
    with patch.object(q,'inspect',return_value={'State':{'Running':False,'Status':'exited','ExitCode':0},'HostConfig':{'AutoRemove':False}}):
     with self.assertRaises(ValueError):q.retained_exit(l,t)
  def test_plan(self):
-  self.assertEqual([j[1] for j in q.JOBS],[4,5,6,7]);self.assertEqual(len(set(j[0] for j in q.JOBS)),4)
+  self.assertEqual([j[1] for j in q.JOBS],[0,1,2,3]);self.assertEqual(len(set(j[0] for j in q.JOBS)),4)
  def test_no_wait_on_cpu(self):
   with tempfile.TemporaryDirectory() as d, patch.object(q,'OUT',Path(d)), patch.object(q,'ready',return_value=True), patch.object(q,'free',return_value=True), patch.object(q,'phase') as phase:
-   q.lane('08b-k0',4,'lane');self.assertEqual([x.args[2] for x in phase.call_args_list],['infer','score'])
+   q.lane('08b-k0',0,'q0p8b-s2');self.assertEqual([x.args[2] for x in phase.call_args_list],['infer','score'])
 if __name__=='__main__':unittest.main()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Metadata-only fixed roster materializer. Never starts TEST or creates reviews."""
-import argparse, contextlib, datetime, fcntl, importlib.util, json, os, shlex, sys, tempfile, time
+import argparse, contextlib, datetime, fcntl, importlib.util, json, os, shlex, subprocess, sys, tempfile, time
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 import assembler as A, collector
@@ -106,17 +106,32 @@ def step(out,devdir=DEV):
  g=A.assemble(str(rp),str(res),str(out/'campaign'));save(out/'MATERIALIZED.json',{'utc':now(),'graph':pin(out/'campaign/graph.json'),'members':len(g['members']),'status':'needs_independent_review'})
  return 'materialized'
 
+def result_tick(config, out):
+ # Isolate the two unrelated collector modules in separate CPU processes.
+ runner=Path(__file__).resolve().parent.parent/'package/watcher.py'
+ command=[sys.executable,'-B','-P',str(runner),'--config',str(config),'--out',str(out/'same-test'),'--once']
+ result=subprocess.run(command,check=False)
+ if result.returncode:raise ValueError('same-TEST collector failed; see same-test/heartbeat.json')
+ status=collector.read(out/'same-test/heartbeat.json')
+ if status['status']=='error':raise ValueError('same-TEST collector failed; see same-test/heartbeat.json')
+ return status
+
 def main():
- p=argparse.ArgumentParser();p.add_argument('--out',type=Path,default=OUT);p.add_argument('--once',action='store_true');a=p.parse_args();out=a.out.resolve();out.mkdir(parents=True,exist_ok=True)
+ p=argparse.ArgumentParser();p.add_argument('--out',type=Path,default=OUT);p.add_argument('--once',action='store_true');p.add_argument('--result-config',type=Path);a=p.parse_args();out=a.out.resolve();out.mkdir(parents=True,exist_ok=True)
  with (out/'watcher.lock').open('a') as lock:
   fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
   if (out/'EXIT.json').exists() or (out/'ASSEMBLY-INTENT.json').exists():raise RuntimeError('terminal or assembly intent exists; reconcile')
-  cmd=[sys.executable,'-B','-P',str(Path(__file__).resolve()),'--out',str(out)];(out/'RELAUNCH.sh').write_text('#!/bin/sh\nexec '+shlex.join(cmd)+'\n')
+  cmd=[sys.executable,'-B','-P',str(Path(__file__).resolve()),'--out',str(out)];cmd+=['--result-config',str(a.result_config.resolve())] if a.result_config else [];(out/'RELAUNCH.sh').write_text('#!/bin/sh\nexec '+shlex.join(cmd)+'\n')
   save(out/'LAUNCH.json',{'pid':os.getpid(),'start_ticks':int(Path('/proc/self/stat').read_text().rsplit(')',1)[1].split()[19]),'boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip(),'utc':now(),'command':cmd})
   try:
+   materialized=False
    while True:
-    result=step(out);roles=collector.read(out/'pending.json')['roles'];beat={'utc':now(),'status':result,'completed':sum(x['status']=='ready' for x in roles),'total':12};save(out/'heartbeat.json',beat);print(json.dumps(beat),flush=True)
-    if result=='materialized':save(out/'EXIT.json',{'exit_code':0,'utc':now(),'status':result});return 0
+    result='materialized' if materialized else step(out);materialized=result=='materialized';roles=collector.read(out/'pending.json')['roles'];beat={'utc':now(),'status':result,'completed':sum(x['status']=='ready' for x in roles),'total':12};save(out/'heartbeat.json',beat);print(json.dumps(beat),flush=True)
+    if a.result_config:
+     collected=result_tick(a.result_config,out)
+     beat['result_collector']=collected['status'];save(out/'heartbeat.json',beat)
+     if collected['status']=='ready_for_consumer':save(out/'EXIT.json',{'exit_code':0,'utc':now(),'status':'collected','consumer_exit':collected['consumer_exit']});return 0
+    if result=='materialized' and not a.result_config:save(out/'EXIT.json',{'exit_code':0,'utc':now(),'status':result});return 0
     if a.once:return 2
     time.sleep(600)
   except BaseException as e:

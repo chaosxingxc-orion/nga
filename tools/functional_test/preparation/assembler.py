@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Produce immutable, unreviewed drafts against the accepted host stage."""
-import argparse, json, subprocess, sys, tempfile
+import argparse, importlib.util, json, subprocess, sys, tempfile
 from pathlib import Path
 STAGE=Path('/mnt/cephfs/xingchao/experiments/jev/rc1-host-stage-20261106-2600925')
 sys.path.insert(0,str(STAGE))
-import rc1_trackk as C, supervisor as H
+import rc1_trackk as C
+HOST=Path(__file__).resolve().parent
+spec=importlib.util.spec_from_file_location('rc1_export_host',HOST/'supervisor.py')
+H=importlib.util.module_from_spec(spec);spec.loader.exec_module(H)
 
 def pin(p): return {'path':str(p),'sha256':C.sha(p)}
 def assemble(roster_path, resources_path, campaign):
@@ -40,7 +43,7 @@ def assemble(roster_path, resources_path, campaign):
  camp=Path(campaign).resolve(); camp.mkdir(parents=True,exist_ok=False)
  for p in ('round','state','configs','reviews','drafts','transactions','runs'): (camp/p).mkdir()
  rt=STAGE/'runtime-environment.json'; image=C.read(rt)['image']; entry=STAGE/'rc1_trackk.py'; source={p:C.sha(p) for p in sorted(C.required_sources())}
- host={'entry':str(entry),'state_dir':str(camp/'state'),'allocation':'/mnt/cephfs/xingchao/experiments/jev/CHIP-ALLOCATION.json','owner':'rc1-trackk','dependency_policy':'wait-for-verified-free-resource','cpu_python':str(STAGE)+'-cpu/bin/python','cpu_environment':{'PATH':'/usr/bin:/bin','PYTHONPATH':str(STAGE),'PYTHONNOUSERSITE':'1'},'cpu_requires_numpy':True,'runtime_evidence':pin(rt),'matched_protocol':pin(STAGE/'experiments/RC1-MATCHED-K0.md'),'implementation_files':{str(p):C.sha(p) for p in [STAGE/'supervisor.py',*(STAGE/'tools'/n for n in ('r3_final_container.py','r3_resource_adapter.py','unified_resource_provider_v1.py','experiment_dag.py','unified_container_host_v1.py','unified_resource_lease_v1.py'))]},'r0_source_files':{str(p):C.sha(p) for p in sorted(H.R0.glob('*.py'))}}
+ host={'entry':str(entry),'state_dir':str(camp/'state'),'allocation':'/mnt/cephfs/xingchao/experiments/jev/CHIP-ALLOCATION.json','owner':'rc1-trackk','dependency_policy':'wait-for-verified-free-resource','cpu_python':str(STAGE)+'-cpu/bin/python','cpu_environment':{'PATH':'/usr/bin:/bin','PYTHONPATH':str(STAGE),'PYTHONNOUSERSITE':'1'},'cpu_requires_numpy':True,'runtime_evidence':pin(rt),'matched_protocol':pin(STAGE/'experiments/RC1-MATCHED-K0.md'),'implementation_files':{str(p):C.sha(p) for p in [HOST/'supervisor.py',HOST/'config_builder.py',HOST/'exporter.py',*(STAGE/'tools'/n for n in ('r3_final_container.py','r3_resource_adapter.py','unified_resource_provider_v1.py','experiment_dag.py','unified_container_host_v1.py','unified_resource_lease_v1.py'))]},'r0_source_files':{str(p):C.sha(p) for p in sorted(H.R0.glob('*.py'))}}
  shared={'schema':'rc1-trackk-v1','protocol':pin(STAGE/'experiments/RC1-FUNCTIONAL-TEST.md'),'manifest':pin(Path(C.C.KEV_DIR)/'manifest.json'),'source_files':source,'image':image,'roster':rows,'round_dir':str(camp/'round'),'host':host}
  graph={'schema':'rc1-dispatch-graph-v1','campaign_sha256':C.campaign_digest(shared),'members':{},'roster_sha256':C.sha(roster_path),'resources_sha256':C.sha(resources_path)}
  for row in rows:
@@ -54,8 +57,11 @@ def assemble(roster_path, resources_path, campaign):
   mounts.update({str(out):True,str(camp/'round'):True})
   spec={'name':'rc1-test-'+member,'image':image,'cmd':[],'mounts':mounts,'devices':['/dev/davinci_manager','/dev/devmm_svm','/dev/hisi_hdc','/dev/davinci'+str(chip)],'environment':{}}
   c={**shared,'member':member,'out':str(out),'container':{'spec':spec,'run':'rc1-'+member,'chip':chip,'claim':str(trans/'claim.json'),'release':str(trans/'release.json'),'launch_receipt':str(trans/'launch.json')}}
+  if member==H.EXPORT_MEMBER:
+   c['host']={**host,'cpu_entry':str(HOST/'exporter.py')}
+   c['population_export']={'producer':pin(entry),'exporter':pin(HOST/'exporter.py'),'member':member,'directory':str(camp/'population-export'),'scope':H.EXPORT_SCOPE}
   template=camp/'drafts'/(member+'.input.json'); C.save(template,c); draft=camp/'drafts'/(member+'.json')
-  subprocess.run([sys.executable,'-P',str(STAGE/'config_builder.py'),'--template',str(template),'--runtime',str(rt),'--entry',str(entry),'--config-path',str(final),'--output',str(draft)],check=True)
+  subprocess.run([sys.executable,'-P',str(HOST/'config_builder.py'),'--template',str(template),'--runtime',str(rt),'--entry',str(entry),'--config-path',str(final),'--output',str(draft)],check=True)
   graph['members'][member]={'draft':str(draft),'draft_sha256':C.sha(draft),'config':str(final),'review':str(review),'chip':chip,'dependencies':resources[member]['dependencies'],'status':row['status']}
  C.save(camp/'graph.json',graph)
  return graph

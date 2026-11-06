@@ -1,0 +1,36 @@
+{
+  "jobs": [
+    {
+      "id": "08b-k0",
+      "chip": 0,
+      "lane": "q0p8b-s2",
+      "dependency_chip": 0,
+      "train_config": "31126de58ab93fcdc113288af085f923711c02c3136f78246aa5a6e7abeca7af",
+      "dev_model": "08b-k0"
+    },
+    {
+      "id": "2b-k0",
+      "chip": 1,
+      "lane": "q0p8b-s3",
+      "dependency_chip": 1,
+      "train_config": "b8b4993089acb63caf6f0717708567cb4eb48200e2eb4797bf6ae24e7c964bed",
+      "dev_model": "08b-k0"
+    },
+    {
+      "id": "4b-k0",
+      "chip": 2,
+      "lane": "q2b-s2",
+      "dependency_chip": 2,
+      "train_config": "5ba99146adece696c015710f6f9e8e1964f0e79306bac9c8a0a5ae99f9f72191",
+      "dev_model": "2b-k0"
+    },
+    {
+      "id": "9b-k0",
+      "chip": 3,
+      "lane": "q2b-s3",
+      "dependency_chip": 3,
+      "train_config": "5162c4bcfa64d9118780ea041a62182a9e602609843eb94a8592dda0aa1b7386",
+      "dev_model": "2b-k0"
+    }
+  ]
+}

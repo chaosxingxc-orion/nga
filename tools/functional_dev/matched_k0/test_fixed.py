@@ -10,16 +10,16 @@ class Fixed(unittest.TestCase):
   self.assertEqual(q.HP.listing(table,[4]),{4:[12345]})
   for bad in ('', 'npu-smi 25\n| NPU     Chip              | Process id\n| garbage |'):
    with self.assertRaises(ValueError):q.HP.listing(bad,[4])
-  with self.assertRaises(ValueError):q.free(3)
+  with self.assertRaises(ValueError):q.free(7)
  def test_dependency_positive_and_binding_rejection(self):
   with tempfile.TemporaryDirectory() as tmp:
-   root=Path(tmp);lane='q4b-s2';train=root/lane;dev=root/'adapter/full-q4b-s2';d=train/'result/adapter';d.mkdir(parents=True);dev.mkdir(parents=True);(dev/'result').mkdir();a='a'*64;b='b'*64
-   bind={'owner':'rc1-functional-'+lane};P.save(d/'BINDING.json',bind);P.save(d/'PUBLICATION.json',{'binding':bind});P.save(train/'train-LAUNCH.json',{'phase':'train','chip':4,'container_id':a,'config_sha256':q.TRAIN_CONFIG[lane]});P.save(train/'COMPLETE.json',{'exit_code':0,'steps':3116,'scientific_acceptance':False});P.save(dev/'infer-LAUNCH.json',{'chip':4,'container_id':b});P.save(dev/'infer-EXIT.json',{'container_id':b,'exit_code':0,'container_exit_code':0});P.save(dev/'infer-BINDING.json',{'binding':bind,'publication_sha256':P.sha(d/'PUBLICATION.json')})
-   model=next(x['model'] for x in q.C['models'] if x['id']=='4b-k0');P.save(dev/'infer-COMMAND.json',['--model',model['path'],'--adapter',str(d),'--phase','infer']);P.save(dev/'infer-LAUNCH.json',{'chip':4,'container_id':b,'command_sha256':P.sha(dev/'infer-COMMAND.json')});h={'version':1,'model':model['path'],'adapter':str(d),'out':'/run/output/result','limit':0,'inference_header':{'stages':'k_score','model':{'base_path':model['base_path'],'base_revision':model['base_revision']}}};P.save(dev/'result/INFERENCE-READY.json',h)
-   def inspect(cid):return {'Id':cid,'Name':'/nga-rc1-'+lane+'-train' if cid==a else '/nga-rc1-cpu-full-'+lane+'-infer','HostConfig':{'AutoRemove':False,'Devices':[{'PathOnHost':'/dev/davinci4'}]},'State':{'Status':'exited','ExitCode':0}}
+   root=Path(tmp);lane='q2b-s2';train=root/lane;dev=root/'adapter/full-q2b-s2';d=train/'result/adapter';d.mkdir(parents=True);dev.mkdir(parents=True);(dev/'result').mkdir();a='a'*64;b='b'*64
+   bind={'owner':'rc1-functional-'+lane};P.save(d/'BINDING.json',bind);P.save(d/'PUBLICATION.json',{'binding':bind});P.save(train/'train-LAUNCH.json',{'phase':'train','chip':2,'container_id':a,'config_sha256':q.TRAIN_CONFIG[lane]});P.save(train/'COMPLETE.json',{'exit_code':0,'steps':3116,'scientific_acceptance':False});P.save(dev/'infer-LAUNCH.json',{'chip':2,'container_id':b});P.save(dev/'infer-EXIT.json',{'container_id':b,'exit_code':0,'container_exit_code':0});P.save(dev/'infer-BINDING.json',{'binding':bind,'publication_sha256':P.sha(d/'PUBLICATION.json')})
+   model=next(x['model'] for x in q.C['models'] if x['id']=='2b-k0');P.save(dev/'infer-COMMAND.json',['--model',model['path'],'--adapter',str(d),'--phase','infer']);P.save(dev/'infer-LAUNCH.json',{'chip':2,'container_id':b,'command_sha256':P.sha(dev/'infer-COMMAND.json')});h={'version':1,'model':model['path'],'adapter':str(d),'out':'/run/output/result','limit':0,'inference_header':{'stages':'k_score','model':{'base_path':model['base_path'],'base_revision':model['base_revision']}}};P.save(dev/'result/INFERENCE-READY.json',h)
+   def inspect(cid):return {'Id':cid,'Name':'/nga-rc1-'+lane+'-train' if cid==a else '/nga-rc1-cpu-full-'+lane+'-infer','HostConfig':{'AutoRemove':False,'Devices':[{'PathOnHost':'/dev/davinci2'}]},'State':{'Status':'exited','ExitCode':0}}
    with patch.object(q,'ROOT',root),patch.object(q,'ADAPTER',root/'adapter'),patch.object(q,'inspect',side_effect=inspect):
-    self.assertTrue(q.ready(lane,4));h['model']='wrong';P.save(dev/'result/INFERENCE-READY.json',h)
-    with self.assertRaises(ValueError):q.ready(lane,4)
+    self.assertTrue(q.ready(lane,2));h['model']='wrong';P.save(dev/'result/INFERENCE-READY.json',h)
+    with self.assertRaises(ValueError):q.ready(lane,2)
  def test_artifact_hashes_and_tamper(self):
   with tempfile.TemporaryDirectory() as tmp:
    out=Path(tmp);mid='08b-k0';m=next(x for x in q.C['models'] if x['id']==mid);ident={**m['model'],'files':m['weight_shard_pins']};desc={'record_grade':True,'mode':'rightpad','token_budget':16384};header={'model':m['model'],'arm':'K0','stages':'k_score','device':'npu','dtype':'float32','limit':0,'limit_groups':0,'partitions':['dev','calibration'],'primary_input_mode':'full','scorer':desc,'dry_run_warnings':[]};stores={}
@@ -32,5 +32,5 @@ class Fixed(unittest.TestCase):
    with self.assertRaises(ValueError):q.artifact_evidence(mid,out,'infer')
  def test_review_pin(self):
   with tempfile.TemporaryDirectory() as tmp,patch.object(q,'OUT',Path(tmp)):
-   self.assertFalse(q.reviewed());review=Path(tmp)/'review.json';review.write_text('independent review');pin={'verdict':'pass','review_artifact':str(review),'review_artifact_sha256':P.sha(review)};pin.update({n.replace('.','_')+'_sha256':P.sha(R/n) for n in ('queue.py','producer.py','config.json','compare_dev.py','host_ownership_probe.py')});P.save(Path(tmp)/'REVIEW-APPROVED.json',pin);self.assertTrue(q.reviewed());pin['producer_py_sha256']='bad';P.save(Path(tmp)/'REVIEW-APPROVED.json',pin);self.assertFalse(q.reviewed())
+   self.assertFalse(q.reviewed());review=Path(tmp)/'review.json';review.write_text('independent review');pin={'verdict':'pass','review_artifact':str(review),'review_artifact_sha256':P.sha(review)};pin.update({n.replace('.','_')+'_sha256':P.sha(R/n) for n in ('queue.py','producer.py','config.json','compare_dev.py','host_ownership_probe.py','resource.json')});P.save(Path(tmp)/'REVIEW-APPROVED.json',pin);self.assertTrue(q.reviewed());pin['producer_py_sha256']='bad';P.save(Path(tmp)/'REVIEW-APPROVED.json',pin);self.assertFalse(q.reviewed())
 if __name__=='__main__':unittest.main()

@@ -149,6 +149,15 @@ class Consumer:
         self.C, self.V, self.pv = numerics(config)
         self.catalog = {'new_contract':config['new_contract'],'new_rc1_lanes':config['lanes']}
         self.refs = {m['id']:m for m in config['models']}
+        resource=config.get('k0_resource')
+        if resource is None:
+            self.k0_chips=dict(zip(('08b-k0','2b-k0','4b-k0','9b-k0'),(4,5,6,7)))
+        else:
+            require(config['source_pins'].get(resource['path'])==resource['sha256'],'K0 resource source pin')
+            doc=obj(resource['path'],resource['sha256'])
+            require(set(doc)=={'jobs'} and len(doc['jobs'])==4,'K0 resource roster')
+            self.k0_chips={x['id']:x['chip'] for x in doc['jobs']}
+        require(set(self.k0_chips)==set(self.refs) and len(set(self.k0_chips.values()))==len(self.refs) and all(type(v) is int and v in range(8) for v in self.k0_chips.values()), 'K0 resource binding')
         require(len(self.refs)==4 and {m['size'] for m in self.refs.values()}==set(SIZES), 'four distinct Base sizes required')
         require(len(config['lanes'])==8 and len({x['lane'] for x in config['lanes']})==8,'eight adapters required')
         for size in SIZES:
@@ -239,7 +248,7 @@ class Consumer:
                 else:read(src,self.config['adapter_wrapper_sha256'])
                 if phase=='infer':
                     chip=packet['LAUNCH']['chip']
-                    expected_chip = list(self.refs).index(role['id'])+4 if lane is None else self.config['lanes'].index(lane)
+                    expected_chip = self.k0_chips[role['id']] if lane is None else self.config['lanes'].index(lane)
                     require(chip==expected_chip,'phase assigned chip')
                     require(type(chip) is int and any(x['PathOnHost']=='/dev/davinci'+str(chip) for x in info['HostConfig']['Devices']),'inference device binding')
         if missing:raise Pending('; '.join(missing))

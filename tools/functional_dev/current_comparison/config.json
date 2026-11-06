@@ -44,7 +44,8 @@
     "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/kev_aug.py": "696da28b06a7e902197806bfb4969586ee050877e93e49a744e7a1df4ebf4542",
     "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/testlock_r3.py": "9b9b85220c493ee301c9bcdb7fd74d036e8cb1ed442500923f9ac41a3698cbba",
     "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/track_t_r3.py": "834e872593f9bc6013f1d4131e33bfabb0194ac618abd66052be177a67217127",
-    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/prechecks_r3.py": "1135c5eebc0f1380add95fa6b4c5b086fc6f7f88158dff8b7f6726393665e174"
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/combined_eval_closure_20261031_v1/r3_code/prechecks_r3.py": "1135c5eebc0f1380add95fa6b4c5b086fc6f7f88158dff8b7f6726393665e174",
+    "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/matched-k0-source/resource.json": "93d261c74046959ca8c306ea15a8d0aa46f1252b7ab987345be3d855a2d64090"
   },
   "closure_manifest_sha256": "69ec7d7c78df080eff6645393a00c6ab3b485fd16e5f99a5c347dc866354b64a",
   "adapter_wrapper_sha256": "e2df9e312d1109ed570038af84220a111ce6d41f5dd4d305b3b82ad03b3517f6",
@@ -256,5 +257,9 @@
   "poll_seconds": 600,
   "cpu_workers": 1,
   "output": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/matched-current-dev-comparison",
-  "review": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/matched-current-dev-consumer-source/REVIEW.json"
+  "review": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/matched-current-dev-consumer-source/REVIEW.json",
+  "k0_resource": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/matched-k0-source/resource.json",
+    "sha256": "93d261c74046959ca8c306ea15a8d0aa46f1252b7ab987345be3d855a2d64090"
+  }
 }

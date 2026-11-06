@@ -5,7 +5,7 @@ Start only after independent bounded review of this dispatcher and its graph.
 import argparse, fcntl, json, os, shlex, signal, subprocess, sys, time
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent))
-from assembler import STAGE, C, H
+from assembler import HOST, C, H
 
 def callback(command):
  r=subprocess.run(command,check=True,text=True,capture_output=True,timeout=90)
@@ -57,7 +57,7 @@ def step(graph, callbacks, start=None):
  return statuses
 
 def launch(config):
- r=subprocess.run([sys.executable,'-P',str(STAGE/'supervisor.py'),'start','--config',config],check=True,text=True,capture_output=True,timeout=90)
+ r=subprocess.run([sys.executable,'-P',str(HOST/'supervisor.py'),'start','--config',config],check=True,text=True,capture_output=True,timeout=90)
  return json.loads(r.stdout)
 
 def main():

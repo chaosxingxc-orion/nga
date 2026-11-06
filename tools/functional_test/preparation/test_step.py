@@ -55,6 +55,13 @@ class Step(unittest.TestCase):
   self.assertEqual(set(status.values()),{'waiting-review'});self.assertEqual(calls,[])
   for member,node in graph['members'].items():
    draft=C.read(node['draft']);self.assertEqual(draft['member'],member)
+   self.assertEqual(C.campaign_digest(draft),graph['campaign_sha256'])
+   self.assertEqual('population_export' in draft,member=='q0p8b-s2')
+   if member=='q0p8b-s2':
+    self.assertEqual(draft['host']['cpu_entry'],draft['population_export']['exporter']['path'])
+    self.assertEqual(draft['population_export']['producer']['sha256'],draft['source_files'][draft['host']['entry']])
+    self.assertNotIn(draft['host']['cpu_entry'],draft['source_files'])
+   self.assertEqual(draft['container']['spec']['cmd'][2],draft['host']['entry'])
    F.put(node['review'],{'schema':'rc1-trackk-review-v1','reviewed':True,'config_sha256':C.digest(draft),'fixture_only':True})
    draft['review']=P.pin(node['review']);P.A.H.validate(draft,node['config']);C.validate(draft)
   with patch.object(D,'callback',return_value={'status':'pending'}):
