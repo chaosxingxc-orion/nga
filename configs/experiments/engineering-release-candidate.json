@@ -28,8 +28,8 @@
       "accepted_for_release": false,
       "candidate_workspace": ".local/releases/engineering-base-rc1/components/supervisor",
       "integration_state": "unaccepted_working_copy_imported",
-      "repair_task": ".local/releases/engineering-base-rc1/tasks/supervisor/implement",
-      "candidate_review": ".local/releases/engineering-base-rc1/tasks/supervisor/review/RESULT.json",
+      "repair_task": ".local/releases/engineering-base-rc1/tasks/supervisor/connect",
+      "candidate_review": ".local/releases/engineering-base-rc1/tasks/supervisor/connect-review/RESULT.json",
       "incoming_verdict": "changes_required_normal_cli_absent"
     },
     "capture": {
@@ -37,7 +37,13 @@
       "review": ".local/dispatch/engineering-capture-ledger-implementation-astra-20261106-v19/RESULT.json",
       "integrated": false,
       "accepted_for_release": false,
-      "integration_state": "actual_ledger_delivered_review_running_original_timing_evidence_mismatch"
+      "integration_state": "reviewed_source_imported_exact_closure; combined_image_validation_pending",
+      "candidate_workspace": ".local/releases/engineering-base-rc1/components/capture",
+      "incoming_verdict": "bounded_local_functional_acceptance_with_timing_evidence_deviation",
+      "source_manifest_sha256": "a842e6b90a1766e4888a039817d46c7759ae516c03688e344617559573dd1390",
+      "review_sha256": "fd30acb1be909cd095e0f9b64feefbdb25369cf00f01a10c15d96651f7eef054",
+      "qualification_task": ".local/releases/engineering-base-rc1/tasks/capture/target-cpu",
+      "candidate_review": ".local/releases/engineering-base-rc1/tasks/capture/target-review/RESULT.json"
     },
     "snapshot": {
       "incoming_workspace": ".local/preparations/engineering-snapshot-custody-chain-20261106-v3",
@@ -46,8 +52,8 @@
       "accepted_for_release": false,
       "candidate_workspace": ".local/releases/engineering-base-rc1/components/snapshot",
       "integration_state": "unaccepted_working_copy_imported",
-      "repair_task": ".local/releases/engineering-base-rc1/tasks/snapshot/implement",
-      "candidate_review": ".local/releases/engineering-base-rc1/tasks/snapshot/review/RESULT.json",
+      "repair_task": ".local/releases/engineering-base-rc1/tasks/snapshot/lifecycle",
+      "candidate_review": ".local/releases/engineering-base-rc1/tasks/snapshot/lifecycle-review/RESULT.json",
       "incoming_verdict": "rejected_combined_lifecycle_absent"
     }
   },
@@ -57,21 +63,21 @@
       "title": "Complete configured supervisor and worker/gate lifecycle",
       "state": "open",
       "component": "supervisor",
-      "current_action": "Repair default production integration in fixed supervisor workspace; predecessor review rejected"
+      "current_action": "Connect normal supervisor CLI to real worker and owned gate in same rc1 component; helper-only delivery remains incomplete"
     },
     {
       "id": "RC-02",
       "title": "Finish actual capture ledger, boundary accounting and independent validation",
       "state": "open",
       "component": "capture",
-      "current_action": "Independent ledger review; original timing samples overwritten, no historical timing acceptance"
+      "current_action": "Exact reviewed 101-file source imported to rc1; combined context and target regression pending; original timing samples lost"
     },
     {
       "id": "RC-03",
       "title": "Finish protected copy/verifier custody, resume and external identity binding",
       "state": "open",
       "component": "snapshot",
-      "current_action": "Integrate producer custody and terminal recovery in fixed snapshot workspace"
+      "current_action": "Repair heartbeat alias writes and terminal exit authority; integrate producer and separate verifier lifecycle in same rc1 component"
     },
     {
       "id": "RC-04",
