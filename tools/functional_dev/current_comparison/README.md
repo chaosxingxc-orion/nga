@@ -9,3 +9,5 @@ Recovery preserves original queue failures. Only exact pre-inference publication
 CPU runner has durable exit, process identity and watchdog-compatible heartbeat, signal forwarding and600-second monitoring. The first real deployment status was INCOMPLETE_PENDING with12 pending operands and4 pending retries; this is not a numerical result.
 
 SOURCE-PINS-DEPLOY.json records this deployment snapshot. SOURCE-PINS.json and SOURCE-ORIGINS.json preserve inherited baseline provenance and must not be confused with current approval. Independent review passed12 recovery/watcher tests,41 baseline tests and3 focused adversarial cases; no actual DEV gain was asserted. Operational receipts and review process files stay local; latest conclusions live in the GitHub Wiki.
+
+The deployed watcher now retries writes to unread, unpublished stores during an all-pending poll, instead of treating normal producer progress as an input contradiction. Independent review passed 67 CPU checks; the recovered live comparison had two validated operands and ten pending. This does not establish scientific completion. Mixed completed/pending write handling is a separate functional follow-up.

@@ -59,6 +59,27 @@ def review(config):
     return True
 
 
+def pending_store_writes(config,before,after,result,code):
+    """Only unread, still-producing stores may change in an all-pending poll."""
+    operands=result.get('operands',[])
+    if code!=2 or len(operands)!=12 or any(x['status']!='PENDING_MISSING_INPUT' for x in operands):return False
+    old={x[0]:x[1:] for x in before};new={x[0]:x[1:] for x in after}
+    changed={p for p in old.keys()|new.keys() if old.get(p)!=new.get(p)}
+    allowed=set()
+    for model in config['models']:
+        for lane in [None]+[x for x in config['lanes'] if x['baseline_id']==model['id']]:
+            d=Path(config['k0_root'])/model['id'] if lane is None else Path(config['adapter_root'])/('full-'+lane['lane'])
+            run=d/'result'
+            # A published handoff or inference terminal freezes these stores even
+            # when scoring has not yet supplied a validated operand.
+            markers=(d/'infer-EXIT.json',run/'INFERENCE-READY.json')
+            if any(old.get(str(p))!=[None] or new.get(str(p))!=[None] for p in markers):continue
+            for group in M.CLEAN if lane is None else M.ALL:
+                suite,part,kind=group.split('/');p=run/'trackk'/(suite+'__'+part)/(kind+'.jsonl')
+                allowed.update((str(p),str(p)+'.receipt.json'))
+    return bool(changed) and changed<=allowed and not any(str(Path(p).resolve()) in M._accesses for p in changed)
+
+
 def run(config,once=False):
     output=Path(config['output']);output.mkdir(parents=True,exist_ok=True)
     M.require(config['mode']=='production','watcher refuses fixture mode')
@@ -75,8 +96,13 @@ def run(config,once=False):
                 if fp!=last:
                     before=fp
                     result,code=M.assemble(M.Consumer(config))
-                    M.require(fingerprint(config)==before,'source/input changed during reconstruction; packet refused')
-                    M.persist(output,result);last=fp
+                    after=fingerprint(config)
+                    if after!=before:
+                        M.require(pending_store_writes(config,before,after,result,code),'source/input changed during reconstruction; packet refused')
+                        result['detail']='Unpublished producer stores changed during an all-pending poll; retry required; no validated snapshot accepted.'
+                        last=None
+                    else:last=fp
+                    M.persist(output,result)
                     print(json.dumps({'utc_seconds':time.time(),'status':result['status'],'progress':sum(x['status']=='VALIDATED_OPERAND' for x in result['operands']),'total':12,'exit_code':code}),flush=True)
                     if code in (0,1) or once:return code
                 else:print(json.dumps({'utc_seconds':time.time(),'status':'UNCHANGED_INPUTS_SKIPPED'}),flush=True)
