@@ -1,0 +1,13 @@
+{
+  "scope": "Exact reviewed scorer and regression dependencies; repository snapshot does not change live stage",
+  "stage_manifest_sha256": "ed1b1c4ff137038da7623efaf2839e4446a245f769a0906cdb409c1d5c488276",
+  "review_sha256": "e0fa9d3a9d63ff4a492b80f19e506f5b55cf52a40945a7034b8f56d41cf92800",
+  "files": {
+    "score.py": "946b748545ecc4c92c51cc614edf09fe1d8baa5edf9cc90fa69370aea4e5ca23",
+    "core.py": "b4f74814274434b6bee12e5c7e136ea50a00fd3045a6edb2e21b95e5b5fa47da",
+    "prompt.py": "84c99aec2817de3365e650c7c6c846aeddc1ec675b3321cf80be267a7557f0fc",
+    "raw_loading.py": "74025f7aba84ece145073c69fcdddb4033b6cbfefb4a2b6409f124c5147f71f3",
+    "test_cpu.py": "75fc6d8c3cf17b03ce1545eab631adfcc6c60b6a70becdf41088679f501a9586",
+    "test_reference_export.py": "f8597f1e702ccdcc2bc4bec69e7f3aa4f8d6c20e9bfd6213cd2f727aa208744d"
+  }
+}
