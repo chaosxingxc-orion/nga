@@ -822,3 +822,14 @@ N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是
 [mutation-proof: cd agent-festival/go && go test ./internal/settlement/ -run TestSettlementAuditSelfTest -count=1 → OK]
 [mutation-proof: cd agent-festival && python3 tools/seed.py --selftest → OK]
 [mutation-proof: cd agent-festival && python3 tools/settlement-audit-tamper.py → OK]
+
+## 挂起台账【待授权排期】（R60 后登记——非 finding，机制回馈任务）
+
+- **战役机制回馈 review-loop 正本**（授权状态=待用户排期，用户指示「下次更新 review-loop 时做」）：
+  四件比 skill 通用版先进的战役机制，升格为 skill 对应条款——①**mutation-proof token 协议**
+  （台账条目内嵌可复跑突变命令 token+退出码语义+retired-by 承接，R55 后立法/59-60 机器化）；
+  ②**fence 对账面**（立法改变 token 可见性必须同轮普查受害面——第 80 号方法论的机器化形态）；
+  ③**克隆式标定**（seed.py：克隆植入+派发卫生闸+--selftest，泛化率近似度量）；④**七面回放门**
+  （replay.py：每轮开轮全红面重证，保留率门）。载体与程序=skill 自带变更门三件套
+  （parity 重注入+变异自测+diff 空白评审——GATE/RECON 块改动刚性），按 review-loop skill
+  「单一真源：改律先改正本、复述跟随」执行。来源=本战役 R55-R60（台账各段+runbook §四）。
