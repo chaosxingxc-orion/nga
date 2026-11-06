@@ -3,7 +3,7 @@
   "model": "Qwen/Qwen3.8-27B",
   "revision": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
   "model_path": "/mnt/cephfs/models/Qwen3.8-27B",
-  "status": "inference_task_smoke_accepted_full_reference_and_training_pending",
+  "status": "first_update_accepted_resume_and_full_reference_pending",
   "engineering_base": "engineering-base-rc1",
   "resource": {
     "host": "175",
@@ -35,20 +35,50 @@
       "evidence": "https://github.com/chaosxingxc-orion/nga/wiki/Qwen38-27B-Engineering-Forward"
     },
     {
-      "id": "fixed-reference-test",
+      "id": "prepare-reference",
       "depends_on": [
         "inference-task-smoke"
       ],
-      "status": "blocked_on_frozen_panel_protocol",
+      "status": "planned",
+      "resource": "cpu",
+      "dispatchable": false,
+      "scope": "freeze full reference population, interface, metrics and executable configuration before allocation"
+    },
+    {
+      "id": "fixed-reference-test",
+      "depends_on": [
+        "prepare-reference"
+      ],
+      "status": "pending_cpu_preparation",
       "resource": "npu4",
       "dispatchable": false
     },
     {
-      "id": "lora-update-resume-smoke",
+      "id": "lora-first-update",
       "depends_on": [
         "prepare"
       ],
-      "status": "blocked_on_trainable_sharding_config",
+      "status": "complete_exit0_released_limited_review_pass",
+      "resource": "npu4",
+      "dispatchable": false,
+      "evidence": "https://github.com/chaosxingxc-orion/nga/wiki/Qwen38-27B-First-Update"
+    },
+    {
+      "id": "prepare-resume",
+      "depends_on": [
+        "lora-first-update"
+      ],
+      "status": "planned",
+      "resource": "cpu",
+      "dispatchable": false,
+      "scope": "freeze actual saved-state restore and second-update experiment; reuse accepted first-update receipts"
+    },
+    {
+      "id": "lora-update-resume-smoke",
+      "depends_on": [
+        "prepare-resume"
+      ],
+      "status": "pending_restore_protocol_and_configuration",
       "resource": "npu4",
       "dispatchable": false
     },
@@ -71,19 +101,66 @@
       "dispatchable": false
     },
     {
-      "id": "trained-dev",
+      "id": "prepare-dev-seed2",
       "depends_on": [
-        "lora-seed2",
-        "lora-seed3"
+        "lora-seed2"
+      ],
+      "status": "planned",
+      "resource": "cpu",
+      "dispatchable": false,
+      "scope": "bind own completed checkpoint and prepare exact DEV command before claim"
+    },
+    {
+      "id": "trained-dev-seed2",
+      "depends_on": [
+        "prepare-dev-seed2"
       ],
       "status": "planned",
       "resource": "npu4",
       "dispatchable": false
     },
     {
+      "id": "dev-score-seed2",
+      "depends_on": [
+        "trained-dev-seed2"
+      ],
+      "status": "planned",
+      "resource": "cpu",
+      "dispatchable": false
+    },
+    {
+      "id": "prepare-dev-seed3",
+      "depends_on": [
+        "lora-seed3"
+      ],
+      "status": "planned",
+      "resource": "cpu",
+      "dispatchable": false,
+      "scope": "bind own completed checkpoint and prepare exact DEV command before claim"
+    },
+    {
+      "id": "trained-dev-seed3",
+      "depends_on": [
+        "prepare-dev-seed3"
+      ],
+      "status": "planned",
+      "resource": "npu4",
+      "dispatchable": false
+    },
+    {
+      "id": "dev-score-seed3",
+      "depends_on": [
+        "trained-dev-seed3"
+      ],
+      "status": "planned",
+      "resource": "cpu",
+      "dispatchable": false
+    },
+    {
       "id": "freeze-final-test",
       "depends_on": [
-        "trained-dev"
+        "dev-score-seed2",
+        "dev-score-seed3"
       ],
       "status": "planned",
       "resource": "cpu",
@@ -109,7 +186,7 @@
       "dispatchable": false
     }
   ],
-  "note": "Planning DAG, not a launcher. Five-input DEV smoke completed and independently accepted within its limited scope. Full reference protocol and trainable LoRA sharding remain pending; completed work is not dispatchable work.",
+  "note": "Planning DAG, not a launcher. Five-input inference and first actual LoRA update/checkpoint accepted within bounded engineering scope. Restore/second-update execution, full reference protocol and scientific training recipe remain pending. CPU preparation owns no NPU; completed work is not ready inventory.",
   "inference_dispatch": {
     "host": "175",
     "chips": [
@@ -143,5 +220,13 @@
       "released_utc": "2026-11-06T16:41:21.978694Z",
       "analysis_sha256": "8642466c5fef9779fcb78c58c6984b8c869f5269bd389b2c0044a880abe5c0a9"
     }
+  },
+  "first_update_acceptance": {
+    "review_sha256": "503366286335af0e2feea17a483f8dde128164f2e4eff8c48fa116a7a14dbfc1",
+    "exit_code": 0,
+    "terminal_utc": "2026-11-06T21:49:42Z",
+    "released_utc": "2026-11-06T21:50:20Z",
+    "chip_count": 4,
+    "scope": "finite nonzero text LoRA update and checkpoint metadata on all ranks; no restored-state, ordinary throughput, quality or TEST claim"
   }
 }
