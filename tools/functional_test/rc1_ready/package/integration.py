@@ -28,12 +28,21 @@ def identities(cfg,root):
 
 def observations(cfg,root,K):
  out={}
+ review_path=cfg.get('completed_access_review')
+ review=B.read(review_path) if review_path and Path(review_path).is_file() else None
  for name in B.ROLES:
   c=B.read(cfg['configs'][name]);container=c['container'];spec=container['spec'];launch=B.read(container['launch_receipt'])
-  obs=json.loads(subprocess.check_output(['docker','inspect',launch['id']],text=True))[0]
+  path=Path(root)/'observations'/(name+'.json')
+  if review is not None and review.get('accepted') is True:
+   expected=review.get('authorized_files',{}).get(str(path.resolve()))
+   if not expected or not path.is_file() or B.sha(path)!=expected:raise ValueError('reviewed observation missing or differs: '+str(path))
+   obs=B.read(path)
+  else:
+   obs=json.loads(subprocess.check_output(['docker','inspect',launch['id']],text=True))[0]
   K.verify_observation(spec,obs,launch['id']);state=obs['State']
   if state['Status']!='exited' or type(state['ExitCode']) is not int or state['ExitCode']!=0 or state.get('OOMKilled',False):raise ValueError('retained container failed')
-  path=Path(root)/'observations'/(name+'.json');B.save(path,obs);out[name]=str(path.resolve())
+  if review is None or review.get('accepted') is not True:B.save(path,obs)
+  out[name]=str(path.resolve())
  return out
 
 def capture_populations(cfg):
