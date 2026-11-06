@@ -16,12 +16,15 @@ package e2e
 // prefix is a reserved convention riding the schema's free-text Detail
 // field ("not a machine-checked field") — a mid-detail [CANARY] must NOT
 // be filtered (pinned below); field-form retires the prefix at 0.2.0.
-// REACHABILITY BOUNDARY (R47 M-2, honest): today the machine/耐久 paths
-// cannot place a canary event into guardDied's input stream (Machine.Events
-// only yields machine-written events; a hand-appended no-adoption canary
-// line bricks Open — E7a③ pins this) — the masked bad state is reachable
-// only from synthesized fixtures; the 0.2.0 canary field is what changes
-// that. The filter face is the fixture-composition + forward-looking face.
+// REACHABILITY BOUNDARY (R48 M-2 corrected): the machine's own API never
+// writes a [CANARY] detail (no reachable writer today); but Events() has NO
+// writer provenance — a pin-matched canary line hand-appended to the
+// durable file passes Open (E7a② proves this form) and is DELIVERED by
+// Events() into any consumer's stream (pinned in E7a②). The no-adoption
+// form bricks Open (E7a③). So the masked bad state is reachable from (a)
+// synthesized fixtures and (b) durable-layer hand edits that pass the
+// attribution pin — the 0.2.0 canary field is what makes it machine-
+// checkable. The filter face guards both.
 
 import (
 	"encoding/json"
@@ -151,11 +154,41 @@ func TestE7a_CanaryControlEventProbeFace(t *testing.T) {
 	if st := m2.State("op-canary-2"); st != adopt.StateAdopted {
 		t.Fatalf("E7a②: state after canary event replay = %q, want adopted — zero state transfer violated", st)
 	}
-	// criterion: ZERO idempotency-registry effect — a dispatch on this op
-	// is a FIRST dispatch (not a reused outcome, proving no registry entry
-	// was created by the canary event)
+	// criterion: ZERO idempotency-registry effect — the observable face of
+	// the registry in this machine is st.digest (R48 M-1: Dispatch never
+	// reads the digest; the "not reused" phrasing was unobservable). A
+	// same-key same-digest retry must return REUSED (if the canary event
+	// polluted the replayed digest, the retry would conflict/reject).
+	// GRAMMAR FACT (R48 M-1 mutation hunt): the registry is IMMUNE to
+	// canary control events by construction — replayEvent's nil-Idempotency
+	// early return means a no-idem control event never touches st.digest.
+	// The mutation that removes the early return crashes the machine (nil
+	// deref) — the defense is structural, and this Adopt-face probe is
+	// what turns a registry-pollution grammar regression visible.
+	if o := m2.Adopt(adoptRequest(t, "op-canary-2")); o.Status != "reused" {
+		t.Fatalf("E7a②: same-key same-digest retry after canary replay = %q (%s), want reused — the canary event polluted the registry digest (zero-registry violated)", o.Status, o.Detail)
+	}
+	// dispatch also works (the canary event transferred no state and
+	// blocked no dispatch)
 	if o := m2.Dispatch("op-canary-2", fullGrants()); o.Status != "dispatched" {
-		t.Fatalf("E7a②: dispatch after canary replay = %q (%s), want dispatched — the canary event created a registry entry (zero-registry violated)", o.Status, o.Detail)
+		t.Fatalf("E7a②: dispatch after canary replay = %q (%s), want dispatched — the canary event blocked the dispatch", o.Status, o.Detail)
+	}
+	// R48 M-2: pin-matched canary IS delivered by Events() — the
+	// reachability boundary's machine fact, pinned (Events() has no writer
+	// provenance; if it ever gains one or the canary is fielded, this
+	// flips and the boundary declaration rewrites)
+	delivered := false
+	eventsNow, err := m2.Events()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range eventsNow {
+		if e.EventType == "control" && strings.HasPrefix(e.Outcome.Detail, canaryPrefix) && e.Identity.OperationID == "op-canary-2" {
+			delivered = true
+		}
+	}
+	if !delivered {
+		t.Fatal("E7a②: Events() did not yield the pin-matched canary — writer provenance or canary fielding changed the delivery semantics (rewrite the reachability boundary)")
 	}
 }
 
@@ -214,12 +247,10 @@ func TestE7a_CanarySilentProbe(t *testing.T) {
 // ---------------------------------------------------------------------------
 // E7b: the guardDied canary filter face.
 
-// TestE7b_CanaryFeedsDeathProbe pins the DISEASE: an alive canary stream
-// (periodic injected rejections) keeps refreshing guardDied's
-// lastIntercept — the business guard's REAL death is masked (the probe
-// reports alive). This test asserts the CURRENT unfiltered behavior; it
-// flips when guardDied defaults to filtering (rewrite, not fix — the
-// disease documentation form).
+// TestE7b_HalfRealStreamFace (R48 m-2→M-3 home fix): the filter face on
+// a HALF-REAL stream — a real machine's business rejection (refuse()
+// output via revoked-grants Dispatch) spliced with synthesized canary
+// events, so the filter is exercised on a machine-form detail.
 func TestE7b_HalfRealStreamFace(t *testing.T) {
 	// R47 m-2: the filter face on a HALF-REAL stream — a real machine's
 	// business rejection (refuse() output via Dispatch with revoked
@@ -257,6 +288,12 @@ func TestE7b_HalfRealStreamFace(t *testing.T) {
 	}
 }
 
+// TestE7b_CanaryFeedsDeathProbe pins the DISEASE (R48 M-3: doc returned
+// to its carrier): an alive canary stream (periodic injected rejections)
+// keeps refreshing guardDied's lastIntercept — the business guard's REAL
+// death is masked (the unfiltered probe reports alive). This test asserts
+// the CURRENT unfiltered behavior; it flips when guardDied defaults to
+// filtering (rewrite, not fix — the disease documentation form).
 func TestE7b_CanaryFeedsDeathProbe(t *testing.T) {
 	// business guard alive (real rejection), then dies (traffic
 	// continues, no more business rejections), then canary injections

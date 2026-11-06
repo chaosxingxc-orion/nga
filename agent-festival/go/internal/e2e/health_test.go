@@ -380,7 +380,8 @@ func TestEGr_GraveyardSweep(t *testing.T) {
 	}
 }
 
-// --- test helpers (adopt-tier, scoped to this file) ---
+// --- test helpers (adopt-tier, package-scoped: consumed by
+// health_test / e7_canary) ---
 
 func newLedgerPath(t *testing.T) string {
 	t.Helper()

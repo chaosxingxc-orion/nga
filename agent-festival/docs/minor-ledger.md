@@ -364,3 +364,11 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **m-1~m-4（随批清偿）**：突变探针注释归因修正（never-injected 面→ALIVE 面）；新增 TestE7b_HalfRealStreamFace（半真流——真机业务拒绝+合成 canary，过滤面在机器形态 detail 上走一遍）；precondition ① 注释如实（fixture-edit tripwire）；E7a③ 拒收规则绑定（EVENT_BEFORE_ADOPTION 逐字——防无关新规则掩盖钉）。
 - **方法论入账（第 48/49 实证）**：构造即断言的自查不能靠注释自觉（B-1——写了「would be tautological」的注释仍然断言了它；探针的断言必须指向**被测件的输出**而非测试自己的输入构造）；病钉/夹具断言的前置守卫是误修防线（M-1——翻转消息必须区分「语义演进」与「夹具回归」）。
 - **过程三次实地调试（入账）**：B-1 真实验三步迭代（schema 必填→ATTRIBUTION_DIVERGENCE→pin 全对齐才通过）——恰好证明机器文法对合成事件的约束链条（schema→归因→文法三层全过才可载）——这个迭代过程本身是 E7a 实验结论的补充证据。
+
+## R48 复审记账（2026-11-06，E7+R47 增量 9140e5e..e309dbf——0B/3M/3m 全清偿；连净计数 0）
+
+- **M-1（零注册表断言观测面失明→注册表文法免疫事实）**：R47 修复的「not a reused outcome」措辞指向 Dispatch（不读 digest——不可观测）；真正深一层：**注册表对 canary 控制事件结构性免疫**（replayEvent 的 nil-Idempotency 早退使无 idem 的控制事件永远不触碰 st.digest——去早退突变直接 nil-deref 崩溃=防线是文法本身）。已修：断言改 **Adopt 面**（同键同摘要 retry 必 reused）+文法事实注+探针成为注册表污染文法回归的可见面。反突变（去早退防线）→nil-deref 崩溃即红（结构性防线实证）。
+- **M-2（可达性声明中心断言为假）**：「Machine.Events only yields machine-written events」无实现支撑（Events() 走 LoadDocument 无溯源）——E7a② 自己的 pin 匹配形态**经 Open 合法化后由 Events() 递送**（实测：手改耐久行→Open 成功→Events 返回含 canary）。声明把可达面**报窄**。已修：边界声明改真（(a) 合成夹具+(b) 归因钉通过的耐久层手改均可达）+E7a② 加 Events 递送断言（写者溯源/canary 字段化翻转该钉）。反突变（递送断言反转）→红。
+- **M-3（病钉 doc 错挂）**：R47 插入 HalfReal 时插在注释与函数之间——病钉翻转契约挂到了 HalfReal 头上（名字/行为/翻转指令三处失实），真病钉失去全部 godoc。已修：doc 归位+HalfReal 写自己的文档。
+- **m-1~m-3（随批清偿）**：FilterClosesMasking 补 canary 存活前置（对称守卫——绿面夹具空心化面）；health_test helper 作用域注释更新（package-scoped：health_test/e7_canary）；双注释块合并+canaryEvent helper 注释改述（默认 pin 供内存态、耐久调用方须覆写）。
+- **方法论入账（第 50/51 实证）**：观测面选择必须经**真实失败成因推演**（M-1——「若 X 坏会怎样」要推到机器哪条路径读什么字段，不能停在返回值形态）；可达性声明的每个机制断言须有代码锚（M-2——「only yields」三个字无实现支撑，方向性错误把坏状态报窄）。
