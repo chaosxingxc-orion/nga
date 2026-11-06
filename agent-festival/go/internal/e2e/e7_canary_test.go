@@ -120,14 +120,10 @@ func TestE7a_CanaryControlEventProbeFace(t *testing.T) {
 	if o := m.Adopt(adoptRequest(t, "op-canary-2")); o.Status != "adopted" {
 		t.Fatalf("E7a②: canary-form adopt = %q: %s", o.Status, o.Detail)
 	}
-	// append a pin-matching canary control event AFTER the adoption — the
-	// grammar-lateral form (control events for adopted ops are legal;
-	// identity/versions match the adopted pin)
-	// pin-matching form: the canary control event carries EXACTLY the
-	// adopted operation's pin (identity/versions/accountability) — the
-	// ATTRIBUTION_DIVERGENCE checker requires control events to match the
-	// adopted pin, and a canary from the machine's own discipline would
-	// stamp the same pin
+	// append a pin-matching canary control event AFTER the adoption —
+	// grammar-lateral form: control events for adopted ops are legal, and
+	// the ATTRIBUTION_DIVERGENCE checker requires the pin
+	// (identity/versions/accountability) to match the adopted op exactly
 	canary := canaryEvent(1, "op-canary-2")
 	canary.Identity = ledger.Identity{BusinessRequestID: "br-e4", EvaluationRevision: "er-1", OperationID: "op-canary-2"}
 	canary.Versions = ledger.Versions{Evidence: "ev-1", Rule: "rule-1", Model: "m-1", Readout: "r-1", Policy: "p-1"}
@@ -255,7 +251,6 @@ func TestE7a_CanarySilentProbe(t *testing.T) {
 // output via revoked-grants Dispatch) spliced with synthesized canary
 // events, so the filter is exercised on a machine-form detail.
 func TestE7b_HalfRealStreamFace(t *testing.T) {
-
 	m := mustOpenAdopt(t, newLedgerPath(t))
 	if o := m.Adopt(adoptRequest(t, "op-e7b-real")); o.Status != "adopted" {
 		t.Fatalf("half-real: adopt = %q: %s", o.Status, o.Detail)
@@ -295,10 +290,9 @@ func TestE7b_HalfRealStreamFace(t *testing.T) {
 // filtering (rewrite, not fix — the disease documentation form).
 // canaryMaskingStream (R49 m-5/M-1): the SHARED 5-event fixture for the
 // disease/green DUAL tests — "the same stream" is now structurally
-// expressed (a drifted copy is not expressible); the canary-alive and
-// has-real-rejection guards live here so both faces carry them
-// symmetrically (the R48 m-1 "green-face precondition" claim is landed
-// here, one round late — R49 caught it as an unlanded ledger claim).
+// expressed (a drifted copy is not expressible). The guards live in
+// canaryMaskingFixtureGuard below — each consumer MUST call it (the
+// fixture function itself does not self-guard).
 func canaryMaskingStream() []ledger.Event {
 	return []ledger.Event{
 		{EventType: "control", ArbitrationSeq: 0, Outcome: ledger.Outcome{Status: "rejected", Detail: "business guard rejection"}},
@@ -315,26 +309,42 @@ func canaryMaskingStream() []ledger.Event {
 // here as a fixture error, not as a "disease is gone" misdiagnosis).
 func canaryMaskingFixtureGuard(t *testing.T, stream []ledger.Event) {
 	t.Helper()
-	if canarySilent(stream) {
-		t.Fatal("fixture error — the canary died in the fixture; the masking dual requires an ALIVE canary")
-	}
+	// R50 m-1: the canary-alive check is STATUS-ALIGNED (the last
+	// prefix-carrying control event must be a rejected one — the one
+	// guardDied's lastIntercept actually consumes; a status-blind
+	// canarySilent would pass a drifted trailing canary and the disease
+	// pin would misdiagnose it as "the disease is gone")
+	lastCanary := -1
 	hasReal := false
 	lastBusiness := -1
-	lastCanary := -1
+	lastTraffic := -1
 	for i, e := range stream {
-		if e.EventType == "control" && strings.HasPrefix(e.Outcome.Detail, canaryPrefix) && e.Outcome.Status == "rejected" {
+		if e.EventType == "control" && strings.HasPrefix(e.Outcome.Detail, canaryPrefix) {
 			lastCanary = i
 		}
 		if e.EventType == "control" && !strings.HasPrefix(e.Outcome.Detail, canaryPrefix) && e.Outcome.Status == "rejected" {
 			hasReal = true
 			lastBusiness = i
 		}
+		if e.EventType == "effect" {
+			lastTraffic = i
+		}
+	}
+	if lastCanary < 0 || stream[lastCanary].Outcome.Status != "rejected" {
+		t.Fatal("fixture error — the canary is absent or its last event drifted off rejected; the masking dual requires an ALIVE (rejected) canary")
 	}
 	if !hasReal {
 		t.Fatal("fixture error — no business rejection in the fixture; the masking dual requires a real death to mask")
 	}
 	if lastCanary < lastBusiness {
 		t.Fatal("fixture error — the canary went silent BEFORE the business rejection; the masking dual requires the canary alive AFTER it")
+	}
+	// R50 M-1: the DEATH SHAPE — the business rejection must precede the
+	// traffic tail (died ⟺ lastTraffic > lastBusiness; without this
+	// check, "not died" has two causes — masked or no death at all — and
+	// the green face misattributes "the canary still masks it")
+	if lastBusiness > lastTraffic {
+		t.Fatal("fixture error — no traffic after the business rejection; the masking dual requires the death shape (rejection, then quiet under traffic)")
 	}
 }
 

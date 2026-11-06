@@ -379,3 +379,12 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **M-2（探针承载归因失实）**：「Adopt 面探针使注册表污染文法回归可见」实测不成立（去早退突变在 Open 期先崩——reused 断言永远到不了；探针红面=崩溃前 Open 红非 reused 断言红）。已修：归因改真（防线=Open 期结构性早退；reused 断言钉可观测面 st.digest→reused，非防线）。
 - **m-1~m-8（随批清偿）**：m-1=M-1 共享守卫（绿面空心化落地）；m-4 守卫谓词对齐 guardDied 喂入形（前缀+status——status 漂移防误诊）；m-5 共享夹具（双测试手抄字面量结构性退役）；m-3 helper 注释改述落地+E7a② 双注释合并+HalfReal doc/inline 重复删；m-6 E7a 两处手搭行换 newLedgerPath；m-7 函数头 doc 残留（"not a reused"）改述；m-8 guardDied 注释轮次 R46→E7b（41号）。
 - **方法论入账（第 52 实证）**：虚假清偿的检出依赖逐条 diff 对照（R49 M-1 用三重证据：diff hunk 缺失+调用点零+反突变复现——「全清偿」的台账声明要用 git show 逐 hunk 核对，不能信提交信息）。
+
+## R50 复审记账（2026-11-06，E7 全增量 9140e5e..77d63e8——0B/1M/5m 全清偿；连净计数 0）
+
+- **M-1（守卫漏钉死亡形态次序）**：对偶载荷需三条次序 business<traffic<canary——守卫钉了后两条、漏了 business<traffic（died 定义式的那条）；「not died」有两种成因（被掩盖/无死亡形态），绿面误归因。R50 独立探针实测漂移流 A/B 放行。已修：守卫追加死亡形态检查（lastBusiness>lastTraffic→fixture error）。
+- **m-1（canary 存活面 status 盲）**：canarySilent（status 盲）做存活前置 vs guardDied 喂入须 rejected——尾部 canary 状态漂移误诊为「病消退重写」。已修：守卫改 status 对齐（最后一个前缀事件必须 rejected——与喂入面同构）。
+- **m-2（HalfReal 未挂共享守卫）**：只有 status 盲版前置；守卫改进不传播到该面。已修：HalfReal 换用 canaryMaskingFixtureGuard（三面守卫统一）。
+- **m-3（双注释段三提交字节不变——两轮台账宣称合并而位点无 hunk）**：虚假清偿族又一实证。已修：真合并为一段（三件套 pin+ATTRIBUTION_DIVERGENCE 规则）。
+- **m-4/m-5**：夹具 doc「guards live here」改真（住隔壁、调用方必须显式调）；HalfReal 开头空行删。
+- **方法论入账（第 53/54 实证）**：守卫谓词集要按对偶的真实定义式枚举（M-1——三条次序少一条=「not died」归因歧义）；「注释合并」类零行为清偿声明同样要逐 hunk 核对（m-3——三提交字节不变被两轮台账宣称已合并）。
