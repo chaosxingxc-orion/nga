@@ -355,3 +355,12 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **反突变矩阵**：M1 去过滤→FilterClosesMasking 红；M2 去空串守卫→EmptyPrefix+E4 两测试红（空串变全过滤）；M3 canarySilent 去流量前置→SilentProbe 红；race 21 包绿；gofmt/vet 干净。
 - **实验结论（供 R-1 回执引用）**：夏四裁 canary 纪律 2（显式标记）**需扩到死亡探针面**（纪律原文只点名频次读数）——E7b 实证；注入点位文法两形态：真机走采纳门必然入注册表（M-2a 结构冲突的机器面复现——判据三缺一）；探针层合成事件满足三判据但不可耐久化（0.2.0 前的形态边界）；canarySilent 使三层证明**闭合自守**（元检测=canary 停跳由探测面守）。
 - **过程失误一次（入账）**：E7b_EmptyPrefixNoFilter 首版断言方向写反（E4 语义=拒绝后跟流量报死，测试却断言不报死）——方向认知错误被测试自己抓出即修。教训：写探针前先默背被测件的现行语义再定断言方向。
+
+## R47 复审记账（2026-11-06，E7 新增面 9140e5e..b3f0d56——1B/2M/4m 全清偿；连净计数 0）
+
+- **B-1（探针层构造即断言——先验预登记的「零注册表同义反复」原样落地）**：canaryEvent helper 写死全部被断言字段（Detail 前缀/EventType/无 Idempotency）——三断言只可能因改 helper 而红；「replay 锚」是建好即丢的死代码；注释自我矛盾（明说同义反复然后断言它）。已修：**重写为真实验**——pin 匹配形态（采纳后追加归因钉全对齐的 canary 控制事件→Open 成功→State 仍 adopted=零状态转移→Dispatch 仍是首次派发=零注册表）。反突变（State 断言反转）→红。
+- **M-1（病钉双前置无守卫）**：夹具 canary 死亡或业务拒绝缺失时，翻转消息误导为「病消退」——误修指令。已修：canarySilent+hasReal 双前置守卫（fixture error 与病消退可区分）。
+- **M-2（「closes」宣称过强）**：过滤是逐调用点 opt-in 非 defaults；可达性边界未声明（今日机器路径不能产生 canary 事件——被掩盖坏状态仅从合成夹具可达）。已修：文件头 REACHABILITY BOUNDARY 声明（0.2.0 前的夹具组合+前瞻面）+「provides the opt-in closure」措辞。
+- **m-1~m-4（随批清偿）**：突变探针注释归因修正（never-injected 面→ALIVE 面）；新增 TestE7b_HalfRealStreamFace（半真流——真机业务拒绝+合成 canary，过滤面在机器形态 detail 上走一遍）；precondition ① 注释如实（fixture-edit tripwire）；E7a③ 拒收规则绑定（EVENT_BEFORE_ADOPTION 逐字——防无关新规则掩盖钉）。
+- **方法论入账（第 48/49 实证）**：构造即断言的自查不能靠注释自觉（B-1——写了「would be tautological」的注释仍然断言了它；探针的断言必须指向**被测件的输出**而非测试自己的输入构造）；病钉/夹具断言的前置守卫是误修防线（M-1——翻转消息必须区分「语义演进」与「夹具回归」）。
+- **过程三次实地调试（入账）**：B-1 真实验三步迭代（schema 必填→ATTRIBUTION_DIVERGENCE→pin 全对齐才通过）——恰好证明机器文法对合成事件的约束链条（schema→归因→文法三层全过才可载）——这个迭代过程本身是 E7a 实验结论的补充证据。

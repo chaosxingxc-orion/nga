@@ -10,13 +10,21 @@ package e2e
 // synthesized [CANARY] control events / durable-layer boundary) +
 // canarySilent (the canary's own death probe).
 // E7b: the guardDied canary filter face — an alive canary FEEDS the death
-// probe (masking real business-guard death); the filter parameter closes
-// it. [CANARY] prefix is a reserved convention riding the schema's
-// free-text Detail field ("not a machine-checked field") — a mid-detail
-// [CANARY] must NOT be filtered (pinned below); field-form retires the
-// prefix at 0.2.0.
+// probe (masking real business-guard death); the filter parameter provides
+// the opt-in closure (R47 M-2: per-call-site opt-in, NOT a default — the
+// E4 call sites preserve the unfiltered semantics by passing ""). [CANARY]
+// prefix is a reserved convention riding the schema's free-text Detail
+// field ("not a machine-checked field") — a mid-detail [CANARY] must NOT
+// be filtered (pinned below); field-form retires the prefix at 0.2.0.
+// REACHABILITY BOUNDARY (R47 M-2, honest): today the machine/耐久 paths
+// cannot place a canary event into guardDied's input stream (Machine.Events
+// only yields machine-written events; a hand-appended no-adoption canary
+// line bricks Open — E7a③ pins this) — the masked bad state is reachable
+// only from synthesized fixtures; the 0.2.0 canary field is what changes
+// that. The filter face is the fixture-composition + forward-looking face.
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,13 +38,17 @@ import (
 // canary events (0.2.0 field-form retires it).
 const canaryPrefix = "[CANARY]"
 
-// canaryEvent builds a synthesized control event with the canary marker.
+// canaryEvent builds a synthesized control event with the canary marker
+// (Versions/Accountability present for schema validity — the durable
+// form must pass the ledger schema).
 func canaryEvent(seq int, op string) ledger.Event {
 	return ledger.Event{
 		EventType:      "control",
 		ArbitrationSeq: int64(seq),
 		Identity:       ledger.Identity{BusinessRequestID: "br-canary", OperationID: op},
+		Versions:       ledger.Versions{Evidence: "e", Rule: "r", Model: "m", Readout: "ro", Policy: "p"},
 		Outcome:        ledger.Outcome{Status: "rejected", Detail: canaryPrefix + " probe injection"},
+		Accountability: &ledger.Accountability{Session: "sess-canary", Skill: "skill-canary", Role: "employee"},
 	}
 }
 
@@ -87,36 +99,64 @@ func TestE7a_UnknownOpDispatchUntraceable(t *testing.T) {
 	}
 }
 
-// TestE7a_CanaryControlEventProbeFace is face ②'s probe layer: a
-// synthesized [CANARY] control event carries the marker, transfers no
-// state, and enters no idempotency registry. The registry proof is
-// anchored on the REPLAY side (a canary event in the stream must not
-// project state and must not block a later first adoption of the same op
-// id) — asserting the absent Idempotency field on a struct we built
-// ourselves would be tautological.
+// TestE7a_CanaryControlEventProbeFace is face ②'s REAL experiment (R47
+// B-1 rewrite: the previous form was constructor-tautological — three
+// assertions on fields the helper itself hardcodes). The grammar-LATERAL
+// form: an ADOPTED operation whose pin-matching control event carries the
+// canary marker — this file CAN be written (Open succeeds — the
+// EVENT_BEFORE_ADOPTION boundary pins the no-adoption form, not this
+// one), and the experiment proves the two remaining criteria on the
+// replay side: zero state transfer (the op stays adopted — the control
+// event does not project state) and zero idempotency-registry effect
+// (re-dispatching is still a first dispatch, not a reused).
 func TestE7a_CanaryControlEventProbeFace(t *testing.T) {
-	events := []ledger.Event{
-		canaryEvent(0, "op-canary-x"),
-		canaryEvent(1, "op-canary-x"),
+	dir := t.TempDir()
+	path := filepath.Join(dir, "adopt.jsonl")
+	m := mustOpenAdopt(t, path)
+	if o := m.Adopt(adoptRequest(t, "op-canary-2")); o.Status != "adopted" {
+		t.Fatalf("E7a②: canary-form adopt = %q: %s", o.Status, o.Detail)
 	}
-	for _, e := range events {
-		if !strings.HasPrefix(e.Outcome.Detail, canaryPrefix) {
-			t.Fatalf("E7a②: canary event detail = %q, want the %s marker", e.Outcome.Detail, canaryPrefix)
-		}
-		if e.EventType != "control" {
-			t.Fatalf("E7a②: canary event type = %q, want control", e.EventType)
-		}
-		if e.Idempotency != nil {
-			t.Fatalf("E7a②: canary event carries an idempotency key — probe-layer canaries must not enter the registry")
-		}
+	// append a pin-matching canary control event AFTER the adoption — the
+	// grammar-lateral form (control events for adopted ops are legal;
+	// identity/versions match the adopted pin)
+	// pin-matching form: the canary control event carries EXACTLY the
+	// adopted operation's pin (identity/versions/accountability) — the
+	// ATTRIBUTION_DIVERGENCE checker requires control events to match the
+	// adopted pin, and a canary from the machine's own discipline would
+	// stamp the same pin
+	canary := canaryEvent(1, "op-canary-2")
+	canary.Identity = ledger.Identity{BusinessRequestID: "br-e4", EvaluationRevision: "er-1", OperationID: "op-canary-2"}
+	canary.Versions = ledger.Versions{Evidence: "ev-1", Rule: "rule-1", Model: "m-1", Readout: "r-1", Policy: "p-1"}
+	canary.Accountability = &ledger.Accountability{Session: "sess-e4", Skill: "skill-e4", Role: "employee"}
+	line, err := json.Marshal(canary)
+	if err != nil {
+		t.Fatal(err)
 	}
-	// replay side: the canary stream projects no state for the op
-	replayEvents := []ledger.Event{}
-	replayEvents = append(replayEvents, events...)
-	_ = replayEvents
-	// (State projection is exercised in the durable face below via Open;
-	// the pure-function registry proof: no Idempotency field on any
-	// canary event, so no registry key can exist for it)
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.Write(append(line, '\n')); err != nil {
+		f.Close()
+		t.Fatal(err)
+	}
+	f.Close()
+	// Open the file with the canary event present
+	m2, err := adopt.Open(path)
+	if err != nil {
+		t.Fatalf("E7a②: Open rejected the pin-matching canary form — grammar-lateral canaries are not loadable (check the rejection rule): %v", err)
+	}
+	// criterion: ZERO state transfer — the op is still adopted (the canary
+	// control event did not project state)
+	if st := m2.State("op-canary-2"); st != adopt.StateAdopted {
+		t.Fatalf("E7a②: state after canary event replay = %q, want adopted — zero state transfer violated", st)
+	}
+	// criterion: ZERO idempotency-registry effect — a dispatch on this op
+	// is a FIRST dispatch (not a reused outcome, proving no registry entry
+	// was created by the canary event)
+	if o := m2.Dispatch("op-canary-2", fullGrants()); o.Status != "dispatched" {
+		t.Fatalf("E7a②: dispatch after canary replay = %q (%s), want dispatched — the canary event created a registry entry (zero-registry violated)", o.Status, o.Detail)
+	}
 }
 
 // TestE7a_CanaryDurableGrammarBoundary pins the durable-layer grammar
@@ -135,14 +175,17 @@ func TestE7a_CanaryDurableGrammarBoundary(t *testing.T) {
 	}
 	if _, err := adopt.Open(path); err == nil {
 		t.Fatal("E7a③: Open accepted a canary control event with no prior adoption — the durable grammar grew a canary field (rewrite this boundary test)")
+	} else if !strings.Contains(err.Error(), "EVENT_BEFORE_ADOPTION") {
+		t.Fatalf("E7a③: rejection rule = %q, want EVENT_BEFORE_ADOPTION (R47 m-4: the pin must bind the rule, not just any rejection)", err.Error())
 	}
 }
 
 // TestE7a_CanarySilentProbe probes the canary's own death: after
 // injections stop while effect traffic continues, canarySilent reports
 // true; a stream with no canary events never reports silent.
-// Mutation probe: drop the traffic precondition and the never-injected
-// face goes red.
+// Mutation probe: drop the traffic precondition and the ALIVE face goes
+// red (R47 m-1: the never-injected face survives that mutation — the
+// lastCanary guard still returns false on empty streams).
 func TestE7a_CanarySilentProbe(t *testing.T) {
 	// never-injected face: zero canary → NOT silent
 	if canarySilent([]ledger.Event{}) {
@@ -177,6 +220,43 @@ func TestE7a_CanarySilentProbe(t *testing.T) {
 // reports alive). This test asserts the CURRENT unfiltered behavior; it
 // flips when guardDied defaults to filtering (rewrite, not fix — the
 // disease documentation form).
+func TestE7b_HalfRealStreamFace(t *testing.T) {
+	// R47 m-2: the filter face on a HALF-REAL stream — a real machine's
+	// business rejection (refuse() output via Dispatch with revoked
+	// grants) spliced with synthesized canary events, so the filter is
+	// exercised on at least one machine-form detail (not only hand
+	// literals).
+	m := mustOpenAdopt(t, newLedgerPath(t))
+	if o := m.Adopt(adoptRequest(t, "op-e7b-real")); o.Status != "adopted" {
+		t.Fatalf("half-real: adopt = %q: %s", o.Status, o.Detail)
+	}
+	if o := m.Dispatch("op-e7b-real", nil); o.Status != "rejected" {
+		t.Fatalf("half-real: revoked dispatch = %q, want rejected (the real business guard)", o.Status)
+	}
+	if o := m.Dispatch("op-e7b-real", fullGrants()); o.Status != "dispatched" {
+		t.Fatalf("half-real: authorized dispatch = %q: %s", o.Status, o.Detail)
+	}
+	machineEvents, err := m.Events()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stream := append([]ledger.Event{}, machineEvents...)
+	stream = append(stream, canaryEvent(len(stream), "op-c"))
+	stream = append(stream, ledger.Event{EventType: "effect", ArbitrationSeq: int64(len(stream)), Outcome: ledger.Outcome{Status: "dispatched"}})
+	stream = append(stream, canaryEvent(len(stream), "op-c"))
+	// fixture precondition: the canary is alive
+	if canarySilent(stream) {
+		t.Fatal("half-real fixture error — the canary died")
+	}
+	// the filter closes the masking on the half-real stream too
+	if died := guardDied(stream, "rejected", canaryPrefix); !died {
+		t.Fatal("E7b half-real: filtered guardDied missed the business guard's death — the canary masks even on machine-form streams")
+	}
+	if died := guardDied(stream, "rejected", ""); died {
+		t.Fatal("E7b half-real: unfiltered guardDied reported death — the canary failed to mask on machine-form streams (disease narrower than pinned)")
+	}
+}
+
 func TestE7b_CanaryFeedsDeathProbe(t *testing.T) {
 	// business guard alive (real rejection), then dies (traffic
 	// continues, no more business rejections), then canary injections
@@ -188,6 +268,21 @@ func TestE7b_CanaryFeedsDeathProbe(t *testing.T) {
 		canaryEvent(2, "op-c"),
 		{EventType: "effect", ArbitrationSeq: 3, Outcome: ledger.Outcome{Status: "dispatched"}},
 		canaryEvent(4, "op-c"),
+	}
+	// R47 M-1: BOTH payload preconditions are guarded (a fixture drift
+	// that kills the canary or drops the business death must fail as a
+	// FIXTURE error, not as a "disease is gone" misdiagnosis)
+	if canarySilent(stream) {
+		t.Fatal("E7b fixture error — the canary died in the fixture; the disease pin requires an ALIVE canary")
+	}
+	hasReal := false
+	for _, e := range stream {
+		if e.EventType == "control" && e.Outcome.Status == "rejected" && !strings.HasPrefix(e.Outcome.Detail, canaryPrefix) {
+			hasReal = true
+		}
+	}
+	if !hasReal {
+		t.Fatal("E7b fixture error — no business rejection in the fixture; the disease pin requires a real death to mask")
 	}
 	if died := guardDied(stream, "rejected", ""); died {
 		t.Fatal("E7b disease: unfiltered guardDied reported DEATH — the canary failed to mask it (the disease is gone; rewrite this test)")
@@ -208,8 +303,9 @@ func TestE7b_FilterClosesMasking(t *testing.T) {
 		{EventType: "effect", ArbitrationSeq: 3, Outcome: ledger.Outcome{Status: "dispatched"}},
 		canaryEvent(4, "op-c"),
 	}
-	// precondition ①: real business interception exists before the
-	// traffic tail
+	// precondition ① (R47 m-3: a fixture-EDIT tripwire, not an assertion
+	// on the tested function — the property is visible in the literals
+	// above): real business interception exists
 	hasRealRejection := false
 	for _, e := range stream {
 		if e.EventType == "control" && e.Outcome.Status == "rejected" && !strings.HasPrefix(e.Outcome.Detail, canaryPrefix) {
