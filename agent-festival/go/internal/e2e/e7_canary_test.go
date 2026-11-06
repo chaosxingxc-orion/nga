@@ -288,12 +288,6 @@ func TestE7b_HalfRealStreamFace(t *testing.T) {
 	}
 }
 
-// TestE7b_CanaryFeedsDeathProbe pins the DISEASE (R48 M-3: doc returned
-// to its carrier): an alive canary stream (periodic injected rejections)
-// keeps refreshing guardDied's lastIntercept — the business guard's REAL
-// death is masked (the unfiltered probe reports alive). This test asserts
-// the CURRENT unfiltered behavior; it flips when guardDied defaults to
-// filtering (rewrite, not fix — the disease documentation form).
 // canaryMaskingStream (R49 m-5/M-1, R53 M-2 superseded): the SHARED
 // 5-event fixture for the disease/green DUAL tests. R53 M-2 retired the
 // "callers must guard" convention — use canaryMaskingStreamGuarded for
@@ -548,20 +542,16 @@ func TestE7b_GuardChecksProbed(t *testing.T) {
 	}
 }
 
-// TestE7b_GuardedStreamWiredToCheck (R54 M-1 rewritten with a REAL red
-// face): the earlier wiring pin was tautological on a hard-coded
-// healthy fixture (any wiring state agrees on a healthy stream). The
-// real red face: a DRIFTED stream fed THROUGH the guard path must
-// fatal — if the wrapper's check call is dropped, the drift passes
-// silently. This test drives the drift through guard-wrapping by
-// calling the check directly on a drifted stream AND asserting the
-// wrapper form cannot be bypassed without observable effect: we cannot
-// inject drift into the shared fixture, so we pin the drift-detection
-// DEPENDENCY — the guard's contract is that GuardChecksProbed covers
-// the checks, and this test covers the OBSERVABLE seam: the guard
-// function called with a drifted stream must report (redundant with the
-// meta probe by design — the connection-layer red face requires the
-// wrapper to accept a stream parameter, a 0.2.0 form).
+// TestE7b_GuardedStreamWiredToCheck (R55 M-2 honest form): this is a
+// CONVENTIONS PIN, not a red-face probe — the wrapper's check call
+// being dropped (no-op'd) leaves every test green (the fixture is a
+// hard-coded healthy stream; any wiring state agrees). The drift
+// assertion below verifies the CHECK function still detects drift (the
+// check's contract); the guarded-call assertion verifies the wiring
+// still returns a usable stream. The true connection-layer red face
+// needs the wrapper to accept a stream parameter (a test-form change,
+// no grammar dependency — deferred as a structural-improvement batch
+// item).
 func TestE7b_GuardedStreamWiredToCheck(t *testing.T) {
 	// the drifted stream is caught by the check (the drift forms are
 	// probed exhaustively in GuardChecksProbed); here we assert the
@@ -583,8 +573,11 @@ func TestE7b_GuardedStreamWiredToCheck(t *testing.T) {
 	if err := canaryMaskingFixtureCheck(drifted); err == nil {
 		t.Fatal("wiring probe: the check accepted a drifted stream — drift detection lost")
 	}
-	// the healthy fixture still passes through the guarded form
-	if stream := canaryMaskingStreamGuarded(t); stream == nil {
-		t.Fatal("wiring probe: guarded form returned nil")
+	// the healthy fixture still passes through the guarded form (R55 M-2:
+	// the previous nil check was a constructor tautology — a literal
+	// slice is never nil)
+	stream := canaryMaskingStreamGuarded(t)
+	if len(stream) == 0 {
+		t.Fatal("wiring probe: guarded form returned an empty stream")
 	}
 }
