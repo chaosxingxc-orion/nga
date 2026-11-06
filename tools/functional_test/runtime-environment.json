@@ -1,0 +1,27 @@
+{
+  "environment": {
+    "ASCEND_AICPU_PATH": "/usr/local/Ascend/cann-9.2.0",
+    "ASCEND_CUSTOM_OPP_PATH": "/usr/local/python3.12.13/lib/python3.12/site-packages/fla_npu/opp/vendors/fla_npu_transformer:/usr/local/python3.12.13/lib/python3.12/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib",
+    "ASCEND_DOCKER_RUNTIME": "True",
+    "ASCEND_HOME_PATH": "/usr/local/Ascend/cann-9.2.0",
+    "ASCEND_OPP_PATH": "/usr/local/Ascend/cann-9.2.0/opp",
+    "ASCEND_TOOLKIT_HOME": "/usr/local/Ascend/cann-9.2.0",
+    "ASCEND_TOOLKIT_LATEST_HOME": "/usr/local/Ascend/ascend-toolkit/latest",
+    "ATB_COMPARE_TILING_EVERY_KERNEL": "0",
+    "ATB_CXX_ABI": "1",
+    "ATB_HOME_PATH": "/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1",
+    "ATB_MATMUL_SHUFFLE_K_ENABLE": "1",
+    "ATB_OPSRUNNER_KERNEL_CACHE_GLOABL_COUNT": "5",
+    "ATB_OPSRUNNER_KERNEL_CACHE_LOCAL_COUNT": "1",
+    "ATB_SHARE_MEMORY_NAME_SUFFIX": "",
+    "ATB_STREAM_SYNC_EVERY_KERNEL_ENABLE": "0",
+    "ATB_STREAM_SYNC_EVERY_OPERATION_ENABLE": "0",
+    "ATB_STREAM_SYNC_EVERY_RUNNER_ENABLE": "0",
+    "ATB_WORKSPACE_MEM_ALLOC_ALG_TYPE": "1",
+    "LD_LIBRARY_PATH": "/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/lib:/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/examples:/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/tests/atbopstest:/usr/local/Ascend/cann-9.2.0/lib64:/usr/local/Ascend/cann-9.2.0/lib64/plugin/opskernel:/usr/local/Ascend/cann-9.2.0/lib64/plugin/nnengine:/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64:/usr/local/Ascend/driver/lib64:/usr/local/Ascend/driver/lib64/common:/usr/local/Ascend/driver/lib64/driver:/usr/local/Ascend/driver/lib64:/usr/local/Ascend/driver/lib64/common:/usr/local/Ascend/driver/lib64/driver:/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/lib:/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/examples:/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/tests/atbopstest:/usr/local/Ascend/ascend-toolkit/latest/tools/aml/lib64:/usr/local/Ascend/ascend-toolkit/latest/tools/aml/lib64/plugin:/usr/local/Ascend/ascend-toolkit/latest/lib64:/usr/local/Ascend/ascend-toolkit/latest/lib64/plugin/opskernel:/usr/local/Ascend/ascend-toolkit/latest/lib64/plugin/nnengine:/usr/local/Ascend/ascend-toolkit/latest/opp/built-in/op_impl/ai_core/tbe/op_tiling:/usr/local/python3.12.13/lib::/usr/local/Ascend/cann-9.2.0/devlib",
+    "PATH": "/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/bin:/usr/local/Ascend/cann-9.2.0/tools/bishengir/bin:/usr/local/Ascend/cann-9.2.0/bin:/usr/local/Ascend/cann-9.2.0/tools/ccec_compiler/bin:/usr/local/Ascend/cann-9.2.0/tools/profiler/bin:/usr/local/Ascend/cann-9.2.0/tools/ascend_system_advisor/asys:/usr/local/Ascend/cann-9.2.0/tools/show_kernel_debug_data:/usr/local/Ascend/cann-9.2.0/tools/msobjdump:/root/.cargo/bin:/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/bin:/usr/local/Ascend/ascend-toolkit/latest/bin:/usr/local/Ascend/ascend-toolkit/latest/compiler/ccec_compiler/bin:/usr/local/Ascend/ascend-toolkit/latest/tools/ccec_compiler/bin:/usr/local/python3.12.13/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "PYTHONPATH": "/usr/local/Ascend/cann-9.2.0/python/site-packages:/usr/local/Ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe"
+  },
+  "evidence": "runtime-cpu-receipt.txt",
+  "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d"
+}

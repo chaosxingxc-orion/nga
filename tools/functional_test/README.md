@@ -1,0 +1,15 @@
+# RC1 fixed-roster same-TEST implementation
+
+Reviewed implementation of [the frozen measurement contract](../../experiments/RC1-FUNCTIONAL-TEST.md). This is part of `engineering-base-rc1`, not a new release. Exact deployed root: `/mnt/cephfs/xingchao/experiments/jev/rc1-host-stage-20261106-2600925` on175. The source snapshot intentionally preserves that reviewed deployment root; changing it requires consistent source/config pins.
+
+`rc1_trackk.py` prepares a genuine twelve-role FINAL, runs frozen Track K inference, and computes CPU metrics from read-only saved evidence after accelerator release. It binds the seven R0 imports, full calibration threshold table, completed-result artifact hashes, and a shared scientific campaign identity independent of per-member host paths. Separate processes are required for CPU phases. Partial completion returns `need_reconcile` without changing access records. Actual configuration reviews bind model identities, publications, runtime and all input evidence.
+
+`supervisor.py` performs detached preparation, retained Docker inference, resource release and CPU execution. `config_builder.py` binds the actual image environment and entry; `assemble.py` constructs unreviewed drafts only from a complete actual roster. It currently requires all twelve roles available and takes one chip argument. A pending role must never be labelled failed to satisfy it. Actual scheduling/attachment collection is separate; do not launch twelve drafts on a shared chip without their resource queue.
+
+Independent review on175 accepted exact core SHA `cf5a82bd77d4f4f047f80d228ebf55ae96148d19accbc5ce7d0cf6db95543e1f` and host compatibility: eight targeted CPU checks plus twelve-member generated metadata integration, using Python3.12.12/NumPy1.26.4 and the frozen evaluator. Tests cover refused evidence mutations, unchanged reuse without additional scoring/access, shared FINAL, distinct member states and release before CPU. These generated fixtures are not experimental results. Required source pins and review evidence remain in the local/Ceph audit archive.
+
+The exact image is `sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d`. Runtime environment values are captured from that image's accepted CANN initialization. Deployment also needs the unchanged frozen evaluator/R0 closures and the repository host helpers listed by the source validators. `runtime-environment.json` is an allowlisted environment receipt, not a standalone complete container.
+
+Actual TEST requires real terminal3116 publications, smoke/resume lineage, DEV evidence, Base/tokenizer/runtime identities and exact reviewed member configurations. Freeze one shared roster and scientific inputs before TEST. Source acceptance alone does not authorize data access, establish model gains or certify real run completion. The independent paired numerical consumer and final result review remain required.
+
+`fixture.py` and `test_supervisor.py` use generated models/evidence and temporary ledgers. Run in the deployed CPU environment with its existing closure; never substitute generated reviews or receipts for production artifacts.
