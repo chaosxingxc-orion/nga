@@ -1,0 +1,7 @@
+# Qwen 3.8 27B first-update fixture source inventory
+
+This is a byte-preserving copy of the independently accepted finite fixture source, including the accepted template and CPU test source. `SOURCE-PINS.json` maps each file to its reviewed source, staged path and SHA-256. The `candidate/` and `binding/` layout follows the host-stage inventory; absolute paths inside the accepted files are unchanged. This directory is an inventory, not a standalone deployment.
+
+The existing image is `sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7`. Execution depends on its CANN environment and the existing mounted verl/site tree and custom dataset under `/mnt/cephfs/xingchao/docker/verl_v030_20261029`, plus the model, data, receipts, allocation and host paths bound in the production configuration. The actual deployment root is `/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime`; its absolute production configuration is `/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/config/fixture.json`. The included template is not that configuration.
+
+The authoritative pre-registration is [`experiments/RC1-QWEN38-FIRST-UPDATE.md`](../../experiments/RC1-QWEN38-FIRST-UPDATE.md). This source copy is not a new release, deployment, or claim of training success. The independent review and host-stage records referenced in the pin manifest define the acceptance and its limits.

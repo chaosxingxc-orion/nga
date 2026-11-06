@@ -1,0 +1,123 @@
+{
+  "checkpoint_count": 27781427952,
+  "checkpoint_only": {
+    "mtp.fc.weight": {
+      "dtype": "BF16",
+      "numel": 52428800,
+      "shape": [
+        5120,
+        10240
+      ]
+    },
+    "mtp.layers.0.input_layernorm.weight": {
+      "dtype": "BF16",
+      "numel": 5120,
+      "shape": [
+        5120
+      ]
+    },
+    "mtp.layers.0.mlp.down_proj.weight": {
+      "dtype": "BF16",
+      "numel": 89128960,
+      "shape": [
+        5120,
+        17408
+      ]
+    },
+    "mtp.layers.0.mlp.gate_proj.weight": {
+      "dtype": "BF16",
+      "numel": 89128960,
+      "shape": [
+        17408,
+        5120
+      ]
+    },
+    "mtp.layers.0.mlp.up_proj.weight": {
+      "dtype": "BF16",
+      "numel": 89128960,
+      "shape": [
+        17408,
+        5120
+      ]
+    },
+    "mtp.layers.0.post_attention_layernorm.weight": {
+      "dtype": "BF16",
+      "numel": 5120,
+      "shape": [
+        5120
+      ]
+    },
+    "mtp.layers.0.self_attn.k_norm.weight": {
+      "dtype": "BF16",
+      "numel": 256,
+      "shape": [
+        256
+      ]
+    },
+    "mtp.layers.0.self_attn.k_proj.weight": {
+      "dtype": "BF16",
+      "numel": 5242880,
+      "shape": [
+        1024,
+        5120
+      ]
+    },
+    "mtp.layers.0.self_attn.o_proj.weight": {
+      "dtype": "BF16",
+      "numel": 31457280,
+      "shape": [
+        5120,
+        6144
+      ]
+    },
+    "mtp.layers.0.self_attn.q_norm.weight": {
+      "dtype": "BF16",
+      "numel": 256,
+      "shape": [
+        256
+      ]
+    },
+    "mtp.layers.0.self_attn.q_proj.weight": {
+      "dtype": "BF16",
+      "numel": 62914560,
+      "shape": [
+        12288,
+        5120
+      ]
+    },
+    "mtp.layers.0.self_attn.v_proj.weight": {
+      "dtype": "BF16",
+      "numel": 5242880,
+      "shape": [
+        1024,
+        5120
+      ]
+    },
+    "mtp.norm.weight": {
+      "dtype": "BF16",
+      "numel": 5120,
+      "shape": [
+        5120
+      ]
+    },
+    "mtp.pre_fc_norm_embedding.weight": {
+      "dtype": "BF16",
+      "numel": 5120,
+      "shape": [
+        5120
+      ]
+    },
+    "mtp.pre_fc_norm_hidden.weight": {
+      "dtype": "BF16",
+      "numel": 5120,
+      "shape": [
+        5120
+      ]
+    }
+  },
+  "parameter_unique_count": 27356728560,
+  "shape_mismatch": {},
+  "state_count": 27356728560,
+  "state_not_parameter": {},
+  "state_only": {}
+}

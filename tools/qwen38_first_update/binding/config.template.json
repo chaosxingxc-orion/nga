@@ -1,0 +1,20 @@
+{
+  "dispatchable": false,
+  "source_integration_review": "pending",
+  "review_receipt": "",
+  "mapping_evidence": "",
+  "candidate": "/ABSOLUTE/ACCEPTED/CANDIDATE",
+  "out": "/mnt/cephfs/ABSOLUTE/FRESH/OUTPUT",
+  "name": "REPLACE-WITH-UNIQUE-NAME",
+  "phase": "phase1",
+  "image": "sha256:8190b3ec51929baca2388452039ccf05d681c01b7c91cc55dd1e7ac5570a76b7",
+  "chips": [0, 1, 2, 3],
+  "device_mapping": [{"physical": 0, "container": 0}, {"physical": 1, "container": 1}, {"physical": 2, "container": 2}, {"physical": 3, "container": 3}],
+  "visible_devices": "0,1,2,3",
+  "allocation": "/mnt/cephfs/xingchao/experiments/jev/CHIP-ALLOCATION.json",
+  "probe": "/ABSOLUTE/REVIEWED/PROBE",
+  "group_source": "/ABSOLUTE/ACCEPTED/package/adapter",
+  "bridge_source": "/ABSOLUTE/ACCEPTED/marker_bridge.py",
+  "candidate_pins": {},
+  "source_pins": {}
+}

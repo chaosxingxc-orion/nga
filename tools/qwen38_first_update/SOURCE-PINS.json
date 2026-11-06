@@ -1,0 +1,114 @@
+{
+  "scope": "Exact finite accepted source inventory; hashes are SHA-256. No model/data/image verification.",
+  "accepted_pins": {
+    "path": ".local/releases/engineering-base-rc1/tasks/science/qwen38-group-correction-review/ACCEPTED-SOURCE-PINS.json",
+    "sha256": "699309929d9fc174614854a23b5f113e5af8c0754caebc0b941faf7595467df6"
+  },
+  "stage_manifest": {
+    "path": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-fixture-host-stage/STAGE-MANIFEST.json",
+    "sha256": "5940ea61786cad76ea64f58961ef72178a4cd2335fd2bb9488705dc6497a81c3"
+  },
+  "reviews": [
+    ".local/releases/engineering-base-rc1/tasks/science/qwen38-group-correction-review/VERDICT.json",
+    ".local/releases/engineering-base-rc1/tasks/science/qwen38-renderer-fix-review/VERDICT.json",
+    ".local/releases/engineering-base-rc1/tasks/science/qwen38-update-candidate-review/VERDICT.json"
+  ],
+  "files": [
+    {
+      "path": "candidate/config.json",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-renderer-terminal-fix/candidate/config.json",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/candidate/config.json",
+      "sha256": "6ded03f263d6eba5037676838570fc73b7657067e166c17dddbbc8b335d64fe3"
+    },
+    {
+      "path": "candidate/command.py",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-renderer-terminal-fix/candidate/command.py",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/candidate/command.py",
+      "sha256": "db42c01eca392f03d0cc8e1d96f8cd81f509fbae665ef55373d26bec6a7f9d5e"
+    },
+    {
+      "path": "candidate/relaunch.sh",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-renderer-terminal-fix/candidate/relaunch.sh",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/candidate/relaunch.sh",
+      "sha256": "9a67182327052daaa16ca7081e81e49762d400d2714f8eacb0e60272586fa24f"
+    },
+    {
+      "path": "candidate/container_entry.sh",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-renderer-terminal-fix/candidate/container_entry.sh",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/candidate/container_entry.sh",
+      "sha256": "127d4c0b03ddce3c2553d217c631ebd32949afa9909edd4bbbf6de53abee68b2"
+    },
+    {
+      "path": "candidate/entry.py",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-renderer-terminal-fix/candidate/entry.py",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/candidate/entry.py",
+      "sha256": "d628f93bdf90dbd87767f3be8b8ae9c1b38e33888c82f42c3539b2adcbaf9a02"
+    },
+    {
+      "path": "candidate/hooks.py",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-renderer-terminal-fix/candidate/hooks.py",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/candidate/hooks.py",
+      "sha256": "2efa37f86cab62bc7a8a1675e6b688082a2c925660cc751315b8245beb347b06"
+    },
+    {
+      "path": "candidate/raw_loading.py",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-renderer-terminal-fix/candidate/raw_loading.py",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/candidate/raw_loading.py",
+      "sha256": "74025f7aba84ece145073c69fcdddb4033b6cbfefb4a2b6409f124c5147f71f3"
+    },
+    {
+      "path": "candidate/TENSOR-DIFF.json",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-renderer-terminal-fix/candidate/TENSOR-DIFF.json",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/candidate/TENSOR-DIFF.json",
+      "sha256": "87d318e24afe18eac9c8487135ebc4ca655d5d1899beea100bad9ad8c5873ab9"
+    },
+    {
+      "path": "binding/fixture.py",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-group-binding-correction/candidate/fixture.py",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/binding/fixture.py",
+      "sha256": "087f5fdb3eac434ca6093bbb13bf1c58987086c36796099ee837eeb87ddc1a3d"
+    },
+    {
+      "path": "binding/detached.sh",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-group-binding-correction/candidate/detached.sh",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/binding/detached.sh",
+      "sha256": "ff5547aa54b5a6c1f03ec2b2100a660744c53d4ebb677c0acc266ee64abedb26"
+    },
+    {
+      "path": "binding/config.template.json",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-group-binding-correction/candidate/config.template.json",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/binding/config.template.json",
+      "sha256": "e0d1462fb1888555584b9650a295e04dfeab922d97505ab257cefe5966e3d7f6"
+    },
+    {
+      "path": "binding/test_fixture.py",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-group-binding-correction/candidate/test_fixture.py",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/binding/test_fixture.py",
+      "sha256": "7c261e6649ed75d4ca79320e96936b0f0d82f0f19010d8ac28b96173a44b7d81"
+    },
+    {
+      "path": "binding/adapter/group_adapter.py",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-group-binding-correction/candidate/adapter/group_adapter.py",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/binding/adapter/group_adapter.py",
+      "sha256": "87670b986e87753cb6fb65d245319e5fb53e49c8c4982a78ff83940eed8db5e1"
+    },
+    {
+      "path": "binding/adapter/r3_resource_adapter.py",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-group-binding-correction/candidate/adapter/r3_resource_adapter.py",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/binding/adapter/r3_resource_adapter.py",
+      "sha256": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a"
+    },
+    {
+      "path": "binding/marker_bridge.py",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-fixture-launch-preparation/marker_bridge.py",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/binding/marker_bridge.py",
+      "sha256": "20bd8a4f05452076dafea1aa76c29c9ec942ba3bc2a68755a09f8cbd235b61c9"
+    },
+    {
+      "path": "binding/host_ownership_probe.py",
+      "source": ".local/releases/engineering-base-rc1/tasks/execution/qwen38-post-k0-queue/candidate/package/host_ownership_probe.py",
+      "staged_path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-first-update-runtime/binding/host_ownership_probe.py",
+      "sha256": "970990a82c773af9738c9e0f0a8fc89720271874e9a26ef6a2c27168cbc8a259"
+    }
+  ]
+}
