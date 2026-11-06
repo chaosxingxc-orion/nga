@@ -666,3 +666,39 @@ N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是
 
 [mutation-proof: cd agent-festival && python3 tools/guard-battery.py --check → OK]
 [mutation-proof: cd agent-festival && python3 tools/guard-battery.py --selftest → OK]
+
+## R57 四续记账（2026-11-06，C4'+R5' 落地——语料回放+克隆植入+运行手册单一真源）
+
+> 元分析 v2 第 4 步（R2/R3/R4/M9 收敛为语料+回放+植入三件；R5' 杀转抄漂移）。
+
+- **C4'-1 语料单文件（docs/attack-corpus.md）**：15 条判据逐行配攻击用例——机器面行给
+  命令（M1-M6），审查面行给 ledger 出处+探查动作；pattern doc 的映射表迁入此处
+  （双副本即漂移温床——模式文档只留指针）。
+- **C4'-2 机械回放（tools/replay.py）**：六面红面一条命令全重证（M1 注册闸/M2 电池/
+  M3 电池自测/M4 台账审计/M5 审计篡改/M6 解析器自测）——开轮保留率门，面腐化先于
+  审查被修。**诚实声明**：replay 是编排件（自身无新检查；M4 内部重跑 M1-M3/M5 的
+  token=纵深非最小集）；组件清单的对账基准=语料表六行（删面=人工对表可查——无机器面，
+  声明边界）。
+- **C4'-3 克隆植入（tools/seed.py）**：缺陷打在一次性副本（树零接触——忘恢复结构性
+  不可能），manifest 写副本外（审查者读不到）。两族：`battery:<form>`（已知族，克隆内
+  探针红——测审查者跑不跑机械检查）+ `ood-*`（**绿保留**——全套件 -short 仍绿，CI 抓
+  不到只有审查能抓：ood-skip-subtest 静默跳测 / ood-loose-assert 断言静默变弱 /
+  known-doc-drift doc 越权声明〔已知族但 prose 无机器面，如实标注〕）。锚纪律与
+  battery/token 同构（失配=verify 红=更新目录）。四族 verify 全过（红/绿两向）。
+  检出率记账格式 `## R<N> 标定（植入 a+b，检出 x/y）`——**泛化率=近似度量**（oracle
+  递归不消解，诚实声明）；OOD 优先本 campaign 之外模式（M7 同源盲区）。
+- **R5' 运行手册（docs/review-loop-runbook.md）**：一轮七步标准做法（开轮回放门→定
+  增量→派空白子→标定→清偿→条款双源收轮→记账）；空白子 prompt 模板（引用填充，
+  唯一插值=diff 范围——火力面/协议一律指向真源文件，**转抄即漂移入口**）；停机准则 v2
+  （3 连 0B/0M + 保留率 100% + 检出率报告）；条款双源 append-only 段。自评分激励
+  （提议自己已会查的）由「提案者≠下轮空白子」缓解——声明为缓解非解决。
+- **本批攻击声明行**：替换件=seed.py/replay.py 新建+corpus/runbook 新建+pattern doc
+  改指针；被攻击面=seed 四族 verify（红/绿两向实测）+ replay 六面实测 + 锚纪律自证
+  （guard-battery 连字符文件名 import 失败被当场抓——探针先红即抓）。先行反例=N/A（纯新增工具，无替换件）。
+- **方法论入账（第 78/79 实证）**：**克隆式植入让「忘恢复」结构性不可能**（污染面从
+  「纪律防」变「不可表达」——2026-11-02 立法在流程工具层的适用）；**绿保留是植入目录
+  的准入判据**（OOD 植入若把套件打红，它只是 bug 不是标定——「CI 抓不到」必须被
+  -short 全绿实测证明，不许声称）。
+
+[mutation-proof: cd agent-festival && python3 tools/seed.py --family ood-loose-assert --out /tmp/seed-tok-ood --verify → OK]
+[mutation-proof: cd agent-festival && python3 tools/seed.py --family battery:seventh_early_return --out /tmp/seed-tok-known --verify → OK]
