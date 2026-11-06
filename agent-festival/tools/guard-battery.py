@@ -28,8 +28,17 @@ Modes
 
 Exit code 0 iff every applied mutation turned the probes red (test-red,
 not compile-red — a mutant that does not compile is MUTANT-BROKEN, a
-battery failure) and the baseline is green. Source files are restored on
-every exit path; `git checkout -- <file>` recovers a hard-killed run.
+battery failure) and the baseline is green. The baseline has two steps
+(R58): `go vet` on the mutated package first (a registry text anchor
+cannot see dead guard code — the seventh form's text anchors PASS on
+unreachable code, vet flags it in ~1s), then the probe baseline.
+
+R58 M-3: the battery runs ENTIRELY INSIDE A THROWAWAY COPY of the module
+directory. The real target file is only ever READ; the real tree is never
+written. There is nothing to restore and no `git checkout` recovery to
+need, and a concurrent settlement-audit copy or seed.py clone can no
+longer capture a mutated tree — the old in-place mutation window is
+structurally gone, not merely shortened.
 
 The tokens in docs/minor-ledger.md invoke this script — a token that
 cannot be re-run is not proof (R56 m-3).
@@ -37,6 +46,7 @@ cannot be re-run is not proof (R56 m-3).
 
 import argparse
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -132,18 +142,35 @@ def run_probes(go_dir, pkg, probes):
 
 
 def battery_one(spec, only=None):
-    """Run the battery for one spec. Returns (exit_code, lines)."""
+    """Run the battery for one spec — entirely inside a throwaway copy of
+    the module dir (R58 M-3): the real target file is only ever READ, every
+    mutation/compile/probe runs against the copy, so a concurrent audit
+    copy or seed clone can never capture a mutated tree. Returns
+    (exit_code, lines)."""
     root = spec.get("_root", ROOT)
-    target = root / spec["file"]
-    go_dir = root / spec["go_dir"]
+    module_src = root / spec["go_dir"]
+    rel_target = Path(spec["file"]).relative_to(spec["go_dir"])
     pkg, probes = spec["pkg"], spec["probes"]
     names = [only] if only else MUTATION_ORDER
     lines = []
     failures = []
 
-    original = target.read_text()
-    try:
-        green, out = run_probes(go_dir, pkg, probes)
+    original = (root / spec["file"]).read_text()
+    with tempfile.TemporaryDirectory(prefix="guard-battery-run-") as td:
+        work = Path(td) / "module"
+        shutil.copytree(module_src, work)
+        target = work / rel_target
+
+        # R58 vet clause (baseline step 1, also on --only runs): the
+        # registry's text anchors pass even on dead guard code, while vet
+        # flags unreachable/dead code in ~1s — a vet-dirty module is
+        # baseline-red before any mutation runs.
+        green, out = run(["go", "vet", pkg], cwd=work)
+        if not green:
+            print(f"BASELINE IS RED (vet) for spec {spec['name']} — fix the tree first")
+            print(out[-2000:])
+            return 2, lines
+        green, out = run_probes(work, pkg, probes)
         if not green:
             print(f"BASELINE IS RED for spec {spec['name']} — fix the tree first")
             print(out[-2000:])
@@ -154,11 +181,11 @@ def battery_one(spec, only=None):
         for name in names:
             target.write_text(apply_mutation(original, spec, name))
             try:
-                if not compiles(go_dir, pkg):
+                if not compiles(work, pkg):
                     failures.append(name)
                     lines.append(f"  {name:24} {'BROKEN':8} MUTANT-BROKEN — compile-red is not test-red (76)")
                     continue
-                ok, out = run_probes(go_dir, pkg, probes)
+                ok, out = run_probes(work, pkg, probes)
             finally:
                 target.write_text(original)
             red_count = out.count("--- FAIL")
@@ -168,8 +195,6 @@ def battery_one(spec, only=None):
             else:
                 lines.append(f"  {name:24} {'FAIL':8} red ({red_count} subtest(s))")
         print("  " + "-" * 50)
-    finally:
-        target.write_text(original)
 
     if failures:
         lines.append(f"  FAIL — {len(failures)} mutation(s) survived/broken: {failures}")
@@ -187,7 +212,11 @@ NON_TEST_PREFIXES = ("Test", "Benchmark", "Example", "Fuzz")
 
 def check_registry(root, specs):
     """Every `func *Guarded(` declaration must be registered; every spec's
-    anchors must appear exactly once in its file. Returns gap list."""
+    anchors must appear exactly once in its file; every spec that declares
+    `consumers` must find each consumer pattern exactly `count` times in
+    the real tree (M-5: the battery mutates the constructor, never its call
+    sites — consumer anchors are the only face watching a caller bypass).
+    Returns gap list."""
     gaps = []
     registered = {(s["file"], s["constructor"]) for s in specs}
     for gof in sorted(root.rglob("*.go")):
@@ -218,6 +247,18 @@ def check_registry(root, specs):
             if n != 1:
                 gaps.append(f"SPEC {s['name']}: {key} matched {n} times, want 1 — "
                             "the guard was re-shaped without updating its spec")
+        for c in s.get("consumers", []):
+            cf = root / c["file"]
+            if not cf.exists():
+                gaps.append(f"SPEC {s['name']}: consumer file missing: {c['file']}")
+                continue
+            n = cf.read_text().count(c["pattern"])
+            if n != c["count"]:
+                gaps.append(
+                    f"SPEC {s['name']}: CONSUMER DRIFT in {c['file']}: pattern "
+                    f"{c['pattern']!r} found {n} time(s), want {c['count']} — a caller "
+                    "left the guarded path (the battery mutates the constructor only; "
+                    "consumer anchors are the only face that sees a bypassed call site)")
     return gaps
 
 
@@ -227,6 +268,10 @@ def selftest():
     B. a registered spec with a drifted anchor is caught by --check
     C. a well-formed fake guard passes --check AND the full battery
     D. a compile-broken mutant is reported MUTANT-BROKEN, never as red
+    E. a caller bypassing the guarded constructor (consumer count drift)
+       is caught by --check; a matching consumer anchor passes (M-5)
+    F. a module that compiles but fails `go vet` (unreachable code) is
+       baseline-red (exit 2) before any mutation runs (R58 vet clause)
     """
     failures = []
     tmp = Path(tempfile.mkdtemp(prefix="guard-battery-selftest-"))
@@ -318,14 +363,51 @@ func TestFakeGuardedPath(t *testing.T) {
     if any(re.search(r"FAIL\s+red \(", l) for l in lines):
         failures.append("D: broken mutant was counted as red — compile-red leaked into the verdict")
 
+    # E: consumer drift — a caller swapping the guarded constructor for the
+    # bare one — is caught by --check; a matching consumer anchor passes.
+    # The battery mutates the constructor only, so this is the M-5 face.
+    match_consumer = dict(base_spec, consumers=[
+        {"file": "fake/fake_test.go", "pattern": "func fakeGuarded(", "count": 1},
+    ])
+    gaps = check_registry(tmp, [match_consumer])
+    if gaps:
+        failures.append(f"E: matching consumer anchor flagged: {gaps}")
+    drifted_consumer = dict(base_spec, consumers=[
+        {"file": "fake/fake_test.go", "pattern": "stream := mustGuardedStream(t)", "count": 1},
+    ])
+    gaps = check_registry(tmp, [drifted_consumer])
+    if not any("CONSUMER DRIFT" in g and "found 0 time(s), want 1" in g for g in gaps):
+        failures.append(f"E: consumer drift not detected with expected/found counts: {gaps}")
+
+    # F: the vet-baseline clause — a module that compiles but fails `go vet`
+    # (unreachable code here) is baseline-red (exit 2) before any mutation.
+    vet_pkg = tmp / "vetred"
+    vet_pkg.mkdir()
+    (vet_pkg / "go.mod").write_text("module vetred\n\ngo 1.24\n")
+    (vet_pkg / "vetred.go").write_text(
+        "package vetred\n\nfunc f() int {\n\treturn 1\n\treturn 2\n}\n")
+    vet_spec = {
+        "name": "vetred", "file": "vetred/vetred.go", "go_dir": "vetred",
+        "pkg": ".", "probes": "TestNothing",
+        "constructor": "unused", "check_call": "unused", "default_call": "unused",
+        "guard_block": "", "param_block": "", "check_open": "",
+        "_root": tmp,
+    }
+    try:
+        rc_vet, _ = battery_one(vet_spec)
+    except SystemExit as e:  # e.g. vet unexpectedly green -> mutation anchors fire
+        rc_vet = f"SystemExit({e})"
+    if rc_vet != 2:
+        failures.append(f"F: vet-dirty module did not produce baseline-red exit 2 (got {rc_vet})")
+
     print("\n".join(lines) if lines else "(selftest silent)")
     if failures:
         print("SELFTEST FAILURE")
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("SELFTEST PASS — registry catches unregistered/misanchored, "
-          "broken mutants are BROKEN not red, well-formed passes")
+    print("SELFTEST PASS — registry catches unregistered/misanchored/bypassed-consumer, "
+          "broken mutants are BROKEN not red, well-formed passes, vet-dirty is baseline-red")
     return 0
 
 

@@ -13,6 +13,20 @@ runs the audit against each, and requires:
   control ledger    → audit GREEN (retired skipping + both token shapes
                       passing)
 
+R58 adds three faces to the same contrast pattern (each a minimal ledger,
+so a regression turns the face green instead of just changing the kind):
+  letter violation  → RED: a scoped entry in letter form (- **M-A**) with
+                      no token must trip presence — under the pre-R58
+                      numeric-only bullet grammar it passed silently (M-1)
+  fence violation   → RED: the only proof inside a fenced block — fence
+                      content is documentation; the pre-R58 fence-blind
+                      parser false-satisfied the FAIL expectation with the
+                      literal <cmd> placeholder (M-2)
+  fence-inert control → GREEN: a fenced syntax illustration plus a real
+                      bare-line token on a clean ledger — fences must be
+                      inert on clean ledgers, and an entry's proof must
+                      survive across a fence (M-2)
+
 The synthetic tokens are `echo`/`false`/`exit N` only — no recursion is
 possible (the harness never appears in a synthetic ledger), and the inner
 audit's execution phase runs them harmlessly.
@@ -67,6 +81,40 @@ CONTROL_LEDGER = """**清偿证明协议（synthetic control fixture）**：
 - **M-3（retired only, superseded）**：settled.
   [mutation-proof: false → FAIL] [retired-by: deadbeef superseded]
   [mutation-proof: true → OK]
+- **M-4 (fence-inert control)**: settled with a fenced syntax illustration
+  plus a real bare-line token — the fence must be inert on a clean ledger
+  (R58 M-2), and the entry's proof must survive across it.
+```
+[mutation-proof: <reproducible command> → FAIL]
+```
+  [mutation-proof: exit 3 → FAIL]
+"""
+
+# R58 M-1 face: a scoped-section entry in the ledger's letter-id convention
+# (R17 M-A/M-B/M-C) with no token must trip presence. Under the pre-R58
+# numeric-only bullet grammar this ledger passed the audit silently.
+LETTER_VIOLATION_LEDGER = """**settlement-proof protocol (synthetic tamper fixture)**:
+every M/B settlement entry from R56 on must embed a mutation-proof token.
+
+## R56 review ledger
+
+- **M-A**: settled in letter form without any proof token.
+"""
+
+# R58 M-2 face: the only proof lives inside a fenced block — fence content
+# is documentation, never tokens. Under the pre-R58 fence-blind parser the
+# fenced line parsed as a live token whose literal <cmd> placeholder failed
+# under bash (exit 1) and false-satisfied the FAIL expectation, so this
+# ledger passed the audit green.
+FENCE_VIOLATION_LEDGER = """**settlement-proof protocol (synthetic tamper fixture)**:
+every M/B settlement entry from R56 on must embed a mutation-proof token.
+
+## R56 review ledger
+
+- **M-1**: settled with a proof that lives inside a fence.
+```
+[mutation-proof: <cmd> → FAIL]
+```
 """
 
 
@@ -106,6 +154,29 @@ def main() -> int:
         if rc != 0:
             failures.append(f"control ledger failed the audit (exit {rc}):\n{out[-1500:]}")
 
+        # R58 M-1 face: letter-form entry without a token → presence red
+        letter_path = tmp / "letter-violation-ledger.md"
+        letter_path.write_text(LETTER_VIOLATION_LEDGER, encoding="utf-8")
+        rc, out = run_audit(letter_path)
+        if rc == 0:
+            failures.append("letter-form violation ledger passed the audit — "
+                            "presence is blind to letter-suffix entry ids (M-1)")
+        if "settlement-audit/presence" not in out:
+            failures.append("letter-form violation ledger: presence kind not reported")
+        if "M-A" not in out:
+            failures.append("letter-form violation ledger: entry id M-A not reported")
+
+        # R58 M-2 face: fenced-only proof → presence red (fence content is
+        # not a token; the literal <cmd> must not false-satisfy FAIL)
+        fence_path = tmp / "fence-violation-ledger.md"
+        fence_path.write_text(FENCE_VIOLATION_LEDGER, encoding="utf-8")
+        rc, out = run_audit(fence_path)
+        if rc == 0:
+            failures.append("fence violation ledger passed the audit — "
+                            "fence content parsed as a live token (M-2)")
+        if "settlement-audit/presence" not in out:
+            failures.append("fence violation ledger: presence kind not reported")
+
     if failures:
         print("TAMPER BATTERY FAILURE")
         for f in failures:
@@ -113,7 +184,8 @@ def main() -> int:
         return 1
     print(
         "PASS — violation ledger red (presence/grammar/execution reported, "
-        "echo-FAIL and false-OK killed), control ledger green"
+        "echo-FAIL and false-OK killed), control ledger green, letter-form "
+        "and fenced-only violation faces red, fence-inert control green"
     )
     return 0
 

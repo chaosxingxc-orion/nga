@@ -25,6 +25,15 @@ Spec fields:
                 a finding)
   param_block   the default-selection block (anchor for ignore_param)
   check_open    the pure check's function opening (anchor for check_gutted)
+  consumers     optional list of consumer anchors — [{"file": path relative
+                to the REPO ROOT, "pattern": exact string, "count": N}];
+                each pattern must occur exactly count times in the named
+                real-tree file. This is the M-5 face: the battery mutates
+                the constructor, never its call sites, so a caller that
+                silently leaves the guarded path is invisible to every
+                mutation form — the consumer anchor is the only face that
+                sees it. Specs without `consumers` skip the face
+                (backward compatible).
 """
 
 SPECS = [
@@ -52,5 +61,16 @@ SPECS = [
             "\t}"
         ),
         "check_open": "func canaryMaskingFixtureCheck(stream []ledger.Event) error {",
+        # M-5 consumer anchors: both callers of the guarded constructor. If a
+        # call site is swapped to bare canaryMaskingStream() (the verified
+        # 2026-11-06 bypass: whole e2e package green with both call sites
+        # swapped), the mutation battery cannot see it — this face does.
+        "consumers": [
+            {
+                "file": "agent-festival/go/internal/e2e/e7_canary_test.go",
+                "pattern": "stream := mustGuardedStream(t)",
+                "count": 2,
+            },
+        ],
     },
 ]

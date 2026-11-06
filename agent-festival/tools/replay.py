@@ -8,15 +8,19 @@ corrupt shows up here as a table row, not as a surprise mid-round.
   python3 tools/replay.py     # all faces; exit 0 iff every face is green-red as declared
 
 Faces (the inventory lives in docs/attack-corpus.md — the single source):
-  M1 registry-gate     unregistered guards / drifted spec anchors
+  M1 registry-gate     unregistered guards / drifted spec anchors /
+                       bypassed consumers (M-5)
   M2 battery           ten mutation forms × every registered spec
-  M3 battery-selftest  the battery's own four faces
+  M3 battery-selftest  the battery's own six faces
   M4 settlement-audit  every ledger token re-runs to its declared outcome
                        (presence / grammar / execution / staleness) — note
                        M4 internally re-runs M1-M3 and M5 as tokens: the
                        replay is defense-in-depth, not a minimal set
   M5 audit-tamper      the audit's own tamper battery
-  M6 audit-selftest    the ledger parser's seven in-process faces
+  M6 audit-selftest    the ledger parser's nine in-process faces
+  M7 seed-anchors      every seed.py catalog anchor matches the real tree
+                       exactly once (dry run — catalog staleness is loud at
+                       round open, not first-discovered by a failed plant)
 
 This script is ORCHESTRATION — the faces live in the component tools, each
 of which carries its own red face and its own ledger token. Replay adds no
@@ -38,6 +42,7 @@ FACES = [
     ("M4", "settlement-audit", ["go", "test", "./internal/settlement/", "-run", "TestSettlementAudit$", "-count=1"], GO_DIR),
     ("M5", "audit-tamper", ["python3", "tools/settlement-audit-tamper.py"], AF_DIR),
     ("M6", "audit-selftest", ["go", "test", "./internal/settlement/", "-run", "TestSettlementAuditSelfTest", "-count=1"], GO_DIR),
+    ("M7", "seed-anchors", ["python3", "tools/seed.py", "--check-anchors"], AF_DIR),
 ]
 
 

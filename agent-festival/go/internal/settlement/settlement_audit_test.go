@@ -31,7 +31,11 @@ const (
 
 var (
 	sectionRe = regexp.MustCompile(`^## R(\d+)\b`)
-	bulletRe  = regexp.MustCompile(`^\s*- \*\*([BM])-(\d+)`)
+	// bulletRe matches numeric AND letter-suffix entry ids (M-1/M-A/M-B —
+	// the ledger's established letter-id convention, e.g. R17 M-A/M-B/M-C):
+	// a scoped letter entry without a token must be presence-checked, not
+	// silently invisible to the audit.
+	bulletRe = regexp.MustCompile(`^\s*- \*\*([BM])-([A-Za-z0-9]+)`)
 	// tokenRe is the canonical grammar. The expectation is EXACT: FAIL or OK.
 	// Anything else (prose like "输出含 FAIL") is a grammar violation — the
 	// machine contract has no room for narrative.
@@ -79,6 +83,7 @@ func parseLedger(data []byte) *audit {
 	var curEntry *entry
 	curSection := ""
 	curScoped := false
+	inFence := false
 
 	flush := func() {
 		if curEntry != nil && curScoped && curEntry.tokCount == 0 {
@@ -92,6 +97,24 @@ func parseLedger(data []byte) *audit {
 
 	for i, raw := range lines {
 		lineNo := i + 1
+		// R58 M-2 fence legislation: a fenced code block is documentation,
+		// never tokens. A line whose trimmed text starts with "```" toggles
+		// fence state; while inside a fence nothing is parsed — no section
+		// headers, no bullet entries, no token extraction, no grammar
+		// check. A fenced syntax example containing
+		// "[mutation-proof: <cmd> → FAIL]" previously parsed as a live
+		// token whose literal placeholder failed under bash (exit 1) and
+		// false-satisfied the FAIL expectation — false presence, false
+		// execution. Only "```" toggles: the ledger uses no "~~~" fences,
+		// and recognizing exactly one form keeps the state machine
+		// single-form and auditable.
+		if strings.HasPrefix(strings.TrimSpace(raw), "```") {
+			inFence = !inFence
+			continue
+		}
+		if inFence {
+			continue
+		}
 		if m := sectionRe.FindStringSubmatch(raw); m != nil {
 			flush()
 			if atoi(m[1]) >= minSection {
@@ -314,9 +337,10 @@ func TestSettlementAudit(t *testing.T) {
 
 // TestSettlementAuditSelfTest exercises the parser and the executor on
 // synthetic ledgers — the tamper faces, in-process and fast:
-// presence-miss, the echo-FAIL fake (exit 0 masquerading as FAIL), the
-// false-OK fake (exit 1 masquerading as OK), grammar drift, retired-token
-// skipping, and the two passing controls.
+// presence-miss (numeric and letter-suffix entry ids), the fenced-only
+// proof, the echo-FAIL fake (exit 0 masquerading as FAIL), the false-OK
+// fake (exit 1 masquerading as OK), grammar drift, retired-token skipping,
+// and the two passing controls.
 func TestSettlementAuditSelfTest(t *testing.T) {
 	cwd := t.TempDir()
 
@@ -363,6 +387,31 @@ func TestSettlementAuditSelfTest(t *testing.T) {
 		}
 		if ok, _ := runToken(cwd, a.activeTokens[0]); !ok {
 			t.Fatal("exit 3 must satisfy → FAIL")
+		}
+	})
+	t.Run("letter_entry_without_token_detected", func(t *testing.T) {
+		// R58 M-1: letter-suffix entry ids (the ledger's letter convention,
+		// e.g. R17 M-A/M-B/M-C) are legal syntax — a scoped letter entry
+		// with no token must trip presence, not pass invisibly.
+		a := parseLedger([]byte("## R56 review ledger\n- **M-A**: settled without proof.\n"))
+		if len(a.violations) != 1 || a.violations[0].kind != "presence" {
+			t.Fatalf("letter-suffix entry must be presence-checked, got %+v", a.violations)
+		}
+		if !strings.Contains(a.violations[0].where, "M-A") {
+			t.Fatalf("violation must carry the letter entry id, got %q", a.violations[0].where)
+		}
+	})
+	t.Run("fenced_proof_not_a_token", func(t *testing.T) {
+		// R58 M-2: fence content is documentation — a fenced token line
+		// parses as nothing, and the entry's proof obligation stands
+		// (presence), even though the fenced <cmd> placeholder would exit
+		// non-zero and false-satisfy a FAIL expectation if it were counted.
+		a := parseLedger([]byte("## R56 review ledger\n- **M-1**: settled.\n```\n[mutation-proof: <cmd> → FAIL]\n```\n"))
+		if len(a.activeTokens) != 0 {
+			t.Fatalf("fenced token must not become an active token; got %+v", a.activeTokens)
+		}
+		if len(a.violations) != 1 || a.violations[0].kind != "presence" {
+			t.Fatalf("fenced-only proof must leave the presence obligation standing, got %+v", a.violations)
 		}
 	})
 	t.Run("retired_token_skipped", func(t *testing.T) {

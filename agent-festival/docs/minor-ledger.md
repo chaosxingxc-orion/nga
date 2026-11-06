@@ -7,7 +7,7 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 从 R56 起每条 M/B 清偿的台账条目**必须内嵌突变命令 token**，规范语法两形：
 `[mutation-proof: <cmd> → FAIL]`（cmd 重跑退出码必须 ≠0——突变后测试必须红）或
 `[mutation-proof: <cmd> → OK]`（退出码必须 =0——验证脚本自身断言全红）。没有**未退休**
-token 的清偿条目 = **自动 M**。token 必须在提交前当轮跑过；声称跑过而结果可当场证伪
+token 的清偿条目 = **自动 M**。条目 id 形态 `[BM]-[A-Za-z0-9]+`（letter 后缀条目同受在场闸，R58 M-1 立法）；围栏（``` 块）内容一律是文档不是 token，围栏内语法示例不参与在场/语法/执行三检查（R58 M-2 立法）。token 必须在提交前当轮跑过；声称跑过而结果可当场证伪
 （R55 M-1 形态）= 比虚假清偿更重半级（伪造验证证据级）。载体退休时原 token 加
 `[retired-by: <commit> — 理由]` 标记并由承接 token 接力（退休 token 不参与在场/执行检查）。
 **机器执行（R57 C2'，TestSettlementAudit）**：每枚活跃 token 在工作树副本（git ls-files
@@ -702,3 +702,47 @@ N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是
 
 [mutation-proof: cd agent-festival && python3 tools/seed.py --family ood-loose-assert --out /tmp/seed-tok-ood --verify → OK]
 [mutation-proof: cd agent-festival && python3 tools/seed.py --family battery:seventh_early_return --out /tmp/seed-tok-known --verify → OK]
+
+## R58 复审记账（2026-11-06，E7 全增量 70fafb8..727950f——0B/5M/5m 全清偿；连净计数重新起算）
+
+> 本循环首轮自动执行轮（KICKOFF 启动）。三个空白子并行：1 增量审查 + 2 标定克隆审查
+> （首次标定，见下节）。**偏差声明**：fable 子代理模型本环境不可用（HTTP 404），空白子按
+> CLAUDE.md 分工表降级 Opus 承接审查，裁决与验收留主会话。工程实现由 Sonnet 承接
+> （M-1..M-5+两提案，15 项验收主会话独立重跑：replay 7/7、电池 md5 零接触、--check、
+> --selftest、结算审计、全量 -race 22 包、范围纪律 6 文件零 docs 触碰）。
+> M-3 并发探针遗留的 /tmp/seed-tok-* 毒化克隆当轮清除（M-4 的活体证据载体）。
+
+- **M-1（在场闸盲 letter 条目形态）**：`bulletRe=[BM]-(\d+)` 只认数字 id，而 M-A/M-B/M-C 是仓内既定约定（R17 节）——合成台账实证：letter 条目无 token 静默过闸。在场闸是协议的机器信任根，声明（每条 B/M 必有 token）与实现面不齐=约定形态免检。已修：bulletRe 放宽 `[BM]-([A-Za-z0-9]+)`（minSection=56 不追溯不变）+解析器 selftest 面+tamper LETTER 面（letter 条目无 token 须红）。
+  [mutation-proof: cd agent-festival/go && go test ./internal/settlement/ -count=1 → OK]
+- **M-2（解析器围栏盲——围栏示例假满足 presence+execution）**：行内反引号剥除（71 号教训）未覆盖 ``` 围栏——围栏内 `[mutation-proof: <cmd> → FAIL]` 被当活 token：`<cmd>` bash 重定向错误退出 1≠0 假满足 FAIL 形+计入 tokCount 假满足 presence。C2' 杀掉的占位符假通过只修了行内面，围栏面重开；C1' 节真 token 恰在围栏内——围栏样式是既成风格，一处无辜语法引用即触发。已修：**立法「围栏内容=文档不是 token」**+解析器围栏态（bullet/token/grammar 三跳过）+selftest 围栏面+tamper FENCE 面（围栏示例单独在场须红；CONTROL 面围栏惰性）。C1' 四枚围栏内真 token 承接重挂裸行（围栏语义变更，载体与命令不变）：
+  [mutation-proof: cd agent-festival && python3 tools/guard-battery.py → OK]
+  [mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only seventh_early_return → OK]
+  [mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only ignore_param → OK]
+  [mutation-proof: cd agent-festival && python3 tools/guard-battery.py --only hardcoded_err → OK]（反向形：接受面红）
+  [mutation-proof: cd agent-festival/go && go test ./internal/settlement/ -count=1 → OK]
+- **M-3（真树突变件与拷贝件零串行化——并发互踩）**：电池对真树原地逐形突变（~11s 窗口），审计 copyWorkingTree 与 seed copy_tree 同时点读真树，无锁无标记——双向实证：并行 seed verify 双双捕获突变态（GREEN 族假红；RED 族标定完整性**静默**破坏——被污染克隆仍过 verify）；并行审计假陈旧判决（anchor matched 0 times）。**结构性消解（S1 提案「锁」的升级实现）**：电池副本化——模块目录拷入临时目录，突变/编译检查/探针全在副本内，真树只读；「忘恢复」在电池自身结构性不可能（2026-11-02 立法第三个载体）。md5 前后夹持实证零接触（主会话独立复跑）；副本化后电池+seed verify 并发同发 verify PASS——互踩类死亡。**采纳 S2 提案加基线 vet**：`go vet <pkg>` 进基线（不可达死代码第三机检路径——第七形 vet 一秒定位而 M1 文字锚在死代码下仍 PASS；selftest F 面=synthetic 不可达模块 baseline-red）。
+  [mutation-proof: cd agent-festival && python3 tools/guard-battery.py --selftest → OK]
+  [mutation-proof: cd agent-festival && md5sum go/internal/e2e/e7_canary_test.go > /tmp/gb-md5.$$.chk && python3 tools/guard-battery.py > /dev/null && md5sum -c --status /tmp/gb-md5.$$.chk; rc=$?; rm -f /tmp/gb-md5.$$.chk; exit $rc → OK]
+- **M-4（seed verify 失败遗留克隆→永久毒化审计）**：apply_edits/do_verify 的 SystemExit 路径无清理（清理只在成功路径）——失败克隆遗留固定路径，后续每次审计重跑 token 703/704 必假红「already exists」，且审计判决误诊为「token 陈旧」（恰是审计要抓的那类，真陈旧与毒化不可分辨）。实证：M4 PASS→（M-3 探针遗留 /tmp/seed-tok-ood）→M4 两次假陈旧→手工 rm 复绿。已修：copytree 后全段 try/except——任何失败删克隆+manifest、loud 一行、原错重抛；毒化源结构性死亡（失败路径 demo：坏锚副本 exit 1+克隆目录不存在）。**残留声明**：token 703/704 固定路径保留原样（append-only 纪律，不就地改写历史条目）；并发双审计互踩固定路径的假红残余=瞬态（下次自愈），由本条新 token 的 mktemp 隔离形态示范承接方向。
+  [mutation-proof: d=$(mktemp -d); cd agent-festival && python3 tools/seed.py --family ood-skip-subtest --out $d/c --verify; rc=$?; rm -rf $d; exit $rc → OK]
+- **M-5（调用方绕过面——守卫静默下路，borderline B）**：把 e7 两处 `mustGuardedStream(t)` 调用换裸 `canaryMaskingStream()` **e2e 全包绿**（主会话亲手复现 0.068s）——十形电池只突变构造器，探针对不观测调用图；「换结构让守卫退化不可表达」在调用方粒度被证伪（第七形同病上移一层）。已修两层：(1) **consumers 锚**——SPECS[0] 注册调用点模式+计数，--check 计数漂移=红（绕过 0/2 实证红；锚漂移响亮，非形态钉的静默开放集）；(2) **诚实声明**——mustGuardedStream docstring+模式文档头注边界（探针观测构造器非调用图；新调用点须同 diff 更新锚或声明绕过）。selftest E 面（消费者计数漂移 red）。
+  [mutation-proof: cd agent-festival && python3 tools/guard-battery.py --check → OK]
+  [mutation-proof: cd agent-festival && python3 tools/guard-battery.py --selftest → OK]
+- **m-1（「same five-shape set」措辞失实）**：漂移表与 meta 表共享的是五条**检查**（oracle 同一），漂移**行**集仅 ~3/5 交叠——「同形集」不成立（声明失实族）。已修：措辞改「same five CHECKS…rows not the same set」+交叠事实入注。
+- **m-2（manifest「读不到」过度声明）**：manifest 落克隆旁同名可预测文件，`ls` 即见——位置隔离≠不可读。已修：seed.py docstring+语料 §三 改真实边界（克隆内不可见；旁路可枚举；有效性靠不知情+诚实）。
+- **m-3（台账 timing 数字漂移）**：ledger 「全跑 ~17s」（C2' 成本声明）实测 37.8s standalone/30.2s race 内——C2' 后新增 4 token 使数字漂移 2.2 倍无日期注（S1 引行号 163 有误，实为 617 行）。本条即日期注；数字随 token 数继续漂（副本化后 M4 更重——token 含电池全跑两次；-short 跳过不变），以当轮实跑为准，不再维护静态秒数声明。
+- **m-4（refuse() 注释机理写反）**：e7「refuse() only serves adopted operations」与 adopt.go dispatchGated 矛盾——未知 op 在 `!ok` 裸返回，refuse 恰服务「已知但非 adopted 态」（adopt.go:368）。R48 M-2 判据行（可达性声明须有代码锚）的实跑样本：该行只约束审查动作，声明自身无锚即漏网。已修：注释改真+内嵌代码锚（S2-3 条款落地首单）。
+- **m-5（裸构造器 doc 低报消费者）**：e7 裸构造器 doc「remains for the meta probe」缺守卫构造器默认分支与 AcceptsHealthy 变体两个消费点——熔块族轻症。已修：消费者枚举补全。
+- **m-6（记账不修）**：guard-battery --selftest 每跑漏一个临时目录（mkdtemp 不清理）——/tmp 23 个残留当轮手工清；下次触碰电池时顺带修。
+- **m-7（记账不修）**：围栏态对不配对围栏静默降级（孤儿 ``` 使其后内容全部惰性直到下一个 ```）——当前台账恰一对配平；未来加「围栏不配对=响亮」检查关闭。
+- **标定**：植入 2 检出 2/2（见下节）。
+- **方法论入账（第 80/81/82 实证）**：**副本化优于锁**（M-3——锁协调先后，副本化让互踩不可表达；克隆式植入立法的适用泛化）；**解析器的文档面必须与语法面同宽**（M-2——行内面修了围栏面没修=语法面窄于文档面，既成文档风格即攻击面）；**信任根的解析面必须与仓内命名约定同宽**（M-1——在场闸只认数字 id=letter 形静默免检）。
+- **条款双源（S1/S2/S3 共 9 提案）**：采纳 7（vet 基线/围栏=文档/letter 闸/consumers 锚+声明/副本化+自洁/seed 锚开轮面/E7a② 负孪生+改流形待下轮）、收窄 1（replay 失败带成因行）、驳回 1（SKIP-ENV）——裁决理由全录 runbook §四。
+
+## R58 标定（植入 2，检出 2/2）
+
+- 植入：`battery:seventh_early_return`（known/RED——--verify 实证克隆内探针红）+ `ood-loose-assert`（OOD/GREEN——--verify 实证 -short 全绿），双克隆 /tmp/ngaf-r58-{known,ood}，manifest 写克隆旁（仓外）。
+- 审查者：两个**独立零上下文空白子**（Opus，fable 不可用降级——见上节偏差声明），告知「普通审查」，不知有植入；审查对象=e2e 包（重点 e7_canary_test.go）。**派发卫生**：克隆剔除未跟踪会话文件（KICKOFF/HANDOFF/loop-progress.log/impl-2026-11-01/ngaf-launch.sh——KICKOFF 明文描述植入协议，不清则标定塌缩为「找已知植入」）。
+- 检出路径：known 族=空白子跑**机械检查**（vet unreachable 一秒定位+探针 6 红+电池 BASELINE RED）定谳第七形，附突变-恢复闭环+md5 复原——known 族的测量目标（审不审机械面）成立；OOD 族=**判别突变**（构造器改写返回流的 Outcome：现行两字段投影放行=GREEN、恢复三字段=RED）+R56 M-1 台账 vs 代码一致性走读（4-lens）定谳投影削弱。
+- **诚实注记（泛化率=近似度量，本轮按上限读）**：(1) OOD 族定义在仓内 seed.py 且描述与植入逐字同构，审查者引用其为证据——检出带**强分布内成分**；(2) 克隆审查范围聚焦 e2e（重点文件即植入文件）——聚焦度高于全增量轮；(3) OOD 审查者对两枚连锁伪影（seed 锚失配/token 假陈旧）正确归因于树态而非环境——归因质量好，但属植入间接信号。**下次标定改进**：OOD 族取 campaign 外模式（语料 §三既定优先级；本轮池中无外族，如实声明）。
+- 克隆处置：/tmp/ngaf-r58-* 及 manifest 于本节记账后清理（证据=本节+上节）。

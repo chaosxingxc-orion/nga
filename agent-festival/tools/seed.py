@@ -6,8 +6,10 @@ defects that CI cannot?).
 
 Clone-based planting: the defect is applied to a THROWAWAY COPY of the
 working tree — the real tree is never contaminated (a forgotten revert is
-structurally impossible). The manifest is written OUTSIDE the clone, so
-the reviewer cannot read what was planted.
+structurally impossible). The clone itself contains no manifest, but the
+sibling manifest file is enumerable by anyone listing the parent
+directory; the measurement's validity rests on the reviewer's ignorance
+and honesty, not on unreadability.
 
 Two plant classes:
   battery:<form>   a known-family defect (a battery mutation). The clone's
@@ -154,6 +156,42 @@ def do_verify(clone: Path, fam):
                          f"green-preserving (this one is just a bug):\n{out[-1500:]}")
 
 
+def check_anchors():
+    """R58 replay face M7: the opening replay gate never exercised the seed
+    catalog (planting plus a full clone run per family is too heavy for a
+    gate), so a stale injector anchor was silent at round open — the red
+    only fired when someone manually ran --verify, if ever. This dry run
+    materializes every family's edits exactly as planting would (battery:*
+    families via materialize_battery_edit, catalog families as-is) and
+    requires every anchor to match the REAL tree exactly once. Zero writes."""
+    bad = 0
+    for fid, fam in CATALOG.items():
+        edits = fam["edits"]
+        if edits is None:  # battery family: single-source, same as planting
+            edits, _ = materialize_battery_edit(fid)
+        ok = True
+        for rel, find, _replace in edits:
+            f = ROOT / rel
+            if not f.exists():
+                print(f"{fid}: MISSING FILE {rel} — anchor check impossible (expected 1, found 0)")
+                ok = False
+                bad += 1
+                continue
+            n = f.read_text().count(find)
+            if n != 1:
+                print(f"{fid}: STALE ANCHOR in {rel} — expected 1, found {n} "
+                      "(anchor discipline: loud, not silent; update seed.py)")
+                ok = False
+                bad += 1
+        if ok:
+            print(f"{fid} → OK ({len(edits)} anchor(s) match exactly once)")
+    if bad:
+        print(f"seed --check-anchors: {bad} stale/missing anchor(s) — "
+              "the catalog is stale, planting would fail")
+        return 1
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--list", action="store_true")
@@ -161,8 +199,15 @@ def main():
     ap.add_argument("--out", help="clone target directory")
     ap.add_argument("--verify", action="store_true", help="prove the expected color, then clean up unless --keep")
     ap.add_argument("--keep", action="store_true", help="keep the clone for reviewer dispatch")
+    ap.add_argument("--check-anchors", action="store_true",
+                    help="dry run: every catalog family's anchors must match the real tree "
+                         "exactly once each (zero writes; mutually exclusive with --family/--out)")
     args = ap.parse_args()
 
+    if args.check_anchors:
+        if args.family or args.out:
+            raise SystemExit("seed: --check-anchors is a dry run and takes no --family/--out")
+        return check_anchors()
     if args.list:
         for fid, fam in CATALOG.items():
             print(f"{fid}\t[{fam['color']}] {fam['desc']}")
@@ -185,26 +230,39 @@ def main():
         edits, _ = materialize_battery_edit(args.family)
 
     copy_tree(out)
-    apply_edits(out, edits)
-    manifest = {
-        "family": args.family,
-        "desc": fam["desc"],
-        "color": fam["color"],
-        "clone": str(out),
-        "edits": [{"file": rel, "find": find[:80], "replace": replace[:80]} for rel, find, replace in edits],
-    }
     manifest_path = out.parent / (out.name + ".seed-manifest.json")
-    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2))
-    print(f"planted {args.family} -> {out}")
-    print(f"manifest (OUTSIDE the clone): {manifest_path}")
+    # R58 M-4: any failure after the clone exists (stale edit anchor, verify
+    # red, interrupt) must remove the clone AND the manifest before
+    # re-raising the original error. A verify-failure residue left at a
+    # fixed path once made every later audit rerun fail with "already
+    # exists" — indistinguishable from real token staleness, i.e. the exact
+    # failure class the audit exists to catch. The pre-copytree failure
+    # (target already exists) has nothing to clean.
+    try:
+        apply_edits(out, edits)
+        manifest = {
+            "family": args.family,
+            "desc": fam["desc"],
+            "color": fam["color"],
+            "clone": str(out),
+            "edits": [{"file": rel, "find": find[:80], "replace": replace[:80]} for rel, find, replace in edits],
+        }
+        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2))
+        print(f"planted {args.family} -> {out}")
+        print(f"manifest (sibling of the clone, enumerable): {manifest_path}")
 
-    if args.verify:
-        do_verify(out, fam)
-        print(f"verify PASS — expected {fam['color']} reproduced in the clone")
-        if not args.keep:
-            shutil.rmtree(out)
-            manifest_path.unlink()
-            print("clone cleaned (use --keep to dispatch a reviewer against it)")
+        if args.verify:
+            do_verify(out, fam)
+            print(f"verify PASS — expected {fam['color']} reproduced in the clone")
+            if not args.keep:
+                shutil.rmtree(out)
+                manifest_path.unlink()
+                print("clone cleaned (use --keep to dispatch a reviewer against it)")
+    except BaseException:
+        shutil.rmtree(out, ignore_errors=True)
+        manifest_path.unlink(missing_ok=True)
+        print(f"seed: verify/edit failed — clone cleaned: {out}", file=sys.stderr)
+        raise
     return 0
 
 

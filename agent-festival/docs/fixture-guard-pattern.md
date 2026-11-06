@@ -8,6 +8,9 @@
 > 让守卫的失败变成返回值（件 3'），探针只看「漂移过守卫路径是否产生 error」这一个语义量，
 > 不看源码任何形态。十形突变电池（删除/体no-op/`_=`/吞错/if-false/早退死代码/参数忽略/
 > 恒nil/恒error/检查掏空）全红。
+> **R58 更正（M-5）**：「不可表达」在**构造器粒度**成立，调用方粒度不成立——把调用点换回
+> 裸构造器全包绿（探针对不观测调用图，主会话亲手实证）。承接：--check consumers 锚
+> （调用点计数漂移=响亮红）+ 件 2/件 3' docstring 边界声明。
 > 用法：新实验的夹具守卫按此六件落地；本文件是 grep 对齐模板（不新建包）。
 
 ## 六件形态（以 E7 canary 线为已验证实例）
@@ -16,7 +19,7 @@
 |---|---|---|---|---|
 | 1 | **纯函数检查** | `func checkX(stream) error`——多谓词检查、每条可独立删除 | `canaryMaskingFixtureCheck`（五查） | 每查删→meta 探针红（R52 五删全红） |
 | 2 | **t.Fatal 便利件**（可选） | `func guardX(t, stream)`——仅供直接调用点 | `canaryMaskingFixtureGuard`（半真流测试用） | **自身无红面，且不是连接层**——t.Fatal 期望不可断言（断言"应死"则守卫活着也红）。R53-R56 连接层 saga 的结构成因；红面一律归件 3' |
-| 3' | **错误返回式自守卫构造器**（核心） | `func streamGuardedX(streams ...) (stream, error)`——构造+检查，**失败即返回 error** | `canaryMaskingStreamGuarded`（R57 C1' 改造） | **形式无关红面**：`TestX_GuardedPathRejectsDrift`（五形漂移表+空流全须 error）+`TestX_GuardedPathAcceptsHealthy`（健康流须过且**返回入参本体**——杀参数忽略） |
+| 3' | **错误返回式自守卫构造器**（核心） | `func streamGuardedX(streams ...) (stream, error)`——构造+检查，**失败即返回 error** | `canaryMaskingStreamGuarded`（R57 C1' 改造） | **形式无关红面**：`TestX_GuardedPathRejectsDrift`（五形漂移表+空流全须 error）+`TestX_GuardedPathAcceptsHealthy`（健康流须过且**返回入参本体**——逐事件 seq/type/outcome 三字段投影相等，杀参数忽略；R58 S3 判别突变实证：投影丢 Outcome 则 Outcome 漂移静默放行）。**调用方绕过面（R58 M-5）**：探针不观测调用图——调用点由 --check consumers 锚钉计数，新调用点须同 diff 更新锚或声明绕过 |
 | 4 | **表驱动 meta 探针** | `TestX_GuardChecksProbed`——每行=漂移流钉一条检查+健康对照 | `TestE7b_GuardChecksProbed`（五行+健康） | 删任一检查→对应行红（检查层红面）；与件 3' 共享同一漂移表 oracle |
 | 5 | **参数化**（并入件 3'） | 构造器接受 stream 参数 | 同上（`streams ...[]ledger.Event`） | 参数忽略形→接受面 identity 断言红（R56 M-1 教训：传默认本体+len 检查=恒真） |
 | ~~7~~ | ~~调用链源码钉~~ **已退休（R57）** | ~~`TestX_GuardCallChainPinned` 文字钉~~ | 已删除 | 退休理由：形态开放集——第七形（早退死代码）使六形钉全绿。职责转移给件 3' 的行为探针对 |
@@ -40,6 +43,8 @@
 □ 先行反例：复发输入先于修复存在（回归测试=反例的固化形态；同 diff 落地）
 □ 攻击声明行：清偿条目写明替换件被哪些突变形攻击过（纯新增修复标 N/A）
 □ 电池红必须是测试红：mutant 先过编译检查——编译失败=BROKEN（电池故障），不计「抓到」（76）
+□ 调用方消费者锚（R58 M-5）：守卫构造器的调用点注册 consumers 锚（guard_specs.py）——绕过=计数漂移=--check 红；新增/删除调用点同 diff 更新锚
+□ 声明行带代码锚（R58 采纳）：注释里「only serves / never / cannot」类可达性声明内嵌 file:line——机理漂移可机械对表（R58 实证：refuse() 注释机理写反=声明自身无锚即漏网）
 □ 架构批自身的声明也须突变实测（R56 教训：件 6*「删守卫→接线钉真红」未实测即入 doc，突变一跑即假——第九次假声明实证，立法者自首单）
 ```
 
@@ -62,6 +67,8 @@
 | **形态钉的开放集** | R57 元分析 §四 | 这个钉枚举了几种形态？形态集封闭吗？（不封闭=只能换观测面，不能加形态） |
 | **声明失实是最大族** | R57 元分析 §一 | doc/台账/回复里的每个「已做/✅/已存/已推」，当轮机械核验过吗？（B/M 里 5/20） |
 | **声明先于调用** | R57 自首（假声明 #10） | 说「已存/已提交/已跑」时，对应的工具调用已返回成功了吗？不许预报 |
+| **调用方绕过面** | R58 M-5 | 调用点换裸构造器→什么红？全绿=绕过面未承接（consumers 锚 or 边界声明） |
+| **声明行代码锚** | R58 m（refuse() 机理写反） | 「only/never/cannot」注释声明带 file:line 锚了吗？走读逐字对表 |
 
 ## 判据的机器面映射（已迁往单一真源）
 

@@ -84,8 +84,10 @@ func canarySilent(events []ledger.Event) bool {
 
 // TestE7a_UnknownOpDispatchUntraceable pins the GRAMMAR GAP (face ①): a
 // dispatch attempt on an operation that was never adopted is rejected as a
-// PURE RETURN VALUE — no control event is written (refuse() only serves
-// adopted operations). This is the fact behind xia's canary discipline
+// PURE RETURN VALUE — no control event is written (unknown ops return
+// before refuse() is ever reached — adopt.go dispatchGated returns bare on
+// !ok; refuse() serves known ops whose state is not adopted, adopt.go:368).
+// This is the fact behind xia's canary discipline
 // being unimplementable in this form today; it flips when the grammar
 // grows a traceable unknown-op refusal (rewrite, not fix).
 func TestE7a_UnknownOpDispatchUntraceable(t *testing.T) {
@@ -291,8 +293,10 @@ func TestE7b_HalfRealStreamFace(t *testing.T) {
 // canaryMaskingStream (R49 m-5/M-1, R53 M-2 superseded): the SHARED
 // 5-event fixture for the disease/green DUAL tests. R53 M-2 retired the
 // "callers must guard" convention — use canaryMaskingStreamGuarded for
-// the self-guarding form; this bare constructor remains for the meta
-// probe (which needs the raw stream).
+// the self-guarding form; this bare constructor remains the shared default
+// fixture — consumers today: the meta probe (raw stream), the guarded
+// constructor's default branch, and the AcceptsHealthy variant forms
+// (R58 m-5: the old "remains for the meta probe" enumeration undercounted).
 func canaryMaskingStream() []ledger.Event {
 	return []ledger.Event{
 		{EventType: "control", ArbitrationSeq: 0, Outcome: ledger.Outcome{Status: "rejected", Detail: "business guard rejection"}},
@@ -586,8 +590,10 @@ func TestE7b_GuardChecksProbed(t *testing.T) {
 // an early return (the R57 meta-analysis B3 "seventh form"), `_ =`-discarded,
 // swallowed behind an if without the error path, wrapped in `if false`, or
 // applied to the default fixture while the caller's stream is discarded.
-// The drift table is the same five-shape set the meta probe enumerates, so
-// the check layer and the path layer share one oracle.
+// Both tables share the same five CHECKS (one oracle — the claim that
+// matters); their drift ROWS are not the same set (R58 m-1: the old "same
+// five-shape set" wording was false — the path table enumerates wiring
+// shapes, the meta table enumerates check-detection shapes, ~3/5 overlap).
 func TestE7b_GuardedPathRejectsDrift(t *testing.T) {
 	driftForms := []struct {
 		name   string
