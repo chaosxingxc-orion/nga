@@ -1,3 +1,9 @@
+# Active CPU/NPU separated RC1 entry
+
+The deployed successor is `phased/queue_proposal.py`, with exact reviewed `phased/config.json` and `phased/phase_wrapper.py`. It waits for existing training, runs one bounded smoke, then eight full DEV bundles. NPU inference exits before scoring in a separate CPU container (two jobs, four cores each). The 27B waiter depends on selected inference exits, not CPU scoring. Output: `followup-cpu-separated-rc1`. Actual NPU smoke remains pending.
+
+Run the host dispatcher detached from the phased directory with `python3 -I -u queue_proposal.py` only after reconciling its existing live handle; do not launch duplicates. The installed dispatcher is already waiting on175. Terminal identity and artifact tests passed independent review. The original files below are retained as the superseded monolithic source and integration reference; do not restart that queue.
+
 # Fixed RC1 functional DEV entry
 
 This is the reviewed deployment source for the eight trained-adapter DEV bundles on175. The configuration is consumed by queue.py; model/data/recipe identities remain fixed for this campaign. Protocol: experiments/RC1-FUNCTIONAL-DEV.md. These scripts depend on the pinned existing evaluation closure on Ceph and the installed image; they are not a standalone laptop evaluator.

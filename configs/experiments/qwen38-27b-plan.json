@@ -3,7 +3,7 @@
   "model": "Qwen/Qwen3.8-27B",
   "revision": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
   "model_path": "/mnt/cephfs/models/Qwen3.8-27B",
-  "status": "preparing",
+  "status": "waiting_for_training_and_dev_inference",
   "engineering_base": "engineering-base-rc1",
   "resource": {
     "host": "175",
@@ -20,7 +20,7 @@
     {
       "id": "prepare",
       "depends_on": [],
-      "status": "running",
+      "status": "complete_for_inference_smoke",
       "resource": "cpu",
       "dispatchable": false
     },
@@ -29,9 +29,9 @@
       "depends_on": [
         "prepare"
       ],
-      "status": "planned",
+      "status": "waiting_dependencies",
       "resource": "npu4",
-      "dispatchable": false
+      "dispatchable": true
     },
     {
       "id": "fixed-reference-test",
@@ -108,5 +108,29 @@
       "dispatchable": false
     }
   ],
-  "note": "Planning DAG, not an executable admission manifest. Exact commands, protocols and recipe must be fixed before dispatch; CPU preparation is already running."
+  "note": "Planning DAG with the reviewed inference smoke waiter deployed. dispatchable means admitted conditional dispatch, not NPU execution or success. Full reference protocol and trainable LoRA sharding remain pending.",
+  "inference_dispatch": {
+    "host": "175",
+    "chips": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "config": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/qwen38-dev-host-rc1/CONFIG.json",
+    "output": "/mnt/cephfs/xingchao/experiments/jev/qwen38-dev-host-smoke-rc1",
+    "dependency_poll_seconds": 600,
+    "wait_for_cpu_score": false,
+    "workload": {
+      "dev_items": 5,
+      "conditions": [
+        "full",
+        "blank",
+        "drop"
+      ],
+      "candidate_forwards": 723,
+      "maximum_full_tokens": 1033
+    },
+    "review": "PASS_FOR_WAITING_DISPATCH_AND_BOUNDED_SMOKE"
+  }
 }
