@@ -17,6 +17,17 @@ token 的清偿条目 = **自动 M**。token 必须在提交前当轮跑过；�
 机器解析杀「缺席/语法/执行失真/陈旧」；恶意作者的语义假 token（如 `true → OK`）不可机检
 ——信任根=仓库提交者，与任何 CI 同界；OK 形的漂移保护来自验证脚本做真活。
 
+**修复义务协议（R57 C3' 后立法——修复自播种 35% 实证的结构性退役）**：
+从 R57 起，凡修复引入或改动守卫替换件（件 3' 形构造器）：(1) **替换件先过电池**——
+注册进 `tools/guard_specs.py` 并在同 diff 内过十形电池；`guard-battery.py --check` 是
+注册闸（扫 `func *Guarded(` 签名，未注册=机器红；偏离命名法者须在模式文档声明，否则
+是漏检盲区）；(2) **先行反例**——复发输入先于修复存在且同 diff 落地（回归测试即反例
+的固化形态）；(3) **攻击声明行**——清偿条目写明替换件被哪些突变形攻击过（纯新增标
+N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是测试红**：mutant 先过编译
+检查，编译失败=MUTANT-BROKEN（电池故障），不计「抓到」（第 76 实证）。电池是捕获率
+已知的有穷网，与 C1' 的形式无关探针互补非替代；非守卫修复（doc/谓词/措辞）的替换件
+攻击暂归审查火力面，C4' 语料回放承接（声明边界）。
+
 ## R20-R21 前转入（R18 内环六 m + R19 内环二 m 的遗留）
 
 | # | 位置 | 内容 | 来源 |
@@ -623,3 +634,35 @@ token 的清偿条目 = **自动 M**。token 必须在提交前当轮跑过；�
 
 [mutation-proof: cd agent-festival/go && go test ./internal/settlement/ -run TestSettlementAudit -count=1 → OK]
 [mutation-proof: cd agent-festival && python3 tools/settlement-audit-tamper.py → OK]
+
+## R57 三续记账（2026-11-06，C3' 落地——修复义务协议：电池 spec 化+注册闸+先行反例）
+
+> 元分析 v2 第 3 步（B4 根因「修复自播种 35%」的药）。判据 63（替换件自检）从
+> 「无执行面」变「一条命令」。
+
+- **机制一：电池 spec 化（tools/guard-battery.py 重写 + tools/guard_specs.py 注册表）**：
+  十形突变从 E7 硬编码升格为 spec 驱动——任何件 3' 形守卫注册 spec（guard_block/
+  param_block/check_open 三锚 + probes 选择器）即得电池；回归验证：E7 spec 十形全红、
+  子测试数与硬编码版逐项全等（6/6/6/6/6/6/8/6/4/7）。**电池红必须是测试红**：mutant
+  先过零测试编译检查（`go test -run '^$'`），编译失败=MUTANT-BROKEN 不计「抓到」——
+  这补上硬编码版就存在的真洞（破损 mutant 会被误计为红）。
+- **机制二：注册闸（`--check`）**：扫仓内 `func *Guarded(` 签名声明，未注册守卫=机器红；
+  spec 三锚失配（守卫被改形而 spec 未更）=机器红。命名法遵模式文档；刻意偏离者是声明
+  盲区（模式文档已注明，静默漂移不许）。
+- **机制三：电池自测四面（`--selftest`）**：A 未注册守卫被抓 / B 锚漂移被抓 / C 良构
+  fake spec 过闸且十形全红 / D 破损 mutant 报 BROKEN 不计红。红面全在合成树，零仓接触。
+- **协议立法**：header 修复义务协议——(1) 替换件先过电池（注册+同 diff 全红）；
+  (2) 先行反例同 diff（复发输入先于修复存在，回归测试即其固化）；(3) 攻击声明行
+  （清偿条目写明替换件被何攻击，纯新增标 N/A）。**诚实边界**：电池=捕获率已知的有穷网，
+  与 C1' 形式无关探针互补非替代；非守卫修复的替换件攻击暂归审查火力面（C4' 承接）；
+  注册闸签名扫描的命名法依赖已声明。
+- **本批自身的攻击声明行**：替换件=guard-battery.py 重写+guard_specs.py 新建；被攻击面=
+  selftest 四面（A/B/C/D）+ E7 spec 十形回归全等 + 注册闸对真仓 PASS；先行反例=D 面
+  （破损 mutant 在修 compile-check 之前就能逃过电池——先构造反例后写检查）。
+- **方法论入账（第 76/77 实证）**：**编译红≠测试红**（不验编译的电池把破损 mutant 误计
+  为「抓到」——D 面反例先构造后修复，探针先红即抓实现病）；**注册闸的签名面是约定的
+  投影**（`*Guarded` 命名法遵模式文档则扫描完备，偏离即声明——机器面的边界必须与约定
+  的边界对齐声明）。
+
+[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --check → OK]
+[mutation-proof: cd agent-festival && python3 tools/guard-battery.py --selftest → OK]
