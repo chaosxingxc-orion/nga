@@ -1,0 +1,51 @@
+# 守卫五件模式（fixture-guard 五件套）——E7 线沉淀的已验证形态
+
+> 出处：R47-R55 八轮清偿实证。范式：结构性预防立法（2026-11-02）的测试夹具层适用——
+> **换结构让守卫退化不可表达**，而不是靠下一轮空白子抓。
+> 用法：新实验的夹具守卫按此五件落地；本文件是 grep 对齐模板（不新建包）。
+
+## 五件形态（以 E7 canary 线为已验证实例）
+
+| # | 件 | 形态 | 已验证实例（e7_canary_test.go） | 退化防护 |
+|---|---|---|---|---|
+| 1 | **纯函数检查** | `func checkX(stream) error`——多谓词检查、每条可独立删除 | `canaryMaskingFixtureCheck`（五查） | 每查删→meta 探针红（R52 五删全红） |
+| 2 | **薄 wrapper** | `func guardX(t, stream)`——t.Fatal 适配 | `canaryMaskingFixtureGuard` | wrapper 掏空→**红面为零**（R53/R54 实证——连接层是惯例层） |
+| 3 | **自守卫构造器** | `func streamGuardedX(t) stream`——构造+检查一体 | `canaryMaskingStreamGuarded` | 删守卫=**re-route 一 token 可编译**（R54 M-2 实证——convention enforcement 非 compile guarantee） |
+| 4 | **表驱动 meta 探针** | `TestX_GuardChecksProbed`——每行=漂移流钉一条检查+健康对照 | `TestE7b_GuardChecksProbed`（五行+健康） | 删任一检查→对应行红（检查层红面） |
+| 5 | **接线钉** | `TestX_GuardedStreamWiredToCheck`——连接层契约钉 | `TestE7b_GuardedStreamWiredToCheck`（HONEST 形态：参数布线+构造存活） | **红面为零**（R54/R55/R56 实测——行为层连接钉，真红面由件 7 承担） |
+| 6 | **参数化守卫** | wrapper 接受 stream 参数→漂移流可注入 wrapper 路径（守卫活着时 fatal） | `canaryMaskingStreamGuarded(t, streams ...[]ledger.Event)`（R55/56 落地） | **删守卫→行为面零红**（R56 突变实测：t.Fatal 期望不可断言——断言"应死"则守卫活着也红；件 6* 原「接线钉真红」声明为假，已诚实回收） |
+| 7 | **调用链源码钉** | `TestX_GuardCallChainPinned`——源码级断言构造器含守卫调用+wrapper 含纯检查调用（docstring_pin 形态泛化） | `TestE7b_GuardCallChainPinned`（R56 新增） | **M-A（掐调用）/M-B（体 no-op）双面红**（R56 突变实测）——连接层红面的真承担者 |
+
+## 落地纪律（写新守卫时的 grep 对齐清单）
+
+```
+□ 件1 纯函数（返回 error，不用 t.Fatal）
+□ 件2 wrapper（一行：check → t.Fatal）
+□ 件3 构造器（构造+守卫一体，或诚实声明 convention）
+□ 件4 meta 探针（表驱动：每检查一条漂移行+一行健康对照）
+□ 件5 接线钉（行为层：参数布线+构造存活——不宣称连接红面）
+□ 件6 参数化（可选——漂移注入使能面，非红面承担者）
+□ 件7 调用链源码钉（连接层红面：构造器→守卫、wrapper→纯检查两跳文字钉）
+□ 谓词枚举：按被测件的定义式列全次序/条件（三序钉二=R50/R51 教训）
+□ 守卫替换用增量替换（不整块换——canarySilent 位置语义被换丢=R51 M-2 教训）
+□ 恒真自检：写完跑「删 wrapper 检查」突变——红面为零时 HONEST claim（不假称红面）
+□ doc 挂靠：godoc 紧邻其载体（插入函数时加空行分离——六次熔块教训）
+□ 清偿台账条目内嵌 [mutation-proof: <cmd> → FAIL] token（R55 后协议）
+□ 架构批自身的声明也须突变实测（R56 教训：件 6*「删守卫→接线钉真红」未实测即入 doc，突变一跑即假——第九次假声明实证，立法者自首单）
+```
+
+## 八轮实证沉淀的判据（grep 时对照）
+
+| 判据 | 出处 | grep 检查 |
+|---|---|---|
+| 构造即断言 | R47 B-1 | 断言的字段是否 helper 自己写死？ |
+| 观测面失明 | R48 M-1 | 失败成因经哪条路径读什么字段？断言面能观测它吗？ |
+| 可达性声明须有代码锚 | R48 M-2 | 「only yields」「cannot」每字有实现支撑吗？ |
+| 守卫谓词完备性 | R50 M-1 / R51 M-2 | 被测件定义式（died ⟺ ...）的每条次序都钉了吗？ |
+| 守卫自身需红面 | R52 M-1 | 删检查→什么测试红？零红面=守卫是装饰 |
+| 连接层是惯例层 | R53 M-2 / R54 M-1 | 删 wrapper 调用→什么测试红？零红面=诚实声明 |
+| 修恒真的替换件自带新恒真 | R54 M-1 / R55 M-2 | 替换后跑恒真自检（nil 检查对字面量恒假=R55 抓） |
+| 复制式归位不是归位 | R53 M-1 / R54 M-3 / R55 M-1 | 原文删了吗？grep 唯一命中？ |
+| 0.2.0 门错挂 | R55 m-1 | 测试文件内签名改动 ≠ schema 依赖 |
+| t.Fatal 期望不可断言 | R56 | 断言"守卫应死"的测试在守卫活着时也红——期望红面须走纯函数探针（件 4）或源码钉（件 7） |
+| 架构批声明同受突变协议辖 | R56 | 立法/doc 里的红面声明实测过吗？（件 6* 教训：未实测即写「真红」→ 突变一跑即假） |

@@ -3,6 +3,14 @@
 记账规则：外环/内环发现的 MINOR 一律不入修复循环——修 B/M + 同族穷举，
 minor 只记账。本文件即台账；每轮新增追加，不删除（退役另标）。
 
+**清偿证明协议（R55 后立法——虚假清偿八次实证的结构性退役）**：
+从 R56 起每条 M/B 清偿的台账条目**必须内嵌突变命令 token**——形式
+`[mutation-proof: <可复跑命令> → FAIL]`。没有 token 的清偿条目 =
+**自动 M**（空白子审核火力面新增此项）。token 必须在提交前当轮跑过
+且输出含 FAIL——声称跑过而 grep/测试结果可当场证伪（R55 M-1 形态）
+= 比虚假清偿更重半级（伪造验证证据级）。纯文本 token 仍可伪造——
+0.2.0 批将其机器解析（CI 可跑）后彻底不可伪造。
+
 ## R20-R21 前转入（R18 内环六 m + R19 内环二 m 的遗留）
 
 | # | 位置 | 内容 | 来源 |
@@ -426,3 +434,34 @@ minor 只记账。本文件即台账；每轮新增追加，不删除（退役�
 - **M-2（接线钉新恒真+doc 头体矛盾）**：R54 M-1 修恒真的替换件自带新恒真（`stream == nil` 对字面量 slice 恒假——构造即断言）+doc 首行「REAL red face」与 body「conventions pin not a red-face probe」矛盾。守卫连接层（wrapper 掏空）红面终态为零——R53 M-2 的病原样开放。已修：死断言改 len 检查+doc 改真（CONVENTIONS PIN 诚实形态）。
 - **m-1（0.2.0 门错挂）**：「连接层红面需 wrapper 参数化=0.2.0 形态」不实——wrapper 加 stream 参数是测试文件内签名改动，与 canary 字段化（真正的 0.2.0 schema 面）零依赖。已修：措辞改「test-form change, no grammar dependency — deferred as structural-improvement batch item」。
 - **方法论入账（第 62/63 实证）**：**声称了验证证据而证据为假**（M-1——比声称修复更重：验证 token 本身被伪造；这正是我方架构分析建议的「账本-突变证明耦合」要消灭的终极形态——伪造的 token 也能骗过纯文本审计，只有 CI 可跑的 token 才不可伪造）；修恒真的修复要先跑**替换件自身的恒真检查**（M-2——R54 M-1 只验了旧恒真被消除，没验新形态不恒真）。
+
+## R56 架构批记账（2026-11-06，结构性改进三件全落地——清偿证明协议首单即自抓）
+
+> 本轮非复审轮——是 B/M 总审查四族聚类的三项结构性改进落地批（用户口令「这几个都做了」）。
+> **协议首单实证**：清偿证明协议（R55 后立法）落地后的第一个使用者是立法者自己——
+> 件 6* 的红面声明（「删守卫→接线钉真红」）在突变实测下当场证伪，**第九次假声明实证**，
+> 且是协议**拦在提交前**的第一单（既往八次全部是空白子复审轮后置抓出）。
+
+- **批件 1（review-loop 协议增条）**：ledger 头部清偿证明协议——M/B 清偿条目必须内嵌
+  `[mutation-proof: <cmd> → FAIL]` token，无 token = 自动 M；纯文本 token 仍可伪造，
+  0.2.0 批机器解析。已落地（本条目自身即首批 token 载体）。
+- **批件 2（守卫五件模式文档化）**：`docs/fixture-guard-pattern.md`——五件形态表+落地
+  纪律 grep 清单+九判据对照表。R56 修正：件 6* 行原声明「删守卫→接线钉真红」**未实测
+  即入 doc**——突变一跑双面全绿（M-A 掐构造器守卫调用→行为面零红；M-B 守卫体 no-op→
+  行为面零红；t.Fatal 期望不可断言——断言「应死」则守卫活着也红）。已诚实回收：
+  件 6 改述为漂移注入使能面（非红面承担者），新增**件 7 调用链源码钉**为连接层红面
+  真承担者。
+- **批件 3a（守卫参数化）**：`canaryMaskingStreamGuarded(t, streams ...[]ledger.Event)`——
+  漂移流可注入 wrapper 路径（守卫活着时 fatal）。构造器/接线钉 doc 的过度声明已改真
+  （HONEST BOUNDARY 段落——参数化使能面，红面归件 7）。
+- **批件 3b（调用链源码钉——docstring_pin 泛化）**：`TestE7b_GuardCallChainPinned`——
+  源码级文字钉两跳：构造器含 `canaryMaskingFixtureGuard(t, stream)`（M-A 面）+
+  wrapper 含 `canaryMaskingFixtureCheck(stream)`（M-B 面）。docstring_pin 形态从
+  「doc 短语钉」泛化为「守卫调用链钉」——连接层由此获得结构性红面。
+  [mutation-proof: 掐构造器 canaryMaskingFixtureGuard 调用 → go test -run TestE7b_GuardCallChainPinned → FAIL]
+  [mutation-proof: canaryMaskingFixtureGuard 体 no-op 化 → go test -run TestE7b_GuardCallChainPinned → FAIL]
+  （双 token 当轮实跑输出均含 FAIL；还原后 e2e 全包绿、gofmt 干净。）
+- **方法论入账（第 64/65 实证）**：**t.Fatal 期望不可断言**（期望守卫 fatal 的测试在
+  守卫活着时也红——连接层红面只有两条真路：纯函数探针〔件 4〕或源码钉〔件 7〕）；
+  **架构批自身的声明同受突变协议辖**（件 6* 教训：红面声明未实测即写「真红」→ 突变
+  一跑即假——立法者、审查者、doc 作者三重身份在突变实测面前无豁免）。

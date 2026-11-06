@@ -313,16 +313,25 @@ func canaryMaskingFixtureGuard(t *testing.T, stream []ledger.Event) {
 	}
 }
 
-// canaryMaskingStreamGuarded (R53 M-2, R54 M-2 corrected): the
-// self-guarding fixture — constructs the shared stream AND runs the
-// check. The dual tests (disease/green) use this. HONEST SCOPE: a
-// convention enforcement, NOT a compile-time guarantee — a caller can
-// re-route to the bare canaryMaskingStream() (one token, compiles, no
-// red face); the half-real face keeps its EXPLICIT guard call (its
-// stream is machine-built, not the shared fixture).
-func canaryMaskingStreamGuarded(t *testing.T) []ledger.Event {
+// canaryMaskingStreamGuarded (R55/56 structural form): the self-guarding
+// fixture — constructs the shared stream AND runs the check, OR guards
+// a CALLER-PROVIDED stream (the parameterized form: a drifted stream
+// passed here fatals WHILE THE GUARD IS ALIVE — the parameterization
+// makes drift injection possible through the wrapper path). HONEST
+// BOUNDARY (R56 mutation-measured): deleting the guard call here, or
+// no-oping the guard body, turns NOTHING behavioral red (a t.Fatal
+// expectation is not assertable in-test) — the connection-layer red
+// face is the SOURCE pin (TestE7b_GuardCallChainPinned). The dual
+// tests use the no-arg form; the wiring probe uses the parameterized
+// form to prove the parameter is wired.
+func canaryMaskingStreamGuarded(t *testing.T, streams ...[]ledger.Event) []ledger.Event {
 	t.Helper()
-	stream := canaryMaskingStream()
+	var stream []ledger.Event
+	if len(streams) > 0 {
+		stream = streams[0]
+	} else {
+		stream = canaryMaskingStream()
+	}
 	canaryMaskingFixtureGuard(t, stream)
 	return stream
 }
@@ -542,28 +551,21 @@ func TestE7b_GuardChecksProbed(t *testing.T) {
 	}
 }
 
-// TestE7b_GuardedStreamWiredToCheck (R55 M-2 honest form): this is a
-// CONVENTIONS PIN, not a red-face probe — the wrapper's check call
-// being dropped (no-op'd) leaves every test green (the fixture is a
-// hard-coded healthy stream; any wiring state agrees). The drift
-// assertion below verifies the CHECK function still detects drift (the
-// check's contract); the guarded-call assertion verifies the wiring
-// still returns a usable stream. The true connection-layer red face
-// needs the wrapper to accept a stream parameter (a test-form change,
-// no grammar dependency — deferred as a structural-improvement batch
-// item).
+// TestE7b_GuardedStreamWiredToCheck (R56 form): the PARAMETERIZED guarded
+// form exists, its parameter is wired (not silently ignored), and the
+// check it runs is live on drift. HONEST BOUNDARY (R56 mutation-measured):
+// this test stays green under BOTH connection-layer mutations — the
+// constructor dropping its guard call, and the guard body no-oping —
+// because a t.Fatal expectation cannot be asserted in-test (asserting
+// "should have died here" makes the test red when the guard WORKS too).
+// The drift line below calls the CHECK directly (that is the meta-probe
+// layer); the connection layer's red face is the SOURCE pin in
+// TestE7b_GuardCallChainPinned — this test is the behavioral half
+// (parameter wiring + constructor liveness on healthy streams).
 func TestE7b_GuardedStreamWiredToCheck(t *testing.T) {
-	// the drifted stream is caught by the check (the drift forms are
-	// probed exhaustively in GuardChecksProbed); here we assert the
-	// contract used by the wiring: the guard is check-backed, i.e. the
-	// same function the meta probe verifies is the one the wrapper runs.
-	// Mutation probe: change canaryMaskingFixtureGuard to a no-op and
-	// GuardChecksProbed stays green (it calls the check directly) — this
-	// test's fixture below DOES go red via the canaryMaskingStreamGuarded
-	// call if the drift could reach the wrapper... which it cannot with
-	// the current signature. HONEST claim: this is a conventions pin,
-	// not a red-face probe — the real connection-layer red face is the
-	// 0.2.0 stream-parameter form.
+	// the drift forms (probed exhaustively in GuardChecksProbed) are
+	// detected by the CHECK — the wrapper calls this same check (the
+	// connection is the wrapper's canaryMaskingFixtureGuard call)
 	drifted := []ledger.Event{
 		{EventType: "control", ArbitrationSeq: 0, Outcome: ledger.Outcome{Status: "rejected", Detail: "business"}},
 		{EventType: "effect", ArbitrationSeq: 1, Outcome: ledger.Outcome{Status: "dispatched"}},
@@ -573,11 +575,60 @@ func TestE7b_GuardedStreamWiredToCheck(t *testing.T) {
 	if err := canaryMaskingFixtureCheck(drifted); err == nil {
 		t.Fatal("wiring probe: the check accepted a drifted stream — drift detection lost")
 	}
-	// the healthy fixture still passes through the guarded form (R55 M-2:
-	// the previous nil check was a constructor tautology — a literal
-	// slice is never nil)
+	// the parameterized form on a HEALTHY caller stream works (proves the
+	// parameter is wired to the guard, not silently ignored)
+	healthy := canaryMaskingStream()
+	guarded := canaryMaskingStreamGuarded(t, healthy)
+	if len(guarded) != len(healthy) {
+		t.Fatalf("wiring probe: parameterized form returned %d events, want %d — the stream parameter is not wired", len(guarded), len(healthy))
+	}
+	// the no-arg form also works (the default constructor path)
 	stream := canaryMaskingStreamGuarded(t)
 	if len(stream) == 0 {
-		t.Fatal("wiring probe: guarded form returned an empty stream")
+		t.Fatal("wiring probe: no-arg form returned an empty stream")
+	}
+}
+
+// TestE7b_GuardCallChainPinned (R56): the CONNECTION-LAYER red face —
+// source-level pin of the guard call chain, generalizing the ledger
+// package's docstring_pin pattern (doc-phrase pinning → call-chain
+// pinning). R56 mutation-measured fact motivating this pin: the
+// behavioral wiring probe above stays green under BOTH connection-layer
+// mutations (M-A: the constructor drops its canaryMaskingFixtureGuard
+// call; M-B: the guard body no-ops) — a t.Fatal expectation cannot be
+// asserted in-test without turning the test red when the guard works.
+// The source pin closes both faces textually:
+//   - M-A → the constructor slice loses "canaryMaskingFixtureGuard(t, stream)"
+//   - M-B → the wrapper slice loses "canaryMaskingFixtureCheck(stream)"
+//
+// Mutation probe: apply either mutation, this test goes red (tokens
+// embedded in the R56 ledger entry).
+func TestE7b_GuardCallChainPinned(t *testing.T) {
+	src, err := os.ReadFile("e7_canary_test.go")
+	if err != nil {
+		t.Fatalf("guard-chain pin: cannot read own source: %v", err)
+	}
+	// funcBody slices the source from a top-level func declaration to the
+	// next one (these helpers contain no nested func literals, so the
+	// textual slice IS the function body plus its trailing comment block)
+	funcBody := func(fn string) string {
+		i := strings.Index(string(src), "func "+fn)
+		if i < 0 {
+			t.Fatalf("guard-chain pin: function %s not found in source", fn)
+		}
+		rest := string(src)[i:]
+		j := strings.Index(rest[1:], "\nfunc ")
+		if j < 0 {
+			return rest
+		}
+		return rest[:1+j]
+	}
+	// M-A face: the guarded constructor must route through the guard
+	if !strings.Contains(funcBody("canaryMaskingStreamGuarded"), "canaryMaskingFixtureGuard(t, stream)") {
+		t.Fatal("guard-chain pin: canaryMaskingStreamGuarded no longer calls canaryMaskingFixtureGuard — the connection is lost (M-A)")
+	}
+	// M-B face: the guard wrapper must route through the pure check
+	if !strings.Contains(funcBody("canaryMaskingFixtureGuard"), "canaryMaskingFixtureCheck(stream)") {
+		t.Fatal("guard-chain pin: canaryMaskingFixtureGuard no longer calls canaryMaskingFixtureCheck — the guard body degenerated (M-B)")
 	}
 }
