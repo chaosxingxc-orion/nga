@@ -106,7 +106,7 @@
       "title": "Validate four-family NPU numerical behavior, resume and throughput",
       "state": "open",
       "component": "integration",
-      "current_action": "After config/resource/comparator repairs, verify full-byte Qwen3.5 0.8B/2B/4B/9B and TRAIN custody on 175, then prepare/review executable NPU DAG; no launch from placeholder manifests"
+      "current_action": "57-file/35.05GB payload matches observed on 175, but shared roots and 777 output fail custody; protected copy/permission review now precedes device driver and NPU queue preparation"
     },
     {
       "id": "RC-06",
@@ -158,13 +158,15 @@
     "npu_device_prepare": ".local/releases/engineering-base-rc1/tasks/npu/device-prepare",
     "npu_device_review": ".local/releases/engineering-base-rc1/tasks/npu/device-review",
     "device_preparation_requires": [
-      "npu/custody-review",
+      "npu/protected-review",
       "npu/resource-review",
       "integration/target-review"
     ],
     "digest_status": "SCOPED_ACCEPTANCE_DIGEST_REPAIR_CONFIRMED_WITH_LIMITATIONS",
     "digest_source_sha256": "0eb2cec7795b849cdecdd94dbe0799fdf9f056ceccf1feec4034c13cb8b7d4f8",
-    "digest_acceptance": ".local/releases/engineering-base-rc1/evidence/digest-local-acceptance/RESULT.json"
+    "digest_acceptance": ".local/releases/engineering-base-rc1/evidence/digest-local-acceptance/RESULT.json",
+    "npu_protected_assets": ".local/releases/engineering-base-rc1/tasks/npu/protected-assets",
+    "npu_protected_review": ".local/releases/engineering-base-rc1/tasks/npu/protected-review"
   },
   "efficiency_queue": {
     "prepare": ".local/releases/engineering-base-rc1/tasks/efficiency/prepare",
