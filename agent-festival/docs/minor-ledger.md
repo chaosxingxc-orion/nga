@@ -857,6 +857,8 @@ N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是
   违规行内）+ **变异回归探针**（拆 id 附着 → tamper FAIL 于新断言，当轮实跑 rc=1）——R60 的
   声明由「事实」升格为「可机械复验」。
   [mutation-proof: python3 -c 'import shutil,pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");shutil.copy(p,str(p)+".probe-bak")' && python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();assert s.count("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)")==1;p.write_text(s.replace("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)","where = where"))' || { echo mutation-failed; exit 1; }; python3 agent-festival/tools/settlement-audit-tamper.py; rc=$?; python3 -c 'import shutil;shutil.copy("agent-festival/go/internal/settlement/settlement_audit_test.go.probe-bak","agent-festival/go/internal/settlement/settlement_audit_test.go")' || { echo restore-failed; exit 1; }; python3 -c 'import os;os.remove("agent-festival/go/internal/settlement/settlement_audit_test.go.probe-bak")'; test $rc -ne 0 → OK]（承接探针——cp 备份还原对缩进漂移免疫（R63 M-2），assert 留作前向哨；检测红形态同 R62 M-2）[retired-by: 无——本行即 R62 M-2 重写后的现役承接探针（原 __MUTATED__ 编译红形已退役，退役标记见上）]
+  [mutation-proof: python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();p.write_text(s.replace("curEntry.id","__MUTATED__"))' && python3 agent-festival/tools/settlement-audit-tamper.py; rc=$?; python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();p.write_text(s.replace("__MUTATED__","curEntry.id"))'; test $rc -ne 0 → OK]（变异回归探针：tamper 必 FAIL 于 id 级绑定断言；还原=逆替换——R61 自抓：cd 链在审计副本语境断裂致 restore 未跑=变异残留污染后续 token，token 命令一律根锚定零 cd）[retired-by: R62 — compile-red not detection-red；R64 M-1 恢复（R63 删除违反 append-only 宪法，原行自 git 历史原样恢复）——（第 76 实证：curEntry.id→__MUTATED__ 不可编译，全断言+control 连带失败=假闭环面）；承接=R62 M-2 自赋值形探针（可编译+可逆+带门）]
+  [mutation-proof: python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();assert s.count("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)")==1;p.write_text(s.replace("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)","where = where"))' || { echo mutation-failed; exit 1; }; python3 agent-festival/tools/settlement-audit-tamper.py; rc=$?; python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();assert s.count("where = where")==1;p.write_text(s.replace("\n\t\t\t\t\twhere = where","\n\t\t\t\t\twhere = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)"))' || { echo restore-failed; exit 1; }; test $rc -ne 0 → OK]（承接探针——与 R62 M-2 同款检测红形）
   [mutation-proof: python3 -c 'import shutil,pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");shutil.copy(p,str(p)+".probe-bak")' && python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();assert s.count("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)")==1;p.write_text(s.replace("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)","where = where"))' || { echo mutation-failed; exit 1; }; python3 agent-festival/tools/settlement-audit-tamper.py; rc=$?; python3 -c 'import shutil;shutil.copy("agent-festival/go/internal/settlement/settlement_audit_test.go.probe-bak","agent-festival/go/internal/settlement/settlement_audit_test.go")' || { echo restore-failed; exit 1; }; python3 -c 'import os;os.remove("agent-festival/go/internal/settlement/settlement_audit_test.go.probe-bak")'; test $rc -ne 0 → OK]（承接探针——cp 形，与 R62 M-2 同款检测红；R63 M-2 缩进漂移免疫）
 - **M-2（裸行占位符假满足 presence+execution——病族第三变体，机器有能力抓而未抓）**：裸行
   `[mutation-proof: <cmd> → FAIL]` 被 tokenRe 当活 token，bash 退出 1≠0 假满足 FAIL——行内
@@ -989,3 +991,30 @@ N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是
   环记账条目惯例刚性化/③审计执行面并发树纪律（copyWorkingTree 快照对并发编辑敏感——本轮实测
   自伤 4 红已归因）三条全采纳入 runbook §四。**内环五轮收敛轨迹：1B/1M/6m → 2M/3m → 1M/3m →
   2M/1m → 0B/0M/2m——两层拓扑（外环挖→清偿→内环验增量至 0B/0M）恢复后首战收敛。**
+
+## R64 复审记账（2026-11-07，E7 全增量 2f232e9..e8f28d4——0B/1M/5m：M 清偿，minor 积累不修；连净计数 0）
+
+> 空白子第 64 轮（外环，审 R63 全轮输出）。基线：replay 7/7 + race 22 包绿。范围纠错（m 类教训）：
+> 任务书手写变更面三处不在本 diff（replay/tamper/corpus）——机械产物 git diff --name-only 取代手写
+> 清单（prompt 层转抄漂移，m-4 同族）。
+
+- **M-1（台账 append-only 宪法违反+立法文本灭失+假引用——三件同源）**：R63 收口编辑删除了两行
+  历史 token 行（__MUTATED__ 编译红探针+其自赋值形承接，各带 [retired-by: R62] 标记）——①违反
+  头部宪法「每轮新增追加不删除（退役另标）」；②「根锚定零 cd」立法文本仅存活于被删行注释，删除
+  后全仓 0 命中（基线取证 git show 2f232e9 = 1）；③新 cp token 注释「退役标记见上」所指标记行
+  已删=当场假引用。已修：**两行自 git 历史原样恢复**（append-only 宪法恢复；原 retired-by 标记
+  保留并加 R64 恢复说明）——「根锚定零 cd」立法文本回归（grep 1 命中）；「退役标记见上」自愈为真
+  （恢复行在其上方）。机器面缺口（行删除对 parseLedger 不可见）=条款①登记（逐项突变电池待指令）。
+  [mutation-proof: cd agent-festival && grep -q "根锚定零 cd" docs/minor-ledger.md && grep -q "retired-by: R62 — compile-red" docs/minor-ledger.md → OK]
+- **m-1..m-5（积累不修）**：①哨兵=计数地板非覆盖守卫（换装静默重开实测——E5 双突变全绿；iter-4
+  条款③在册）；②残差伞枚举不穷尽（`<my;cmd>`/`fi; true` 第 3/4 成员实测假绿）；③corpus §二
+  对判别器族零呈现（四轮封口工作无火力指引行）；④轮次计数口径未立法（commit/header/实和三数字
+  各答不同问题——m-A 姊妹面）；⑤cause_re 缺 MISSING FILE 标记（成因行 partial 确认）。五条入
+  台账轮转。
+- **条款双源（三条全采纳）**：①台账历史 token 行对账面（R56+ 段 retired-by 行数单调+自引用注释
+  机械核验——登记待指令，本 M-1 其直接延伸）；②seed.py 覆盖关系机械面（--selftest 每 pattern
+  ≥1 fixture 断言——iter-4 条款③最廉价实现，m-① 换装洞的直接封口）；③corpus §二补判别器族行+
+  轮次计数口径立法——采纳入 runbook §四。裁决=操作员。
+- **方法论入账（第 96/97 实证）**：**append-only 宪法的执行面=行删除对行级解析器不可见**（M-1
+  ——宪法是文本，违反也是文本；对账面必须数行数/数标记而非查内容）；**立法文本的载体多样性**
+  （立法只存活于一行 token 注释=单点灭失——立法落 runbook/头部等结构位，token 注释只放指针）。
