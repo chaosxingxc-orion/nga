@@ -41,24 +41,4 @@
 
 ## 三、植入标定（已退役——seed.py 随机器删除；泛化率测量价值记录在案，重启须先过「有必要才做」裁定）
 
-**克隆式植入**：缺陷打在**一次性副本**上（树零接触——忘恢复结构性不可能）；manifest 写在克隆**旁**
-（克隆内不可见；旁路文件可枚举——有效性靠审查者不知情+诚实，非「不可读」——R58 m-2 真实边界标注）。
-R58 标定实证：仓内 seed 族描述可被审查者引用为证据——OOD 检出带**分布内成分**，泛化率按上限读；
-OOD 植入优先取本 campaign 之外模式（本轮池中无外族，如实声明）。
-
-```
-python3 tools/seed.py --list                                   # 目录
-python3 tools/seed.py --family <id> --out <dir> --keep        # 植入+留克隆派审查
-python3 tools/seed.py --family <id> --out <dir> --verify      # 植入+证预期色+清理
-```
-
-| 族类 | 色 | 验证语义 | 现有目录 |
-|---|---|---|---|
-| `battery:<form>` | RED | 克隆内探针红（机器可检——测审查者是否跑机械检查） | 十形全可 |
-| `ood-*` | GREEN | 全套件 -short 仍绿（**CI 抓不到、只有审查能抓**——泛化探针） | ood-skip-subtest（静默跳测）/ ood-loose-assert（断言静默变弱）/ known-doc-drift（doc 越权声明——已知族但 prose 无机器面，如实标注） |
-
-**检出率记账格式**：`## R<N> 标定（植入 a+b，检出 x/y）`——泛化率是**近似度量**
-（oracle 递归不消解：分布外≠真值；植入者与审查者同源时是分布内测量——诚实声明）。
-OOD 植入优先取本 campaign 之外的模式（SETools/agent-solution 的 B/M 族）。
-
-**锚纪律**：injector 锚与 battery/token 锚同构——失配=verify 红=更新目录，陈旧响亮不静默。
+历史机制与四族目录见 git 历史（tools/seed.py 于 910cb21 删除）。检出率记账格式（`## R<N> 标定（植入 a+b，检出 x/y）`）保留为历史记录。
