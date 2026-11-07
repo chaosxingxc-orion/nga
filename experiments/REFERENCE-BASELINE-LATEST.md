@@ -1,6 +1,6 @@
 # Reference baseline — latest results
 
-Restored: **2026-11-01 UTC**; latest additive result update: **2026-11-05 UTC**. This is the current repository entry point for reference test/OOD metrics. It consolidates the frozen matrix and its accepted additive results without changing historical readings. The [GitHub Wiki](https://github.com/chaosxingxc-orion/nga/wiki/Current-Conclusions) maintains the wider four-dimensional conclusions, current engineering status and next steps. Process records remain local and are archived every three days.
+Restored: **2026-11-01 UTC**; latest additive result update: **2026-11-07 UTC**. This is the current repository entry point for reference test/OOD metrics. It consolidates the frozen matrix and its accepted additive results without changing historical readings. The [GitHub Wiki](https://github.com/chaosxingxc-orion/nga/wiki/Current-Conclusions) maintains the wider four-dimensional conclusions, current engineering status and next steps. Process records remain local and are archived every three days.
 
 **Coverage: 36 of the fixed 38 model × dataset units have results; 2 remain blocked with null metrics.** The base matrix has 58 protocol panels over 30 units (Kev 15, Nimble 7, Typed Decisions 6, Open-Jev original test 2). The increment adds four JEVal units and two Open-Jev OOD units. Temperature variants and full/release masks are separate panels, not additional model × dataset units. This is the agreed reference scope, not a complete cross-product of every model and every dataset.
 
@@ -30,6 +30,21 @@ This is a descriptive conditional comparison, not a universal training claim, ga
 ### Scoped 4B/9B reference attachment — 2026-11-07
 
 [Accepted reference alignment](https://github.com/chaosxingxc-orion/nga/wiki/RC1-Family-Reference-Alignment) adds model-specific, receipt-based same-source TEST context for Kev-4B/9B. Current continuation, historical pointer native/T1 and publisher aggregates remain separate. Across eight current seed/task cells versus local native Kev, accuracy is higher in two, equal in one and lower in five; NLL/Brier/ECE are worse in all eight. Existing own-Base acceptance and regressions remain unchanged. No paired reference inference or training superiority is claimed; reference TEST exposure to training design remains disclosed. Kev-2B and publisher NLL remain absent. Historical source metrics below are unchanged.
+
+## Kev documents/devtools — completed Base matrix, 2026-11-07
+
+Six further saved TEST cells (2B/4B/9B × two datasets) pass independent numerical and adversarial review for scoped descriptive publication; together with the prior0.8B cells this completes this particular 4×2 Base matrix. This is not the global Cartesian inventory and does not complete the separate Instruct queue. [Exact metrics, controls, provenance and all17 limitations](KEV-FIXED-BASE-TEST-2026-11-07.json) · [Wiki matrix and review](https://github.com/chaosxingxc-orion/nga/wiki/Kev-Documents-Devtools-Public-TEST).
+
+| Public TEST | 0.8B Base | 2B Base | 4B Base | 9B Base |
+| --- | ---: | ---: | ---: | ---: |
+| documents correct/936 | 606 | 694 | 751 | 775 |
+| documents accuracy | 64.743590% | 74.145299% | 80.235043% | 82.799145% |
+| documents both-correct/395 pairs | 152 | 230 | 271 | 288 |
+| devtools correct/1073 | 467 | 539 | 555 | 606 |
+| devtools accuracy | 43.522833% | 50.232992% | 51.724138% | 56.477167% |
+| devtools both-correct/454 pairs | 1 | 112 | 51 | 68 |
+
+These are fixed Base adapted-label T=1 results, not training gains. The native trained Kev-0.8B pointer endpoint and shipped T=2.3510958125672174 remain separate context; native exact NLL is unavailable. The devtools1071 release-ID mask is reported separately and has no454-pair result. All devtools Base sizes shown have Brier and exact NLL worse than uniform; 4B/9B collapse to false on both code-review and flaky-test despite distinct logits, and their both-correct counts decline versus2B. Documents bank-account correctness is15/48,12/48,16/48 for2B/4B/9B. Keep the complete adverse rows and limitations with the headline metrics; no TEST selection, native matched significance or causal consistency claim follows. Prior0.8B artifact and historical coverage counts remain unchanged.
 
 ## Large-candidate released TEST — local codebook protocol, 2026-11-04
 
