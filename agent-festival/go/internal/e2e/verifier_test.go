@@ -514,15 +514,16 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	if kind == "on_undefined_rule" && raw.assetMillionsDeclared < lo {
 		return checkResult{ok: false, reason: "rule 2 covers this assets point (below the lower bound) — on_undefined_rule contradicts the rules instead of answering them"}
 	}
-	// R37 M-1: the WINDOW-PREMISE face is RETIRED — under the unbounded
-	// veto (rule 0), any term-level overdue inside the window ALREADY
-	// fails the veto face (kind != deny), so this face's predicate domain
-	// was a strict SUBSET of rule 0's: a 1408-input brute scan found ZERO
-	// inputs where this face's reason was reachable (R36 M-1's dead-guard
-	// shape, re-introduced by R36 M-2's own addition). Rule 1's window
-	// premise is enforced BY rule 0 in this fixture — the enforcement
-	// exists, its carrier is the veto face, and the separate face was a
-	// second carrier claiming the same refusals.
+	// P0-A (R68 M-B): the window face is RESTORED and LIVE — the R37
+	// retirement above it claimed "zero reachable / enforced BY rule 0 /
+	// strict subset", which held only inside the P3-narrowed ontology
+	// (the term absorbed the >3-month duration, so any in-window overdue
+	// was also a veto overdue). Under the split ontology the window face
+	// has its OWN reachable domain: 63 window-only rows exist in the
+	// archived scan (testdata/p0a_scan.tsv, vetoFires=0 && windowDirty=1),
+	// and the live check sits at the grant-50000 case above — a one-month
+	// recent overdue is refused BY rule 1 alone (rule 0 is silent at
+	// duration <= 3). E1's ② probe pins this carrier.
 	return checkResult{ok: true, reason: "verdict conforms to the raw evidence under the corrected spec"}
 }
 
