@@ -5,19 +5,23 @@ process evidence remains under `.local/releases/engineering-base-rc1/tasks/`.
 
 ## Resource state
 
-As of the **2026-11-07 02:56:20 UTC** script snapshot, H1 seed2 and seed3
-have completed 3116 updates and exited 0. H2 seed2/seed3 remain on physical
-chips 2/3, at 111/96 updates. Shared-prefix DEV has exited 0 and released chip4.
-The H2 efficiency diagnostic launched on physical chip5 at 02:55:44 UTC, in
-retained container `nga-h2-efficiency-actual`. Its current task is a bounded
-screen followed by tensor-level numerical qualification, not accepted timing.
-H1 DEV preparation remains CPU-only; no claim or inference launch is asserted.
+At the **2026-11-07 03:45:44 UTC** host175 snapshot, H1 DEV inference
+is running on physical chips0/1, with independent CPU scoring armed after release.
+Both H1 trainings finished3116 updates. H2 seed2/seed3 remain on chips2/3 at
+145/3116 and139/3116; heartbeat rates are1071.41/1001.23 tokens/s/chip with
+31.08/31.28 GiB reserved. These are heartbeat observations, not whole-run averages.
 
-The previous five-active-job description was based on the older 01:22 UTC
-snapshot and is superseded by these terminal records. Running-job counts and
-instantaneous device use are different from measured accelerator utilization.
-All new claims still use current controller ownership checks. Historical pending
-claims are preserved; the diagnostic has its own explicit priority override.
+Chip5 runs the scalar-sync diagnostic: four screen arms completed; seed2 baseline-1
+and baseline-2 numerical chains each completed8 updates, candidate-1 began.
+No numerical gate or timing benefit is yet accepted. Chips4/6/7 had no NPU
+processes in the snapshot; current lease/container ownership must still be checked.
+H2 uses two independent single-chip trainings, not DDP.
+
+Micro-token CPU preparation finished eight tests and staged a candidate-aware
+entrypoint, but fresh host/lease binding and recovery remain activation gaps.
+A Codex Astra process is reviewing bounded16k activation; a Terra process is
+preparing world2 DDP. Neither is a confirmed new NPU launch. The micro-token
+candidate combines scalar-sync and budget changes, so it cannot isolate batch gains.
 
 ## Measured bottleneck decomposition
 
@@ -95,9 +99,8 @@ changes sample weighting per update and schedule semantics.
 ## Queue policy and next actions
 
 Keep H2 training on chips2/3 unchanged while the diagnostic on chip5 completes.
-The CPU side prepares H1 DEV against its actual completed checkpoints, then
-launches each seed independently after its own runtime is ready. No further
-training-completion wait is necessary for H1.
+H1 DEV is now running independently on chips0/1; its CPU scoring follows each
+member release and does not block unrelated NPU work.
 
 Scalar-sync, micro-batch sizing, host preparation and DDP are separate candidate
 branches; a scalar-sync benefit is not a prerequisite for the others. World2
