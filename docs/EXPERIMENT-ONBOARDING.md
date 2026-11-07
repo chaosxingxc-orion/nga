@@ -1,5 +1,7 @@
 # NGA 实验入门：资源、运行与协作
 
+当前经验证的启动入口见 [`EXPERIMENT-STARTUP-REPORT.md`](EXPERIMENT-STARTUP-REPORT.md)。启动新任务时先按启动报告执行。
+
 同事现在就可以参与已保存结果的统计和 bad case 分析、数据及配置准备，并在已支持的范围内使用现有路径。工程基座 `engineering-base-rc1` 仍为 **`released=false`、stabilizing**；镜像与现有控制器并非可移植的任意新任务一键工具。主要技术约束是固定的身份、路径、配置摘要和 receipt 绑定；新任务需要相应集成，而不只是改几项 JSON。具体实验能否运行及其科学结论仍以对应协议和证据为准。
 
 研究背景见 `survey/`，研究计划见 `proposal/00-research-proposal.md`，实验的指标、分割和阈值以 `experiments/` 预注册为准。远端结果记录放在 [GitHub Wiki](https://github.com/chaosxingxc-orion/nga/wiki)：在相关页面原位更新最新结论及证据链接，不把运行日志堆积在页面上。本地 `wiki/` 和 `experiments/` 中的过程文件按每三天归档；归档不改变预注册的规范地位。`AGENTS.md` 在当前工作区未跟踪，GitHub 克隆不保证包含它，无需把它作为读者入门前置条件。
