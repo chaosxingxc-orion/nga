@@ -1,0 +1,166 @@
+{
+  "schema": "nga-collaborator-startup-verification-v1",
+  "scope": "Verified collaborator onboarding snapshot; not release or scientific acceptance",
+  "published_date": "2026-11-07",
+  "release_state": {
+    "candidate": "engineering-base-rc1",
+    "state": "stabilizing",
+    "released": false,
+    "source": "configs/experiments/engineering-release-candidate.json"
+  },
+  "host": {
+    "ssh_alias": "npu",
+    "address": "100.100.135.175",
+    "alias_is_local_configuration": true
+  },
+  "image": {
+    "id": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+    "identity_rechecked_utc": "2026-11-07T12:19:55.771270+00:00",
+    "identity_check_exit_code": 0,
+    "pull_url_available": false
+  },
+  "host_validate": {
+    "argv": [
+      "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/half-lr-controller-2976573/venv/bin/python",
+      "-P",
+      "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/h2-reviewed-training-fixes-3065900/host/h2_host.py",
+      "validate",
+      "--config",
+      "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/h2-reviewed-training-fixes-3065900/host-s2.json",
+      "--sha256",
+      "f8a31c065fc7e1a8017b87c8172b4899c1d96531fc4b27c288aa2a2cb925e6d8"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"status\": \"VALID\"}\n",
+    "stderr": "",
+    "rechecked_utc": "2026-11-07T12:19:55.771270+00:00",
+    "recheck_exit_code": 0,
+    "recheck_stdout": {
+      "status": "VALID"
+    }
+  },
+  "cpu_smoke": {
+    "executed_utc": "2026-11-07T04:19:09.602988+00:00",
+    "container": "nga-onboarding-cpu-20261107T041908Z",
+    "exit_code": 0,
+    "devices": [],
+    "tbe_available": true,
+    "evidence_directory": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/onboarding/nga-onboarding-cpu-20261107T041908Z",
+    "terminal_reobserved_utc": "2026-11-07T12:19:55.771270+00:00"
+  },
+  "document_command_replay": [
+    {
+      "block": 0,
+      "exit_code": 0,
+      "stdout": "9996d0a1a2f465b5a9e9cd079aad98d9c07a641cc5a22b48393e3bbb01b6332b\n\ncontainer=nga-onboarding-cpu-20261107T042503Z-519357 exit=0 evidence=/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/onboarding/nga-onboarding-cpu-20261107T042503Z-519357\n",
+      "stderr": ""
+    },
+    {
+      "block": 1,
+      "exit_code": 0,
+      "stdout": "{\"status\": \"VALID\"}\n",
+      "stderr": ""
+    }
+  ],
+  "resource_metadata_observation": {
+    "observed_utc": "2026-11-07T04:18:46.029967+00:00",
+    "resources": {
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base": {
+        "exists": true,
+        "config_exists": true
+      },
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base": {
+        "exists": true,
+        "config_exists": true
+      },
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base": {
+        "exists": true,
+        "config_exists": true
+      },
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base": {
+        "exists": true,
+        "config_exists": true
+      },
+      "/mnt/cephfs/xingchao/models/jev/27B_candidates": [
+        "/mnt/cephfs/xingchao/models/jev/SimpleJev__JevAny-Qwen3.8-27B-LoRA",
+        "/mnt/cephfs/xingchao/models/jev/ZefanCai__Open-Jev-27B-v1.1"
+      ],
+      "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-0.8B-Base": {
+        "exists": true,
+        "config_exists": true
+      },
+      "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-2B-Base": {
+        "exists": true,
+        "config_exists": true
+      },
+      "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-4B-Base": {
+        "exists": true,
+        "config_exists": true
+      },
+      "/mnt/cephfs/xingchao/omni/models/jev/Qwen__Qwen3.5-9B-Base": {
+        "exists": true,
+        "config_exists": true
+      },
+      "/mnt/cephfs/xingchao/omni/models/jev/27B_candidates": [
+        "/mnt/cephfs/xingchao/omni/models/jev/SimpleJev__JevAny-Qwen3.8-27B-LoRA",
+        "/mnt/cephfs/xingchao/omni/models/jev/ZefanCai__Open-Jev-27B-v1.1"
+      ],
+      "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/train.jsonl": {
+        "exists": true,
+        "bytes": 35188908
+      },
+      "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/dev.jsonl": {
+        "exists": true,
+        "bytes": 2796462
+      },
+      "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/test.jsonl": {
+        "exists": true,
+        "bytes": 2711903
+      },
+      "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/calibration.jsonl": {
+        "exists": true,
+        "bytes": 2429402
+      },
+      "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/test.variants.jsonl": {
+        "exists": true,
+        "bytes": 827584
+      },
+      "/mnt/cephfs/xingchao/experiments/jev/KEV/transfer-v4/dev.jsonl": {
+        "exists": true,
+        "bytes": 875339
+      },
+      "/mnt/cephfs/xingchao/experiments/jev/KEV/transfer-v4/test.jsonl": {
+        "exists": true,
+        "bytes": 885239
+      },
+      "/mnt/cephfs/xingchao/experiments/jev/KEV/transfer-v4/test.variants.jsonl": {
+        "exists": true,
+        "bytes": 159801
+      },
+      "/mnt/cephfs/models/Qwen3.8-27B": {
+        "exists": true,
+        "config_exists": true,
+        "scope": "directory and config metadata only; observed2026-11-07T04:22UTC"
+      }
+    },
+    "scope": "Existence and metadata; not a new full payload hash verification"
+  },
+  "published_result_arithmetic_check": {
+    "path": "RC1-Full-Family-Same-TEST-comparison.json",
+    "checks": 32,
+    "passed": true,
+    "scope": "aggregate arithmetic only; no new scoring or model forwards"
+  },
+  "training_digest_snapshot": {
+    "source": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/_watchdog-h2/bounded-digest.md",
+    "text": "# H2 bounded digest\n2026-11-07T12:12:05.495144+00:00\nInterval600s; host terminal is completion evidence; logs scanned at most64KiB each.\nseed2: running 525/3116 delta=5 heartbeat_age=8.061700105667114s reserved=33546043392 tokens/s/chip=216.35440946373018 terminal=None errors=0\nseed3: running 505/3116 delta=8 heartbeat_age=6.911212682723999s reserved=33590083584 tokens/s/chip=977.0353546764748 terminal=None errors=0\n",
+    "scope": "Historical script snapshot; not a live allocation or performance benchmark"
+  },
+  "limitations": [
+    "No new NPU training or inference launched for this document",
+    "No arbitrary self-service model/dataset/seed/scorer promised",
+    "Existing H2 training on physical cards 2 and 3 left unchanged",
+    "27B directory/config metadata is not full NPU qualification",
+    "Model and dataset payloads not rehashed for onboarding"
+  ]
+}

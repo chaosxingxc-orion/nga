@@ -1,6 +1,6 @@
 # NGA 实验启动报告（engineering-base-rc1）
 
-验证时间：2026-11-07 UTC。本文是同事参与实验的操作入口，使用固定的
+验证时间：2026-11-07 UTC；镜像身份与 H2 只读配置校验于 12:19 UTC（北京时间 20:19）再次确认。本文是同事参与实验的操作入口，使用固定的
 `engineering-base-rc1` 工程基座。验证范围包括资源路径、固定镜像的 CPU 默认入口、H2
 宿主配置校验和当前 NPU 运行快照；它不把 CPU smoke、配置完成或容器 `exit 0` 当作
 NPU 数值或科学结论。
@@ -24,10 +24,10 @@ lease、输出目录和回执。
 
 当前 H2 正式训练没有停止：
 
-| 物理卡 | 容器 | 设置 | 2026-11-07 11:42 UTC（北京时间 19:42）脚本快照 |
+| 物理卡 | 容器 | 设置 | 2026-11-07 12:12 UTC（北京时间 20:12）脚本快照 |
 | --- | --- | --- | --- |
-| 2 | `nga-h2-4b-k2-s2` | Qwen3.5-4B，seed 2，K2，global batch 10，micro tokens 12000，max length 4096，LR `1e-4`，LoRA `r16/alpha32/dropout0.05`，3116 updates | `507/3116`，约 `31.2 GiB` reserved，约 1,112 tokens/s/chip，单卡运行 |
-| 3 | `nga-h2-4b-k2-s3` | 同上，seed 3 | `483/3116`，约 `31.3 GiB` reserved，约 1,164 tokens/s/chip，单卡运行 |
+| 2 | `nga-h2-4b-k2-s2` | Qwen3.5-4B，seed 2，K2，global batch 10，micro tokens 12000，max length 4096，LR `1e-4`，LoRA `r16/alpha32/dropout0.05`，3116 updates | `525/3116`，约 `31.2 GiB` reserved，单卡运行，摘要 errors=0 |
+| 3 | `nga-h2-4b-k2-s3` | 同上，seed 3 | `505/3116`，约 `31.3 GiB` reserved，单卡运行，摘要 errors=0 |
 
 这两个任务不得重启、迁移或修改配置。其它物理卡是否可用，只能由实时 lease、Docker
 冲突和控制器锁内检查确认；历史快照不能证明空闲。
@@ -197,18 +197,16 @@ forward 结果写成 NPU 科学结果。
 
 ## 已验证证据与验收边界
 
-本报告对应的维护者验证记录为：
+可随仓库克隆取得的精简验证记录见 [EXPERIMENT-STARTUP-VERIFICATION.json](EXPERIMENT-STARTUP-VERIFICATION.json)。其中分开记录实际执行、历史证据复查和未验证范围；完整过程证据仍保留在本地及 CephFS。
+
+本报告对应的维护者完整验证记录为：
 
 ```text
 .local/releases/engineering-base-rc1/evidence/onboarding/VERIFICATION.json
 ```
 
 该记录确认：固定镜像 CPU smoke exit 0 且无设备、H2 宿主 `validate` 返回 `VALID`、
-四个 Qwen3.5 Base、27B 元数据目录和预注册数据文件存在。当前 H2 运行快照来自：
-
-```text
-.local/releases/engineering-base-rc1/evidence/current-execution/ACTIVE-PROGRESS-LATEST.json
-```
+四个 Qwen3.5 Base、27B 元数据目录和预注册数据文件存在。当前 H2 运行快照来自 175 已部署的 `_watchdog-h2/bounded-digest.md`；本次采用的快照保存在上述公开 JSON 中。快照不替代实时设备准入。
 
 工程基座要达到正式 release 仍需完成 RC1 的 supervisor、capture、snapshot、实际
 175 集成、四尺寸 NPU 数值/恢复和独立 release review。它们是基座发布门，不阻止已经
