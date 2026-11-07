@@ -20,7 +20,7 @@
 //
 // The two verdicts are separate contracts (legacy 12号 §3 tail semantics):
 // fidelity — did recomputation reproduce the record? conformance — does the
-// record itself pass the ledger's eight rule families? All four quadrants
+// record itself pass the ledger's nine rule families? All four quadrants
 // are legal outcomes; a replay of a recorded violation is fidelity-match +
 // conformance-fail. No ecosystem precedent defines the double-verdict
 // runner output contract — this package is that contract's first machine
@@ -82,27 +82,34 @@ type InspectReport struct {
 	Path        string
 	Events      []ledger.Event
 	States      map[string]string // operation id -> the STATUS-TAIL projection of its last event (includes the fact words reused/conflict — not the machine state; Recover reports that)
-	Gaps        []string          // ledger.Errors over the record
+	Gaps        []string          // ledger.Errors over the record, plus a torn-tail line when the durable form ends in external damage
 	ByOperation map[string][]ledger.Event
+	TornTail    bool // the durable form ended in an unparseable torn tail (external damage): the projection is the complete machine history — the machine refuses writes post-damage — but the file itself is damaged and must be repaired before any machine write
 }
 
 // Inspect is mode 1: historical inspection — reconstruct retained history
 // and expose missing evidence; no live effects, no recomputation. It is a
 // projection reducer (second implementation by design).
 //
-// Known blind spot (inherited from the piece-4 boundary, declared here):
-// a TORN TAIL — an unparseable remnant at EOF — is skipped by the loader,
-// so neither the projection nor Gaps sees it; a record whose newest events
-// live in the torn remnant projects to its prefix silently. Closing this
-// belongs to the loader (piece 4), not to this projection.
+// Torn-tail surface (audit-loop R1, closing the declared blind spot): a
+// torn tail — an unparseable remnant at EOF — is reported by the loader
+// (P1-2) and SURFACED here (TornTail field + a Gaps line), so an
+// inspector reading a damaged record gets the damage signal instead of a
+// silent green. Under the unified doctrine the prefix projection is
+// semantically complete (the machine refuses all writes post-damage, so
+// nothing after the tear is machine-written) — the signal is about the
+// FILE's integrity, not the history's completeness.
 func Inspect(path string) (*InspectReport, error) {
-	lines, err := ledger.LoadDocument(path)
+	lines, torn, err := ledger.LoadDocument(path)
 	if err != nil {
 		return nil, err
 	}
-	r := &InspectReport{Path: path, States: map[string]string{}, ByOperation: map[string][]ledger.Event{}}
+	r := &InspectReport{Path: path, States: map[string]string{}, ByOperation: map[string][]ledger.Event{}, TornTail: torn}
 	if len(lines) == 0 {
-		return r, nil // no record: nothing to project, no gaps to expose
+		if torn {
+			r.Gaps = append(r.Gaps, "torn tail at EOF: the durable form ends in an unparseable remnant (external damage) — repair before any machine write")
+		}
+		return r, nil // no record: nothing to project
 	}
 	doc := map[string]any{"ledger_version": ledger.Version}
 	events := make([]any, 0, len(lines))
@@ -111,6 +118,9 @@ func Inspect(path string) (*InspectReport, error) {
 	}
 	doc["events"] = events
 	r.Gaps = ledger.Errors(doc)
+	if torn {
+		r.Gaps = append(r.Gaps, "torn tail at EOF: the durable form ends in an unparseable remnant (external damage) — the projection is the complete machine history (writes are refused post-damage), but the file must be repaired before any machine write")
+	}
 	for _, l := range lines {
 		r.Events = append(r.Events, l.Event)
 		op := l.Event.Identity.OperationID
@@ -149,11 +159,11 @@ type Case struct {
 // LoadCase decodes a case document from its RAW map form, preserving BOTH
 // raw views. Boundary: the typed decode requires recorded_events to fit the
 // Event types — a record whose integers leave the int64-typed form (e.g.
-// float syntax like 5.0, which the ledger checker itself accepts under the
-// double charter) fails HERE with a decode error. That is the declared edge
-// between the format layer (Python accepts it) and the Go behavior layer
-// (refuses loudly) — a case fixture carrying such a record is out of the
-// Go corpus.
+// float syntax like 5.0, rejected by the ledger checker's literal gate since
+// the R16 数值域章程) fails HERE with a decode error; divergence_at
+// float syntax is rejected BEFORE the typed decode with the
+// REPLAY.SEQ_FLOAT_SYNTAX key so both oracles reject the same document
+// (R16 A-M1 — the Py schema face alone would accept it by value).
 // raw views: the recorded events' (for the conformance arm) and the case
 // document's own map (for schema validation — validating a typed
 // re-projection would launder unknown fields away, the same R2 lesson one
@@ -163,6 +173,27 @@ func LoadCase(doc map[string]any) (*Case, error) {
 	raw, err := json.Marshal(doc)
 	if err != nil {
 		return nil, err
+	}
+	// 数值域章程 v2 literal gate (R16 A-M1), BEFORE the typed decode: the
+	// typed view rejects float syntax without a neutral key, while the
+	// Python schema face accepts it by value — this gate makes both sides
+	// reject the same documents WITH the key. json.Number is guaranteed by
+	// the UseNumber input discipline (the doc comment above; suite.Load
+	// decodes with UseNumber); numbersSurvived below enforces that
+	// discipline only for recorded_events.
+	if exp, ok := doc["expected"].(map[string]any); ok {
+		if n, ok := exp["divergence_at"].(json.Number); ok {
+			if _, err := n.Int64(); err != nil {
+				// syntax guard (family form, ledger/evidlog precedent):
+				// integer syntax beyond int64 is the typed domain's rejection;
+				// float syntax is the literal gate's — Py bignum would accept
+				// the former silently, the twin arm below closes that fork.
+				if strings.ContainsAny(n.String(), ".eE") {
+					return nil, fmt.Errorf("[REPLAY.SEQ_FLOAT_SYNTAX] expected.divergence_at %s is not an integer literal — the divergence locator domain is integer; this package does no float math (user ruling 2026-11-02)", n.String())
+				}
+				return nil, fmt.Errorf("[REPLAY.SEQ_INT64_OVERFLOW] expected.divergence_at %s exceeds the int64 domain — the divergence locator domain; such a case is not machine-writable", n.String())
+			}
+		}
 	}
 	var c Case
 	if err := json.Unmarshal(raw, &c); err != nil {
@@ -267,7 +298,7 @@ func Replay(c *Case) (*ReplayReport, error) {
 		rep.Detail = fmt.Sprintf("recomputation diverged at event %d — recomputed %d events, record has %d", rep.DivergenceAt, len(recomputed), len(c.RecordedEvents))
 	}
 
-	// conformance: does the RECORD itself pass the eight families? Judged
+	// conformance: does the RECORD itself pass the nine families? Judged
 	// through the RAW recorded documents — never a typed re-projection.
 	if c.RecordedRawDoc == nil {
 		return nil, fmt.Errorf("case %q carries no raw recorded view — the conformance arm refuses to judge a laundered projection (load via LoadCase)", c.CaseID)
@@ -359,6 +390,7 @@ type RecoverReport struct {
 	Path       string
 	States     map[string]string
 	Unresolved []string // operations awaiting reconciliation, with their exits
+	TornTail   bool     // the durable form ended in a torn tail (external damage): the machine is loaded read-only — every mutation is refused until repair and re-Open (audit-loop R1: the recovery tool must not report a damaged record as a healthy one)
 }
 
 // Recover is mode 4: live recovery — restore the machine from the durable
@@ -369,11 +401,11 @@ func Recover(path string) (*RecoverReport, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot recover from durable form: %v", err)
 	}
-	lines, err := ledger.LoadDocument(path)
+	lines, _, err := ledger.LoadDocument(path)
 	if err != nil {
 		return nil, err
 	}
-	rep := &RecoverReport{Path: path, States: map[string]string{}, Unresolved: []string{}}
+	rep := &RecoverReport{Path: path, States: map[string]string{}, Unresolved: []string{}, TornTail: m.TornTail()}
 	seen := map[string]bool{}
 	for _, l := range lines {
 		op := l.Event.Identity.OperationID

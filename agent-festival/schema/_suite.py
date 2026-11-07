@@ -8,7 +8,7 @@ pin" would bypass the wrong-reason checks; the Go twin enforces the same),
 and a fixture whose JSON failed to parse is rejected-at-parse with its pin
 still matchable against the parse error (V32 M-1's two-path split).
 
-The oracles (ledger.py, adoption.py, judgment.py, release.py) stay
+The oracles (ledger.py, adoption.py, judgment.py, release.py, replay.py, compose.py, evidlog.py) stay
 deliberately independent in their CHECKERS — that is the dual-validator cross-check —
 but the harness around them is not a checked semantic, so it is shared
 (R2 m-3: the two inline runners had to be edited in lockstep).
@@ -21,7 +21,20 @@ _PIN_RE = re.compile(r'"_expect_match"\s*:\s*"([^"]*)"')
 
 
 def load(path: Path):
-    """(doc, expect_match, error).
+    """(doc, expect_match, error). See load_extras — this is the
+    single-extra (wrong-reason pin) face of it."""
+    doc, match, _, err = load_extras(path)
+    return doc, match, err
+
+
+def load_extras(path: Path, extra_keys: tuple = ()):
+    """(doc, expect_match, extras, error).
+
+    The hardened loader every oracle family rides (R19 B-M1: compose now
+    rides it too — its inline loader never received the V28 F-1
+    wrong-typed-pin LOUD semantics). extra_keys pop additional pinned
+    faces (e.g. compose's _expect_composed) with the SAME hardening:
+    a wrong-typed extra fails loud instead of downgrading to "absent".
 
     error is either a parse failure (doc is None; the pin, if any, is still
     best-effort extracted from the raw text — the base's LoadFixture does the
@@ -33,21 +46,22 @@ def load(path: Path):
         doc = json.loads(raw)
     except json.JSONDecodeError as e:
         m = _PIN_RE.search(raw)
-        return None, (m.group(1) if m else None), f"document rejected at parse: {e}"
+        return None, (m.group(1) if m else None), {}, f"document rejected at parse: {e}"
     doc.pop("_expect", None)  # descriptive only
     match = doc.pop("_expect_match", None)
     if match is not None and not isinstance(match, str):
-        return doc, None, f"_expect_match must be a string, got {type(match).__name__}"
-    return doc, match, None
+        return doc, None, {}, f"_expect_match must be a string, got {type(match).__name__}"
+    extras = {}
+    for k in extra_keys:
+        v = doc.pop(k, None)
+        if v is not None and not isinstance(v, dict):
+            return doc, None, {}, f"{k} must be an object, got {type(v).__name__}"
+        if v is not None:
+            extras[k] = v
+    return doc, match, extras, None
 
 
-def run_suite(label: str, valid_dir: Path, invalid_dir: Path, errors) -> int:
-    """Run the two-phase suite; returns the failure count (0 = green)."""
-    valid = sorted(valid_dir.glob("*.json"))
-    invalid = sorted(invalid_dir.glob("*.json"))
-    if not valid or not invalid:
-        print(f"[{label}] suite incomplete: need at least one valid and one invalid example")
-        return 1
+def _default_valid_phase(label: str, valid, errors) -> int:
     bad = 0
     for f in valid:
         doc, _, err = load(f)
@@ -63,8 +77,31 @@ def run_suite(label: str, valid_dir: Path, invalid_dir: Path, errors) -> int:
             bad += 1
         else:
             print(f"[{label}] PASS must-accept {f.name}")
+    return bad
+
+
+def run_suite(label: str, valid_dir: Path, invalid_dir: Path, errors, valid_phase=None, extra_keys: tuple = ()) -> int:
+    """Run the two-phase suite; returns the failure count (0 = green).
+
+    valid_phase (R20 A-2, the Go twin's post-loop analog in cmd/compose): optional callable
+    (sorted valid paths) -> failure count replacing the default
+    must-accept loop — for the one family whose valid face carries extra
+    pinned assertions (compose's _expect_composed). The INVALID loop is
+    never overridable: it is the lockstep-danger face (ac4585b dropped a
+    wrong-typed branch in a hand-copied one — R2 m-3's original disease),
+    so it stays single-sourced here.
+    """
+    valid = sorted(valid_dir.glob("*.json"))
+    invalid = sorted(invalid_dir.glob("*.json"))
+    if not valid or not invalid:
+        print(f"[{label}] suite incomplete: need at least one valid and one invalid example")
+        return 1
+    if valid_phase is not None:
+        bad = valid_phase(valid)
+    else:
+        bad = _default_valid_phase(label, valid, errors)
     for f in invalid:
-        doc, match, err = load(f)
+        doc, match, _, err = load_extras(f, extra_keys)
         name = f.name
         if doc is not None and err:
             # the DOCUMENT parsed; the error is a malformed pin. An unreadable
@@ -86,9 +123,8 @@ def run_suite(label: str, valid_dir: Path, invalid_dir: Path, errors) -> int:
     return bad
 
 
-def main(label: str, valid_dir: Path, invalid_dir: Path, errors) -> int:
-    bad = run_suite(label, valid_dir, invalid_dir, errors)
-    return 1 if bad else 0
+# (main() retired R20 A-3: born-dead wrapper — the six simple oracles call
+# run_suite directly and compose has its own runner; grep 全史零调用者)
 
 
 def _self_test() -> bool:

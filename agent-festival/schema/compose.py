@@ -48,11 +48,11 @@ Usage:  python3 schema/compose.py            # run the example suite
 import decimal
 import json
 import sys
+import _suite
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from validate import REGISTRY, _schema_errors, bounds_errors, contract_errors, grant_errors  # noqa: E402
-from validate import load as load_json  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 GRAPH_SCHEMA = json.loads((HERE / "execution-graph.schema.json").read_text())
@@ -71,7 +71,8 @@ SAFE_INT_MAX = 9007199254740991
 
 def dec(x):
     """Integer amount from a JSON number. An integer-valued float like 3.0 is the integer 3 (JSON has one
-    number type; double charter). Finiteness is guaranteed upstream by validate.bounds_errors."""
+    number type; the bounds-domain float-syntax admission is pending ruling ①, see
+    docs/conformance-fixture-format.md). Finiteness is guaranteed upstream by validate.bounds_errors."""
     return int(x)
 
 
@@ -418,9 +419,16 @@ def compose_errors(doc: dict) -> tuple[list[str], dict | None]:
 
 def load(path: Path):
     """(doc, _expect_match, _expect_composed, parse_error). Integer domain: json parses integers natively;
-    NaN / Infinity are a parse-level rejection (validate.reject_constant); a non-integral float reaches dec()
-    and raises for a schema-level story. The 50-digit lossless-parse era ended with the decimal domain."""
-    return load_json(path)
+    NaN / Infinity are rejected at the schema's integer-type face (json.loads admits them; the schema does not — R19: the hardened loader is a bare json.loads); a non-integral float is rejected at the schema's integer-type face
+    (it never reaches dec()). The 50-digit lossless-parse era ended with the decimal domain.
+
+    R19 B-M1: rides the shared hardened loader (_suite.load_extras) — the
+    V28 F-1 wrong-typed-pin LOUD semantics now structurally reach this
+    family (the Go twin's WithLoader form; the inline runner never had it).
+    """
+    doc, match, extras, err = _suite.load_extras(path, ("_expect_composed",))
+    composed = extras.get("_expect_composed")
+    return doc, match, composed, err
 
 
 def composed_mismatches(composed: dict, expected: dict) -> list[str]:
@@ -454,35 +462,39 @@ def composed_mismatches(composed: dict, expected: dict) -> list[str]:
 
 
 def run_suite(valid_dir: Path, invalid_dir: Path) -> int:
-    valid, invalid = sorted(valid_dir.glob("*.json")), sorted(invalid_dir.glob("*.json"))
-    if not valid or not invalid:
-        print("[compose] suite incomplete: need at least one valid and one invalid example")
-        return 1
-    bad = 0
-    for f in valid:
-        doc, _, expected, parse_error = load(f)
-        errs, composed = ([parse_error], None) if parse_error else compose_errors(doc)
-        if composed and not errs and expected:
-            errs = composed_mismatches(composed, expected)
-        print(f"[compose] {'PASS' if not errs else 'FAIL'} must-accept {f.name}")
-        for e in errs:
-            print(f"      {e}")
-        if composed and not errs:
-            print(f"      requires(G)={len(composed['requires'])} atoms effects={composed['effects']} "
-                  f"bounds={jsonable_bounds(composed['bounds'])}")
-        bad += bool(errs)
-    for f in invalid:
-        doc, match, _, parse_error = load(f)
-        errs = [parse_error] if parse_error else compose_errors(doc)[0]
-        if not errs:
-            print(f"[compose] FAIL must-reject {f.name}  (was accepted!)")
-            bad += 1
-        elif match and not any(match in e for e in errs):
-            print(f"[compose] FAIL must-reject {f.name}  (rejected for the wrong reason: {errs[0]!r} lacks {match!r})")
-            bad += 1
-        else:
-            print(f"[compose] PASS must-reject {f.name}  ({errs[0]})")
-    print(f"[compose] {len(valid)} must-accept + {len(invalid)} must-reject, {bad} failures")
+    # R20 A-2: the INVALID loop + summary ride the shared harness
+    # single-source (_suite.run_suite) — the lockstep-danger face the
+    # hand-copied copy once dropped a wrong-typed branch in (ac4585b).
+    # The VALID loop stays family-local as a valid_phase hook: the
+    # _expect_composed pin comparison is compose's extra valid face (the
+    # Go twin implements its own post-loop for the same reason).
+    def compose_valid_phase(valid):
+        bad = 0
+        for f in valid:
+            doc, _, expected, parse_error = load(f)
+            errs, composed = ([parse_error], None) if parse_error else compose_errors(doc)
+            if composed and not errs and expected:
+                errs = composed_mismatches(composed, expected)
+            print(f"[compose] {'PASS' if not errs else 'FAIL'} must-accept {f.name}")
+            for e in errs:
+                print(f"      {e}")
+            if composed and not errs:
+                print(f"      requires(G)={len(composed['requires'])} atoms effects={composed['effects']} "
+                      f"bounds={jsonable_bounds(composed['bounds'])}")
+            bad += bool(errs)
+        return bad
+
+    def compose_errors_list(doc):
+        return compose_errors(doc)[0]
+
+    bad = _suite.run_suite("compose", valid_dir, invalid_dir, compose_errors_list,
+                           valid_phase=compose_valid_phase,
+                           extra_keys=("_expect_composed",))
+    valid = sorted(valid_dir.glob("*.json"))
+    if not valid:
+        # empty-corpus guard (R20 inner m-5): keep the D93 count-floor
+        # reachable instead of crashing on valid[0]
+        return bad
     return bad + run_guard_suite(valid[0])
 
 
@@ -532,7 +544,16 @@ def main(argv: list[str]) -> int:
             rc |= bool(errs)
         return rc
     ex = HERE / "examples" / "compose"
-    return 1 if run_suite(ex / "valid", ex / "invalid") else 0
+    bad = run_suite(ex / "valid", ex / "invalid")
+    # D93 count-floor (the Go twin lives in cmd/compose/main_test.go): a
+    # corpus that shrank without its pin rebased must fail here too — this
+    # oracle was the one family missing the third count pin (R9 F5).
+    n_valid = len(list((ex / "valid").glob("*.json")))
+    n_invalid = len(list((ex / "invalid").glob("*.json")))
+    if (n_valid, n_invalid) != (10, 36):
+        print(f"[compose] FAIL corpus count {n_valid}+{n_invalid} != pinned 10+36 (corpus count changed?)")
+        bad += 1
+    return 1 if bad else 0
 
 
 if __name__ == "__main__":

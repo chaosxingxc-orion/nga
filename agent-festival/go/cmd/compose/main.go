@@ -23,8 +23,11 @@ func run() int {
 	base := filepath.Join(compose.ExamplesDir, "compose")
 	// the frozen base's rich loader (bare-NaN scan, surrogate scoping, regex
 	// pin extraction) bridged into the shared suite discipline; the composed
-	// pins ride Extra/WithValidExtra (R2-A4: the last inline phase harness
-	// joins internal/suite — the discipline is single-sourced now).
+	// pins ride the WithLoader closure (a captured pins map keyed by path;
+	// R2-A4 moved the last inline phase harness here) and the composed-map
+	// comparison runs as a post-loop over the collected fixtures (R20 B-3:
+	// the old comment pointed at Extra/WithValidExtra — a born-dead data
+	// path this checker never actually used).
 	pins := map[string]any{}
 	bad := suite.Run("compose",
 		filepath.Join(base, "valid"), filepath.Join(base, "invalid"),

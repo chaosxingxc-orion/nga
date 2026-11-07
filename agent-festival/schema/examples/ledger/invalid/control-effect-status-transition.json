@@ -1,0 +1,100 @@
+{
+  "ledger_version": "0.1.0",
+  "events": [
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 0,
+      "identity": {
+        "business_request_id": "br-a029",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-ts-1"
+      },
+      "versions": {
+        "evidence": "ev-29",
+        "rule": "rule-v1",
+        "model": "m-1",
+        "readout": "r-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "adopted",
+        "detail": "fixture"
+      },
+      "accountability": {
+        "session": "sess-1",
+        "skill": "skill-credit",
+        "role": "employee"
+      },
+      "idempotency": {
+        "operation_id": "op-ts-1",
+        "payload_digest": "sha256:fefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefe"
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://credit/a29",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        }
+      ]
+    },
+    {
+      "event_type": "control",
+      "arbitration_seq": 1,
+      "identity": {
+        "business_request_id": "br-a029",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-ts-1"
+      },
+      "versions": {
+        "evidence": "ev-29",
+        "rule": "rule-v1",
+        "model": "m-1",
+        "readout": "r-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "dispatched",
+        "detail": "an effect-family status smuggled onto the control family"
+      },
+      "accountability": {
+        "session": "sess-1",
+        "skill": "skill-credit",
+        "role": "employee"
+      }
+    },
+    {
+      "event_type": "effect",
+      "arbitration_seq": 2,
+      "identity": {
+        "business_request_id": "br-a029",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-ts-1"
+      },
+      "versions": {
+        "evidence": "ev-29",
+        "rule": "rule-v1",
+        "model": "m-1",
+        "readout": "r-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "completed",
+        "detail": "fixture"
+      },
+      "accountability": {
+        "session": "sess-1",
+        "skill": "skill-credit",
+        "role": "employee"
+      },
+      "idempotency": {
+        "operation_id": "op-ts-1",
+        "payload_digest": "sha256:fefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefe"
+      }
+    }
+  ],
+  "_expect_match": "LEDGER.ILLEGAL_TRANSITION",
+  "_expect": "REJECT (dual-violation document, deliberately outside the single-violation corpus convention — R6 M-2's cross-oracle repro): a control event carrying an effect-family status must NOT drive the per-operation state on EITHER oracle. Pre-fix, the Python transition loop's != adoption guard let this control+dispatched event set state[op]=dispatched, so the trailing completed effect escaped ILLEGAL_TRANSITION on the Python side while the Go side reported it — the two oracles' error sets forked on the same document. The wrong-reason pin holds the divergence dead: both sides must emit the transition error. The status-family violation (control+dispatched) is the second, expected error."
+}

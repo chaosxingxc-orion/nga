@@ -20,10 +20,12 @@
 // as its durable form: each event is one line, and the file is replaced
 // atomically (write the full new content to a temp file, rename over — a
 // crash leaves the old or the new file, never a half-written one). A torn
-// tail line from an earlier partial write is skipped when loading, so
-// recovery resumes at the last complete event boundary. Because the event
-// file is the machine's only durable state, the pinned grants and the
-// winner's identity/versions/accountability ride the adoption event;
+// tail from external damage is remembered, not healed: the machine refuses
+// every mutation until the file is manually repaired and re-Opened (the
+// torn-tail doctrine, unified with evidlog — P1-2, 2026-11-03). Because
+// the event file is the machine's only durable state, the pinned grants
+// and the winner's identity/versions/accountability ride the adoption
+// event;
 // otherwise the crash would silently void the revocation check or fork the
 // post-recovery event stream. The durability contract is process-crash
 // level: rename atomicity holds across a killed process, but power-loss
@@ -84,17 +86,26 @@ type Outcome struct {
 	Event  *ledger.Event
 }
 
+// A zero-value Machine is not usable (Adopt would panic on the nil ops
+// map) — Open is the only constructor. The panic is loud, not silent: the
+// zero value can never reach the durable form (R11 MINOR-b, evidlog-m3's
+// adopt-side cousin — noisier but structurally the same statement).
+//
 // Machine is the adoption gate. Use Open to attach a durable JSONL file.
 // The durable form supports at most ONE Machine instance per file: the
 // rewrite is read-rebuild-rename under this instance's lock only — a second
-// instance on the same path interleaves renames and silently loses events
+// instance on the same path would interleave renames and silently lose
+// events, and a STALE instance's write is a false success that poisons the
+// file (detectable at the next Open) — since R11 the write-time
+// ADOPT.STALE_WRITER gate rejects it in the guilty caller instead
 // (contract-external use; a crashed process leaves at most one live
 // instance, and restart goes through Open again).
 type Machine struct {
-	mu   sync.Mutex
-	ops  map[string]*opState // keyed by operation_id
-	seq  int64               // last arbitration sequence written (0-based)
-	path string              // append-only JSONL file ("" = in-memory only)
+	mu       sync.Mutex
+	ops      map[string]*opState // keyed by operation_id
+	seq      int64               // last arbitration sequence written (0-based)
+	path     string              // append-only JSONL file ("" = in-memory only)
+	tornTail bool                // the durable form ended in a torn tail at Open time (external damage)
 }
 
 // seqExhausted reports whether the arbitration counter's int64 domain has
@@ -118,23 +129,41 @@ type opState struct {
 	identity       ledger.Identity
 	versions       ledger.Versions
 	accountability *ledger.Accountability // pinned at adoption; rides every effect event
+	dispatchedSeq  int64                  // the arbitration seq of THIS operation's dispatch event; -1 before the first dispatch (R29 M-1: initialized at Adopt/replay, not left as Go zero value) — the checked version for the E6 conditional commit (C4)
 }
 
 // Open loads (or starts) the durable form at path. A torn tail — an
-// unparseable remnant at EOF without a trailing newline — is skipped: a
-// conservative compatibility boundary for externally-damaged files (under
-// the machine's own temp+rename protocol a crash leaves the old or the new
-// file, never a partial line; the tolerated shape can only come from
-// outside). Events end at the last complete line; anything non-parseable
+// unparseable remnant at EOF without a trailing newline — is skipped in
+// the load projection but REMEMBERED, not healed: TornTail() reports it
+// and every mutating call refuses until the file is manually repaired and
+// re-Opened. Events end at the last complete line; anything non-parseable
 // elsewhere fails the open.
+// TORN-TAIL DOCTRINE, unified with evidlog (P1-2, 2026-11-03, retiring the
+// R9 F2 "heals / lossy-but-safe" divergence): remember + refuse. Under the
+// machine's own temp+rename protocol a crash leaves the old or the new
+// file, never a partial line, so the tolerated shape can only come from
+// OUTSIDE — and external damage is exactly the case where the machine must
+// not guess what was lost. A lost dispatch line is an unrecorded,
+// re-issuable execution permit: the retired doctrine's safety argument
+// ("a re-dispatch is exactly the 14-A5 unresolved case the machine already
+// models") was falsified by the external review probe — after healing,
+// Open re-derives to adopted and Dispatch legally returns "dispatched"
+// AGAIN, and the 14-A5 protection (caller-asserted MarkUnresolved) can
+// never fire because the damage signal was swallowed. Healing would also
+// erase the evidence: the rewrite-from-parsed-lines dropped the remnant
+// bytes before any human looked. The append path re-checks the bytes at
+// write time, so out-of-band damage between Open and write is caught too.
+// Manual repair is the only recovery: fix or truncate the file outside,
+// then re-Open. Do NOT reintroduce healing on either side of this pair.
 // The loaded lines are checked BEFORE any state is absorbed: a file this
 // machine did not write fails the open (see checkLoaded).
 func Open(path string) (*Machine, error) {
 	m := &Machine{ops: map[string]*opState{}, seq: -1, path: path}
-	lines, err := ledger.LoadDocument(path)
+	lines, torn, err := ledger.LoadDocument(path)
 	if err != nil {
 		return nil, err
 	}
+	m.tornTail = torn
 	if err := m.checkLoaded(lines); err != nil {
 		return nil, err
 	}
@@ -142,6 +171,16 @@ func Open(path string) (*Machine, error) {
 		m.replayEvent(&lines[i].Event)
 	}
 	return m, nil
+}
+
+// TornTail reports whether the durable form ended in an unparseable torn
+// tail at Open time (external damage). While true the machine is
+// read-only: every mutation is refused until the file is repaired and the
+// machine is re-Opened (see the torn-tail doctrine on Open).
+func (m *Machine) TornTail() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.tornTail
 }
 
 // checkLoaded runs the RAW line documents — what is on disk, byte for byte —
@@ -178,7 +217,7 @@ func (m *Machine) replayEvent(e *ledger.Event) {
 	op := e.Idempotency.OperationID
 	st, ok := m.ops[op]
 	if !ok {
-		st = &opState{}
+		st = &opState{dispatchedSeq: -1} // R29 M-1: replay-side sentinel consistency
 		m.ops[op] = st
 	}
 	st.digest = e.Idempotency.PayloadDigest
@@ -198,6 +237,12 @@ func (m *Machine) replayEvent(e *ledger.Event) {
 	if s := State(e.Outcome.Status); s == StateAdopted || s == StateDispatched ||
 		s == StateUnresolved || s == StateCompleted || s == StateFailed {
 		st.state = s
+	}
+	// E6 (C4): the dispatch event's arbitration seq is the operation's
+	// checked version for the conditional commit — replayed from the
+	// durable form exactly as a live Dispatch would record it.
+	if e.Outcome.Status == string(StateDispatched) {
+		st.dispatchedSeq = e.ArbitrationSeq
 	}
 }
 
@@ -274,6 +319,7 @@ func (m *Machine) Adopt(req *Request) Outcome {
 		identity:       req.Identity,
 		versions:       req.Versions,
 		accountability: copyAccountability(req.Accountability),
+		dispatchedSeq:  -1, // R29 M-1: the documented sentinel, actually assigned (pre-dispatch = no dispatch event)
 	}
 	ev := &ledger.Event{
 		EventType:        "adoption",
@@ -293,21 +339,116 @@ func (m *Machine) Adopt(req *Request) Outcome {
 	return Outcome{Status: "adopted", Event: ev}
 }
 
+// dispatchGated is the shared gate body of Dispatch and DispatchIfCurrent
+// (R29 m-1: the two public methods were 30+ duplicated lines; the commit
+// detail differs, everything else is identical). observedDispatchSeq < 0
+// skips the version gate (the plain Dispatch form); commitDetail rides
+// through to the ledger event. R31 M-2: a conditional commit with
+// observed >= 0 can NEVER succeed on the current ledger grammar (an
+// adopted operation has no dispatch version to match — the version gate
+// below refuses every observed >= 0); its success-path detail is
+// therefore unreachable by construction, and both callers pass static
+// honest wording.
+func (m *Machine) dispatchGated(op string, liveGrants []ledger.Grant, observedDispatchSeq int64, commitDetail string) Outcome {
+	// The torn-tail gate comes FIRST (P1-2): a damaged durable form may
+	// have lost the dispatch line of this very operation — re-issuing the
+	// execution permit on a guess ("probably never dispatched") is the
+	// falsified lossy-but-safe posture. No state change, no external
+	// effect, until repair and re-Open.
+	if m.tornTail {
+		return Outcome{Status: "rejected",
+			Detail: fmt.Sprintf("durable form %s ends in a torn tail (external damage): no state change and no execution permission until the file is repaired and the machine is re-Opened", m.path)}
+	}
+	st, ok := m.ops[op]
+	if !ok || st.state != StateAdopted {
+		if !ok {
+			return Outcome{Status: "rejected", Detail: fmt.Sprintf("operation %q is not in the adopted state", op)}
+		}
+		return m.refuse(st, fmt.Sprintf("operation %q is in the %s state — not adoptable for dispatch", op, st.state))
+	}
+	if observedDispatchSeq >= 0 && observedDispatchSeq != st.dispatchedSeq {
+		// R30 m-6: the reachable refusal face is forged/cross-wired
+		// observations — at this gate st.dispatchedSeq is always -1 (an
+		// adopted operation has no dispatch event), so the message says
+		// exactly that instead of narrating a same-op CAS story the
+		// architecture has ruled out, and the sentinel is explained.
+		return m.refuse(st, fmt.Sprintf("conditional commit rejected (E6/C4): the caller observed dispatch seq %d but the operation has no dispatch event (version -1) — the observation was never this operation's version", observedDispatchSeq))
+	}
+	if !grantsCover(liveGrants, st.grants) {
+		return m.refuse(st, "live grant set no longer covers the grants pinned at decision time (revocation check, 14-A4)")
+	}
+	// R31 M-2: the R30 detail split's two non-fresh arms were DEAD CODE —
+	// an adopted operation has no dispatch event (no back-edge in the
+	// ledger grammar), so at this gate st.dispatchedSeq is always -1 and
+	// a conditional commit with observed >= 0 can NEVER land (it is
+	// refused at the version gate above). The success detail is therefore
+	// static per caller and both callers pass their own honest wording;
+	// no runtime form-splitting exists to maintain.
+	o := m.commit(st, StateDispatched, commitDetail)
+	// E6 (C4): record the dispatch's own arbitration seq. R32 m-1 honesty:
+	// with no ledger back-edge this pin has NO reachable reader on the
+	// success path (an adopted operation — the only state that reaches the
+	// version gate — always carries -1); the pin exists for replay
+	// symmetry and a future grammar that allows re-commit, and its one
+	// LIVE face is the adopted-state forged-observation refusal above.
+	if o.Event != nil {
+		st.dispatchedSeq = o.Event.ArbitrationSeq
+	}
+	return o
+}
+
 // Dispatch transitions an adopted operation to dispatched, rechecking the
 // caller's LIVE grant set against the snapshot pinned at decision time
 // (14-A4: a revocation must stop the effect even though the adoption stands).
 func (m *Machine) Dispatch(op string, liveGrants []ledger.Grant) Outcome {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	st, ok := m.ops[op]
-	if !ok || st.state != StateAdopted {
-		return Outcome{Status: "rejected", Detail: fmt.Sprintf("operation %q is not in the adopted state", op)}
-	}
-	if !grantsCover(liveGrants, st.grants) {
-		return Outcome{Status: "rejected",
-			Detail: "live grant set no longer covers the grants pinned at decision time (revocation check, 14-A4)"}
-	}
-	return m.commit(st, StateDispatched, "dispatched after the 14-A4 revocation check")
+	return m.dispatchGated(op, liveGrants, -1, "dispatched after the 14-A4 revocation check")
+}
+
+// DispatchIfCurrent is the E6 conditional commit (C4, xingchao 198232012
+// §一.4), in its R43-M-1 truthful form: an observed dispatch seq >= 0 is
+// ALWAYS refused — an adopted operation has no dispatch event (no ledger
+// back-edge), so its "version" is -1 and any non-negative observation is
+// by construction forged or cross-wired (a control event records the
+// refusal). R44 m-1: ANY negative observation is the landable fresh form
+// ("no dispatch observed" — the gate treats every negative value as
+// fresh, behaviorally equivalent to the plain version-blind Dispatch,
+// 14-A4 still runs; the earlier "-1 only" phrasing was not what the gate
+// does). The canonical "D2 took effect between check and submit" race on
+// ANOTHER operation is NOT detectable here (that protection lives at the
+// host tier; see the WINDOW DECLARATION below). The plain Dispatch stays
+// version-blind (the machine dispatches whatever the caller submits —
+// semantic blindness by design); this method is the opt-in
+// forged-observation gate, not a same-operation CAS.
+//
+// WINDOW DECLARATION (the two windows of C4, pre-declared per 33号 B6;
+// R29 M-2 narrowed to the mechanism's true reach):
+//
+//	Window 1 — "approved but not sent" (adopted, pre-dispatch): covered
+//	for revocation-form interventions (14-A4 blocks before any external
+//	call) and for FORGED/CROSS-WIRED observations (a seq the operation
+//	never had is refused). The canonical same-operation CAS race — an
+//	intervening decision on ANOTHER operation while the caller holds a
+//	correct fresh observation of THIS one — is NOT detectable here: an
+//	adopted operation has no dispatch event, so its version cannot go
+//	stale (adopted has no back-edge in the ledger grammar). That form's
+//	protection lives at the host tier (the host's own sequencing), not
+//	in this gate.
+//	Window 2 — "sent but unconfirmed" (post-dispatch, pre-receipt): NOT
+//	covered by any pre-commit check — the effect may already be external.
+//	The machine's answer is MarkUnresolved (T0 scenario 5); declaring a
+//	residual window honestly is the contract — no method promises that a
+//	late revocation retracts an in-flight external effect.
+func (m *Machine) DispatchIfCurrent(op string, liveGrants []ledger.Grant, observedDispatchSeq int64) Outcome {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	// observedDispatchSeq < 0 means "I never observed a dispatch" — for an
+	// adopted operation that is the correct fresh-observation form (no
+	// dispatch event exists yet), so the version gate is skipped (see
+	// dispatchGated). R30 M-4: the ledger detail names the skipped check
+	// honestly — the fresh form never ran a version comparison.
+	return m.dispatchGated(op, liveGrants, observedDispatchSeq, "dispatched after the fresh-observation form (no dispatch version to check) and the 14-A4 revocation check")
 }
 
 // MarkUnresolved records 'dispatch outcome unknown' (timeout / lost receipt /
@@ -324,8 +465,7 @@ func (m *Machine) MarkUnresolved(op string) Outcome {
 		return Outcome{Status: "rejected", Detail: fmt.Sprintf("operation %q is unknown", op)}
 	}
 	if st.state != StateAdopted && st.state != StateDispatched {
-		return Outcome{Status: "rejected",
-			Detail: fmt.Sprintf("operation %q is in the %s state; only adopted or dispatched operations can become unresolved", op, st.state)}
+		return m.refuse(st, fmt.Sprintf("operation %q is in the %s state; only adopted or dispatched operations can become unresolved", op, st.state))
 	}
 	return m.commit(st, StateUnresolved, "unresolved — outcome unknown, awaiting reconciliation")
 }
@@ -350,7 +490,7 @@ func (m *Machine) finish(op string, to State, detail string) Outcome {
 		return Outcome{Status: "rejected", Detail: fmt.Sprintf("operation %q is unknown", op)}
 	}
 	if st.state != StateDispatched && st.state != StateUnresolved {
-		return Outcome{Status: "rejected", Detail: fmt.Sprintf("operation %q is in the %s state; only dispatched or unresolved operations can finish", op, st.state)}
+		return m.refuse(st, fmt.Sprintf("operation %q is in the %s state; only dispatched or unresolved operations can finish", op, st.state))
 	}
 	return m.commit(st, to, detail)
 }
@@ -380,13 +520,45 @@ func (m *Machine) commit(st *opState, to State, detail string) Outcome {
 	return Outcome{Status: string(to), Event: ev}
 }
 
+// refuse records a control-plane refusal as a control event (E3,
+// 2026-11-03): the rejected attempt is an audit fact — the 14-A4
+// revocation rejection, an illegal-transition attempt — carrying the
+// operation's full identity/versions/accountability pin. Control events
+// never transition state (the checker's transition loop skips them) and
+// never enter the idempotency registry (CONTROL_IDEM_FORBIDDEN), so the
+// ledger gains the refusal record without touching replay or the
+// machine's own state. The pre-E3 hole: the 14-A4 revocation check was
+// the component's signature guard while every one of its firings was
+// traceless (a return value only — a host had no API to audit how many
+// revoked-permission attempts were blocked). Unknown-operation refusals
+// stay return-value-only: there is no identity to pin (the grammar
+// requires the full identity, and a control event precedes nothing).
+func (m *Machine) refuse(st *opState, detail string) Outcome {
+	if m.seqExhausted() {
+		return Outcome{Status: "rejected", Detail: detail}
+	}
+	ev := &ledger.Event{
+		EventType:      "control",
+		ArbitrationSeq: m.seq + 1,
+		Identity:       st.identity,
+		Versions:       st.versions,
+		Accountability: copyAccountability(st.accountability),
+		Outcome:        ledger.Outcome{Status: "rejected", Detail: detail},
+	}
+	if err := m.append(ev); err != nil {
+		return Outcome{Status: "rejected", Detail: detail + " (refusal not recorded: " + err.Error() + ")"}
+	}
+	m.seq = ev.ArbitrationSeq
+	return Outcome{Status: "rejected", Detail: detail, Event: ev}
+}
+
 // Events returns every complete event line currently in the durable form
 // (and only those — a torn tail, if present, is excluded). In-memory mode
 // has no durable form; the caller drives scenarios through the API instead.
 func (m *Machine) Events() ([]ledger.Event, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	lines, err := ledger.LoadDocument(m.path)
+	lines, _, err := ledger.LoadDocument(m.path)
 	if err != nil {
 		return nil, err
 	}
@@ -400,9 +572,9 @@ func (m *Machine) Events() ([]ledger.Event, error) {
 // append writes one event as a JSON line. The write is atomic at file scope:
 // the full new content (the parsed complete lines + this line) goes to a
 // temp file in the same directory, which is then renamed over the target —
-// a crash leaves either the old or the new file. A torn tail left by
-// whatever crashed earlier is thereby healed away on the next successful
-// append.
+// a crash leaves either the old or the new file. A torn tail, if present,
+// never reaches the rewrite: the write-time re-check inside refuses the
+// append first, so the damaged bytes survive for manual repair (P1-2).
 func (m *Machine) append(ev *ledger.Event) error {
 	if m.path == "" {
 		return nil
@@ -416,15 +588,42 @@ func (m *Machine) append(ev *ledger.Event) error {
 		return err
 	}
 	// rebuild from the parser's boundary definition, byte for byte: the
-	// durable unit is the parsed complete line, so a torn tail is crash
-	// residue and drops away, while a final complete line without a trailing
-	// newline survives (the loader accepts it; the rewrite must not delete
-	// what the loader accepted — R2 BLOCKER). Concatenating onto raw bytes
-	// instead would fuse a torn tail and the new line into one unparseable
-	// line.
-	parsed, err := ledger.ParseLines(existing)
+	// durable unit is the parsed complete line, so a final complete line
+	// without a trailing newline survives (the loader accepts it; the
+	// rewrite must not delete what the loader accepted — R2 BLOCKER).
+	// A torn tail never reaches this rebuild: the write-time re-check
+	// below refuses first, so damaged bytes are never erased. Concatenating
+	// onto raw bytes instead would fuse a torn tail and the new line into
+	// one unparseable line.
+	parsed, tornNow, err := ledger.ParseLines(existing)
 	if err != nil {
 		return err
+	}
+	// Write-time torn-tail re-check (P1-2, the adopt-side twin of
+	// evidlog's R10 face-B byte re-check): the Open-time flag is a view,
+	// the bytes are the truth — out-of-band damage between Open and this
+	// write is caught here, and refusing here is what guarantees the
+	// rebuild above never erases damaged evidence.
+	if tornNow {
+		return fmt.Errorf("[ADOPT.TORN_TAIL] %s: append refused — the durable form ends in an unparseable torn tail (externally damaged file); repair the file, then re-Open", m.path)
+	}
+	// Write-time seq-continuity gate (R11 MAJOR — the counterpart of
+	// evidlog's R10 face-B re-check): the Open-time view may be stale after
+	// an out-of-band or stale-instance write. Under the machine's
+	// strictly-increasing seq the last parsed event must be exactly this
+	// event's predecessor — every legal path (14-A5 crash-recovery
+	// re-Open, a surviving no-newline complete line) passes by
+	// construction; the ONLY thing this gate can reject is a write whose
+	// view of the file is stale, and it fails HERE, in the guilty caller,
+	// instead of emitting a false success that poisons the file for the
+	// next Open (probes: sequential stale write, stale double dispatch —
+	// both silently "succeeded" pre-gate).
+	want := int64(0)
+	if len(parsed) > 0 {
+		want = parsed[len(parsed)-1].Event.ArbitrationSeq + 1
+	}
+	if ev.ArbitrationSeq != want {
+		return fmt.Errorf("[ADOPT.STALE_WRITER] %s: append refused — the durable form's last seq is %d but this instance is about to write %d; the Open-time view is stale (foreign or stale-instance write). Re-Open to absorb the file, then decide", m.path, want-1, ev.ArbitrationSeq)
 	}
 	next := make([]byte, 0, len(existing)+len(line)+1)
 	for _, l := range parsed {
@@ -446,7 +645,37 @@ func (m *Machine) append(ev *ledger.Event) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
+	// Whole-file replace keeps the durable file's permission bits and
+	// never widens them (P1-1, 2026-11-03 external review, overturning the
+	// L14 first-write-0644 ruling): an existing file keeps the operator's
+	// exact mode, and a first durable write keeps os.CreateTemp's
+	// owner-only 0600. os.Chmod bypasses umask by design, so a 0644
+	// default silently widened visibility past what a umask 077 deployment
+	// asked for — wider audit readability is a deployment decision
+	// (explicit chmod or config), never a component default.
+	mode, err := durableMode(m.path)
+	if err != nil {
+		return err
+	}
+	if err := os.Chmod(tmp.Name(), mode); err != nil {
+		return err
+	}
 	return os.Rename(tmp.Name(), m.path)
+}
+
+// durableMode returns the permission mode a whole-file replace should
+// carry: the existing file's exact bits, or owner-only 0600 for a file
+// that does not exist yet. Any other Stat failure is an error, not a
+// silent new-file default (P1-1).
+func durableMode(path string) (os.FileMode, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return 0o600, nil
+		}
+		return 0, err
+	}
+	return info.Mode().Perm(), nil
 }
 
 // checkRequest validates the request's document form against

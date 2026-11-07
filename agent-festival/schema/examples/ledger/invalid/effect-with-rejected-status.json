@@ -1,0 +1,75 @@
+{
+  "ledger_version": "0.1.0",
+  "events": [
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 0,
+      "identity": {
+        "business_request_id": "br-a027",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-er-1"
+      },
+      "versions": {
+        "evidence": "ev-27",
+        "rule": "rule-v1",
+        "model": "m-1",
+        "readout": "r-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "adopted",
+        "detail": "fixture"
+      },
+      "accountability": {
+        "session": "sess-1",
+        "skill": "skill-credit",
+        "role": "employee"
+      },
+      "idempotency": {
+        "operation_id": "op-er-1",
+        "payload_digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://credit/a27",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        }
+      ]
+    },
+    {
+      "event_type": "effect",
+      "arbitration_seq": 1,
+      "identity": {
+        "business_request_id": "br-a027",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-er-1"
+      },
+      "versions": {
+        "evidence": "ev-27",
+        "rule": "rule-v1",
+        "model": "m-1",
+        "readout": "r-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "rejected",
+        "detail": "machine answer word smuggled onto the effect family"
+      },
+      "accountability": {
+        "session": "sess-1",
+        "skill": "skill-credit",
+        "role": "employee"
+      },
+      "idempotency": {
+        "operation_id": "op-er-1",
+        "payload_digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      }
+    }
+  ],
+  "_expect_match": "STATUS_FAMILY",
+  "_expect": "REJECT: 'rejected' is the control family's status (E3) — an effect event never carries it; the status vocabulary never crosses the event-type boundary"
+}

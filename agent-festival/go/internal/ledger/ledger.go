@@ -16,24 +16,33 @@ package ledger
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/openjiuwen/agent-festival/go/internal/schemalib"
 )
 
-// AdoptStatuses / EffectStatuses are the status families. Package-level so
-// the lockstep test can compare them against the schema enum (the status
-// vocabulary exists as several copies — schema enum, these sets, the Python
-// sets, the machine's State constants — and the lockstep test is what makes
-// the schema enum the enforced single source, R3 m-2).
+// AdoptStatuses / EffectStatuses / ControlStatuses are the status families.
+// Package-level so the lockstep test can compare them against the schema
+// enum (the status vocabulary exists as several copies — schema enum, these
+// sets, the Python sets, the machine's State constants — and the lockstep
+// test is what makes the schema enum the enforced single source, R3 m-2).
+// ControlStatuses (E3, 2026-11-03): a control event records a machine
+// REFUSAL on an adopted operation (14-A4 revocation rejection,
+// illegal-transition rejection) — an audit fact that never transitions
+// state and never enters the idempotency registry.
 var AdoptStatuses = map[string]bool{"adopted": true, "reused": true, "conflict": true}
 var EffectStatuses = map[string]bool{"dispatched": true, "unresolved": true, "completed": true, "failed": true}
+var ControlStatuses = map[string]bool{"rejected": true}
 
-// floatSyntaxBeyondExactDomain names events whose arbitration_seq is a
-// float-syntax number beyond ±2^53, where float64 no longer represents
-// every integer exactly.
-func floatSyntaxBeyondExactDomain(doc map[string]any) []string {
+// User ruling 2026-11-02: this package does no float math — the seq domain
+// is a machine counter, and integer LITERALS are the only writable form.
+// floatSyntax enforces that: any arbitration_seq json.Number that is not
+// Int64-parseable (0.0, 1e0, 1.5 — even inside ±2^53, even
+// integer-valued) is rejected by rule. The old charter accepted
+// integer-valued float syntax inside the domain (JCS analogy) — retired:
+// JCS governs the SIGNATURE payload only, never the counter; the
+// normalization layer and the ±2^53 sub-domain rule are gone with it.
+func floatSyntax(doc map[string]any) []string {
 	events, _ := doc["events"].([]any)
 	var errs []string
 	for i, e := range events {
@@ -45,81 +54,17 @@ func floatSyntaxBeyondExactDomain(doc map[string]any) []string {
 		if !ok {
 			continue
 		}
-		if _, err := n.Int64(); err == nil {
-			continue // integer syntax: exact in any domain
-		}
-		s := n.String()
-		if !strings.ContainsAny(s, ".eE") {
-			continue // integer syntax beyond int64: the typed view names it
-		}
-		f, err := n.Float64()
-		if err != nil {
-			continue
-		}
-		if f == math.Trunc(f) && (f > 1<<53 || f < -(1<<53)) {
-			errs = append(errs, fmt.Sprintf("[LEDGER.SEQ_FLOAT_BEYOND_EXACT] events/%d: arbitration_seq %s uses float syntax beyond the exact-representation domain (±2^53) — the value a parser recovers depends on its float rounding, not on the document", i, n.String()))
+		if _, err := n.Int64(); err != nil {
+			// syntax guard: integer syntax beyond int64 is the typed
+			// domain's rejection; float syntax is the literal gate's
+			if strings.ContainsAny(n.String(), ".eE") {
+				errs = append(errs, fmt.Sprintf("[LEDGER.SEQ_FLOAT_SYNTAX] events/%d: arbitration_seq %s is not an integer literal — the counter domain is machine-written int64; this package does no float math (user ruling 2026-11-02)", i, n.String()))
+			} else {
+				errs = append(errs, fmt.Sprintf("[LEDGER.SEQ_INT64_OVERFLOW] events/%d: arbitration_seq %s exceeds the int64 domain — the machine's counter domain; such a document is not machine-writable", i, n.String()))
+			}
 		}
 	}
 	return errs
-}
-
-// copyDoc deep-copies a decoded JSON document, preserving json.Number.
-func copyDoc(node any) any {
-	switch v := node.(type) {
-	case map[string]any:
-		out := make(map[string]any, len(v))
-		for k, child := range v {
-			out[k] = copyDoc(child)
-		}
-		return out
-	case []any:
-		out := make([]any, len(v))
-		for i, child := range v {
-			out[i] = copyDoc(child)
-		}
-		return out
-	default:
-		return v
-	}
-}
-
-// normalizeIntegralNumbers converts json.Number values with integral values
-// that fit int64 into int64, in place. Without this, a seq written "5.0"
-// would pass the schema (spec: integer-valued) but fail the typed re-parse —
-// forking the dual validators' verdicts on the same document (R5 M-3).
-func normalizeIntegralNumbers(node any) {
-	switch v := node.(type) {
-	case map[string]any:
-		for k, child := range v {
-			if n, ok := child.(json.Number); ok {
-				if i, err := n.Int64(); err == nil {
-					v[k] = i
-					continue
-				}
-				if f, err := n.Float64(); err == nil && f == math.Trunc(f) &&
-					f >= -(1<<53) && f <= 1<<53 {
-					v[k] = int64(f)
-					continue
-				}
-			}
-			normalizeIntegralNumbers(child)
-		}
-	case []any:
-		for i, child := range v {
-			if n, ok := child.(json.Number); ok {
-				if j, err := n.Int64(); err == nil {
-					v[i] = j
-					continue
-				}
-				if f, err := n.Float64(); err == nil && f == math.Trunc(f) &&
-					f >= -(1<<53) && f <= 1<<53 {
-					v[i] = int64(f)
-					continue
-				}
-			}
-			normalizeIntegralNumbers(child)
-		}
-	}
 }
 
 // accountabilityEqual compares the optional triples by value.
@@ -239,38 +184,24 @@ type Document struct {
 // effect-before-adoption is one bypass fact that legitimately trips both
 // the grammar and the transition table, identically on both sides). The
 // verdict never differs. The map input must be decoded with
-// json.Decoder.UseNumber: on a float64 map, the monotonicity check loses
-// the DECREASING-pairs-become-equal direction silently rejecting LEGAL
-// consecutive seqs past 2^53, AND the float-syntax-beyond-±2^53 rule plus
-// the integral-float normalization go ENTIRELY silent (json.Number
-// assertions fail, values slip through as float64) — three rules, one
-// input discipline (the suite loader and the adopt machine's line decoder
-// both keep it; future callers — the replay reader — must too).
+// json.Decoder.UseNumber (R16 数值域章程): the integer-literal gate keys
+// off json.Number — on a plain float64 map every number arrives as
+// float64 and the literal check is undecidable (0.0 is indistinguishable
+// from 0) and FAILS OPEN on such contract-breaking input. One input
+// discipline (the suite loader and the adopt machine's
+// line decoder both keep it; future callers — the replay reader — must
+// too).
 func Errors(doc map[string]any) []string {
 	if err := schema.Validate(doc); err != nil {
 		return []string{"schema: " + err.Error()}
 	}
-	// work on a copy: the normalization below rewrites number nodes, and a
-	// validator must not mutate its caller's document (the replay reader
-	// will reuse the same map)
-	if copied, ok := copyDoc(doc).(map[string]any); ok {
-		doc = copied
-	}
-	// normalize integral float-syntax numbers (json.Number like "5.0") into
-	// the int domain: the reference implementation's Number.isInteger
-	// accepts 5.0, so parity accepts it — and the comparisons below stay in
-	// the native integer domain (the double charter). Non-integral or
-	// beyond-int64 values stay as json.Number and fail the typed re-parse,
-	// which is the int64-domain rejection.
-	// float syntax beyond the exact-representation domain: the value a
-	// parser recovers for such literals depends on its float rounding
-	// (Python's float() folds odd values past 2^53), so the document has no
-	// parser-independent value — both validators reject it by rule rather
-	// than disagreeing about what it says.
-	if errs := floatSyntaxBeyondExactDomain(doc); len(errs) > 0 {
+	// integer-literal domain (R16, user ruling): float-syntax seqs are
+	// rejected by rule BEFORE anything else — the normalization layer and
+	// the copyDoc that once lived in this function retired with it (R16
+	// 数值域章程; evidlog's CheckDoc rewrites retired the same day).
+	if errs := floatSyntax(doc); len(errs) > 0 {
 		return errs
 	}
-	normalizeIntegralNumbers(doc)
 	// cross-event rules on the typed view
 	var d Document
 	raw, err := json.Marshal(doc)
@@ -306,8 +237,11 @@ func Errors(doc map[string]any) []string {
 	// status families, transitions, and the grants-on-effect rule
 	for i, e := range d.Events {
 		ok := AdoptStatuses[e.Outcome.Status]
-		if e.EventType == "effect" {
+		switch e.EventType {
+		case "effect":
 			ok = EffectStatuses[e.Outcome.Status]
+		case "control":
+			ok = ControlStatuses[e.Outcome.Status]
 		}
 		if !ok {
 			// the label names the status's OWN family — that is the
@@ -316,7 +250,9 @@ func Errors(doc map[string]any) []string {
 			// required outcome + status enum constrain the value before the
 			// typed view sees it.)
 			family := "effect"
-			if AdoptStatuses[e.Outcome.Status] {
+			if ControlStatuses[e.Outcome.Status] {
+				family = "control"
+			} else if AdoptStatuses[e.Outcome.Status] {
 				family = "adoption"
 			}
 			errs = append(errs, fmt.Sprintf("[LEDGER.STATUS_FAMILY] events/%d: %s event carries the %s-family status %q — the status vocabulary never crosses the event-type boundary", i, e.EventType, family, e.Outcome.Status))
@@ -375,6 +311,13 @@ func Errors(doc map[string]any) []string {
 		if e.EventType == "adoption" && e.Outcome.Status == "conflict" && e.Idempotency != nil {
 			errs = append(errs, fmt.Sprintf("[LEDGER.CONFLICT_IDEM_FORBIDDEN] events/%d: conflict event carries idempotency — the loser's digest never enters the registry; carrying it is a bypass write, not a machine transition", i))
 		}
+		// E3: a control event (a refusal record) carrying idempotency would
+		// register the ATTEMPTED operation's digest without any adoption
+		// authority behind it — the same laundering the conflict rule above
+		// forbids (the refusal is an audit fact, never a registry entry).
+		if e.EventType == "control" && e.Idempotency != nil {
+			errs = append(errs, fmt.Sprintf("[LEDGER.CONTROL_IDEM_FORBIDDEN] events/%d: control event carries idempotency — a refusal record never enters the registry; carrying it is a bypass write, not a machine transition", i))
+		}
 		needsIdem := e.EventType == "effect" || e.Outcome.Status == "adopted" || e.Outcome.Status == "reused"
 		if needsIdem && e.Idempotency == nil {
 			errs = append(errs, fmt.Sprintf("[LEDGER.IDEM_REQUIRED] events/%d: %s event (status %q) must carry idempotency — the machine writes it on every non-conflict event; its absence is a bypass write, not a machine transition", i, e.EventType, e.Outcome.Status))
@@ -408,11 +351,17 @@ func Errors(doc map[string]any) []string {
 		op := e.Identity.OperationID
 		if e.EventType == "adoption" && e.Outcome.Status == "adopted" {
 			pins[op] = pin{identity: e.Identity, versions: e.Versions, accountability: e.Accountability}
-		} else if e.EventType == "effect" {
+		} else if e.EventType == "effect" || e.EventType == "control" {
+			// E3 propagation fix (R6 M-1, 2026-11-04): control events carry
+			// the pin too (refuse() stamps the operation's full
+			// identity/versions/accountability) — a refusal record with a
+			// FORGED attribution would launder a fake principal into the
+			// audit trail through the very channel the effect rule guards;
+			// the same divergence check applies.
 			if p, has := pins[op]; has {
 				if e.Identity != p.identity || e.Versions != p.versions ||
 					!accountabilityEqual(e.Accountability, p.accountability) {
-					errs = append(errs, fmt.Sprintf("[LEDGER.ATTRIBUTION_DIVERGENCE] events/%d: effect event's attribution (identity/versions/accountability) differs from the adopted pin for operation %q — the machine stamps the winner's pin on every effect event; a divergence is a bypass write, not a machine transition", i, op))
+					errs = append(errs, fmt.Sprintf("[LEDGER.ATTRIBUTION_DIVERGENCE] events/%d: %s event's attribution (identity/versions/accountability) differs from the adopted pin for operation %q — the machine stamps the winner's pin on every effect and control event; a divergence is a bypass write, not a machine transition", i, e.EventType, op))
 				}
 			}
 		}
