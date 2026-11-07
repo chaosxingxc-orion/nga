@@ -1092,3 +1092,27 @@ N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是
 [mutation-proof: test $(grep -c "retired-by: R63——载体已由 cp 形承接" agent-festival/docs/minor-ledger.md) -ge 2 → OK]
 [mutation-proof: test $(grep -c "各带标记」声明经此修正为真" agent-festival/docs/minor-ledger.md) -ge 2 → OK]
 [mutation-proof: test $(grep -c "根锚定零 cd" agent-festival/docs/minor-ledger.md) -ge 7 && test $(grep -c "retired-by: R62 — compile-red" agent-festival/docs/minor-ledger.md) -ge 1 → OK]
+
+## 机器退役记账（2026-11-07，第 105 号实证——singularity 判决：自指漩涡九轮的终止）
+
+> 用户裁定（2026-11-07）：「没有必要做的事情绝对不做」「能用实验验证就已经是很大的进步了」「实验代码也不验了」。
+
+- **判决**：settlement 审计/守卫电池/标定器/回放门/篡改电池（settlement + tools 五件，~1700 行）
+  **退役删除**。singularity 四叉：①机器证明的保证被单一事实覆盖——每轮清偿的实际证明早已是
+  `go test ./... -race` 绿，48 枚 token 是其冗余子集；②信任根未动——语义假 token（true→OK）
+  不可机检，防的对手是操作者诚实的手误，流程纪律（清偿=当轮绿跑）即全部答案；③自指漩涡——
+  R58-R66 九轮全部耗在审机器自己，30% 修复自播种率 × 自指对象 = 机器给自己制造存在理由；
+  ④边际核算——建机器前的 9 次虚假清偿全部由空白子外环抓出，机器的边际增量只是「当轮 vs 下
+  轮」，成本却是九轮全强度自审。
+- **退役随之生效**：清偿证明协议/修复义务协议退役——台账存量 48 枚 token 为历史文本，存量条
+  目不再有补挂/执行义务；replay 七面门/标定/电池随之消失。
+- **保留**：台账全文（战役记录+61→105 条实证=遗产本体）；E7/产品测试全量（bare_nested 等行为
+  探针是产品层真防线）；三份方法论 doc 归档（attack-corpus/fixture-guard-pattern/runbook——
+  历史模板，不再维护）。
+- **立法（用户，永续）**：以后不许做为了雕花而做的事情；实验代码不再验；战役价值锚=实验对真
+  提议的验证（映射见 impl-2026-11-01/43 号）。
+- **回归**：go test ./... -race 21 包绿（22→21）；产品零依赖（settlement 无被 import 面）。
+- **方法论（第 105 实证）**：**流程解优先于工程解**（清偿=当轮绿跑 vs 证明携带文档系统——同一
+  保证 1% 成本）；**自指审查对象使收敛判据不可达**（30% 自播种 × 2 连判据=数学上无终点）；
+  **自家律对自家机器同样适用**（占位符家族五连变体——「修补 ≥2 次即换结构」第二次违反时就应
+  退役，实际拖到第五次+九轮漩涡）。
