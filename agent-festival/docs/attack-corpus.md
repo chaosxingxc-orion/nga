@@ -33,10 +33,10 @@
 | 形态钉的开放集 | 变异先行 | 文字钉/AST 钉禁用（要钉就换观测面）——注册 spec 义务已随注册闸退役（形态入 pattern doc 归档件表对账） |
 | 声明失实是最大族 | 审查面 | 「已做/✅/已存/已推」当轮机械核验（清偿=race 绿+空白子复验；doc 级=审查） |
 | 声明先于调用 | 审查 | 说「已存/已提交/已跑」时工具调用返回了吗（自检动作） |
-| letter 条目在场闸 | 审查面 | R58 M-1——`- **M-A**` 形无 token 条目必须红（bulletRe 放宽 `[BM]-[A-Za-z0-9]+`（机器面已退役——判据由审查面承载）） |
+| letter 条目 id 形态 | 审查面 | 条目 id 的 letter 后缀形态（M-A/M-B）在台账与 doc 中须与数字形态同等对待——判据仍活；token 在场闸已随协议退役（新条目无 token 合法，105 号） |
 | 围栏=文档 | 审查面 | R58 M-2——围栏内 `[mutation-proof: …]` 不是 token（presence/grammar 双跳过（机器面已退役））；R59/R60 解析器三判据已随机器退役（fence kind/占位符形状封闭/条目 id 归因——历史立法见对应轮次；围栏=文档的 prose 判据仍由审查面承载） |
 | 调用方绕过面 | 变异先行+审查 | 调用点换裸构造器突变→守卫探针红（亲手实证 0.068s 形态）；模式文档边界声明（新调用点须更新对账或声明绕过）——consumers 锚已随注册闸退役 |
-| 返回已检被改流 | 审查面 | R58 S3 提案采纳——「检查后改写返回流的 Outcome」今日无电池形；审查面核对 AcceptsHealthy 投影含 seq/type/outcome 三字段（丢 Outcome=ood-loose-assert 本体） |
+| 返回已检被改流 | 审查面 | R58 S3 提案采纳——「检查后改写返回流的 Outcome」由审查面核对 AcceptsHealthy 投影含 seq/type/outcome 三字段（丢 Outcome=ood-loose-assert 本体） |
 | E7a② 负孪生 | 审查（待实现） | R58 S3 提案采纳——伪造 pin 的手工 control 事件必须被 Open 以 ATTRIBUTION_DIVERGENCE 拒；今日唯一红面在 cmd/ledger 语料套件，e7 无本测（下轮补） |
 
 ## 三、植入标定（已退役——seed.py 随机器删除；泛化率测量价值记录在案，重启须先过「有必要才做」裁定）
