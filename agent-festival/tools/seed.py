@@ -138,6 +138,7 @@ def materialize_battery_edit(family):
 SESSION_ARTIFACT_PATTERNS = (
     "HANDOFF*", "KICKOFF*", "loop-progress*", "loop-transcript*",
     "ngaf-*", "impl-2026-11-01*", ".zcodeignore", ".DS_Store", "*.log",
+    "*.probe-bak",
 )
 
 
@@ -240,15 +241,24 @@ def selftest():
     failures = []
     tmp = Path(tempfile.mkdtemp(prefix="seed-hygiene-selftest-"))
     try:
+        # R63 inner M-1 SINGLE SOURCE: the fixture creation and the
+        # planted-name assertion share THIS list — the R39 M-1 second-list
+        # drift disease (two hand-maintained parallel lists) killed the
+        # previous planted assertion (impl-2026-11-01* pattern deletion
+        # leaked the directory form silently). Bidirectional drift is
+        # structurally inexpressible here.
+        fixture_artifacts = [
+            "KICKOFF.md", "HANDOFF.md", "loop-progress.log", "ngaf-launch.sh",
+            "KICKOFF-R60.md", "HANDOFF.md.bak", "loop-progress-2026-11-07.log",
+            "zz.probe-bak", "session-notes/KICKOFF.md",
+            "impl-2026-11-01/42-review-meta-analysis-v2.md",
+        ]
         fake_src = tmp / "src"
         fake_src.mkdir()
-        for name in ("KICKOFF.md", "HANDOFF.md", "loop-progress.log", "ngaf-launch.sh",
-                     "KICKOFF-R60.md", "HANDOFF.md.bak", "loop-progress-2026-11-07.log"):
-            (fake_src / name).write_text("session artifact")
-        (fake_src / "impl-2026-11-01").mkdir()
-        (fake_src / "impl-2026-11-01" / "42-review-meta-analysis-v2.md").write_text("draft")
-        (fake_src / "session-notes").mkdir()
-        (fake_src / "session-notes" / "KICKOFF.md").write_text("nested artifact")
+        for rel in fixture_artifacts:
+            f = fake_src / rel
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text("session artifact")
         (fake_src / "keepme.txt").write_text("real content")
         dst = tmp / "clone"
         # A: stripping face (monkeypatch the module ROOT for this call)
@@ -258,11 +268,22 @@ def selftest():
             copy_tree(dst)
         finally:
             ROOT = saved_root
-        leaked = [str(r) for r in sorted(dst.rglob("*"))
-                  if any(fnmatch.fnmatch(r.name, pat) or fnmatch.fnmatch(str(r.relative_to(dst)), pat)
-                         for pat in SESSION_ARTIFACT_PATTERNS)]
+        # R63 inner M-2: the assertion is PLANTED-NAME based and
+        # SINGLE-SOURCED from fixture_artifacts (see above) — a
+        # pattern-relative check cannot detect a MISSING pattern, and a
+        # second hand-maintained list drifts (R39 M-1). Bidirectional:
+        # every planted artifact must be absent (strip works), and the
+        # count guards against fixture/assertion divergence (R63 inner
+        # M-1's coverage hole is this assertion's job now).
+        leaked = [n for n in fixture_artifacts if (dst / n).exists()]
         if leaked:
             failures.append(f"A: copy_tree leaked session artifacts: {leaked}")
+        # R63 inner M-1 fix: the shrink sentinel fires INDEPENDENTLY of the
+        # leak check (the R61 form gated on leaked==... making it dead code
+        # — a shrink with zero leaks passed silently; mutation-verified:
+        # shrink to 9 → this fires standalone).
+        if len(fixture_artifacts) < 10:
+            failures.append(f"A: fixture list shrank to {len(fixture_artifacts)} (<10) — coverage hole")
         if not (dst / "keepme.txt").exists():
             failures.append("A: copy_tree stripped non-artifact content (over-broad)")
         # B: hygiene-gate red face — planted exact name AND a renamed

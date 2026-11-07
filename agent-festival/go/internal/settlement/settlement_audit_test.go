@@ -40,6 +40,9 @@ var (
 	// class left them as LIVE tokens, fake-satisfying presence+execution);
 	// shell metacharacters remain structurally excluded (no ;|&`$()/ in
 	// the name, nothing after the closing > but the arrow).
+	// metacharRe: shell metacharacters that make a "<"-prefixed command a
+	// REAL compound command (R63 M-1 family closure).
+	metacharRe         = regexp.MustCompile("[;|&`$()]")
 	fencePlaceholderRe = regexp.MustCompile(`\[mutation-proof:\s*<\p{L}[\p{L}\p{N} _.-]*>\s*→\s*(?:FAIL|OK)\]`)
 	// bulletRe matches numeric AND letter-suffix entry ids (M-1/M-A/M-B —
 	// the ledger's established letter-id convention, e.g. R17 M-A/M-B/M-C):
@@ -200,16 +203,30 @@ func parseLedger(data []byte) *audit {
 			if retired {
 				continue // historical token; its carrier is retired, proof superseded
 			}
-			// R61 M-2: the placeholder illustration is NOT a mutation proof —
-			// as a bare line it false-satisfies presence (it counts) AND
-			// execution (bash "<cmd>" exits non-zero, "satisfying" FAIL).
-			// Third variant of the family: inline-backtick (C2'), fenced
-			// (R58 M-2), bare (this fix) — one shape-closed discriminator,
-			// applied at extraction.
-			if fencePlaceholderRe.MatchString(m[0]) {
+			// R61 M-2 + R63 M-1 (FAMILY CLOSED): a bare token whose command
+			// starts with "<" is never a legal mutation proof. The family's
+			// four variants — inline-backtick (C2'), fenced (R58 M-2),
+			// closed-placeholder bare (R61 M-2), hyphen/dot and unclosed/
+			// nested bare (R62 M-1 / R63 M-1) — all false-satisfy
+			// presence+execution (bash "<...>" forms exit non-zero via
+			// syntax error or command-not-found). ONE rule at extraction:
+			// "<"-prefixed commands without shell metacharacters are
+			// illustrations or malformed redirects — grammar violation,
+			// never an active token; a REAL compound command carries shell
+			// metacharacters ("; | & ` $( )").
+			// R63 inner M-1: the nested-< vector — a malformed angle form
+			// followed by metacharacters ("<a<b> ; true") re-admitted the
+			// fake-satisfy via the metachar rule; the segment BEFORE the
+			// first metachar must be a legal redirect ("< path"), and a
+			// second "<" inside it is never one.
+			seg := m[1]
+			if i := metacharRe.FindStringIndex(seg); i != nil {
+				seg = seg[:i[0]]
+			}
+			if strings.HasPrefix(m[1], "<") && (!metacharRe.MatchString(m[1]) || strings.Count(seg, "<") > 1) {
 				a.violations = append(a.violations, violation{
 					kind: "grammar", where: fmt.Sprintf("%s:%d", ledgerName, lineNo),
-					msg: "placeholder illustration is not a mutation proof — quote it inside a code fence as documentation instead",
+					msg: "placeholder illustration or malformed redirect is not a mutation proof — quote it inside a code fence as documentation instead",
 				})
 				continue
 			}
@@ -545,6 +562,70 @@ func TestSettlementAuditSelfTest(t *testing.T) {
 		}
 		if !found {
 			t.Fatalf("a < -prefixed command with shell metachars must be a loud fence violation, got %+v", a.violations)
+		}
+	})
+	t.Run("bare_nested_lt_segment_rule_loud", func(t *testing.T) {
+		// R63 inner M-1 permanent probe: the BARE nested form exercises the
+		// segment rule at extraction (the fenced twin exercises the fence
+		// face instead). Deleting the segment-rule branch
+		// ("strings.Count(seg, \"<\") > 1") turns this face green —
+		// 删修复即红.
+		a := parseLedger([]byte("## R56 复审记账\n- **M-1**: settled.\n  [mutation-proof: <a<b> ; true → FAIL]\n"))
+		if len(a.activeTokens) != 0 {
+			t.Fatalf("bare nested form must not become an active token (segment rule), got %+v", a.activeTokens)
+		}
+		found := false
+		for _, v := range a.violations {
+			if v.kind == "grammar" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("bare nested form must be a grammar violation via the segment rule, got %+v", a.violations)
+		}
+	})
+	t.Run("bare_malformed_placeholder_grammar_loud", func(t *testing.T) {
+		// R63 M-1: unclosed and nested angle forms — never legal commands,
+		// always fake-satisfying FAIL — the family-closing rule catches
+		// them alongside the closed shape.
+		for _, ph := range []string{"<a<b>", "<cmd"} {
+			a := parseLedger([]byte("## R56 复审记账\n- **M-1**: settled.\n  [mutation-proof: " + ph + " → FAIL]\n"))
+			if len(a.activeTokens) != 0 {
+				t.Fatalf("malformed placeholder %s must not become an active token, got %+v", ph, a.activeTokens)
+			}
+			found := false
+			for _, v := range a.violations {
+				if v.kind == "grammar" {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatalf("malformed placeholder %s must be a grammar violation, got %+v", ph, a.violations)
+			}
+		}
+	})
+	t.Run("nested_lt_metachar_loud", func(t *testing.T) {
+		// R63 inner M-1: the fifth variant — malformed angle form PLUS
+		// metacharacters ("<a<b> ; true") re-admitted the fake-satisfy via
+		// the metachar rule; the segment rule (second "<" before the first
+		// metachar = never a legal redirect) closes it.
+		a := parseLedger([]byte("## R56 复审记账\n- **M-1**: settled.\n  [mutation-proof: exit 3 → FAIL]\n```\n[mutation-proof: <a<b> ; true → FAIL]\n```\n"))
+		found := false
+		for _, v := range a.violations {
+			if v.kind == "fence" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("nested-< with metachars must be a loud fence violation, got %+v", a.violations)
+		}
+	})
+	t.Run("metachar_lt_form_still_live", func(t *testing.T) {
+		// R63 M-1 boundary: a "<"-prefixed command WITH shell metacharacters
+		// is a real compound command — stays a live token (R60 B-1 rule).
+		a := parseLedger([]byte("## R56 复审记账\n- **M-1**: settled.\n  [mutation-proof: < /dev/null; echo X → FAIL]\n"))
+		if len(a.activeTokens) != 1 {
+			t.Fatalf("metachar < form must stay live, got %+v", a.activeTokens)
 		}
 	})
 	t.Run("bare_placeholder_grammar_loud", func(t *testing.T) {

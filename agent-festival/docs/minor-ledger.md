@@ -856,8 +856,8 @@ N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是
   对跑」纪律在该清偿未闭环。已修：EXPECT_IDS 对 M-6 改 **kind 级绑定**（id 必须出现在 fence
   违规行内）+ **变异回归探针**（拆 id 附着 → tamper FAIL 于新断言，当轮实跑 rc=1）——R60 的
   声明由「事实」升格为「可机械复验」。
-  [mutation-proof: python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();p.write_text(s.replace("curEntry.id","__MUTATED__"))' && python3 agent-festival/tools/settlement-audit-tamper.py; rc=$?; python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();p.write_text(s.replace("__MUTATED__","curEntry.id"))'; test $rc -ne 0 → OK]（变异回归探针：tamper 必 FAIL 于 id 级绑定断言；还原=逆替换——R61 自抓：cd 链在审计副本语境断裂致 restore 未跑=变异残留污染后续 token，token 命令一律根锚定零 cd）[retired-by: R62 — compile-red not detection-red（第 76 实证：curEntry.id→__MUTATED__ 不可编译，全断言+control 连带失败=假闭环面）；承接=R62 M-2 自赋值形探针（可编译+可逆+带门）]
-  [mutation-proof: python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();assert s.count("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)")==1;p.write_text(s.replace("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)","where = where"))' || { echo mutation-failed; exit 1; }; python3 agent-festival/tools/settlement-audit-tamper.py; rc=$?; python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();assert s.count("where = where")==1;p.write_text(s.replace("\n\t\t\t\t\twhere = where","\n\t\t\t\t\twhere = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)"))' || { echo restore-failed; exit 1; }; test $rc -ne 0 → OK]（承接探针——与 R62 M-2 同款检测红形）
+  [mutation-proof: python3 -c 'import shutil,pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");shutil.copy(p,str(p)+".probe-bak")' && python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();assert s.count("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)")==1;p.write_text(s.replace("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)","where = where"))' || { echo mutation-failed; exit 1; }; python3 agent-festival/tools/settlement-audit-tamper.py; rc=$?; python3 -c 'import shutil;shutil.copy("agent-festival/go/internal/settlement/settlement_audit_test.go.probe-bak","agent-festival/go/internal/settlement/settlement_audit_test.go")' || { echo restore-failed; exit 1; }; python3 -c 'import os;os.remove("agent-festival/go/internal/settlement/settlement_audit_test.go.probe-bak")'; test $rc -ne 0 → OK]（承接探针——cp 备份还原对缩进漂移免疫（R63 M-2），assert 留作前向哨；检测红形态同 R62 M-2）[retired-by: 无——本行即 R62 M-2 重写后的现役承接探针（原 __MUTATED__ 编译红形已退役，退役标记见上）]
+  [mutation-proof: python3 -c 'import shutil,pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");shutil.copy(p,str(p)+".probe-bak")' && python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();assert s.count("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)")==1;p.write_text(s.replace("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)","where = where"))' || { echo mutation-failed; exit 1; }; python3 agent-festival/tools/settlement-audit-tamper.py; rc=$?; python3 -c 'import shutil;shutil.copy("agent-festival/go/internal/settlement/settlement_audit_test.go.probe-bak","agent-festival/go/internal/settlement/settlement_audit_test.go")' || { echo restore-failed; exit 1; }; python3 -c 'import os;os.remove("agent-festival/go/internal/settlement/settlement_audit_test.go.probe-bak")'; test $rc -ne 0 → OK]（承接探针——cp 形，与 R62 M-2 同款检测红；R63 M-2 缩进漂移免疫）
 - **M-2（裸行占位符假满足 presence+execution——病族第三变体，机器有能力抓而未抓）**：裸行
   `[mutation-proof: <cmd> → FAIL]` 被 tokenRe 当活 token，bash 退出 1≠0 假满足 FAIL——行内
   backtick（C2'）与围栏（R58 M-2）两变体已杀，裸行自始存活且从未声明为残差；R60 刚建的
@@ -895,11 +895,10 @@ N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是
   [mutation-proof: cd agent-festival/go && go test ./internal/settlement/ -run TestSettlementAuditSelfTest -count=1 → OK]
 - **M-2（M-1 变异探针是编译红不是检测红——第 76 实证在 token 层复发）**：`curEntry.id`→
   `__MUTATED__` 打中 3 处使包不编译，全断言+control 连带失败=假闭环（审计本体删除 token 照样
-  OK）。已修：变异探针重写为**可编译+可逆+带门**——变异=`where 赋值降为自赋值`（编译 ✓ vet ✓
-  行为变 ✓），还原=逆替换（assert count==1），短路门=`|| { echo mutation-failed; exit 1 }`（R62
+  OK）。已修：变异探针重写为**可编译+可逆+带门**——变异=`where 赋值降为自赋值`（编译 ✓ 行为变 ✓（vet 注记 R63 M-3：自赋值形触发 go vet self-assignment——探针链无 vet 步故无机器后果；如未来电池纳入 vet 须换形）），还原=逆替换（assert count==1），短路门=`|| { echo mutation-failed; exit 1 }`（R62
   m-6 同面顺手闭合，声明非例外）。首跑实证：tamper 失败体=**仅** id 级绑定断言失败+control 绿
   ——检测红非编译红。
-  [mutation-proof: python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();assert s.count("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)")==1;p.write_text(s.replace("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)","where = where"))' || { echo mutation-failed; exit 1; }; python3 agent-festival/tools/settlement-audit-tamper.py; rc=$?; python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();assert s.count("where = where")==1;p.write_text(s.replace("\n\t\t\t\t\twhere = where","\n\t\t\t\t\twhere = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)"))' || { echo restore-failed; exit 1; }; test $rc -ne 0 → OK]
+  [mutation-proof: python3 -c 'import shutil,pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");shutil.copy(p,str(p)+".probe-bak")' && python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();assert s.count("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)")==1;p.write_text(s.replace("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)","where = where"))' || { echo mutation-failed; exit 1; }; python3 agent-festival/tools/settlement-audit-tamper.py; rc=$?; python3 -c 'import shutil;shutil.copy("agent-festival/go/internal/settlement/settlement_audit_test.go.probe-bak","agent-festival/go/internal/settlement/settlement_audit_test.go")' || { echo restore-failed; exit 1; }; python3 -c 'import os;os.remove("agent-festival/go/internal/settlement/settlement_audit_test.go.probe-bak")'; test $rc -ne 0 → OK]
 - **m-1..m-7（积累不修——新律第二批）**：①selftest 重复子测 fenced_lt_redirect_loud ×2（R61 编辑
   事故）；②负孪生断言不锁 ATTRIBUTION_DIVERGENCE 规则（E7a③ 先例有内容断言；今日拒绝原因实测
   正确=探针在案，断言面缺口）；③corpus 两行「待实现/待电池形」已落地未退役+十形/十一形同文件
@@ -917,3 +916,76 @@ N/A）。判据 63（替换件自检）自此有执行面。**电池红必须是
 
 [mutation-proof: cd agent-festival/go && go test ./internal/settlement/ -run TestSettlementAuditSelfTest -count=1 → OK]
 [mutation-proof: cd agent-festival && python3 tools/settlement-audit-tamper.py → OK]
+
+## R63 复审记账（2026-11-07，E7 全增量 d63294d..2f232e9——0B/3M/3m：B/M 全清偿，minor 积累不修；连净计数 0）
+
+> 空白子第 63 轮（审 R62 清偿——30% 律第五连）。基线：replay 7/7 + race 22 包绿 + 恒积累（19/11/7 不减）。
+
+- **M-1（畸形占位符裸行假满足 FAIL——病族第四变体，判别器只封闭合形）**：`<a<b>`/`<cmd` 非闭合/嵌套形裸行=活 token，bash 语法错误退出 2≠0 假满足 FAIL→presence+execution 双假绿（实测）。已修：**同族封口（内环 M-1 撤回「FAMILY CLOSED」措辞）**——三子族+嵌套向量一次封（metachar 段规则：首元字符前段含第二个 `<`=响）；**声明残差**：管道形（`<x | → FAIL`——合法重定向+断管道，bash 语法错假满足 FAIL）信任根内零现症，机器面不封（与真复合命令形状不可分——边界）（裸行 `<` 前缀+无 shell 元字符=一律 grammar 面不计活 token；含元字符=真复合命令保持活）；metacharRe 在册；边界自测两面（畸形响/含元字符活）。
+  [mutation-proof: cd agent-festival/go && go test ./internal/settlement/ -run TestSettlementAuditSelfTest -count=1 → OK]
+- **M-2（探针还原锚与缩进耦合——锚失配还原静默 no-op，token 判 OK 且残留）**：合法重构（gofmt 减一层缩进）后，5-tab 锚 replace 静默 no-op，assert 过、write 写回变异体、exit 0（实测）。已修：**两枚探针（R61 M-1 承接+R62 M-2）重写为 cp 备份还原**（对一切漂移免疫），assert 留作前向哨；原样首跑全序列过（tamper FAIL 于 id 绑定/残留 0/exit 0）。
+  [mutation-proof: python3 -c 'import shutil,pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");shutil.copy(p,str(p)+".probe-bak")' && python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();assert s.count("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)")==1;p.write_text(s.replace("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)","where = where"))' || { echo mutation-failed; exit 1; }; python3 agent-festival/tools/settlement-audit-tamper.py; rc=$?; python3 -c 'import shutil;shutil.copy("agent-festival/go/internal/settlement/settlement_audit_test.go.probe-bak","agent-festival/go/internal/settlement/settlement_audit_test.go")' || { echo restore-failed; exit 1; }; python3 -c 'import os;os.remove("agent-festival/go/internal/settlement/settlement_audit_test.go.probe-bak")'; test $rc -ne 0 → OK]
+- **M-3（「编译 ✓ vet ✓」声明可当场证伪）**：自赋值形触发 go vet self-assignment（vet-rc=1 实测）——按 R55 M-1 先例（声称可当场证伪=伪造验证证据级）定 M。已修：ledger+runbook 两处声明改真（探针链无 vet 步故无机器后果；纳入 vet 须换形——注记在册，标记短语（vet 注记 R63 M-3）双档在册）。
+  [mutation-proof: cd agent-festival && grep -q "vet 注记 R63 M-3" docs/minor-ledger.md && grep -q "vet 注记 R63 M-3" docs/review-loop-runbook.md → OK]
+- **内环记账（R63 内环首行使——两层拓扑恢复后第一次运行，§一.5.5 立法随行）**：内环空白子
+  对清偿 diff（2f232e9..工作树）审出 **1B/1M/6m**：B-1=本台账段自违反 presence 契约（三 M 无
+  条目级 token+段尾 token 机器归属 M-3+「先跑后写」未覆盖记账段本体——追加段即电池红，「replay
+  7/7」声称当场证伪）；M-1=标定派发卫生无机制（seed.py copy_tree 只剥 .git/.DS_Store——R58 的
+  剥离是手工动作）+「FAMILY CLOSED」第五变体（畸形+元字符 `<a<b> ; true` 经元字符规则假绿）；
+  m-1..m-6（合法重定向误伤安全向/grammar 消息循环/retired 标记自相矛盾+三枚冗余/runbook 半截
+  更新/并发手放残留/probe-bak 卫生盲区）。**全部清偿**：B-1=三枚条目级 token 落位（M-1 selftest/
+  M-2 cp 探针/M-3 grep token——锚句撞车两连后行手术归位）；M-1=SESSION_ARTIFACTS 结构化（seed.py
+  在册+*.probe-bak 补入）+嵌套向量段规则封口（自测面在册）+FAMILY CLOSED 撤回（管道形声明残差）；
+  m 六条积累不修。内环 iter-2 待跑。
+- **条款双源（内环三条全采纳）**：①记账段落盘即跑审计（立法入 §一.5.5——R63 B-1 根因）；②判别
+  器声明配反例面（「穷举封口」类声明落地当轮必须加已知残差记录面或同步封死——M-1 类不靠下轮抓）；
+  ③探针幂等化+卫生清单增补（*.probe-bak 已入；pid 后缀待并发场景实测需要时加）。
+- **m-1/m-2/m-3（积累不修）**：①台账「围栏内同形=响（安全向）」方向写反（实态：纯占位符形=静、活 token=响——声明失实族）；②三态自测缺 `_` 形；③corpus §三「十形全可」双重陈旧（计数+目录维度——CATALOG 现役 1 族非 11 族）。入台账轮转。
+- **条款双源（三条全采纳）**：①裸行畸形占位符封口——**本批实现**（M-1 同族穷举）；②探针还原结构化+声明改写——**本批实现**（M-2/M-3）；③corpus 对账一次清——m-3 积累在案（minor 律），逐次指令时一次清。裁决=操作员。
+- **方法论入账（第 91/92/93 实证）**：**同族穷举的正确粒度=一次规则封全族**（M-1——第四次变体后改为按「命令形态×元字符」分类，不再按形逐个封）；**还原必须与输入表示无关**（M-2——字符串逆替换对缩进/换行漂移脆弱，cp 备份对一切漂移免疫；assert 只能当前向哨不能当还原保证）；**vet 面声明必须跑过 vet**（M-3——「编译 ✓」直觉外推 vet ✓，实测 self-assignment 当场证伪）。
+
+[mutation-proof: cd agent-festival/go && go test ./internal/settlement/ -run TestSettlementAuditSelfTest -count=1 → OK]
+[mutation-proof: python3 -c 'import shutil,pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");shutil.copy(p,str(p)+".probe-bak")' && python3 -c 'import pathlib;p=pathlib.Path("agent-festival/go/internal/settlement/settlement_audit_test.go");s=p.read_text();assert s.count("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)")==1;p.write_text(s.replace("where = fmt.Sprintf(\"%s (%s)\", where, curEntry.id)","where = where"))' || { echo mutation-failed; exit 1; }; python3 agent-festival/tools/settlement-audit-tamper.py; rc=$?; python3 -c 'import shutil;shutil.copy("agent-festival/go/internal/settlement/settlement_audit_test.go.probe-bak","agent-festival/go/internal/settlement/settlement_audit_test.go")' || { echo restore-failed; exit 1; }; python3 -c 'import os;os.remove("agent-festival/go/internal/settlement/settlement_audit_test.go.probe-bak")'; test $rc -ne 0 → OK]
+
+- **内环 iter-2 记账（0B/2M/3m 新——同族「修复无永久探针」双 M）**：M-1=嵌套段规则无永久探针
+  （nested_lt_metachar_loud 测的是围栏面，裸行抽取路径不经过——删规则全绿）；M-2=*.probe-bak
+  入清单无永久探针（face A 泄漏检查骑模式清单——删模式静默）。**清偿=修复即探针**：M-1 补
+  bare_nested_lt_segment_rule_loud 面（裸形嵌套直打段规则，删分支即红——突变实测 RED ✓）；
+  M-2=face A 断言解耦（植打名单基取代模式基——删任一模式必红，突变复验 RED ✓）+ 植入
+  zz.probe-bak 变体。m-1（代码注释 FAMILY CLOSED 残留）/m-2（残差实例枚举不穷尽：`<a ; <b>`
+  形）/m-3（记账即审计立法句对段尾条目存在不响子态）三条积累不修。iter-3 待跑。
+
+- **内环 iter-3 记账（0B/1M/3m——收敛中）**：M-1=face A 植打名单覆盖洞（`impl-2026-11-01*` 模式
+  删除静默——目录形态 fixture 泄入 clone 而断言 9 名单无一命中；**双清单平行病=R39 M-1 上层级
+  重生**，「删任一模式必红」普适声明当场证伪）。**清偿=单源化**：fixture_artifacts 一数组同源
+  （fixture 创建=断言迭代，双向漂移不可表达）+补目录形态工件；**突变复验 MUT-3 RED ✓**（精确
+  点名 impl-2026-11-01/42-review-meta-analysis-v2.md 泄漏）。
+  **收口边界回指（R63 内环 M-2 立法履行）**：单源化关闭 fixture↔assertion 边；pattern↔fixture
+  仍为第二手维护关系——10 模式中 `loop-transcript*`/`.zcodeignore`/`.DS_Store` 三式**无 fixture
+  工件，逐一删除实测全部静默绿**（残差回指 R62 m-⑤ 变体面缺四式——minor 积累律在案，逐次指令
+  时补 fixture 或机械面）。m-1（「逆替换还原 ✓」残留句×2 登记
+  义务）/m-2（残差实例 `<a ; <b>` 伞内枚举）/m-3（探针 4 处 4 活+悖论标注，M4 重跑 4 遍成本）
+  三条积累不修。iter-1 B-1 清偿成立复核（三 token 归属突变逐一验证）；iter-2 M-1 实质成立复核
+  （MUT-1a/1b 双向：面覆盖分工正确）。
+- **m-1（新，登记）**：runbook §一.4 模式枚举 6/10 漂移（缺 loop-transcript*/.zcodeignore/
+  .DS_Store，加 *.probe-bak 后欠账+1）——runbook 自称单一真源属声明失实族；修法=指针化（「清单
+  以 seed.py SESSION_ARTIFACT_PATTERNS 为准」），随 m-⑤/m-③ 逐次指令一并清。积累不修。
+- **条款双源（iter-4 三条）**：①守卫双向突变律（名义场景内必红+场景外必静——本 M-1 死守卫与
+  iter-3 M-1 删任一静默同族）；②收口叙述回指义务（「已修」句带覆盖边界回指或声明无已知残差
+  ——R63 M-2 型当轮抓）；③pattern↔fixture 覆盖边机械面（--selftest 加每 pattern ≥1 工件面或
+  逐模式删除突变入电池——触及 m-⑤ 积累律需用户逐次指令）。全采纳；①②入 runbook §四，③登记
+  待指令。
+- **条款双源（iter-3 三条）**：①名单级断言单源化否决线——**本批实现**（单源+双向）；②普适量词
+  声明全量逐项突变（「删任一/每/全」形复验=逐项全量）——采纳为 runbook §四义务；③探针冗余度
+  上限+悖论标注禁令——m-3 积累在案（minor 律），逐次指令时一次清。裁决=操作员。
+- **方法论入账（第 94/95 实证）**：**名单基断言的单源化律**（fixture 与断言共用一数组——第二张
+  手维护清单=R39 M-1 病的任何层级重生形态）；**「任一」量词的复验=逐项全量突变**（单代表外推
+  是假复验——10 模式删 10 次才算数，本轮 MUT-2 单代表 RED ✓ 而 MUT-3 同法静默即反例）。
+
+- **内环 iter-5 记账（0B/0M/2m 新——内环收敛判定成立）**：m-A=恒积累三元组（17/11/7→19/11/7）
+  **无口径定义**（slot-1 疑似 selftest 子测数但 R63 头 19 对不上可复现时点——守恒性质实测成立
+  17→21 只增不减，基线声明不可机械复验）；m-B=iter-4 发现本体无记账条目（仅存活于修复点注释
+  与条款侧引——与前三轮惯例不一致的登记完整性缺口）。两条积累不修；其条款①恒积累口径化/②内
+  环记账条目惯例刚性化/③审计执行面并发树纪律（copyWorkingTree 快照对并发编辑敏感——本轮实测
+  自伤 4 红已归因）三条全采纳入 runbook §四。**内环五轮收敛轨迹：1B/1M/6m → 2M/3m → 1M/3m →
+  2M/1m → 0B/0M/2m——两层拓扑（外环挖→清偿→内环验增量至 0B/0M）恢复后首战收敛。**
