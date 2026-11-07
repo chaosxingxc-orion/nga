@@ -123,6 +123,21 @@ NEW_SHA=$(sha256sum "$NEW_HOST_CONFIG" | cut -d' ' -f1)
 
 ## 监控与异常处理
 
+2026-11-07 更正：当前 H2 使用 `training-progress-v1` 心跳，通用 watchdog 尚不能正确
+识别该路径，可能显示 `unknown`。H2 已部署专用脚本，每 600 秒读取心跳、终态、容器
+状态及有界日志片段；参与者直接查看现有摘要，不必再启动一份监控：
+
+```bash
+ssh npu 'cat /mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/_watchdog-h2/bounded-digest.md'
+```
+
+机器可读结果位于同目录的 `bounded-digest.json`，脚本为 `bounded_monitor.py`。
+部署证据为维护者工作区中的
+`.local/releases/engineering-base-rc1/tasks/execution/h2-script-watchdog-20261107/DEPLOYMENT.json`。
+摘要时间戳过旧时先检查监控服务，不能据此重启训练。
+
+以下通用入口仅适用于其已支持的任务格式，不替代上述 H2 专用监控：
+
 日常监控由脚本完成，主协调者只读取脚本生成的 digest，不读取原始长日志。默认轮巡
 间隔约 600 秒：
 
