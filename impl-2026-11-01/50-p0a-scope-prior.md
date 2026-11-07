@@ -43,8 +43,8 @@
   的正式收编（引用其评论号）；
 - **术语锚定探针**（E3 盲区封口）：断言夹具 overdue 定义**不含**「three months」（否决时长
   不得活在术语里）+ rule 0 coverage **含**之 + time_window **含**「six」——三方各锚各位；
-- **千余输入扫描重生成**：输入域 durationMonths∈0..6 × monthsAgo∈0..30 × asset∈{0.5,5,35}
-  （全组合 7×31×3=651 行 × 双谓词结果），产物**全量入库**（testdata/p0a_scan.tsv：生成器
+- **千余输入扫描重生成**：输入域 durationMonths∈**1..6** × monthsAgo∈0..30 × asset∈**{0,5,35}**
+  （全组合 6×31×3=**558** 行 × 双谓词结果；R67 M-3 纠正：原述 0..6/0.5/651 行失实——dur=0 不是事件（term 最小粒度 1 月，无事件=空 onRecord 形）；assetMillions 为 int，0.5 不可表达。实际生成器与入库 tsv 以 1..6/{0,5,35}/558 为准），产物**全量入库**（testdata/p0a_scan.tsv：生成器
   参数+每行输入+两谓词结果）+ 计数断言（sortedKeys 确定性）——**窗口面独立可达性恢复的
   机械化证明**（R37「零可达」在新本体下为假，计数差>0 即证）。
 - 红探针（注释「Mutation probe:」惯例）：s1Judge 撤窗口分支→cell1 变 grant-50000（红）；

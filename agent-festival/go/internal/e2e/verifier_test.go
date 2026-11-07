@@ -997,24 +997,27 @@ func TestE1_LevelBandConsistency(t *testing.T) {
 	if cr.ok {
 		t.Fatal("M-2 probe: a grant-10000 verdict at assets=35 passed — the level-band consistency face is not load-bearing")
 	}
-	// ② window-premise enforcement: a term-level overdue INSIDE the
-	// window still kills the grant — but the CARRIER is rule 0 (the R37
-	// M-1 retirement: the separate window face's domain was a strict
-	// subset of the veto's). The probe pins the veto reason so a future
-	// carrier change must re-declare itself.
-	window := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{durationMonths: 4, monthsAgo: 0}}}
+	// ② window-premise enforcement (R67 M-4 corrected): a ONE-month
+	// overdue at monthsAgo=0 is inside the window at any duration and
+	// BELOW the veto threshold — the refusal's ONLY carrier is rule 1's
+	// window face (P0-A restored it; the R37 "strict subset" retirement
+	// claimed the veto subsumed this domain — that was the narrowed
+	// ontology talking, falsified by the P0-A scan's 63 window-only
+	// rows). The probe pins the WINDOW reason; a future carrier change
+	// must re-declare itself.
+	window := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{durationMonths: 1, monthsAgo: 0}}}
 	cr = verify(s1Verdict{kind: "grant-50000", details: "in-window overdue ignored"}, spec, window)
 	if cr.ok {
-		t.Fatal("M-2 probe: a grant-50000 verdict with an in-window term-level overdue passed — rule 1's window premise is not enforced")
+		t.Fatal("M-2 probe: a grant-50000 verdict with an in-window one-month overdue passed — rule 1's window premise is not enforced")
 	}
-	if !strings.Contains(cr.reason, "rule 0") {
-		t.Fatalf("M-2 probe: the in-window refusal came from %q — the declared carrier is the veto face (rule 0); a new carrier must re-pin this probe", cr.reason)
+	if !strings.Contains(cr.reason, "rule 1") {
+		t.Fatalf("M-2 probe: the in-window refusal came from %q — the declared carrier is the WINDOW face (rule 1); a new carrier must re-pin this probe", cr.reason)
 	}
-	// ③ R36 M-2 positive control: a SUB-TERM record (1 month, 5 years
-	// ago — not an "overdue" under the fixture's term; the yearsAgo value
-	// is decorative at the seat per the R43 m-2 declaration) must NOT be
-	// blocked — the old record-global form refused this spec-conforming
-	// verdict.
+	// ③ R36 M-2 positive control (R67 M-4 comment refreshed): a
+	// one-month overdue at 60 months ago is OUTSIDE the window and below
+	// the veto threshold — a conforming grant must pass (monthsAgo is
+	// CONSUMED by the seat since P0-A; the old R43 "decorative"
+	// declaration retired with the window face's restoration).
 	legacy := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{durationMonths: 1, monthsAgo: 60}}}
 	if cr := verify(s1Verdict{kind: "grant-50000", details: "old sub-term record"}, spec, legacy); !cr.ok {
 		t.Fatalf("M-2 probe: a spec-conforming verdict with an out-of-window sub-term record was refused (%s) — the window premise over-blocks", cr.reason)
