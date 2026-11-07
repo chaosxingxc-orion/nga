@@ -8,7 +8,7 @@ import java.util.Set;
  * Pin classification — the wrong-reason language-neutrality audit.
  *
  * <p>Every invalid fixture's {@code _expect_match} is classified as a
- * FIELD token (a JSON field name / schema path segment / enum value —
+ * FIELD token (a JSON field name, schema path segment, enum value, or [FAMILY.KEY] neutral rule key (R16/E3: keys are the canonical neutral face) —
  * language-neutral: any implementation that reports the offending location
  * or value naturally contains it) or a PROSE phrase (English wording pinned
  * to the reference implementations' hand-written rule messages — a foreign
@@ -18,7 +18,14 @@ import java.util.Set;
  */
 public final class PinAudit {
 
-    /** Pins that are English prose from the reference checkers' messages. */
+    /**
+     * Pins that were English prose from the reference checkers' messages
+     * — E3-PRE history: every one of these migrated to [LEDGER.*] keys in
+     * ca0c36a (before this spike was even collected), so the table matches
+     * nothing on the current corpus (0 PROSE by construction). Kept as the
+     * historical register of what "phrasing-coupled" meant before the key
+     * migration; retires with the 0.2.0 phrase-pin sunset (format doc §4).
+     */
     private static final Map<String, Set<String>> PROSE = Map.of(
             "ledger", Set.of(
                     "must carry idempotency",   // idem-presence rule wording

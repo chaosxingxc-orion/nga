@@ -99,5 +99,6 @@
       }
     }
   ],
-  "_expect": "ACCEPT: the odd-twin pin — arbitration_seq 9007199254740993.0 (float syntax, 2^53+1) is NOT representable in float64; the float64 judgment domain reads it as 9007199254740992 (the even twin). The sequence [..991 (int), ..993.0 (READS AS ..992), ..994 (int)] is strictly increasing in the float64 domain on both oracle stacks. An exact-decimal reader would also accept this sequence (..993.0 < ..994) — what separates the domains is the float-syntax-beyond-2^53 rejection rule, which an exact reader would never fire. This fixture pins the FOLDING itself: the recorded value ..993.0 is judged as ..992."
+  "_expect": "REJECT: arbitration_seq 9007199254740992.0 uses float syntax — integer literals only (user ruling 2026-11-02). The odd-twin folding narrative this fixture was born from (float64 folds 2^53+1 onto 2^53, both domains accept) is retired with the charter; the shape now rejects at the literal gate. The adjacent integer-literal twins (9007199254740993, 9007199254740992) stay pinned by seq-2e53-adjacent.json as an ORDER rejection.",
+  "_expect_match": "LEDGER.SEQ_FLOAT_SYNTAX"
 }

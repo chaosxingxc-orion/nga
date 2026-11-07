@@ -188,5 +188,5 @@
     "conformance": "fail",
     "divergence_at": 3
   },
-  "_expect": "ACCEPT family (d): the record carries a recorded violation (dispatched after the completed terminal — a revival, exactly the duplicate-effect family) that the production machine can never reproduce: recomputation forks in length at event 3 AND the record fails the eight families — the divergence+fail quadrant. The match+fail quadrant is pinned separately by unknown-field-in-record (the unknown-property channel)."
+  "_expect": "ACCEPT family (d): the record carries a recorded violation (dispatched after the completed terminal — a revival, exactly the duplicate-effect family) that the production machine can never reproduce: recomputation forks in length at event 3 AND the record fails the nine families — the divergence+fail quadrant. The match+fail quadrant is pinned separately by unknown-field-in-record (the unknown-property channel)."
 }

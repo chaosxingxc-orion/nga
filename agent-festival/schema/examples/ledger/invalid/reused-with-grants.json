@@ -81,5 +81,5 @@
     }
   ],
   "_expect": "REJECT: the grant pin rides the adopted event only — a reused event carrying grants is a shape the machine never writes; it would forge a second pin into the audit trail",
-  "_expect_match": "grants_at_decision"
+  "_expect_match": "LEDGER.GRANTS_ON_NON_ADOPTED"
 }

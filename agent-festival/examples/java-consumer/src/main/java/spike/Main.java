@@ -27,11 +27,11 @@ public final class Main {
     private static final Map<String, int[]> FORMAT_DOC_CLAIMS = new LinkedHashMap<>();
 
     static {
-        ORACLE_PINS.put("ledger", new int[] {10, 26});
+        ORACLE_PINS.put("ledger", new int[] {8, 28});
         ORACLE_PINS.put("adoption", new int[] {2, 5});
         ORACLE_PINS.put("judgment", new int[] {2, 19});
         ORACLE_PINS.put("release", new int[] {3, 14});
-        FORMAT_DOC_CLAIMS.put("ledger", new int[] {10, 26});
+        FORMAT_DOC_CLAIMS.put("ledger", new int[] {8, 28});
         FORMAT_DOC_CLAIMS.put("adoption", new int[] {2, 5});
         FORMAT_DOC_CLAIMS.put("judgment", new int[] {2, 19});
         FORMAT_DOC_CLAIMS.put("release", new int[] {2, 9}); // the PRE-E1 header claim, kept as the stale-detection probe (E1 fixed the doc to 3+14)
@@ -59,7 +59,7 @@ public final class Main {
         SuiteRunner main = new SuiteRunner(defaultLoader);
         Path ex = schemaDir.resolve("examples");
         rc += main.run("ledger", ex.resolve("ledger/valid"), ex.resolve("ledger/invalid"),
-                ledger::check, 10, 26, true);
+                ledger::check, 8, 28, true);
         rc += main.run("adoption", ex.resolve("adoption/valid"), ex.resolve("adoption/invalid"),
                 adoption::check, 2, 5, true);
         rc += main.run("judgment", ex.resolve("judgment/valid"), ex.resolve("judgment/invalid"),
@@ -72,7 +72,7 @@ public final class Main {
         FixtureLoader decimalLoader = new FixtureLoader(FixtureLoader.FloatDomain.BIG_DECIMAL);
         SuiteRunner decimal = new SuiteRunner(decimalLoader);
         rc += decimal.run("ledger", ex.resolve("ledger/valid"), ex.resolve("ledger/invalid"),
-                ledger::check, 10, 26, false);
+                ledger::check, 8, 28, false);
         rc += decimal.run("adoption", ex.resolve("adoption/valid"),
                 ex.resolve("adoption/invalid"), adoption::check, 2, 5, false);
         rc += decimal.run("judgment", ex.resolve("judgment/valid"),
@@ -151,8 +151,8 @@ public final class Main {
         }
         System.out.println("total actual = " + total
                 + "   (format-doc machine manifest now carries the live counts; the 2+9 probe column above is the pre-E1 historical claim kept deliberately to prove this detector can see staleness — E1 already healed the doc)");
-        if (total != 200) {
-            System.out.println("COUNT-FAIL: total drifted from the 200 pinned by this spike");
+        if (total != 205) {
+            System.out.println("COUNT-FAIL: total drifted from the 205 pinned by this spike");
             bad++;
         }
         return bad;
@@ -207,9 +207,10 @@ public final class Main {
 
     private static int integerDomainExperiment(LedgerChecker ledger) throws Exception {
         record Case(String name, String doc, String expected, String pin) { }
-        // expectations pinned to the REFERENCE oracles' behavior (Python
-        // verified empirically; Go rule code reads n.Float64(), i.e. the same
-        // float64 decision domain)
+        // expectations pinned to the REFERENCE oracles' behavior under the
+        // R16 数值域章程 v2 (user ruling 2026-11-02): integer literals only —
+        // ALL float syntax rejects (the v1 ±2^53 charter retired; Go rule
+        // code reads json.Number.Int64(), Python isinstance(int))
         List<Case> cases = List.of(
                 new Case("adjacent-2e53-increasing (2^53, 2^53+1) int syntax",
                         twoEventDoc("9007199254740992", "9007199254740993"), "ACCEPT", null),
@@ -218,18 +219,17 @@ public final class Main {
                         "increasing"),
                 new Case("float-syntax-beyond-2e53 (9007199254740994.0)",
                         twoEventDoc("9007199254740994.0", "9007199254740995"), "REJECT",
-                        "float syntax"),
-                new Case("float-syntax-integral-small (0.0, 1.0) — valid twin",
-                        twoEventDoc("0.0", "1.0"), "ACCEPT", null),
+                        "SEQ_FLOAT_SYNTAX"),
+                new Case("float-syntax-integral-small (0.0, 1.0) — R16 literal gate",
+                        twoEventDoc("0.0", "1.0"), "REJECT", "SEQ_FLOAT_SYNTAX"),
                 new Case("int64-overflow (2^63)",
                         twoEventDoc("9223372036854775808", "9223372036854775809"), "REJECT",
                         "int64"),
-                // odd twin: parses (float64) to exactly 2^53 — NOT beyond — so
-                // both reference oracles ACCEPT it (empirically verified on the
-                // Python oracle; Go decides through Float64 likewise)
-                new Case("odd-float-twin (9007199254740993.0) folds to 2^53 -> legal",
-                        twoEventDoc("9007199254740993.0", "9007199254740994"), "ACCEPT",
-                        null));
+                // odd twin: float syntax — rejected by the literal gate under
+                // R16 (was legal under the retired v1 folding charter)
+                new Case("odd-float-twin (9007199254740993.0) — float syntax",
+                        twoEventDoc("9007199254740993.0", "9007199254740994"), "REJECT",
+                        "SEQ_FLOAT_SYNTAX"));
         int bad = 0;
         for (FixtureLoader.FloatDomain arm : FixtureLoader.FloatDomain.values()) {
             System.out.println("-- arm: " + arm);
@@ -262,21 +262,19 @@ public final class Main {
         if (s0 < s1) {
             bad++; // the whole point: double folding must NOT preserve order here
         }
-        // arm-divergence counterfactual on the odd twin: under exact-decimal
-        // decoding the VALUE is 9007199254740993 (> 2^53) — a rule that
-        // compared exact decimals would flip this verdict away from both
-        // reference oracles; this spike's rule deliberately stays float64.
+        // arm view of the odd twin (R16 数值域章程 v2): float syntax rejects
+        // by the literal gate on both arms regardless of the decoded VALUE —
+        // the counterfactual that mattered under v1 (exact-decimal arm would
+        // flip the verdict) is gone with the charter: no domain compares
+        // values anymore.
         for (FixtureLoader.FloatDomain arm : FixtureLoader.FloatDomain.values()) {
             FixtureLoader l = new FixtureLoader(arm);
             JsonNode d = l.load(writeTemp(twoEventDoc("9007199254740993.0",
                     "9007199254740994"))).doc();
             JsonNode seq = d.path("events").get(0).path("arbitration_seq");
-            System.out.printf("   odd twin under %-11s: value=%-20s exact-beyond-2^53=%s "
-                            + "(verdict stays ACCEPT: rule domain is float64, matching both "
-                            + "oracles)%n",
-                    arm, seq.decimalValue().toBigInteger().toString(),
-                    seq.decimalValue().toBigInteger()
-                            .compareTo(java.math.BigInteger.valueOf(9007199254740992L)) > 0);
+            System.out.printf("   odd twin under %-11s: value=%-20s (REJECT by the R16 literal "
+                            + "gate — float syntax, value irrelevant)%n",
+                    arm, seq.decimalValue().toBigInteger().toString());
         }
         return bad;
     }

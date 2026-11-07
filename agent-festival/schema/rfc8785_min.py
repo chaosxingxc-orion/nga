@@ -85,10 +85,15 @@ def canonicalize(doc) -> bytes:
         raise ValueError(f"document contains a lone surrogate at position {e.start}; not canonicalizable") from e
 
 
-def main() -> int:
-    sys.stdout.buffer.write(canonicalize(json.load(sys.stdin)))
+def main(data: str) -> int:
+    sys.stdout.buffer.write(canonicalize(json.loads(data)))
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    import sys as _sys
+    data = _sys.stdin.read()
+    if not data.strip():
+        print("usage: echo '{...}' | python3 schema/rfc8785_min.py  (stdin JCS filter)")
+        _sys.exit(2)
+    _sys.exit(main(data))

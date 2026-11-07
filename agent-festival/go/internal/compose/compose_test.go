@@ -1,6 +1,11 @@
 package compose
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -61,4 +66,52 @@ func TestMaxCostNonMapPanics(t *testing.T) {
 	mustPanic("splitBounds", func() {
 		splitBounds(map[string]any{"max_cost": 7.0}, 2)
 	})
+}
+
+// TestBoundsKeyLockstep locks compose's bound-key tables to the schema
+// (R5 F3 — the R4 M-1 drift family in another costume): summedBounds +
+// timeBound vs schema bounds properties had no mechanical comparison, so a
+// schema-side bound addition would be silently un-aggregated and unchecked.
+func TestBoundsKeyLockstep(t *testing.T) {
+	var raw []byte
+	for _, root := range []string{"../..", "../../..", "../../../.."} {
+		if b, err := os.ReadFile(filepath.Join(root, "schema", "capability-contract.schema.json")); err == nil {
+			raw = b
+			break
+		}
+	}
+	if raw == nil {
+		t.Fatal("capability-contract.schema.json not found from the package dir")
+	}
+	var doc struct {
+		Properties struct {
+			Bounds struct {
+				Properties map[string]json.RawMessage `json:"properties"`
+			} `json:"bounds"`
+		} `json:"properties"`
+	}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]bool{}
+	for k := range doc.Properties.Bounds.Properties {
+		want[k] = true
+	}
+	got := map[string]bool{}
+	for _, k := range summedBounds {
+		got[k] = true
+	}
+	got[timeBound] = true
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("bounds key lockstep broken:\ncompose tables %v\nschema properties %v", sortedKeys(got), sortedKeys(want))
+	}
+}
+
+func sortedKeys(m map[string]bool) []string {
+	ks := make([]string, 0, len(m))
+	for k := range m {
+		ks = append(ks, k)
+	}
+	sort.Strings(ks)
+	return ks
 }
