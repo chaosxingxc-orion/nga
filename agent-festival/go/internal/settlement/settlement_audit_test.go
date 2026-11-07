@@ -34,14 +34,13 @@ var (
 	// fencePlaceholderRe: a fenced "[mutation-proof: <...> → ...]" line is
 	// a grammar ILLUSTRATION — exempt from the fence-visibility face —
 	// ONLY in the shape-closed form: the command is a SINGLE placeholder
-	// name wrapped in angle brackets (letters/digits/spaces, CJK included)
-	// immediately followed by →. R60 B-1: the R59 prefix form
-	// (`\[mutation-proof:\s*<`) let any "<"-prefixed REAL command escape
-	// (bash allows leading redirects: "< /dev/null; echo X" executes) —
-	// the exemption is now shape-closed: no shell metacharacters can
-	// appear because only letters/digits/spaces are allowed between the
-	// brackets, and nothing may follow the closing ">" but the arrow.
-	fencePlaceholderRe = regexp.MustCompile(`\[mutation-proof:\s*<\p{L}[\p{L}\p{N} ]*>\s*→\s*(?:FAIL|OK)\]`)
+	// name wrapped in angle brackets immediately followed by →. R62 M-1:
+	// the name class includes _.- (natural placeholder names like
+	// <my-cmd>/<repro.cmd> are illustrations too — the R61 letter-only
+	// class left them as LIVE tokens, fake-satisfying presence+execution);
+	// shell metacharacters remain structurally excluded (no ;|&`$()/ in
+	// the name, nothing after the closing > but the arrow).
+	fencePlaceholderRe = regexp.MustCompile(`\[mutation-proof:\s*<\p{L}[\p{L}\p{N} _.-]*>\s*→\s*(?:FAIL|OK)\]`)
 	// bulletRe matches numeric AND letter-suffix entry ids (M-1/M-A/M-B —
 	// the ledger's established letter-id convention, e.g. R17 M-A/M-B/M-C):
 	// a scoped letter entry without a token must be presence-checked, not
@@ -551,19 +550,22 @@ func TestSettlementAuditSelfTest(t *testing.T) {
 	t.Run("bare_placeholder_grammar_loud", func(t *testing.T) {
 		// R61 M-2: a BARE placeholder token (no fence, no backticks)
 		// false-satisfies presence AND execution — grammar violation, not
-		// an active token.
-		a := parseLedger([]byte("## R56 复审记账\n- **M-1**: settled.\n  [mutation-proof: <cmd> → FAIL]\n"))
-		if len(a.activeTokens) != 0 {
-			t.Fatalf("bare placeholder must not become an active token, got %+v", a.activeTokens)
-		}
-		found := false
-		for _, v := range a.violations {
-			if v.kind == "grammar" {
-				found = true
+		// an active token. R62 M-1: hyphen/dot placeholder names are
+		// illustrations too (the letter-only class left them live).
+		for _, ph := range []string{"<cmd>", "<my-cmd>", "<my.cmd>"} {
+			a := parseLedger([]byte("## R56 复审记账\n- **M-1**: settled.\n  [mutation-proof: " + ph + " → FAIL]\n"))
+			if len(a.activeTokens) != 0 {
+				t.Fatalf("bare placeholder %s must not become an active token, got %+v", ph, a.activeTokens)
 			}
-		}
-		if !found {
-			t.Fatalf("bare placeholder must be a grammar violation, got %+v", a.violations)
+			found := false
+			for _, v := range a.violations {
+				if v.kind == "grammar" {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatalf("bare placeholder %s must be a grammar violation, got %+v", ph, a.violations)
+			}
 		}
 	})
 	t.Run("prose_fence_mention_no_phantom", func(t *testing.T) {
