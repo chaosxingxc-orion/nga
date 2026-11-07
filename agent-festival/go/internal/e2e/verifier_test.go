@@ -38,11 +38,10 @@ type rawEvidence struct {
 	overdueOnRecord       []overdueEvent // the full-history ledger of record
 }
 
-// R43 m-2 declaration: rawEvidence's yearsAgo (inside overdueEvent) is
-// DECORATIVE at the seat — the unbounded veto ignores age by design (the
-// R37 M-1 window-face retirement removed the seat's only yearsAgo
-// reader); the S1 stand-in consumes it. Anyone re-introducing window
-// semantics must re-declare the consumption.
+// P0-A: monthsAgo is CONSUMED by the seat — the window check reads it
+// (the R43 m-2 "decorative" declaration retired with the R37
+// window-face retirement it described; the ontology split restored the
+// second predicate)
 
 // anchorBandBounds derives the open-question band's closed bounds from the
 // fixture's rule texts — the NUMBER IS PARSED from the matched text (R33
@@ -165,6 +164,77 @@ var compoundTokens = []string{"three", "four", "five", "six", "seven", "eight", 
 // "no anchored threshold" and refuses to gate (refuses OPEN, i.e. fails
 // closed for the flow); TestE1_VetoThresholdAnchored asserts both the
 // parse and the value.
+// firstOverlong returns the first recorded overdue duration beyond the
+// threshold (for the veto reason's fact citation); 0 when none.
+func firstOverlong(events []overdueEvent, threshold int) int {
+	for _, o := range events {
+		if o.durationMonths > threshold {
+			return o.durationMonths
+		}
+	}
+	return 0
+}
+
+// anchorWindowMonths (P0-A): the upper-band window length is ANCHORED
+// to the fixture's time_window text ("six calendar months ... both ends
+// inclusive") using the vetoWords table and the SAME disciplines as
+// anchorVetoMonths — boundary-aware word matching (a compound like
+// "twenty-six months" is a different number, not a bare "six"), and
+// collect-then-decide (multiple hits must agree; disagreement is an
+// ambiguous derivation → 0 sentinel, fail-closed). Returns the INCLUSIVE
+// monthsAgo bound: an event at monthsAgo == windowMonths is INSIDE.
+func anchorWindowMonths(spec *fixtureSpec) int {
+	w := strings.ToLower(spec.Conventions.TimeWindow)
+	seen := map[int]struct{}{}
+	for _, word := range vetoWords {
+		// the time_window text uses the "six calendar months" form (the
+		// rule coverages use the bare "three months" form) — both are
+		// accepted; the matched form's offset feeds the boundary check.
+		idx := -1
+		for _, form := range []string{word.word + " calendar months", word.word + " months"} {
+			if j := strings.Index(w, form); j >= 0 {
+				idx = j
+				break
+			}
+		}
+		if idx < 0 {
+			continue
+		}
+		// boundary-aware: the char before the word must not extend it
+		// into a compound ("twenty-six months" must not count as "six")
+		if idx > 0 {
+			prev := rune(w[idx-1])
+			if prev == ' ' {
+				before := w[:idx-1]
+				lastSpace := strings.LastIndex(before, " ")
+				token := before[lastSpace+1:]
+				for _, ct := range compoundTokens {
+					if token == ct {
+						idx = -1 // compound — a different number
+						break
+					}
+				}
+				if idx < 0 {
+					continue
+				}
+			} else if prev != ' ' && prev != '(' && prev != ',' && prev != ';' {
+				continue // letter/hyphen boundary — a different word
+			}
+		}
+		seen[word.n] = struct{}{}
+	}
+	if len(seen) != 1 {
+		return 0 // no declaration or ambiguous derivation — fail-closed
+	}
+	for n := range seen {
+		if n <= 0 {
+			return 0
+		}
+		return n
+	}
+	return 0
+}
+
 func anchorVetoMonths(spec *fixtureSpec) int {
 	// R34 M-1: BOUNDARY-AWARE word matching — a bare word directly
 	// preceded by a letter or hyphen ("thirty-three months", "twenty-three
@@ -323,13 +393,13 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	// regardless of what S1 said.
 	vetoFires := false
 	for _, o := range raw.overdueOnRecord {
-		if o.months > vetoMonths {
+		if o.durationMonths > vetoMonths {
 			vetoFires = true
 			break
 		}
 	}
 	if vetoFires && kind != "deny" {
-		return checkResult{ok: false, reason: fmt.Sprintf("rule 0 (unbounded veto): the raw evidence carries an overdue beyond %d months (the anchored threshold) — the only conforming verdict is deny, the seat received %q", vetoMonths, v.kind)}
+		return checkResult{ok: false, reason: fmt.Sprintf("rule 0 (unbounded veto) violated: the raw evidence carries an overdue of %d months (beyond the anchored %d-month threshold) at any time — the received verdict %q does not conform under this spec", firstOverlong(raw.overdueOnRecord, vetoMonths), vetoMonths, v.kind)}
 	}
 	// The mirror face (R30 M-3 form, R31 M-1 normalized): a deny with no
 	// veto behind it is fabricated — rule 0 is the fixture's only deny
@@ -349,6 +419,32 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	case "grant-50000", "grant-10000":
 		if !raw.assetReportPresent {
 			return checkResult{ok: false, reason: "the asset valuation report (the fixture's first evidence source) is absent — a grant verdict without it is the evasive-S1 form (E0 family)"}
+		}
+		// P0-A window face (xingchao 198789782 §2, counterexample 2):
+		// the upper band requires NO overdue event inside the window at
+		// ANY duration. Anchored to the fixture's time_window (the seat's
+		// independent implementation — s1Judge reads the frozen t1Spec
+		// text instead; both asserted per-cell in p0a_window_test.go).
+		if kind == "grant-50000" {
+			// A synthetic spec (in-memory minimal fixtures) may omit
+			// time_window entirely — the window face is then simply not
+			// declared for that spec (skip, not fail). The REAL fixture's
+			// window declaration is pinned by E3's anchoring assertions
+			// (correctness_probe_test.go: "six calendar months" +
+			// "upper band" must be present) — drift there turns red THERE,
+			// division of faces, not a second guard here.
+			w := 0
+			if strings.TrimSpace(spec.Conventions.TimeWindow) != "" {
+				w = anchorWindowMonths(spec)
+				if w == 0 {
+					return checkResult{ok: false, reason: "the fixture declares a time window but its length is not parseable — the upper-band window face cannot be checked (fail-loud on a malformed declaration, not silent-pass)"}
+				}
+			}
+			for _, o := range raw.overdueOnRecord {
+				if w > 0 && o.monthsAgo <= w {
+					return checkResult{ok: false, reason: fmt.Sprintf("rule 1 (upper band) premise violated: an overdue event of %d months duration at %d months ago is inside the %d-month window — any duration inside the window blocks the upper band; the received verdict %q does not conform under this spec", o.durationMonths, o.monthsAgo, w, v.kind)}
+				}
+			}
 		}
 	case "on_missing_evidence":
 		if raw.assetReportPresent {
@@ -636,7 +732,7 @@ func TestE1_VetoThresholdAnchored(t *testing.T) {
 	raw := rawEvidence{
 		assetMillionsDeclared: 35,
 		assetReportPresent:    true,
-		overdueOnRecord:       []overdueEvent{{months: 4, yearsAgo: 2}},
+		overdueOnRecord:       []overdueEvent{{durationMonths: 4, monthsAgo: 24}},
 	}
 	cr := verify(s1Verdict{kind: "grant-50000", details: "sick"}, spec, raw)
 	if cr.ok {
@@ -729,7 +825,7 @@ func TestE1_CaseVariantsRefused(t *testing.T) {
 	// as a REAL deny when the veto fires (the seat accepts the normalized
 	// form's verdict — normalization is symmetric). Mutation probe:
 	// remove the normalization assignment and THIS arm goes red.
-	rawVeto := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 2}}}
+	rawVeto := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{durationMonths: 4, monthsAgo: 24}}}
 	if cr := verify(s1Verdict{kind: "DENY", details: "real veto in caps"}, spec, rawVeto); !cr.ok {
 		t.Fatalf("M-1 probe: a variant-case REAL deny was refused (%s) — normalization broke the happy path (the assignment's exclusive face)", cr.reason)
 	}
@@ -906,7 +1002,7 @@ func TestE1_LevelBandConsistency(t *testing.T) {
 	// M-1 retirement: the separate window face's domain was a strict
 	// subset of the veto's). The probe pins the veto reason so a future
 	// carrier change must re-declare itself.
-	window := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 0}}}
+	window := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{durationMonths: 4, monthsAgo: 0}}}
 	cr = verify(s1Verdict{kind: "grant-50000", details: "in-window overdue ignored"}, spec, window)
 	if cr.ok {
 		t.Fatal("M-2 probe: a grant-50000 verdict with an in-window term-level overdue passed — rule 1's window premise is not enforced")
@@ -919,7 +1015,7 @@ func TestE1_LevelBandConsistency(t *testing.T) {
 	// is decorative at the seat per the R43 m-2 declaration) must NOT be
 	// blocked — the old record-global form refused this spec-conforming
 	// verdict.
-	legacy := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{months: 1, yearsAgo: 5}}}
+	legacy := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{durationMonths: 1, monthsAgo: 60}}}
 	if cr := verify(s1Verdict{kind: "grant-50000", details: "old sub-term record"}, spec, legacy); !cr.ok {
 		t.Fatalf("M-2 probe: a spec-conforming verdict with an out-of-window sub-term record was refused (%s) — the window premise over-blocks", cr.reason)
 	}

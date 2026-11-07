@@ -15,9 +15,15 @@ import (
 
 // overdueEvent is one fact in the evidence snapshot: an obligation past
 // due for months, recorded yearsAgo years back.
+// P0-A (xingchao 198789782 §2): duration and recency are SEPARATE
+// attributes — the original business rule needs both ("no overdue in
+// the last six months" for the upper band at ANY duration; "beyond
+// three months at any time" for the veto). The old {months, yearsAgo}
+// shape could not even distinguish "last month" from "eight months
+// ago" (the input-expression defect behind counterexample 2).
 type overdueEvent struct {
-	months   int
-	yearsAgo int
+	durationMonths int
+	monthsAgo      int
 }
 
 // creditEvidence is the sealed-dossier stand-in: what the framework hands
@@ -56,16 +62,29 @@ func s1Judge(e creditEvidence) s1Verdict {
 	// priority-order discrepancy between T0 and T1 (minor-ledger L23,
 	// validated by TestE3SpecSelfContradiction_C8Precedence).
 	for _, o := range e.overdueOnRecord {
-		if o.months > 3 {
+		if o.durationMonths > 3 {
 			return s1Verdict{kind: "deny",
-				details: fmt.Sprintf("historical veto: a %d-month overdue %d years ago is on record — the veto is unbounded by any window", o.months, o.yearsAgo)}
+				details: fmt.Sprintf("historical veto: a %d-month overdue %d months ago is on record — the veto is unbounded by any window", o.durationMonths, o.monthsAgo)}
 		}
 	}
 	if !e.assetReportOK {
 		return s1Verdict{kind: "on_missing_evidence", details: "asset valuation not retrievable — request evidence, record the issue, no automatic denial"}
 	}
 	if e.assetMillions > 30 {
-		return s1Verdict{kind: "grant-50000", details: "assets above the upper cutoff with a clean record"}
+		// P0-A: t1Spec rule 1 (frozen T1 text) — "AND no overdue in the
+		// last six months": ANY duration inside the window blocks the
+		// upper band. Implemented independently of the seat's anchored
+		// check (verifier_test.go reads the fixture's time_window) —
+		// same truth source, two implementations; the six-cell matrix
+		// asserts both agree on every cell (p0a_window_test.go).
+		// Boundary: monthsAgo <= 6 is inside (the fixture's time_window
+		// is "both ends inclusive").
+		for _, o := range e.overdueOnRecord {
+			if o.monthsAgo <= 6 {
+				return s1Verdict{kind: "on_undefined_rule", details: fmt.Sprintf("upper-band premise unsatisfied: an overdue event (duration %d months, %d months ago) is inside the six-month window at any duration — no rule covers this case, no automatic deny (xingchao 198789782 §2)", o.durationMonths, o.monthsAgo)}
+			}
+		}
+		return s1Verdict{kind: "grant-50000", details: "assets above the upper cutoff with a clean six-month window"}
 	}
 	if e.assetMillions < 1 {
 		return s1Verdict{kind: "grant-10000", details: "assets below the lower cutoff"}
@@ -277,7 +296,7 @@ func TestT0FullChainHappyPath(t *testing.T) {
 func TestT0HistoricalOverdueVeto(t *testing.T) {
 	h := newTask(t)
 	v := s1Judge(creditEvidence{assetMillions: 35, assetReportOK: true,
-		overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 2}}})
+		overdueOnRecord: []overdueEvent{{durationMonths: 4, monthsAgo: 24}}})
 	if v.kind != "deny" {
 		t.Fatalf("judgment = %q, want deny (the historical veto is unbounded)", v.kind)
 	}
@@ -374,7 +393,7 @@ func TestT0NewEvidenceForcesRevision(t *testing.T) {
 	}
 	// new evidence discovered: the record now shows an old severe overdue
 	v := s1Judge(creditEvidence{assetMillions: 35, assetReportOK: true,
-		overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 2}}})
+		overdueOnRecord: []overdueEvent{{durationMonths: 4, monthsAgo: 24}}})
 	if v.kind != "deny" {
 		t.Fatalf("revised judgment = %q, want deny", v.kind)
 	}
@@ -452,7 +471,7 @@ func TestT0NewEvidenceAfterRequestSent(t *testing.T) {
 	}
 	// new evidence arrives while the request is in flight
 	v := s1Judge(creditEvidence{assetMillions: 35, assetReportOK: true,
-		overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 3}}})
+		overdueOnRecord: []overdueEvent{{durationMonths: 4, monthsAgo: 36}}})
 	if v.kind != "deny" {
 		t.Fatalf("new judgment = %q, want deny", v.kind)
 	}

@@ -2,7 +2,7 @@
   "judgment_version": "0.1.0",
   "question": {
     "question_id": "q-credit-eligibility",
-    "spec_version": "1.0.0"
+    "spec_version": "1.1.0"
   },
   "conventions": {
     "terms": [
@@ -13,8 +13,8 @@
       },
       {
         "name": "overdue",
-        "definition": "an unpaid obligation past its due date for longer than three months, measured from the overdue start, at any point in the applicant's credit history on record",
-        "unit": "months (overdue duration); the lookback for the veto is unbounded"
+        "definition": "an unpaid obligation past its due date for at least one full month (the ledger's minimum grain); duration and recency are attributes carried by each recorded event, not part of the term itself",
+        "unit": "events; each event carries durationMonths (how long it stayed past due) and monthsAgo (recency measured from the reference time)"
       }
     ],
     "reference_time": "application-submission timestamp",
@@ -50,7 +50,7 @@
     },
     {
       "precedence": 1,
-      "coverage": "assets above 30 (USD-millions) with no overdue in the window grant the 50,000 line",
+      "coverage": "assets above 30 (USD-millions) with no overdue event inside the six-month window — any duration; a one-month recent overdue blocks the upper band — grant the 50,000 line",
       "exceptions": [
         "assets exactly at the 30 cutoff are an open boundary — the outcome is on_undefined_rule until the owner settles the cutoff convention"
       ]
@@ -100,6 +100,11 @@
       "kind": "boundary",
       "case": "assets exactly 1, no overdue",
       "expected": "the 1 cutoff is open the same way as 30 — on_undefined_rule, not a silent lower-band grant"
+    },
+    {
+      "kind": "boundary",
+      "case": "assets 35, a one-month overdue one month ago, no overdue beyond three months ever on record (xingchao's second counterexample, 198789782 §2)",
+      "expected": "the upper-band premise is unsatisfied (any-duration window breach) and the veto does not fire (duration within three months) — no rule covers this case: on_undefined_rule records a semantic issue, NOT an automatic deny"
     }
   ],
   "scope": {
@@ -115,6 +120,6 @@
       "decision: D1 credit limit"
     ]
   },
-  "_expect": "ACCEPT: the corrected credit specification — the historical veto is UNBOUNDED (08:181-183; 10-walkthrough:145). Units (USD-millions) and the six-month window (upper band only) are demonstration assumptions pending the business owner's confirmation; the veto's unbounded lookback is the jointly confirmed semantic (xingchao's counterexample accepted, E3 experiment validated). The xingchao counterexample is now an example case",
+  "_expect": "ACCEPT: the P0-A ontology split (v1.1.0) — the term 'overdue' carries no duration threshold (P3's definitional absorption reverted); the veto duration lives in rule 0's coverage alone, the window scope in the time_window convention alone. Units and thresholds remain demonstration assumptions pending the business owner; the unbounded veto is the jointly confirmed semantic (xingchao counterexample accepted, E3 validated); the any-duration window premise is xingchao's second counterexample accepted (198789782 §2, P0-A cell 1)",
   "candidate_set": "exclusive"
 }

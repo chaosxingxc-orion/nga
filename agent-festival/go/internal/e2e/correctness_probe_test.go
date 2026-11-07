@@ -71,7 +71,7 @@ func TestE1_PositiveControlHealthyS1(t *testing.T) {
 	e := creditEvidence{
 		assetMillions:   35,
 		assetReportOK:   true,
-		overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 2}},
+		overdueOnRecord: []overdueEvent{{durationMonths: 4, monthsAgo: 24}},
 	}
 	v := h.judge(e)
 	if v.kind != "deny" {
@@ -125,7 +125,7 @@ func TestE1_BlocksSickS1(t *testing.T) {
 	e := creditEvidence{
 		assetMillions:   35,
 		assetReportOK:   true,
-		overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 2}}, // veto should fire
+		overdueOnRecord: []overdueEvent{{durationMonths: 4, monthsAgo: 24}}, // veto should fire
 	}
 
 	// The sick S1 says grant, ignoring the 4-month overdue entirely
@@ -226,7 +226,7 @@ func TestE1_SeatKillsExtractionInheritance(t *testing.T) {
 	realEvidence := creditEvidence{
 		assetMillions:   35,
 		assetReportOK:   true,
-		overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 2}}, // REAL fact
+		overdueOnRecord: []overdueEvent{{durationMonths: 4, monthsAgo: 24}}, // REAL fact
 	}
 	// The extraction layer misses it:
 	extractedEvidence := creditEvidence{
@@ -384,7 +384,7 @@ func TestE3SpecSelfContradiction_WindowScope(t *testing.T) {
 	e := creditEvidence{
 		assetMillions:   35,
 		assetReportOK:   true,
-		overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 2}}, // 2 years ago = OUTSIDE window
+		overdueOnRecord: []overdueEvent{{durationMonths: 4, monthsAgo: 24}}, // 2 years ago = OUTSIDE window
 	}
 	v := s1Judge(e)
 	if v.kind != "deny" {
@@ -438,8 +438,8 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 	// C8 evidence: missing report AND a 4-month overdue 2 years ago
 	e := creditEvidence{
 		assetMillions:   35,
-		assetReportOK:   false,                                    // report missing
-		overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 2}}, // AND veto should fire
+		assetReportOK:   false,                                              // report missing
+		overdueOnRecord: []overdueEvent{{durationMonths: 4, monthsAgo: 24}}, // AND veto should fire
 	}
 
 	// L23 FIXED: T0's s1Judge now checks the veto FIRST → deny
@@ -465,7 +465,7 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 	c12e := creditEvidence{
 		assetMillions:   0, // below the lower cutoff
 		assetReportOK:   true,
-		overdueOnRecord: []overdueEvent{{months: 5, yearsAgo: 2}},
+		overdueOnRecord: []overdueEvent{{durationMonths: 5, monthsAgo: 24}},
 	}
 	if v := s1Judge(c12e); v.kind != "deny" {
 		t.Fatalf("E3-C8: T0 s1Judge returned %q for the C12 shape (lower band + historical overdue), want deny — the veto must fire before the lower-band branch", v.kind)
@@ -473,7 +473,7 @@ func TestE3SpecSelfContradiction_C8Precedence(t *testing.T) {
 	betweenBands := creditEvidence{
 		assetMillions:   12, // strictly between the bands (1 < x < 30)
 		assetReportOK:   true,
-		overdueOnRecord: []overdueEvent{{months: 4, yearsAgo: 2}},
+		overdueOnRecord: []overdueEvent{{durationMonths: 4, monthsAgo: 24}},
 	}
 	if v := s1Judge(betweenBands); v.kind != "deny" {
 		t.Fatalf("E3-C8: T0 s1Judge returned %q for the between-bands shape (12M + historical overdue), want deny — the veto must fire before the between-bands default branch (rule 0: 'denies credit regardless of assets')", v.kind)
