@@ -21,6 +21,12 @@ The fixed Qwen3.5-0.8B seven-member same-TEST report passed independent scientif
 
 [Accepted result artifact](FINAL-SAME-TEST-RESULTS-2026-11-05.json) · [Full tables and qualified local Kev comparison](https://github.com/chaosxingxc-orion/nga/wiki/Qwen35-Final-Same-TEST). Local Kev saved-item comparisons preserve native versus T=1 protocols and the missing historical audit-SHA binding; the exact source-question mask and data mapping for all1,856 questions are now independently accepted. This is a field-mapping comparison across different interfaces: prompt-byte, tokenizer and numerical equivalence are not established; outer whitespace differs on36 decision input rows,1 transfer input row and8 transfer definitions. Historical reference tables below are unchanged.
 
+### Current twelve-member same-TEST comparison — 2026-11-06
+
+The current fixed roster contains Qwen3.5 0.8B, 2B, 4B and 9B, each with its own Base and fixed seed-2/seed-3 adapters. All eight model-size/task own-Base cells were independently accepted under the frozen decision-v7 and transfer-v4 TEST protocols. The authoritative tables, paired effects, controls and limitations are maintained in the [full-family Wiki report](https://github.com/chaosxingxc-orion/nga/wiki/RC1-Full-Family-Same-TEST) and its [comparison JSON](https://raw.githubusercontent.com/wiki/chaosxingxc-orion/nga/RC1-Full-Family-Same-TEST-comparison.json).
+
+This is a descriptive conditional comparison, not a universal training claim, gate decision or business result. The two reports are separate milestones: the seven-member result above preserves its original scope, while the twelve-member report adds the 2B/4B/9B roles and does not rewrite historical values. The latest accepted two-seed own-Base decision/transfer effects are, respectively, **+28.583333/+4.801829 pp** (0.8B), **+21.375000/+10.518293 pp** (2B), **+10.541667/+4.573171 pp** (4B), and **+7.708333/+6.097561 pp** (9B). Transfer calibration and other adverse panels remain disclosed in the full report.
+
 ## Large-candidate released TEST — local codebook protocol, 2026-11-04
 
 Twenty cells independently reconstructed and diagnosed from all20,000 saved records. [Full metrics and evidence](REFERENCE-LARGE-CANDIDATE-INCREMENT-2026-11-04.json). Each cell uses1,000 released TEST rows, float32, HF32off, batch1, all77/151/60/100 candidates for Banking77/CLINC150/MASSIVE/LEDGAR respectively, one forward; this local interface is not the original publisher endpoint. Other cells remain pending acceptance.
