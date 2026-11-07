@@ -395,6 +395,16 @@ func canaryMaskingStreamGuarded(streams ...[]ledger.Event) ([]ledger.Event, erro
 // mustGuardedStream is the fixture-SETUP convenience (success expectation
 // only). It is deliberately not used by the guard's own probes — those call
 // canaryMaskingStreamGuarded directly so the error stays observable.
+//
+// DECLARED BLIND SPOT (R58 M-5, landed R68): the probe pair observes the
+// GUARDED PATH's input-output contract — it does NOT observe the call
+// graph. Replacing this convenience (or the bare canaryMaskingStream)
+// at a call site with a bare constructor keeps every test green (the
+// R58 mutation: all-green at 0.068s) — the bypass face has NO machine
+// red face today; its carriers are this declaration + the consumer
+// enumeration on the bare constructor (review-face核对: a new call site
+// must either route through the guarded form or extend the enumeration
+// with a declared-bypass note).
 func mustGuardedStream(t *testing.T, streams ...[]ledger.Event) []ledger.Event {
 	t.Helper()
 	stream, err := canaryMaskingStreamGuarded(streams...)

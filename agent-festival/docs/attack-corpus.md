@@ -35,9 +35,9 @@
 | 声明先于调用 | 审查 | 说「已存/已提交/已跑」时工具调用返回了吗（自检动作） |
 | letter 条目 id 形态 | 审查面 | 条目 id 的 letter 后缀形态（M-A/M-B）在台账与 doc 中须与数字形态同等对待——判据仍活；token 在场闸已随协议退役（新条目无 token 合法，105 号） |
 | 围栏=文档 | 审查面 | R58 M-2——围栏内 `[mutation-proof: …]` 不是 token（presence/grammar 双跳过（机器面已退役））；R59/R60 解析器三判据已随机器退役（fence kind/占位符形状封闭/条目 id 归因——历史立法见对应轮次；围栏=文档的 prose 判据仍由审查面承载） |
-| 调用方绕过面 | 审查面（声明盲区） | R58 M-5 实证：调用点换裸构造器→e2e 全包绿（0.068s）——探针对不观测调用图，**该突变当日无红面**（唯一红面 consumers 锚已随注册闸退役）；现行承载=代码内 docstring 边界声明+审查面核对消费点清单（R68 M-A 纠正：改写时曾把「全包绿」翻转成「探针红」——结论词不得翻转的判据即源于此） |
+| 调用方绕过面 | 审查面（声明盲区） | R58 M-5 实证：调用点换裸构造器→e2e 全包绿（0.068s）——探针对不观测调用图，**该突变当日无红面**（唯一红面 consumers 锚已随注册闸退役）；现行承载=mustGuardedStream docstring 边界声明+裸构造器消费点枚举（R68 内环 M-1 落地——R58 台账曾声称的 docstring 件当时未落地，幽灵承载勿再引用）+审查面核对（R68 M-A 纠正：改写时曾把「全包绿」翻转成「探针红」——结论词不得翻转判据源于此） |
 | 返回已检被改流 | 审查面 | R58 S3 提案采纳——「检查后改写返回流的 Outcome」由审查面核对 AcceptsHealthy 投影含 seq/type/outcome 三字段（丢 Outcome=ood-loose-assert 本体） |
-| E7a② 负孪生 | 审查（待实现） | R58 S3 提案采纳——伪造 pin 的手工 control 事件必须被 Open 以 ATTRIBUTION_DIVERGENCE 拒；今日唯一红面在 cmd/ledger 语料套件，e7 无本测（下轮补） |
+| E7a② 负孪生 | 已落地（R61） | TestE7a_CanaryDurablePinMismatchRefused（e7_canary_test.go:209）——pin 单字段错配（Model 漂移）必拒；corpus 状态行 R68 内环翻转（「下轮补」悬挂 10+ 轮终结） |
 
 ## 三、植入标定（已退役——seed.py 随机器删除；泛化率测量价值记录在案，重启须先过「有必要才做」裁定）
 
