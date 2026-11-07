@@ -27,6 +27,10 @@ The current fixed roster contains Qwen3.5 0.8B, 2B, 4B and 9B, each with its own
 
 This is a descriptive conditional comparison, not a universal training claim, gate decision or business result. The two reports are separate milestones: the seven-member result above preserves its original scope, while the twelve-member report adds the 2B/4B/9B roles and does not rewrite historical values. The latest accepted two-seed own-Base decision/transfer effects are, respectively, **+28.583333/+4.801829 pp** (0.8B), **+21.375000/+10.518293 pp** (2B), **+10.541667/+4.573171 pp** (4B), and **+7.708333/+6.097561 pp** (9B). Transfer calibration and other adverse panels remain disclosed in the full report.
 
+### Scoped 4B/9B reference attachment — 2026-11-07
+
+[Accepted reference alignment](https://github.com/chaosxingxc-orion/nga/wiki/RC1-Family-Reference-Alignment) adds model-specific, receipt-based same-source TEST context for Kev-4B/9B. Current continuation, historical pointer native/T1 and publisher aggregates remain separate. Across eight current seed/task cells versus local native Kev, accuracy is higher in two, equal in one and lower in five; NLL/Brier/ECE are worse in all eight. Existing own-Base acceptance and regressions remain unchanged. No paired reference inference or training superiority is claimed; reference TEST exposure to training design remains disclosed. Kev-2B and publisher NLL remain absent. Historical source metrics below are unchanged.
+
 ## Large-candidate released TEST — local codebook protocol, 2026-11-04
 
 Twenty cells independently reconstructed and diagnosed from all20,000 saved records. [Full metrics and evidence](REFERENCE-LARGE-CANDIDATE-INCREMENT-2026-11-04.json). Each cell uses1,000 released TEST rows, float32, HF32off, batch1, all77/151/60/100 candidates for Banking77/CLINC150/MASSIVE/LEDGAR respectively, one forward; this local interface is not the original publisher endpoint. Other cells remain pending acceptance.

@@ -6,6 +6,21 @@
 
 研究背景见 `survey/`，研究计划见 `proposal/00-research-proposal.md`，实验的指标、分割和阈值以 `experiments/` 预注册为准。远端结果记录放在 [GitHub Wiki](https://github.com/chaosxingxc-orion/nga/wiki)：在相关页面原位更新最新结论及证据链接，不把运行日志堆积在页面上。本地 `wiki/` 和 `experiments/` 中的过程文件按每三天归档；归档不改变预注册的规范地位。`AGENTS.md` 在当前工作区未跟踪，GitHub 克隆不保证包含它，无需把它作为读者入门前置条件。
 
+## 快速定位与第一次交付
+
+| 你要完成什么 | 本文对应章节 | 完成时交付什么 |
+| --- | --- | --- |
+| 找到服务器、模型、数据和镜像 | 资源与入口 | 可访问的路径及任务采用的 manifest；无需重新下载 |
+| 验证镜像能够启动 | CPU Docker smoke | 独立的容器名、Ceph 输出目录、exit code 与 terminal |
+| 理解和设置一次实验 | 如何开展实验设置 | 预注册、任务 JSON、宿主 JSON、接受的摘要及准备回执 |
+| 启动受支持的实验 | H2：配置、只读检查与受支持的启动 | 操作员交付的准确命令、任务身份、资源绑定与输出路径 |
+| 跟踪进度、判断完成、进行评分 | 生命周期与监控、完成一个实验 | terminal、release、冻结评分结果及独立复核 |
+| 协作提交 | 分工与交接 | 结论、限制、证据位置和 Wiki 当前状态 |
+
+首次接入需要已有的仓库访问权限、175 的 SSH 账户、Docker 操作权限，以及所用模型/数据的读取权限和个人输出目录的写入权限。`npu` 是维护者的 SSH 别名；同事须使用自己的已配置别名或管理员提供的主机入口。受保护 stage 访问失败时，由维护者交付可访问的任务包或配置相应权限，不修改现役目录的保护方式。
+
+先完成一个 CPU 环境自检，再复核一个已发布的模型/任务结果格：记录模型、TEST population、指标定义、参考工作的计算口径与负面结果。数据同事可同时准备来源和 split 清单；操作员只对已经准备好的受支持任务启动 NPU。新模型、新目标或新增配置字段仍需维护者完成对应集成，不能把文中的 H2 示例直接改名后运行。
+
 ## 资源与入口
 
 | 资源 | 位置和范围 |
@@ -96,7 +111,11 @@ SHA=f8a31c065fc7e1a8017b87c8172b4899c1d96531fc4b27c288aa2a2cb925e6d8
 对于已经完整准备的**独立且受控制器支持**的新任务，启动接口如下；`NEW_HOST_CONFIG` 必须是该任务的宿主配置，不能指向上面现役 seed 2 配置重放。这些启动命令在本指南中没有重新执行：
 
 ```bash
-NEW_SHA=$(sha256sum "$NEW_HOST_CONFIG" | cut -d' ' -f1)
+# NEW_HOST_CONFIG 和 NEW_SHA 由该任务的已接受交付包提供。
+: "${NEW_HOST_CONFIG:?缺少该任务的宿主配置路径}"
+: "${NEW_SHA:?缺少已接受的配置 SHA256}"
+ACTUAL_SHA=$(sha256sum "$NEW_HOST_CONFIG" | cut -d' ' -f1)
+test "$ACTUAL_SHA" = "$NEW_SHA" || { echo '配置与已接受摘要不一致' >&2; exit 1; }
 "$PY" -P "$STAGE/host/h2_host.py" validate --config "$NEW_HOST_CONFIG" --sha256 "$NEW_SHA"
 "$PY" -P "$STAGE/host/h2_host.py" start --config "$NEW_HOST_CONFIG" --sha256 "$NEW_SHA"
 ```

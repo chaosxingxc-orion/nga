@@ -24,10 +24,10 @@ lease、输出目录和回执。
 
 当前 H2 正式训练没有停止：
 
-| 物理卡 | 容器 | 设置 | 2026-11-07 11:12 UTC 脚本快照 |
+| 物理卡 | 容器 | 设置 | 2026-11-07 11:42 UTC（北京时间 19:42）脚本快照 |
 | --- | --- | --- | --- |
-| 2 | `nga-h2-4b-k2-s2` | Qwen3.5-4B，seed 2，K2，global batch 10，micro tokens 12000，max length 4096，LR `1e-4`，LoRA `r16/alpha32/dropout0.05`，3116 updates | `487/3116`，约 `31.2 GiB` reserved，单卡运行 |
-| 3 | `nga-h2-4b-k2-s3` | 同上，seed 3 | `462/3116`，约 `31.3 GiB` reserved，单卡运行 |
+| 2 | `nga-h2-4b-k2-s2` | Qwen3.5-4B，seed 2，K2，global batch 10，micro tokens 12000，max length 4096，LR `1e-4`，LoRA `r16/alpha32/dropout0.05`，3116 updates | `507/3116`，约 `31.2 GiB` reserved，约 1,112 tokens/s/chip，单卡运行 |
+| 3 | `nga-h2-4b-k2-s3` | 同上，seed 3 | `483/3116`，约 `31.3 GiB` reserved，约 1,164 tokens/s/chip，单卡运行 |
 
 这两个任务不得重启、迁移或修改配置。其它物理卡是否可用，只能由实时 lease、Docker
 冲突和控制器锁内检查确认；历史快照不能证明空闲。
@@ -107,21 +107,22 @@ printf 'container=%s exit=%s evidence=%s\n' "$NAME" "$EXIT_CODE" "$DIR"
 
 ### 受支持的 NPU 任务
 
-NPU 任务使用宿主控制器，而不是让参与者手写裸 `docker run`。配置验证通过、实时
-lease/容器冲突检查通过且该任务的准入回执齐全后，使用：
-
-```bash
-"$PY" -P "$STAGE/host/h2_host.py" start --config "$NEW_HOST_CONFIG" --sha256 "$NEW_SHA"
-```
+NPU 任务使用宿主控制器。操作员先取得该任务已接受的配置和摘要，再按下方顺序验证、
+启动；实时 lease/容器冲突检查和该任务的准入回执也必须齐全。
 
 此处只是受支持任务的调用接口，不是任意新实验生成器。当前 H2 host 硬性绑定
 seed 2/3、4B、学习率、输出路径及配置摘要；复制 JSON 改名不能创建新实验。
 `NEW_HOST_CONFIG` 必须是维护者已集成并交付的受支持配置，`NEW_SHA` 应与其接受的
-摘要一致；启动前先执行：
+摘要一致。按顺序执行：
 
 ```bash
-NEW_SHA=$(sha256sum "$NEW_HOST_CONFIG" | cut -d' ' -f1)
+# NEW_HOST_CONFIG 和 NEW_SHA 由该任务的已接受交付包提供。
+: "${NEW_HOST_CONFIG:?缺少该任务的宿主配置路径}"
+: "${NEW_SHA:?缺少已接受的配置 SHA256}"
+ACTUAL_SHA=$(sha256sum "$NEW_HOST_CONFIG" | cut -d' ' -f1)
+test "$ACTUAL_SHA" = "$NEW_SHA" || { echo '配置与已接受摘要不一致' >&2; exit 1; }
 "$PY" -P "$STAGE/host/h2_host.py" validate --config "$NEW_HOST_CONFIG" --sha256 "$NEW_SHA"
+"$PY" -P "$STAGE/host/h2_host.py" start --config "$NEW_HOST_CONFIG" --sha256 "$NEW_SHA"
 ```
 
 `start` 会以 detached、可恢复的方式启动监督进程并保留容器。不要再手动启动第二个
