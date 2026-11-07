@@ -5,21 +5,12 @@
 > 每轮空白子 prompt **引用本文件，不转抄**（m-4 转抄漂移的教训）。
 > 协议文本（清偿证明协议/修复义务协议）的单一真源在 docs/minor-ledger.md 头部。
 
-## 一、机器面清单（M1-M7）
+## 一、机器面清单（已退役——2026-11-07 机器退役，105 号实证）
 
-| id | 面 | 命令（cwd=agent-festival，M4/M6 cwd=go） | 杀什么 |
-|---|---|---|---|
-| M1 | registry-gate | `python3 tools/guard-battery.py --check` | 未注册守卫 / spec 锚漂移 / **消费者锚漂移（调用方绕过守卫路径——R58 M-5）** |
-| M2 | battery | `python3 tools/guard-battery.py` | 守卫退化十一形（探针对形式无关红面的回归；R61 增**返回已检被改流**形——接受面 identity 唯一红载体）+ 编译检查（BROKEN≠红）+ **基线 vet（不可达死代码——第三机检路径，R58 采纳）**；**真树零接触（副本化——R58 M-3，并发互踩面结构性消解）** |
-| M3 | battery-selftest | `python3 tools/guard-battery.py --selftest` | 电池自身面（A 未注册/B 锚漂移/C 良构/D 破损不计红/**E 消费者计数漂移/F vet-dirty baseline-red**） |
-| M4 | settlement-audit | `go test ./internal/settlement/ -run 'TestSettlementAudit$'` | token 在场/语法/**围栏惰化**/执行失真/陈旧（内含 M1-M3、M5、M7 的 token 重跑——**回放=纵深非最小集**） |
-| M5 | audit-tamper | `python3 tools/settlement-audit-tamper.py` | 审计本体的篡改面（违规台账红/对照绿；R58 增 letter 条目面+围栏面） |
-| M6 | audit-selftest | `go test ./internal/settlement/ -run TestSettlementAuditSelfTest` | ledger 解析器面（进程内；R58 增 letter-条目面+围栏面） |
-| M7 | seed-anchors | `python3 tools/seed.py --check-anchors` | 植入目录锚漂移（开轮面——锚失配开轮即响，不再等有人手跑 seed；R58 采纳 S3 提案） |
-
-**机械回放（开轮保留率门）**：`python3 tools/replay.py` —— 七面（M1-M7）全 PASS 才开轮。
-replay 是编排件（自身无新检查，红面在组件工具里、各有 ledger token）；其组件清单若被
-删面，本表（M1-M7 七行）即对账基准——人工对表是声明的边界。
+> M1-M7（注册闸/电池/电池自测/台账审计/篡改电池/解析器自测/锚检查）随 settlement+tools 五件
+> 删除而退役：机器证明的保证被「清偿=当轮 `go test ./... -race` 绿」流程纪律覆盖；信任根未动；
+> 自指漩涡九轮（minor-ledger 机器退役段）。**审查火力面=§二**（判据仍在——由空白子+变异先行
+> 承载，不再由机器承载）。
 
 ## 二、判据 × 用例映射（20 行——机器面行给命令，审查面行给出处+探查动作）
 
@@ -48,7 +39,7 @@ replay 是编排件（自身无新检查，红面在组件工具里、各有 led
 | 返回已检被改流 | 审查（待电池形） | R58 S3 提案采纳——「检查后改写返回流的 Outcome」今日无电池形；审查面核对 AcceptsHealthy 投影含 seq/type/outcome 三字段（丢 Outcome=ood-loose-assert 本体） |
 | E7a② 负孪生 | 审查（待实现） | R58 S3 提案采纳——伪造 pin 的手工 control 事件必须被 Open 以 ATTRIBUTION_DIVERGENCE 拒；今日唯一红面在 cmd/ledger 语料套件，e7 无本测（下轮补） |
 
-## 三、植入标定（seed.py——泛化率测量，每 ~3 轮一轮）
+## 三、植入标定（已退役——seed.py 随机器删除；泛化率测量价值记录在案，重启须先过「有必要才做」裁定）
 
 **克隆式植入**：缺陷打在**一次性副本**上（树零接触——忘恢复结构性不可能）；manifest 写在克隆**旁**
 （克隆内不可见；旁路文件可枚举——有效性靠审查者不知情+诚实，非「不可读」——R58 m-2 真实边界标注）。
