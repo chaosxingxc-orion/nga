@@ -5,6 +5,10 @@
 宿主配置校验和当前 NPU 运行快照；它不把 CPU smoke、配置完成或容器 `exit 0` 当作
 NPU 数值或科学结论。
 
+详细配置字段、宿主/容器路径映射和任务交接清单见
+[实验接入指南](EXPERIMENT-ONBOARDING.md)；协作入口为
+[Wiki 实验入门](https://github.com/chaosxingxc-orion/nga/wiki/Experiment-Onboarding)。
+
 ## 当前可用状态
 
 RC1 仍处于 `stabilizing`，`released=false`。固定镜像摘要为：
@@ -20,10 +24,10 @@ lease、输出目录和回执。
 
 当前 H2 正式训练没有停止：
 
-| 物理卡 | 容器 | 设置 | 2026-11-07 07:52 UTC 快照 |
+| 物理卡 | 容器 | 设置 | 2026-11-07 11:12 UTC 脚本快照 |
 | --- | --- | --- | --- |
-| 2 | `nga-h2-4b-k2-s2` | Qwen3.5-4B，seed 2，K2，global batch 10，micro tokens 12000，max length 4096，LR `1e-4`，LoRA `r16/alpha32/dropout0.05`，3116 updates | `342/3116`，约 `31.1 GiB` reserved，单卡运行 |
-| 3 | `nga-h2-4b-k2-s3` | 同上，seed 3 | `314/3116`，约 `31.3 GiB` reserved，单卡运行 |
+| 2 | `nga-h2-4b-k2-s2` | Qwen3.5-4B，seed 2，K2，global batch 10，micro tokens 12000，max length 4096，LR `1e-4`，LoRA `r16/alpha32/dropout0.05`，3116 updates | `487/3116`，约 `31.2 GiB` reserved，单卡运行 |
+| 3 | `nga-h2-4b-k2-s3` | 同上，seed 3 | `462/3116`，约 `31.3 GiB` reserved，单卡运行 |
 
 这两个任务不得重启、迁移或修改配置。其它物理卡是否可用，只能由实时 lease、Docker
 冲突和控制器锁内检查确认；历史快照不能证明空闲。
@@ -52,8 +56,8 @@ lease、输出目录和回执。
 set -eu
 STAGE=/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/h2-reviewed-training-fixes-3065900
 PY=/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/half-lr-controller-2976573/venv/bin/python
-CFG="$STAGE/host-s2.json"       # 新任务必须换成该任务自己的宿主配置
-SHA=$(sha256sum "$CFG" | cut -d' ' -f1)
+CFG="$STAGE/host-s2.json"       # 仅只读核验现役配置
+SHA=f8a31c065fc7e1a8017b87c8172b4899c1d96531fc4b27c288aa2a2cb925e6d8
 "$PY" -P "$STAGE/host/h2_host.py" validate --config "$CFG" --sha256 "$SHA"
 ```
 
@@ -110,7 +114,10 @@ lease/容器冲突检查通过且该任务的准入回执齐全后，使用：
 "$PY" -P "$STAGE/host/h2_host.py" start --config "$NEW_HOST_CONFIG" --sha256 "$NEW_SHA"
 ```
 
-其中 `NEW_HOST_CONFIG` 和 `NEW_SHA` 必须属于当前任务；启动前先执行：
+此处只是受支持任务的调用接口，不是任意新实验生成器。当前 H2 host 硬性绑定
+seed 2/3、4B、学习率、输出路径及配置摘要；复制 JSON 改名不能创建新实验。
+`NEW_HOST_CONFIG` 必须是维护者已集成并交付的受支持配置，`NEW_SHA` 应与其接受的
+摘要一致；启动前先执行：
 
 ```bash
 NEW_SHA=$(sha256sum "$NEW_HOST_CONFIG" | cut -d' ' -f1)

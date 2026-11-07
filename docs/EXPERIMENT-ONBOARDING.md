@@ -55,13 +55,13 @@ printf 'container=%s exit=%s evidence=%s\n' "$NAME" "$EXIT_CODE" "$DIR"
 
 ## H2：配置、只读检查与受支持的启动
 
-在 175 上运行以下只读检查；它不启动任务。2026-11-07 04:18 UTC 的结果为 `VALID`，当时文件摘要为 `f8a31c065fc7e1a8017b87c8172b4899c1d96531fc4b27c288aa2a2cb925e6d8`。如现在摘要不同，应调查身份变化，不要以重算摘要绕过固定身份或准入门禁。
+在 175 上运行以下只读检查；它不启动任务。2026-11-07 的首次验证及本次补充核验均为 `VALID`，当时文件摘要为 `f8a31c065fc7e1a8017b87c8172b4899c1d96531fc4b27c288aa2a2cb925e6d8`。如现在摘要不同，应调查身份变化，不要以重算摘要绕过固定身份或准入门禁。
 
 ```bash
 STAGE=/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/h2-reviewed-training-fixes-3065900
 PY=/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/half-lr-controller-2976573/venv/bin/python
 CFG=$STAGE/host-s2.json
-SHA=$(sha256sum "$CFG" | cut -d' ' -f1)
+SHA=f8a31c065fc7e1a8017b87c8172b4899c1d96531fc4b27c288aa2a2cb925e6d8
 "$PY" -P "$STAGE/host/h2_host.py" validate --config "$CFG" --sha256 "$SHA"
 ```
 
@@ -91,7 +91,7 @@ SHA=$(sha256sum "$CFG" | cut -d' ' -f1)
 }
 ```
 
-宿主 JSON 另行描述设备、lease、挂载、宿主输出及绑定；任务 JSON 不负责这些。registry 固定 batch 10、micro_tokens 12000、max length 4096、LoRA r16 / alpha 32 / dropout 0.05；schema 不接受随意增加字段。H2 需要受审 overlay：`adapter.py`、`schema.json`、`components/training/family_h2.py`、`family-registry-h2.json`、`family-schema-h2.json`，以及已准备的 receipt。裸镜像不支持此 H2 组合。`prepare_receipt.py` 固定 seed 2/3、owner `rc1-h2-4b-k2-sN`、4B 和学习率 1e-4，会拒绝任意 owner、seed、模型和学习率；H2 host 还固定 overlay 和 config pins。任意新实验需要负责人准备受支持的 adapter、配置和 receipt 集成，目前没有通用生成器。
+宿主 JSON 另行描述设备、lease、挂载、宿主输出及绑定；任务 JSON 不负责这些。固定训练实现与 recipe 对应的方案为 batch 10、micro_tokens 12000、max length 4096、LoRA r16 / alpha 32 / dropout 0.05；schema 不接受随意增加字段。H2 需要受审 overlay：`adapter.py`、`schema.json`、`components/training/family_h2.py`、`family-registry-h2.json`、`family-schema-h2.json`，以及已准备的 receipt。裸镜像不支持此 H2 组合。`prepare_receipt.py` 固定 seed 2/3、owner `rc1-h2-4b-k2-sN`、4B 和学习率 1e-4，会拒绝任意 owner、seed、模型和学习率；H2 host 还固定 overlay 和 config pins。任意新实验需要负责人准备受支持的 adapter、配置和 receipt 集成，目前没有通用生成器。
 
 对于已经完整准备的**独立且受控制器支持**的新任务，启动接口如下；`NEW_HOST_CONFIG` 必须是该任务的宿主配置，不能指向上面现役 seed 2 配置重放。这些启动命令在本指南中没有重新执行：
 
@@ -104,6 +104,52 @@ NEW_SHA=$(sha256sum "$NEW_HOST_CONFIG" | cut -d' ' -f1)
 `supervise` 是由 `start` 调用的内部后台入口；启动后不要再手动执行第二个 supervise。中断恢复先查看该次 `RELAUNCH.json` 并确认旧监督进程已退出。
 
 `start` 通过 `Popen(start_new_session=True)` 后台启动 supervise 并保留 Docker 容器。长任务必须脱离 SSH、无 `--rm`、日志和终态落 Ceph、可按项恢复并保存准确重启命令；控制器也可使用 Docker create/start，不必假设所有控制器都用 `docker run -d`。Ascend 容器内 Python 用 `-P`，不要用会丢弃 CANN/TBE `PYTHONPATH` 的 `-I`。
+
+## 如何开展实验设置
+
+设置分三层：预注册定义比较什么；任务配置定义模型计算；宿主配置定义在哪里运行。
+镜像摘要、任务配置、源码 overlay 与回执共同确定实际执行内容。只有镜像相同，不能
+推断两次实验采用了相同实现。
+
+| 设置 | 当前 H2 的真实字段或来源 | 新实验应如何处理 |
+| --- | --- | --- |
+| 任务与指标 | `experiments/RC1-CANDIDATE-LOSS-DEV.md`；宿主 `prereg` 引用 | 写明对照、split、指标、统计口径和预期反例，启动前固定 |
+| 模型与数据 | 任务 `model`、`dataset` 的 ID/path/manifest/hash | 复用已接受的清单；更换输入时只补受影响的准备和校验 |
+| 目标与训练方案 | `adapter=k2-family-h2-v2`、`recipe_id=k2-base-4b-3116-v2` | 当前是 K2 专用路径；不同目标需要受支持的 adapter |
+| 随机性与步数 | `seed=2/3`、`engineering_stop_after=3116`、`resume` | 预注册种子、停止规则和恢复身份；不能更改现役配置 |
+| 学习率 | `learning_rate=0.0001` | 当前 host 明确固定该值；改值需要该路径支持的新实验包 |
+| batch、长度、LoRA | 固定训练实现及其 recipe/保留 plan；batch 10、micro_tokens 12000、maxlen 4096、LoRA 16/32/0.05 | 这些不是当前任务 JSON 的自由字段，直接添加字段不会启用新参数 |
+| 镜像和源码 | 宿主 `image`、`entrypoint`、`mounts`、配置摘要 | 使用固定镜像及该实验接受的 overlay，不覆盖正在运行的源码 |
+| 设备 | `lease.device_count=1`、`eligible_device_ids=[2,3]` | 当前每个 seed 单卡；新资源组由对应控制器配置，27B 不能只将这里改成 4 |
+| 输出与恢复 | `name`、`output`、`lease_id`、`RELAUNCH.json` | 使用任务自己的独占命名和输出；已存在运行先核对回执，避免重复启动 |
+
+H2 路径映射如下，帮助参与者定位输入和产物：
+
+| 175 宿主路径 | 容器内路径 |
+| --- | --- |
+| `/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base` | `/model/base` |
+| `/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/train.jsonl` | `/data/train.jsonl` |
+| `$STAGE/inputs/s2/container-receipt.json` | `/run/nga/h2-prepared.json` |
+| `$STAGE/overlay/configs/q4b-k2-s2.json` | `/run/nga/config.json` |
+| `$STAGE/q4b-s2` | `/run/nga/output`，训练结果位于其 `result/` |
+| `$STAGE/overlay/` 中的受审源码文件 | 对应 `/opt/nga/` 文件，按宿主 `mounts` 逐项绑定 |
+
+接手一个新实验时，负责人需要交付以下完整任务包；这是一份交接清单，不是执行器 schema：
+
+```text
+任务 ID / 负责人 / 对照与实验目的
+预注册文件及固定摘要；模型、数据、split 和参考统计口径
+固定镜像 ID；受支持 adapter/recipe；源码与资源清单
+任务 JSON + 宿主 JSON + 各自摘要 + 该任务的准备/准入回执
+CPU 准备 → NPU 训练/推理 → 释放 → CPU 评分的节点与真实依赖
+准确的 validate/start 命令；独占输出目录；摘要与 RELAUNCH 路径
+评分入口及冻结参数；结果文件和独立复核方法；Wiki 结论页
+```
+
+同事可以先独立提交预注册和配置差异，由路径维护者补齐尚未支持的配置能力。当前还
+不能承诺任意新实验全程自助。已支持路径应复用脚本和资源；新增需求只补必要功能，
+不借接入工作更换 RC1 版本或重复已有验收。CPU 准备完成后才进入 NPU ready 队列，
+评分和文档不作为无关 NPU 任务的前置条件。
 
 ## 生命周期与监控
 
@@ -118,7 +164,14 @@ NEW_SHA=$(sha256sum "$NEW_HOST_CONFIG" | cut -d' ' -f1)
 | `q4b-s2/result/heartbeat.json`, `progress.log`, `losses.jsonl`, `manifest.json`, `attempts/` | 训练进度、损失、身份和各次尝试；保留 checkpoint，供后续 CPU 交接。 |
 | `journal/h2-k2-s2/{claim,binding,release}.json` | 设备声明、绑定与释放回执；检查 release 后交接资源。 |
 
-宿主控制器内部约 30 秒轮询与 agent/watchdog 约 600 秒兜底监控是不同层次。`tools/watchdog.py` 等先生成带异常指针的 digest；协调者常规只看 digest，诊断者按指针读取有限日志。心跳中的训练 **step** 数不等于任务完成数；明确标注单位。比率恰为 0 或 1、各格指标完全相同及样本量不足都需排查。效率变更只能改变速度，loss/梯度须在测得的 bf16 噪声范围内，否则先修订预注册。
+宿主控制器内部约 30 秒轮询与 agent/watchdog 约 600 秒兜底监控是不同层次。当前 H2 的 `training-progress-v1` 心跳应读取已部署的专用摘要：
+
+```bash
+ssh npu 'cat /mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/_watchdog-h2/bounded-digest.md'
+```
+
+同目录包含 `bounded-digest.json` 和 `bounded_monitor.py`；无需重复启动监控。通用
+`tools/watchdog.py` 尚未正确适配这一 H2 心跳，不能用它的 `unknown` 推断训练停止。脚本先生成带异常指针的 digest；协调者常规只看 digest，诊断者按指针读取有限日志。心跳中的训练 **step** 数不等于任务完成数；明确标注单位。比率恰为 0 或 1、各格指标完全相同及样本量不足都需排查。效率变更只能改变速度，loss/梯度须在测得的 bf16 噪声范围内，否则先修订预注册。
 
 ## 完成一个实验
 
