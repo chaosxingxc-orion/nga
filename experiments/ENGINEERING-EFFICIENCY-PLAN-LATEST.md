@@ -107,7 +107,7 @@ registered global batch10. Do not reserve devices during CPU preparation.
 
 The completed shared-prefix DEV diagnostic has an independent CPU recomputation:
 three paired raw-wall ratios of 2.355505, 2.342771 and 2.296179; max score delta
-0.000146151 nat, no argmax flips. **Final Astra result review remains pending.**
+0.000146151 nat, no argmax flips. **Astra final verdict: PASS_SCOPED_PUBLICATION_ONLY.**
 This is actual 9B seed2 single-chip DEV192 evidence; it does not authorize full
 TEST adoption, other-model use, or shared-prefix training with dropout.
 
