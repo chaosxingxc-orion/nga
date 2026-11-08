@@ -1,5 +1,5 @@
 {
-  "status": "08B_2B_4B_DEV_COMPLETED_9B_RUNNING",
+  "status": "ALL_FOUR_DEV_COMPLETED_RELEASED_CPU_SCORED_INDEPENDENT_NUMERIC_REVIEW_PENDING",
   "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800",
   "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
   "scope": "Four fixed Base synthetic long DEV qualifications; no TEST",
@@ -226,7 +226,7 @@
   },
   "operational_reuse": "Accepted unchanged-storage assumption; weight bytes not rehashed",
   "numerical_results": null,
-  "launch_allowed": "Per-model only after exact conditional resource admission and fresh guard",
+  "launch_allowed": false,
   "supersedes": {
     "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-four-dev-stage-final-20261108-88798",
     "status": "HELD_DO_NOT_LAUNCH",
@@ -238,9 +238,8 @@
     "evidence": "Four actual fixed-RC1 no-device validation containers exit0; independent exact package review accepted. Not NPU numerical qualification."
   },
   "launch_requires": [
-    "Independent exact new request and priority acceptance",
-    "Fresh pending/allocation/dispatch and predecessor/physical availability check",
-    "Serial card5 execution; per-model release before next claim"
+    "All four attempt1 runs already terminal: do not relaunch completed experiments",
+    "Any distinct future attempt requires separate explicit scope, exact review and current resource admission"
   ],
   "execution": {
     "08b": {
@@ -283,12 +282,14 @@
       "reserved_gib": 20.41796875
     },
     "9b": {
-      "status": "RUNNING_OBSERVED",
+      "status": "TERMINAL_RELEASED_CPU_PASS_NUMERIC_REVIEW_PENDING",
       "container_id": "9c318568bf52c118e79829d5b2ac2ddc5f1a9eff7886f486a6229474e7c38515",
       "started_utc": "2026-11-08T09:49:51.41288886Z",
       "chip": 5,
       "host_pid": 3256302,
-      "cpu_waiter_pid": 3256303
+      "cpu_waiter_pid": 3256303,
+      "completed_forwards": 9,
+      "reserved_gib": 38.607421875
     }
   }
 }
