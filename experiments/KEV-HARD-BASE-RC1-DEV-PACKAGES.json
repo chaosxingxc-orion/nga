@@ -1,5 +1,5 @@
 {
-  "status": "08B_DEV_RUNNING_OTHER_THREE_CONDITIONALLY_ADMITTED_SERIAL_CARD5",
+  "status": "08B_2B_4B_DEV_COMPLETED_9B_RUNNING",
   "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800",
   "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
   "scope": "Four fixed Base synthetic long DEV qualifications; no TEST",
@@ -245,7 +245,7 @@
   "execution": {
     "08b": {
       "observed_server_utc": "2026-11-08T09:41:11.305959+00:00",
-      "status": "RUNNING_CONTAINER_HOST_AND_CPU_WAITER",
+      "status": "TERMINAL_RELEASED_CPU_PASS_INDEPENDENT_NUMERIC_REVIEW_PENDING",
       "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800",
       "model": "08b",
       "chip": 5,
@@ -263,10 +263,32 @@
       "host_heartbeat_completed": 0,
       "prospective_main": "8acc533",
       "prospective_wiki": "34b6e3f",
-      "operational_review_task": "science/kev-hard-dev08b-live-launch-20261108"
+      "operational_review_task": "science/kev-hard-dev08b-live-launch-20261108",
+      "completed_forwards": 9,
+      "operational_review": "ACCEPT_OPERATIONAL_LAUNCH_TERMINAL_RELEASE_WITH_MONITORING_CAVEAT"
     },
-    "2b": "conditional_serial_successor",
-    "4b": "conditional_serial_successor",
-    "9b": "conditional_serial_successor"
+    "2b": {
+      "status": "TERMINAL_RELEASED_CPU_EXIT0_NUMERIC_REVIEW_PENDING",
+      "container_id": "76e18d7a3b00b0304f6d5ff95bd1a3315714fcc014a98ba1eb66320e444fbd33",
+      "started_utc": "2026-11-08T09:45:23.2258869Z",
+      "completed_forwards": 9,
+      "reserved_gib": 9.162109375
+    },
+    "4b": {
+      "status": "TERMINAL_RELEASED_CPU_EXIT0_NUMERIC_REVIEW_PENDING",
+      "container_id": "a41c73c72d26a7f87affd2f66338c2b8634b8562c3edcfcd138db28d759e4a1d",
+      "started_utc": "2026-11-08T09:47:20.32561277Z",
+      "chip": 5,
+      "completed_forwards": 9,
+      "reserved_gib": 20.41796875
+    },
+    "9b": {
+      "status": "RUNNING_OBSERVED",
+      "container_id": "9c318568bf52c118e79829d5b2ac2ddc5f1a9eff7886f486a6229474e7c38515",
+      "started_utc": "2026-11-08T09:49:51.41288886Z",
+      "chip": 5,
+      "host_pid": 3256302,
+      "cpu_waiter_pid": 3256303
+    }
   }
 }
