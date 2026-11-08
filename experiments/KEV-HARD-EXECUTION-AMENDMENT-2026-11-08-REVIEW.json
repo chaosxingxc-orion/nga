@@ -1,0 +1,289 @@
+{
+  "schema": "kev-hard-independent-prospective-execution-amendment-review-v1",
+  "completed_utc": "2026-11-08T12:26:20.744504+00:00",
+  "review_task": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-prospective-execution-amendment-20261108-review",
+  "reviewer_authority": "Sole independent Codex review child explicitly instructed to execute directly; no delegated or model-named review is claimed.",
+  "verdict": "ACCEPT_EXACT_PROSPECTIVE_EXECUTION_AMENDMENT_FOR_PUBLICATION",
+  "review_complete": true,
+  "publication_authorized": true,
+  "amendment_scientifically_admissible": true,
+  "publishable_exact_artifacts": [
+    {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-prospective-execution-amendment-20261108/publication/KEV-HARD-EXECUTION-AMENDMENT-2026-11-08.md",
+      "sha256": "be61fccaa61e1cfaf1d49a215a352159652d913528de200909e9fe94c80ecbd8",
+      "bytes": 27970,
+      "publication_target": "experiments/KEV-HARD-EXECUTION-AMENDMENT-2026-11-08.md"
+    },
+    {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-prospective-execution-amendment-20261108/publication/KEV-HARD-EXECUTION-AMENDMENT-2026-11-08.json",
+      "sha256": "a8ca8ea2fbc36e3ffb2a8bca4ab9125fbb305bd779420a2c1e37d59e0b94ed4e",
+      "bytes": 98370,
+      "publication_target": "experiments/KEV-HARD-EXECUTION-AMENDMENT-2026-11-08.json"
+    },
+    {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-prospective-execution-amendment-20261108/publication/KEV-HARD-FIXED-BASE-TEST.additive.patch",
+      "sha256": "a9d62adede67dc05bd36d49091518dbd72a5098fb303e2290f37eeb98d1470e1",
+      "bytes": 2489,
+      "publication_target": "Apply append-only hunk to experiments/KEV-HARD-FIXED-BASE-TEST.md"
+    }
+  ],
+  "blocking_findings": [],
+  "required_artifact_corrections": [],
+  "supersession": {
+    "published_protocol_before": {
+      "path": "/home/xingchao/workspace/nga/experiments/KEV-HARD-FIXED-BASE-TEST.md",
+      "sha256": "c5c02b51fb47825e237bcad1b69def0472f1cde2107b117ff75bf06e8e332a62",
+      "bytes": 10292
+    },
+    "exact_sentence": "Before inference: bind Base-specific numerical and asset evidence to the actual image, loader, lengths and all labels; prepare and review all four exact execution packages and prospective amendment; independently implement and review the saved-vector scorer; keep source, derived source, gold, join, pairs, controls and CPU consumers outside every inference mount ancestor.",
+    "exact_clause": "prepare and review all four exact execution packages and prospective amendment",
+    "replacement_rule": "Before a cell performs TEST inference, independently review and publish this prospective amendment and bind, independently review and publish that cell\u2019s complete exact execution package and numerical/asset/scorer evidence; separately admit its resource window and retained detached lifecycle with fresh preclaim checks. The cell need not wait for another cell\u2019s package, inference, CPU scoring or results review.",
+    "scope": "Only the all-four-before-any-inference scheduling barrier; four per-cell receipt obligations and all four reporting rows remain. The original machine-spec receipt obligation is due before each respective cell inference.",
+    "protocol_sha256_after_exact_patch": "b478f3eabdadc12e4fa88d28a9572a4bcd40ec4b9049bba8f4b419f39177439c",
+    "original_acceptance_summary_preserved": {
+      "path": "/home/xingchao/workspace/nga/experiments/KEV-HARD-FIXED-BASE-TEST-ACCEPTED.json",
+      "sha256": "51bfc56aa0813d6a08b25eba2d4727111476350a49004cc64fd3bc0c6bdc3c53",
+      "bytes": 2406
+    }
+  },
+  "scientific_precondition_08b": {
+    "satisfied_now": false,
+    "will_be_satisfied_after_actual_publication": true,
+    "meaning": "The prospective execution-amendment/future-per-cell-binding scientific precondition for the exact reviewed 08b PLAN/attempt 1 will be satisfied after the parent actually publishes this accepted MD/JSON and append-only protocol addition, with this independent review pin, exact package acceptance/bindings and dated publication receipt, before any TEST. Candidate presence or this review alone does not constitute publication.",
+    "publication_before_test_required": true,
+    "publication_performed_or_verified_here": false,
+    "pretest_basis": {
+      "operator_record": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/kev-hard-reconciled-reviewed-launch-20261108/NO-LAUNCH.json",
+        "sha256": "243e8adf9038de2dcc2bde75c71743ef71dc7ecf6feddb8c5fca070aca3d2b2b",
+        "bytes": 1589
+      },
+      "observed_status": "NO_LAUNCH",
+      "scope": "Supplied operator record plus task scope; no new host/output audit or model call was performed here. Parent/reviewer must confirm continuing pre-TEST status at publication."
+    },
+    "continuing_pretest_status": "Parent must confirm still no TEST launch/output inspection before effectiveness. The pinned NO-LAUNCH record is historical evidence, not a new live-host audit.",
+    "plan": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/kev_hard_v1_08b/PLAN.json",
+      "sha256": "0fd889b0a3f59f6a8725115926e5b80c1e5662c1db5ba0bcda28f23a3793ff2d"
+    },
+    "attempt": 1,
+    "runtime_review": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-175-isolated-cpu-lifecycle-20261108-review/VERDICT.json",
+      "sha256": "6ebe2ef8a19dd6b46c4527c2ce29da98553a84720644061aa0cc143af29461a0",
+      "bytes": 3105
+    },
+    "launch_package": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-175-isolated-cpu-lifecycle-20261108-review/LAUNCH-PACKAGE.json",
+      "sha256": "386d5fc821dfe039b13649976c0575ca4f193251be7d0be2487bfc9e322d9300",
+      "bytes": 9774
+    },
+    "remaining_operational_gate": "Launch operator must freshly authenticate deployed pins, policy/pending entries, finite chip-5 free generation, predecessor retained release and live ownership, harness DONE/FAILED and retained exit, under the accepted atomic claim path. This review neither performs nor waives those checks.",
+    "await_08b_or_sibling_results_required": false,
+    "scientific_results_accepted": false
+  },
+  "other_cells": {
+    "2b": {
+      "status": "PENDING_RESOURCE_POLICY_REPAIR_AND_INDEPENDENT_FINAL_ACTIVATION_ADMISSION",
+      "component_review": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-family-current-runtime-20261108-review/cells/2b/VERDICT.json",
+        "sha256": "23bdcf7c6485edf6259f9addf6a5fdff3979fd9a63fd7796296653d65884f4d0"
+      },
+      "component_verdict": "ACCEPT_SOURCE_MAPPING_NUMERIC_HOLD_ACTIVATION",
+      "package_complete": false,
+      "launch_authorized": false,
+      "needs_08b_result": false,
+      "existing_blocking_findings": [
+        {
+          "actual_run": "r3_runs/kev_hard_v1_08b",
+          "evidence": {
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/2b/RESOURCE-VERIFY-CLI.json",
+            "sha256": "c92612e8168c126cfdb86f03f630a83ca313cb521911044e527e39ded67e9c0e"
+          },
+          "expected_run": "r3_runs/kev_hard_v1_2b",
+          "id": "2b-F1",
+          "observed": "Actual host175 read-only resource verify exits 1: ValueError: resource identity",
+          "policy": {
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/2b/code/FIXED-BASE-RESOURCE-POLICY.json",
+            "sha256": "085aabfe8ba58d95375f08423afd5db7e4091c9d810aabf6b7ac34ed2dad6dbe"
+          },
+          "severity": "blocking_activation",
+          "smallest_fix": "Create a new per-cell policy bound to r3_runs/kev_hard_v1_2b and a separately authorized chip-5 finite window/free generation; update source-manifest -> origin/config/contract -> PLAN and CPU intent/config, then rebind numerical acceptance and final review/root to the new PLAN. Keep guard, math, payloads, transform and receipt unchanged; metadata derivation only. Recheck this cell without waiting for siblings.",
+          "source": {
+            "line": 24,
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/2b/code/fixed_base_resource.py"
+          },
+          "title": "Copied resource policy names 08b"
+        },
+        {
+          "evidence": {
+            "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-175-isolated-cpu-lifecycle-20261108-review/DECISION.json",
+            "sha256": "5e989c967bbccac53395f3e49aab73fd72dda0310ccecffe41db6b3c836e9d60"
+          },
+          "id": "2b-F2",
+          "no_resource_grant_issued": true,
+          "severity": "remaining_activation_gate",
+          "smallest_fix": "Obtain an independent priority/window decision for r3_runs/kev_hard_v1_2b on its actual target chip and current predecessor/free generation. The single 08b execution window grants no successor rights. Only then issue the exact activation review, production root, start and supervise argv under existing schemas; recheck mandatory harness condition and fresh atomic claim guards before any future claim.",
+          "title": "No successor resource window or approvable production root"
+        }
+      ]
+    },
+    "4b": {
+      "status": "PENDING_RESOURCE_POLICY_REPAIR_AND_INDEPENDENT_FINAL_ACTIVATION_ADMISSION",
+      "component_review": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-family-current-runtime-20261108-review/cells/4b/VERDICT.json",
+        "sha256": "1bc5c171b41ea31ac880b40ec8acfe933ff427078769143115cdf3f7050271e6"
+      },
+      "component_verdict": "ACCEPT_SOURCE_MAPPING_NUMERIC_HOLD_ACTIVATION",
+      "package_complete": false,
+      "launch_authorized": false,
+      "needs_08b_result": false,
+      "existing_blocking_findings": [
+        {
+          "actual_run": "r3_runs/kev_hard_v1_08b",
+          "evidence": {
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/4b/RESOURCE-VERIFY-CLI.json",
+            "sha256": "a7461cbe7106596225ab2c87fceb0fc62fbbeee64cab4f2d3304b7404a6d2270"
+          },
+          "expected_run": "r3_runs/kev_hard_v1_4b",
+          "id": "4b-F1",
+          "observed": "Actual host175 read-only resource verify exits 1: ValueError: resource identity",
+          "policy": {
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/4b/code/FIXED-BASE-RESOURCE-POLICY.json",
+            "sha256": "085aabfe8ba58d95375f08423afd5db7e4091c9d810aabf6b7ac34ed2dad6dbe"
+          },
+          "severity": "blocking_activation",
+          "smallest_fix": "Create a new per-cell policy bound to r3_runs/kev_hard_v1_4b and a separately authorized chip-5 finite window/free generation; update source-manifest -> origin/config/contract -> PLAN and CPU intent/config, then rebind numerical acceptance and final review/root to the new PLAN. Keep guard, math, payloads, transform and receipt unchanged; metadata derivation only. Recheck this cell without waiting for siblings.",
+          "source": {
+            "line": 24,
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/4b/code/fixed_base_resource.py"
+          },
+          "title": "Copied resource policy names 08b"
+        },
+        {
+          "evidence": {
+            "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-175-isolated-cpu-lifecycle-20261108-review/DECISION.json",
+            "sha256": "5e989c967bbccac53395f3e49aab73fd72dda0310ccecffe41db6b3c836e9d60"
+          },
+          "id": "4b-F2",
+          "no_resource_grant_issued": true,
+          "severity": "remaining_activation_gate",
+          "smallest_fix": "Obtain an independent priority/window decision for r3_runs/kev_hard_v1_4b on its actual target chip and current predecessor/free generation. The single 08b execution window grants no successor rights. Only then issue the exact activation review, production root, start and supervise argv under existing schemas; recheck mandatory harness condition and fresh atomic claim guards before any future claim.",
+          "title": "No successor resource window or approvable production root"
+        }
+      ]
+    },
+    "9b": {
+      "status": "PENDING_RESOURCE_POLICY_REPAIR_AND_INDEPENDENT_FINAL_ACTIVATION_ADMISSION",
+      "component_review": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-family-current-runtime-20261108-review/cells/9b/VERDICT.json",
+        "sha256": "0e4a15e996b6dc1daf4120f11d2af8e25928f8594d51d7d4b3b1ba5930ac63d4"
+      },
+      "component_verdict": "ACCEPT_SOURCE_MAPPING_NUMERIC_HOLD_ACTIVATION",
+      "package_complete": false,
+      "launch_authorized": false,
+      "needs_08b_result": false,
+      "existing_blocking_findings": [
+        {
+          "actual_run": "r3_runs/kev_hard_v1_08b",
+          "evidence": {
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/9b/RESOURCE-VERIFY-CLI.json",
+            "sha256": "f1a2d41f9edf56c9bdc29f1aca00a4852cd2bc855061da7e9f0e44f34a9ef57f"
+          },
+          "expected_run": "r3_runs/kev_hard_v1_9b",
+          "id": "9b-F1",
+          "observed": "Actual host175 read-only resource verify exits 1: ValueError: resource identity",
+          "policy": {
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/9b/code/FIXED-BASE-RESOURCE-POLICY.json",
+            "sha256": "085aabfe8ba58d95375f08423afd5db7e4091c9d810aabf6b7ac34ed2dad6dbe"
+          },
+          "severity": "blocking_activation",
+          "smallest_fix": "Create a new per-cell policy bound to r3_runs/kev_hard_v1_9b and a separately authorized chip-5 finite window/free generation; update source-manifest -> origin/config/contract -> PLAN and CPU intent/config, then rebind numerical acceptance and final review/root to the new PLAN. Keep guard, math, payloads, transform and receipt unchanged; metadata derivation only. Recheck this cell without waiting for siblings.",
+          "source": {
+            "line": 24,
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/9b/code/fixed_base_resource.py"
+          },
+          "title": "Copied resource policy names 08b"
+        },
+        {
+          "evidence": {
+            "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-175-isolated-cpu-lifecycle-20261108-review/DECISION.json",
+            "sha256": "5e989c967bbccac53395f3e49aab73fd72dda0310ccecffe41db6b3c836e9d60"
+          },
+          "id": "9b-F2",
+          "no_resource_grant_issued": true,
+          "severity": "remaining_activation_gate",
+          "smallest_fix": "Obtain an independent priority/window decision for r3_runs/kev_hard_v1_9b on its actual target chip and current predecessor/free generation. The single 08b execution window grants no successor rights. Only then issue the exact activation review, production root, start and supervise argv under existing schemas; recheck mandatory harness condition and fresh atomic claim guards before any future claim.",
+          "title": "No successor resource window or approvable production root"
+        }
+      ]
+    }
+  },
+  "scientific_reasoning": [
+    "The accepted metrics, controls and 134 different-input/different-gold pairs are defined within each cell on its complete frozen population. No cross-model fitted parameter requires sibling package or result completion.",
+    "Independent launch by readiness/resource availability leaves the 700 records, 1088 questions/cell, four named model rows, metric formulas, label/order mappings, controls and strict completeness/identity rules unchanged.",
+    "FP32, HF32 off, batch 1, full vocabulary 248320, max8192, all label logits and T=1 remain fixed; source/gold/joins/pairs/controls and CPU consumers remain outside inference mount ancestors.",
+    "All four rows must remain visible with missing metrics null; preserve failed/interrupted/invalid attempts and original acceptance/failure history. No TEST tuning, outcome-based selection, best-attempt rerun or incomplete-population result is admitted.",
+    "Shared integrity defects hold affected cells. Separate resource windows and per-cell independent final acceptance/publication remain mandatory. Component acceptance and this scheduling amendment cannot authorize unreviewed packages."
+  ],
+  "inherited_evidence_disposition": {
+    "asset_snapshot": "Explicitly accept the exact inherited MODEL-MANIFEST reference through the pinned independent asset decision; its model-file map and historical authority equal the admitted PLAN. Retain preparation baseline selector /models/0/preparation_stat_baseline and existing live inventory/non-weight/stat checks. No newly invented historical proof or rehash requirement.",
+    "asset_decision": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-base-asset-reuse-decision-20261108/VERDICT.json",
+      "sha256": "567be3332fc17428a3a74ce73d1dec94f5155c9a93db086ce39f39b5d8ad33de",
+      "bytes": 55094
+    },
+    "snapshot": {
+      "bytes": 4844,
+      "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-base-dev-executable-20261108/08b/package/assets/MODEL-MANIFEST.json",
+      "sha256": "da5423321fff8321a4ffb592d6a625b64d20a779c855b87a19a30af4e76cd7ef"
+    },
+    "predecessor_claim_release": "Local direct reads are permission-denied. Exact references match the pinned independent reconciliation and PLAN/resource bindings; accepted here only as inherited historical evidence. Fresh operator authentication remains mandatory.",
+    "reconciliation": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-final-evidence-reconciliation-20261108/ADJUDICATION.json",
+      "sha256": "3ba394dca9e3cc69d07c7d6a22aab920e8b9352ff30c7374c2739753ae6c7326",
+      "bytes": 15122
+    },
+    "predecessor": {
+      "claim": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/9b/journal/base-9b-rc1-longdev-20261108-a1/claim.json",
+        "sha256": "031125bed313323565c5341f59890d9ce1339132b46284ad5ba4d0cd09f120e3"
+      },
+      "release": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/9b/journal/base-9b-rc1-longdev-20261108-a1/release.json",
+        "sha256": "9f1f36d187ca79446a813dd7e8eb7153778f448bec0867a8c93c7276a9d30415"
+      }
+    },
+    "current_payload_byte_identity_proven": false,
+    "weights_rehashed": false,
+    "other_limits": "Synthetic DEV projections are not task forwards; fake-Docker lifecycle fixture is not actual TEST/NPU survivability proof. Unknown training overlap/contamination, missing definitions, lookup/generator shortcuts and trained-pointer comparability limitations remain."
+  },
+  "checks": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-prospective-execution-amendment-20261108-review/CHECKS.json",
+    "sha256": "14c640b48a7f9fe299e609fb8e062b4e2b60a7cad06d43aa03f68dc662a4d0cd",
+    "bytes": 77919
+  },
+  "sourcepins": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-prospective-execution-amendment-20261108-review/SOURCEPINS.json",
+    "sha256": "9fb012981988f04cca07ad8ef5d7f1e7f6e5da48f6561409c334e41ac40f50ba",
+    "bytes": 59589
+  },
+  "review_script": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-prospective-execution-amendment-20261108-review/review.py",
+    "sha256": "2995109866c62c67af4851930af009cae8927a1c4a51af737f79e1f529e88550",
+    "bytes": 15054
+  },
+  "checks_passed": 399,
+  "checks_failed": 0,
+  "unique_direct_input_pins": 152,
+  "publication_performed": false,
+  "launch_authorized_now": false,
+  "resource_claim_authorized": false,
+  "resource_claimed": false,
+  "fresh_guard_performed": false,
+  "npu_used": false,
+  "test_outputs_examined": false,
+  "scientific_result_accepted": false,
+  "four_cell_results_complete": false,
+  "delegation_performed": false,
+  "git_wiki_or_producer_source_modified": false
+}

@@ -1,0 +1,1498 @@
+{
+  "schema": "kev-hard-prospective-execution-amendment-candidate-v1",
+  "amendment_id": "KEV-HARD-EXECUTION-AMENDMENT-2026-11-08",
+  "protocol_id": "nga-qwen-kev-name-preserving-mixed-v1",
+  "date": "2026-11-08",
+  "drafted_utc": "2026-11-08T12:20:21.553537+00:00",
+  "status": "CANDIDATE_FOR_INDEPENDENT_REVIEW_AND_PARENT_PUBLICATION_BEFORE_TEST",
+  "authority_kind": "Prospective scheduling amendment candidate and evidence crosswalk; not an executable approval manifest",
+  "launch_allowed": false,
+  "resource_claim_authorized": false,
+  "scientific_result_accepted": false,
+  "amendment_independently_accepted": false,
+  "published_by_this_task": false,
+  "test_launch_performed": false,
+  "test_outputs_examined": false,
+  "before_test_basis": {
+    "operator_record": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/kev-hard-reconciled-reviewed-launch-20261108/NO-LAUNCH.json",
+      "sha256": "243e8adf9038de2dcc2bde75c71743ef71dc7ecf6feddb8c5fca070aca3d2b2b",
+      "bytes": 1589
+    },
+    "observed_status": "NO_LAUNCH",
+    "scope": "Supplied operator record plus task scope; no new host/output audit or model call was performed here. Parent/reviewer must confirm continuing pre-TEST status at publication."
+  },
+  "normative_sources": {
+    "published_protocol": {
+      "path": "/home/xingchao/workspace/nga/experiments/KEV-HARD-FIXED-BASE-TEST.md",
+      "sha256": "c5c02b51fb47825e237bcad1b69def0472f1cde2107b117ff75bf06e8e332a62",
+      "bytes": 10292
+    },
+    "original_acceptance_summary": {
+      "path": "/home/xingchao/workspace/nga/experiments/KEV-HARD-FIXED-BASE-TEST-ACCEPTED.json",
+      "sha256": "51bfc56aa0813d6a08b25eba2d4727111476350a49004cc64fd3bc0c6bdc3c53",
+      "bytes": 2406
+    },
+    "numerical_scope": {
+      "path": "/home/xingchao/workspace/nga/experiments/KEV-HARD-BASE-RC1-NUMERICAL-SCOPE.json",
+      "sha256": "ce4ad295382c2cb4939e923ce070e45f4a2c36f879422fec2cc15ad2fe2e00ba",
+      "bytes": 2503
+    },
+    "asset_policy": {
+      "path": "/home/xingchao/workspace/nga/experiments/KEV-HARD-BASE-ASSET-REUSE-POLICY.json",
+      "sha256": "eb6c3227961c1704669ad4f1f39958e522ad1d14d7ebc615d71119a5d65e009a",
+      "bytes": 7263
+    },
+    "dev_packages": {
+      "path": "/home/xingchao/workspace/nga/experiments/KEV-HARD-BASE-RC1-DEV-PACKAGES.json",
+      "sha256": "b6aa8c1fe621420a491d00b8eda18a9c21bd6b2daac0b7dc942d69c5d3b0d7ab",
+      "bytes": 24676
+    }
+  },
+  "original_protocol": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-existing-gap-protocol-20261108/PROTOCOL.md",
+    "sha256": "c774a06dc5e190c461f89d5874d7b14edca02a23dcd8b4e56b3ac95f83444379",
+    "bytes": 15145
+  },
+  "original_machine_spec": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-existing-gap-protocol-20261108/MACHINE-SPEC.json",
+    "sha256": "61d8298a00e7c85e3572b92cdc17602d6f93c01726d146076f967be1f6d9c0a5",
+    "bytes": 23723
+  },
+  "original_scientific_review": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-existing-gap-protocol-review-20261108/VERDICT.json",
+    "sha256": "b9ebebda5204b1b72f5093995a84fc4c384f5c22b82e3b925e85bf7691989e83",
+    "bytes": 1569
+  },
+  "change": {
+    "superseded_sentence": "Before inference: bind Base-specific numerical and asset evidence to the actual image, loader, lengths and all labels; prepare and review all four exact execution packages and prospective amendment; independently implement and review the saved-vector scorer; keep source, derived source, gold, join, pairs, controls and CPU consumers outside every inference mount ancestor.",
+    "superseded_clause": "prepare and review all four exact execution packages and prospective amendment",
+    "replacement_rule": "Before a cell performs TEST inference, independently review and publish this prospective amendment and bind, independently review and publish that cell’s complete exact execution package and numerical/asset/scorer evidence; separately admit its resource window and retained detached lifecycle with fresh preclaim checks. The cell need not wait for another cell’s package, inference, CPU scoring or results review.",
+    "scope_of_supersession": "Only the all-four-before-any-inference scheduling barrier. All four models remain pre-registered and reportable; each retains every other admission gate.",
+    "original_machine_spec_clarification": {
+      "selector": "/required_scope_checks/1",
+      "exact_text": "Bind four Base model-specific RC1 numerical and asset receipts, covering observed max4758 and score/Noul IDs; existing Instruct numeric guards not transferable; no automatic extra probe.",
+      "rule": "Retain all four model-specific receipt obligations; each cell must have its own exact binding accepted and published before its inference. Completing sibling package admission is no longer a precondition for that cell."
+    },
+    "effective_only_after": [
+      "Independent Astra scientific review of exact amendment MD/JSON/patch bytes and all source bindings",
+      "Parent publication of accepted exact amendment and dated additive protocol link with review pin and publication commit/time, before any TEST",
+      "For each cell separately, published independent exact final-package acceptance and unchanged scientific settings",
+      "Fresh separately admitted resources and all mandatory preclaim guards"
+    ],
+    "publication_receipt": null,
+    "amendment_review": null,
+    "no_outcome_selection": [
+      "Launch scheduling uses documented package readiness, resource eligibility and engineering availability only; no TEST metric, prediction, tie pattern or pair outcome can choose cells or priorities.",
+      "Retain all four pre-registered rows in every interim/final report. State not-started, held, failed, interrupted, scoring-pending, invalid or result-reviewed explicitly, with evidence and timestamps; missing metrics are null, never zero, imputed or silently dropped.",
+      "Do not change remaining cells, frozen scorer/settings/population or claims after seeing an earlier cell. A common integrity defect may hold affected cells with a dated evidence-based correction and independent review; no tuning to TEST.",
+      "No cherry-picked best attempt, outcome-based rerun or early stopping; item-level resume preserves the exact admitted identity and commits. New attempts/changed identity require separate prospective review before execution; failed attempts remain visible."
+    ],
+    "async_rule": "Within each cell, authenticated producer terminal/retained-container exit and durable resource release precede CPU preparation/start through the reviewed supervisor and authentic SERVICE publication. After release, the next independently admitted cell may use the chip while prior-cell CPU scoring/review continues. No sibling CPU or result barrier; no raw CPU argv invocation or automatic successor reservation.",
+    "retained_lifecycle": "Keep fixed-name detached retained container, item-granularity resume, timestamp/count heartbeat, per-chip throughput with chip count and reserved memory, durable CephFS logs, exact relaunch command and terminal exit marker. Marker is completion truth; retained inspect/release independently establish ownership release. CPU has its own durable service/terminal evidence. Do not retry uncertain activation or run start/supervise concurrently."
+  },
+  "scientific_independence": {
+    "evidence": [
+      "Original accepted protocol and machine spec define each model on the same fixed 1088 requests with within-cell metrics, 134 fixed semantic pairs and descriptive controls.",
+      "DEV numerical admission is same-model reference/repeat/adapter, not cross-model equality. All four scoped reviews already exist.",
+      "The independent family review explicitly records other_cell_gate=false; each successor resource defect is local to its run/PLAN."
+    ],
+    "finding_for_independent_review": "No statistical cross-model completion prerequisite identified in these definitions. Shared resource ownership and common integrity are operational dependencies; neither grants a sibling lease nor permits changing the scientific workload.",
+    "common_defect_rule": "Evidence that a shared pin/scorer/population is invalid holds every actually affected cell, irrespective of scheduling independence. Preserve prior outputs and report status; review corrections prospectively."
+  },
+  "frozen": {
+    "population": {
+      "records": 700,
+      "questions": 1088,
+      "choice": 826,
+      "noul": 226,
+      "score": 36,
+      "pairs": 134,
+      "candidate_order_changes": 43,
+      "null_entries": 860,
+      "null_questions": 213
+    },
+    "full_four_cell_scope": [
+      "kev_hard_v1_08b",
+      "kev_hard_v1_2b",
+      "kev_hard_v1_4b",
+      "kev_hard_v1_9b"
+    ],
+    "total_prospective_question_forwards": 4352,
+    "identity_digests": {
+      "accepted_original_protocol": "c774a06dc5e190c461f89d5874d7b14edca02a23dcd8b4e56b3ac95f83444379",
+      "accepted_machine_spec": "61d8298a00e7c85e3572b92cdc17602d6f93c01726d146076f967be1f6d9c0a5",
+      "original_test_jsonl": "246ee92234d33f8e3f10ac6e1542651531b128fd7cc66f3a9964589b77dfa22b",
+      "source_join_pointer": "dcc0957575dff263721d30162933e763ee7950c272fb71e6c3ad3717a8e7fb73",
+      "full_source_join": "5c1cbc93ce010957f3bf6f82c565ef25548833936936c794013f2642a4fd71cb",
+      "original_pair_file": "d91432f6a57054d74fb6d66337f2183746fe7938881f4303b9339e727fdc1000",
+      "hard_pair_list_digest": "123fd480077e4f7e5c9a04855e0215888ca75413d05c1805bcb47c85dc96db3c",
+      "derived_pair_map": "5e73780f23964ff01e78bdb642fc3fcd2159326f520df95f6ffd1bce026c8b18",
+      "controls": "b0d0800f6095f0f0964acc6d7e130535d1c00069bb78aaf5f0f5596b752cc2ef",
+      "each_of_four_request_files": "5727c1b186d41dfb8c84bfdf4df2d16a5e8db17220383dea83a3b66974d52b92",
+      "ordered_prepared_requests": "2da2b166f64d606a38bbdad1ea7a9abec139803207d4b322caa28b06d657f125",
+      "derived_source_parquet": "9b8d4ca333486b88b035c632c984af59ccbadea00e1f6dcb775ca6377f7056e2",
+      "frozen_formula_spec": "61d8298a00e7c85e3572b92cdc17602d6f93c01726d146076f967be1f6d9c0a5"
+    },
+    "settings": {
+      "reference": "RUNTIME-REFERENCE.json",
+      "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+      "protocol": {
+        "adapter": "transformers_full_labels",
+        "batch_size": 1,
+        "dtype": "float32",
+        "family": "qwen3.5_decoder",
+        "hf32": false,
+        "id": "native-full-label-panel-v2",
+        "max_length": 8192,
+        "vocabulary": 248320
+      },
+      "forward": "one final-position full-vocabulary float32 vector; read all label IDs, restricted float64 log-softmax T=1",
+      "label_ids": {
+        "choice": "A..F: 32..37",
+        "score": "1..6: 16..21",
+        "noul": [
+          9175,
+          2665
+        ]
+      },
+      "chat": "pinned AnyJev DEFAULT_SYSTEM/build_prompt/render_chat with each Base tokenizer; no cross-model difference observed",
+      "new_runtime": false,
+      "reuse_model_specific_instruct_guards": false
+    },
+    "rendering": {
+      "choice": "name if definition is null or empty, else name + \": \" + definition; preserve exact source order and bytes of strings",
+      "score": "source list strings verbatim, in ordinal list order; API index 0..K-1, display labels 1..K",
+      "noul": {
+        "options": [
+          "Yes",
+          "No"
+        ],
+        "semantic_keys": [
+          "true",
+          "false"
+        ],
+        "true_index": 0,
+        "criteria": "absent in all 226; refuse unseen criteria"
+      },
+      "state": "verbatim source string, all 700",
+      "question": "verbatim instructions",
+      "gold_access": "CPU gold_index only; render_question only accepts type/instructions/criteria",
+      "metadata": "No facts, generator solutions, labels or _meta admitted to prompt",
+      "derived_source": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-existing-gap-protocol-20261108-cpu/cpu/derived-source.parquet",
+      "derived_source_rows": 1088,
+      "original_source_rows": 700,
+      "amendment_required": true,
+      "same_as_description_only_documents_devtools": false
+    },
+    "metrics": {
+      "primary_hard": "first argmax per source candidate order; map to semantic names before pair comparisons",
+      "native_tie": "retain numpy argsort(-restricted_logprobs) result index, exact tie count and native-vs-first mismatch count; additionally score same metrics by native index when mismatches exist",
+      "probabilities": "logp_j=z_label_j-logsumexp(z_labels); p_j=exp(logp_j); no temperature fit",
+      "accuracy": "sum(pred_index==gold_index)/1088",
+      "brier": "mean(sum_j (p_j-1[j=y])**2)",
+      "nll": "mean(-saved_restricted_logprobs[y]); never take log of rounded probability or clip",
+      "ece10": "bins min(floor(10*max(p)),9); mean absolute bin accuracy-confidence weighted by bin count/N; hard first-max accuracy; confidence 1 in last bin",
+      "noul": "P(true)=p[0]; decision true iff first argmax==0 (p_true>=0.5); NLL/Brier categorical plus mean((p_true-y_bool)**2)",
+      "choice": "semantic_key=source ordered criteria keys[first_argmax]; no extra abstain or thresholds",
+      "score": {
+        "expected_index": "sum_j j*p_j, zero based",
+        "mode_mae": "mean(abs(first_argmax-y)) over 36",
+        "expected_mae": "mean(abs(expected_index-y)) over 36",
+        "normalized_rps": "mean(sum_{t=0}^{K-2}(sum_{j<=t}p_j-1[y<=t])**2/(K-1)) over36",
+        "decision": "mode; expectation is descriptive only, no rounding into hard labels"
+      },
+      "strata": [
+        "type",
+        "source",
+        "family",
+        "subtype",
+        "null-definition status",
+        "duplicate-description status",
+        "candidate count"
+      ],
+      "no_quality_threshold": true,
+      "thresholds": "Identity/completeness/finite exact-vector gates only; no TEST-fitted risk/abstain/selective thresholds",
+      "invalid": "fail cell on missing, extra, repeated, reordered, nonfinite, wrong-token or identity-mismatched prediction; preserve failure and no complete-population metrics"
+    },
+    "discrimination": {
+      "frozen_file": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-existing-gap-protocol-20261108-cpu/cpu/DISCRIMINATION-PAIRS.json",
+      "original_pin": "d91432f6a57054d74fb6d66337f2183746fe7938881f4303b9339e727fdc1000",
+      "pair_ids_sha256": "123fd480077e4f7e5c9a04855e0215888ca75413d05c1805bcb47c85dc96db3c",
+      "pairs": 134,
+      "endpoints": 268,
+      "order_mismatches": 43,
+      "changed": "sum(semantic_prediction_a != semantic_prediction_b)/134",
+      "both_correct": "sum(pred_a==gold_a and pred_b==gold_b)/134",
+      "limitations": "same canonical schema, different input/gold, descriptive non-minimal pairs; no causal or invariance claim; no re-pairing",
+      "coverage": {
+        "probability/score": 11,
+        "tradeoff/yes_no": 15,
+        "temporal_numeric/yes_no": 6,
+        "judge/yes_no": 50,
+        "probability/yes_no": 1,
+        "ambiguous/choice": 39,
+        "tradeoff/choice": 10,
+        "long_policy/choice": 1,
+        "probability/choice": 1
+      }
+    },
+    "controls": {
+      "artifacts": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-existing-gap-protocol-20261108-cpu/cpu/CONTROLS.json",
+      "names": [
+        "first_option_constant",
+        "uniform",
+        "per_schema_test_majority_oracle"
+      ],
+      "frozen_before_npu": true,
+      "uniform_hard_tie": "first maximum in each original candidate order",
+      "majority": "canonical(type,instructions,criteria), mapping keys sorted only for schema hash; choose most frequent semantic gold, lexical semantic-key tie; emit one-hot mapped to original order",
+      "oracle": "TEST descriptive ceiling using labels; never inference/selection/calibration input; 805 schemas, high singleton leverage",
+      "infinite_nll": "exact one-hot wrong targets -> infinity with count; no smoothing",
+      "singleton_schemas": 746,
+      "singleton_questions": 746
+    },
+    "unconstrained_optimum": "A finite source-record/label lookup reaches perfect accuracy and pair correctness. Same-schema constant/prior can exploit labels; constant distribution is perfect on a hypothetical invariance target. These are not semantic generalization.",
+    "defect_links": {
+      "primary": [
+        1,
+        17
+      ],
+      "family_strata": {
+        "long_policy": [
+          3
+        ],
+        "temporal_numeric": [
+          4
+        ],
+        "probability": [
+          4,
+          8
+        ],
+        "multi_hop": [
+          10
+        ],
+        "tradeoff": [
+          3,
+          4
+        ],
+        "judge": [
+          4,
+          10
+        ],
+        "ambiguous": [
+          5
+        ]
+      },
+      "measurement_limit": "Report-owned links; no direct name-definition intervention or consistency/equivalence-class test; defects8/17 score summaries descriptive. No gateG1/G2/G3 claim."
+    },
+    "overlap": {
+      "evidence": "evidence/OVERLAP.json",
+      "checked": [
+        "hard development",
+        "documents TEST",
+        "devtools TEST"
+      ],
+      "exact_and_normalized_matches": 0,
+      "train": "UNKNOWN at exact source path; 6000 manifest records only; no regenerate/search",
+      "inherited_external_screen": "upstream overlap.json 7400 records, threshold0.2, offending0; not independent recomputation",
+      "base_weight_training_contamination": "UNKNOWN"
+    },
+    "reference_comparability": {
+      "native": "NATIVE-REFERENCE.json and NATIVE-CONFIG-CONTEXT.json; Kev0.8B/4B/9B only",
+      "same_public_population": true,
+      "same_model_or_interface": false,
+      "matched_native_pair_vectors": false,
+      "native_probabilities": "native temperatures 2.3510958125672174/2.406050072164233/2.193649959389252 and separately T1; never merge",
+      "claims_forbidden": [
+        "trained gain",
+        "native pointer reproduction",
+        "calibration equivalence",
+        "causal input use",
+        "consistency",
+        "G1/G2/G3",
+        "synthetic Kev2B"
+      ]
+    },
+    "rule": "All copied scientific definitions and their original hashes remain normative. No metric, population, control, pair, threshold, setting, request, label mapping, tokenizer, model, asset policy or interpretation change."
+  },
+  "asset_limitations": {
+    "unchanged_storage_assumption": "These exact host175 CephFS paths remained the same assets after historical accepted hashing; no host-side rewrite, path replacement, storage rollback/remap, restored metadata, privileged timestamp manipulation, or out-of-band mutation occurred. CephFS supplies normal trustworthy change-time semantics.",
+    "current_payload_byte_identity_proven": false,
+    "weights_rehashed": false,
+    "rule": "Retain historical authority, pinned preparation baseline and existing inventory/non-weight/stat checks; reject observed drift without refreshing it away. Read-only mounts/numerical equality do not establish historical weight-byte continuity."
+  },
+  "existing_four_numerical_reviews": {
+    "08b": {
+      "status": "ACCEPTED_EXACT_SYNTHETIC_LONG_DEV_ONLY",
+      "verdict": "ACCEPT_SCOPED_EXACT_SYNTHETIC_LONG_DEV_NUMERICS",
+      "review_task": ".local/releases/engineering-base-rc1/tasks/science/kev-hard-dev08b-numeric-review-20261108",
+      "review_verdict_sha256": "e7970ee461a9d6230cec55835a15b3fe821e89adedd9b71a30751f24187d135b",
+      "review_sourcepins_sha256": "c145722c06492192b8564170e53caa55c8e3105651031d6d4877722f373c59b5",
+      "max_abs_diff": 0,
+      "tolerance": 0,
+      "scientific_acceptance": false,
+      "hard_test_admission": false,
+      "limitations": [
+        "Three fixed synthetic inputs; arithmetic projections are not additional task forwards.",
+        "Historical retained generation only; no hardware call trace.",
+        "Model payload identity retains accepted unchanged-storage assumption.",
+        "Hard runtime and numeric caller integration remain separate."
+      ],
+      "independent_origin": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev08b-numeric-review-20261108/ORIGIN.json",
+        "sha256": "7a33b9b053e3e9be0b495343070ed0fc7a3246c11561d2378abf9eb370885943"
+      },
+      "review_verdict": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev08b-numeric-review-20261108/VERDICT.json",
+        "sha256": "e7970ee461a9d6230cec55835a15b3fe821e89adedd9b71a30751f24187d135b"
+      },
+      "review_sourcepins": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev08b-numeric-review-20261108/SOURCEPINS.json",
+        "sha256": "c145722c06492192b8564170e53caa55c8e3105651031d6d4877722f373c59b5"
+      }
+    },
+    "2b": {
+      "status": "ACCEPTED_EXACT_SYNTHETIC_LONG_DEV_ONLY",
+      "verdict": "ACCEPT_NUMERIC_DEPENDENCY_ONLY",
+      "review_task": ".local/releases/engineering-base-rc1/tasks/science/kev-hard-dev2b-numeric-review-20261108",
+      "review_verdict_sha256": "43e8c30105b35b5d455a3adaca154ffb3faab436704732d47597be9f1a3f90fb",
+      "review_sourcepins_sha256": "beb6e4ff006af238920841483a31bad2c6adcbf41d26a605d5b574cca84877ae",
+      "max_abs_diff": 0,
+      "tolerance": 0,
+      "scientific_acceptance": false,
+      "hard_test_admission": false,
+      "limitations": [
+        "Three fixed synthetic inputs; arithmetic projections are not additional task forwards.",
+        "Historical retained generation only; no hardware call trace.",
+        "Model payload identity retains accepted unchanged-storage assumption.",
+        "Hard runtime and numeric caller integration remain separate."
+      ],
+      "independent_origin": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev2b-numeric-review-20261108/NUMERIC-ORIGIN.json",
+        "sha256": "18dc6ad3829b6644e1cf251f25315edab40962266cfd9e6a159c2a3b516ded7f"
+      },
+      "review_verdict": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev2b-numeric-review-20261108/VERDICT.json",
+        "sha256": "43e8c30105b35b5d455a3adaca154ffb3faab436704732d47597be9f1a3f90fb"
+      },
+      "review_sourcepins": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev2b-numeric-review-20261108/SOURCEPINS.json",
+        "sha256": "beb6e4ff006af238920841483a31bad2c6adcbf41d26a605d5b574cca84877ae"
+      }
+    },
+    "4b": {
+      "status": "ACCEPTED_EXACT_SYNTHETIC_LONG_DEV_ONLY",
+      "verdict": "ACCEPT_SCOPED_CORRECTED4B_RC1_LONG_DEV_NUMERICAL_QUALIFICATION",
+      "review_task": ".local/releases/engineering-base-rc1/tasks/science/kev-hard-dev4b-numeric-review-20261108",
+      "review_verdict_sha256": "33cdcbe434582ca12c2e462bc9fee37638c63b7d0169b388a8f429484551b22e",
+      "review_sourcepins_sha256": "f7ff40168bd5b45f155cc525d5d0dc1e62aa4e771624570762d106fd977ee617",
+      "max_abs_diff": 0,
+      "tolerance": 0,
+      "scientific_acceptance": false,
+      "hard_test_admission": false,
+      "limitations": [
+        "Three fixed synthetic inputs; arithmetic projections are not additional task forwards.",
+        "Historical retained generation only; no hardware call trace.",
+        "Model payload identity retains accepted unchanged-storage assumption.",
+        "Hard runtime and numeric caller integration remain separate."
+      ],
+      "independent_origin": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev4b-numeric-review-20261108/NUMERIC-ORIGIN.json",
+        "sha256": "88debdac26def252e970fcb453d1d762be8dc46a77cc14a845548c766ebf37d2"
+      },
+      "review_verdict": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev4b-numeric-review-20261108/VERDICT.json",
+        "sha256": "33cdcbe434582ca12c2e462bc9fee37638c63b7d0169b388a8f429484551b22e"
+      },
+      "review_sourcepins": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev4b-numeric-review-20261108/SOURCEPINS.json",
+        "sha256": "f7ff40168bd5b45f155cc525d5d0dc1e62aa4e771624570762d106fd977ee617"
+      }
+    },
+    "9b": {
+      "status": "ACCEPTED_EXACT_SYNTHETIC_LONG_DEV_ONLY",
+      "verdict": "ACCEPT_EXACT_9B_RC1_SYNTHETIC_LONG_DEV_NUMERICAL_AND_OPERATIONAL_LINEAGE",
+      "review_task": ".local/releases/engineering-base-rc1/tasks/science/kev-hard-dev9b-numeric-review-20261108",
+      "review_verdict_sha256": "bef812ba3a350d55dbe88a5e65e352cd61147628763be5d9a77396fac5491e78",
+      "review_sourcepins_sha256": "a507c54ab08d965fa0936cf0620cdacd733e9a6ee449d61b7eaa7ec80d234896",
+      "max_abs_diff": 0,
+      "tolerance": 0,
+      "scientific_acceptance": false,
+      "hard_test_admission": false,
+      "limitations": [
+        "Three fixed synthetic inputs; arithmetic projections are not additional task forwards.",
+        "Historical retained generation only; no hardware call trace.",
+        "Model payload identity retains accepted unchanged-storage assumption.",
+        "Hard runtime and numeric caller integration remain separate."
+      ],
+      "independent_origin": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-9b-canonical-origin-20261108/NUMERIC-ORIGIN.json",
+        "sha256": "06445d8f0af69d7dfe24f07f7be662e80d66c3ecf79516584d07f7dd794edb7d"
+      },
+      "canonical_origin_review": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-9b-canonical-origin-20261108/VERDICT.json",
+        "sha256": "83f6c4c51b684e896cc5b0d89338da1518792050ee3b6ebe2c9f5e69a2164cfc",
+        "scope": "Normalization of already accepted numerical evidence only; no checker or launch admission"
+      },
+      "review_verdict": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev9b-numeric-review-20261108/VERDICT.json",
+        "sha256": "bef812ba3a350d55dbe88a5e65e352cd61147628763be5d9a77396fac5491e78"
+      },
+      "review_sourcepins": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev9b-numeric-review-20261108/SOURCEPINS.json",
+        "sha256": "a507c54ab08d965fa0936cf0620cdacd733e9a6ee449d61b7eaa7ec80d234896"
+      }
+    }
+  },
+  "cell_08b": {
+    "cell": "kev_hard_v1_08b",
+    "model": "Qwen3.5-0.8B-Base",
+    "model_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base",
+    "model_manifest_sha256": "28783a11558cc6b99e9a045bae574d9c484fd3279572605268fd31f480b7e357",
+    "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+    "protocol": {
+      "adapter": "transformers_full_labels",
+      "batch_size": 1,
+      "dtype": "float32",
+      "family": "qwen3.5_decoder",
+      "hf32": false,
+      "id": "native-full-label-panel-v2",
+      "max_length": 8192,
+      "vocabulary": 248320
+    },
+    "model_file_manifest": {
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/.complete": "62b52c9db0dc5860230916a274fe5a4b13780642e871832d8b609d4b99de54f3",
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/.gitattributes": "34448b82c17d60fec9b65b1f093c115ddbaadc04beb1b0140b6bfed2e012a930",
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/LICENSE": "50cbab8a892c5f2993b8c7351a99182507472def3b1374558308605d99b86b32",
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/README.md": "3cff39d2674e28b95e2df75cdb2d7a687ec391931065b05df83dbae12b447b11",
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/config.json": "b90b86f35c8e6925ef74ee04d0e758f0a845c83a42089ad82bbaa948de9b4204",
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/model.safetensors-00001-of-00001.safetensors": "c2b1e5a17d9c1e27685d92ed9b382911ebb99955ecd89052d1721241adfbab6c",
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/model.safetensors.index.json": "ce9a885efdf27d3664fdef5d512ad365216f1074051ef840c7cd8e5431495d0a",
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/preprocessor_config.json": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516",
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/tokenizer.json": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/tokenizer_config.json": "e611fbccc7c29ef3b1cafb1cb7ea548d189968632901d678fd62be68c47885de",
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/video_preprocessor_config.json": "d039cd7d88b3502a99edd455496b75b44ecf7dd3b3669748bafac37e6cecc085",
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+    },
+    "model_manifest_note": "Historical file map copied as metadata only; no payload byte verification performed.",
+    "tokenizer_files": {
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/tokenizer.json": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/tokenizer_config.json": "e611fbccc7c29ef3b1cafb1cb7ea548d189968632901d678fd62be68c47885de",
+      "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+    },
+    "plan": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/kev_hard_v1_08b/PLAN.json",
+      "sha256": "0fd889b0a3f59f6a8725115926e5b80c1e5662c1db5ba0bcda28f23a3793ff2d"
+    },
+    "config": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/kev_hard_v1_08b/CONFIG.json",
+      "sha256": "a2cbecce7fabc4c6e00bd8be40468194ba162467bd3a8d0b5edc92b35eed90d3"
+    },
+    "contract_file": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/kev_hard_v1_08b/cpu/CONTRACT.json",
+      "sha256": "50619d086dc9e507faaf5e7210279f366429ebd8a2276a069846303544e81c0d"
+    },
+    "contract_semantic_digest": "81d3d7fde9c6935b5d2ba53e5e30ba15cf957ff85aeaaa90b2ddd8de25e4ccac",
+    "contract_fields": {
+      "count": 1088,
+      "items_sha256": "4f2595cb225cf8b8827a6c1bc1257896dc81704891fbca21e8e1c9b4b2bde45a",
+      "model_sha256": "28783a11558cc6b99e9a045bae574d9c484fd3279572605268fd31f480b7e357",
+      "runtime_protocol_sha256": "d6e321c0b17f9a7a54330c09b646c801ee85f792bf183d093cf8c2a882593c5a",
+      "schema": "anyjev-bev-strict-bound-summary-v2",
+      "source_sha256": "9b8d4ca333486b88b035c632c984af59ccbadea00e1f6dcb775ca6377f7056e2",
+      "tau": 0.5
+    },
+    "runtime_protocol_digest": "d6e321c0b17f9a7a54330c09b646c801ee85f792bf183d093cf8c2a882593c5a",
+    "loader": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_dev_runner.py",
+      "sha256": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba"
+    },
+    "native": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_runtime.py",
+      "sha256": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460"
+    },
+    "modules": {
+      "consumer": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/bev_native_dataset_panel_consume_v1.py",
+        "sha256": "bef260d46f2aa12699cea1a9ca59d0092a6d4ab9e8ab6bd3cd87bec5c8fb4e15"
+      },
+      "host": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/host.py",
+        "sha256": "60302496340927f18345da78ded5eba1c8ae3772c9f5359c6554f487ccaad081"
+      },
+      "loader": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_dev_runner.py",
+        "sha256": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba"
+      },
+      "native": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_runtime.py",
+        "sha256": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460"
+      },
+      "panel": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_panel_runner.py",
+        "sha256": "235aacea657ed7d7b6d85e16397634d3d3b19a983a6c33a5a8352786d038511d"
+      },
+      "protocol": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_protocol.py",
+        "sha256": "a61a8c91bfafaaa3a7761a6e36ea1d5189cbe3ca6f0f86bf9de2645d7b06023a"
+      },
+      "resource": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/resource_v3.py",
+        "sha256": "1c5d6c9db4eb29e62a5bc3c181f08accedcfa995fe38af35c9b930d1b4568571"
+      },
+      "resource_base": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/r3_resource_adapter.py",
+        "sha256": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a"
+      },
+      "runtime": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/bev_native_dataset_panel_v1.py",
+        "sha256": "dba943b1a196ff1aa6310e3c77efa270931cd197c7599329d2f934233192bafb"
+      }
+    },
+    "source_closure": {
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_dev_runner.py": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_panel_runner.py": "235aacea657ed7d7b6d85e16397634d3d3b19a983a6c33a5a8352786d038511d",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_protocol.py": "a61a8c91bfafaaa3a7761a6e36ea1d5189cbe3ca6f0f86bf9de2645d7b06023a",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_runtime.py": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/r3_resource_adapter.py": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/resource_v3.py": "1c5d6c9db4eb29e62a5bc3c181f08accedcfa995fe38af35c9b930d1b4568571",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/unified_resource_lease_v1.py": "0c057d348be913b7864bc953c0763f1771e95b6b663a907ffa5ea1862b4fc59d",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_cpu_runtime_four_builds_20261108/code/bootstrap.py": "aa5a9feffc7c52a0c57d77ea3945ab2888b039ded3e3018c798d2eec6b789f56",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_cpu_runtime_four_builds_20261108/code/loader.py": "00483ace89959e83ff85c736c48134bd90c31f616f42bfa90a4d1c4da8d651cd",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_cpu_runtime_four_builds_20261108/code/score.py": "77154284f70f5b1209d4d5af76db49e2d958f410cad951a35949eaba60aa07c5",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/authority/original-runtime.py": "de4f7ed5b8a00810dbbafa139f4517f6c4107cd6b2b4b9bd59ec57fd5d3c0df1",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/authority/receipt.py": "161cf2dc7452d1e25dc54f1c29794a01f1e0f458e3d6520494a3fb168befb84f",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/authority/transform.py": "76dc768594bee01565d1f7782e5ef15b72606df7b3c64eb45cffdf8038c77b1f",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/adapter.py": "bb4f75ccb7773944eaa33f327ed69a4761f798e16d187e10eb43e3d3514b5e26",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/authority_resolver.py": "da1947ff869119f4f806ace21276091418ad3adcd9ee72ac4f52b1bdf2633b11",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/bev_native_dataset_panel_consume_v1.py": "bef260d46f2aa12699cea1a9ca59d0092a6d4ab9e8ab6bd3cd87bec5c8fb4e15",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/bev_native_dataset_panel_v1.py": "dba943b1a196ff1aa6310e3c77efa270931cd197c7599329d2f934233192bafb",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/bootstrap.py": "d30140abf22d9f5b283dc3b7ccfc8bcc6951760b4f0152a2fe5a74e622c2f4be",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/bridge.py": "b24f08c330deaaddce53e9f1aa0fe9da1b10f815a3f70bf1d4b999f8dea79c08",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/consumer.py": "a6684fd254662f3f7790e3304a37e7ee4958f81063245170d8477b4ff8c7bb1a",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/fixed_base_resource.py": "9ac61c70c80a691177392e4c725947b7a1c08b261672b177a5b34288878bc32d",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/host.py": "60302496340927f18345da78ded5eba1c8ae3772c9f5359c6554f487ccaad081",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/loader.py": "3a73d45e47eebed3957dd5baf939d22a7188f8b6d75fd98c89626a882e598cbc",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/original_consumer.py": "eb1ccaeb729f04735628723fa21a3a8de5d7e0099e102b4d2f70d47a2044fce2",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/qualify.py": "88172a19f4e243b6bc14f77eec20df0961c08977faca79b2a2ee520a87cfea1b",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/score.py": "77154284f70f5b1209d4d5af76db49e2d958f410cad951a35949eaba60aa07c5",
+      "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/watcher.py": "820df3f91c4ed8e62f03955e052977f485be2604459a8ab4e3c2e01d3d08d31f",
+      "/mnt/cephfs/xingchao/omni/repos/jev/nokia-applied-research__AnyJev/anyjev/question.py": "72e61e3b846e9efa76cbe5b1f5c8fdc5ffa5e5f9eb86de17bcbae5ffdd4ac368",
+      "/mnt/cephfs/xingchao/omni/repos/jev/nokia-applied-research__AnyJev/anyjev/readout.py": "cb13450f4a54b892bc0be1145d3da00bf89013b4fd321df89927c37bd945d973",
+      "/mnt/cephfs/xingchao/omni/repos/jev/nokia-applied-research__AnyJev/anyjev/tacit.py": "5c470f2521fa01ebf3be9117339939c7575181a452f226d728caa18ccce9b39d",
+      "/mnt/cephfs/xingchao/repos/jev/jaredpalmer__kev/kev/metrics.py": "167a586334cfcced4adcc197758535c3bcda832b855c151095ef2d1968cf8983"
+    },
+    "authority": {
+      "origin": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/authority/ORIGIN.json",
+        "sha256": "c33f5cd144fc9af31fbecde972865dabc4cc4eea3749e68c9c6e1480a336c5e9"
+      },
+      "source_manifest": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/authority/SOURCE-MANIFEST.json",
+        "sha256": "f60eb114b992c630064349e6f8fe5dcfa1927ad0d9fe3cb8799da2a8b27ccb07"
+      },
+      "original_metadata": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/authority/metadata.json",
+        "sha256": "4887ef607e891b46d5054c3856c2a427257f9c60ede5f8791bc758cd25c4bc01"
+      },
+      "numeric_checker": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/base_numeric_admission.py",
+        "sha256": "b1c01580f263338632d8efc76ba727e0b82a7476e83773c495909f2d252d40cf"
+      },
+      "numeric_origin": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/CANONICAL-NUMERIC-ORIGIN.json",
+        "sha256": "7a33b9b053e3e9be0b495343070ed0fc7a3246c11561d2378abf9eb370885943"
+      }
+    },
+    "scorer": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/score.py",
+      "sha256": "77154284f70f5b1209d4d5af76db49e2d958f410cad951a35949eaba60aa07c5"
+    },
+    "scorer_independent_review": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-scorer-two-fixes-review-20261108/VERDICT.json",
+      "sha256": "4741880ab704da0696466b62d8224b8ddb1c96e4205c23aac268b41c15366c82",
+      "bytes": 1086
+    },
+    "cpu_interpreter": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/bin/python3.12",
+    "cpu_environment": {
+      "LD_LIBRARY_PATH": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/lib",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONPATH": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/lib/python3.12/site-packages",
+      "TORCH_DEVICE_BACKEND_AUTOLOAD": "0"
+    },
+    "cpu_child_config": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/kev_hard_v1_08b/cpu-output/1/CHILD-CONFIG.json",
+      "sha256": "9f15804d3d9fb79c669f53b958cc7c9aeb37335b141c83273bb6db6f23def0b0"
+    },
+    "cpu_parent_intent": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/kev_hard_v1_08b/cpu-output/1/PARENT-INTENT.json",
+      "sha256": "a996e66677ccc67c76269734be61e5063bea9bec2d0b404f79690af57b5633ba"
+    },
+    "cpu_bootstrap": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/bootstrap.py",
+      "sha256": "d30140abf22d9f5b283dc3b7ccfc8bcc6951760b4f0152a2fe5a74e622c2f4be"
+    },
+    "cpu_source_loader": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/loader.py",
+      "sha256": "3a73d45e47eebed3957dd5baf939d22a7188f8b6d75fd98c89626a882e598cbc"
+    },
+    "launch_package": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-175-isolated-cpu-lifecycle-20261108-review/LAUNCH-PACKAGE.json",
+      "sha256": "386d5fc821dfe039b13649976c0575ca4f193251be7d0be2487bfc9e322d9300",
+      "bytes": 9774
+    },
+    "existing_runtime_review": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-175-isolated-cpu-lifecycle-20261108-review/VERDICT.json",
+      "sha256": "6ebe2ef8a19dd6b46c4527c2ce29da98553a84720644061aa0cc143af29461a0",
+      "bytes": 3105
+    },
+    "existing_sourcepins": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-175-isolated-cpu-lifecycle-20261108-review/SOURCEPINS.json",
+      "sha256": "804e23777621f6bb5af7b69bd55b4ba14e55044c2db8e8f61c68e38c99b28683",
+      "bytes": 23163
+    },
+    "existing_checks": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-175-isolated-cpu-lifecycle-20261108-review/CHECKS.json",
+      "sha256": "ab81df8ad93e38290a3e1b3149c93c3f2c2386bda362e683ed1366fcc2782eaa",
+      "bytes": 3561
+    },
+    "root": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_cpu_isolated_review_20261108_322125/COMMAND-ROOT.json",
+      "sha256": "10dfff4c9b0277fa69e01278209e414a9fd825ede5d9565ffc6f21492e1c2d93"
+    },
+    "approval_review": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_cpu_isolated_review_20261108_322125/APPROVAL-REVIEW.json",
+      "sha256": "ce9767c06eda4c308954ea7991446aeff95f9df30d14bbc1cce8c883dbdd2777"
+    },
+    "executor": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/trusted_caller.py",
+      "sha256": "57901c9edeb557c127079b38f6f976b37e50f6e5482813a81ac87b2c6eefabb6"
+    },
+    "numeric_acceptance": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_cpu_isolated_review_20261108_322125/NUMERIC-ACCEPTANCE.json",
+      "sha256": "e9c896ab15ade479d97618ce5b46e7e1f2aa2b294efbbf68c85e366a5044ff1e"
+    },
+    "numeric_compatibility_gate": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_cpu_isolated_review_20261108_322125/NUMERIC-V2-GATE.json",
+      "sha256": "a63d6952d88eee1322a76092bf80d66d30ee0fbb7ad8dc1e145e2fca3f7e1e19"
+    },
+    "numerical_review": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-175-isolated-cpu-lifecycle-20261108-review/NUMERICAL-REVIEW.json",
+      "sha256": "e7970ee461a9d6230cec55835a15b3fe821e89adedd9b71a30751f24187d135b",
+      "bytes": 4779
+    },
+    "numerical_origin": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/CANONICAL-NUMERIC-ORIGIN.json",
+      "sha256": "7a33b9b053e3e9be0b495343070ed0fc7a3246c11561d2378abf9eb370885943"
+    },
+    "asset_policy": {
+      "path": "/home/xingchao/workspace/nga/experiments/KEV-HARD-BASE-ASSET-REUSE-POLICY.json",
+      "sha256": "eb6c3227961c1704669ad4f1f39958e522ad1d14d7ebc615d71119a5d65e009a",
+      "bytes": 7263
+    },
+    "asset_independent_decision": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-base-asset-reuse-decision-20261108/VERDICT.json",
+      "sha256": "567be3332fc17428a3a74ce73d1dec94f5155c9a93db086ce39f39b5d8ad33de",
+      "bytes": 55094
+    },
+    "asset_independent_sourcepins": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-base-asset-reuse-decision-20261108/SOURCEPINS.json",
+      "sha256": "d9331a3a001dc2e11ceb16b771a32bd82b27d7f9bc14fcc10f323d2c13236ac2",
+      "bytes": 13063
+    },
+    "asset_evidence": {
+      "historical_digest_authority": {
+        "acceptance": {
+          "bytes": 12348,
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_long_dev_20261103_v2/LONG-DEV-ACCEPTANCE.json",
+          "sha256": "1430194da082933354a0f553536341f9c3b223f0fb656c0b12b8b4b63598d394"
+        },
+        "acceptance_digest_pointer": "/model_sha256",
+        "acceptance_utc": "2026-11-03T05:28:21.831960+00:00",
+        "accepted_evidence_pointer": "/evidence",
+        "all_manifest_entries_covered_by_acceptance_evidence": true,
+        "manifest_pointer": "/model_files",
+        "model_files_rehashed_explicit": null,
+        "plan": {
+          "bytes": 12373,
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_long_dev_20261103_v2/HOST-PLAN.json",
+          "sha256": "e02622855d73e05ab270777c0aeeb9f06b09ff0562360927256531b98e7a209e"
+        },
+        "validator_scope": "Pinned historical verifier hashes model files; inspected as source only, never executed.",
+        "validator_source": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_long_dev_20261103_v2/code/bev_native_panel_runner.py",
+          "sha256": "e1684e14dc6817ee228b6d73be425d38d5bc1ee7e3e83d891a969ad212d70c20"
+        }
+      },
+      "recent_snapshot_ref": {
+        "bytes": 4844,
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-base-dev-executable-20261108/08b/package/assets/MODEL-MANIFEST.json",
+        "sha256": "da5423321fff8321a4ffb592d6a625b64d20a779c855b87a19a30af4e76cd7ef"
+      },
+      "small_asset_receipt": {
+        "bytes": 1173,
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_four_model_preparation_20261108_stage/inference/kev_hard_v1_08b/SMALL-ASSET-PINS.json",
+        "sha256": "d4240a15b910d32099f3cb35470976b4d19ac052c6a04b5167026a757a38e6c6"
+      },
+      "preparation_stat_field_order": [
+        "st_size",
+        "st_ino",
+        "st_mtime_ns",
+        "st_ctime_ns"
+      ]
+    },
+    "asset_direct_read_limitations": [
+      {
+        "id": "08b asset recent_snapshot_ref",
+        "pass": null,
+        "status": "INHERITED_REFERENCE_DIRECT_READ_UNAVAILABLE",
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-base-dev-executable-20261108/08b/package/assets/MODEL-MANIFEST.json",
+        "expected_sha256": "da5423321fff8321a4ffb592d6a625b64d20a779c855b87a19a30af4e76cd7ef",
+        "reason": "PermissionError",
+        "authority": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-base-asset-reuse-decision-20261108/VERDICT.json",
+        "reviewer_direct_validation": "REQUIRED_OR_EXPLICITLY_ACCEPT_SCOPED_REUSE"
+      }
+    ],
+    "current_payload_byte_identity_proven": false,
+    "weights_rehashed": false,
+    "scheduling_decision": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_cpu_isolated_review_20261108_322125/DECISION.json",
+      "sha256": "5e989c967bbccac53395f3e49aab73fd72dda0310ccecffe41db6b3c836e9d60"
+    },
+    "reconciliation": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-final-evidence-reconciliation-20261108/ADJUDICATION.json",
+      "sha256": "3ba394dca9e3cc69d07c7d6a22aab920e8b9352ff30c7374c2739753ae6c7326",
+      "bytes": 15122
+    },
+    "evidence_crosswalk": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-final-evidence-reconciliation-20261108/EVIDENCE-CROSSWALK.md",
+      "sha256": "4490255e9aa0cd1ce2d68bfacb87972f9726e3b13bc69fd2f86991ba27deddbc",
+      "bytes": 10684
+    },
+    "resource_bindings": {
+      "allocation_path": "/mnt/cephfs/xingchao/experiments/jev/CHIP-ALLOCATION.json",
+      "final_package_rule": "Final independently accepted package must retain this run, one-chip scope, frozen workload and exact resource-policy/free-generation/harness bindings. This scheduling decision is reusable across proof-only package revisions satisfying those constraints; it approves no revised code or PLAN.",
+      "free_generation": {
+        "chip": 5,
+        "previous_run": "base-9b-rc1-longdev-20261108",
+        "release_evidence": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/9b/journal/base-9b-rc1-longdev-20261108-a1/release.json",
+        "released_utc": "2026-11-08T09:51:08.067287Z"
+      },
+      "harness": {
+        "container_id": "317fbb5ecc4ee44c39144c4a7d154a2baab859ead4c047bbfe2bcd4a591c90d7",
+        "container_name": "nga-harness-identity",
+        "done": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/harness_identity/DONE",
+          "sha256": "300653b340968b3ebf9d12b7fac8726f5db6b3f9f9a20eac66a6ca08c5c07d87"
+        },
+        "failed_must_be_absent": true,
+        "failed_path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/harness_identity/FAILED",
+        "finished_at": "2026-10-30T08:44:58.39415653Z",
+        "required_exit_code": 0,
+        "required_status": "exited"
+      },
+      "observed_allocation_mtime_utc": "2026-11-08T09:51:14.680000+00:00",
+      "observed_allocation_sha256": "fd6ab306e3218ae5ebc7208c838018fd967e0fd96f1121bda575d82f1aa5af12",
+      "observed_allocation_updated_utc": "2026-11-08T09:51:08.067287Z",
+      "pending_claims": [
+        {
+          "chip": 5,
+          "condition": "only after r3_runs/harness_identity/ carries a DONE marker AND its container nga-harness-identity has exited. If the marker is FAILED, take nothing and report: a failed pinned control outranks any throughput.",
+          "superseded_by": "Chip 6 assigned instead, see allocation[]. This claim is left in place rather than deleted so the condition it carried stays readable: it was blocked on harness_identity's DONE marker plus container exit, and that condition no longer gates item 8 because a different chip freed first. The condition still binds chip 5 itself.",
+          "superseded_utc": "2026-10-30T08:40:00Z",
+          "what": "section 14.3 resume test, two arms, plus the full suite re-run",
+          "who": "efficiency engineer",
+          "why_first": "launch-checklist item 8, the last checklist item still open. Minutes on one chip."
+        },
+        {
+          "chips": [
+            6,
+            7
+          ],
+          "condition": "do not launch before that ruling lands",
+          "what": "section 14.5 item 1 (ii) erratum measurement, fp32 side, WITHOUT reuse of K0 readouts",
+          "who": "erratum run (unassigned)",
+          "why_held": "blocked on a reviewer ruling: whether the section 14.6 item 5 second difference (unpadded bf16 minus fp32) is executable as written, and whether the erratum gates wave 1 at all. Also blocked on the erratum() completeness assertion and the readout-level loader check, since the loader's enforcement is currently a file the gated party writes."
+        },
+        {
+          "blocked_by": "section 14.5 item 4 step 1 must be complete and read on dev (K0 running, identity running, erratum not launched), and checklist item 8",
+          "needs": "8 chips per r3_runs/w1/CHIP-ASSIGNMENT.json revision 2 (ten runs)",
+          "who": "wave 1"
+        }
+      ],
+      "pending_claims_sha256": "2117e9253b2bd9aa56fc97bf184173e4e89880b9ab7a27f38fb5e9892090999b",
+      "pending_hash_encoding": "UTF-8 json.dumps(sort_keys=True,separators=(comma,colon),ensure_ascii=True,allow_nan=False), no newline",
+      "policy": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/FIXED-BASE-RESOURCE-POLICY.json",
+        "sha256": "085aabfe8ba58d95375f08423afd5db7e4091c9d810aabf6b7ac34ed2dad6dbe"
+      },
+      "predecessor": {
+        "claim": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/9b/journal/base-9b-rc1-longdev-20261108-a1/claim.json",
+          "sha256": "031125bed313323565c5341f59890d9ce1339132b46284ad5ba4d0cd09f120e3"
+        },
+        "release": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/9b/journal/base-9b-rc1-longdev-20261108-a1/release.json",
+          "sha256": "9f1f36d187ca79446a813dd7e8eb7153778f448bec0867a8c93c7276a9d30415"
+        }
+      },
+      "reviewed_plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/kev_hard_v1_08b/PLAN.json",
+        "sha256": "0fd889b0a3f59f6a8725115926e5b80c1e5662c1db5ba0bcda28f23a3793ff2d"
+      }
+    },
+    "fresh_resource_guards_performed_here": false,
+    "additional_immediate_preclaim_conditions": [
+      "Immediately before a claim, re-read the exact pinned policy and all pending entries; retain the exact chip-5 free generation and predecessor claim/release pins. Check for any new live claim, intent or updated ownership/priority evidence. Changed relevant evidence invalidates this window until reconciled; unrelated chip updates alone do not revoke it.",
+      "Recheck harness_identity/DONE bytes against the bound hash, require FAILED absent, and inspect the same retained nga-harness-identity generation for exited status and exit 0. Missing, changed, FAILED or running evidence means take nothing. The existing fixed-base resource guard does not itself read this marker; this remains a separate mandatory immediate preclaim condition.",
+      "Use the accepted existing atomic claim path: allocation lock, pinned PLAN/source validation, exact pending and free-generation comparison, predecessor retained-container and live-chip conflict checks, repeated guard before commit, and allocation before-image check. A prior verify exit 0 or this snapshot cannot substitute for those fresh checks. No forced claim or preemption.",
+      "Claim only chip 5 for one finite hard08b TEST execution of the accepted frozen workload, then release through the accepted retained-container/terminal procedure. No indefinite reservation, automatic next job, or authorization to expand onto another chip. If the condition or ownership changes, stop before claim; do not erase historical pending entries."
+    ],
+    "attempt": 1,
+    "chip": 5,
+    "container": "nga-kev-hard-v1-08b",
+    "run": "r3_runs/kev_hard_v1_08b",
+    "output": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/kev_hard_v1_08b/output",
+    "cpu_output": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/kev_hard_v1_08b/cpu-output",
+    "exact_existing_commands": {
+      "host_start_argv": [
+        "/usr/bin/python3.12",
+        "-B",
+        "-P",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/trusted_caller.py",
+        "--root",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_cpu_isolated_review_20261108_322125/COMMAND-ROOT.json",
+        "--root-sha256",
+        "10dfff4c9b0277fa69e01278209e414a9fd825ede5d9565ffc6f21492e1c2d93",
+        "--",
+        "start",
+        "--plan",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/kev_hard_v1_08b/PLAN.json",
+        "--sha256",
+        "0fd889b0a3f59f6a8725115926e5b80c1e5662c1db5ba0bcda28f23a3793ff2d",
+        "--review",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_cpu_isolated_review_20261108_322125/APPROVAL-REVIEW.json",
+        "--review-sha256",
+        "ce9767c06eda4c308954ea7991446aeff95f9df30d14bbc1cce8c883dbdd2777",
+        "--attempt",
+        "1",
+        "--origin",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/authority/ORIGIN.json",
+        "--origin-sha256",
+        "c33f5cd144fc9af31fbecde972865dabc4cc4eea3749e68c9c6e1480a336c5e9",
+        "--source-manifest",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/authority/SOURCE-MANIFEST.json",
+        "--source-manifest-sha256",
+        "f60eb114b992c630064349e6f8fe5dcfa1927ad0d9fe3cb8799da2a8b27ccb07",
+        "--original-metadata",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/authority/metadata.json",
+        "--original-metadata-sha256",
+        "4887ef607e891b46d5054c3856c2a427257f9c60ede5f8791bc758cd25c4bc01",
+        "--numeric-checker",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/base_numeric_admission.py",
+        "--numeric-checker-sha256",
+        "b1c01580f263338632d8efc76ba727e0b82a7476e83773c495909f2d252d40cf",
+        "--numeric-origin",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/CANONICAL-NUMERIC-ORIGIN.json",
+        "--numeric-origin-sha256",
+        "7a33b9b053e3e9be0b495343070ed0fc7a3246c11561d2378abf9eb370885943",
+        "--numeric-acceptance",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_cpu_isolated_review_20261108_322125/NUMERIC-ACCEPTANCE.json",
+        "--numeric-acceptance-sha256",
+        "e9c896ab15ade479d97618ce5b46e7e1f2aa2b294efbbf68c85e366a5044ff1e",
+        "--expected-numeric-acceptance-sha256",
+        "e9c896ab15ade479d97618ce5b46e7e1f2aa2b294efbbf68c85e366a5044ff1e"
+      ],
+      "host_supervise_argv": [
+        "/usr/bin/python3.12",
+        "-B",
+        "-P",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/trusted_caller.py",
+        "--root",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_cpu_isolated_review_20261108_322125/COMMAND-ROOT.json",
+        "--root-sha256",
+        "10dfff4c9b0277fa69e01278209e414a9fd825ede5d9565ffc6f21492e1c2d93",
+        "--",
+        "supervise",
+        "--plan",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/kev_hard_v1_08b/PLAN.json",
+        "--sha256",
+        "0fd889b0a3f59f6a8725115926e5b80c1e5662c1db5ba0bcda28f23a3793ff2d",
+        "--review",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_cpu_isolated_review_20261108_322125/APPROVAL-REVIEW.json",
+        "--review-sha256",
+        "ce9767c06eda4c308954ea7991446aeff95f9df30d14bbc1cce8c883dbdd2777",
+        "--attempt",
+        "1",
+        "--origin",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/authority/ORIGIN.json",
+        "--origin-sha256",
+        "c33f5cd144fc9af31fbecde972865dabc4cc4eea3749e68c9c6e1480a336c5e9",
+        "--source-manifest",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/authority/SOURCE-MANIFEST.json",
+        "--source-manifest-sha256",
+        "f60eb114b992c630064349e6f8fe5dcfa1927ad0d9fe3cb8799da2a8b27ccb07",
+        "--original-metadata",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/authority/metadata.json",
+        "--original-metadata-sha256",
+        "4887ef607e891b46d5054c3856c2a427257f9c60ede5f8791bc758cd25c4bc01",
+        "--numeric-checker",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/base_numeric_admission.py",
+        "--numeric-checker-sha256",
+        "b1c01580f263338632d8efc76ba727e0b82a7476e83773c495909f2d252d40cf",
+        "--numeric-origin",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/CANONICAL-NUMERIC-ORIGIN.json",
+        "--numeric-origin-sha256",
+        "7a33b9b053e3e9be0b495343070ed0fc7a3246c11561d2378abf9eb370885943",
+        "--numeric-acceptance",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_cpu_isolated_review_20261108_322125/NUMERIC-ACCEPTANCE.json",
+        "--numeric-acceptance-sha256",
+        "e9c896ab15ade479d97618ce5b46e7e1f2aa2b294efbbf68c85e366a5044ff1e",
+        "--expected-numeric-acceptance-sha256",
+        "e9c896ab15ade479d97618ce5b46e7e1f2aa2b294efbbf68c85e366a5044ff1e"
+      ],
+      "cpu_argv": [
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/bin/python3.12",
+        "-B",
+        "-P",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/code/bootstrap.py",
+        "--config",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_supervised_bootstrap_proof_20261108_284595/kev_hard_v1_08b/cpu-output/1/CHILD-CONFIG.json",
+        "--sha256",
+        "9f15804d3d9fb79c669f53b958cc7c9aeb37335b141c83273bb6db6f23def0b0"
+      ],
+      "cpu_launch_rule": "Host supervisor calls prepare_cpu/start_cpu only after exact durable release. Do not invoke CPU argv unbound; SERVICE publication by start_cpu is required."
+    },
+    "admission_status": "EXACT_RUNTIME_PACKAGE_PREVIOUSLY_REVIEWED_CONDITIONAL; AMENDMENT_REVIEW_PUBLICATION_AND_FRESH_GUARDS_PENDING",
+    "scientific_result_accepted": false,
+    "global_completion": false
+  },
+  "other_cells": {
+    "2b": {
+      "cell": "kev_hard_v1_2b",
+      "model_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base",
+      "model_manifest_sha256": "034f52ccb3d9c37438ee5ad882741b16bfa50ff63e79008d9fb48f4cc9469864",
+      "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+      "loader": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_dev_runner.py",
+        "sha256": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba"
+      },
+      "native": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_runtime.py",
+        "sha256": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460"
+      },
+      "delivery": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/kev-hard-family-current-runtime-20261108/cells/2b/DELIVERY.json",
+        "sha256": "0e33118aca215a445a888c4530524bd117a09f2fbbda7ab94daadd61f4fd3208"
+      },
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/2b/kev_hard_v1_2b/PLAN.json",
+        "sha256": "1cfebb3433dbe977bcab3efed9fdee762ed078d3bc011ee431f45394fcfcee6c"
+      },
+      "config": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/2b/kev_hard_v1_2b/CONFIG.json",
+        "sha256": "1ac70bb514719b589b1ff588d443286d647d983ba8e06e560f76378676bab9cb"
+      },
+      "contract": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/2b/kev_hard_v1_2b/cpu/CONTRACT.json",
+        "sha256": "2b0980aa5e88df618cafa82cd70c222f80ecbf83dc00ccee5466bd355e953bc8"
+      },
+      "source_manifest": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/2b/SOURCE-MANIFEST.json",
+        "sha256": "63d2b278ea7c060cd6289423a1dcb626f202caf9723177bc4c2bb734318893b5"
+      },
+      "authority": {
+        "origin": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/2b/ORIGIN.json",
+          "sha256": "79fbf7e2cf5cdb1647e5d57be5a48b562a67bf03184414819c68e533a3d8383b"
+        },
+        "source_manifest": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/2b/SOURCE-MANIFEST.json",
+          "sha256": "63d2b278ea7c060cd6289423a1dcb626f202caf9723177bc4c2bb734318893b5"
+        }
+      },
+      "metadata": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_authority_copies_20261108_256539/packages/kev_hard_v1_2b/authority/metadata.json",
+        "sha256": "3037d72f58a2a6dfa3dba77b8ede2786f91ee6c9caa89b9acae01cfc00d6ec49"
+      },
+      "cpu_preparation": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/2b/CPU-PREPARATION-CANDIDATE.json",
+        "sha256": "f68e671ae459715ec0dc79abc67938991cc44eb843e8ebbce786a915c1be5a77"
+      },
+      "numeric_checker": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/2b/code/base_numeric_admission.py",
+        "sha256": "b1c01580f263338632d8efc76ba727e0b82a7476e83773c495909f2d252d40cf"
+      },
+      "numeric_origin": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/2b/CANONICAL-NUMERIC-ORIGIN.json",
+        "sha256": "18dc6ad3829b6644e1cf251f25315edab40962266cfd9e6a159c2a3b516ded7f"
+      },
+      "independent_review": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-family-current-runtime-20261108-review/cells/2b/VERDICT.json",
+        "sha256": "23bdcf7c6485edf6259f9addf6a5fdff3979fd9a63fd7796296653d65884f4d0"
+      },
+      "observed_review_verdict": "ACCEPT_SOURCE_MAPPING_NUMERIC_HOLD_ACTIVATION",
+      "source_mapping_accepted": true,
+      "numeric_dependency_accepted": true,
+      "isolation_accepted": true,
+      "package_complete": false,
+      "launch_allowed": false,
+      "admission_status": "PENDING_RESOURCE_POLICY_REPAIR_AND_INDEPENDENT_FINAL_ACTIVATION_ADMISSION",
+      "blocking_findings": [
+        {
+          "actual_run": "r3_runs/kev_hard_v1_08b",
+          "evidence": {
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/2b/RESOURCE-VERIFY-CLI.json",
+            "sha256": "c92612e8168c126cfdb86f03f630a83ca313cb521911044e527e39ded67e9c0e"
+          },
+          "expected_run": "r3_runs/kev_hard_v1_2b",
+          "id": "2b-F1",
+          "observed": "Actual host175 read-only resource verify exits 1: ValueError: resource identity",
+          "policy": {
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/2b/code/FIXED-BASE-RESOURCE-POLICY.json",
+            "sha256": "085aabfe8ba58d95375f08423afd5db7e4091c9d810aabf6b7ac34ed2dad6dbe"
+          },
+          "severity": "blocking_activation",
+          "smallest_fix": "Create a new per-cell policy bound to r3_runs/kev_hard_v1_2b and a separately authorized chip-5 finite window/free generation; update source-manifest -> origin/config/contract -> PLAN and CPU intent/config, then rebind numerical acceptance and final review/root to the new PLAN. Keep guard, math, payloads, transform and receipt unchanged; metadata derivation only. Recheck this cell without waiting for siblings.",
+          "source": {
+            "line": 24,
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/2b/code/fixed_base_resource.py"
+          },
+          "title": "Copied resource policy names 08b"
+        },
+        {
+          "evidence": {
+            "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-175-isolated-cpu-lifecycle-20261108-review/DECISION.json",
+            "sha256": "5e989c967bbccac53395f3e49aab73fd72dda0310ccecffe41db6b3c836e9d60"
+          },
+          "id": "2b-F2",
+          "no_resource_grant_issued": true,
+          "severity": "remaining_activation_gate",
+          "smallest_fix": "Obtain an independent priority/window decision for r3_runs/kev_hard_v1_2b on its actual target chip and current predecessor/free generation. The single 08b execution window grants no successor rights. Only then issue the exact activation review, production root, start and supervise argv under existing schemas; recheck mandatory harness condition and fresh atomic claim guards before any future claim.",
+          "title": "No successor resource window or approvable production root"
+        }
+      ],
+      "scoped_review_artifacts": {
+        "numeric_gate": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/2b/NUMERIC-V2-GATE.json",
+          "sha256": "756c62930513016abfa95584e8ae66a38f3fd54476220a1fab171c3c47fc9b3d"
+        },
+        "numeric_acceptance": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/2b/NUMERIC-ACCEPTANCE.json",
+          "sha256": "fb49ca2edf277615ab3ba87aa0aa13f520c993ca8903957e9705e4d3fd14d624"
+        },
+        "verify_root": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/2b/VERIFY-ROOT.json",
+          "sha256": "4f6d7d17be23b1d6a8e83e30b422fc0d5f6948b6a02df68e8818ff6cf2c1759e"
+        },
+        "cpu_command": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/2b/CPU-COMMAND.json",
+          "sha256": "7fee1e543766ae1f04bf7691dcc58da97161694bff018d90feeae9454fc6af18"
+        },
+        "command_bindings": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/2b/COMMAND-BINDINGS.json",
+          "sha256": "b12e3859c2b536c8f35c238aaac46b3706a3880e5fddcad295fd0618a5e7f974"
+        }
+      },
+      "missing_stages": [
+        "Correct cell-specific resource policy and separately granted finite window/current predecessor generation",
+        "Rebind source manifest/origin/config/contract/PLAN/CPU intent and config after repair",
+        "Independent final acceptance of corrected package and numerical integration binding",
+        "Concrete production approval/root/start and supervise argv",
+        "Publish dated per-cell acceptance/bindings before that cell TEST",
+        "Fresh guards, actual resource admission and TEST execution; CPU scoring/result review"
+      ],
+      "production_approval": null,
+      "production_root": null,
+      "admitted_start_argv": null,
+      "candidate_only_cpu_argv": [
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/bin/python3.12",
+        "-B",
+        "-P",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/2b/code/bootstrap.py",
+        "--config",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/2b/kev_hard_v1_2b/cpu-output/1/CHILD-CONFIG.json",
+        "--sha256",
+        "d10892fc6d8a841706c956a2ee873911655130a60fffc59dceecd9707c0c396c"
+      ],
+      "cpu_environment": {
+        "LD_LIBRARY_PATH": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/lib",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONPATH": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/lib/python3.12/site-packages",
+        "TORCH_DEVICE_BACKEND_AUTOLOAD": "0"
+      }
+    },
+    "4b": {
+      "cell": "kev_hard_v1_4b",
+      "model_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base",
+      "model_manifest_sha256": "866a92fd2e751f3221cc55d1d285d93d6285551cc50afe1a4bfb4772be1ff097",
+      "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+      "loader": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_dev_runner.py",
+        "sha256": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba"
+      },
+      "native": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_runtime.py",
+        "sha256": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460"
+      },
+      "delivery": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/kev-hard-family-current-runtime-20261108/cells/4b/DELIVERY.json",
+        "sha256": "4a652506051635f2b172c63d6c16529c12a590983ca36300275392e8e579f2b0"
+      },
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/4b/kev_hard_v1_4b/PLAN.json",
+        "sha256": "9cff5b70f0d0454b60cf6e2b5f5557d59bc4da4744f156434ba94c43cc07bcf8"
+      },
+      "config": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/4b/kev_hard_v1_4b/CONFIG.json",
+        "sha256": "77e62e2f335f0ff6d064cfef43dfaa2c36022eae68b733c2782fb8f6a92e4931"
+      },
+      "contract": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/4b/kev_hard_v1_4b/cpu/CONTRACT.json",
+        "sha256": "881f8627b6d872fda9325ca665345c9fae78d642fe06df7cc46151c87ffdd18d"
+      },
+      "source_manifest": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/4b/SOURCE-MANIFEST.json",
+        "sha256": "98cc31575a8b8fd840afd4dd380a4860506625c04b6c1717894bbbc85e593add"
+      },
+      "authority": {
+        "origin": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/4b/ORIGIN.json",
+          "sha256": "c7ca0eff4195a944071c670355d0936e777e5e71d8decdde89b448bf46bb6246"
+        },
+        "source_manifest": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/4b/SOURCE-MANIFEST.json",
+          "sha256": "98cc31575a8b8fd840afd4dd380a4860506625c04b6c1717894bbbc85e593add"
+        }
+      },
+      "metadata": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_authority_copies_20261108_256539/packages/kev_hard_v1_4b/authority/metadata.json",
+        "sha256": "e19c373f41768617e37b402f413f076e8ccb6faf0e432c26a10f041828c93196"
+      },
+      "cpu_preparation": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/4b/CPU-PREPARATION-CANDIDATE.json",
+        "sha256": "731e9c02c948f8b95e056854f23e732d7f55c5c463ed459938fabc89852ac12c"
+      },
+      "numeric_checker": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/4b/code/base_numeric_admission.py",
+        "sha256": "b1c01580f263338632d8efc76ba727e0b82a7476e83773c495909f2d252d40cf"
+      },
+      "numeric_origin": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/4b/CANONICAL-NUMERIC-ORIGIN.json",
+        "sha256": "88debdac26def252e970fcb453d1d762be8dc46a77cc14a845548c766ebf37d2"
+      },
+      "independent_review": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-family-current-runtime-20261108-review/cells/4b/VERDICT.json",
+        "sha256": "1bc5c171b41ea31ac880b40ec8acfe933ff427078769143115cdf3f7050271e6"
+      },
+      "observed_review_verdict": "ACCEPT_SOURCE_MAPPING_NUMERIC_HOLD_ACTIVATION",
+      "source_mapping_accepted": true,
+      "numeric_dependency_accepted": true,
+      "isolation_accepted": true,
+      "package_complete": false,
+      "launch_allowed": false,
+      "admission_status": "PENDING_RESOURCE_POLICY_REPAIR_AND_INDEPENDENT_FINAL_ACTIVATION_ADMISSION",
+      "blocking_findings": [
+        {
+          "actual_run": "r3_runs/kev_hard_v1_08b",
+          "evidence": {
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/4b/RESOURCE-VERIFY-CLI.json",
+            "sha256": "a7461cbe7106596225ab2c87fceb0fc62fbbeee64cab4f2d3304b7404a6d2270"
+          },
+          "expected_run": "r3_runs/kev_hard_v1_4b",
+          "id": "4b-F1",
+          "observed": "Actual host175 read-only resource verify exits 1: ValueError: resource identity",
+          "policy": {
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/4b/code/FIXED-BASE-RESOURCE-POLICY.json",
+            "sha256": "085aabfe8ba58d95375f08423afd5db7e4091c9d810aabf6b7ac34ed2dad6dbe"
+          },
+          "severity": "blocking_activation",
+          "smallest_fix": "Create a new per-cell policy bound to r3_runs/kev_hard_v1_4b and a separately authorized chip-5 finite window/free generation; update source-manifest -> origin/config/contract -> PLAN and CPU intent/config, then rebind numerical acceptance and final review/root to the new PLAN. Keep guard, math, payloads, transform and receipt unchanged; metadata derivation only. Recheck this cell without waiting for siblings.",
+          "source": {
+            "line": 24,
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/4b/code/fixed_base_resource.py"
+          },
+          "title": "Copied resource policy names 08b"
+        },
+        {
+          "evidence": {
+            "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-175-isolated-cpu-lifecycle-20261108-review/DECISION.json",
+            "sha256": "5e989c967bbccac53395f3e49aab73fd72dda0310ccecffe41db6b3c836e9d60"
+          },
+          "id": "4b-F2",
+          "no_resource_grant_issued": true,
+          "severity": "remaining_activation_gate",
+          "smallest_fix": "Obtain an independent priority/window decision for r3_runs/kev_hard_v1_4b on its actual target chip and current predecessor/free generation. The single 08b execution window grants no successor rights. Only then issue the exact activation review, production root, start and supervise argv under existing schemas; recheck mandatory harness condition and fresh atomic claim guards before any future claim.",
+          "title": "No successor resource window or approvable production root"
+        }
+      ],
+      "scoped_review_artifacts": {
+        "numeric_gate": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/4b/NUMERIC-V2-GATE.json",
+          "sha256": "c9e0d342f351efc425e413dff68d4f80a69e8455c992c8455fc758615c8fbcb6"
+        },
+        "numeric_acceptance": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/4b/NUMERIC-ACCEPTANCE.json",
+          "sha256": "c8ec6686960ef0338ddcd1f8ce2d9e1b79438da37ea8b1b430bc01b79876ded3"
+        },
+        "verify_root": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/4b/VERIFY-ROOT.json",
+          "sha256": "c4ff6bb6af764d3560ce07e744fd5f6ebdae743c0e8bdb52284ec2d8947aaced"
+        },
+        "cpu_command": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/4b/CPU-COMMAND.json",
+          "sha256": "b561f33f323a4831b2ca3427cb1a919761c4b4d4c11f5953ad1250855f0371b2"
+        },
+        "command_bindings": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/4b/COMMAND-BINDINGS.json",
+          "sha256": "85d5d939c0671fc4bf45976d96f3acefc07bed2b47b088b66640c35a9e5faf98"
+        }
+      },
+      "missing_stages": [
+        "Correct cell-specific resource policy and separately granted finite window/current predecessor generation",
+        "Rebind source manifest/origin/config/contract/PLAN/CPU intent and config after repair",
+        "Independent final acceptance of corrected package and numerical integration binding",
+        "Concrete production approval/root/start and supervise argv",
+        "Publish dated per-cell acceptance/bindings before that cell TEST",
+        "Fresh guards, actual resource admission and TEST execution; CPU scoring/result review"
+      ],
+      "production_approval": null,
+      "production_root": null,
+      "admitted_start_argv": null,
+      "candidate_only_cpu_argv": [
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/bin/python3.12",
+        "-B",
+        "-P",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/4b/code/bootstrap.py",
+        "--config",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/4b/kev_hard_v1_4b/cpu-output/1/CHILD-CONFIG.json",
+        "--sha256",
+        "f1f1ed59089fd8f3beae5d26a9268a81f0f3c55e8fdb9f41a3b75a7ed3866122"
+      ],
+      "cpu_environment": {
+        "LD_LIBRARY_PATH": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/lib",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONPATH": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/lib/python3.12/site-packages",
+        "TORCH_DEVICE_BACKEND_AUTOLOAD": "0"
+      }
+    },
+    "9b": {
+      "cell": "kev_hard_v1_9b",
+      "model_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base",
+      "model_manifest_sha256": "e5155012784ee0a4bb59995749360fcf21b578858d58e62fe82376590ea8476f",
+      "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+      "loader": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_dev_runner.py",
+        "sha256": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba"
+      },
+      "native": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/instruct_family_successor_packs_20261108/packs/instruct2b_devtools_successor_20261108/code/bev_native_runtime.py",
+        "sha256": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460"
+      },
+      "delivery": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/kev-hard-family-current-runtime-20261108/cells/9b/DELIVERY.json",
+        "sha256": "963b48b88c501df9036b38b5d47d8954a9256dcf7ec8d1fdefc9b679846cbcc5"
+      },
+      "plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/9b/kev_hard_v1_9b/PLAN.json",
+        "sha256": "5f5e4c781fa64a3772f322455bb393e5dff5daad9ae8b849cc5129be95304f84"
+      },
+      "config": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/9b/kev_hard_v1_9b/CONFIG.json",
+        "sha256": "2bfbb7e803fbeb4e6e05d0b076b8422033b1255e22be138893dd133dd57276bb"
+      },
+      "contract": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/9b/kev_hard_v1_9b/cpu/CONTRACT.json",
+        "sha256": "295770b67de87effd4e946bdfd89c35c68249e235dc079512d020d939123d946"
+      },
+      "source_manifest": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/9b/SOURCE-MANIFEST.json",
+        "sha256": "402759968f0b15eefdffceea0e78cc5f25a5b8480c96625e4f0c262d419a0bfc"
+      },
+      "authority": {
+        "origin": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/9b/ORIGIN.json",
+          "sha256": "1a2a598151fd7a9148bbec21ca2dbb0f4fd25ee395556743bcac977d25a43255"
+        },
+        "source_manifest": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/9b/SOURCE-MANIFEST.json",
+          "sha256": "402759968f0b15eefdffceea0e78cc5f25a5b8480c96625e4f0c262d419a0bfc"
+        }
+      },
+      "metadata": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_authority_copies_20261108_256539/packages/kev_hard_v1_9b/authority/metadata.json",
+        "sha256": "9234e99a0e59966cfda7ea3c078ca5874dfd27d5ed3eddbaefef387c76d5dddf"
+      },
+      "cpu_preparation": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/9b/CPU-PREPARATION-CANDIDATE.json",
+        "sha256": "a05599d210091d147b053e1ac7ead528cf684b962189a88d6e4cdeb67ba471c3"
+      },
+      "numeric_checker": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/9b/code/base_numeric_admission.py",
+        "sha256": "b1c01580f263338632d8efc76ba727e0b82a7476e83773c495909f2d252d40cf"
+      },
+      "numeric_origin": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/9b/CANONICAL-NUMERIC-ORIGIN.json",
+        "sha256": "06445d8f0af69d7dfe24f07f7be662e80d66c3ecf79516584d07f7dd794edb7d"
+      },
+      "independent_review": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-family-current-runtime-20261108-review/cells/9b/VERDICT.json",
+        "sha256": "0e4a15e996b6dc1daf4120f11d2af8e25928f8594d51d7d4b3b1ba5930ac63d4"
+      },
+      "observed_review_verdict": "ACCEPT_SOURCE_MAPPING_NUMERIC_HOLD_ACTIVATION",
+      "source_mapping_accepted": true,
+      "numeric_dependency_accepted": true,
+      "isolation_accepted": true,
+      "package_complete": false,
+      "launch_allowed": false,
+      "admission_status": "PENDING_RESOURCE_POLICY_REPAIR_AND_INDEPENDENT_FINAL_ACTIVATION_ADMISSION",
+      "blocking_findings": [
+        {
+          "actual_run": "r3_runs/kev_hard_v1_08b",
+          "evidence": {
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/9b/RESOURCE-VERIFY-CLI.json",
+            "sha256": "f1a2d41f9edf56c9bdc29f1aca00a4852cd2bc855061da7e9f0e44f34a9ef57f"
+          },
+          "expected_run": "r3_runs/kev_hard_v1_9b",
+          "id": "9b-F1",
+          "observed": "Actual host175 read-only resource verify exits 1: ValueError: resource identity",
+          "policy": {
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/9b/code/FIXED-BASE-RESOURCE-POLICY.json",
+            "sha256": "085aabfe8ba58d95375f08423afd5db7e4091c9d810aabf6b7ac34ed2dad6dbe"
+          },
+          "severity": "blocking_activation",
+          "smallest_fix": "Create a new per-cell policy bound to r3_runs/kev_hard_v1_9b and a separately authorized chip-5 finite window/free generation; update source-manifest -> origin/config/contract -> PLAN and CPU intent/config, then rebind numerical acceptance and final review/root to the new PLAN. Keep guard, math, payloads, transform and receipt unchanged; metadata derivation only. Recheck this cell without waiting for siblings.",
+          "source": {
+            "line": 24,
+            "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/9b/code/fixed_base_resource.py"
+          },
+          "title": "Copied resource policy names 08b"
+        },
+        {
+          "evidence": {
+            "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-175-isolated-cpu-lifecycle-20261108-review/DECISION.json",
+            "sha256": "5e989c967bbccac53395f3e49aab73fd72dda0310ccecffe41db6b3c836e9d60"
+          },
+          "id": "9b-F2",
+          "no_resource_grant_issued": true,
+          "severity": "remaining_activation_gate",
+          "smallest_fix": "Obtain an independent priority/window decision for r3_runs/kev_hard_v1_9b on its actual target chip and current predecessor/free generation. The single 08b execution window grants no successor rights. Only then issue the exact activation review, production root, start and supervise argv under existing schemas; recheck mandatory harness condition and fresh atomic claim guards before any future claim.",
+          "title": "No successor resource window or approvable production root"
+        }
+      ],
+      "scoped_review_artifacts": {
+        "numeric_gate": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/9b/NUMERIC-V2-GATE.json",
+          "sha256": "6cf40378869d9445835ac4752094c05e1d37d3bddc9fed51be987b75a459944e"
+        },
+        "numeric_acceptance": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/9b/NUMERIC-ACCEPTANCE.json",
+          "sha256": "fb18dba82e5b158e31f38966c02445cfcf01d16958170f466415c2ba373a0d53"
+        },
+        "verify_root": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/9b/VERIFY-ROOT.json",
+          "sha256": "74edf6b0cd468dde92fef01e363eb4ac6a1f8c12b33dfe4f8e071fe00d4cc378"
+        },
+        "cpu_command": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/9b/CPU-COMMAND.json",
+          "sha256": "73c9ccb1eda2cc3a9e7bc778c8361d39a68089dda6a85ebc81c2e8c93ba2e94a"
+        },
+        "command_bindings": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_family_runtime_review_20261108_338189/9b/COMMAND-BINDINGS.json",
+          "sha256": "a1ed78b42f4dc57d8dfad851c2beb29e7be59606e0ae1545217738577235a44a"
+        }
+      },
+      "missing_stages": [
+        "Correct cell-specific resource policy and separately granted finite window/current predecessor generation",
+        "Rebind source manifest/origin/config/contract/PLAN/CPU intent and config after repair",
+        "Independent final acceptance of corrected package and numerical integration binding",
+        "Concrete production approval/root/start and supervise argv",
+        "Publish dated per-cell acceptance/bindings before that cell TEST",
+        "Fresh guards, actual resource admission and TEST execution; CPU scoring/result review"
+      ],
+      "production_approval": null,
+      "production_root": null,
+      "admitted_start_argv": null,
+      "candidate_only_cpu_argv": [
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/bin/python3.12",
+        "-B",
+        "-P",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/9b/code/bootstrap.py",
+        "--config",
+        "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_current_runtime_20261108_327729/9b/kev_hard_v1_9b/cpu-output/1/CHILD-CONFIG.json",
+        "--sha256",
+        "996e546844155ab6b3d02d494bdc4c6a5e633239dd90e0579b5b019b0446e427"
+      ],
+      "cpu_environment": {
+        "LD_LIBRARY_PATH": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/lib",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONPATH": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/lib/python3.12/site-packages",
+        "TORCH_DEVICE_BACKEND_AUTOLOAD": "0"
+      }
+    }
+  },
+  "family_candidate_index": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/kev-hard-family-current-runtime-20261108/LAUNCH-PACKAGES.json",
+    "sha256": "044e6905565c41732747b008d770d98df56088c41646f859713b61a8ab4fef19",
+    "bytes": 923
+  },
+  "family_independent_scoped_review": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-family-current-runtime-20261108-review/VERDICT.json",
+    "sha256": "867da1a8b5027f845739fb410645598928d342879582dae39f16ec2c81c07a0a",
+    "bytes": 2224
+  },
+  "family_independent_scoped_findings": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-family-current-runtime-20261108-review/FINDINGS.json",
+    "sha256": "c3616445754360274e53a1883cfdfa9a4dea17926ca38b78daba4ff48b2b09a4",
+    "bytes": 6906
+  },
+  "family_status_update": "The brief anticipated review pending. Observed review completed 2026-11-08T12:11:55.638299+00:00: source/mapping/numeric accepted within scope, all three activation admissions held. No full-package acceptance is inferred.",
+  "pending_checks": [
+    "Independent review of this amendment, exact bindings and additive patch",
+    "Parent publication and prospective experiment/wiki record with independent review and commit/time before any TEST",
+    "Fresh 08b policy/pending/free-generation/predecessor/harness/live ownership checks under allocation lock",
+    "2B/4B/9B resource-policy repair, independent resource decisions and full final-package acceptance/publication per cell",
+    "All actual TEST outputs, authenticated terminal/releases, saved-vector scoring and independent scientific result review"
+  ],
+  "result_reporting": {
+    "mandatory_cells": [
+      "kev_hard_v1_08b",
+      "kev_hard_v1_2b",
+      "kev_hard_v1_4b",
+      "kev_hard_v1_9b"
+    ],
+    "cell_statuses": [
+      "not_started",
+      "held",
+      "running",
+      "interrupted",
+      "failed",
+      "invalid",
+      "cpu_scoring_pending",
+      "result_review_pending",
+      "result_reviewed"
+    ],
+    "missing_metrics": null,
+    "partial_report_label": "INCOMPLETE_FOUR_CELL_COVERAGE",
+    "complete_only_when": "All four have explicit terminal dispositions; call results complete only for cells with full validated 1088/134 and independent result review. Failed/missing cells remain explicit and prevent a claim of complete four-model results.",
+    "prohibited": [
+      "Outcome-dependent cell/attempt selection",
+      "Recalibration/temperature fitting on TEST",
+      "Dropping failed or missing rows",
+      "Changing frozen formulas/thresholds/population",
+      "Interpreting scoped numeric or runtime acceptance as scientific TEST acceptance"
+    ]
+  },
+  "non_actions": [
+    "No TEST/payload read or generation",
+    "No model weights opened or hashed",
+    "No mathematical/DEV computation",
+    "No container/NPU/resource operation",
+    "No runtime/PLAN/root modification",
+    "No Git or wiki write/publication",
+    "No delegation or self-approval"
+  ]
+}
