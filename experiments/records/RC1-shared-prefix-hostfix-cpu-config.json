@@ -1,0 +1,9 @@
+{
+  "work_dir": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/shared-prefix-cpu-requal-20261108-hostfix/watcher",
+  "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/shared-prefix-dev-requal-20261108-hostfix",
+  "interval_seconds": 600,
+  "python": "/usr/bin/python3.12",
+  "consumer": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/shared-prefix-cpu-requal-20261108-hostfix/consumer/consume.py",
+  "static_scope": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/shared-prefix-cpu-requal-20261108-hostfix/static-scope.json",
+  "analysis_dir": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/shared-prefix-cpu-requal-20261108-hostfix/analysis"
+}

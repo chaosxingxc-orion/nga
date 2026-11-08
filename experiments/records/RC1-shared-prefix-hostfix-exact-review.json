@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "review": "shared-prefix-requal-exact-fix-review-20261108",
+  "verdict": "PASS_EXACT_FIX_DISPATCH_CONDITIONAL",
+  "utc": "2026-11-08T07:06:18.718041+00:00",
+  "cpu_preparation_accepted": true,
+  "review_verdict_sha256": "580668c51d7c4cfde2d0a8330db6949be7751c5d89cd93002be4e5104003f8e6",
+  "review_sourcepins_sha256": "bf1ab8bf1e576ba5c5ac6e262287397f0351f6a191b8427675b3a9ad1fc6335a",
+  "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/shared-prefix-dev-requal-20261108-hostfix",
+  "stage_sha256": {
+    "DOCKER-COMMAND.txt": "a22e61f7b40e93fbef9006886cd7fba2e4724fdd4e90db41858ae07b9808ce75",
+    "FINALIZED.json": "1eea543217d01a1dba9afe4a47a8c20fb1443510a6b3166d9cbe0c46c90a493a",
+    "PREPARED.json": "71824ef40db46ded974cbeb4a751986f830690aa0fca48ddc927bc22c8d4f7b2",
+    "RELAUNCH.txt": "7bea7a7314e98aa9f86412dde404af662b44d8d146c52189b371d81451f4da2d",
+    "RUNNER-READY.json": "2a915d0d7daa880182398b259f37b7016c6b76d46ddb5d109142ed22d5c2a70f",
+    "adapter.py": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a",
+    "config.json": "e88289c80304ce4b65233fb8dacc6fc5c5d6a42814f408d14c26447eb9b717a5",
+    "container-entry.sh": "26aa7913034556004f4114e249b227b5315bab9ee57f15535d1eb94e163a0b9c",
+    "launcher.py": "05dd1356b6709e5ccc2af4647dd0e266bb6a964a111e519b3d967d5fa52d5e54",
+    "probe.py": "970990a82c773af9738c9e0f0a8fc89720271874e9a26ef6a2c27168cbc8a259",
+    "receipts/CPU-ACCOUNT.json": "7d551f9d391d29f5cd80186dc30d69df8f5f008be99629ea4f7ef8430c5ca046",
+    "receipts/DEV-MANIFEST.json": "66d02a54cef6a6d5e79f8d06c7774f9642f13940c150820d4bca3106c5a6870e",
+    "receipts/IMAGE-SOURCE-HANDOFF.md": "e3d23676d17cee0a24d90800bb7d4cedb620f4a44e7043820d934e37b7520823",
+    "receipts/SOURCE-PINS.json": "902f0d26477a153ecb35a1d9cac5f9e4eb246e1a8714b93a5fed4efb4029cc9f",
+    "receipts/TOKENIZER-IDENTITY-REUSE.json": "5c1ea3315e4605b87d3e7db5df67912140ed69f72aa6c431b21bfa5ce717895a",
+    "source/compare.py": "a32f76a83ad65f7ec2e558a153503ddbde348ed10b8a1a71f3d14b84755f3448",
+    "source/container-entry.sh": "26aa7913034556004f4114e249b227b5315bab9ee57f15535d1eb94e163a0b9c",
+    "source/diagnostic.py": "cd7a9c87937994b50fbd84508b16f7339a82544e3d3d81a30bb3c7a127ba451b",
+    "source/prompt.py": "84c99aec2817de3365e650c7c6c846aeddc1ec675b3321cf80be267a7557f0fc",
+    "source/runner.py": "4190a3ed7238eac3af4717cc77cc05570a681569ffaebb3a6df68ccad9b702a7",
+    "source/scorer_r3.py": "f1de708a28b47cdb513eb79c7306510df8312f6a92f96a75adcfe59ba0cf6a49"
+  },
+  "cpu_package": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/shared-prefix-cpu-requal-20261108-hostfix",
+  "cpu_sha256": {
+    "BIND-COMMAND.txt": "95c91aa9ca27d2fd0dcc5db5683ff6202dc733324f606aa0ab8ead1c56d6398b",
+    "CPU-COMMAND.txt": "a8299800d71e895aee26f8a661157cd9759c5a447723d37c6676b17269f4a0e6",
+    "RELAUNCH.txt": "65f3f486c18be91347e0821d53c6ec0eb4b831cb42073ec184baf71b4b93e9d3",
+    "bind.py": "8238e21b63125180ec1e781edd5014484d246cf5e3d7aca347aa4e1f6cec3de1",
+    "config.json": "3b24a7774c0b53e62b5e93f5b208b3e88252c02f3e980769b8b8baff0301199a",
+    "consumer/consume.py": "f2862863ee6e8a5c5db1bb653ce9988f823ba397016173b4c0f843bf7702f8e5",
+    "static-scope.json": "d323c32477e3b4e81236adfceba2065b9eb173df608b0cc9715479e2df314113",
+    "waiter.py": "dc4a858cdd75628186dad09b6fb7f9f1b47c382bb1d8445da6601b69c94dabcc"
+  },
+  "conditions": [
+    "Main publishes a dated prospective amendment and prelaunch wiki entry on origin/main binding these exact hostfix stage, CPU package, command and receipt hashes; f156000 alone does not satisfy this.",
+    "Bind this exact review receipt and published amendment to fresh DISPATCH-AUTHORIZATION.json using the existing authorized dispatch process, with exact PREPARED/FINALIZED hashes. This conditional technical acceptance adds no user authority.",
+    "At dispatch recheck eligible physical4 predecessor generation/release, existing allocator, ready TEST priority and Docker conflicts. Protect H2 physical2/3 and other-project0/1/6/7; no reservation is made.",
+    "Use only this fresh fixed RC1 DEV192 attempt with unchanged runner/model/data/adapter/precision/thresholds/order/cap. No old experiment rerun or broader qualification.",
+    "Use actual authorized launch records for future container identity. Run prepared waiter or separately reconcile explicit binder path; never prefill a generation or reuse old dispatch/terminal evidence. Consume only after matching terminal/EXIT/marker and release.",
+    "After completion independently assess numerical_pass AND timing_valid AND all_pairs_benefit, preserving failure/no-benefit and rightpad fallback. Dispatch acceptance does not authorize adoption or a scientific result."
+  ],
+  "new_authority_granted": false
+}

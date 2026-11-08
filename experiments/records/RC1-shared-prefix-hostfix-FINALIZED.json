@@ -1,0 +1,12 @@
+{
+  "files": {
+    "compare.py": "a32f76a83ad65f7ec2e558a153503ddbde348ed10b8a1a71f3d14b84755f3448",
+    "container-entry.sh": "26aa7913034556004f4114e249b227b5315bab9ee57f15535d1eb94e163a0b9c",
+    "diagnostic.py": "cd7a9c87937994b50fbd84508b16f7339a82544e3d3d81a30bb3c7a127ba451b",
+    "prompt.py": "84c99aec2817de3365e650c7c6c846aeddc1ec675b3321cf80be267a7557f0fc",
+    "runner.py": "4190a3ed7238eac3af4717cc77cc05570a681569ffaebb3a6df68ccad9b702a7",
+    "scorer_r3.py": "f1de708a28b47cdb513eb79c7306510df8312f6a92f96a75adcfe59ba0cf6a49"
+  },
+  "runner_ready_sha256": "2a915d0d7daa880182398b259f37b7016c6b76d46ddb5d109142ed22d5c2a70f",
+  "time": 1794121011.4550326
+}

@@ -1,0 +1,28 @@
+{
+  "binding": {
+    "adapter_binding": {
+      "checkpoint_sha256": "42d7ce37434a7d303f4d4777c5eb7f0e1e3c3d671ce96d9e3d94a1104ad9e7ee",
+      "identity_sha256": "011886d18e7e766e80c5c59e856d755129a4d469b5f8c9225934e110b2c6e153",
+      "owner": "rc1-functional-q9b-s2"
+    },
+    "sample_sha256": "565ec364d00e30b0422f27477f4fc398e1c63527cd0ab3b5ee69ceaf51d55ff0",
+    "tokenizer_size_mtime": [
+      12807196,
+      1793291707537749220
+    ]
+  },
+  "pins": {
+    "adapter.py": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a",
+    "config.json": "e88289c80304ce4b65233fb8dacc6fc5c5d6a42814f408d14c26447eb9b717a5",
+    "container-entry.sh": "26aa7913034556004f4114e249b227b5315bab9ee57f15535d1eb94e163a0b9c",
+    "launcher.py": "05dd1356b6709e5ccc2af4647dd0e266bb6a964a111e519b3d967d5fa52d5e54",
+    "probe.py": "970990a82c773af9738c9e0f0a8fc89720271874e9a26ef6a2c27168cbc8a259",
+    "receipts/CPU-ACCOUNT.json": "7d551f9d391d29f5cd80186dc30d69df8f5f008be99629ea4f7ef8430c5ca046",
+    "receipts/DEV-MANIFEST.json": "66d02a54cef6a6d5e79f8d06c7774f9642f13940c150820d4bca3106c5a6870e",
+    "receipts/IMAGE-SOURCE-HANDOFF.md": "e3d23676d17cee0a24d90800bb7d4cedb620f4a44e7043820d934e37b7520823",
+    "receipts/SOURCE-PINS.json": "902f0d26477a153ecb35a1d9cac5f9e4eb246e1a8714b93a5fed4efb4029cc9f",
+    "receipts/TOKENIZER-IDENTITY-REUSE.json": "5c1ea3315e4605b87d3e7db5df67912140ed69f72aa6c431b21bfa5ce717895a"
+  },
+  "status": "CPU_PREPARED_RUNNER_PENDING",
+  "time": 1794121011.3851862
+}

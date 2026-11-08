@@ -1,0 +1,20 @@
+{
+  "adapter": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/q9b-s2/result/adapter",
+  "allocation": "/mnt/cephfs/xingchao/experiments/jev/CHIP-ALLOCATION.json",
+  "allowance": 2147483648,
+  "budget": 8589934592,
+  "chip": 4,
+  "conditions": 192,
+  "data": "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/dev.jsonl",
+  "dispatch_enabled": false,
+  "extra": 16777216,
+  "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+  "max_rows": 8,
+  "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base",
+  "name": "shared-prefix-dev-rc1-s2-requal-20261108-hostfix",
+  "out": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/shared-prefix-dev-requal-20261108-hostfix",
+  "rows": [
+    33,
+    96
+  ]
+}
