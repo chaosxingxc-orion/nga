@@ -1,5 +1,16 @@
 # CLAUDE.md
 
+## Repository boundary update (owner decision, 2026-11-08)
+
+NGA now retains Jev-class model experiments and their research/execution dependencies.
+Architecture design, agent-festival, framework/workbench research and their review
+materials moved to https://github.com/chaosxingxc-orion/agent-hub-alpha (GitCode:
+https://gitcode.com/xingchao_ml/agent-hub-alpha). Earlier instructions assigning
+design/architecture work to this repository are historical for those paths.
+Experiment protocols, server execution and model-routing policies are unchanged.
+See docs/REPOSITORY-SPLIT.md; do not recreate the moved directories or merge
+the two repository main branches together.
+
 Project guidance for Claude Code in the `nga` repository.
 
 ## 2. Multi-agent work allocation

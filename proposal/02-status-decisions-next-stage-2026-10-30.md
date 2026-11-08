@@ -56,7 +56,7 @@
 
 这些是组织原则。工作台界面、语义规范编译器、授权执行、版本发布、并发采纳、外部副作用幂等及可执行回放尚未形成完整实现证据。
 
-The [current architecture proposal](../achitecture%20design/07-nga-architecture-proposal.md) consolidates the adversarial requirements: budget dimensions need distinct accounting; reversible operations still require authorization; initial admission cannot guarantee future permission; adoption alone cannot prevent duplicate effects; and context isolation cannot prove independent judgments. Its acceptance cases are implementation requirements, not executed results.
+The [current architecture proposal](https://github.com/chaosxingxc-orion/agent-hub-alpha/blob/main/achitecture%20design/07-nga-architecture-proposal.md) consolidates the adversarial requirements: budget dimensions need distinct accounting; reversible operations still require authorization; initial admission cannot guarantee future permission; adoption alone cannot prevent duplicate effects; and context isolation cannot prove independent judgments. Its acceptance cases are implementation requirements, not executed results.
 
 ## 3. 原研究路线与当前实验的关系
 
@@ -232,7 +232,7 @@ E3 实际耗时、消费端修复成本、完整 suite 通过情况、2B/4B/9B �
 
 | 主题 | 主要来源 | 读取口径 |
 | --- | --- | --- |
-| 三项目定位与当前实现边界 | [README](../README.md)、[总体设计](../design/nga-overall-design.md) | 设计与范围，不作为实验完成证明 |
+| 三项目定位与当前实现边界 | [README](../README.md)、[总体设计](https://github.com/chaosxingxc-orion/agent-hub-alpha/blob/main/design/nga-overall-design.md) | 设计与范围，不作为实验完成证明 |
 | R0–R8、G1/G2/G3 | [研究提案](00-research-proposal.md)、[四方向计划](01-work-plan-four-directions.md) | 原计划的状态可能滞后；实验修订优先 |
 | 当前冻结规则 | [R3 预注册](../experiments/R3-SFT-PREREG.md)，尤其 §8、§14.6、§14.10–14.12 | 阈值与适用范围的规范来源 |
 | 历史 R0 与修正 | [R0 结果](../experiments/R0-BASELINE-RESULTS.md)、[E2](../wiki/E2-scorer-admissibility-fp32.md) | padding 旧诊断已撤回；不重复旧解释 |
@@ -240,7 +240,7 @@ E3 实际耗时、消费端修复成本、完整 suite 通过情况、2B/4B/9B �
 | K0 前置 | [E3](../wiki/E3-k0-readout-precondition.md) | 检查必需步骤及终态完整性 |
 | W1 与 R0S | [W1](../wiki/W1-wave1-first-weight-updates.md)、[R0S](../wiki/R0S-r0-side-fp32-rescore.md) | W1 的八次原始描述须结合后续十次修订；R0S 含未提交更新 |
 | 工作中复现计划与审计 | [复现草案](../experiments/JEV-REPRODUCTION-PLAN.md)、[参考审计](../experiments/KEV-STAGE1-REFERENCE-AUDIT.json)、[消费端审计](../experiments/R3-CONSUMER-PRECHECK-AUDIT.json) | 本次开始时均未提交；参考结果与函数探针不是本地模型最终成绩 |
-| Current architecture | [Architecture index](../achitecture%20design/README.md), [canonical proposal and acceptance gate](../achitecture%20design/07-nga-architecture-proposal.md) | Proposed implementation scope; acceptance remains unexecuted. |
+| Current architecture | [Architecture index](https://github.com/chaosxingxc-orion/agent-hub-alpha/blob/main/achitecture%20design/README.md), [canonical proposal and acceptance gate](https://github.com/chaosxingxc-orion/agent-hub-alpha/blob/main/achitecture%20design/07-nga-architecture-proposal.md) | Proposed implementation scope; acceptance remains unexecuted. |
 
 运行事实来自 CephFS 根目录 `/mnt/cephfs/xingchao/experiments/jev/`：
 

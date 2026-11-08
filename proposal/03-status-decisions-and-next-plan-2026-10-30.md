@@ -90,7 +90,7 @@ E3 中的 realized-call replay 是归因诊断，现行修订明确它不单独�
 
 ## 3. 架构线：设计进度与实现缺口
 
-The current collaborator entry is [07 — NGA Architecture and Minimum Java SDK Proposal](../achitecture%20design/07-nga-architecture-proposal.md). Documents 05/06 remain original V0 inputs. The proposal retains the three-state/four-plane organizing model and distinguishes source-project implementation claims from NGA evidence.
+The current collaborator entry is [07 — NGA Architecture and Minimum Java SDK Proposal](https://github.com/chaosxingxc-orion/agent-hub-alpha/blob/main/achitecture%20design/07-nga-architecture-proposal.md). Documents 05/06 remain original V0 inputs. The proposal retains the three-state/four-plane organizing model and distinguishes source-project implementation claims from NGA evidence.
 
 已经确定的方向包括：三态四平面；业务判断、采纳与外部执行分开；语义规范的管理归项目 3；回放和审计是要求；agent 演进贯通从开发、运行到运营反馈的版本链。**这些不需要再次让你确认。**
 
@@ -223,8 +223,8 @@ D2 的 24 小时来自工作区尚未提交的复现草案，不是本报告认�
 | R0 结果及失效比较口径 | [R0 results](../experiments/R0-BASELINE-RESULTS.md)，开头 erratum note 与 §1 |
 | W1、采用、test 与最新工程义务 | [R3 prereg](../experiments/R3-SFT-PREREG.md)，§8–10、§14.5、§14.11 checklist、§14.12 |
 | 运行记录 | [wiki 索引](../wiki/README.md)，K0／W1 的 planned 不能取代实时完成标记 |
-| Program scope and implementation choices | [Overall program design](../design/nga-overall-design.md), [architecture implementation decisions](../achitecture%20design/07-nga-architecture-proposal.md#12-implementation-sequence-and-remaining-decisions) |
-| Current architecture and acceptance gaps | [Architecture index](../achitecture%20design/README.md), [canonical proposal](../achitecture%20design/07-nga-architecture-proposal.md) |
+| Program scope and implementation choices | [Overall program design](https://github.com/chaosxingxc-orion/agent-hub-alpha/blob/main/design/nga-overall-design.md), [architecture implementation decisions](https://github.com/chaosxingxc-orion/agent-hub-alpha/blob/main/achitecture%20design/07-nga-architecture-proposal.md#12-implementation-sequence-and-remaining-decisions) |
+| Current architecture and acceptance gaps | [Architecture index](https://github.com/chaosxingxc-orion/agent-hub-alpha/blob/main/achitecture%20design/README.md), [canonical proposal](https://github.com/chaosxingxc-orion/agent-hub-alpha/blob/main/achitecture%20design/07-nga-architecture-proposal.md) |
 
 ### 8.2 本次亲查的共享存储产物
 

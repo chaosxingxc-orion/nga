@@ -1,5 +1,11 @@
 # GitHub / GitCode collaboration
 
+> Repository split, 2026-11-08: this pair now owns Jev-class model research.
+> Architecture work continues in [Agent Hub Alpha](https://github.com/chaosxingxc-orion/agent-hub-alpha)
+> and [its GitCode counterpart](https://gitcode.com/xingchao_ml/agent-hub-alpha).
+> Old architecture Issue/MR links below are historical. The synchronization
+> mechanism remains scoped to NGA; it does not mirror the projects into each other.
+
 ## Current collaboration entry points
 
 | Purpose | GitHub | GitCode |
