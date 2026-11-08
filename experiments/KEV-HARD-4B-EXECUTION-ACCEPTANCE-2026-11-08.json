@@ -1,0 +1,40 @@
+{
+  "approval": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/APPROVAL-REVIEW.json",
+    "sha256": "d9f5621cce0f9c6d2e65324739e15a7996ee1ca316032f1c475f30b473f31c58"
+  },
+  "binding": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/PER-CELL-BINDING.json",
+    "sha256": "0a7405d0e14a7a34c34a52c0cbd54db7976181d1d08129568b6689958d121021"
+  },
+  "cell": "4b",
+  "checks": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/CHECKS.json",
+    "sha256": "b3e5bf72eb53c85c6161427aa5ad723c40e079d7820ef5c308175d531be34dfb"
+  },
+  "effectivity": "Conditional execution only after parent verifies publication of these exact accepted per-cell bytes/references under amendment 78d8446 and immediately repeats all fresh preclaim gates. This record is not a publication receipt or resource reservation.",
+  "independent_verdict": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/VERDICT.json",
+    "sha256": "f0c6b35d2c1e0b553f987aff53529ff4b454a636103a6106bda8f65ee9c32684"
+  },
+  "launch_package": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/LAUNCH-PACKAGE.json",
+    "sha256": "f9efb8b38643cfe4e8c0e854531fae17890abc93fca74aa2192f260a30e3b160"
+  },
+  "plan": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/kev_hard_v1_4b/PLAN.json",
+    "sha256": "972784843e213694623061705a6293422f1a8e65deb2578ac953a97205dda7c5"
+  },
+  "production_root": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/COMMAND-ROOT.json",
+    "sha256": "79eee3d6e4e0a127b68e6526a7037ee1f805d2ab70762c715de6b4aec02fec26"
+  },
+  "schema": "kev-hard-per-cell-independent-acceptance-v1",
+  "scientific_acceptance": false,
+  "scientific_result": null,
+  "sourcepins": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/SOURCEPINS.json",
+    "sha256": "acb78083c3fd53ce5ac88e71458ce09935d24e3cc95c977d5cd0eb5709af1e18"
+  },
+  "verdict": "ACCEPT_EXACT_BINDINGS_FOR_ADDITIVE_PRESTART_PUBLICATION"
+}

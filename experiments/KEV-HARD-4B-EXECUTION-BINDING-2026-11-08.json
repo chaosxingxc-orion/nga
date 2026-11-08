@@ -1,0 +1,323 @@
+{
+  "CPU2b_science_dependency": false,
+  "amendment_acceptance": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/inputs/KEV-HARD-EXECUTION-AMENDMENT-2026-11-08-ACCEPTANCE.json",
+    "sha256": "ff4f4450b55949c877256c30d50a7f365121cabdc73f1e056e5340c59bd4c534"
+  },
+  "amendment_md": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/inputs/KEV-HARD-EXECUTION-AMENDMENT-2026-11-08.md",
+    "sha256": "be61fccaa61e1cfaf1d49a215a352159652d913528de200909e9fe94c80ecbd8"
+  },
+  "approval": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/APPROVAL-REVIEW.json",
+    "sha256": "d9f5621cce0f9c6d2e65324739e15a7996ee1ca316032f1c475f30b473f31c58"
+  },
+  "attempt": 1,
+  "authority": {
+    "origin": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/ORIGIN.json",
+      "sha256": "7fc1e4d28eec3e7cc03c6ceb98da48a84c5133cfd5d11dc9f1c2389b14ccf2f2"
+    },
+    "source_manifest": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/SOURCE-MANIFEST.json",
+      "sha256": "470a0a24ac7d6a55bbede3ace6f46b4e43a3fb9bfcc8d9403bdba4b166b40ed0"
+    }
+  },
+  "cell": "4b",
+  "checks": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/CHECKS.json",
+    "sha256": "b3e5bf72eb53c85c6161427aa5ad723c40e079d7820ef5c308175d531be34dfb"
+  },
+  "config": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/kev_hard_v1_4b/CONFIG.json",
+    "sha256": "e94fab4aa8782ecb87ee713e0feee690a03efbf547927648db8ae5e5be44dc91"
+  },
+  "contract_file": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/kev_hard_v1_4b/cpu/CONTRACT.json",
+    "sha256": "881f8627b6d872fda9325ca665345c9fae78d642fe06df7cc46151c87ffdd18d"
+  },
+  "cpu_argv": [
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/bin/python3.12",
+    "-B",
+    "-P",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/code/bootstrap.py",
+    "--config",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/kev_hard_v1_4b/cpu-output/1/CHILD-CONFIG.json",
+    "--sha256",
+    "a24202c7595e7ccce50a8dc046acb8790b5d648bedfc57cb2dbeaeb164cd6dd4"
+  ],
+  "cpu_child_config": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/kev_hard_v1_4b/cpu-output/1/CHILD-CONFIG.json",
+    "sha256": "a24202c7595e7ccce50a8dc046acb8790b5d648bedfc57cb2dbeaeb164cd6dd4"
+  },
+  "cpu_environment": {
+    "LD_LIBRARY_PATH": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/lib",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONPATH": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/reviewer_torch_runtime_20261101_v1/python/lib/python3.12/site-packages",
+    "TORCH_DEVICE_BACKEND_AUTOLOAD": "0"
+  },
+  "cpu_parent_intent": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/kev_hard_v1_4b/cpu-output/1/PARENT-INTENT.json",
+    "sha256": "6f487d4c10037832ab95f733e0b88473235e2aefb950e1654966e4884991ff6d"
+  },
+  "cpu_rule": "Supervisor only, after durable successful release and host terminal; prepare_cpu/start_cpu authentic SERVICE publication required. CPU argv is not a standalone launch instruction.",
+  "executor": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/trusted_caller.py",
+    "sha256": "57901c9edeb557c127079b38f6f976b37e50f6e5482813a81ac87b2c6eefabb6"
+  },
+  "host_environment": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "host_start_argv": [
+    "/usr/bin/python3.12",
+    "-B",
+    "-P",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/trusted_caller.py",
+    "--root",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/COMMAND-ROOT.json",
+    "--root-sha256",
+    "79eee3d6e4e0a127b68e6526a7037ee1f805d2ab70762c715de6b4aec02fec26",
+    "--",
+    "start",
+    "--plan",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/kev_hard_v1_4b/PLAN.json",
+    "--sha256",
+    "972784843e213694623061705a6293422f1a8e65deb2578ac953a97205dda7c5",
+    "--review",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/APPROVAL-REVIEW.json",
+    "--review-sha256",
+    "d9f5621cce0f9c6d2e65324739e15a7996ee1ca316032f1c475f30b473f31c58",
+    "--attempt",
+    "1",
+    "--origin",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/ORIGIN.json",
+    "--origin-sha256",
+    "7fc1e4d28eec3e7cc03c6ceb98da48a84c5133cfd5d11dc9f1c2389b14ccf2f2",
+    "--source-manifest",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/SOURCE-MANIFEST.json",
+    "--source-manifest-sha256",
+    "470a0a24ac7d6a55bbede3ace6f46b4e43a3fb9bfcc8d9403bdba4b166b40ed0",
+    "--original-metadata",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_authority_copies_20261108_256539/packages/kev_hard_v1_4b/authority/metadata.json",
+    "--original-metadata-sha256",
+    "e19c373f41768617e37b402f413f076e8ccb6faf0e432c26a10f041828c93196",
+    "--numeric-checker",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/code/base_numeric_admission.py",
+    "--numeric-checker-sha256",
+    "b1c01580f263338632d8efc76ba727e0b82a7476e83773c495909f2d252d40cf",
+    "--numeric-origin",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/CANONICAL-NUMERIC-ORIGIN.json",
+    "--numeric-origin-sha256",
+    "88debdac26def252e970fcb453d1d762be8dc46a77cc14a845548c766ebf37d2",
+    "--numeric-acceptance",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/NUMERIC-ACCEPTANCE.json",
+    "--numeric-acceptance-sha256",
+    "26810a8ac92d30bca971c646ab1d8c6acad9c691d6050d50a24a06dd78342f8d",
+    "--expected-numeric-acceptance-sha256",
+    "26810a8ac92d30bca971c646ab1d8c6acad9c691d6050d50a24a06dd78342f8d"
+  ],
+  "host_supervise_argv": [
+    "/usr/bin/python3.12",
+    "-B",
+    "-P",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/trusted_caller.py",
+    "--root",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/COMMAND-ROOT.json",
+    "--root-sha256",
+    "79eee3d6e4e0a127b68e6526a7037ee1f805d2ab70762c715de6b4aec02fec26",
+    "--",
+    "supervise",
+    "--plan",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/kev_hard_v1_4b/PLAN.json",
+    "--sha256",
+    "972784843e213694623061705a6293422f1a8e65deb2578ac953a97205dda7c5",
+    "--review",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/APPROVAL-REVIEW.json",
+    "--review-sha256",
+    "d9f5621cce0f9c6d2e65324739e15a7996ee1ca316032f1c475f30b473f31c58",
+    "--attempt",
+    "1",
+    "--origin",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/ORIGIN.json",
+    "--origin-sha256",
+    "7fc1e4d28eec3e7cc03c6ceb98da48a84c5133cfd5d11dc9f1c2389b14ccf2f2",
+    "--source-manifest",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/SOURCE-MANIFEST.json",
+    "--source-manifest-sha256",
+    "470a0a24ac7d6a55bbede3ace6f46b4e43a3fb9bfcc8d9403bdba4b166b40ed0",
+    "--original-metadata",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_authority_copies_20261108_256539/packages/kev_hard_v1_4b/authority/metadata.json",
+    "--original-metadata-sha256",
+    "e19c373f41768617e37b402f413f076e8ccb6faf0e432c26a10f041828c93196",
+    "--numeric-checker",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/code/base_numeric_admission.py",
+    "--numeric-checker-sha256",
+    "b1c01580f263338632d8efc76ba727e0b82a7476e83773c495909f2d252d40cf",
+    "--numeric-origin",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/CANONICAL-NUMERIC-ORIGIN.json",
+    "--numeric-origin-sha256",
+    "88debdac26def252e970fcb453d1d762be8dc46a77cc14a845548c766ebf37d2",
+    "--numeric-acceptance",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/NUMERIC-ACCEPTANCE.json",
+    "--numeric-acceptance-sha256",
+    "26810a8ac92d30bca971c646ab1d8c6acad9c691d6050d50a24a06dd78342f8d",
+    "--expected-numeric-acceptance-sha256",
+    "26810a8ac92d30bca971c646ab1d8c6acad9c691d6050d50a24a06dd78342f8d"
+  ],
+  "host_verify_argv": [
+    "/usr/bin/python3.12",
+    "-B",
+    "-P",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/trusted_caller.py",
+    "--root",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/VERIFY-ROOT.json",
+    "--root-sha256",
+    "14cb8159a9f68bbccd4fd0ec288b0db03703cd338a371cd71a84c20261053db7",
+    "--",
+    "verify",
+    "--plan",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/kev_hard_v1_4b/PLAN.json",
+    "--sha256",
+    "972784843e213694623061705a6293422f1a8e65deb2578ac953a97205dda7c5",
+    "--origin",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/ORIGIN.json",
+    "--origin-sha256",
+    "7fc1e4d28eec3e7cc03c6ceb98da48a84c5133cfd5d11dc9f1c2389b14ccf2f2",
+    "--source-manifest",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/SOURCE-MANIFEST.json",
+    "--source-manifest-sha256",
+    "470a0a24ac7d6a55bbede3ace6f46b4e43a3fb9bfcc8d9403bdba4b166b40ed0",
+    "--original-metadata",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_authority_copies_20261108_256539/packages/kev_hard_v1_4b/authority/metadata.json",
+    "--original-metadata-sha256",
+    "e19c373f41768617e37b402f413f076e8ccb6faf0e432c26a10f041828c93196",
+    "--numeric-checker",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/code/base_numeric_admission.py",
+    "--numeric-checker-sha256",
+    "b1c01580f263338632d8efc76ba727e0b82a7476e83773c495909f2d252d40cf",
+    "--numeric-origin",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/CANONICAL-NUMERIC-ORIGIN.json",
+    "--numeric-origin-sha256",
+    "88debdac26def252e970fcb453d1d762be8dc46a77cc14a845548c766ebf37d2",
+    "--numeric-acceptance",
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/NUMERIC-ACCEPTANCE.json",
+    "--numeric-acceptance-sha256",
+    "26810a8ac92d30bca971c646ab1d8c6acad9c691d6050d50a24a06dd78342f8d",
+    "--expected-numeric-acceptance-sha256",
+    "26810a8ac92d30bca971c646ab1d8c6acad9c691d6050d50a24a06dd78342f8d"
+  ],
+  "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+  "independent_verdict": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/VERDICT.json",
+    "sha256": "f0c6b35d2c1e0b553f987aff53529ff4b454a636103a6106bda8f65ee9c32684"
+  },
+  "launch_package": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/LAUNCH-PACKAGE.json",
+    "sha256": "f9efb8b38643cfe4e8c0e854531fae17890abc93fca74aa2192f260a30e3b160"
+  },
+  "launch_performed": false,
+  "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base",
+  "model_manifest_sha256": "866a92fd2e751f3221cc55d1d285d93d6285551cc50afe1a4bfb4772be1ff097",
+  "model_payload_identity": "Inherited accepted unchanged-storage assumption, current_payload_byte_identity_proven=false; no new weight hashing",
+  "numeric_acceptance": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/NUMERIC-ACCEPTANCE.json",
+    "sha256": "26810a8ac92d30bca971c646ab1d8c6acad9c691d6050d50a24a06dd78342f8d"
+  },
+  "numeric_checker": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/code/base_numeric_admission.py",
+    "sha256": "b1c01580f263338632d8efc76ba727e0b82a7476e83773c495909f2d252d40cf"
+  },
+  "numeric_gate": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/NUMERIC-V2-GATE.json",
+    "sha256": "247406fdd9bd0362aca188a4cf7ad89ce87a3c89ffc9bfc3d073239e47682c90"
+  },
+  "numeric_origin": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/CANONICAL-NUMERIC-ORIGIN.json",
+    "sha256": "88debdac26def252e970fcb453d1d762be8dc46a77cc14a845548c766ebf37d2"
+  },
+  "original_metadata": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_family_authority_copies_20261108_256539/packages/kev_hard_v1_4b/authority/metadata.json",
+    "sha256": "e19c373f41768617e37b402f413f076e8ccb6faf0e432c26a10f041828c93196"
+  },
+  "other_cell_gate": false,
+  "plan": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/kev_hard_v1_4b/PLAN.json",
+    "sha256": "972784843e213694623061705a6293422f1a8e65deb2578ac953a97205dda7c5"
+  },
+  "population": {
+    "count": 1088,
+    "gold": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_base_config_materialization_20261108/cpu/gold-panel.jsonl",
+      "sha256": "0fe01647f83d07a539bd2faac58f9daf21fa629efe1bb50c28d105f04e12fdae"
+    },
+    "items": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_base_config_materialization_20261108/cpu/items.jsonl",
+      "sha256": "2b4a075d2b4870bcf74dfc0e211929ca6f864c31cf6364840b20340ccaaf67b7"
+    },
+    "kinds": {
+      "choice": 826,
+      "score": 36,
+      "yes_no": 226
+    },
+    "ordered_inputs_sha256": "2da2b166f64d606a38bbdad1ea7a9abec139803207d4b322caa28b06d657f125",
+    "requests": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_base_config_materialization_20261108/kev_hard_config_4b_20261108/inference/requests.jsonl",
+      "sha256": "5727c1b186d41dfb8c84bfdf4df2d16a5e8db17220383dea83a3b66974d52b92"
+    },
+    "semantic_duplicates": 0,
+    "source": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_base_config_materialization_20261108/cpu/derived-source.parquet",
+      "sha256": "9b8d4ca333486b88b035c632c984af59ccbadea00e1f6dcb775ca6377f7056e2"
+    },
+    "source_rows": 1088
+  },
+  "production_root": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/COMMAND-ROOT.json",
+    "sha256": "79eee3d6e4e0a127b68e6526a7037ee1f805d2ab70762c715de6b4aec02fec26"
+  },
+  "prospective_amendment_commit": "78d8446",
+  "protocol": {
+    "adapter": "transformers_full_labels",
+    "batch_size": 1,
+    "dtype": "float32",
+    "family": "qwen3.5_decoder",
+    "hf32": false,
+    "id": "native-full-label-panel-v2",
+    "max_length": 8192,
+    "vocabulary": 248320
+  },
+  "publication_completed": false,
+  "publication_condition": "Parent publishes this exact per-cell binding and PER-CELL-ACCEPTANCE plus referenced independent verdict/checks/sourcepins additively on origin/main before start; record commit/time externally without changing these accepted bytes. Ceph artifact availability alone is not publication.",
+  "required_before_claim": [
+    "Before start/claim, parent must publish accepted exact 4B per-cell bindings and acceptance additively to origin/main under prospective amendment 78d8446, recording publication commit/time and these artifact SHA256 references. Publisher must inspect actual origin/main immediately before publication and preserve concurrent scientific-results edits, using an isolated checkout if needed. Review artifact storage on Ceph is not that publication. No launch is permitted until publication is confirmed.",
+    "Publish the concrete per-cell package, accepted review/root and commands with the required prelaunch experiment/wiki record and publication receipt through the authorized execution/publication workflow before runtime approval. This scheduling review performs no Git/wiki changes and grants no publication or runtime approval itself.",
+    "Immediately before any actual claim recheck harness DONE hash, absent FAILED and the same retained harness generation exited 0; the resource guard does not enforce this separate condition.",
+    "Reconcile fresh ownership, known intents, all pending rights and physical holders; use atomic allocation lock, exact pending/free comparisons, predecessor terminal/retained-container checks, repeated guard and allocation before-image. Changed relevant priority requires explicit finite-queue adjudication. This snapshot reserves nothing.",
+    "One frozen 1088-question public_fixed_base_test workload only for r3_runs/kev_hard_v1_4b on chip 5, max one claim; release at terminal. No automatic retry, extension, preemption or use of chips 0/1/2/3/4/6/7. No 9b concrete permission is issued.",
+    "Use start once after all conditions; supervise is its detached child/reconciliation binding, never a concurrent second start. No automatic retry. Host publishes authentic PREPARATION and SERVICE only after durable successful exact release/terminal; never launch raw CPU argv directly."
+  ],
+  "resource_policy": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/code/FIXED-BASE-RESOURCE-POLICY.json",
+    "sha256": "3e126589e060a55842fcd9258fca3227201d7e865a74d19c2fc345474f352e9f"
+  },
+  "resource_reserved": false,
+  "run": "r3_runs/kev_hard_v1_4b",
+  "runtime_protocol_binding_sha256": "16f6ecaa7c48aef310699890b658f97920cbb7fa75720530b0d1124e1587a8e8",
+  "scheduling_decision": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_actual_release_decision_review_20261108_428461/DECISION.json",
+    "sha256": "e4f2a4f9cb9a152a16a602d54c8812ed00028296c2999a0a2190585c1e72f6af"
+  },
+  "schema": "kev-hard-published-per-cell-execution-binding-v1",
+  "scientific_acceptance": false,
+  "scientific_result": null,
+  "scorer": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_successor_resource_bind_20261108/real-4b-after-2b-release-428461/code/score.py",
+    "sha256": "77154284f70f5b1209d4d5af76db49e2d958f410cad951a35949eaba60aa07c5"
+  },
+  "semantic_contract_sha256": "bec091c41194692c39fc85e001115cf10bee1dcf596980257c2612eeae5c9a96",
+  "sourcepins": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/kev_hard_4b_real_release_package_review_20261108_439016/SOURCEPINS.json",
+    "sha256": "acb78083c3fd53ce5ac88e71458ce09935d24e3cc95c977d5cd0eb5709af1e18"
+  },
+  "status": "ACCEPTED_FOR_PARENT_ADDITIVE_PUBLICATION_BEFORE_START"
+}
