@@ -1,0 +1,63 @@
+{
+  "status": "SCOPED_REUSE_ACCEPTED_RUNTIME_PACKAGE_PENDING",
+  "scientific_verdict": "ACCEPT_SCOPED_REUSE_WITH_BOUNDED_BASE_RC1_IMAGE_GAP",
+  "source_review": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-numerical-scope-review-20261108/VERDICT.json",
+    "sha256": "33677a1d368e246cdafcfb15a1a46f481b747fea91a1a641f998ccef388884a3"
+  },
+  "scope": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-base-numerical-evidence-scope-20261108/NUMERICAL-SCOPE.json",
+    "sha256": "f74862ba75bc6c4c82b4c43fb355dde06a7c2193ec91bfafb1ecc2d79d023d3f"
+  },
+  "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+  "models": [
+    {
+      "cell": "kev_hard_v1_08b",
+      "model": "Qwen3.5-0.8B-Base",
+      "model_manifest_sha256": "28783a11558cc6b99e9a045bae574d9c484fd3279572605268fd31f480b7e357"
+    },
+    {
+      "cell": "kev_hard_v1_2b",
+      "model": "Qwen3.5-2B-Base",
+      "model_manifest_sha256": "034f52ccb3d9c37438ee5ad882741b16bfa50ff63e79008d9fb48f4cc9469864"
+    },
+    {
+      "cell": "kev_hard_v1_4b",
+      "model": "Qwen3.5-4B-Base",
+      "model_manifest_sha256": "866a92fd2e751f3221cc55d1d285d93d6285551cc50afe1a4bfb4772be1ff097"
+    },
+    {
+      "cell": "kev_hard_v1_9b",
+      "model": "Qwen3.5-9B-Base",
+      "model_manifest_sha256": "e5155012784ee0a4bb59995749360fcf21b578858d58e62fe82376590ea8476f"
+    }
+  ],
+  "input_sha256": "d8ac23e54b44a6191158f35118d917d0eea2f2b25d7ea2bb54617ece4a0dbcc5",
+  "input_lengths": [
+    4097,
+    5296,
+    8192
+  ],
+  "paths": [
+    "reference",
+    "reference_repeat",
+    "adapter"
+  ],
+  "forwards_per_model": 9,
+  "total_forwards": 36,
+  "dtype": "float32",
+  "hf32": false,
+  "batch_size": 1,
+  "vocabulary": 248320,
+  "tolerance": 0,
+  "comparison": "same Base checkpoint and fixed RC1 image; no cross-image equality claim",
+  "npu_results_available": false,
+  "runtime_admitted": false,
+  "launch_authority": false,
+  "limits": [
+    "Reuse implementation and scientific protocol; old image Base or RC1 Instruct numerical receipts do not admit RC1 Base.",
+    "Project labels from saved full vectors on CPU; no additional label-specific or exact4758-token forward.",
+    "Actual source/config/plan/lifecycle package and prospective execution amendment remain pending.",
+    "Arithmetic qualification does not establish task performance, discrimination, generalization, or business gains."
+  ]
+}
