@@ -1,3 +1,5 @@
+> **2026-11-08 接收范围：研究参考组件，非生产运行闭环。** 当前权威状态见 [R1—R6 接收与开放项](../achitecture%20design/08-r1-r6-acceptance-and-open-items.md)。历史测试数和完成声明不替代该状态表。
+
 # agent-festival（Go 机器基座——统一架构的第一个合规适配器）
 
 > 来源：[yaojun01/agent-festival](https://github.com/yaojun01/agent-festival)（设计仓，决策台账
@@ -18,7 +20,7 @@
    授权准入（子任务权限 ⊆ 父任务权限 ⊆ 发起员工持有）+ 父预算均分切分（shares）
 3. **信封再签**（`cmd/sign`）：三算法签发 + 全套夹具再生物（语料唯一真源）
 
-200 个双向夹具（全仓口径——见 conformance-fixture-format.md 机生成清单）（valid 必须 0 错、invalid 必须拒且拒绝理由逐字钉 `_expect_match`）
+205 个双向夹具（全仓口径——见 conformance-fixture-format.md 机生成清单）（valid 必须 0 错、invalid 必须拒且拒绝理由逐字钉 `_expect_match`）
 构成行为规格——**夹具即规范**。
 
 ## 与 NGA 架构的映射（V0.2 三态四面）
@@ -46,23 +48,13 @@ typed 节点可表达的图 schema）；NGA 的语义轴（判断规格/采纳�
 ```bash
 cd agent-festival/go
 
-go test ./... -count=1        # 六包全测（含 JCS 差分、报警支柱、守卫电池）
+go test ./... -count=1        # 20 包全测（含 JCS 差分、报警支柱、守卫电池）
 go run ./cmd/validate         # 契约/信封/密钥库三套件（对 ../schema/examples）
-go run ./cmd/compose          # 执行图合成套件（9+32 夹具+5 守卫）
+go run ./cmd/compose          # 执行图合成套件（10+36 夹具+11 守卫）
 go run ./cmd/sign             # 再生全部信封语料（换新密钥，需整批提交）
 ```
+（包结构与依赖红线以 `cd go && go list ./...` 为单一真源——20 包：
+9 cmd 入口 + 11 internal 库；schema/ 9 个 schema 文件 + 205 夹具）
 
 Python oracle 侧：`pip install -r ../schema/requirements.txt` 后
 `python3 ../schema/validate.py` / `../schema/compose.py`。
-
-## 目录
-
-```text
-agent-festival/
-|-- go/                     # Go 机器基座
-|   |-- internal/rfc8785/   # JCS 规范化（cyberphone + 本地差分对照）
-|   |-- internal/validate/  # 契约/信封/密钥库校验（双引擎 fail-closed）
-|   |-- internal/compose/   # 图合成+⊆准入+预算切分
-|   `-- cmd/{validate,compose,sign}/
-`-- schema/                 # 三 schema + 200 夹具 + Python 冻结 oracle
-```

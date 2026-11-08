@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"testing"
 
 	"github.com/openjiuwen/agent-festival/go/internal/ledger"
@@ -143,7 +144,10 @@ func TestRetryReuseAfterTerminal(t *testing.T) {
 	if m.State("op-t1") != StateCompleted {
 		t.Fatalf("state after retry = %q, want completed", m.State("op-t1"))
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 4 { // adopted, dispatched, completed, reused
 		t.Fatalf("events = %d, want 4: %+v", len(events), events)
 	}
@@ -164,7 +168,10 @@ func TestChangedPayloadSameKey(t *testing.T) {
 	if o.Status != "rejected" {
 		t.Fatalf("changed payload = %q, want rejected", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 2 {
 		t.Fatalf("events = %d, want 2 (adopted + conflict)", len(events))
 	}
@@ -179,29 +186,40 @@ func TestChangedPayloadSameKey(t *testing.T) {
 	}
 }
 
-// TestCrashRecoveryTornTail is 14-A5 counterexample two: a crash mid-write
-// leaves a torn tail line; reopening resumes at the last complete event
-// boundary, and the grants pinned at adoption survive the crash (they ride
-// the event) so the 14-A4 revocation check is NOT vacuous after recovery.
+// TestCrashRecoveryTornTail is 14-A5 counterexample two, rewritten under the
+// unified torn-tail doctrine (P1-2, 2026-11-03): an externally damaged file
+// (a torn tail — under the machine's own temp+rename protocol a crash can
+// never leave one) is loaded read-only. TornTail() reports the damage, the
+// projection resumes at the last complete event boundary, and the grants
+// pinned at adoption survive (they ride the event) so the 14-A4 check is
+// NOT vacuous — but NO mutation and NO execution permission is granted
+// until the file is manually repaired and the machine re-Opened. The old
+// doctrine's final act ("the next append heals the torn tail away") is the
+// falsified posture: a torn tail that swallowed a dispatch line must never
+// re-arm the execution permit (xingchao's MR #2 probe).
 func TestCrashRecoveryTornTail(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "adopt.jsonl")
 	m := mustOpen(t, path)
 	if o := m.Adopt(testRequest("op-t3", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q, want adopted", o.Status)
 	}
-	// simulate the crash: a half-written line from a lost append race
+	// simulate external damage: a torn tail (a half-written line can only
+	// come from outside under the machine's temp+rename protocol)
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 	torn := append(raw, []byte(`{"event_type":"effect","arbitration_seq":1,"ide`)...)
-	if err := os.WriteFile(path, torn, 0o644); err != nil {
+	if err := os.WriteFile(path, torn, 0o600); err != nil {
 		t.Fatal(err)
 	}
 
 	m2 := mustOpen(t, path)
 	if m2.State("op-t3") != StateAdopted {
-		t.Fatalf("recovered state = %q, want adopted (torn tail skipped)", m2.State("op-t3"))
+		t.Fatalf("recovered state = %q, want adopted (torn tail skipped in projection)", m2.State("op-t3"))
+	}
+	if !m2.TornTail() {
+		t.Fatal("TornTail() = false, want true — the machine must remember the damage")
 	}
 	events, err := m2.Events()
 	if err != nil {
@@ -210,28 +228,90 @@ func TestCrashRecoveryTornTail(t *testing.T) {
 	if len(events) != 1 {
 		t.Fatalf("recovered events = %d, want 1 (torn tail excluded)", len(events))
 	}
-	// the pinned grants survived: a revoked live set is still rejected after recovery
-	if o := m2.Dispatch("op-t3", []ledger.Grant{pinGrants()[0]}); o.Status != "rejected" {
-		t.Fatalf("dispatch after recovery with revoked grants = %q, want rejected (pin survived)", o.Status)
+	// the covering live set is REFUSED, not dispatched: the torn tail may
+	// have swallowed this very operation's dispatch line — re-issuing the
+	// execution permit on a guess is the falsified lossy-but-safe posture
+	if o := m2.Dispatch("op-t3", pinGrants()); o.Status != "rejected" {
+		t.Fatalf("dispatch on torn tail = %q, want rejected — no execution permission on a damaged durable form: %s", o.Status, o.Detail)
 	}
-	// and the covering live set passes; the next append heals the torn tail away
-	if o := m2.Dispatch("op-t3", pinGrants()); o.Status != "dispatched" {
-		t.Fatalf("dispatch after recovery = %q, want dispatched: %s", o.Status, o.Detail)
+	// evidence preservation: the damaged bytes survive byte-for-byte —
+	// the old heal doctrine erased them on the next append
+	rawAfter, _ := os.ReadFile(path)
+	if !bytes.Equal(torn, rawAfter) {
+		t.Fatal("file bytes changed under a torn-tail machine — the machine must not rewrite (erase) damaged evidence")
 	}
-	raw2, _ := os.ReadFile(path)
-	if len(raw2) == 0 || raw2[len(raw2)-1] != '\n' {
-		t.Fatalf("file not healed to event boundaries: tail byte %q", raw2[len(raw2)-1])
+	// every mutator is refused, not just Dispatch
+	if o := m2.MarkUnresolved("op-t3"); o.Status != "rejected" {
+		t.Fatalf("MarkUnresolved on torn tail = %q, want rejected: %s", o.Status, o.Detail)
 	}
-	// sequence numbering continues from the last complete event, not from 0
-	if o := m2.MarkUnresolved("op-t3"); o.Status != "unresolved" {
+	// manual repair: drop the torn tail outside the machine, then re-Open.
+	// The pinned grants survived the whole episode (they ride the adoption
+	// event): a revoked live set is still rejected after repair.
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	m3 := mustOpen(t, path)
+	if m3.TornTail() {
+		t.Fatal("TornTail() still true after repair and re-Open")
+	}
+	if o := m3.Dispatch("op-t3", []ledger.Grant{pinGrants()[0]}); o.Status != "rejected" {
+		t.Fatalf("dispatch after repair with revoked grants = %q, want rejected (pin survived)", o.Status)
+	}
+	// the covering live set now passes; sequence numbering continues from
+	// the last complete event, not from 0
+	if o := m3.Dispatch("op-t3", pinGrants()); o.Status != "dispatched" {
+		t.Fatalf("dispatch after repair = %q, want dispatched: %s", o.Status, o.Detail)
+	}
+	if o := m3.MarkUnresolved("op-t3"); o.Status != "unresolved" {
 		t.Fatalf("mark unresolved = %q, want unresolved: %s", o.Status, o.Detail)
 	}
-	events, _ = m2.Events()
-	if len(events) != 3 {
-		t.Fatalf("events after recovery writes = %d, want 3", len(events))
+	events, err = m3.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R45 m-1): %v", err)
 	}
-	if events[1].ArbitrationSeq != 1 || events[2].ArbitrationSeq != 2 {
-		t.Fatalf("recovered sequence numbering wrong: %d %d", events[1].ArbitrationSeq, events[2].ArbitrationSeq)
+	// the revoked-grants refusal above is now recorded as a control event
+	// (E3) — the post-repair stream is adopted / control(rejected, 14-A4) /
+	// dispatched / unresolved
+	if len(events) != 4 {
+		t.Fatalf("events after repair = %d, want 4", len(events))
+	}
+	if events[1].EventType != "control" || events[1].Outcome.Status != "rejected" {
+		t.Fatalf("events[1] = (%s, %s), want (control, rejected) — the 14-A4 refusal must be recorded", events[1].EventType, events[1].Outcome.Status)
+	}
+	if events[2].ArbitrationSeq != 2 || events[3].ArbitrationSeq != 3 {
+		t.Fatalf("recovered sequence numbering wrong: %d %d", events[2].ArbitrationSeq, events[3].ArbitrationSeq)
+	}
+}
+
+// TestAppendRefusesOutOfBandTornTail is the write-time face of the torn-tail
+// doctrine (P1-2, the adopt-side twin of evidlog's R10 face-B byte
+// re-check): damage that lands BETWEEN Open and write — the Open-time flag
+// is false, the bytes are the truth — is caught at append time, and the
+// refusal is what guarantees the rewrite never erases damaged evidence.
+func TestAppendRefusesOutOfBandTornTail(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-oob", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q, want adopted", o.Status)
+	}
+	// out-of-band damage after Open: the flag is false, only the write-time
+	// byte re-check can catch it
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.WriteString(`{"event_type":"eff`); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if o := m.Adopt(testRequest("op-oob2", digestA, pinGrants())); o.Status != "rejected" {
+		t.Fatalf("adopt after out-of-band torn tail = %q, want rejected: %s", o.Status, o.Detail)
+	}
+	// the machine is still a usable reader: state and events are intact
+	if m.State("op-oob") != StateAdopted {
+		t.Fatalf("state after refused write = %q, want adopted", m.State("op-oob"))
 	}
 }
 
@@ -261,14 +341,63 @@ func TestUnresolvedFirstClass(t *testing.T) {
 	if o := m.MarkCompleted("op-t4"); o.Status != "completed" {
 		t.Fatalf("reconciliation = %q, want completed: %s", o.Status, o.Detail)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	got := []string{}
 	for _, e := range events {
 		got = append(got, e.Outcome.Status)
 	}
-	want := []string{"adopted", "unresolved", "completed"}
+	// the two refusals above are now VISIBLE as control events (E3): a
+	// refusal record is a first-class persistent event, not a discarded
+	// return value — the chain keeps the fixture's transition shape with
+	// the two rejections recorded between
+	want := []string{"adopted", "unresolved", "rejected", "rejected", "completed"}
 	if fmt.Sprint(got) != fmt.Sprint(want) {
-		t.Fatalf("status chain = %v, want %v (the crash-unresolved-then-complete fixture shape)", got, want)
+		t.Fatalf("status chain = %v, want %v (the crash-unresolved-then-complete fixture shape, refusals recorded)", got, want)
+	}
+}
+
+// TestRefusalWritesControlEvent pins E3: a 14-A4 refusal is recorded as a
+// control event (an audit fact) without transitioning state or entering the
+// idempotency registry — a re-Open replays it as no state, and the covering
+// dispatch afterwards proceeds normally. Pre-E3 the signature guard fired
+// tracelessly: a host had no way to audit how many revoked-permission
+// attempts were blocked.
+func TestRefusalWritesControlEvent(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-ctl", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q, want adopted", o.Status)
+	}
+	if o := m.Dispatch("op-ctl", []ledger.Grant{pinGrants()[0]}); o.Status != "rejected" {
+		t.Fatalf("dispatch with revoked grants = %q, want rejected", o.Status)
+	} else if o.Event == nil || o.Event.EventType != "control" || o.Event.Outcome.Status != "rejected" {
+		t.Fatalf("refusal event = %+v, want a control/rejected event", o.Event)
+	}
+	// the refusal transitioned nothing: the op is still dispatchable
+	if m.State("op-ctl") != StateAdopted {
+		t.Fatalf("state after refusal = %q, want adopted — a control event is an audit fact, not a transition", m.State("op-ctl"))
+	}
+	if o := m.Dispatch("op-ctl", pinGrants()); o.Status != "dispatched" {
+		t.Fatalf("covering dispatch = %q, want dispatched: %s", o.Status, o.Detail)
+	}
+	// replay: the control event survives load and validation but projects
+	// to no state
+	m2 := mustOpen(t, path)
+	if m2.State("op-ctl") != StateDispatched {
+		t.Fatalf("replayed state = %q, want dispatched — the control event must not project", m2.State("op-ctl"))
+	}
+	events, err := m2.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
+	if len(events) != 3 {
+		t.Fatalf("events = %d, want 3 (adopted, control, dispatched)", len(events))
+	}
+	if events[1].EventType != "control" {
+		t.Fatalf("events[1] = %s, want control", events[1].EventType)
 	}
 }
 
@@ -485,7 +614,10 @@ func TestReplayKeepsWinnerIdentity(t *testing.T) {
 	if o := m2.Dispatch("op-win", pinGrants()); o.Status != "dispatched" {
 		t.Fatalf("dispatch after reload = %q, want dispatched: %s", o.Status, o.Detail)
 	}
-	events, _ := m2.Events()
+	events, err := m2.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 3 {
 		t.Fatalf("events = %d, want 3", len(events))
 	}
@@ -595,7 +727,10 @@ func TestAccountabilityRidesEveryEvent(t *testing.T) {
 	if o := m.MarkCompleted("op-acc"); o.Status != "completed" {
 		t.Fatalf("complete = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 6 {
 		t.Fatalf("events = %d, want 6", len(events))
 	}
@@ -623,7 +758,10 @@ func TestLoadRejectsLaunderedShapes(t *testing.T) {
 	if o := m.Adopt(testRequest("op-seed", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("seed adopt = %q", o.Status)
 	}
-	seedEvents, _ := m.Events()
+	seedEvents, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R45 m-1): %v", err)
+	}
 	if len(seedEvents) != 1 {
 		t.Fatalf("seed events = %d", len(seedEvents))
 	}
@@ -717,7 +855,10 @@ func TestHealKeepsNoTrailingNewlineEvent(t *testing.T) {
 	if m3.State("op-nl") != StateUnresolved {
 		t.Fatalf("state after reopen = %q, want unresolved — the adopted event was dropped on heal", m3.State("op-nl"))
 	}
-	events, _ := m3.Events()
+	events, err := m3.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 2 {
 		t.Fatalf("events = %d, want 2 (adopted preserved + unresolved): %+v", len(events), events)
 	}
@@ -739,7 +880,10 @@ func TestAdoptRejectsNonconformingRequests(t *testing.T) {
 	if o := m.Adopt(badDigest); o.Status != "rejected" {
 		t.Fatalf("malformed-digest request = %q, want rejected", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 0 {
 		t.Fatalf("nonconforming requests wrote %d events, want 0", len(events))
 	}
@@ -763,7 +907,10 @@ func TestOpenRejectsFoldedSeq(t *testing.T) {
 	if o := m.Adopt(testRequest("op-f53", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	adopted := events[0]
 	adopted.ArbitrationSeq = 9007199254740993
 	first, err := json.Marshal(adopted)
@@ -798,7 +945,10 @@ func TestOpenRejectsTransitionOrderBypass(t *testing.T) {
 	if o := m.Adopt(testRequest("op-tr", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	first, err := json.Marshal(events[0])
 	if err != nil {
 		t.Fatal(err)
@@ -949,7 +1099,10 @@ func TestAdoptRejectsInvalidUTF8(t *testing.T) {
 	if o := m.Adopt(badSession); o.Status != "rejected" {
 		t.Fatalf("invalid-UTF-8 accountability session = %q, want rejected", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 0 {
 		t.Fatalf("invalid-UTF-8 requests wrote %d events, want 0", len(events))
 	}
@@ -976,7 +1129,10 @@ func TestOpenAcceptsLegalHighSeqAcross2e53(t *testing.T) {
 	if o := m.Adopt(testRequest("op-hi", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	adopted := events[0]
 	adopted.ArbitrationSeq = 9007199254740992 // 2^53
 	first, err := json.Marshal(adopted)
@@ -1079,7 +1235,10 @@ func TestPinIsNotCallerAliased(t *testing.T) {
 	if o := m.MarkCompleted("op-alias"); o.Status != "completed" {
 		t.Fatalf("completed = %q, want completed", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	for i, e := range events {
 		if e.Accountability == nil || e.Accountability.Role != "employee" {
 			got := "<nil>"
@@ -1118,7 +1277,10 @@ func TestReturnedEventsDoNotAliasPin(t *testing.T) {
 	if o := m.MarkCompleted("op-out"); o.Status != "completed" {
 		t.Fatalf("completed = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	for i, e := range events {
 		if e.Accountability == nil || e.Accountability.Role != "employee" || e.Accountability.Session != "sess-t" {
 			got := "<nil>"
@@ -1142,7 +1304,10 @@ func TestOpenRejectsNoIdemBypass(t *testing.T) {
 	if o := m.Adopt(testRequest("op-ni", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	// form 1: adopted event with idempotency stripped
 	stripped := events[0]
 	stripped.Idempotency = nil
@@ -1201,7 +1366,10 @@ func TestCounterExhaustionRefusesWrites(t *testing.T) {
 	if o := m.Adopt(testRequest("op-ex", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	maxed := events[0]
 	maxed.ArbitrationSeq = math.MaxInt64
 	line, err := json.Marshal(maxed)
@@ -1237,7 +1405,10 @@ func TestOpenRejectsAttributionDivergence(t *testing.T) {
 	if o := m.Adopt(testRequest("op-at", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	effect := events[0]
 	effect.EventType = "effect"
 	effect.ArbitrationSeq = 1
@@ -1290,7 +1461,10 @@ func TestOpenRejectsConflictCarryingIdem(t *testing.T) {
 	if o := m.Adopt(testRequest("op-cf", digestB, pinGrants())); o.Status != "rejected" {
 		t.Fatalf("conflict = %q, want rejected", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	if len(events) != 2 || events[1].Outcome.Status != "conflict" {
 		t.Fatalf("expected adopted+conflict, got %d events", len(events))
 	}
@@ -1348,7 +1522,10 @@ func TestOpenRejectsSingleViolationShapes(t *testing.T) {
 		if o := m.Dispatch("op-sv", pinGrants()); o.Status != "dispatched" {
 			t.Fatalf("dispatch = %q: %s", o.Status, o.Detail)
 		}
-		events, _ := m.Events()
+		events, err := m.Events()
+		if err != nil {
+			t.Fatalf("Events() failed (R44 m-2): %v", err)
+		}
 		var lines []string
 		for _, e := range events {
 			line, err := json.Marshal(e)
@@ -1521,7 +1698,10 @@ func TestOpenRejectsSeqDomainShapes(t *testing.T) {
 	if o := m.Adopt(testRequest("op-sq", digestA, pinGrants())); o.Status != "adopted" {
 		t.Fatalf("adopt = %q", o.Status)
 	}
-	events, _ := m.Events()
+	events, err := m.Events()
+	if err != nil {
+		t.Fatalf("Events() failed (R44 m-2): %v", err)
+	}
 	writePair := func(second string) error {
 		first, err := json.Marshal(events[0])
 		if err != nil {
@@ -1539,7 +1719,7 @@ func TestOpenRejectsSeqDomainShapes(t *testing.T) {
 		`"identity":{"business_request_id":"br-t","operation_id":"op-sq"},` +
 		`"versions":{"evidence":"e","rule":"r","model":"m","readout":"ro","policy":"p"},` +
 		`"outcome":{"status":"dispatched"},` + idem + `}`
-	err := writePair(overflow)
+	err = writePair(overflow) // R44 m-2: reuse the events err (same scope since the Events check)
 	if err == nil {
 		t.Fatal("int64-overflow seq line was absorbed at load")
 	}
@@ -1621,5 +1801,351 @@ func TestReturnedEventGrantsDoNotAliasPin(t *testing.T) {
 	// control: the covering live set dispatches
 	if d := m.Dispatch("op-gr", pinGrants()); d.Status != "dispatched" {
 		t.Fatalf("dispatch with covering live set = %q, want dispatched: %s", d.Status, d.Detail)
+	}
+}
+
+// TestStaleInstanceWriteRejected pins the write-time seq-continuity gate
+// (R11 MAJOR, probe S1 promoted): a stale instance's append — one whose
+// Open-time view predates another instance's durable write — is a false
+// success that poisons the file for the next Open. The gate must refuse it
+// in the guilty caller (ADOPT.STALE_WRITER) instead. The legal faces are
+// pinned by TestCrashRecoveryTornTail / TestHealKeepsNoTrailingNewlineEvent:
+// recovery re-Open, torn-tail healing and no-newline survivors all carry
+// seq == lastParsed+1 and pass by construction.
+func TestStaleInstanceWriteRejected(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m1 := mustOpen(t, path)
+	if o := m1.Adopt(testRequest("op-a", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("m1 adopt = %q", o.Status)
+	}
+	// a second instance absorbs the file and writes its own event
+	m2 := mustOpen(t, path)
+	if o := m2.Adopt(testRequest("op-b", digestB, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("m2 adopt = %q", o.Status)
+	}
+	// the STALE m1 (its view ends at seq 0) writes again: the gate must
+	// refuse — pre-gate this emitted a duplicate seq 1 and bricked the file
+	o := m1.Adopt(testRequest("op-c", digestA, pinGrants()))
+	if o.Status != "rejected" {
+		t.Fatalf("stale write succeeded with %q — false success poisoning the durable form", o.Status)
+	}
+	// pin the neutral key too (R11 inner m4: first bracketed key in the
+	// package — a rename would silently break key-matching callers)
+	if !strings.Contains(o.Detail, "ADOPT.STALE_WRITER") {
+		t.Fatalf("refusal detail lacks the neutral key: %q", o.Detail)
+	}
+	if m3, err := Open(path); err != nil {
+		t.Fatalf("file poisoned by the stale write: %v", err)
+	} else if m3.State("op-a") != StateAdopted || m3.State("op-b") != StateAdopted {
+		t.Fatalf("legal events lost: op-a=%v op-b=%v", m3.State("op-a"), m3.State("op-b"))
+	} else if s := m3.State("op-c"); s == StateAdopted {
+		t.Fatalf("stale write leaked into the durable form: op-c=%v", s)
+	}
+}
+
+// TestEraseFaceStaleWriteRejected pins the erase face of the
+// ADOPT.STALE_WRITER gate (R12 B-F5, same family as evidlog's erase pin):
+// a foreign truncation to zero bytes after Open, then the stale instance's
+// write must be REFUSED — the bare len>0 form of the gate (the exact
+// disease R11 inner MAJOR-1 removed from evidlog) would let a stale event
+// write itself in as the new first line, silently erasing op-a's audit
+// data from the rebuilt file.
+func TestEraseFaceStaleWriteRejected(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-a", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q", o.Status)
+	}
+	if err := os.WriteFile(path, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	o := m.Adopt(testRequest("op-b", digestB, pinGrants()))
+	if o.Status != "rejected" {
+		t.Fatalf("stale write onto an erased file succeeded with %q — false success resetting the ledger base", o.Status)
+	}
+	if !strings.Contains(o.Detail, "ADOPT.STALE_WRITER") {
+		t.Fatalf("erase-face refusal lacks the neutral key: %q", o.Detail)
+	}
+	// the refusal must leave the erased file ALONE (0 bytes): the bare
+	// len>0 gate form would have rebuilt it from the stale event alone,
+	// silently dropping op-a's audit data
+	if raw, err := os.ReadFile(path); err != nil {
+		t.Fatal(err)
+	} else if len(raw) != 0 {
+		t.Fatalf("erased file silently rebuilt from the stale write — %d bytes of stale-only ledger", len(raw))
+	}
+}
+
+// TestAdoptPreservesDurableMode pins minor-ledger L9 (the evidlog twin):
+// the whole-file replace (CreateTemp+Rename) must not flip the durable
+// file's permission bits — os.CreateTemp is 0600, so a bare Adopt silently
+// took a 0644 ledger to 0600 and group/other audit readers lost access.
+func TestAdoptPreservesDurableMode(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-mode-1", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("first adopt failed: %+v", o)
+	}
+	if err := os.Chmod(path, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// same key retries are recorded too (reused events Append as well), so
+	// one more call suffices to exercise the replace path
+	if o := m.Adopt(testRequest("op-mode-1", digestA, pinGrants())); o.Status != "reused" {
+		t.Fatalf("retry outcome changed: %+v", o)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got != 0o644 {
+		t.Fatalf("Adopt flipped the durable mode: got %o, want 644 — audit readers silently lost access", got)
+	}
+	// second face: a NON-0644 existing mode must be preserved too — this is
+	// what kills the "hardcode 0644" degenerate form of the fix (the Stat
+	// branch is the only thing keeping an operator's chmod 0640 sticky).
+	if err := os.Chmod(path, 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if o := m.Adopt(testRequest("op-mode-1", digestA, pinGrants())); o.Status != "reused" {
+		t.Fatalf("retry outcome changed: %+v", o)
+	}
+	if info, err = os.Stat(path); err != nil {
+		t.Fatal(err)
+	} else if got := info.Mode().Perm(); got != 0o640 {
+		t.Fatalf("Adopt clobbered the operator's mode: got %o, want 640 — the Stat branch degenerated to a hardcoded 0644", got)
+	}
+}
+
+// TestFirstWriteOwnerOnlyUnderUmask077 is P1-1's permanent probe (adapted
+// from xingchao's MR #2 review probe TestNGAReviewFirstWrite): a component
+// must not widen visibility past the deployment's umask — under umask 077
+// the first durable write stays owner-only. The pre-fix code Chmod'ed new
+// files to 0644 unconditionally (os.Chmod bypasses umask by design), which
+// silently overrode the operator's expressed policy; the fix keeps
+// CreateTemp's owner-only 0600, so this holds under ANY umask.
+func TestFirstWriteOwnerOnlyUnderUmask077(t *testing.T) {
+	old := syscall.Umask(0o077)
+	defer syscall.Umask(old)
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	if o := m.Adopt(testRequest("op-umask", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt = %q, want adopted", o.Status)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := info.Mode().Perm(); got&0o077 != 0 {
+		t.Fatalf("mode=%04o under umask 077; expected owner-only default — the component widened visibility past the deployment's umask (P1-1)", got)
+	}
+}
+
+// TestDurableModeStatErrorFailsLoud is P1-1's second probe: a Stat failure
+// that is not "file does not exist" must surface as an error, not silently
+// fall back to a new-file default. A file-as-parent path (ENOTDIR) is the
+// portable trigger.
+func TestDurableModeStatErrorFailsLoud(t *testing.T) {
+	dir := t.TempDir()
+	blocker := filepath.Join(dir, "blocker")
+	if err := os.WriteFile(blocker, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := durableMode(filepath.Join(blocker, "adopt.jsonl")); err == nil {
+		t.Fatal("durableMode returned nil error for a non-not-exist Stat failure — a silent new-file default would mask it (P1-1)")
+	}
+}
+
+// TestE6_ConditionalCommit is the E6 experiment (C4, xingchao 198232012
+// §一.4): DispatchIfCurrent pins the caller's observed dispatch seq, and a
+// stale observation (an intervening decision took effect between check and
+// submit) is refused with a control event — the newest correction can
+// never be silently reordered behind an older world-view.
+// Mutation probe: remove the version gate in DispatchIfCurrent and the
+// stale-commit case below succeeds (red).
+func TestE6_ConditionalCommit(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+
+	// The optimistic-concurrency form: the host OBSERVES the world (A is
+	// adopted, never dispatched → observedDispatchSeq = -1), an
+	// intervening decision lands (B dispatches — the "D2 took effect
+	// between check and submit" race), and THEN the host submits A under
+	// its observation. Drive the race on B itself: the host observed B
+	// already DISPATCHED at seq N (that was its world-view when it
+	// planned the submit), a reconciliation event (A's unresolved) lands
+	// in between, and the host re-submits B with the seq it observed.
+	// Reachability note (the finding, stated): B, once dispatched, is
+	// gated by the STATE gate (dispatched is not adoptable), which
+	// precedes the version gate by design; and an operation still ADOPTED
+	// never had a dispatch seq to go stale (adopted → dispatched →
+	// unresolved, unresolved refuses re-dispatch: no auto-retry). So
+	// within one operation the version gate is unreachable from the plain
+	// flow — its real face is the host submitting a seq observed for a
+	// DIFFERENT operation, or from a speculative/future reading. Drive it
+	// directly: the host submits A with a seq it "observed" that A never
+	// had (a corrupted or cross-wired observation):
+	if o := m.Adopt(testRequest("op-e6-a", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("A adopt = %q", o.Status)
+	}
+	if o := m.Adopt(testRequest("op-e6-b", digestB, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("B adopt = %q", o.Status)
+	}
+	if o := m.Dispatch("op-e6-b", pinGrants()); o.Status != "dispatched" {
+		t.Fatalf("B dispatch = %q", o.Status)
+	}
+	events, err := m.Events()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bSeq := int64(-1)
+	for _, e := range events {
+		if e.Idempotency != nil && e.Idempotency.OperationID == "op-e6-b" && e.Outcome.Status == "dispatched" {
+			bSeq = e.ArbitrationSeq
+		}
+	}
+
+	// The cross-wired stale submit: the host submits A while holding B's
+	// dispatch seq as its observation (the "D2 took effect" race
+	// abstracted — the observation predates the current state of A's
+	// world). A is adopted and grants cover; the version gate must refuse:
+	o := m.DispatchIfCurrent("op-e6-a", pinGrants(), bSeq)
+	if o.Status != "rejected" {
+		t.Fatalf("stale conditional commit = %q, want rejected — the caller's observation (seq %d) is not A's version (E6/C4)", o.Status, bSeq)
+	}
+	// R30 m-6: the marker is "never this operation's version" — the
+	// reachable face is forged/cross-wired observations (the gate's
+	// st.dispatchedSeq is always -1), not a same-op CAS story.
+	if !strings.Contains(o.Detail, "never this operation's version") {
+		t.Fatalf("rejection detail = %q, want the forged-observation marker", o.Detail)
+	}
+	if o.Event == nil {
+		t.Fatal("stale rejection left no control event — the refusal must be auditable (E3 family)")
+	}
+
+	// The fresh submit (-1 = "no dispatch observed yet") is the correct
+	// form for a first dispatch — accepted, revocation-checked, committed:
+	o = m.DispatchIfCurrent("op-e6-a", pinGrants(), -1)
+	if o.Status != "dispatched" {
+		t.Fatalf("fresh conditional commit = %q (%s), want dispatched", o.Status, o.Detail)
+	}
+
+	// The state gate still precedes: a second conditional commit on the
+	// now-dispatched A hits the state gate (not the version gate) —
+	// pin the precedence:
+	o = m.DispatchIfCurrent("op-e6-a", pinGrants(), -1)
+	if o.Status != "rejected" || !strings.Contains(o.Detail, "not adoptable for dispatch") {
+		t.Fatalf("second conditional commit = %q (%s), want the state-gate rejection", o.Status, o.Detail)
+	}
+
+	// R29 M-1: the sentinel contract pinned — observedDispatchSeq 0 is NOT
+	// a valid fresh observation (0 is the seq of the first adoption event;
+	// dispatch seqs are >= 1, and -1 is the pre-dispatch sentinel). A
+	// never-dispatched operation submitted with observed=0 must be
+	// REFUSED (0 >= 0 and 0 != -1): the documented sentinel semantics
+	// actually hold.
+	m2 := mustOpen(t, filepath.Join(t.TempDir(), "adopt2.jsonl"))
+	if o := m2.Adopt(testRequest("op-e6-s", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("sentinel: adopt = %q", o.Status)
+	}
+	o = m2.DispatchIfCurrent("op-e6-s", pinGrants(), 0)
+	if o.Status != "rejected" || !strings.Contains(o.Detail, "never this operation's version") {
+		t.Fatalf("sentinel: observed=0 on a never-dispatched op = %q (%s), want the forged-observation rejection (0 is not the -1 sentinel)", o.Status, o.Detail)
+	}
+	o = m2.DispatchIfCurrent("op-e6-s", pinGrants(), -1)
+	if o.Status != "dispatched" {
+		t.Fatalf("sentinel: observed=-1 on a never-dispatched op = %q (%s), want dispatched", o.Status, o.Detail)
+	}
+
+	// R38 M-1: the REPLAY-side sentinel — the live path's probes never
+	// reopen; a reopened machine must reject observed=0 the same way (the
+	// replay-side -1 initialization is a SECOND write site whose removal
+	// was previously invisible). Mutation probe: delete the replay-side
+	// -1 initialization and this arm turns dispatched (red).
+	path3 := filepath.Join(t.TempDir(), "adopt3.jsonl")
+	m3 := mustOpen(t, path3)
+	if o := m3.Adopt(testRequest("op-e6-r", digestA, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("reopen: adopt = %q", o.Status)
+	}
+	m3reopened, err := Open(path3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	o = m3reopened.DispatchIfCurrent("op-e6-r", pinGrants(), 0)
+	if o.Status != "rejected" || !strings.Contains(o.Detail, "never this operation's version") {
+		t.Fatalf("reopen: observed=0 after replay = %q (%s), want the forged-observation rejection — the replay-side sentinel is broken", o.Status, o.Detail)
+	}
+	// R44 m-1: ANY negative observation is the fresh form — pinned with
+	// -2 BEFORE the -1 dispatch commits (the gate treats every negative
+	// as fresh; the doc previously claimed "-1 only"). Mutation probe:
+	// change the gate to observedDispatchSeq != -1 and this arm goes red.
+	o = m3reopened.DispatchIfCurrent("op-e6-r", pinGrants(), -2)
+	if o.Status != "dispatched" {
+		t.Fatalf("m-1 probe: observed=-2 = %q (%s), want dispatched (any negative is the fresh form)", o.Status, o.Detail)
+	}
+	// (the earlier "-1 after replay" arm is subsumed by the -2 arm — any
+	// negative is the fresh form, R44 m-1)
+	// R30 M-4: the ledger detail must not claim a version check the
+	// fresh-observation form skipped — pinned by form. Mutation probe:
+	// collapse the detail back to one "after the version check" string
+	// and this assertion goes red.
+	if !strings.Contains(o.Event.Outcome.Detail, "fresh-observation form") {
+		t.Fatalf("sentinel: fresh-form dispatch detail = %q, want the honest fresh-observation marker (no version-check claim)", o.Event.Outcome.Detail)
+	}
+}
+
+// TestE6_NoVersionCheckDetailEverLands is the R31 M-2 negative probe: with
+// the dead arms removed, NO event in ANY reachable flow may claim "after
+// the version check (E6/C4 conditional commit)" on a SUCCESS path — if a
+// future grammar change makes conditional commits landable and someone
+// restores that detail string, this goes red (the audit-integrity claim
+// becomes testable again).
+func TestE6_NoVersionCheckDetailEverLands(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "adopt.jsonl")
+	m := mustOpen(t, path)
+	// drive every reachable transition on two operations (plain + conditional forms)
+	for _, op := range []string{"op-nv-1", "op-nv-2"} {
+		if o := m.Adopt(testRequest(op, digestA, pinGrants())); o.Status != "adopted" {
+			t.Fatalf("adopt %s = %q", op, o.Status)
+		}
+		if o := m.Dispatch(op, pinGrants()); o.Status != "dispatched" {
+			t.Fatalf("dispatch %s = %q", op, o.Status)
+		}
+	}
+	if o := m.Adopt(testRequest("op-nv-3", digestB, pinGrants())); o.Status != "adopted" {
+		t.Fatalf("adopt 3 = %q", o.Status)
+	}
+	if o := m.DispatchIfCurrent("op-nv-3", pinGrants(), -1); o.Status != "dispatched" {
+		t.Fatalf("conditional dispatch = %q", o.Status)
+	}
+	events, err := m.Events()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, e := range events {
+		if e.Outcome.Status == "dispatched" && strings.Contains(e.Outcome.Detail, "after the version check") {
+			t.Fatalf("event %d detail = %q — a version-check claim landed on a success path (the dead arm revived)", i, e.Outcome.Detail)
+		}
+	}
+}
+
+// TestE6_DocContractPinned is the R43 M-1 doc-text probe: the
+// DispatchIfCurrent doc must NOT claim a "still current at commit time"
+// CAS success story (the R29-M-2-era narrative retired by the R31/R43
+// truthfulness fixes) — a host reading the first paragraph implements the
+// host tier from it. Mutation probe: restore a "still current" claim in
+// the doc and this goes red (docstring-pin discipline, ledger
+// docstring_pin_test.go precedent form).
+func TestE6_DocContractPinned(t *testing.T) {
+	src, err := os.ReadFile("adopt.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(src)
+	if strings.Contains(text, "still current at commit time") {
+		t.Fatal("M-1 probe: the DispatchIfCurrent doc still claims a still-current CAS commit — the retired narrative resurrected")
+	}
+	if !strings.Contains(text, "forged or cross-wired") || !strings.Contains(text, "forged-observation gate") {
+		t.Fatal("M-1 probe: the truthful contract sentences are missing from the doc")
 	}
 }

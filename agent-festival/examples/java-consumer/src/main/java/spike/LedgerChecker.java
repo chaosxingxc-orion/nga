@@ -12,14 +12,14 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Ledger checker — JSON Schema phase plus the eight cross-event rule families
+ * Ledger checker — JSON Schema phase plus the nine cross-event rule families
  * JSON Schema cannot express, mirroring schema/ledger.py (the Python oracle)
- * family by family. These rules are governance semantics (the six-piece
+ * family by family (the section headers below number RULES, eleven of them, implemented by ten methods — the seq family spans rules 1, 2 and 4, the literal gate riding it). These rules are governance semantics (the six-piece
  * domain), i.e. the legal self-build zone; the generic machinery (parsing,
  * schema evaluation, regex) all rides industry libraries.
  *
  * <p>Wrong-reason alignment: rule messages carry the corpus's guard phrases
- * ({@code strictly increasing}, {@code int64}, {@code float syntax},
+ * ({@code strictly increasing}, {@code int64}, {@code SEQ_FLOAT_SYNTAX},
  * {@code bypass write}, {@code transition}, {@code second adopted}, ...).
  * Which of those phrases are language-neutral field tokens vs English prose
  * pinned to the reference implementations' wording is quantified by
@@ -34,9 +34,6 @@ public final class LedgerChecker {
             Set.of("dispatched", "unresolved", "completed", "failed");
     private static final BigInteger INT64_MAX =
             BigInteger.valueOf(9_223_203_685_477_5807L);
-    /** 2^53 as BigInteger — the exact-representation domain boundary. */
-    private static final BigInteger TWO_POW_53 =
-            BigInteger.valueOf(9_007_199_254_740_992L);
 
     private final SchemaChecker schemaPhase;
 
@@ -47,7 +44,7 @@ public final class LedgerChecker {
 
     /**
      * Full check: schema first (short-circuit, as the Python oracle does),
-     * then the eight cross-event families.
+     * then the nine cross-event families.
      *
      * @param doc stripped ledger document
      * @return error lines, empty when the document conforms
@@ -63,7 +60,7 @@ public final class LedgerChecker {
         }
         ruleMonotonicSeq(events, errs);
         ruleDigestPerOperation(events, errs);
-        ruleFloatSyntaxBeyond2e53(events, errs);
+        ruleFloatSyntax(events, errs);
         ruleStatusFamilies(events, errs);
         ruleGrantPinRidesAdopted(events, errs);
         ruleTransitionDag(events, errs);
@@ -74,7 +71,7 @@ public final class LedgerChecker {
         return errs;
     }
 
-    // -- family 1+2: strictly increasing arbitration_seq, int64 domain ------
+    // -- rule 1+2: strictly increasing arbitration_seq, int64 domain ------
 
     private void ruleMonotonicSeq(List<ObjectNode> events, List<String> errs) {
         List<BigInteger> seqs = new ArrayList<>();
@@ -97,7 +94,7 @@ public final class LedgerChecker {
         }
     }
 
-    // -- family 3: one payload digest per operation id ----------------------
+    // -- rule 3: one payload digest per operation id ----------------------
 
     private void ruleDigestPerOperation(List<ObjectNode> events, List<String> errs) {
         Map<String, String> seen = new HashMap<>();
@@ -117,35 +114,31 @@ public final class LedgerChecker {
         }
     }
 
-    // -- family 4: float syntax beyond ±2^53 has no parser-independent value -
-    // RULE DOMAIN NOTE (spike finding): both reference oracles decide this rule
-    // in the float64 domain — Go evaluates n.Float64() (the json.Number text
-    // parsed through float64, so 9007199254740993.0 folds to exactly 2^53 and
-    // is NOT "beyond"), Python evaluates the parsed double likewise. A Java
-    // consumer that instead compares the EXACT decimal value (BigDecimal)
-    // diverges on odd float twins: 9007199254740993.0 would be rejected. The
-    // comparison below therefore mirrors the float64 decision domain, while
-    // the message prints whatever the decode arm preserved (folded double or
-    // exact decimal — a message-value face difference, not a verdict one).
+    // -- rule 4 (R16 数值域章程 v2): integer literals only — no float math -
+    // The v1 ±2^53 sub-domain NOTE retired with the charter (it described the
+    // folded-double decision domain, which no longer exists: the reference
+    // oracles now read the LITERAL — Go json.Number.Int64(), Python
+    // isinstance(int) — and reject all float syntax uniformly; the message
+    // prints whatever the decode arm preserved, a message-value face
+    // difference only).
 
-    private void ruleFloatSyntaxBeyond2e53(List<ObjectNode> events, List<String> errs) {
+    private void ruleFloatSyntax(List<ObjectNode> events, List<String> errs) {
+        // R16 数值域章程 v2 (user ruling 2026-11-02): this package does no
+        // float math — integer LITERALS are the only writable seq form. The
+        // v1 ±2^53 sub-domain rule retired with the charter (JCS governs the
+        // signature payload only, never the counter).
         for (int i = 0; i < events.size(); i++) {
             JsonNode seq = events.get(i).path("arbitration_seq");
             if (!seq.isFloatingPointNumber()) {
                 continue;
             }
-            double d = seq.doubleValue();
-            boolean integral = d == Math.rint(d) && !Double.isInfinite(d);
-            boolean beyond = d > TWO_POW_53.doubleValue() || d < -TWO_POW_53.doubleValue();
-            if (integral && beyond) {
-                errs.add("[LEDGER.SEQ_FLOAT_BEYOND_EXACT] events/" + i + ": arbitration_seq " + seq + " uses float syntax "
-                        + "beyond the exact-representation domain (±2^53) — the value a parser "
-                        + "recovers depends on its float rounding, not on the document");
-            }
+            errs.add("[LEDGER.SEQ_FLOAT_SYNTAX] events/" + i + ": arbitration_seq " + seq + " is not an integer literal — "
+                    + "the counter domain is machine-written int64; this package does no "
+                    + "float math (user ruling 2026-11-02)");
         }
     }
 
-    // -- family 5: status families never cross the event-type boundary ------
+    // -- rule 5: status families never cross the event-type boundary ------
 
     private void ruleStatusFamilies(List<ObjectNode> events, List<String> errs) {
         for (int i = 0; i < events.size(); i++) {
@@ -164,7 +157,7 @@ public final class LedgerChecker {
         }
     }
 
-    // -- family 6: the grant pin rides the adopted event only ---------------
+    // -- rule 6: the grant pin rides the adopted event only ---------------
 
     private void ruleGrantPinRidesAdopted(List<ObjectNode> events, List<String> errs) {
         for (int i = 0; i < events.size(); i++) {
@@ -180,7 +173,7 @@ public final class LedgerChecker {
         }
     }
 
-    // -- family 7: per-operation transition order mirrors the machine DAG ---
+    // -- rule 7: per-operation transition order mirrors the machine DAG ---
 
     private void ruleTransitionDag(List<ObjectNode> events, List<String> errs) {
         Map<String, String> state = new HashMap<>();
@@ -225,7 +218,7 @@ public final class LedgerChecker {
                 + "transition — a bypass write into the ledger, not a machine transition";
     }
 
-    // -- family 8: idempotency presence, bidirectional ----------------------
+    // -- rule 8: idempotency presence, bidirectional ----------------------
 
     private void ruleIdempotencyPresence(List<ObjectNode> events, List<String> errs) {
         for (int i = 0; i < events.size(); i++) {
@@ -249,7 +242,7 @@ public final class LedgerChecker {
         }
     }
 
-    // -- family 9: idempotency.operation_id == identity.operation_id --------
+    // -- rule 9: idempotency.operation_id == identity.operation_id --------
 
     private void ruleKeyCoupling(List<ObjectNode> events, List<String> errs) {
         for (int i = 0; i < events.size(); i++) {
@@ -266,7 +259,7 @@ public final class LedgerChecker {
         }
     }
 
-    // -- family 10: effect attribution == the adopted pin --------------------
+    // -- rule 10: effect attribution == the adopted pin --------------------
 
     private void ruleAttribution(List<ObjectNode> events, List<String> errs) {
         Map<String, String> pins = new HashMap<>();
@@ -293,7 +286,7 @@ public final class LedgerChecker {
                 + "\u0000" + e.path("accountability").toString();
     }
 
-    // -- family 11: single-writer event-sequence grammar ---------------------
+    // -- rule 11: single-writer event-sequence grammar ---------------------
 
     private void ruleSingleWriterGrammar(List<ObjectNode> events, List<String> errs) {
         Set<String> adopted = new HashSet<>();

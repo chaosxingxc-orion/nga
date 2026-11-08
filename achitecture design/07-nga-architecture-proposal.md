@@ -1,3 +1,5 @@
+> **当前验收状态（2026-11-08）：** [R1—R6 接收与开放项](08-r1-r6-acceptance-and-open-items.md)。主架构目标不变，参考组件合并不等于系统或 openJiuwen 集成验收完成。
+
 # NGA Architecture and Minimum Java SDK Proposal
 
 > Updated: 2026-10-31 (America/New_York).

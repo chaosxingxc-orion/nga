@@ -70,5 +70,6 @@
       }
     }
   ],
-  "_expect": "ACCEPT: integral float-syntax arbitration_seq (0.0, 1.0) — the reference's Number.isInteger accepts integer-valued doubles, so both validators accept; the Go checker normalizes them into the int domain where the comparisons live (the double charter)"
+  "_expect": "REJECT: arbitration_seq written in float syntax (0.0 / 1.0) — integer literals only in the counter domain (user ruling 2026-11-02: this package does no float math). The old charter accepted integer-valued float syntax inside ±2^53 by JCS analogy; retired — JCS governs the signature payload, never the counter.",
+  "_expect_match": "LEDGER.SEQ_FLOAT_SYNTAX"
 }

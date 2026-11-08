@@ -2,8 +2,9 @@
 """Validate event-ledger fixtures (piece 4 oracle).
 
 Ledger documents: JSON Schema + the cross-event rules JSON Schema cannot
-express — eight families: arbitration_seq strictly increasing (+int64
-domain, +float syntax beyond ±2^53 rejected by rule), one payload digest
+express — nine families: arbitration_seq strictly increasing (+int64
+domain, +integer-literal-only — float syntax rejected by rule per the
+2026-11-02 ruling), one payload digest
 per operation (15 B4), idempotency presence (bidirectional: every
 non-conflict event carries it, and a conflict carrying it is rejected —
 the loser's digest never enters the registry), the idem-identity key
@@ -11,11 +12,14 @@ coupling, status families never
 crossing the event-type boundary, the grant pin riding the adopted event
 only, effect events carrying the adopted pin's attribution triple, and the
 single-writer event-sequence grammar (each operation opens with exactly
-one adopted event and its effect events follow the machine's transition
-DAG). Input discipline: documents come in as exact-decoded maps
-(json.loads int/float) — a Go caller feeding a float64-decoded map loses
-three rules silently (monotonicity at 2^53, the float-syntax-beyond rule,
-integral-float normalization). Aggregation contract: the code-rule families
+one adopted event), and the per-operation transition order (each
+operation's effect events follow the machine's transition DAG — an
+independent family, R19). Input discipline: documents come in as literal-preserving decoded maps
+(json.loads: int for integer literals, float for float syntax) — the
+integer-literal rule keys off exactly that. A Go caller must decode with
+UseNumber (json.Number.Int64 = the same literal check). The
+normalization layer and its copy-mutation contract are retired with the
+float charter (2026-11-02 ruling). Aggregation contract: the code-rule families
 aggregate in the same order on both sides; both checkers short-circuit at
 the schema, and the Go checker additionally short-circuits at the
 float-syntax and typed-view-parse points where this oracle appends and
@@ -51,6 +55,10 @@ ADOPTION_SCHEMA = json.loads((HERE / "adoption.schema.json").read_text())
 # lockstep check makes the schema enum the enforced single source)
 ADOPT_STATUSES = {"adopted", "reused", "conflict"}
 EFFECT_STATUSES = {"dispatched", "unresolved", "completed", "failed"}
+# E3 (2026-11-03): control events record machine refusals on adopted
+# operations (14-A4 revocation rejection, illegal-transition rejection) —
+# audit facts that never transition state and never enter the registry
+CONTROL_STATUSES = {"rejected"}
 INT64_MAX = 9223372036854775807
 
 
@@ -73,9 +81,6 @@ def ledger_errors(doc: dict) -> list[str]:
     if any(seqs[i] >= seqs[i + 1] for i in range(len(seqs) - 1)):
         errs.append(f"[LEDGER.SEQ_NOT_INCREASING] events: arbitration_seq must be strictly increasing, got {seqs} — "
                     f"the machine never repeats or rewinds an arbitration sequence")
-    if any(s > INT64_MAX for s in seqs):
-        errs.append("[LEDGER.SEQ_INT64_OVERFLOW] events: arbitration_seq exceeds the int64 domain — the machine's "
-                    "counter domain; such a document is not machine-writable")
     # cross-event rule: a payload digest is a function of the operation — the same
     # operation_id across idempotency entries must carry the same digest (15 B4:
     # 'changed payload under the same key' is a rejection, not a second opinion)
@@ -89,16 +94,22 @@ def ledger_errors(doc: dict) -> list[str]:
             errs.append(f"[LEDGER.DIGEST_CHANGED_UNDER_KEY] events: operation_id {op!r} carries payload_digest {dig!r} "
                         f"but an earlier event recorded {seen[op]!r} — changed payload under the same key")
         seen[op] = dig
-    # cross-event rule: arbitration_seq in float syntax beyond ±2^53 — the
-    # value a parser recovers depends on its float rounding (Python's
-    # float() folds odd values past 2^53), so the document has no
-    # parser-independent value; both validators reject by rule (mirrors Go)
+    # cross-event rule: arbitration_seq must be an integer LITERAL
+    # (user ruling 2026-11-02: this package does no float math — the counter
+    # domain is machine-written int64; json.loads yields float exactly for
+    # float-syntax literals, so isinstance int == literal check; mirrors Go's
+    # json.Number.Int64 rejection — the old charter accepted integer-valued
+    # float syntax inside ±2^53 by JCS analogy; retired: JCS governs the
+    # signature payload only, never the counter)
     for i, e in enumerate(doc["events"]):
         seq = e["arbitration_seq"]
-        if isinstance(seq, float) and seq == int(seq) and abs(seq) > 2 ** 53:
-            errs.append(f"[LEDGER.SEQ_FLOAT_BEYOND_EXACT] events/{i}: arbitration_seq {seq!r} uses float syntax beyond the "
-                        f"exact-representation domain (±2^53) — the value a parser recovers "
-                        f"depends on its float rounding, not on the document")
+        if isinstance(seq, float):
+            errs.append(f"[LEDGER.SEQ_FLOAT_SYNTAX] events/{i}: arbitration_seq {seq!r} is not an integer literal — "
+                        f"the counter domain is machine-written int64; this package does no "
+                        f"float math (user ruling 2026-11-02)")
+        if isinstance(seq, int) and seq > INT64_MAX:
+            errs.append(f"[LEDGER.SEQ_INT64_OVERFLOW] events/{i}: arbitration_seq {seq} exceeds the int64 domain — "
+                        f"the machine's counter domain; such a document is not machine-writable")
 
     # cross-event rule: status families never cross the event-type boundary
     # (adoption events carry adopted/reused/conflict, effect events carry
@@ -107,13 +118,21 @@ def ledger_errors(doc: dict) -> list[str]:
     # value, so wrong-reason pins could not match on both validators
     for i, e in enumerate(doc["events"]):
         status = e.get("outcome", {}).get("status", "")
-        ok = status in (EFFECT_STATUSES if e["event_type"] == "effect" else ADOPT_STATUSES)
+        if e["event_type"] == "control":
+            ok = status in CONTROL_STATUSES
+        else:
+            ok = status in (EFFECT_STATUSES if e["event_type"] == "effect" else ADOPT_STATUSES)
         if not ok:
             # the label names the status's OWN family — that is the
             # vocabulary crossing being reported. (Empty and unknown-status
             # branches are unreachable: the schema's required outcome +
             # status enum constrain the value first.)
-            family = "adoption" if status in ADOPT_STATUSES else "effect"
+            if status in CONTROL_STATUSES:
+                family = "control"
+            elif status in ADOPT_STATUSES:
+                family = "adoption"
+            else:
+                family = "effect"
             errs.append(f"[LEDGER.STATUS_FAMILY] events/{i}: {e['event_type']} event carries the {family}-family status "
                         f"{status!r} — the status vocabulary never crosses the "
                         f"event-type boundary")
@@ -137,24 +156,31 @@ def ledger_errors(doc: dict) -> list[str]:
     state: dict[str, str] = {}
     for i, e in enumerate(doc["events"]):
         op = e["identity"]["operation_id"]
-        if e["event_type"] != "adoption":
-            status = e["outcome"]["status"]
-            from_state = state.get(op, "")
-            if status == "dispatched":
-                if from_state != "adopted":
-                    errs.append(not_a_transition(i, op, "dispatched", from_state))
-                state[op] = "dispatched"
-            elif status == "unresolved":
-                if from_state not in ("adopted", "dispatched"):
-                    errs.append(not_a_transition(i, op, "unresolved", from_state))
-                state[op] = "unresolved"
-            elif status in ("completed", "failed"):
-                if from_state not in ("dispatched", "unresolved"):
-                    errs.append(not_a_transition(i, op, status, from_state))
-                state[op] = status
+        # R6 M-2 fix (2026-11-04): guard aligned to the Go checker's shape —
+        # ONLY effect events run the transition switch; every non-effect
+        # (adoption, control) records facts without transitioning, and only
+        # adoption+adopted pins the state. The old != "adoption" guard let a
+        # control event with an effect-family status drive state changes here
+        # that Go's checker does not make — the error sets forked across the
+        # two oracles on the same document, breaking the aggregate contract.
+        if e["event_type"] != "effect":
+            if e["outcome"].get("status") == "adopted":
+                state[op] = "adopted"
             continue
-        if e["outcome"].get("status") == "adopted":
-            state[op] = "adopted"
+        status = e["outcome"]["status"]
+        from_state = state.get(op, "")
+        if status == "dispatched":
+            if from_state != "adopted":
+                errs.append(not_a_transition(i, op, "dispatched", from_state))
+            state[op] = "dispatched"
+        elif status == "unresolved":
+            if from_state not in ("adopted", "dispatched"):
+                errs.append(not_a_transition(i, op, "unresolved", from_state))
+            state[op] = "unresolved"
+        elif status in ("completed", "failed"):
+            if from_state not in ("dispatched", "unresolved"):
+                errs.append(not_a_transition(i, op, status, from_state))
+            state[op] = status
     # cross-event rule: idempotency presence — the machine writes
     # idempotency on every event except conflict (the loser's digest never
     # enters the registry); an adopted/reused/effect event without it is a
@@ -164,6 +190,14 @@ def ledger_errors(doc: dict) -> list[str]:
         status = e.get("outcome", {}).get("status", "")
         if e["event_type"] == "adoption" and status == "conflict" and e.get("idempotency"):
             errs.append(f"[LEDGER.CONFLICT_IDEM_FORBIDDEN] events/{i}: conflict event carries idempotency — the loser's digest "
+                        f"never enters the registry; carrying it is a bypass write, not a "
+                        f"machine transition")
+        # E3: a control event (a refusal record) carrying idempotency would
+        # register the attempted operation's digest without any adoption
+        # authority behind it — the same laundering the conflict rule above
+        # forbids (mirrors the Go checker)
+        if e["event_type"] == "control" and e.get("idempotency"):
+            errs.append(f"[LEDGER.CONTROL_IDEM_FORBIDDEN] events/{i}: control event carries idempotency — a refusal record "
                         f"never enters the registry; carrying it is a bypass write, not a "
                         f"machine transition")
         needs_idem = e["event_type"] == "effect" or status in ("adopted", "reused")
@@ -185,22 +219,26 @@ def ledger_errors(doc: dict) -> list[str]:
                         f"machine transition")
 
     # cross-event rule: attribution consistency — the machine stamps the
-    # winner's identity/versions/accountability pin on every effect event;
-    # a divergence is a bypass write that forges the audit trail and
-    # pollutes the piece-6 replay correlation keys (mirrors the Go checker;
-    # checked only where an adopted pin exists — effect-before-adoption is
-    # already the grammar's designed exception)
+    # winner's identity/versions/accountability pin on every effect AND
+    # control event; a divergence is a bypass write that forges the audit
+    # trail and pollutes the piece-6 replay correlation keys (mirrors the
+    # Go checker; checked only where an adopted pin exists —
+    # effect/control-before-adoption is already the grammar's designed
+    # exception). R6 M-1 fix (2026-11-04): control events carry the pin too
+    # (refuse() stamps the operation's full attribution) — a refusal record
+    # with a FORGED attribution launders a fake principal into the audit
+    # trail through the very channel the effect rule guards.
     pins: dict[str, tuple] = {}
     for i, e in enumerate(doc["events"]):
         op = e["identity"]["operation_id"]
         if e["event_type"] == "adoption" and e.get("outcome", {}).get("status") == "adopted":
             pins[op] = (e["identity"], e["versions"], e.get("accountability"))
-        elif e["event_type"] == "effect" and op in pins:
+        elif e["event_type"] in ("effect", "control") and op in pins:
             if (e["identity"], e["versions"], e.get("accountability")) != pins[op]:
-                errs.append(f"[LEDGER.ATTRIBUTION_DIVERGENCE] events/{i}: effect event's attribution (identity/versions/"
+                errs.append(f"[LEDGER.ATTRIBUTION_DIVERGENCE] events/{i}: {e['event_type']} event's attribution (identity/versions/"
                             f"accountability) differs from the adopted pin for operation "
                             f"{op!r} — the machine stamps the winner's pin on every effect "
-                            f"event; a divergence is a bypass write, not a machine transition")
+                            f"and control event; a divergence is a bypass write, not a machine transition")
 
     # cross-event rule: the single-writer event-sequence grammar — each
     # operation opens with exactly one adopted adoption event, and every
@@ -222,7 +260,9 @@ def ledger_errors(doc: dict) -> list[str]:
                             f"precedes its adopted event — a bypass write into the ledger, "
                             f"not a machine transition")
         elif op not in adopted:
-            errs.append(f"events/{i}: effect event for operation {op!r} precedes its adopted "
+            # (R17 B-1: the Go twin's effect branch carries the neutral key —
+            # this was the one unkeyed mirror in the digit-aware key diff)
+            errs.append(f"[LEDGER.EVENT_BEFORE_ADOPTION] events/{i}: effect event for operation {op!r} precedes its adopted "
                         f"event — a bypass write into the ledger, not a machine transition")
     return errs
 
@@ -233,7 +273,7 @@ def check_status_lockstep() -> list[str]:
     makes the schema enum the enforced single source (R3 m-2).
     """
     enum = set(LEDGER_SCHEMA["$defs"]["event"]["properties"]["outcome"]["properties"]["status"]["enum"])
-    union = ADOPT_STATUSES | EFFECT_STATUSES
+    union = ADOPT_STATUSES | EFFECT_STATUSES | CONTROL_STATUSES
     if enum != union:
         return [f"status lockstep broken: schema enum {sorted(enum)} != checker families "
                 f"{sorted(union)}"]
@@ -287,8 +327,8 @@ def main() -> int:
     # corpus that shrank without its pin rebased must fail here too
     n_valid = len(list((ex / "valid").glob("*.json")))
     n_invalid = len(list((ex / "invalid").glob("*.json")))
-    if (n_valid, n_invalid) != (10, 26):
-        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 10+26 (corpus count changed?)")
+    if (n_valid, n_invalid) != (9, 33):
+        print(f"[ledger] FAIL corpus count {n_valid}+{n_invalid} != pinned 9+33 (corpus count changed?)")
         bad += 1
     for e in check_status_lockstep() + check_lockstep():
         print(f"[ledger] FAIL {e}")

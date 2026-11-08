@@ -35,15 +35,16 @@
       ],
       "properties": {
         "event_type": {
-          "description": "adoption = the control gate committed a decision; effect = an external operation was dispatched or its outcome recorded. Four operation types (inspect/replay/reevaluate/recover — proposal §8's four modes) enter as structured callers of the state machine, not as event types.",
+          "description": "adoption = the control gate committed a decision; effect = an external operation was dispatched or its outcome recorded; control = the machine REFUSED an attempt on an adopted operation (14-A4 revocation rejection, illegal-transition rejection) — an audit fact that never transitions state and never enters the idempotency registry (E3, 2026-11-03: a refusal record is a first-class persistent event, not a discarded return value). Four operation types (inspect/replay/reevaluate/recover — proposal §8's four modes) enter as structured callers of the state machine, not as event types.",
           "type": "string",
           "enum": [
             "adoption",
-            "effect"
+            "effect",
+            "control"
           ]
         },
         "arbitration_seq": {
-          "description": "Monotonic per-ledger sequence recording which concurrent competitor won (proposal §8 retention: 'arbitration order'). Replay re-uses the recorded order, never re-arbitrates (legacy 12 §2 semantics — not re-stated in the current proposal; see the drift register L5 in schema/README.md).",
+          "description": "Monotonic per-ledger sequence recording which concurrent competitor won (proposal §8 retention: 'arbitration order'). Replay re-uses the recorded order, never re-arbitrates (legacy 12 §2 semantics — not re-stated in the current proposal; see the drift register L5 in schema/README.md). Integer LITERAL only, enforced by the checker rules on both oracle sides ([LEDGER.SEQ_FLOAT_SYNTAX] / [EVIDLOG.SEQ_FLOAT_SYNTAX]) — JSON Schema cannot express this (pattern matches strings only, and its integer type accepts 1.0 by value), so the literal-domain rule lives in code, keyed neutrally (user ruling 2026-11-02: this package does no float math — machine counter domain).",
           "type": "integer",
           "minimum": 0
         },
@@ -65,7 +66,7 @@
           }
         },
         "outcome": {
-          "description": "The event's verdict. A 'conflict' outcome records a lost race, not an error (same-key/different-material-content is a conflict — proposal §3). An 'unresolved' state on the effect path records dispatch-with-unknown-outcome (M07/M08).",
+          "description": "The event's verdict. A 'conflict' outcome records a lost race, not an error (same-key/different-material-content is a conflict — proposal §3). An 'unresolved' state on the effect path records dispatch-with-unknown-outcome (M07/M08). A 'rejected' status records a control-plane refusal (E3): it rides control events only — the attempt's audit fact, never a state transition.",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -81,7 +82,8 @@
                 "dispatched",
                 "unresolved",
                 "completed",
-                "failed"
+                "failed",
+                "rejected"
               ]
             },
             "detail": {

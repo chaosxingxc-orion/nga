@@ -1,0 +1,110 @@
+package e2e
+
+import (
+	"testing"
+
+	"github.com/openjiuwen/agent-festival/go/internal/adopt"
+)
+
+// These probes assert the requested NGA contracts, not additional promises
+// of the isolated reference component. Failures locate acceptance gaps.
+func TestNGAReview_RecentShortOverdueMustNotPassUpperGrant(t *testing.T) {
+	// A one-month overdue occurring in the current application month is
+	// within six months and is not a historical >3-month veto.
+	// Updated to the explicit monthsAgo input of the P0-A fixture.
+	e := creditEvidence{assetMillions: 35, assetReportOK: true,
+		overdueOnRecord: []overdueEvent{{durationMonths: 1, monthsAgo: 1}}}
+	v := s1Judge(e)
+	cr := verify(v, loadE3Fixture(t), rawEvidence{
+		assetMillionsDeclared: 35, assetReportPresent: true,
+		overdueOnRecord: e.overdueOnRecord,
+	})
+	if v.kind == "grant-50000" && cr.ok {
+		t.Fatalf("recent short overdue passed both S1 and verifier: verdict=%s verification=%s", v.kind, cr.reason)
+	}
+}
+
+func TestNGAReview_SupersededDecisionMustNotDispatch(t *testing.T) {
+	h := newT2Host(t, t.TempDir())
+	for _, r := range []struct{ op, rev, ev, digest string }{
+		{"old", "er-1", "ev-1", t2Digest('a')},
+		{"new", "er-2", "ev-2", t2Digest('b')},
+	} {
+		if o := h.machine.Adopt(requestForT2(r.op, r.rev, r.ev, r.digest, "br-cas")); o.Status != "adopted" {
+			t.Fatal(o)
+		}
+	}
+	// The host has admitted er-2 as the effective correction before er-1
+	// dispatches. No authorization revocation is involved in this race.
+	o := h.machine.DispatchIfCurrent("old", chainGrants(), -1)
+	if o.Status == "dispatched" {
+		t.Fatalf("stale er-1 dispatched after er-2 admission: %s", o.Detail)
+	}
+}
+
+func TestNGAReview_UnadoptedResultMustNotBecomeCurrent(t *testing.T) {
+	h := newT2Host(t, t.TempDir())
+	if o := h.machine.Adopt(requestForT2("valid", "er-1", "ev-1", t2Digest('a'), "br-validity")); o.Status != "adopted" {
+		t.Fatal(o)
+	}
+	if err := h.store.put("valid", storedResult{Receipt: "approved", BusinessReqID: "br-validity", EvaluationRev: "er-1"}); err != nil {
+		t.Fatal(err)
+	}
+	// Result writing and adoption are separate in the K path. Model the
+	// interval after a higher revision is stored but before adoption.
+	if err := h.store.put("candidate", storedResult{Receipt: "not-approved", BusinessReqID: "br-validity", EvaluationRev: "er-99"}); err != nil {
+		t.Fatal(err)
+	}
+	_, op, _ := h.store.lookupByBusinessRequest("br-validity")
+	if op != "valid" {
+		t.Fatalf("validity projection selected %q with machine state %q; no adoption exists", op, h.machine.State(op))
+	}
+}
+
+func TestNGAReview_VerifierRefusalNeedsDurableEvidence(t *testing.T) {
+	h := newTask(t)
+	cr := verify(s1AlwaysGrant(creditEvidence{}), loadE3Fixture(t), rawEvidence{
+		assetMillionsDeclared: 35, assetReportPresent: true,
+		overdueOnRecord: []overdueEvent{{durationMonths: 4, monthsAgo: 24}},
+	})
+	if cr.ok { t.Fatal("fixture did not reject sick verdict") }
+	// Follow the supplied E1 path: refusal then adoption, no dispatch.
+	if o := h.machine.Adopt(requestFor("review-refusal", "er-1", "ev-1", digestHex('a'))); o.Status != "adopted" {
+		t.Fatal(o)
+	}
+	if h.machine.State("review-refusal") != adopt.StateAdopted { t.Fatal("unexpected state") }
+	events, err := h.machine.Events()
+	if err != nil { t.Fatal(err) }
+	for _, e := range events {
+		if e.EventType == "control" { return }
+	}
+	t.Fatalf("verification refused but no durable control fact exists; events=%d", len(events))
+}
+
+func TestNGAReview_OriginalLowBandRule(t *testing.T) {
+    for _, events := range [][]overdueEvent{nil, {{durationMonths: 1, monthsAgo: 1}}} {
+        e := creditEvidence{assetMillions: 0, assetReportOK: true, overdueOnRecord: events}
+        v := s1Judge(e)
+        if v.kind != "grant-10000" { t.Fatalf("original lower-band rule lost: %s", v.kind) }
+        if c := verify(v, loadE3Fixture(t), rawEvidence{assetMillionsDeclared: 0, assetReportPresent: true, overdueOnRecord: events}); !c.ok { t.Fatal(c.reason) }
+    }
+}
+
+func TestNGAReview_RequiredWindowCannotDisappear(t *testing.T) {
+    spec := loadE3Fixture(t)
+    spec.Conventions.TimeWindow = ""
+    raw := rawEvidence{assetMillionsDeclared: 35, assetReportPresent: true, overdueOnRecord: []overdueEvent{{durationMonths: 1, monthsAgo: 1}}}
+    if c := verify(s1Verdict{kind: "grant-50000"}, spec, raw); c.ok {
+        t.Fatal("missing required window convention admitted grant despite recent overdue; runtime validation provider is required")
+    }
+}
+
+func TestNGAReview_ExpectedEpochIsNotDecisionAuthority(t *testing.T) {
+    head := "er-2"
+    // The original Commit contract requires BOTH Current(x) and an epoch match.
+    fullContract := func(boundRevision, expectedEpoch string) bool {
+        return boundRevision == head && expectedEpoch == head
+    }
+    if fullContract("er-1", "er-2") { t.Fatal("stale decision admitted") }
+    if !fullContract("er-2", "er-2") { t.Fatal("current decision refused") }
+}

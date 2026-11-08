@@ -1,0 +1,75 @@
+{
+  "ledger_version": "0.1.0",
+  "events": [
+    {
+      "event_type": "adoption",
+      "arbitration_seq": 0,
+      "identity": {
+        "business_request_id": "br-a025",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-ci-2"
+      },
+      "versions": {
+        "evidence": "ev-25",
+        "rule": "rule-v1",
+        "model": "m-1",
+        "readout": "r-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "adopted",
+        "detail": "fixture"
+      },
+      "accountability": {
+        "session": "sess-1",
+        "skill": "skill-credit",
+        "role": "employee"
+      },
+      "idempotency": {
+        "operation_id": "op-ci-2",
+        "payload_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "grants_at_decision": [
+        {
+          "kind": "data",
+          "selector": "ledger://credit/a25",
+          "actions": [
+            "read"
+          ],
+          "effect": "none"
+        }
+      ]
+    },
+    {
+      "event_type": "control",
+      "arbitration_seq": 1,
+      "identity": {
+        "business_request_id": "br-a025",
+        "evaluation_revision": "er-1",
+        "operation_id": "op-ci-2"
+      },
+      "versions": {
+        "evidence": "ev-25",
+        "rule": "rule-v1",
+        "model": "m-1",
+        "readout": "r-1",
+        "policy": "p-1"
+      },
+      "outcome": {
+        "status": "rejected",
+        "detail": "illegal-transition attempt"
+      },
+      "accountability": {
+        "session": "sess-1",
+        "skill": "skill-credit",
+        "role": "employee"
+      },
+      "idempotency": {
+        "operation_id": "op-ci-2",
+        "payload_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    }
+  ],
+  "_expect_match": "CONTROL_IDEM_FORBIDDEN",
+  "_expect": "REJECT: a control event (a refusal record) carrying idempotency registers the attempted operation's digest with no adoption authority behind it — the refusal is an audit fact, never a registry entry (E3)"
+}

@@ -1,0 +1,1062 @@
+package e2e
+
+// T2 reference-host tier: the minimal node entry, result store, and failing
+// adapter probes required to accept scenario R (persisted result reuse
+// across restart) and scenario K (new-task knowledge consumption with zero
+// model calls). This is a VERIFICATION fixture, not a production framework —
+// it demonstrates that the control-semantics contracts (piece 2/4/7) accept
+// a host that stores results outside the ledger and routes through
+// knowledge methods, without the ledger schema changing.
+//
+// DESIGN (from 31-rk-scope-prior.md):
+//   resultStore: independent JSON file (T2 host layer, NOT the ledger —
+//   the ledger stays lean, recording decisions and effects; receipts/facts/
+//   references live in the host's persistence file). Keyed by operation_id.
+//   The R scenario proves the store survives restart (file-backed, not
+//   in-memory).
+//
+//   knowledgeMethod: a registered method with declared applicability
+//   (EDPA SPI-ownership form — the method declares which node kinds it
+//   serves and its input contract). The K scenario proves a new task can
+//   consume a published method with zero model calls and produce its OWN
+//   result (not another task's receipt).
+//
+//   failingAdapter: replaces model seats and the business API with probes
+//   that FAIL if called — proving zero-invocation by construction, not by
+//   counter (the counter can be bypassed; the adapter cannot).
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"testing"
+
+	"github.com/openjiuwen/agent-festival/go/internal/adopt"
+	"github.com/openjiuwen/agent-festival/go/internal/ledger"
+)
+
+// ---------------------------------------------------------------------------
+// resultStore: T2 host-layer persistence for node results (receipts, facts,
+// references). File-backed JSON, keyed by operation_id. Survives restart.
+
+type storedResult struct {
+	Receipt       string   `json:"receipt"`
+	Facts         []string `json:"facts"`
+	References    []string `json:"references"`
+	BusinessReqID string   `json:"business_request_id"`
+	EvaluationRev string   `json:"evaluation_revision"`
+	KnowledgeUsed string   `json:"knowledge_used,omitempty"`
+}
+
+// resultStore is the T2 host's persistence for node results. It is NOT the
+// ledger — the ledger records decisions and effects (piece 4's lean
+// contract); this store holds the receipt/facts payload the host needs to
+// answer "what was the node's result?" without re-running the node.
+type resultStore struct {
+	mu   sync.Mutex
+	path string
+	data map[string]storedResult // keyed by operation_id
+}
+
+func newResultStore(dir string) (*resultStore, error) {
+	rs := &resultStore{
+		path: filepath.Join(dir, "t2-results.json"),
+		data: map[string]storedResult{},
+	}
+	raw, err := os.ReadFile(rs.path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return rs, nil // fresh store
+		}
+		return nil, err
+	}
+	if err := json.Unmarshal(raw, &rs.data); err != nil {
+		return nil, fmt.Errorf("[T2.RESULT_STORE] corrupt result store: %v", err)
+	}
+	return rs, nil
+}
+
+func (rs *resultStore) put(opID string, r storedResult) error {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+	rs.data[opID] = r
+	raw, err := json.MarshalIndent(rs.data, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(rs.path, raw, 0o600)
+}
+
+func (rs *resultStore) get(opID string) (storedResult, bool) {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+	r, ok := rs.data[opID]
+	return r, ok
+}
+
+// lookupByBusinessRequest finds the LATEST result for a business request
+// (the "current validity projection" — per 29-reconciliation §3.2, the
+// projection is a T2-layer function over results, not a machine state).
+func (rs *resultStore) lookupByBusinessRequest(brID string) (storedResult, string, bool) {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+	// The validity projection: the LATEST evaluation revision for this
+	// business request is the current valid result (per 29-reconciliation:
+	// "最新已采纳修订=当前有效").
+	// L42 fix: revision comparison is now numeric, not lexical (er-10 > er-2
+	// under lexical ordering — the old code would pick er-2 as "later").
+	// Iteration order is made deterministic by sorting keys (L43 fix).
+	var best storedResult
+	bestOp := ""
+	bestRev := -1
+	found := false
+	for _, opID := range sortedKeys(rs.data) {
+		r := rs.data[opID]
+		if r.BusinessReqID != brID {
+			continue
+		}
+		rev := revisionNumber(r.EvaluationRev)
+		if !found || rev > bestRev {
+			best = r
+			bestOp = opID
+			bestRev = rev
+			found = true
+		}
+	}
+	return best, bestOp, found
+}
+
+// revisionNumber extracts the numeric suffix from "er-N" (returns -1 if
+// unparseable — the caller treats it as the lowest revision).
+// R18 M-3 family: strconv.Atoi (strict full-string parse) — fmt.Sscanf
+// prefix-parses, so "er-2x" would have sorted as revision 2.
+func revisionNumber(rev string) int {
+	rev = strings.TrimPrefix(rev, "er-")
+	n, err := strconv.Atoi(rev)
+	if err != nil {
+		return -1
+	}
+	return n
+}
+
+// sortedKeys returns map keys in sorted order (deterministic iteration —
+// L43 fix: map iteration order is random in Go, making findForNode and
+// lookupByBusinessRequest nondeterministic across runs).
+func sortedKeys[V any](m map[string]V) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// ---------------------------------------------------------------------------
+// failingAdapter: replaces a model seat or the business API with a probe
+// that FAILS the test if invoked. Zero-invocation is proven by construction
+// (the probe panics the test), not by counter.
+
+type failingProbe struct {
+	t      *testing.T
+	name   string
+	called bool
+}
+
+func newFailingProbe(t *testing.T, name string) *failingProbe {
+	return &failingProbe{t: t, name: name}
+}
+
+func (p *failingProbe) invoke(args ...string) string {
+	p.called = true
+	p.t.Fatalf("T2 probe %q was invoked — zero-invocation contract violated (args: %v)", p.name, args)
+	return "" // unreachable in tests (Fatalf exits)
+}
+
+func (p *failingProbe) assertNotCalled(t *testing.T) {
+	t.Helper()
+	if p.called {
+		t.Fatalf("T2 probe %q was called during the test — zero-invocation contract violated", p.name)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// knowledgeMethod: a registered, versioned method with declared
+// applicability. The K scenario's "published knowledge" — consumed by node
+// entry, not by LLM.
+
+type knowledgeMethod struct {
+	ID          string   `json:"id"`
+	Version     string   `json:"version"`
+	ServesNode  string   `json:"serves_node"`        // the node kind this method owns (EDPA SPI form)
+	InputFields []string `json:"input_fields"`       // required input contract
+	Valid       bool     `json:"valid"`              // validity flag (F-04 freshness governance)
+	Replaces    string   `json:"replaces,omitempty"` // the method ID this one supersedes
+}
+
+// execute runs the method deterministically (zero LLM) and returns the
+// node's result, or an error when the declared input contract is violated.
+// The method body is a pure function of its declared inputs —
+// in production this would call a domain service or rule engine; in T2 it
+// is a deterministic function for test reproducibility.
+func (m knowledgeMethod) execute(inputs map[string]string) (storedResult, error) {
+	// the T2 method: "history-overdue verification" — checks the input facts
+	// for any overdue > 3 months (the unbounded veto from the corrected spec)
+	facts := []string{}
+	receipt := fmt.Sprintf("method:%s:result", m.ID)
+	overdueMonths := 0
+	// R19 M-4 + R20 M-2 + R21 M-2: the method body CONSUMES specific input
+	// keys — "overdue_months" (the veto carrier) and "business_request_id"
+	// (the result's identity carrier). A declaration that omits ANY consumed
+	// key is a contract/consumption divergence and fails closed.
+	// EXCLUSIVE faces of this check (verified by probes):
+	//   - identity key undeclared + brID missing → orphan result (nothing
+	//     else checks business_request_id's presence — the return
+	//     statement's BusinessReqID field consumes it unconditionally
+	//     as "")
+	//   - veto key undeclared + overdue_months PRESENT with a legal value →
+	//     contract hygiene: the method executes on an input it never
+	//     promised to require (the Atoi gate does NOT reject a legal value)
+	// Double-covered face (honest note): veto key undeclared + overdue_months
+	// MISSING is also caught by the unconditional Atoi gate below (Atoi("")
+	// errors) — that form's protection does not exclusively depend on this
+	// check.
+	for _, consumed := range []string{"overdue_months", "business_request_id"} {
+		declared := false
+		for _, f := range m.InputFields {
+			if f == consumed {
+				declared = true
+			}
+		}
+		if !declared {
+			return storedResult{}, fmt.Errorf("[T2.METHOD %s] consumes %q but does not declare it in input_fields — contract/consumption divergence (fail-closed, R19 M-4/R20 M-2)", m.ID, consumed)
+		}
+	}
+	// R18 M-2: the DECLARED required inputs must be PRESENT — a missing
+	// key fails closed. The extraction-miss disease (E0) is exactly the
+	// missing-key form: the upstream never extracted the field, so the
+	// veto input arrives absent and must not default to 0.
+	// R19 m-1: an EMPTY value fails closed too — a present-but-empty field
+	// produced orphan results (BusinessReqID "" never matches a lookup).
+	for _, f := range m.InputFields {
+		v, ok := inputs[f]
+		if !ok {
+			return storedResult{}, fmt.Errorf("[T2.METHOD %s] required input %q is missing — refusing to produce a result without a declared contract input (fail-closed, R18 M-2)", m.ID, f)
+		}
+		if v == "" {
+			return storedResult{}, fmt.Errorf("[T2.METHOD %s] required input %q is empty — refusing to produce a result on an empty contract input (fail-closed, R19 m-1)", m.ID, f)
+		}
+	}
+	{
+		v := inputs["overdue_months"]
+		// L44 fix (R17 M-C) + R18 M-3: the veto input is SAFETY-CRITICAL —
+		// an unparseable overdue_months FAILS CLOSED (error), never treated
+		// as 0. Treating it as 0 would mean a corrupted input silently
+		// disarms the veto (the E0 extraction-miss disease, method-shaped).
+		// R18 M-3: strconv.Atoi is a STRICT full-string parse — fmt.Sscanf
+		// prefix-parses ("0abc"→0, "2xyz"→2, "0.5"→0 with no error), which
+		// let corrupted inputs through the fail-closed gate.
+		// R19 M-5: a NEGATIVE month count is domain corruption (a count
+		// cannot be negative) and also fails closed.
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			return storedResult{}, fmt.Errorf("[T2.METHOD %s] overdue_months input %q is not a number — refusing to produce a result on a corrupted veto input (fail-closed, L44)", m.ID, v)
+		}
+		if n < 0 {
+			return storedResult{}, fmt.Errorf("[T2.METHOD %s] overdue_months input %q is negative — a month count cannot be negative (fail-closed, R19 M-5)", m.ID, v)
+		}
+		overdueMonths = n
+	}
+	if overdueMonths > 3 {
+		facts = append(facts, fmt.Sprintf("overdue_%d_months_found", overdueMonths))
+		receipt = fmt.Sprintf("method:%s:veto-fired", m.ID)
+	} else {
+		facts = append(facts, "no_overdue_beyond_threshold")
+	}
+	return storedResult{
+		Receipt:       receipt,
+		Facts:         facts,
+		BusinessReqID: inputs["business_request_id"],
+	}, nil
+}
+
+// knowledgeRegistry is the T2 host's method registry (published methods).
+type knowledgeRegistry struct {
+	methods map[string]knowledgeMethod
+}
+
+func newKnowledgeRegistry() *knowledgeRegistry {
+	return &knowledgeRegistry{methods: map[string]knowledgeMethod{}}
+}
+
+// publish declares a method in the registry. R22 M-2/m-1: publish VALIDATES
+// its declaration — both "declared effect" forms fail closed:
+//   - a DUPLICATE ID is a redeclaration, not a flip: republishing an
+//     existing ID (e.g. re-arming an invalidated method with Valid:true)
+//     silently revives known-stale knowledge — a NEW ID must be published
+//     instead (the invalidate() comment's "single write path" guarantee
+//     is only true if redeclaration is refused)
+//   - a Replaces value that references a method NOT in the registry is a
+//     typo'd supersession: the supersession silently does not happen and
+//     the stale method keeps being served deterministically (the same
+//     "the declared effect did not happen" family invalidate() made loud)
+func (kr *knowledgeRegistry) publish(m knowledgeMethod) error {
+	if _, exists := kr.methods[m.ID]; exists {
+		return fmt.Errorf("[T2.REGISTRY] publish: method ID %q already published — redeclaration is not a flip (an invalidated method cannot be silently re-armed; publish a NEW ID) (fail-closed, R22 m-1)", m.ID)
+	}
+	if m.Replaces != "" {
+		target, ok := kr.methods[m.Replaces]
+		if !ok {
+			return fmt.Errorf("[T2.REGISTRY] publish: method %q declares Replaces=%q but no such method is published — the supersession would silently not happen (typo?) (fail-closed, R22 M-2)", m.ID, m.Replaces)
+		}
+		// R24 M-1: a typo most plausibly lands on an EXISTING sibling ID
+		// (this fixture's ID space is exactly "method-overdue-v1/v2"
+		// shaped) — an existence-only check lets it through silently:
+		// the supersession does not happen, the stale method keeps being
+		// served deterministically, AND the wrong target's node coverage
+		// is silently removed. Supersession is same-node-kind only.
+		if target.ServesNode != m.ServesNode {
+			return fmt.Errorf("[T2.REGISTRY] publish: method %q (node %q) declares Replaces=%q serving node %q — supersession is same-node only; a cross-node Replaces silently removes the wrong node's coverage and leaves the stale method served (typo?) (fail-closed, R24 M-1)", m.ID, m.ServesNode, m.Replaces, target.ServesNode)
+		}
+		// R25 M-1: the target must not ALREADY be superseded by another
+		// live method — publishing v3{Replaces:v1} when v2{Replaces:v1}
+		// already exists (the intent was v3{Replaces:v2}) passes the
+		// existence and same-node gates silently: superseded={v1} and
+		// findForNode keeps serving v2 forever — the newest correction
+		// (v3) is NEVER served, with zero signal. Ambiguous supersession
+		// (two live methods replacing the same target) is a conflict the
+		// registry must refuse, not silently resolve by ID order.
+		for _, existing := range kr.methods {
+			// R26 m-4: no self-exclusion needed — the duplicate-ID gate
+			// above already guarantees m.ID is not in the registry, so
+			// every existing entry is a DIFFERENT method
+			if existing.Valid && existing.Replaces == m.Replaces {
+				return fmt.Errorf("[T2.REGISTRY] publish: method %q declares Replaces=%q, but method %q already supersedes that target — ambiguous supersession (two live methods replacing the same target); the newest correction would silently never be served (typo?) (fail-closed, R25 M-1)", m.ID, m.Replaces, existing.ID)
+			}
+		}
+	}
+	kr.methods[m.ID] = m
+	return nil
+}
+
+// mustPublish is the test-side form of publish (fails the test on a
+// rejected declaration).
+func (kr *knowledgeRegistry) mustPublish(t *testing.T, m knowledgeMethod) {
+	t.Helper()
+	if err := kr.publish(m); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// invalidate marks a published method invalid (expired/superseded) — the
+// single write path for validity flips of a PUBLISHED method (R19 m-2:
+// one idiom, no whole-struct-rewrite field loss, no third flip form;
+// publishing a NEW struct under an existing ID is a redeclaration, not a
+// flip). R21 m-2: an unknown ID is LOUD — a typo'd flip that silently
+// no-ops would leave the stale method consumable (every other
+// "declared effect did not happen" form in this increment fails closed).
+func (kr *knowledgeRegistry) invalidate(id string) error {
+	m, ok := kr.methods[id]
+	if !ok {
+		return fmt.Errorf("[T2.REGISTRY] invalidate: no published method with ID %q — the flip did NOT happen (typo?); a silently skipped flip would leave the stale method consumable (fail-closed, R21 m-2)", id)
+	}
+	m.Valid = false
+	kr.methods[id] = m
+	return nil
+}
+
+// findForNode returns the valid method serving the given node kind, or
+// false. F-04: expired (invalid) AND superseded methods are not consumed
+// for new tasks.
+// R18 M-1: iteration is DETERMINISTIC via sortedKeys — among the
+// candidate (valid, non-superseded) methods the lexicographically-lowest
+// method ID wins. Raw map ranging made this choice random (measured
+// 75/12.5/12.5 for this component's 3-key probe, ~87.5/12.5 for the
+// 2-key lookup-side probe), silently nondeterministic.
+// R19 M-3: SUPERSESSION is enforced mechanically, not by convention — a
+// method's Replaces names the method it supersedes, and the superseded
+// method is skipped even while still marked valid. In the correction
+// window (v2 published, v1 not yet flipped invalid) the window
+// deterministically serves v2, the correction — previously the lowest-ID
+// tiebreak deterministically served the STALE v1, and Replaces was
+// decorative (zero consumers).
+// R20 M-1: Replaces is a DATA FACT once stated — supersession is NOT
+// conditional on the superseder's current validity. If the superseder
+// itself is invalidated, the superseded method does NOT revive (v1 was
+// declared stale; reviving it serves known-stale knowledge): the node
+// serves NO method (fail-closed) until a new one is published.
+func (kr *knowledgeRegistry) findForNode(nodeKind string) (knowledgeMethod, bool) {
+	superseded := map[string]bool{}
+	for _, m := range kr.methods {
+		if m.Replaces != "" {
+			superseded[m.Replaces] = true
+		}
+	}
+	for _, id := range sortedKeys(kr.methods) {
+		if superseded[id] {
+			continue
+		}
+		m := kr.methods[id]
+		if m.ServesNode == nodeKind && m.Valid {
+			return m, true
+		}
+	}
+	return knowledgeMethod{}, false
+}
+
+// ---------------------------------------------------------------------------
+// t2Host: the reference host that wires everything together.
+
+// t2Host is the reference host for scenarios R and K. It wraps the adopt
+// machine with a result store and a knowledge registry — the minimum host
+// surface needed to demonstrate the control contracts accepting a real
+// host's result persistence and knowledge consumption.
+type t2Host struct {
+	t        *testing.T
+	dir      string
+	machine  *adopt.Machine
+	store    *resultStore
+	registry *knowledgeRegistry
+	probes   map[string]*failingProbe
+}
+
+func newT2Host(t *testing.T, dir string) *t2Host {
+	t.Helper()
+	m, err := adopt.Open(filepath.Join(dir, "adopt.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rs, err := newResultStore(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &t2Host{
+		t:        t,
+		dir:      dir,
+		machine:  m,
+		store:    rs,
+		registry: newKnowledgeRegistry(),
+		probes:   map[string]*failingProbe{},
+	}
+}
+
+// reopen simulates a host restart: a fresh machine instance (the ledger is
+// the durable state) + a fresh resultStore (file-backed — it survives).
+func (h *t2Host) reopen() *t2Host {
+	h.t.Helper()
+	m, err := adopt.Open(filepath.Join(h.dir, "adopt.jsonl"))
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	rs, err := newResultStore(h.dir)
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	return &t2Host{
+		t:       h.t,
+		dir:     h.dir,
+		machine: m,
+		store:   rs,
+		// R23 m-3: the registry is in-memory and SHARED across reopen via
+		// this pointer (methods survive through the shared pointer; a real
+		// process restart would re-publish into a FRESH registry — the R22
+		// redeclaration gate only forbids re-publishing into the LIVE one)
+		registry: h.registry,
+		probes:   h.probes,
+	}
+}
+
+// addProbe registers a failing probe under a name — the test replaces a
+// model seat or the business API with this probe to prove zero invocation.
+func (h *t2Host) addProbe(name string) *failingProbe {
+	p := newFailingProbe(h.t, name)
+	h.probes[name] = p
+	return p
+}
+
+// requestForT2 builds the adoption request with the T2 scenario's OWN
+// business_request_id (the T0 requestFor hardcodes "br-e2e-credit" — using
+// it here would put a wrong brID in the ledger Identity while the T2 store
+// records the real one. R12' review found this MAJOR; this is the fix).
+func requestForT2(op, revision, evidence, digest, brID string) *adopt.Request {
+	return &adopt.Request{
+		AdoptionVersion:  "0.1.0",
+		Identity:         ledger.Identity{BusinessRequestID: brID, EvaluationRevision: revision, OperationID: op},
+		Versions:         ledger.Versions{Evidence: evidence, Rule: "rule-credit-v1", Model: "s1-standin", Readout: "r-1", Policy: "p-1"},
+		PayloadDigest:    digest,
+		GrantsAtDecision: chainGrants(),
+		Accountability:   &ledger.Accountability{Session: "sess-t2", Skill: "skill-credit", Role: "employee"},
+	}
+}
+
+// grantsCoverRead is the T2 fixture's grant-coverage check — SAME SHAPE
+// as the machine's grantsCover but a DELIBERATE SUBSET (R29 m-5 honesty):
+// no effect-rank comparison (reads are Effect:"none" in this fixture) and
+// empty pinned returns false (the machine's vacuous-covered is inverted —
+// here an empty requirement list is a fixture bug, not a permit). The
+// pinned requirement at the call site is the fixture's single result
+// class — a second result class would need per-result grants on
+// storedResult (0.2.0 schema face), not this constant.
+func grantsCoverRead(live, pinned []ledger.Grant) bool {
+	for _, p := range pinned {
+		covered := false
+		for _, l := range live {
+			if l.Kind != p.Kind || l.Selector != p.Selector {
+				continue
+			}
+			allActions := true
+			for _, a := range p.Actions {
+				has := false
+				for _, la := range l.Actions {
+					if la == a {
+						has = true
+						break
+					}
+				}
+				if !has {
+					allActions = false
+					break
+				}
+			}
+			if allActions {
+				covered = true
+				break
+			}
+		}
+		if !covered {
+			return false
+		}
+	}
+	return len(pinned) > 0
+}
+
+// nodeEntry is the T2 reference host's unified node entry point (L41: a
+// named component, previously inlined; L39+E5: host-side read
+// authorization — see grantsCoverRead for the grant face, R32 m-5 for the
+// fixture-subset honesty). It checks the caller's authorization, the
+// machine state, and serves the stored result when complete.
+func (h *t2Host) nodeEntry(opID string, callerGrants []ledger.Grant) (storedResult, error) {
+	// L39: host-side authorization check — the host checks its own access
+	// rules before serving stored results (per MR#1 consensus: the framework
+	// enforces the contract; the host checks its own permissions).
+	// L39 + E5: the check is against the RESULT'S grants, not just
+	// non-emptiness — a caller whose grants were DOWNGRADED after the
+	// result was stored (the D-04 form: channel visibility narrowed away
+	// from the result's selector) is refused too.
+	if !grantsCoverRead(callerGrants, []ledger.Grant{{Kind: "data", Selector: "ledger://credit/e2e", Actions: []string{"read"}, Effect: "none"}}) {
+		return storedResult{}, fmt.Errorf("[T2.NODE_ENTRY] %s: caller not authorized to read stored results (grants empty or missing the data-read the result was produced under — the D-04 downgraded form)", opID)
+	}
+	// check the machine state — if completed, serve the stored result
+	if s := h.machine.State(opID); s != adopt.StateCompleted {
+		return storedResult{}, fmt.Errorf("[T2.NODE_ENTRY] %s: operation not completed (state=%v)", opID, s)
+	}
+	// serve from the store
+	r, ok := h.store.get(opID)
+	if !ok {
+		return storedResult{}, fmt.Errorf("[T2.NODE_ENTRY] %s: no stored result found", opID)
+	}
+	return r, nil
+}
+
+// adoptAndDispatch is the standard first-pass flow: adopt + dispatch +
+// store the receipt. Returns the outcome for assertions.
+func (h *t2Host) adoptAndDispatch(op, revision, evidence, digest, brID string, receipt string, facts []string) adopt.Outcome {
+	o := h.machine.Adopt(requestForT2(op, revision, evidence, digest, brID))
+	if o.Status != "adopted" {
+		return o
+	}
+	o2 := h.machine.Dispatch(op, chainGrants())
+	if o2.Status != "dispatched" {
+		return o2
+	}
+	// store the result in the T2 host layer (the ledger records the
+	// dispatch decision; the store holds the receipt/facts payload)
+	if err := h.store.put(op, storedResult{
+		Receipt:       receipt,
+		Facts:         facts,
+		BusinessReqID: brID,
+		EvaluationRev: revision,
+	}); err != nil {
+		h.t.Fatalf("T2 result store put failed: %v", err)
+	}
+	return o2
+}
+
+// completeNode marks the operation complete (the host observes the external
+// terminal state and calls the machine).
+func (h *t2Host) completeNode(op string) adopt.Outcome {
+	return h.machine.MarkCompleted(op)
+}
+
+// ---------------------------------------------------------------------------
+// R17 M-B probes: component-level red probes for the T2 bearing fixes
+// (L42 numeric revision ordering, L43 deterministic iteration, nodeEntry
+// branches) and the M-C fail-closed probe (L44). Each probe is coupled to
+// a mutation: reverting its fix must turn the probe RED.
+
+// TestT2Lookup_RevisionOrdering probes L42: the validity projection picks
+// the LATEST revision NUMERICALLY (er-10 > er-2), not lexically (where
+// "er-2" > "er-10"). Mutation probe: revert revisionNumber to a
+// lexical-family comparison and this test fails.
+func TestT2Lookup_RevisionOrdering(t *testing.T) {
+	rs, err := newResultStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := rs.put("op-ord-a", storedResult{Receipt: "r-er-2", BusinessReqID: "br-ord", EvaluationRev: "er-2"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := rs.put("op-ord-b", storedResult{Receipt: "r-er-10", BusinessReqID: "br-ord", EvaluationRev: "er-10"}); err != nil {
+		t.Fatal(err)
+	}
+	r, _, found := rs.lookupByBusinessRequest("br-ord")
+	if !found {
+		t.Fatal("L42 probe: no result found for br-ord")
+	}
+	if r.EvaluationRev != "er-10" {
+		t.Fatalf("L42 probe: current revision = %q, want er-10 — numeric ordering (er-10 > er-2); a lexical comparison would pick er-2", r.EvaluationRev)
+	}
+
+	// unparseable revision sorts lowest (revisionNumber = -1): er-x loses
+	// to er-1
+	rs2, err := newResultStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := rs2.put("op-un-a", storedResult{Receipt: "r-er-x", BusinessReqID: "br-un", EvaluationRev: "er-x"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := rs2.put("op-un-b", storedResult{Receipt: "r-er-1", BusinessReqID: "br-un", EvaluationRev: "er-1"}); err != nil {
+		t.Fatal(err)
+	}
+	r2, _, found2 := rs2.lookupByBusinessRequest("br-un")
+	if !found2 || r2.EvaluationRev != "er-1" {
+		t.Fatalf("L42 probe: unparseable-revision case = %q (found=%v), want er-1 — an unparseable revision must sort LOWEST", r2.EvaluationRev, found2)
+	}
+
+	// R19 M-1 probe: a PREFIX-GARBAGE revision ("er-2x") sorts lowest
+	// under strconv.Atoi (strict full-string parse → -1) but would parse
+	// as 2 under fmt.Sscanf prefix parsing — distinguishing the
+	// revisionNumber half of the R18 M-3 family fix
+	rs3, err := newResultStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := rs3.put("op-pg-a", storedResult{Receipt: "r-er-2x", BusinessReqID: "br-pg", EvaluationRev: "er-2x"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := rs3.put("op-pg-b", storedResult{Receipt: "r-er-1", BusinessReqID: "br-pg", EvaluationRev: "er-1"}); err != nil {
+		t.Fatal(err)
+	}
+	r3, _, found3 := rs3.lookupByBusinessRequest("br-pg")
+	if !found3 || r3.EvaluationRev != "er-1" {
+		t.Fatalf("R19 M-1 probe: prefix-garbage revision case = %q (found=%v), want er-1 — a prefix-garbage revision must sort LOWEST (strict full-string parse), not parse as its numeric prefix", r3.EvaluationRev, found3)
+	}
+}
+
+// TestT2Lookup_TieBreakDeterminism probes L43: when two results share the
+// SAME revision, the winner is the lexicographically-lowest operation_id
+// (sortedKeys + strict >), and the winner is STABLE across iterations —
+// Go randomizes map iteration order per range, so only the sorted
+// iteration makes this deterministic. Mutation probe: disable the sort in
+// sortedKeys and this test fails within a few iterations.
+func TestT2Lookup_TieBreakDeterminism(t *testing.T) {
+	rs, err := newResultStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := rs.put("op-tie-z", storedResult{Receipt: "r-tie-z", BusinessReqID: "br-tie", EvaluationRev: "er-5"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := rs.put("op-tie-a", storedResult{Receipt: "r-tie-a", BusinessReqID: "br-tie", EvaluationRev: "er-5"}); err != nil {
+		t.Fatal(err)
+	}
+	// 500 iterations: each lookup ranges the map once; without sorted
+	// iteration the winner flips (random start offset per range).
+	// R21 m-3/R24 m-2: statistical power recorded per the R18 methodology
+	// rule, direction MEASURED (200k raw ranges over this 2-key fixture,
+	// insertion order z-then-a): the first-ENCOUNTERED key under raw
+	// ranging is op-tie-z ~87.5% of the time — and op-tie-z is exactly
+	// the RED-result key (the mutation fails on the first iteration where
+	// z is encountered first). The expected winner op-tie-a is the ~1/8
+	// underdog, so the silent-escape bound is (1/8)^500 ≈ 1e-451 (a
+	// 50-iteration loop would bound it at (1/8)^50 ≈ 7e-46).
+	for i := 0; i < 500; i++ {
+		r, opID, found := rs.lookupByBusinessRequest("br-tie")
+		if !found {
+			t.Fatal("L43 probe: no result found for br-tie")
+		}
+		if opID != "op-tie-a" {
+			t.Fatalf("L43 probe: iteration %d winner = %q, want op-tie-a (lexicographically-lowest op_id on equal revision) — iteration order is nondeterministic", i, opID)
+		}
+		if r.Receipt != "r-tie-a" {
+			t.Fatalf("L43 probe: iteration %d receipt = %q, want r-tie-a", i, r.Receipt)
+		}
+	}
+}
+
+// TestT2NodeEntry_Branches probes the nodeEntry component's error branches
+// (L41 extraction): not-completed operation and completed-but-unstored
+// operation both refuse. The unauthorized branch and the happy path are
+// asserted in TestT2R_PermissionRevoked (L39).
+func TestT2NodeEntry_Branches(t *testing.T) {
+	h := newT2Host(t, t.TempDir())
+
+	// adopt + dispatch but NOT completed → nodeEntry refuses
+	if o := h.adoptAndDispatch("op-branch-1", "er-1", "ev-1", t2Digest('a'), "br-branch", "receipt:op-branch-1", nil); o.Status != "dispatched" {
+		t.Fatalf("branch probe: adoptAndDispatch = %q: %s", o.Status, o.Detail)
+	}
+	if _, err := h.nodeEntry("op-branch-1", chainGrants()); err == nil {
+		t.Fatal("branch probe: nodeEntry served an operation that is dispatched but NOT completed — must refuse")
+	} else if !strings.Contains(err.Error(), "not completed") {
+		t.Fatalf("branch probe: error = %q, want 'not completed'", err.Error())
+	}
+
+	// completed but no stored result → nodeEntry refuses. R18 m-2 fix:
+	// drive the machine directly (Adopt/Dispatch/MarkCompleted, NO
+	// adoptAndDispatch) so the result is NEVER persisted — the honest
+	// "completed without persisting" scenario (previously the probe
+	// persisted then deleted from the in-memory map, leaving the file
+	// entry alive)
+	if o := h.machine.Adopt(requestForT2("op-branch-2", "er-1", "ev-1", t2Digest('b'), "br-branch")); o.Status != "adopted" {
+		t.Fatalf("branch probe: adopt = %q: %s", o.Status, o.Detail)
+	}
+	if o := h.machine.Dispatch("op-branch-2", chainGrants()); o.Status != "dispatched" {
+		t.Fatalf("branch probe: dispatch = %q: %s", o.Status, o.Detail)
+	}
+	if o := h.machine.MarkCompleted("op-branch-2"); o.Status != "completed" {
+		t.Fatalf("branch probe: MarkCompleted = %q: %s", o.Status, o.Detail)
+	}
+	if _, ok := h.store.get("op-branch-2"); ok {
+		t.Fatal("branch probe: fixture error — op-branch-2 should never have been stored")
+	}
+	if _, err := h.nodeEntry("op-branch-2", chainGrants()); err == nil {
+		t.Fatal("branch probe: nodeEntry served a completed operation with NO stored result — must refuse")
+	} else if !strings.Contains(err.Error(), "no stored result") {
+		t.Fatalf("branch probe: error = %q, want 'no stored result'", err.Error())
+	}
+}
+
+// TestT2Method_ParseErrorFailsClosed probes the L44 fix (R17 M-C) and its
+// R18 M-2/M-3 + R19 M-4/M-5/m-1 + R22 M-1 extensions: the veto input
+// fails closed on ALL corrupted forms — unparseable ("not-a-number"),
+// prefix-parseable garbage that Sscanf would have accepted ("0abc",
+// "2xyz", "0.5"), empty, NEGATIVE (a month count cannot be negative),
+// MISSING (the extraction-miss form — the declared required input
+// absent), and under-declared methods (contract/consumption divergence).
+// Mutation probes: revert Atoi to Sscanf and the "0abc" case fails;
+// remove the divergence check and the under-declared cases fail;
+// remove the negative check and the "-4" case fails; remove the
+// empty-value check and the empty-brID case fails.
+// R22 M-1 honest note: the presence loop's EXCLUSIVE behavioral face is
+// the missing business_request_id key (probe below — without the loop an
+// orphan result is produced); the missing-overdue_months form is
+// double-covered by the unconditional Atoi gate (Atoi("") errors), so
+// that case's coupling is marker-only.
+func TestT2Method_ParseErrorFailsClosed(t *testing.T) {
+	m := knowledgeMethod{
+		ID:          "method-parse-probe",
+		Version:     "1.0.0",
+		ServesNode:  "history-verification",
+		InputFields: []string{"overdue_months", "business_request_id"},
+		Valid:       true,
+	}
+	badInputs := []string{"not-a-number", "0abc", "2xyz", "0.5", "", "-4"}
+	for _, bad := range badInputs {
+		_, err := m.execute(map[string]string{
+			"overdue_months":      bad,
+			"business_request_id": "br-parse",
+		})
+		if err == nil {
+			t.Fatalf("L44/M-3/M-5 probe: overdue_months=%q produced a result (fail-open) — the veto input must fail CLOSED on every corrupted form (including negative)", bad)
+		}
+		if !strings.Contains(err.Error(), "fail-closed") {
+			t.Fatalf("L44/M-3/M-5 probe: error for %q = %q, want the fail-closed marker", bad, err.Error())
+		}
+	}
+
+	// R18 M-2 probe: a DECLARED required input MISSING fails closed (the
+	// extraction-miss form — the field never arrived, so it must not
+	// default to 0 and silently disarm the veto)
+	_, err := m.execute(map[string]string{
+		"business_request_id": "br-parse",
+	})
+	if err == nil {
+		t.Fatal("M-2 probe: a missing overdue_months (declared required) produced a result — missing inputs must fail CLOSED")
+	}
+	if !strings.Contains(err.Error(), "missing") {
+		t.Fatalf("M-2 probe: error = %q, want the missing-input marker", err.Error())
+	}
+
+	// R22 M-1 probe (the presence loop's EXCLUSIVE face): the
+	// business_request_id key is ABSENT while overdue_months carries a
+	// legal value — nothing else checks brID presence, so without the
+	// presence loop this produces an ORPHAN result (BusinessReqID ""
+	// never matches a lookup). Mutation probe: remove the InputFields
+	// presence loop and this case produces a result (real fail-open).
+	_, err = m.execute(map[string]string{
+		"overdue_months": "4",
+	})
+	if err == nil {
+		t.Fatal("M-1 probe: a missing business_request_id key produced a result — the presence loop's exclusive face must fail CLOSED")
+	}
+	if !strings.Contains(err.Error(), "missing") {
+		t.Fatalf("M-1 probe: error = %q, want the missing-input marker", err.Error())
+	}
+
+	// R19 m-1 probe: a present-but-EMPTY declared input fails closed (an
+	// empty business_request_id produced orphan results that never match
+	// a lookup)
+	_, err = m.execute(map[string]string{
+		"overdue_months":      "4",
+		"business_request_id": "",
+	})
+	if err == nil {
+		t.Fatal("m-1 probe: an empty business_request_id produced a result — empty contract inputs must fail CLOSED")
+	}
+	if !strings.Contains(err.Error(), "empty") {
+		t.Fatalf("m-1 probe: error = %q, want the empty-input marker", err.Error())
+	}
+
+	// R19 M-4 probe: an UNDER-DECLARED method (consumes overdue_months but
+	// does not declare it) fails closed on the contract/consumption
+	// divergence. R21 M-2: this case feeds the missing-key form (which the
+	// unconditional Atoi gate ALSO catches — double coverage); the
+	// check's EXCLUSIVE face is the case below (legal value present).
+	underDeclared := knowledgeMethod{
+		ID:          "method-under-declared",
+		Version:     "1.0.0",
+		ServesNode:  "history-verification",
+		InputFields: []string{"business_request_id"}, // overdue_months NOT declared
+		Valid:       true,
+	}
+	_, err = underDeclared.execute(map[string]string{
+		"business_request_id": "br-parse",
+	})
+	if err == nil {
+		t.Fatal("M-4 probe: an under-declared method produced a result — contract/consumption divergence must fail CLOSED")
+	}
+	if !strings.Contains(err.Error(), "divergence") {
+		t.Fatalf("M-4 probe: error = %q, want the divergence marker", err.Error())
+	}
+
+	// R21 M-2 probe (the check's EXCLUSIVE face): overdue_months PRESENT
+	// with a legal value — no other gate rejects a legal number, so only
+	// the divergence check can refuse. Mutation probe: remove the
+	// overdue_months half of the divergence check and this case produces
+	// a RESULT (real fail-open, not a marker mismatch).
+	_, err = underDeclared.execute(map[string]string{
+		"overdue_months":      "4", // legal value — the Atoi gate passes it
+		"business_request_id": "br-parse",
+	})
+	if err == nil {
+		t.Fatal("M-2 probe: an under-declared method with a LEGAL overdue_months value produced a result — the contract/consumption divergence must fail CLOSED even when the input arrives")
+	}
+	if !strings.Contains(err.Error(), "overdue_months") {
+		t.Fatalf("M-2 probe: error = %q, want the overdue_months divergence marker", err.Error())
+	}
+
+	// R20 M-2 probe: the IDENTITY carrier is consumed too — a method that
+	// declares overdue_months but NOT business_request_id must fail closed
+	// (previously it produced an orphan result whose BusinessReqID never
+	// matches a lookup)
+	noIdentity := knowledgeMethod{
+		ID:          "method-no-identity",
+		Version:     "1.0.0",
+		ServesNode:  "history-verification",
+		InputFields: []string{"overdue_months"}, // business_request_id NOT declared
+		Valid:       true,
+	}
+	_, err = noIdentity.execute(map[string]string{
+		"overdue_months": "4",
+	})
+	if err == nil {
+		t.Fatal("M-2 probe: a method consuming but not declaring business_request_id produced a result — the identity carrier's divergence must fail CLOSED")
+	}
+	if !strings.Contains(err.Error(), "business_request_id") {
+		t.Fatalf("M-2 probe: error = %q, want the business_request_id divergence marker", err.Error())
+	}
+
+	// valid input still works (the fail-closed gates do not break the
+	// happy path)
+	r, err := m.execute(map[string]string{
+		"overdue_months":      "4",
+		"business_request_id": "br-parse",
+	})
+	if err != nil {
+		t.Fatalf("L44 probe: valid input errored: %v", err)
+	}
+	if !strings.Contains(r.Receipt, "veto-fired") {
+		t.Fatalf("L44 probe: receipt = %q, want veto-fired for 4-month overdue", r.Receipt)
+	}
+}
+
+// TestT2FindForNode_SupersessionWindow probes R19 M-3: during the
+// correction window — v2 published (Replaces v1) while v1 is STILL VALID —
+// findForNode serves v2 (the correction), not the stale v1. Supersession
+// is enforced mechanically via Replaces. Mutation probe: remove the
+// supersession skip and this test fails (the lowest-ID tiebreak would
+// deterministically serve the stale v1).
+// R20 M-1 face: Replaces is a data fact — superseding v2 then
+// INVALIDATING v2 must NOT revive the stale v1 (fail-closed: the node
+// serves no method). Mutation probe: gate supersession on the superseder's
+// Valid flag and the second face fails (v1 revives and is served).
+func TestT2FindForNode_SupersessionWindow(t *testing.T) {
+	kr := newKnowledgeRegistry()
+	kr.mustPublish(t, knowledgeMethod{ID: "method-overdue-v1", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
+	kr.mustPublish(t, knowledgeMethod{ID: "method-overdue-v2", Version: "2.0.0", ServesNode: "history-verification", Valid: true, Replaces: "method-overdue-v1"})
+	// NO invalidation — the window state: both valid, v2 supersedes v1
+	m, ok := kr.findForNode("history-verification")
+	if !ok {
+		t.Fatal("M-3 probe: no method found for history-verification")
+	}
+	if m.ID != "method-overdue-v2" {
+		t.Fatalf("M-3 probe: window winner = %q, want method-overdue-v2 — during the correction window the superseding method must be served, not the stale lowest-ID one", m.ID)
+	}
+
+	// R20 M-1 probe: the superseder itself expires — the superseded v1
+	// must NOT revive (it was declared stale by v2's Replaces; the node
+	// serves no method until a new one is published)
+	if err := kr.invalidate("method-overdue-v2"); err != nil {
+		t.Fatal(err)
+	}
+	if m, ok := kr.findForNode("history-verification"); ok {
+		t.Fatalf("M-1 probe: after invalidating the superseder, findForNode served %q — the superseded stale method must NOT revive (fail-closed, no method)", m.ID)
+	}
+
+	// R21 m-2 probe: a typo'd invalidate (unknown ID) is LOUD — a silent
+	// no-op would leave the stale method consumable. Mutation probe:
+	// revert invalidate to silent-else and this fails.
+	if err := kr.invalidate("method-typo-does-not-exist"); err == nil {
+		t.Fatal("m-2 probe: invalidate of an unknown ID silently no-opped — the flip not happening must be LOUD (fail-closed)")
+	}
+}
+
+// TestT2FindForNode_Deterministic probes R18 M-1: with MULTIPLE valid
+// methods serving the same node kind and NO Replaces relations (the plain
+// tie-break face — the supersession/correction-window face has its own
+// probe, TestT2FindForNode_SupersessionWindow), findForNode must return a
+// DETERMINISTIC winner: the lexicographically-lowest method ID. Mutation
+// probe: revert findForNode to raw map ranging and the winner flips
+// across iterations. R24 m-2: direction MEASURED (200k raw ranges over
+// this 3-key fixture, insertion order c-a-b): first-encountered ≈
+// method-c 75%, method-a 12.5%, method-b 12.5% — the expected winner
+// method-a is a ~1/8 underdog, so the true silent-escape bound is
+// (1/8)^200 ≈ 1e-181 (the earlier "< 1e-10" note was a valid but
+// extremely conservative bound).
+func TestT2FindForNode_Deterministic(t *testing.T) {
+	kr := newKnowledgeRegistry()
+	kr.mustPublish(t, knowledgeMethod{ID: "method-c", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
+	kr.mustPublish(t, knowledgeMethod{ID: "method-a", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
+	kr.mustPublish(t, knowledgeMethod{ID: "method-b", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
+	for i := 0; i < 200; i++ {
+		m, ok := kr.findForNode("history-verification")
+		if !ok {
+			t.Fatal("M-1 probe: no method found for history-verification")
+		}
+		if m.ID != "method-a" {
+			t.Fatalf("M-1 probe: iteration %d winner = %q, want method-a (lexicographically-lowest ID among multiple valid methods) — selection is nondeterministic", i, m.ID)
+		}
+	}
+	// invalid methods are filtered regardless of ID order (F-04 face)
+	kr2 := newKnowledgeRegistry()
+	kr2.mustPublish(t, knowledgeMethod{ID: "method-a", ServesNode: "history-verification", Valid: false})
+	kr2.mustPublish(t, knowledgeMethod{ID: "method-b", ServesNode: "history-verification", Valid: true})
+	m, ok := kr2.findForNode("history-verification")
+	if !ok || m.ID != "method-b" {
+		t.Fatalf("M-1 probe: expected method-b (the only valid one), got %q (ok=%v)", m.ID, ok)
+	}
+}
+
+// TestT2Registry_PublishValidation probes R22 M-2/m-1: publish validates
+// its declaration — a typo'd Replaces (reference to an unpublished method)
+// and a duplicate-ID redeclaration (re-arming an invalidated method) both
+// fail closed. Mutation probes: remove the Replaces check and the typo
+// case fails; remove the duplicate check and the revival case fails.
+func TestT2Registry_PublishValidation(t *testing.T) {
+	kr := newKnowledgeRegistry()
+	kr.mustPublish(t, knowledgeMethod{ID: "method-pv-v1", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
+
+	// R22 M-2 probe: typo'd Replaces — the supersession would silently
+	// not happen (the stale v1 keeps being served, deterministically)
+	err := kr.publish(knowledgeMethod{ID: "method-pv-v2", Version: "2.0.0", ServesNode: "history-verification", Valid: true, Replaces: "method-pv-typo"})
+	if err == nil {
+		t.Fatal("M-2 probe: a publish with a typo'd Replaces was accepted — a supersession that silently does not happen must be LOUD (fail-closed)")
+	}
+	if !strings.Contains(err.Error(), "Replaces") {
+		t.Fatalf("M-2 probe: error = %q, want the Replaces marker", err.Error())
+	}
+
+	// R24 M-1 probe: the typo lands on an EXISTING method serving a
+	// DIFFERENT node kind — the existence check alone accepts it
+	// silently (the supersession does not happen, the stale v1 keeps
+	// being served, AND the wrong target's node coverage would be
+	// silently removed). The same-node gate must reject it.
+	krOther := newKnowledgeRegistry()
+	krOther.mustPublish(t, knowledgeMethod{ID: "method-pv-a", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
+	krOther.mustPublish(t, knowledgeMethod{ID: "method-pv-b", Version: "1.0.0", ServesNode: "credit-scoring", Valid: true})
+	err = krOther.publish(knowledgeMethod{ID: "method-pv-c", Version: "1.0.0", ServesNode: "history-verification", Valid: true, Replaces: "method-pv-b"})
+	if err == nil {
+		t.Fatal("M-1 probe: a cross-node Replaces (existing ID, wrong node kind) was accepted — the supersession silently does not happen and the wrong node's coverage would be silently removed")
+	}
+	if !strings.Contains(err.Error(), "same-node") {
+		t.Fatalf("M-1 probe: error = %q, want the same-node marker", err.Error())
+	}
+	// the wrong target's coverage must remain intact (a rejected publish
+	// must not mutate state)
+	if m, ok := krOther.findForNode("credit-scoring"); !ok || m.ID != "method-pv-b" {
+		t.Fatalf("M-1 probe: credit-scoring coverage lost after the rejected publish — found %q (ok=%v), want method-pv-b", m.ID, ok)
+	}
+
+	// R25 M-1 probe (a): AMBIGUOUS supersession — after v2{Replaces:v1},
+	// publishing v3{Replaces:v1} (the intent was v3{Replaces:v2}) must
+	// be refused; otherwise superseded={v1} and findForNode keeps serving
+	// v2 forever — the newest correction v3 is NEVER served, zero signal
+	krAmb := newKnowledgeRegistry()
+	krAmb.mustPublish(t, knowledgeMethod{ID: "method-amb-v1", Version: "1.0.0", ServesNode: "history-verification", Valid: true})
+	krAmb.mustPublish(t, knowledgeMethod{ID: "method-amb-v2", Version: "2.0.0", ServesNode: "history-verification", Valid: true, Replaces: "method-amb-v1"})
+	err = krAmb.publish(knowledgeMethod{ID: "method-amb-v3", Version: "3.0.0", ServesNode: "history-verification", Valid: true, Replaces: "method-amb-v1"})
+	if err == nil {
+		t.Fatal("M-1 probe: ambiguous supersession accepted — two live methods replacing the same target; the newest correction would silently never be served")
+	}
+	if !strings.Contains(err.Error(), "ambiguous") {
+		t.Fatalf("M-1 probe: error = %q, want the ambiguous-supersession marker", err.Error())
+	}
+
+	// R25 M-1 probe (b): the CORRECT form — v3{Replaces:v2} chains the
+	// correction: v1 and v2 both superseded, the newest correction v3 is
+	// the one served
+	err = krAmb.publish(knowledgeMethod{ID: "method-amb-v3", Version: "3.0.0", ServesNode: "history-verification", Valid: true, Replaces: "method-amb-v2"})
+	if err != nil {
+		t.Fatalf("M-1 probe: correct chained supersession rejected: %v", err)
+	}
+	if m, ok := krAmb.findForNode("history-verification"); !ok || m.ID != "method-amb-v3" {
+		t.Fatalf("M-1 probe: after the chained correction, findForNode served %q (ok=%v), want method-amb-v3 — the newest correction must be the served one", m.ID, ok)
+	}
+
+	// R22 m-1 probe: invalidate v1, then republish the SAME ID with
+	// Valid:true — the re-arming must be refused (a NEW ID is required)
+	if err := kr.invalidate("method-pv-v1"); err != nil {
+		t.Fatal(err)
+	}
+	err = kr.publish(knowledgeMethod{ID: "method-pv-v1", Version: "1.0.1", ServesNode: "history-verification", Valid: true})
+	if err == nil {
+		t.Fatal("m-1 probe: republishing an invalidated method's ID with Valid:true was accepted — known-stale knowledge was silently re-armed; redeclaration must be refused (fail-closed)")
+	}
+	if !strings.Contains(err.Error(), "redeclaration") {
+		t.Fatalf("m-1 probe: error = %q, want the redeclaration marker", err.Error())
+	}
+
+	// sanity: the rejected publishes did not mutate the registry state —
+	// the registry still holds exactly one method (v1, invalidated)
+	if len(kr.methods) != 1 {
+		t.Fatalf("publish-validation probe: registry holds %d methods after rejected publishes, want 1 — a rejected publish must not mutate state", len(kr.methods))
+	}
+	if m := kr.methods["method-pv-v1"]; m.Valid {
+		t.Fatal("publish-validation probe: v1 is Valid after invalidate + rejected republish — the rejected re-arming must not have landed")
+	}
+}

@@ -41,6 +41,6 @@
       ]
     }
   ],
-  "_expect": "REJECT: arbitration_seq in float syntax past 2^53 — the value a parser recovers depends on its float rounding (odd values fold), so the document has no parser-independent value; both validators reject by rule rather than disagree about what it says",
-  "_expect_match": "LEDGER.SEQ_FLOAT_BEYOND_EXACT"
+  "_expect": "REJECT: arbitration_seq 9007199254740994.0 uses float syntax — integer literals only in the counter domain (user ruling 2026-11-02). Under the old charter this was the beyond-±2^53 sub-domain rejection; the literal gate now rejects ALL float syntax uniformly — the sub-domain rule retired with the charter.",
+  "_expect_match": "LEDGER.SEQ_FLOAT_SYNTAX"
 }

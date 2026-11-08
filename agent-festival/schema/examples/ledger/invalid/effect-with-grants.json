@@ -81,5 +81,5 @@
     }
   ],
   "_expect": "REJECT: the grant pin is stamped once at the decision point and rides the adopted event only — an effect event carrying grants_at_decision is a re-pin attempt in mid-flight",
-  "_expect_match": "grants_at_decision"
+  "_expect_match": "LEDGER.GRANTS_ON_NON_ADOPTED"
 }
