@@ -304,7 +304,16 @@
         "Historical retained generation only; no hardware call trace.",
         "Model payload identity retains accepted unchanged-storage assumption.",
         "Hard runtime and numeric caller integration remain separate."
-      ]
+      ],
+      "independent_origin": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-9b-canonical-origin-20261108/NUMERIC-ORIGIN.json",
+        "sha256": "06445d8f0af69d7dfe24f07f7be662e80d66c3ecf79516584d07f7dd794edb7d"
+      },
+      "canonical_origin_review": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-9b-canonical-origin-20261108/VERDICT.json",
+        "sha256": "83f6c4c51b684e896cc5b0d89338da1518792050ee3b6ebe2c9f5e69a2164cfc",
+        "scope": "Normalization of already accepted numerical evidence only; no checker or launch admission"
+      }
     }
   },
   "launch_allowed": false,
