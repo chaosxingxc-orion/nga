@@ -1,5 +1,5 @@
 {
-  "status": "ALL_FOUR_DEV_COMPLETED_RELEASED_CPU_SCORED_INDEPENDENT_NUMERIC_REVIEW_PENDING",
+  "status": "ALL_FOUR_DEV_COMPLETED_RELEASED_CPU_SCORED_INDEPENDENT_NUMERIC_ACCEPTED",
   "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800",
   "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
   "scope": "Four fixed Base synthetic long DEV qualifications; no TEST",
@@ -225,7 +225,88 @@
     }
   },
   "operational_reuse": "Accepted unchanged-storage assumption; weight bytes not rehashed",
-  "numerical_results": null,
+  "numerical_results": {
+    "08b": {
+      "status": "ACCEPTED_EXACT_SYNTHETIC_LONG_DEV_ONLY",
+      "verdict": "ACCEPT_SCOPED_EXACT_SYNTHETIC_LONG_DEV_NUMERICS",
+      "review_task": ".local/releases/engineering-base-rc1/tasks/science/kev-hard-dev08b-numeric-review-20261108",
+      "review_verdict_sha256": "e7970ee461a9d6230cec55835a15b3fe821e89adedd9b71a30751f24187d135b",
+      "review_sourcepins_sha256": "c145722c06492192b8564170e53caa55c8e3105651031d6d4877722f373c59b5",
+      "max_abs_diff": 0,
+      "tolerance": 0,
+      "scientific_acceptance": false,
+      "hard_test_admission": false,
+      "limitations": [
+        "Three fixed synthetic inputs; arithmetic projections are not additional task forwards.",
+        "Historical retained generation only; no hardware call trace.",
+        "Model payload identity retains accepted unchanged-storage assumption.",
+        "Hard runtime and numeric caller integration remain separate."
+      ],
+      "independent_origin": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev08b-numeric-review-20261108/ORIGIN.json",
+        "sha256": "7a33b9b053e3e9be0b495343070ed0fc7a3246c11561d2378abf9eb370885943"
+      }
+    },
+    "2b": {
+      "status": "ACCEPTED_EXACT_SYNTHETIC_LONG_DEV_ONLY",
+      "verdict": "ACCEPT_NUMERIC_DEPENDENCY_ONLY",
+      "review_task": ".local/releases/engineering-base-rc1/tasks/science/kev-hard-dev2b-numeric-review-20261108",
+      "review_verdict_sha256": "43e8c30105b35b5d455a3adaca154ffb3faab436704732d47597be9f1a3f90fb",
+      "review_sourcepins_sha256": "beb6e4ff006af238920841483a31bad2c6adcbf41d26a605d5b574cca84877ae",
+      "max_abs_diff": 0,
+      "tolerance": 0,
+      "scientific_acceptance": false,
+      "hard_test_admission": false,
+      "limitations": [
+        "Three fixed synthetic inputs; arithmetic projections are not additional task forwards.",
+        "Historical retained generation only; no hardware call trace.",
+        "Model payload identity retains accepted unchanged-storage assumption.",
+        "Hard runtime and numeric caller integration remain separate."
+      ],
+      "independent_origin": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev2b-numeric-review-20261108/NUMERIC-ORIGIN.json",
+        "sha256": "18dc6ad3829b6644e1cf251f25315edab40962266cfd9e6a159c2a3b516ded7f"
+      }
+    },
+    "4b": {
+      "status": "ACCEPTED_EXACT_SYNTHETIC_LONG_DEV_ONLY",
+      "verdict": "ACCEPT_SCOPED_CORRECTED4B_RC1_LONG_DEV_NUMERICAL_QUALIFICATION",
+      "review_task": ".local/releases/engineering-base-rc1/tasks/science/kev-hard-dev4b-numeric-review-20261108",
+      "review_verdict_sha256": "33cdcbe434582ca12c2e462bc9fee37638c63b7d0169b388a8f429484551b22e",
+      "review_sourcepins_sha256": "f7ff40168bd5b45f155cc525d5d0dc1e62aa4e771624570762d106fd977ee617",
+      "max_abs_diff": 0,
+      "tolerance": 0,
+      "scientific_acceptance": false,
+      "hard_test_admission": false,
+      "limitations": [
+        "Three fixed synthetic inputs; arithmetic projections are not additional task forwards.",
+        "Historical retained generation only; no hardware call trace.",
+        "Model payload identity retains accepted unchanged-storage assumption.",
+        "Hard runtime and numeric caller integration remain separate."
+      ],
+      "independent_origin": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev4b-numeric-review-20261108/NUMERIC-ORIGIN.json",
+        "sha256": "88debdac26def252e970fcb453d1d762be8dc46a77cc14a845548c766ebf37d2"
+      }
+    },
+    "9b": {
+      "status": "ACCEPTED_EXACT_SYNTHETIC_LONG_DEV_ONLY",
+      "verdict": "ACCEPT_EXACT_9B_RC1_SYNTHETIC_LONG_DEV_NUMERICAL_AND_OPERATIONAL_LINEAGE",
+      "review_task": ".local/releases/engineering-base-rc1/tasks/science/kev-hard-dev9b-numeric-review-20261108",
+      "review_verdict_sha256": "bef812ba3a350d55dbe88a5e65e352cd61147628763be5d9a77396fac5491e78",
+      "review_sourcepins_sha256": "a507c54ab08d965fa0936cf0620cdacd733e9a6ee449d61b7eaa7ec80d234896",
+      "max_abs_diff": 0,
+      "tolerance": 0,
+      "scientific_acceptance": false,
+      "hard_test_admission": false,
+      "limitations": [
+        "Three fixed synthetic inputs; arithmetic projections are not additional task forwards.",
+        "Historical retained generation only; no hardware call trace.",
+        "Model payload identity retains accepted unchanged-storage assumption.",
+        "Hard runtime and numeric caller integration remain separate."
+      ]
+    }
+  },
   "launch_allowed": false,
   "supersedes": {
     "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-four-dev-stage-final-20261108-88798",
@@ -244,7 +325,7 @@
   "execution": {
     "08b": {
       "observed_server_utc": "2026-11-08T09:41:11.305959+00:00",
-      "status": "TERMINAL_RELEASED_CPU_PASS_INDEPENDENT_NUMERIC_REVIEW_PENDING",
+      "status": "TERMINAL_RELEASED_CPU_PASS_INDEPENDENT_NUMERIC_ACCEPTED",
       "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800",
       "model": "08b",
       "chip": 5,
@@ -257,7 +338,7 @@
       "host_pid": 3212286,
       "cpu_waiter_pid": 3212287,
       "cpu_waiter_start_ticks": "18090368",
-      "numerical_result": null,
+      "numerical_result": "ACCEPTED_EXACT_SYNTHETIC_LONG_DEV_ONLY",
       "runner_heartbeat_observed": false,
       "host_heartbeat_completed": 0,
       "prospective_main": "8acc533",
@@ -267,29 +348,45 @@
       "operational_review": "ACCEPT_OPERATIONAL_LAUNCH_TERMINAL_RELEASE_WITH_MONITORING_CAVEAT"
     },
     "2b": {
-      "status": "TERMINAL_RELEASED_CPU_EXIT0_NUMERIC_REVIEW_PENDING",
+      "status": "TERMINAL_RELEASED_CPU_PASS_INDEPENDENT_NUMERIC_ACCEPTED",
       "container_id": "76e18d7a3b00b0304f6d5ff95bd1a3315714fcc014a98ba1eb66320e444fbd33",
       "started_utc": "2026-11-08T09:45:23.2258869Z",
       "completed_forwards": 9,
-      "reserved_gib": 9.162109375
+      "reserved_gib": 9.162109375,
+      "numerical_result": "ACCEPTED_EXACT_SYNTHETIC_LONG_DEV_ONLY"
     },
     "4b": {
-      "status": "TERMINAL_RELEASED_CPU_EXIT0_NUMERIC_REVIEW_PENDING",
+      "status": "TERMINAL_RELEASED_CPU_PASS_INDEPENDENT_NUMERIC_ACCEPTED",
       "container_id": "a41c73c72d26a7f87affd2f66338c2b8634b8562c3edcfcd138db28d759e4a1d",
       "started_utc": "2026-11-08T09:47:20.32561277Z",
       "chip": 5,
       "completed_forwards": 9,
-      "reserved_gib": 20.41796875
+      "reserved_gib": 20.41796875,
+      "numerical_result": "ACCEPTED_EXACT_SYNTHETIC_LONG_DEV_ONLY"
     },
     "9b": {
-      "status": "TERMINAL_RELEASED_CPU_PASS_NUMERIC_REVIEW_PENDING",
+      "status": "TERMINAL_RELEASED_CPU_PASS_INDEPENDENT_NUMERIC_ACCEPTED",
       "container_id": "9c318568bf52c118e79829d5b2ac2ddc5f1a9eff7886f486a6229474e7c38515",
       "started_utc": "2026-11-08T09:49:51.41288886Z",
       "chip": 5,
       "host_pid": 3256302,
       "cpu_waiter_pid": 3256303,
       "completed_forwards": 9,
-      "reserved_gib": 38.607421875
+      "reserved_gib": 38.607421875,
+      "numerical_result": "ACCEPTED_EXACT_SYNTHETIC_LONG_DEV_ONLY"
+    }
+  },
+  "updated_utc": "2026-11-08T10:12:00Z",
+  "serial_queue_review": {
+    "task": "science/kev-hard-serial-queue-three-fixes-20261108-review",
+    "status": "ACCEPTED_FINITE_R1_R2_R3_COMPONENT_ONLY",
+    "production_deployed": false,
+    "continuous_production_throughput_proven": false,
+    "parent_reproduction": {
+      "tests_passed": 28,
+      "evidence": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/evidence/current-execution/SERIAL-QUEUE-PARENT-RERUN.json",
+      "review_output_overwritten_by_supplied_rerun": true,
+      "implementation_sources_unchanged": true
     }
   }
 }
