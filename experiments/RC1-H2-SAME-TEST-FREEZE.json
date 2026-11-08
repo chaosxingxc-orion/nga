@@ -1,0 +1,85 @@
+{
+  "schema": "h2-same-test-parent-freeze-v1",
+  "frozen_utc": "2026-11-08T22:10:50.830351+00:00",
+  "status": "FROZEN_SCOPE_METRICS_AND_ROSTER_NOT_EXECUTION_ADMISSION",
+  "scope_contract": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/h2-same-test-prospective-plan-20261109/PROTOCOL-DRAFT.md",
+    "sha256": "b6235f8cf6217fe46065a0f91f4585ed74f91d2b046e8cbb8bf19b1f29073ae0"
+  },
+  "execution_reuse_plan": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/h2-same-test-prospective-plan-20261109/EXECUTION-REUSE-PLAN.json",
+    "sha256": "cad2390e0f2857a2d778a3cdebfa5c51748df0dc4b154c3afc28e0a1d1ef1574"
+  },
+  "independent_review": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/h2-same-test-prospective-20261109-review/VERDICT.json",
+    "sha256": "1c50a9d2a06253d17324dd2c12a6dd3ac6436f7738d285729d21131296e02106"
+  },
+  "review_handoff": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/h2-same-test-prospective-20261109-review/HANDOFF.md",
+    "sha256": "f013ca4b8dc00cd8cb8c0eaaf557744a78a1394decfbf6720f47a94589ac8955"
+  },
+  "roster": [
+    {
+      "id": "h2-q4b-k2-s2",
+      "model": "Qwen3.5-4B-Base",
+      "training_objective": "K2",
+      "seed": 2,
+      "terminal_optimizer_update": 3116
+    },
+    {
+      "id": "h2-q4b-k2-s3",
+      "model": "Qwen3.5-4B-Base",
+      "training_objective": "K2",
+      "seed": 3,
+      "terminal_optimizer_update": 3116
+    }
+  ],
+  "primary_comparators": [
+    "own accepted4BBase",
+    "same-seed accepted4BK1"
+  ],
+  "membership_unconditional_on_DEV_values": true,
+  "retain_failed_missing_members": true,
+  "no_missing_seed_mean": true,
+  "uncertainty_decision": {
+    "decision": "ACCEPT_EXACT_HISTORICAL_METHOD_FOR_PARENT_FREEZE",
+    "decision_applies_to": "prospective fixed24-effect family only; not H2 result acceptance",
+    "historical_plus1_minus1pp_h2_gate": false,
+    "interpretation": "Report all24 cells, retain raw and R0 and both baselines. No simultaneous/family-wise coverage, seed-population or record-cluster inference, no favorable-cell significance headline and no positive-CI pass rule. Crossing zero is not equivalence. Existing H2 DEV conjuncts keep their independent failure meaning.",
+    "method": {
+      "draw_shape": "sequential rng.integers(0,n,size=n)",
+      "draws": 10000,
+      "fixed_seed_mean": "average within each question before resampling, separately on each paired arm",
+      "function": "r3_final_gain_compare.original_bootstrap() -> pinned select_r3.paired_bootstrap",
+      "n_by_suite": {
+        "decision-v7": 1200,
+        "transfer-v4": 656
+      },
+      "percentiles": "NumPy linear at original binary64 [100*(1-.90)/2,100*(1+.90)/2]",
+      "rng": "NumPy default_rng(20261030), reset per effect",
+      "runtime": "same plan-pinned historical CPU interpreter/environment; exact source hashes remain required",
+      "units": "percentage points"
+    },
+    "new_adjustment_method": null,
+    "new_thresholds": [],
+    "reason": "The arithmetic is unchanged and appropriate only for the declared marginal descriptive purpose. Explicit24-effect labeling resolves multiplicity without inventing a correction or significance gate.",
+    "required_display_label": "90% marginal conditional question-bootstrap descriptive interval; fixed seeds/artifacts; unadjusted across the24 declared effects."
+  },
+  "required_interval_label": "90% marginal conditional question-bootstrap descriptive interval; fixed seeds/artifacts; unadjusted across the24 declared effects.",
+  "full_required_controls_metrics_population_inherited_verbatim": true,
+  "H2_DEV_conjuncts_unchanged": true,
+  "functional_admission_approved": false,
+  "TEST_access_authorized": false,
+  "TEST_launch_approved": false,
+  "new_result_publication_authorized": false,
+  "TEST_outcomes_accessed_for_freeze": false,
+  "last_training_progress_evidence": {
+    "remote_utc": "2026-11-08T22:03:09.475+00:00",
+    "seed2_step": 1912,
+    "seed3_step": 1958,
+    "terminal": null,
+    "source": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/h2-recent-workload-efficiency-20261109/EVIDENCE-CAPTURE.json"
+  },
+  "source_snapshot_note": "Reviewed draft bytes preserved verbatim. This freeze and review uncertainty decision resolve only draft/freeze-pending status and uncertainty null; all dynamic execution permissions remain absent. No result-dependent roster selection.",
+  "goal_complete": false
+}
