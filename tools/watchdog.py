@@ -564,7 +564,7 @@ def read_json_heartbeat(path):
             raise ValueError("invalid completed count")
         if total is not None and (type(total) is not int or total <= 0 or done is None or done > total):
             raise ValueError("invalid total")
-        if done is None and obj.get("state") not in ("runtime_alive", "control_scoring", "running", "created", "cpu_consuming", "offline_parsing"):
+        if done is None and obj.get("state") not in ("runtime_alive", "control_scoring", "running", "created", "cpu_consuming", "offline_parsing", "waiting_terminal_release"):
             raise ValueError("unrecognized heartbeat state")
         perf = None
         if "questions_per_second_per_chip" in obj:

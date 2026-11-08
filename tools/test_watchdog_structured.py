@@ -53,6 +53,19 @@ class StructuredWatchdog(unittest.TestCase):
         r=self.result();self.assertEqual(r['state'],'running')
         self.assertIsNone(r['progress']['done']);self.assertIsNone(r['perf'])
 
+    def test_waiting_terminal_release_liveness_and_terminal_precedence(self):
+        self.put('heartbeat.json',dict(utc_seconds=NOW-1,state='waiting_terminal_release'))
+        r=self.result();self.assertEqual(r['state'],'running')
+        self.assertEqual(r['heartbeat_epoch'],NOW-1)
+        self.assertIsNone(r['progress']['done'])
+        self.put('EXIT.json',dict(exit_code=0))
+        self.assertEqual(self.result()['state'],'done')
+        (self.root/'EXIT.json').unlink()
+        self.put('heartbeat.json',dict(utc_seconds=NOW-1,state='waiting_terminal_release_other'))
+        self.assertEqual(self.result()['state'],'unknown')
+        self.put('heartbeat.json',dict(state='waiting_terminal_release'))
+        self.assertEqual(self.result()['state'],'unknown')
+
     def test_queue_iso_timestamp(self):
         import datetime
         for age, state in ((10, 'running'), (4000, 'stalled')):
