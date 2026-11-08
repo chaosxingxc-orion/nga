@@ -1,0 +1,238 @@
+{
+  "schema": "ordinal-minimal-entry-comparison-preparation-v1",
+  "scope_determination": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-exact-numeric-coverage-20261108/COVERAGE.json",
+    "sha256": "03a8ecda8a9b0b7136716a0e10350e79825ea58f6168d93d6e71d3028a6d1bcf"
+  },
+  "status": "PREPARED_SPECIFICATION_NOT_RUNNABLE_HOST_PACKAGE",
+  "npu_launched": false,
+  "new_forwards_total": 6,
+  "scientific_dataset_changes": false,
+  "models": [
+    {
+      "model_id": "08b",
+      "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base",
+      "model_manifest_sha256": "28783a11558cc6b99e9a045bae574d9c484fd3279572605268fd31f480b7e357",
+      "model_manifest_document": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/package/assets/MODEL-MANIFEST.json",
+        "sha256": "da5423321fff8321a4ffb592d6a625b64d20a779c855b87a19a30af4e76cd7ef"
+      },
+      "weight_identity_basis": "accepted unchanged-storage assumption; do not hash weights",
+      "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+      "environment": {
+        "ASCEND_RT_VISIBLE_DEVICES": "0",
+        "HF_HUB_OFFLINE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "TASK_QUEUE_ENABLE": "2",
+        "TOKENIZERS_PARALLELISM": "false",
+        "TRANSFORMERS_OFFLINE": "1"
+      },
+      "loader": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/coverage_next_wave_20261104_v1/paws-08b/code/bev_native_dev_runner.py",
+        "sha256": "09adcc2407423cb62ff95400f4db8566faf9fedf3b35a238486bc74ec161aa15"
+      },
+      "runtime": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/src/ordinal_dev_runtime_v2.py",
+        "sha256": "4b6556e5263f44ef95ab10845feabcd4c07094383506374c6f9922e42060f4d3"
+      },
+      "collector": "ordinal_dev_runtime_v2.collect_one(model, tokenizer, torch, frozen_row)",
+      "inputs": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_long_dev_20261103_v2/inference/requests.jsonl",
+        "sha256": "d8ac23e54b44a6191158f35118d917d0eea2f2b25d7ea2bb54617ece4a0dbcc5"
+      },
+      "lengths": [
+        4097,
+        5296,
+        8192
+      ],
+      "new_forwards": 3,
+      "reference_receipts": [
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/0/reference/operands.npz",
+          "sha256": "c219ebdda8ef4db9da2fab6b149376a77f5ccc5b3a2f2b35d79a2a6249e0036d"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/1/reference/operands.npz",
+          "sha256": "f88fbe5c34c62b26c0d7b6451cf28e102bf8ec1b9e04cccdc09d9cbf46672335"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/2/reference/operands.npz",
+          "sha256": "15da91ea62cf5798b33186f3ba58fd1bdb7b3127ec7e33828dd1e6dcc1d53917"
+        }
+      ],
+      "references_already_accepted": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev08b-numeric-review-20261108/ORIGIN.json",
+        "sha256": "7a33b9b053e3e9be0b495343070ed0fc7a3246c11561d2378abf9eb370885943"
+      },
+      "all_native_variants_retained": [
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/0/adapter/operands.npz",
+          "sha256": "c219ebdda8ef4db9da2fab6b149376a77f5ccc5b3a2f2b35d79a2a6249e0036d"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/0/reference/operands.npz",
+          "sha256": "c219ebdda8ef4db9da2fab6b149376a77f5ccc5b3a2f2b35d79a2a6249e0036d"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/0/reference_repeat/operands.npz",
+          "sha256": "c219ebdda8ef4db9da2fab6b149376a77f5ccc5b3a2f2b35d79a2a6249e0036d"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/1/adapter/operands.npz",
+          "sha256": "f88fbe5c34c62b26c0d7b6451cf28e102bf8ec1b9e04cccdc09d9cbf46672335"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/1/reference/operands.npz",
+          "sha256": "f88fbe5c34c62b26c0d7b6451cf28e102bf8ec1b9e04cccdc09d9cbf46672335"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/1/reference_repeat/operands.npz",
+          "sha256": "f88fbe5c34c62b26c0d7b6451cf28e102bf8ec1b9e04cccdc09d9cbf46672335"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/2/adapter/operands.npz",
+          "sha256": "15da91ea62cf5798b33186f3ba58fd1bdb7b3127ec7e33828dd1e6dcc1d53917"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/2/reference/operands.npz",
+          "sha256": "15da91ea62cf5798b33186f3ba58fd1bdb7b3127ec7e33828dd1e6dcc1d53917"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/2/reference_repeat/operands.npz",
+          "sha256": "15da91ea62cf5798b33186f3ba58fd1bdb7b3127ec7e33828dd1e6dcc1d53917"
+        }
+      ],
+      "new_output_shape": [
+        248320
+      ],
+      "reference_output_shape": [
+        1,
+        248320
+      ],
+      "comparison": "Remove only the singleton batch axis from each reference; require identical input_ids/attention_mask dtype, shape and values; finite float32 full vector; zero differing coordinates, max_abs_diff=0. Never compare only labels.",
+      "runtime_config_sha256": null,
+      "container": null,
+      "chip": null,
+      "output": null,
+      "launch_authorized": false
+    },
+    {
+      "model_id": "2b",
+      "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base",
+      "model_manifest_sha256": "034f52ccb3d9c37438ee5ad882741b16bfa50ff63e79008d9fb48f4cc9469864",
+      "model_manifest_document": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/package/assets/MODEL-MANIFEST.json",
+        "sha256": "f156b12f3bb8ab0b2e8c3a58fd2fcd1735f10f97b3b33c622254db796d39bbc6"
+      },
+      "weight_identity_basis": "accepted unchanged-storage assumption; do not hash weights",
+      "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+      "environment": {
+        "ASCEND_RT_VISIBLE_DEVICES": "0",
+        "HF_HUB_OFFLINE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "TASK_QUEUE_ENABLE": "2",
+        "TOKENIZERS_PARALLELISM": "false",
+        "TRANSFORMERS_OFFLINE": "1"
+      },
+      "loader": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/coverage_next_wave_20261104_v1/paws-2b/code/bev_native_dev_runner.py",
+        "sha256": "09adcc2407423cb62ff95400f4db8566faf9fedf3b35a238486bc74ec161aa15"
+      },
+      "runtime": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/src/ordinal_dev_runtime_v2.py",
+        "sha256": "4b6556e5263f44ef95ab10845feabcd4c07094383506374c6f9922e42060f4d3"
+      },
+      "collector": "ordinal_dev_runtime_v2.collect_one(model, tokenizer, torch, frozen_row)",
+      "inputs": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_long_dev_20261103_v2/inference/requests.jsonl",
+        "sha256": "d8ac23e54b44a6191158f35118d917d0eea2f2b25d7ea2bb54617ece4a0dbcc5"
+      },
+      "lengths": [
+        4097,
+        5296,
+        8192
+      ],
+      "new_forwards": 3,
+      "reference_receipts": [
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/0/reference/operands.npz",
+          "sha256": "9821045db9c648458a0ae9a26b58a611a882a627af700969a0465fc6036b4e84"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/1/reference/operands.npz",
+          "sha256": "504932336ba26cc00c8cb743476f43a5d11d7719f9070b52f730429e8e157169"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/2/reference/operands.npz",
+          "sha256": "4dea3683694aaca6255ae1c5129e766a0c593c5d48d665280c880b4548e589d3"
+        }
+      ],
+      "references_already_accepted": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev2b-numeric-review-20261108/NUMERIC-ORIGIN.json",
+        "sha256": "18dc6ad3829b6644e1cf251f25315edab40962266cfd9e6a159c2a3b516ded7f"
+      },
+      "all_native_variants_retained": [
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/0/adapter/operands.npz",
+          "sha256": "9821045db9c648458a0ae9a26b58a611a882a627af700969a0465fc6036b4e84"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/0/reference/operands.npz",
+          "sha256": "9821045db9c648458a0ae9a26b58a611a882a627af700969a0465fc6036b4e84"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/0/reference_repeat/operands.npz",
+          "sha256": "9821045db9c648458a0ae9a26b58a611a882a627af700969a0465fc6036b4e84"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/1/adapter/operands.npz",
+          "sha256": "504932336ba26cc00c8cb743476f43a5d11d7719f9070b52f730429e8e157169"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/1/reference/operands.npz",
+          "sha256": "504932336ba26cc00c8cb743476f43a5d11d7719f9070b52f730429e8e157169"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/1/reference_repeat/operands.npz",
+          "sha256": "504932336ba26cc00c8cb743476f43a5d11d7719f9070b52f730429e8e157169"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/2/adapter/operands.npz",
+          "sha256": "4dea3683694aaca6255ae1c5129e766a0c593c5d48d665280c880b4548e589d3"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/2/reference/operands.npz",
+          "sha256": "4dea3683694aaca6255ae1c5129e766a0c593c5d48d665280c880b4548e589d3"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/2/reference_repeat/operands.npz",
+          "sha256": "4dea3683694aaca6255ae1c5129e766a0c593c5d48d665280c880b4548e589d3"
+        }
+      ],
+      "new_output_shape": [
+        248320
+      ],
+      "reference_output_shape": [
+        1,
+        248320
+      ],
+      "comparison": "Remove only the singleton batch axis from each reference; require identical input_ids/attention_mask dtype, shape and values; finite float32 full vector; zero differing coordinates, max_abs_diff=0. Never compare only labels.",
+      "runtime_config_sha256": null,
+      "container": null,
+      "chip": null,
+      "output": null,
+      "launch_authorized": false
+    }
+  ],
+  "implementation_instructions": [
+    "Run this task prepare_minimal_plan.py with a fresh --output path; it verifies metadata/source pins and writes two comparison specifications, without reading requests/weights, importing models or launching.",
+    "For later engineering, use the existing fixed-stage qualify.py run/collect loop and bev_native_dev_probe.CaptureModel/persist_operand plus the exact ordinal runtime collect_one function. Add an ordinal entry arm in a separate fresh diagnostic wrapper, not in frozen scientific requests or the production 140-row runtime.",
+    "Reuse the existing three native_long_dev_20261103_v2/inference/requests.jsonl rows unchanged for each model. collect_one needs only rendered_prompt and input_ids; it can consume those already prepared native rows directly. Do not call ordinal runtime run/verify (140-row contract and weight rehash) or probe.collect_one (4096 cap). Do not call old qualify.run unchanged: that would repeat all reference/repeat/adapter forwards.",
+    "Load each Base once using the ordinal pinned load_model. Call the unchanged ordinal collect_one once for each of the three frozen rows; persist full arrays using the existing exclusive-create persistence helper. Model eval FP32, conv/matmul HF32 false, batch1, no truncation, logits_to_keep=1, inference_mode, no cache/attention/precision overrides.",
+    "Reuse each accepted reference/reference_repeat/adapter operand as historical comparison input, after receipt/custody validation in the later authorized comparison. Compare all full-vector coordinates to the new ordinal vector, allowing only singleton batch-axis normalization; input IDs and masks must be equal in dtype/shape/value. No shared-output right-hand operand; one new invocation per row. Tolerance remains zero. A mismatch stops reuse; never loosen thresholds.",
+    "Bind new collector/source/runtime and exact model/image/environment/call-shape identities plus old origins in the resulting comparison receipt. Record actual new container/environment/driver-library mounts separately; image equality alone cannot discharge host-mounted runtime differences. Do not claim source-identical model code across changed external mounts.",
+    "CPU-only postprocessing may project digit15..19 and16..20 and full-vocab mass using the frozen ordinal scorer; existing six-label score projection is not itself the five-label ordinal denominator. Reuse admitted B1/scientific arithmetic without changing ties or scientific metrics. No label-specific NPU forwards.",
+    "Before using this scope in host approval, implement an explicit new evidence schema that binds the arithmetic tuple, this amendment, and an allowlisted mapping to all eight exact config/request receipts. Keep exact config/command/resource approval separate. Old approval() is unchanged and still rejects this scope document as numerical PASS.",
+    "Future authorized execution must use a fresh reviewed detached retained-container package and terminal/relaunch/heartbeat/resume conventions already required. No claim or launch is authorized here; no new deployment gate or whole-DEV probe is introduced."
+  ]
+}

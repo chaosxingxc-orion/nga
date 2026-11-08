@@ -1,0 +1,75 @@
+{
+  "schema": "ordinal-numerical-scope-verdict-v1",
+  "created_utc": "2026-11-08T14:57:56.879350+00:00",
+  "verdict": "SCOPE_CLOSED_PARTIAL_REUSE_WITH_TWO_ENTRY_TUPLE_GAPS",
+  "scope_decision_complete": true,
+  "numerical_pass": false,
+  "same_entry_actual_npu_proof": false,
+  "accepted_model_groups": [
+    "08b",
+    "2b"
+  ],
+  "admitted_cells": 8,
+  "remaining_comparison_groups": 2,
+  "new_forwards_specified": 6,
+  "new_forwards_executed": 0,
+  "all_eight_full_dev_probes_required": false,
+  "scientific_metrics_changed": false,
+  "new_deployment_gate": false,
+  "launch_authorized": false,
+  "host_approval_code_modified": false,
+  "preparation_executed": true,
+  "preparation_is_runnable_host_package": false,
+  "checks_passed": 126,
+  "artifacts": {
+    "VERDICT.md": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-exact-numeric-coverage-20261108/VERDICT.md",
+      "sha256": "e241125716933a39825dcd1c3043710c4d5a4b937e4c371817d1727ecb16069d"
+    },
+    "COVERAGE.json": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-exact-numeric-coverage-20261108/COVERAGE.json",
+      "sha256": "03a8ecda8a9b0b7136716a0e10350e79825ea58f6168d93d6e71d3028a6d1bcf"
+    },
+    "NUMERICAL-SCOPE-AMENDMENT.md": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-exact-numeric-coverage-20261108/NUMERICAL-SCOPE-AMENDMENT.md",
+      "sha256": "949dea7055074301e6c6cc4b86e4b74625dc1e34dc19ce47521cc024506ca6c0"
+    },
+    "MINIMAL-PLAN.json": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-exact-numeric-coverage-20261108/MINIMAL-PLAN.json",
+      "sha256": "cf6522a6874cc224e3890f7feaa6b7880d4de6365d3e8b9727aedb0beaecd5d1"
+    },
+    "prepare_minimal_plan.py": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-exact-numeric-coverage-20261108/prepare_minimal_plan.py",
+      "sha256": "e081141cd879bf9e6e4b645ace036dfe931945de57e23357fbdba51167de0d9a"
+    },
+    "SOURCEPINS.json": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-exact-numeric-coverage-20261108/SOURCEPINS.json",
+      "sha256": "24645476cac071a6eb56577bda7c25ffab8fda2266dc29134586bae15cd2e1bb"
+    },
+    "CHECKS.json": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-exact-numeric-coverage-20261108/CHECKS.json",
+      "sha256": "ec5137580a9ef82b0a3adf1572c7e262877d40dc30c43d16a1b869753ddc59ff"
+    },
+    "REMOTE-METADATA.json": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-exact-numeric-coverage-20261108/REMOTE-METADATA.json",
+      "sha256": "3b7f917ca3638b8f1e18a4d9e81f194293f3d611a67ec53be3a44dad145ac0fe"
+    }
+  },
+  "limitations": [
+    "Metadata/source review; prior numeric reviews reused, tensors not recomputed",
+    "Unchanged-storage assumption, not fresh payload identity",
+    "Six-forward plan assumes existing reference custody and external runtime identity",
+    "Three long shapes are representative protocol coverage, not per-short-shape equality",
+    "Current unchanged host still requires its historical exact config numerical receipt; future explicit schema integration needed"
+  ],
+  "actions": {
+    "npu": false,
+    "resources": false,
+    "delegation": false,
+    "git_mutation": false,
+    "git_status_read_once": true,
+    "wiki": false,
+    "weight_or_data_rehash": false,
+    "rerender": false
+  }
+}

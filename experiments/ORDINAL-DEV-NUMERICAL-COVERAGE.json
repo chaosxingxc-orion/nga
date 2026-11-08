@@ -1,0 +1,838 @@
+{
+  "schema": "ordinal-exact-numeric-coverage-v1",
+  "created_utc": "2026-11-08T14:56:14.283922+00:00",
+  "decision": "SCOPE_CLOSED_PARTIAL_REUSE_WITH_TWO_ENTRY_TUPLE_GAPS",
+  "scope_complete": true,
+  "numerical_pass": false,
+  "scientific_admission": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108/VERDICT.json",
+    "sha256": "7e15aa79e62e1bce8ce2bccc6ad864bfb24fdb3d449c6e0d0b019bedaca1b04d"
+  },
+  "target": {
+    "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+    "environment": {
+      "ASCEND_RT_VISIBLE_DEVICES": "0",
+      "HF_HUB_OFFLINE": "1",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "TASK_QUEUE_ENABLE": "2",
+      "TOKENIZERS_PARALLELISM": "false",
+      "TRANSFORMERS_OFFLINE": "1"
+    },
+    "loader": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/coverage_next_wave_20261104_v1/paws-08b/code/bev_native_dev_runner.py",
+      "sha256": "09adcc2407423cb62ff95400f4db8566faf9fedf3b35a238486bc74ec161aa15"
+    },
+    "runtime": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/src/ordinal_dev_runtime_v2.py",
+      "sha256": "4b6556e5263f44ef95ab10845feabcd4c07094383506374c6f9922e42060f4d3"
+    },
+    "loader_settings": {
+      "dtype": "float32",
+      "device": "npu:0",
+      "eval": true,
+      "local_files_only": true,
+      "trust_remote_code": false,
+      "hf32": false,
+      "padding_side": "left"
+    },
+    "batch_size": 1,
+    "max_length": 8192,
+    "model_output_shape": [
+      1,
+      1,
+      248320
+    ],
+    "persisted_logits_shape": [
+      248320
+    ],
+    "historical_persisted_logits_shape": [
+      1,
+      248320
+    ]
+  },
+  "models": [
+    {
+      "model_id": "08b",
+      "loader": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/coverage_next_wave_20261104_v1/paws-08b/code/bev_native_dev_runner.py",
+        "sha256": "09adcc2407423cb62ff95400f4db8566faf9fedf3b35a238486bc74ec161aa15"
+      },
+      "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base",
+      "model_manifest_sha256": "28783a11558cc6b99e9a045bae574d9c484fd3279572605268fd31f480b7e357",
+      "manifest_document": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/package/assets/MODEL-MANIFEST.json",
+        "sha256": "da5423321fff8321a4ffb592d6a625b64d20a779c855b87a19a30af4e76cd7ef"
+      },
+      "model_files": {
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/.complete": "62b52c9db0dc5860230916a274fe5a4b13780642e871832d8b609d4b99de54f3",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/.gitattributes": "34448b82c17d60fec9b65b1f093c115ddbaadc04beb1b0140b6bfed2e012a930",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/LICENSE": "50cbab8a892c5f2993b8c7351a99182507472def3b1374558308605d99b86b32",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/README.md": "3cff39d2674e28b95e2df75cdb2d7a687ec391931065b05df83dbae12b447b11",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/config.json": "b90b86f35c8e6925ef74ee04d0e758f0a845c83a42089ad82bbaa948de9b4204",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/model.safetensors-00001-of-00001.safetensors": "c2b1e5a17d9c1e27685d92ed9b382911ebb99955ecd89052d1721241adfbab6c",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/model.safetensors.index.json": "ce9a885efdf27d3664fdef5d512ad365216f1074051ef840c7cd8e5431495d0a",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/preprocessor_config.json": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/tokenizer.json": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/tokenizer_config.json": "e611fbccc7c29ef3b1cafb1cb7ea548d189968632901d678fd62be68c47885de",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/video_preprocessor_config.json": "d039cd7d88b3502a99edd455496b75b44ecf7dd3b3669748bafac37e6cecc085",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base/vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+      },
+      "independent_verdict": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev08b-numeric-review-20261108/VERDICT.json",
+        "sha256": "e7970ee461a9d6230cec55835a15b3fe821e89adedd9b71a30751f24187d135b"
+      },
+      "independent_sourcepins": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev08b-numeric-review-20261108/SOURCEPINS.json",
+        "sha256": "c145722c06492192b8564170e53caa55c8e3105651031d6d4877722f373c59b5"
+      },
+      "independent_origin": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev08b-numeric-review-20261108/ORIGIN.json",
+        "sha256": "7a33b9b053e3e9be0b495343070ed0fc7a3246c11561d2378abf9eb370885943"
+      },
+      "accepted_config": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/package/CONFIG.json",
+        "sha256": "5ad062e7faa57cd8565c401ed3f0dcf3adb9a98917c3f0f598f6cf0236b92e0f"
+      },
+      "accepted_plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/package/PLAN.json",
+        "sha256": "6785b62ed732ff8d3505470777547e076960f5b5a57c2a9afea1fdbbef6993da"
+      },
+      "accepted_admission": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/cpu/1/ADMISSION.json",
+        "sha256": "b48f22fb9c5cb27bec81f03cfc2901e124c4b3aceb475f9f214660886aa402c7"
+      },
+      "report": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/attempts/1/report.json",
+        "sha256": "63a9ded039e0a7fd385d12b058c11f808948a2b726596af8f5515c493e5a1e5a"
+      },
+      "retained_container": "73adec04492bc885f4d164c0ecc96b21c7eb9a167613eb5ade1d46a17182ce77",
+      "runtime_versions": {
+        "chips": 1,
+        "dtype": "float32",
+        "hf32": false,
+        "peak_reserved_gib": 4.724609375,
+        "reserved_gib": 4.724609375,
+        "torch": "2.10.0+cpu",
+        "torch_npu": "2.10.0.post7",
+        "transformers": "5.14.1"
+      },
+      "accepted_sources": {
+        "qualify.py": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/package/qualify.py",
+          "sha256": "6658dd6ca1f0999153dd7c4076a0ad9d22d26a42e245c54508240a27a2f48c1b"
+        },
+        "code/bev_native_dev_runner.py": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/package/code/bev_native_dev_runner.py",
+          "sha256": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba"
+        },
+        "code/bev_native_runtime.py": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/package/code/bev_native_runtime.py",
+          "sha256": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460"
+        },
+        "code/bev_native_dev_probe.py": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/package/code/bev_native_dev_probe.py",
+          "sha256": "c91223dd74373aa4804efea3edfc6cd9c63ad4b37d4082dd64983d6aeba18ffb"
+        }
+      },
+      "reference_operands": [
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/0/reference/operands.npz",
+          "sha256": "c219ebdda8ef4db9da2fab6b149376a77f5ccc5b3a2f2b35d79a2a6249e0036d"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/1/reference/operands.npz",
+          "sha256": "f88fbe5c34c62b26c0d7b6451cf28e102bf8ec1b9e04cccdc09d9cbf46672335"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/2/reference/operands.npz",
+          "sha256": "15da91ea62cf5798b33186f3ba58fd1bdb7b3127ec7e33828dd1e6dcc1d53917"
+        }
+      ],
+      "accepted_variants": [
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/0/adapter/operands.npz",
+          "sha256": "c219ebdda8ef4db9da2fab6b149376a77f5ccc5b3a2f2b35d79a2a6249e0036d"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/0/reference/operands.npz",
+          "sha256": "c219ebdda8ef4db9da2fab6b149376a77f5ccc5b3a2f2b35d79a2a6249e0036d"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/0/reference_repeat/operands.npz",
+          "sha256": "c219ebdda8ef4db9da2fab6b149376a77f5ccc5b3a2f2b35d79a2a6249e0036d"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/1/adapter/operands.npz",
+          "sha256": "f88fbe5c34c62b26c0d7b6451cf28e102bf8ec1b9e04cccdc09d9cbf46672335"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/1/reference/operands.npz",
+          "sha256": "f88fbe5c34c62b26c0d7b6451cf28e102bf8ec1b9e04cccdc09d9cbf46672335"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/1/reference_repeat/operands.npz",
+          "sha256": "f88fbe5c34c62b26c0d7b6451cf28e102bf8ec1b9e04cccdc09d9cbf46672335"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/2/adapter/operands.npz",
+          "sha256": "15da91ea62cf5798b33186f3ba58fd1bdb7b3127ec7e33828dd1e6dcc1d53917"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/2/reference/operands.npz",
+          "sha256": "15da91ea62cf5798b33186f3ba58fd1bdb7b3127ec7e33828dd1e6dcc1d53917"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/output/long_operands/2/reference_repeat/operands.npz",
+          "sha256": "15da91ea62cf5798b33186f3ba58fd1bdb7b3127ec7e33828dd1e6dcc1d53917"
+        }
+      ],
+      "vector_receipts": [
+        {
+          "i": 0,
+          "length": 4097,
+          "full_vector_sha256": "863d1a67bdfb1c53af44ae0a432f63129778a838aae0c695b5ad31f815eaa385",
+          "three_pairs_exact": true
+        },
+        {
+          "i": 1,
+          "length": 5296,
+          "full_vector_sha256": "2b58b478df412f4475aaead490a8a61d0d1a5e2780f78ec744955d8712083ca4",
+          "three_pairs_exact": true
+        },
+        {
+          "i": 2,
+          "length": 8192,
+          "full_vector_sha256": "5ca69b9a215cdb87b3cdd22df3aaa12f3d4b7bd4d214aaf7e3843bb1b2f5d974",
+          "three_pairs_exact": true
+        }
+      ],
+      "reuse": "ACCEPT_EXISTING_SAME_BASE_RC1_FULL_VECTOR_NATIVE_NUMERICS_AND_IDENTICAL_LOAD_MODEL_FUNCTION",
+      "remaining": "Actual ordinal collect_one entry not in these receipts; direct tensor construction and serialization bridge remain unmeasured",
+      "weight_identity_basis": "accepted unchanged-storage assumption; manifest map equality only, not fresh payload verification",
+      "historical_native_acceptance": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_long_dev_20261103_v2/LONG-DEV-ACCEPTANCE.json",
+        "sha256": "1430194da082933354a0f553536341f9c3b223f0fb656c0b12b8b4b63598d394"
+      }
+    },
+    {
+      "model_id": "2b",
+      "loader": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/coverage_next_wave_20261104_v1/paws-2b/code/bev_native_dev_runner.py",
+        "sha256": "09adcc2407423cb62ff95400f4db8566faf9fedf3b35a238486bc74ec161aa15"
+      },
+      "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base",
+      "model_manifest_sha256": "034f52ccb3d9c37438ee5ad882741b16bfa50ff63e79008d9fb48f4cc9469864",
+      "manifest_document": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/package/assets/MODEL-MANIFEST.json",
+        "sha256": "f156b12f3bb8ab0b2e8c3a58fd2fcd1735f10f97b3b33c622254db796d39bbc6"
+      },
+      "model_files": {
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/.complete": "cc1c00f1ab6f1b1fc7e1d0c74ef99ed01feac494c029df6f4b355350a31add2c",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/.gitattributes": "34448b82c17d60fec9b65b1f093c115ddbaadc04beb1b0140b6bfed2e012a930",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/LICENSE": "50cbab8a892c5f2993b8c7351a99182507472def3b1374558308605d99b86b32",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/README.md": "50ca45b87d976d9850de95ad00e76fba77e105c2cdef1093b8e3bb261d9a1787",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/config.json": "ed1c1723241f23f7f4e23430759cbd7dcfb4103cbdfe052bfe7626b57c2615b4",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/merges.txt": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/model.safetensors-00001-of-00001.safetensors": "928acbf11878c32185bbd863514d191769285065ab9ea14fbfe431303f5fdf2d",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/model.safetensors.index.json": "74d2ddfe79f10f35b27b498632f02b97b60dd9ec39b35d7c5a890c399284e319",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/preprocessor_config.json": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/tokenizer.json": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/tokenizer_config.json": "e611fbccc7c29ef3b1cafb1cb7ea548d189968632901d678fd62be68c47885de",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/video_preprocessor_config.json": "d039cd7d88b3502a99edd455496b75b44ecf7dd3b3669748bafac37e6cecc085",
+        "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base/vocab.json": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+      },
+      "independent_verdict": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev2b-numeric-review-20261108/VERDICT.json",
+        "sha256": "43e8c30105b35b5d455a3adaca154ffb3faab436704732d47597be9f1a3f90fb"
+      },
+      "independent_sourcepins": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev2b-numeric-review-20261108/SOURCEPINS.json",
+        "sha256": "beb6e4ff006af238920841483a31bad2c6adcbf41d26a605d5b574cca84877ae"
+      },
+      "independent_origin": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev2b-numeric-review-20261108/NUMERIC-ORIGIN.json",
+        "sha256": "18dc6ad3829b6644e1cf251f25315edab40962266cfd9e6a159c2a3b516ded7f"
+      },
+      "accepted_config": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/package/CONFIG.json",
+        "sha256": "15f51883a77a3b8822d2f1b522692224b9fef77d46fa0c2eb8ada6bcb4bac644"
+      },
+      "accepted_plan": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/package/PLAN.json",
+        "sha256": "d294802486178b8293d2d932aa8693a3543a6d2959fd5f45f196288cf70aac21"
+      },
+      "accepted_admission": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/cpu/1/ADMISSION.json",
+        "sha256": "d5e267f0063905ab5e281d84ed5e0f62089479425ae98c43c73da065da9e7391"
+      },
+      "report": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/attempts/1/report.json",
+        "sha256": "c40ba206739bd8eb391cf1ab89034a8d027c50a4a3e8319f02e6f1bfd64e9f98"
+      },
+      "retained_container": "76e18d7a3b00b0304f6d5ff95bd1a3315714fcc014a98ba1eb66320e444fbd33",
+      "runtime_versions": {
+        "chips": 1,
+        "dtype": "float32",
+        "hf32": false,
+        "peak_reserved_gib": 9.162109375,
+        "reserved_gib": 9.162109375,
+        "torch": "2.10.0+cpu",
+        "torch_npu": "2.10.0.post7",
+        "transformers": "5.14.1"
+      },
+      "accepted_sources": {
+        "qualify.py": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/package/qualify.py",
+          "sha256": "6658dd6ca1f0999153dd7c4076a0ad9d22d26a42e245c54508240a27a2f48c1b"
+        },
+        "code/bev_native_dev_runner.py": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/package/code/bev_native_dev_runner.py",
+          "sha256": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba"
+        },
+        "code/bev_native_runtime.py": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/package/code/bev_native_runtime.py",
+          "sha256": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460"
+        },
+        "code/bev_native_dev_probe.py": {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/package/code/bev_native_dev_probe.py",
+          "sha256": "c91223dd74373aa4804efea3edfc6cd9c63ad4b37d4082dd64983d6aeba18ffb"
+        }
+      },
+      "reference_operands": [
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/0/reference/operands.npz",
+          "sha256": "9821045db9c648458a0ae9a26b58a611a882a627af700969a0465fc6036b4e84"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/1/reference/operands.npz",
+          "sha256": "504932336ba26cc00c8cb743476f43a5d11d7719f9070b52f730429e8e157169"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/2/reference/operands.npz",
+          "sha256": "4dea3683694aaca6255ae1c5129e766a0c593c5d48d665280c880b4548e589d3"
+        }
+      ],
+      "accepted_variants": [
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/0/adapter/operands.npz",
+          "sha256": "9821045db9c648458a0ae9a26b58a611a882a627af700969a0465fc6036b4e84"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/0/reference/operands.npz",
+          "sha256": "9821045db9c648458a0ae9a26b58a611a882a627af700969a0465fc6036b4e84"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/0/reference_repeat/operands.npz",
+          "sha256": "9821045db9c648458a0ae9a26b58a611a882a627af700969a0465fc6036b4e84"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/1/adapter/operands.npz",
+          "sha256": "504932336ba26cc00c8cb743476f43a5d11d7719f9070b52f730429e8e157169"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/1/reference/operands.npz",
+          "sha256": "504932336ba26cc00c8cb743476f43a5d11d7719f9070b52f730429e8e157169"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/1/reference_repeat/operands.npz",
+          "sha256": "504932336ba26cc00c8cb743476f43a5d11d7719f9070b52f730429e8e157169"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/2/adapter/operands.npz",
+          "sha256": "4dea3683694aaca6255ae1c5129e766a0c593c5d48d665280c880b4548e589d3"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/2/reference/operands.npz",
+          "sha256": "4dea3683694aaca6255ae1c5129e766a0c593c5d48d665280c880b4548e589d3"
+        },
+        {
+          "path": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/output/long_operands/2/reference_repeat/operands.npz",
+          "sha256": "4dea3683694aaca6255ae1c5129e766a0c593c5d48d665280c880b4548e589d3"
+        }
+      ],
+      "vector_receipts": [
+        {
+          "i": 0,
+          "length": 4097,
+          "full_vector_sha256": "ccacaf4d2076a1e2e1a24cc2715047d38f909ec7ef2d5b6e49f841c00bda33ed",
+          "three_pairs_exact": true
+        },
+        {
+          "i": 1,
+          "length": 5296,
+          "full_vector_sha256": "3a0ac5b2730b09344ec478fd3c23cfd90376c932086c26de13188df1eaadea61",
+          "three_pairs_exact": true
+        },
+        {
+          "i": 2,
+          "length": 8192,
+          "full_vector_sha256": "e8303fc2b87ea4bb7a18a1463dd93a3a20f7ddddb4110c98230ce5224ea30222",
+          "three_pairs_exact": true
+        }
+      ],
+      "reuse": "ACCEPT_EXISTING_SAME_BASE_RC1_FULL_VECTOR_NATIVE_NUMERICS_AND_IDENTICAL_LOAD_MODEL_FUNCTION",
+      "remaining": "Actual ordinal collect_one entry not in these receipts; direct tensor construction and serialization bridge remain unmeasured",
+      "weight_identity_basis": "accepted unchanged-storage assumption; manifest map equality only, not fresh payload verification",
+      "historical_native_acceptance": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_2b_long_dev_20261103_v1/LONG-DEV-ACCEPTANCE.json",
+        "sha256": "a131e2aa5b0273947ee570f03d0799a9bcc0697f57037f11b0336dffbc13dcf2"
+      }
+    }
+  ],
+  "cells": [
+    {
+      "cell": "08b-chat_0_4",
+      "config": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/08b-chat_0_4.json",
+        "sha256": "d85abddf85d0d68f436fafafbe34914a7f5b4db8f95492c3db430c0400cbe09e"
+      },
+      "request_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/08b/chat_0_4/requests.jsonl",
+        "sha256": "ff3b778b1d73cef8b1f2e0f8a403aff3aef60f51c08ff6f200fcb871965c2f97"
+      },
+      "requests": 140,
+      "max_input_tokens": 1553,
+      "numerical_group": "08b-ordinal-collector-v2-fp32-batch1",
+      "same_entry_actual_npu_evidence": false
+    },
+    {
+      "cell": "08b-chat_1_5",
+      "config": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/08b-chat_1_5.json",
+        "sha256": "be36b8d6b4f6a8f93b9b5251bbed7693e29d12fb83fb8fadb95629d75be3c747"
+      },
+      "request_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/08b/chat_1_5/requests.jsonl",
+        "sha256": "60f32d467694286757e725dc820e55d1f94e744fc388f36682efcedd8615b08d"
+      },
+      "requests": 140,
+      "max_input_tokens": 1553,
+      "numerical_group": "08b-ordinal-collector-v2-fp32-batch1",
+      "same_entry_actual_npu_evidence": false
+    },
+    {
+      "cell": "08b-plain_0_4",
+      "config": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/08b-plain_0_4.json",
+        "sha256": "0f3ccd70ea18723de650a88391f95321623134fa9aecd73bbff759e058cce7a8"
+      },
+      "request_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/08b/plain_0_4/requests.jsonl",
+        "sha256": "90b9bf109c7488b8a0f2ba558870467b055d43330b2a5bf37b87c08386529a0e"
+      },
+      "requests": 140,
+      "max_input_tokens": 1540,
+      "numerical_group": "08b-ordinal-collector-v2-fp32-batch1",
+      "same_entry_actual_npu_evidence": false
+    },
+    {
+      "cell": "08b-plain_1_5",
+      "config": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/08b-plain_1_5.json",
+        "sha256": "118c3b464102efd5f466807704f66c683c125f4763c8c3451f6b8ea6d6c7cf6b"
+      },
+      "request_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/08b/plain_1_5/requests.jsonl",
+        "sha256": "a435df2a016839526eb9ce6d63d5ba0416c0997a728285791661a55aa1574e91"
+      },
+      "requests": 140,
+      "max_input_tokens": 1540,
+      "numerical_group": "08b-ordinal-collector-v2-fp32-batch1",
+      "same_entry_actual_npu_evidence": false
+    },
+    {
+      "cell": "2b-chat_0_4",
+      "config": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/2b-chat_0_4.json",
+        "sha256": "09f0039f1503c77b87888436448661459d170d08e249dfa0229d0515cb9d4ad0"
+      },
+      "request_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/2b/chat_0_4/requests.jsonl",
+        "sha256": "ff3b778b1d73cef8b1f2e0f8a403aff3aef60f51c08ff6f200fcb871965c2f97"
+      },
+      "requests": 140,
+      "max_input_tokens": 1553,
+      "numerical_group": "2b-ordinal-collector-v2-fp32-batch1",
+      "same_entry_actual_npu_evidence": false
+    },
+    {
+      "cell": "2b-chat_1_5",
+      "config": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/2b-chat_1_5.json",
+        "sha256": "cf493255136c970297016445c7b759403ca06461db380b20d056f056bd306e75"
+      },
+      "request_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/2b/chat_1_5/requests.jsonl",
+        "sha256": "60f32d467694286757e725dc820e55d1f94e744fc388f36682efcedd8615b08d"
+      },
+      "requests": 140,
+      "max_input_tokens": 1553,
+      "numerical_group": "2b-ordinal-collector-v2-fp32-batch1",
+      "same_entry_actual_npu_evidence": false
+    },
+    {
+      "cell": "2b-plain_0_4",
+      "config": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/2b-plain_0_4.json",
+        "sha256": "a336e32ec08c0d70a037ea57852e48ad0913130b7af6e83748fed906340124e0"
+      },
+      "request_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/2b/plain_0_4/requests.jsonl",
+        "sha256": "90b9bf109c7488b8a0f2ba558870467b055d43330b2a5bf37b87c08386529a0e"
+      },
+      "requests": 140,
+      "max_input_tokens": 1540,
+      "numerical_group": "2b-ordinal-collector-v2-fp32-batch1",
+      "same_entry_actual_npu_evidence": false
+    },
+    {
+      "cell": "2b-plain_1_5",
+      "config": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/2b-plain_1_5.json",
+        "sha256": "d9f769a1935ed8e045310a786cdc81d03ccc3c18205b49d5493b6a422f08adb0"
+      },
+      "request_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/2b/plain_1_5/requests.jsonl",
+        "sha256": "a435df2a016839526eb9ce6d63d5ba0416c0997a728285791661a55aa1574e91"
+      },
+      "requests": 140,
+      "max_input_tokens": 1540,
+      "numerical_group": "2b-ordinal-collector-v2-fp32-batch1",
+      "same_entry_actual_npu_evidence": false
+    }
+  ],
+  "source_function_comparison": {
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/coverage_next_wave_20261104_v1/paws-08b/code/bev_native_dev_runner.py": {
+      "sha256": "09adcc2407423cb62ff95400f4db8566faf9fedf3b35a238486bc74ec161aa15",
+      "functions": {
+        "require": {
+          "line": 20,
+          "end_line": 21,
+          "ast_sha256": "e735c28d552207dcb4496601a9a356a67c9550ae253f55d90d547a590009c188"
+        },
+        "load_model": {
+          "line": 116,
+          "end_line": 124,
+          "ast_sha256": "a4575a24551938ad83db6a25231048661708a98909b0764a37fbf6f512688279"
+        },
+        "run": {
+          "line": 126,
+          "end_line": 140,
+          "ast_sha256": "7f6a30d6a02f38b83bca511f81da4537ca9d1de0c112b1044af47a0a1b3e96ff"
+        }
+      }
+    },
+    "/mnt/cephfs/xingchao/experiments/jev/r3_runs/coverage_next_wave_20261104_v1/paws-2b/code/bev_native_dev_runner.py": {
+      "sha256": "09adcc2407423cb62ff95400f4db8566faf9fedf3b35a238486bc74ec161aa15",
+      "functions": {
+        "require": {
+          "line": 20,
+          "end_line": 21,
+          "ast_sha256": "e735c28d552207dcb4496601a9a356a67c9550ae253f55d90d547a590009c188"
+        },
+        "load_model": {
+          "line": 116,
+          "end_line": 124,
+          "ast_sha256": "a4575a24551938ad83db6a25231048661708a98909b0764a37fbf6f512688279"
+        },
+        "run": {
+          "line": 126,
+          "end_line": 140,
+          "ast_sha256": "7f6a30d6a02f38b83bca511f81da4537ca9d1de0c112b1044af47a0a1b3e96ff"
+        }
+      }
+    },
+    "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/package/qualify.py": {
+      "sha256": "6658dd6ca1f0999153dd7c4076a0ad9d22d26a42e245c54508240a27a2f48c1b",
+      "functions": {
+        "run": {
+          "line": 113,
+          "end_line": 165,
+          "ast_sha256": "7f178e574f719a6987681413abe32f87cbd1d447cb8cea35010c7bee797e570c"
+        }
+      }
+    },
+    "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/package/code/bev_native_dev_runner.py": {
+      "sha256": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba",
+      "functions": {
+        "require": {
+          "line": 20,
+          "end_line": 21,
+          "ast_sha256": "e735c28d552207dcb4496601a9a356a67c9550ae253f55d90d547a590009c188"
+        },
+        "load_model": {
+          "line": 116,
+          "end_line": 124,
+          "ast_sha256": "a4575a24551938ad83db6a25231048661708a98909b0764a37fbf6f512688279"
+        },
+        "run": {
+          "line": 126,
+          "end_line": 140,
+          "ast_sha256": "7f6a30d6a02f38b83bca511f81da4537ca9d1de0c112b1044af47a0a1b3e96ff"
+        }
+      }
+    },
+    "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/package/code/bev_native_runtime.py": {
+      "sha256": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460",
+      "functions": {
+        "require": {
+          "line": 15,
+          "end_line": 16,
+          "ast_sha256": "e735c28d552207dcb4496601a9a356a67c9550ae253f55d90d547a590009c188"
+        },
+        "read_model_batch": {
+          "line": 81,
+          "end_line": 135,
+          "ast_sha256": "020d0e4c7bb8c4236c253b9bb429360c9339cfcf0204f50579f4685d8930e347"
+        }
+      }
+    },
+    "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/package/code/bev_native_dev_probe.py": {
+      "sha256": "c91223dd74373aa4804efea3edfc6cd9c63ad4b37d4082dd64983d6aeba18ffb",
+      "functions": {
+        "require": {
+          "line": 16,
+          "end_line": 17,
+          "ast_sha256": "e735c28d552207dcb4496601a9a356a67c9550ae253f55d90d547a590009c188"
+        },
+        "CaptureModel": {
+          "line": 85,
+          "end_line": 96,
+          "ast_sha256": "755efeaf4153287077a3b5f307cceda07512327969f29a4586a258bc1ad40ace"
+        },
+        "collect_one": {
+          "line": 99,
+          "end_line": 117,
+          "ast_sha256": "966da10ffc105bcd4f679586391bec1c444820bdd459cafeada5b1c80346bf81"
+        }
+      }
+    },
+    "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/08b/package/score.py": {
+      "sha256": "a972a9ef8d11ca280a5b4f643f41023c7ec565183d5bb31277908e669def34c1",
+      "functions": {}
+    },
+    "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/package/qualify.py": {
+      "sha256": "6658dd6ca1f0999153dd7c4076a0ad9d22d26a42e245c54508240a27a2f48c1b",
+      "functions": {
+        "run": {
+          "line": 113,
+          "end_line": 165,
+          "ast_sha256": "7f178e574f719a6987681413abe32f87cbd1d447cb8cea35010c7bee797e570c"
+        }
+      }
+    },
+    "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/package/code/bev_native_dev_runner.py": {
+      "sha256": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba",
+      "functions": {
+        "require": {
+          "line": 20,
+          "end_line": 21,
+          "ast_sha256": "e735c28d552207dcb4496601a9a356a67c9550ae253f55d90d547a590009c188"
+        },
+        "load_model": {
+          "line": 116,
+          "end_line": 124,
+          "ast_sha256": "a4575a24551938ad83db6a25231048661708a98909b0764a37fbf6f512688279"
+        },
+        "run": {
+          "line": 126,
+          "end_line": 140,
+          "ast_sha256": "7f6a30d6a02f38b83bca511f81da4537ca9d1de0c112b1044af47a0a1b3e96ff"
+        }
+      }
+    },
+    "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/package/code/bev_native_runtime.py": {
+      "sha256": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460",
+      "functions": {
+        "require": {
+          "line": 15,
+          "end_line": 16,
+          "ast_sha256": "e735c28d552207dcb4496601a9a356a67c9550ae253f55d90d547a590009c188"
+        },
+        "read_model_batch": {
+          "line": 81,
+          "end_line": 135,
+          "ast_sha256": "020d0e4c7bb8c4236c253b9bb429360c9339cfcf0204f50579f4685d8930e347"
+        }
+      }
+    },
+    "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/package/code/bev_native_dev_probe.py": {
+      "sha256": "c91223dd74373aa4804efea3edfc6cd9c63ad4b37d4082dd64983d6aeba18ffb",
+      "functions": {
+        "require": {
+          "line": 16,
+          "end_line": 17,
+          "ast_sha256": "e735c28d552207dcb4496601a9a356a67c9550ae253f55d90d547a590009c188"
+        },
+        "CaptureModel": {
+          "line": 85,
+          "end_line": 96,
+          "ast_sha256": "755efeaf4153287077a3b5f307cceda07512327969f29a4586a258bc1ad40ace"
+        },
+        "collect_one": {
+          "line": 99,
+          "end_line": 117,
+          "ast_sha256": "966da10ffc105bcd4f679586391bec1c444820bdd459cafeada5b1c80346bf81"
+        }
+      }
+    },
+    "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800/2b/package/score.py": {
+      "sha256": "a972a9ef8d11ca280a5b4f643f41023c7ec565183d5bb31277908e669def34c1",
+      "functions": {}
+    },
+    "/mnt/cephfs/xingchao/omni/repos/jev/nokia-applied-research__AnyJev/anyjev/tacit.py": {
+      "sha256": "5c470f2521fa01ebf3be9117339939c7575181a452f226d728caa18ccce9b39d",
+      "functions": {
+        "TransformersEngine": {
+          "line": 135,
+          "end_line": 165,
+          "ast_sha256": "1837e077216a6960f811a604f281ed4a0421084f38a2f7392bbb7a1a2cbfbdef"
+        }
+      }
+    }
+  },
+  "accepted_overlap": [
+    "Exact Base model manifest maps for both models",
+    "Fixed RC1 image and six explicit environment variables",
+    "Identical load_model and require AST; loader file differs only IMAGE constant unused by load_model",
+    "FP32/eval, HF32 conv+matmul off, batch1; all-ones masks, logits_to_keep=1, full248320 final-position outputs",
+    "Accepted finite full-vector reference/repeat/adapter equality at4097/5296/8192, tolerance0; actual captured inputs not merely candidate logprobs"
+  ],
+  "gaps": [
+    "No named accepted receipt executes ordinal collect_one or persists its one-dimensional logits format",
+    "Exact ordinal short request lengths (max1540/1553) and chat inputs were not measured by synthetic longDEV; accepted arithmetic/protocol reuse is not per-input numerical equality or chat-quality qualification",
+    "Future host-mounted driver/library/CANN identity and actual environment must preserve accepted dependency tuple; no current chip availability inferred"
+  ],
+  "exclusions": [
+    "Old image8190 native longDEV receipts retain historical validity but do not prove RC1",
+    "Instruct same-size receipts are not Base receipts",
+    "Candidate-only compact predictions cannot establish full-vocabulary values; full archived operands here can",
+    "No existing hard score projection equals ordinal five-label probabilities; reproject saved vectors on CPU only if needed",
+    "No new scientific dataset, split, metric, tie rule or threshold; no TEST or reserved372 access"
+  ],
+  "historical_requirement": {
+    "host": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/src/ordinal_dev_host_v1.py",
+      "sha256": "67ab576bb0425ec52767ce83ee58972386cc77c8dd27e426deaa4d0628da099a"
+    },
+    "lines": [
+      104,
+      110
+    ],
+    "kind": "ordinal-dev-full-vector-npu-admission-v1",
+    "runtime_config_sha256_exact": true,
+    "actual_npu_execution": true,
+    "full_vector_comparison_passed": true,
+    "unchanged": true
+  },
+  "prospective_scope": {
+    "numerical_groups": 2,
+    "conditions_per_model": 4,
+    "operational_fields_not_numerical_identity": [
+      "chip (same admitted hardware/runtime class only)",
+      "run",
+      "output",
+      "container/name",
+      "attempt",
+      "host binding",
+      "source relocation with identical bytes"
+    ],
+    "preserved_numerical_identity": [
+      "exact Base model manifest and config/tokenizer dependencies",
+      "fixed image plus external driver/library/CANN dependencies",
+      "loader function/source equivalence pins",
+      "ordinal collector source and exact model kwargs",
+      "FP32/eval/HF32off/batch1/inference_mode",
+      "untruncated int64 input/mask, final-position full248320",
+      "environment and runtime defaults incl cache/attention implementation"
+    ],
+    "request_binding": "All eight frozen request receipt hashes remain in exact plan/config custody; prompt/label conditions are inputs to one model entry, not separate loader qualifications. Never erase request identities or reuse cached outputs across configs.",
+    "requires_evidence_before_claiming_entry_equivalence": true,
+    "new_deployment_gate": false
+  },
+  "minimal_plan": {
+    "status": "SPECIFIED_NOT_EXECUTED",
+    "inputs": {
+      "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_long_dev_20261103_v2/inference/requests.jsonl",
+      "sha256": "d8ac23e54b44a6191158f35118d917d0eea2f2b25d7ea2bb54617ece4a0dbcc5"
+    },
+    "ordered_input_sha256": "13cc2e3f2a259a8b9785fed315b01792618bc2d23ad9ac7d5bf2354850fa3c6a",
+    "models": [
+      "08b",
+      "2b"
+    ],
+    "lengths": [
+      4097,
+      5296,
+      8192
+    ],
+    "new_forwards_per_model": 3,
+    "new_forwards_total": 6,
+    "existing_native_forwards_repeated": 0,
+    "all_eight_dev_probes_required": false,
+    "tolerance": 0,
+    "comparison_scope": "New ordinal entry against accepted retained same-image same-model full vectors, using existing synthetic longDEV coverage; representative engineering bridge, not mathematical guarantee for every shorter shape or prompt. No new exact1540/1553 or label-specific shape requirement.",
+    "fallback": "If accepted operand custody or external runtime identity fails, do not silently reuse. Resolve the specific changed dependency and issue a bounded prospective update; do not automatically expand to1120 DEV probes.",
+    "preparation_steps": [
+      "Run this task prepare_minimal_plan.py with a fresh --output path; it verifies metadata/source pins and writes two comparison specifications, without reading requests/weights, importing models or launching.",
+      "For later engineering, use the existing fixed-stage qualify.py run/collect loop and bev_native_dev_probe.CaptureModel/persist_operand plus the exact ordinal runtime collect_one function. Add an ordinal entry arm in a separate fresh diagnostic wrapper, not in frozen scientific requests or the production 140-row runtime.",
+      "Reuse the existing three native_long_dev_20261103_v2/inference/requests.jsonl rows unchanged for each model. collect_one needs only rendered_prompt and input_ids; it can consume those already prepared native rows directly. Do not call ordinal runtime run/verify (140-row contract and weight rehash) or probe.collect_one (4096 cap). Do not call old qualify.run unchanged: that would repeat all reference/repeat/adapter forwards.",
+      "Load each Base once using the ordinal pinned load_model. Call the unchanged ordinal collect_one once for each of the three frozen rows; persist full arrays using the existing exclusive-create persistence helper. Model eval FP32, conv/matmul HF32 false, batch1, no truncation, logits_to_keep=1, inference_mode, no cache/attention/precision overrides.",
+      "Reuse each accepted reference/reference_repeat/adapter operand as historical comparison input, after receipt/custody validation in the later authorized comparison. Compare all full-vector coordinates to the new ordinal vector, allowing only singleton batch-axis normalization; input IDs and masks must be equal in dtype/shape/value. No shared-output right-hand operand; one new invocation per row. Tolerance remains zero. A mismatch stops reuse; never loosen thresholds.",
+      "Bind new collector/source/runtime and exact model/image/environment/call-shape identities plus old origins in the resulting comparison receipt. Record actual new container/environment/driver-library mounts separately; image equality alone cannot discharge host-mounted runtime differences. Do not claim source-identical model code across changed external mounts.",
+      "CPU-only postprocessing may project digit15..19 and16..20 and full-vocab mass using the frozen ordinal scorer; existing six-label score projection is not itself the five-label ordinal denominator. Reuse admitted B1/scientific arithmetic without changing ties or scientific metrics. No label-specific NPU forwards.",
+      "Before using this scope in host approval, implement an explicit new evidence schema that binds the arithmetic tuple, this amendment, and an allowlisted mapping to all eight exact config/request receipts. Keep exact config/command/resource approval separate. Old approval() is unchanged and still rejects this scope document as numerical PASS.",
+      "Future authorized execution must use a fresh reviewed detached retained-container package and terminal/relaunch/heartbeat/resume conventions already required. No claim or launch is authorized here; no new deployment gate or whole-DEV probe is introduced."
+    ]
+  },
+  "actions": {
+    "npu_launched": false,
+    "resource_actions": false,
+    "delegation": false,
+    "weights_or_data_rehashed": false,
+    "source_rerendered": false,
+    "wiki_modified": false,
+    "git_mutations": false,
+    "git_status_read_once": true,
+    "note": "One initial git status read occurred; no fetch/diff/commit/push or subsequent Git use."
+  },
+  "preparation_source_pins": {
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-exact-numeric-coverage-20261108/REMOTE-METADATA.json": "3b7f917ca3638b8f1e18a4d9e81f194293f3d611a67ec53be3a44dad145ac0fe",
+    "/home/xingchao/workspace/nga/experiments/KEV-HARD-BASE-RC1-DEV-PACKAGES.json": "b6aa8c1fe621420a491d00b8eda18a9c21bd6b2daac0b7dc942d69c5d3b0d7ab",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108/VERDICT.json": "7e15aa79e62e1bce8ce2bccc6ad864bfb24fdb3d449c6e0d0b019bedaca1b04d",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108/PROTOCOL-ADDENDUM.md": "9421861503fc88d05e5d7b6200faf5b1d9f4acfe454d9f9f80cf819d28e7b3b1",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108/ADMISSIBLE-SCOPE.json": "2d3221067185927966122a34ac21fc8726fe4b3e0b58c8d7b3f94bc8f5be5dc5",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108/SOURCEPINS.json": "60a3d482120674fa58450862e72304c1318e1f39471eba3b82d727db2663b810",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/HANDOFF.md": "7d49c3cd05fd79983c77d9de14f2f562d824ccb8e4c38f5ace6a38c881be0baa",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/src/ordinal_dev_runtime_v2.py": "4b6556e5263f44ef95ab10845feabcd4c07094383506374c6f9922e42060f4d3",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/src/ordinal_dev_host_v1.py": "67ab576bb0425ec52767ce83ee58972386cc77c8dd27e426deaa4d0628da099a",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/src/build_host_plan.py": "2af50a28841a466edbf8f7be559430f8b638030fec54a3fc407f79ed29ffd48c",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/src/ordinal_dev_score_v2.py": "01c0292185ccff06d0b35b46cbb24d406a4ce73a73c5b6773950a317e1639368",
+    "/home/xingchao/workspace/nga/.local/preparations/ordinal-dev-factorial-20261104-v1/PREREGISTRATION.md": "a4215c73f23bc760921752dba35c4fc7b230ef870abe6da3ee4f5badb8a8ab38",
+    "/home/xingchao/workspace/nga/.local/preparations/ordinal-dev-factorial-20261104-v1/HANDOFF.md": "658aaab46ecd19819f0c45172fd50bd4b882d6def07623aed620fdd7ad41413e",
+    "/home/xingchao/workspace/nga/.local/preparations/ordinal-dev-execution-v2-20261104-v1/HANDOFF.md": "025c56e06dece45794188f2e5f8af1c50c2bc2290435aec6d9a7219674701431",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-base-numerical-evidence-scope-20261108/NUMERICAL-SCOPE.json": "f74862ba75bc6c4c82b4c43fb355dde06a7c2193ec91bfafb1ecc2d79d023d3f",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-numerical-scope-review-20261108/VERDICT.json": "33677a1d368e246cdafcfb15a1a46f481b747fea91a1a641f998ccef388884a3",
+    "/home/xingchao/workspace/nga/.local/preparations/ordinal-dev-factorial-20261104-v1/DELIVERY.json": "8fa1e2d31d1e9399e034e449f54cb0f567fcccb8e547ca88b97c275dc5ac1a19",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/08b-chat_0_4.json": "d85abddf85d0d68f436fafafbe34914a7f5b4db8f95492c3db430c0400cbe09e",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/08b-chat_1_5.json": "be36b8d6b4f6a8f93b9b5251bbed7693e29d12fb83fb8fadb95629d75be3c747",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/08b-plain_0_4.json": "0f3ccd70ea18723de650a88391f95321623134fa9aecd73bbff759e058cce7a8",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/08b-plain_1_5.json": "118c3b464102efd5f466807704f66c683c125f4763c8c3451f6b8ea6d6c7cf6b",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/2b-chat_0_4.json": "09f0039f1503c77b87888436448661459d170d08e249dfa0229d0515cb9d4ad0",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/2b-chat_1_5.json": "cf493255136c970297016445c7b759403ca06461db380b20d056f056bd306e75",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/2b-plain_0_4.json": "a336e32ec08c0d70a037ea57852e48ad0913130b7af6e83748fed906340124e0",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/ordinal-dev-rc1-functional-package-20261108/configs/2b-plain_1_5.json": "d9f769a1935ed8e045310a786cdc81d03ccc3c18205b49d5493b6a422f08adb0",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev08b-numeric-review-20261108/VERDICT.json": "e7970ee461a9d6230cec55835a15b3fe821e89adedd9b71a30751f24187d135b",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev08b-numeric-review-20261108/SOURCEPINS.json": "c145722c06492192b8564170e53caa55c8e3105651031d6d4877722f373c59b5",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev08b-numeric-review-20261108/ORIGIN.json": "7a33b9b053e3e9be0b495343070ed0fc7a3246c11561d2378abf9eb370885943",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev08b-numeric-review-20261108/HANDOFF.md": "aa3eca55fd66fe8ea179c3b727504fa5100ec64667fbdf5ba6f8290609787116",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev2b-numeric-review-20261108/VERDICT.json": "43e8c30105b35b5d455a3adaca154ffb3faab436704732d47597be9f1a3f90fb",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev2b-numeric-review-20261108/SOURCEPINS.json": "beb6e4ff006af238920841483a31bad2c6adcbf41d26a605d5b574cca84877ae",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev2b-numeric-review-20261108/NUMERIC-ORIGIN.json": "18dc6ad3829b6644e1cf251f25315edab40962266cfd9e6a159c2a3b516ded7f",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev2b-numeric-review-20261108/HANDOFF.md": "d0ccc4446da390c2aee41a877be545f2709a5ca605534c79767d2dd59bb45521",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-exact-numeric-coverage-20261108/prepare_minimal_plan.py": "e081141cd879bf9e6e4b645ace036dfe931945de57e23357fbdba51167de0d9a",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-exact-numeric-coverage-20261108/collect_metadata.py": "293973ffcd130cf69de6f773f972dccd1e3f8f342b14d8b4142ed91d6c4d74ff",
+    "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-exact-numeric-coverage-20261108/build_determination.py": "264c903879bd547cf7ad989a359d0e4fcaee353744d0aac304b7921f34b4afeb"
+  }
+}
