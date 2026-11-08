@@ -1,0 +1,43 @@
+{
+  "schema": "kev-hard-publication-accepted-summary-v1",
+  "protocol_id": "nga-qwen-kev-name-preserving-mixed-v1",
+  "scientific_verdict": "ACCEPT_SCOPED_PROTOCOL_ONLY",
+  "runtime_admission": "NOT_ASSESSED_NOT_GRANTED",
+  "publication_authority": "This publication is requested separately; the original scientific review itself grants no publication authority.",
+  "review_verdict_sha256": "b9ebebda5204b1b72f5093995a84fc4c384f5c22b82e3b925e85bf7691989e83",
+  "review_result_sha256": "09477f4034e1b6ed05fab3eb20f9872eaa5b61367cc5fe8021610da43da71963",
+  "review_sourcepins_sha256": "f41071feab217e2bad9c9705ea5a79218a32fc37a9b3746bb8bdc851fb52cbaf",
+  "pins_sha256": {
+    "accepted_original_protocol": "c774a06dc5e190c461f89d5874d7b14edca02a23dcd8b4e56b3ac95f83444379",
+    "accepted_machine_spec": "61d8298a00e7c85e3572b92cdc17602d6f93c01726d146076f967be1f6d9c0a5",
+    "original_test_jsonl": "246ee92234d33f8e3f10ac6e1542651531b128fd7cc66f3a9964589b77dfa22b",
+    "source_join_pointer": "dcc0957575dff263721d30162933e763ee7950c272fb71e6c3ad3717a8e7fb73",
+    "full_source_join": "5c1cbc93ce010957f3bf6f82c565ef25548833936936c794013f2642a4fd71cb",
+    "original_pair_file": "d91432f6a57054d74fb6d66337f2183746fe7938881f4303b9339e727fdc1000",
+    "hard_pair_list_digest": "123fd480077e4f7e5c9a04855e0215888ca75413d05c1805bcb47c85dc96db3c",
+    "derived_pair_map": "5e73780f23964ff01e78bdb642fc3fcd2159326f520df95f6ffd1bce026c8b18",
+    "controls": "b0d0800f6095f0f0964acc6d7e130535d1c00069bb78aaf5f0f5596b752cc2ef",
+    "each_of_four_request_files": "5727c1b186d41dfb8c84bfdf4df2d16a5e8db17220383dea83a3b66974d52b92",
+    "ordered_prepared_requests": "2da2b166f64d606a38bbdad1ea7a9abec139803207d4b322caa28b06d657f125",
+    "derived_source_parquet": "9b8d4ca333486b88b035c632c984af59ccbadea00e1f6dcb775ca6377f7056e2",
+    "frozen_formula_spec": "61d8298a00e7c85e3572b92cdc17602d6f93c01726d146076f967be1f6d9c0a5"
+  },
+  "population": {
+    "records": 700,
+    "questions": 1088,
+    "choice": 826,
+    "noul": 226,
+    "score": 36,
+    "pairs": 134,
+    "candidate_order_changes": 43,
+    "null_entries": 860,
+    "null_questions": 213
+  },
+  "scope": [
+    "kev_hard_v1_08b",
+    "kev_hard_v1_2b",
+    "kev_hard_v1_4b",
+    "kev_hard_v1_9b"
+  ],
+  "source_note": "Full gold-bearing and control-vector artifacts are retained outside publication and inference mounts; hashes identify their exact bytes."
+}
