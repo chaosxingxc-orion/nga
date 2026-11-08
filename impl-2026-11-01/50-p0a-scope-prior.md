@@ -213,3 +213,13 @@ P0-A 实验在以下任一情形判**失败**：
 - 译注：「超过 3 个月」为严格大于，恰 3 个月不触发否决（八例无此情形，仅备注）。
 
 > **信息隔离的限定（54 号红队 #2 携带）**：本实验是信息隔离（不见我方期望），不是本体独立——翻译者与操作员共享语言/训练分布。按夏"本体独立"判据不计入补偿控制；按"外部评审"类的弱形态计入。
+
+### P·变异落档（三枚执行记录，2026-11-08 当轮实跑）
+
+| # | 突变 | 命令（可复跑） | 结果 | 红面 |
+|---|---|---|---|---|
+| P-1 | 撤 s1Judge 窗口分支（`for` 循环裹 `if false`） | python3 逐字符替换 e2e_test.go → `go test ./internal/e2e/ -run TestP0A_ScanRegenerated -count=1` | **红** | windowDecisive=0（判定不再随窗口变） |
+| P-2 | 撤 verify 窗口核验（`w > 0 &&` → `if false &&`） | 同法 → `-run TestP0A_SixCellMatrix -count=1` | **红** | cell1/cell7 verify 断言 |
+| P-3 | 术语回吸收（overdue 定义前置 "longer than three months"） | JSON 注入 → `-run TestP0A_TermOntologyAnchored -count=1` | **红** | 锚定探针 |
+
+三枚还原后 P0-A 全绿。执行绑定：HEAD a9e8c92（B-1 清偿批后）。
