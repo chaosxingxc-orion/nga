@@ -1,5 +1,5 @@
 {
-  "status": "EXACT_PACKAGES_ACCEPTED_RESOURCE_ADMISSION_PENDING",
+  "status": "LAUNCH_HELD_CONTAINER_VALIDATION_GAP",
   "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-four-dev-stage-final-20261108-88798",
   "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
   "scope": "Four fixed Base synthetic long DEV qualifications; no TEST",
@@ -325,8 +325,17 @@
   "operational_reuse": "Accepted unchanged-storage assumption; weight bytes not rehashed",
   "numerical_results": null,
   "launch_requires": [
+    "Correct hostname/authority visibility, validate four configs in actual fixed RC1 no-device containers, independently review new exact package and rebind resource request before launch.",
     "Independent exact request and priority acceptance",
     "Fresh pending/allocation/dispatch and predecessor/physical availability check",
     "Serial card5 execution; per-model release before next claim"
-  ]
+  ],
+  "launch_allowed": false,
+  "correction": {
+    "utc": "2026-11-08T09:31:37.738865+00:00",
+    "supersedes_status": "EXACT_PACKAGES_ACCEPTED_RESOURCE_ADMISSION_PENDING",
+    "reason": "Host validation and fixture review do not establish container validation: hostname assumption and external authority paths fail the actual container boundary. Old package must not launch, including with its conditional resource acceptance.",
+    "preserved_evidence": "Historical source pins and limited reviews remain recorded; they are not actual container validation.",
+    "required": "Correct hostname/authority visibility, validate four configs in actual fixed RC1 no-device containers, independently review new exact package and rebind resource request before launch."
+  }
 }
