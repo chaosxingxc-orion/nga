@@ -1,6 +1,6 @@
 {
-  "status": "LAUNCH_HELD_CONTAINER_VALIDATION_GAP",
-  "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-four-dev-stage-final-20261108-88798",
+  "status": "CORRECTED_CONTAINER_PACKAGES_ACCEPTED_RESOURCE_ADMISSION_PENDING",
+  "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800",
   "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
   "scope": "Four fixed Base synthetic long DEV qualifications; no TEST",
   "protocol": {
@@ -23,319 +23,223 @@
     "tolerance": 0
   },
   "package_review": {
-    "verdict": "ACCEPT_EXACT_FINAL4_DEV_PACKAGE_AND_REQUEST_REVIEW",
-    "sha256": "ce29163b96f532a43cb8765c8d03da41f27454b7d28fba86ee41cbd68e3c4186",
-    "checks": 51
-  },
-  "packages": {
-    "host175_audit": {
-      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-four-dev-stage-final-20261108-review/evidence/HOST175-AUDIT.json",
-      "sha256": "ba10fbfa916d6ee3cd6627482f7da63f102d562780319264c52922249249f3c7"
-    },
-    "models": {
+    "actual_fixed_image_validation": {
       "08b": {
-        "config_sha256": "ad7420c60b970e8acb53753018c3e15d4659a8e8447e58fc5e38a05060bcc8d3",
-        "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base",
-        "model_manifest_digest": "28783a11558cc6b99e9a045bae574d9c484fd3279572605268fd31f480b7e357",
-        "original_baseline_manifest_sha256": "da5423321fff8321a4ffb592d6a625b64d20a779c855b87a19a30af4e76cd7ef",
-        "output": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-four-dev-stage-final-20261108-88798/08b/output",
-        "package": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-four-dev-stage-final-20261108-88798/08b/package",
-        "package_files": {
-          "assets/ASSET-REUSE-DECISION.json": "567be3332fc17428a3a74ce73d1dec94f5155c9a93db086ce39f39b5d8ad33de",
-          "assets/ASSET-REUSE-SOURCEPINS.json": "d9331a3a001dc2e11ceb16b771a32bd82b27d7f9bc14fcc10f323d2c13236ac2",
-          "assets/MODEL-MANIFEST.json": "da5423321fff8321a4ffb592d6a625b64d20a779c855b87a19a30af4e76cd7ef",
-          "assets/ORIGINAL-PLAN.json": "e02622855d73e05ab270777c0aeeb9f06b09ff0562360927256531b98e7a209e",
-          "code/bev_native_dev_probe.py": "c91223dd74373aa4804efea3edfc6cd9c63ad4b37d4082dd64983d6aeba18ffb",
-          "code/bev_native_dev_runner.py": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba",
-          "code/bev_native_panel_runner.py": "235aacea657ed7d7b6d85e16397634d3d3b19a983a6c33a5a8352786d038511d",
-          "code/bev_native_runtime.py": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460",
-          "code/r3_resource_adapter.py": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a",
-          "code/sol_verify.py": "31a9d41a62361da1f4a2eebdf6518b6353e90b27873702a762500ec85b1e3329",
-          "code/unified_resource_lease_v1.py": "0c057d348be913b7864bc953c0763f1771e95b6b663a907ffa5ea1862b4fc59d",
-          "completion_wake.py": "5832078da597d19e6b570d0bd4c5fb337d62f2b4f41039d9962eb7c1e9a996a6",
-          "consumer_watch.py": "40eca8d38c3f88e37f048073b98abfb6f96dcd687cafd295c404b821185eb326",
-          "entrypoint.sh": "d2967773268d3b4241debb608073a21af538921fc5ce3aeb5165ddc64e15b2b2",
-          "host.py": "0e712c64ba9113c3d9da28cb0ded1aceb97f763a509f9837e979179429b241f0",
-          "materialize.py": "56eb9c2a04e7ea9f27d90ce331ba3e98b75328b4aa16b138fc9dd8300bbccd8c",
-          "qualify.py": "2a15d8b146e1e92cd8d588df0f089ee523fe00a78d4a6558287a52e91b9ff03e",
-          "score.py": "a972a9ef8d11ca280a5b4f643f41023c7ec565183d5bb31277908e669def34c1"
-        },
-        "plan_sha256": "53bb8bcb1cf2a7a78e16d5860cf63a3f063ea76056959c31e4ea21aff81ad86f",
-        "protocol": {
-          "batch": 1,
-          "dtype": "float32",
-          "forwards": 9,
-          "full_width": 248320,
-          "hf32": false,
-          "image_sha256": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
-          "input_sha256": "d8ac23e54b44a6191158f35118d917d0eea2f2b25d7ea2bb54617ece4a0dbcc5",
-          "lengths": [
-            4097,
-            5296,
-            8192
-          ],
-          "ordered_sha256": "13cc2e3f2a259a8b9785fed315b01792618bc2d23ad9ac7d5bf2354850fa3c6a",
-          "test_read": false,
-          "tolerance": 0,
-          "variants": [
-            "reference",
-            "reference_repeat",
-            "adapter"
-          ]
-        },
-        "request": {
-          "config_sha256": "1c39399b81723d8cce646765f95386b3adfa2507724ed771659be8db4afbd11d",
-          "pending_sha256": "eaadaccbc85102c972b5692d2f2cf448e05b097d3709d6ab7673bd4e201e5fa9",
-          "plan_sha256": "53bb8bcb1cf2a7a78e16d5860cf63a3f063ea76056959c31e4ea21aff81ad86f",
-          "policy_sha256": "a9c8db1e8d959c3cd363749347b54da3381be0b52cb9557a6c95a3dd2811e3cd",
-          "schema": "unified-resource-acceptance-request-v1",
-          "scope": "conditional Base RC1 synthetic long DEV; independent acceptance required; no claim",
-          "task_sha256": "ad7420c60b970e8acb53753018c3e15d4659a8e8447e58fc5e38a05060bcc8d3"
-        },
-        "request_files": {
-          "LEASE-DRAFT.json": "1c39399b81723d8cce646765f95386b3adfa2507724ed771659be8db4afbd11d",
-          "PENDING-SNAPSHOT.json": "eaadaccbc85102c972b5692d2f2cf448e05b097d3709d6ab7673bd4e201e5fa9",
-          "POLICY.json": "a9c8db1e8d959c3cd363749347b54da3381be0b52cb9557a6c95a3dd2811e3cd",
-          "PRIORITY.json": "d1a83f690f7372578131f2ca8a9b3f6cd1e15109305be28654f4945a5513f765",
-          "UNIFIED-ACCEPTANCE-REQUEST.json": "7dbcc27aa8d5a2da4eec35c105f963e0b1f36d3fae00accf2bc6a59735d53919"
-        },
-        "validation_sha256": "dfc46a67cc7bbf4bab0d0d0d187ca4ff9d6de4f3e670e371bdbad9b6d51401d9"
+        "config_sha256": "5ad062e7faa57cd8565c401ed3f0dcf3adb9a98917c3f0f598f6cf0236b92e0f",
+        "container_id": "0d11071d94b9a57e257121906c7f699ff3c3f7b503e4745822f066bc84315ee0",
+        "exit_code": 0,
+        "plan_sha256": "6785b62ed732ff8d3505470777547e076960f5b5a57c2a9afea1fdbbef6993da"
       },
       "2b": {
-        "config_sha256": "a79134e8b00bca3a804f4045b6cea60bb038f3b3e8ad432c8e2e2b8b24d4b787",
-        "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base",
-        "model_manifest_digest": "034f52ccb3d9c37438ee5ad882741b16bfa50ff63e79008d9fb48f4cc9469864",
-        "original_baseline_manifest_sha256": "f156b12f3bb8ab0b2e8c3a58fd2fcd1735f10f97b3b33c622254db796d39bbc6",
-        "output": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-four-dev-stage-final-20261108-88798/2b/output",
-        "package": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-four-dev-stage-final-20261108-88798/2b/package",
-        "package_files": {
-          "assets/ASSET-REUSE-DECISION.json": "567be3332fc17428a3a74ce73d1dec94f5155c9a93db086ce39f39b5d8ad33de",
-          "assets/ASSET-REUSE-SOURCEPINS.json": "d9331a3a001dc2e11ceb16b771a32bd82b27d7f9bc14fcc10f323d2c13236ac2",
-          "assets/MODEL-MANIFEST.json": "f156b12f3bb8ab0b2e8c3a58fd2fcd1735f10f97b3b33c622254db796d39bbc6",
-          "assets/ORIGINAL-PLAN.json": "e02622855d73e05ab270777c0aeeb9f06b09ff0562360927256531b98e7a209e",
-          "code/bev_native_dev_probe.py": "c91223dd74373aa4804efea3edfc6cd9c63ad4b37d4082dd64983d6aeba18ffb",
-          "code/bev_native_dev_runner.py": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba",
-          "code/bev_native_panel_runner.py": "235aacea657ed7d7b6d85e16397634d3d3b19a983a6c33a5a8352786d038511d",
-          "code/bev_native_runtime.py": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460",
-          "code/r3_resource_adapter.py": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a",
-          "code/sol_verify.py": "31a9d41a62361da1f4a2eebdf6518b6353e90b27873702a762500ec85b1e3329",
-          "code/unified_resource_lease_v1.py": "0c057d348be913b7864bc953c0763f1771e95b6b663a907ffa5ea1862b4fc59d",
-          "completion_wake.py": "5832078da597d19e6b570d0bd4c5fb337d62f2b4f41039d9962eb7c1e9a996a6",
-          "consumer_watch.py": "40eca8d38c3f88e37f048073b98abfb6f96dcd687cafd295c404b821185eb326",
-          "entrypoint.sh": "d2967773268d3b4241debb608073a21af538921fc5ce3aeb5165ddc64e15b2b2",
-          "host.py": "0e712c64ba9113c3d9da28cb0ded1aceb97f763a509f9837e979179429b241f0",
-          "materialize.py": "56eb9c2a04e7ea9f27d90ce331ba3e98b75328b4aa16b138fc9dd8300bbccd8c",
-          "qualify.py": "2a15d8b146e1e92cd8d588df0f089ee523fe00a78d4a6558287a52e91b9ff03e",
-          "score.py": "a972a9ef8d11ca280a5b4f643f41023c7ec565183d5bb31277908e669def34c1"
-        },
-        "plan_sha256": "4ceb1d1f95a9b61cd3071172aeb6c31a209a574983a3acb479ecfeb1adad8abe",
-        "protocol": {
-          "batch": 1,
-          "dtype": "float32",
-          "forwards": 9,
-          "full_width": 248320,
-          "hf32": false,
-          "image_sha256": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
-          "input_sha256": "d8ac23e54b44a6191158f35118d917d0eea2f2b25d7ea2bb54617ece4a0dbcc5",
-          "lengths": [
-            4097,
-            5296,
-            8192
-          ],
-          "ordered_sha256": "13cc2e3f2a259a8b9785fed315b01792618bc2d23ad9ac7d5bf2354850fa3c6a",
-          "test_read": false,
-          "tolerance": 0,
-          "variants": [
-            "reference",
-            "reference_repeat",
-            "adapter"
-          ]
-        },
-        "request": {
-          "config_sha256": "a663ef189d89088a9090e574deda90c5725e86e997286efc5103971c9c728871",
-          "pending_sha256": "eaadaccbc85102c972b5692d2f2cf448e05b097d3709d6ab7673bd4e201e5fa9",
-          "plan_sha256": "4ceb1d1f95a9b61cd3071172aeb6c31a209a574983a3acb479ecfeb1adad8abe",
-          "policy_sha256": "a9c8db1e8d959c3cd363749347b54da3381be0b52cb9557a6c95a3dd2811e3cd",
-          "schema": "unified-resource-acceptance-request-v1",
-          "scope": "conditional Base RC1 synthetic long DEV; independent acceptance required; no claim",
-          "task_sha256": "a79134e8b00bca3a804f4045b6cea60bb038f3b3e8ad432c8e2e2b8b24d4b787"
-        },
-        "request_files": {
-          "LEASE-DRAFT.json": "a663ef189d89088a9090e574deda90c5725e86e997286efc5103971c9c728871",
-          "PENDING-SNAPSHOT.json": "eaadaccbc85102c972b5692d2f2cf448e05b097d3709d6ab7673bd4e201e5fa9",
-          "POLICY.json": "a9c8db1e8d959c3cd363749347b54da3381be0b52cb9557a6c95a3dd2811e3cd",
-          "PRIORITY.json": "0a6650253262216a32cba3ee7420fbe8cb169efe23f69d1581144b3eab3d358e",
-          "UNIFIED-ACCEPTANCE-REQUEST.json": "1e8137b89293fa6b556b58b9b6534ab1fe1ed0e9af99029da28ac88708e566a9"
-        },
-        "validation_sha256": "785952cb7f137af75639a626d9b69465c5da5c376a7610117f6c041850aa9606"
+        "config_sha256": "15f51883a77a3b8822d2f1b522692224b9fef77d46fa0c2eb8ada6bcb4bac644",
+        "container_id": "81c3d707e75708f91422b08e96bb645d7f1ee81b84801fcb836a82e569201611",
+        "exit_code": 0,
+        "plan_sha256": "d294802486178b8293d2d932aa8693a3543a6d2959fd5f45f196288cf70aac21"
       },
       "4b": {
-        "config_sha256": "d5acb18639f32e63ced954c74a855768fd39f72a12b7ccb433d8af46e9343ba4",
-        "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base",
-        "model_manifest_digest": "866a92fd2e751f3221cc55d1d285d93d6285551cc50afe1a4bfb4772be1ff097",
-        "original_baseline_manifest_sha256": "8c77db1398bdb9e63a3de7b50b363bcea916d6e99e4421248699c40d9f5c6395",
-        "output": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-four-dev-stage-final-20261108-88798/4b/output",
-        "package": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-four-dev-stage-final-20261108-88798/4b/package",
-        "package_files": {
-          "assets/ASSET-REUSE-DECISION.json": "567be3332fc17428a3a74ce73d1dec94f5155c9a93db086ce39f39b5d8ad33de",
-          "assets/ASSET-REUSE-SOURCEPINS.json": "d9331a3a001dc2e11ceb16b771a32bd82b27d7f9bc14fcc10f323d2c13236ac2",
-          "assets/MODEL-MANIFEST.json": "8c77db1398bdb9e63a3de7b50b363bcea916d6e99e4421248699c40d9f5c6395",
-          "assets/ORIGINAL-PLAN.json": "e02622855d73e05ab270777c0aeeb9f06b09ff0562360927256531b98e7a209e",
-          "code/bev_native_dev_probe.py": "c91223dd74373aa4804efea3edfc6cd9c63ad4b37d4082dd64983d6aeba18ffb",
-          "code/bev_native_dev_runner.py": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba",
-          "code/bev_native_panel_runner.py": "235aacea657ed7d7b6d85e16397634d3d3b19a983a6c33a5a8352786d038511d",
-          "code/bev_native_runtime.py": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460",
-          "code/r3_resource_adapter.py": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a",
-          "code/sol_verify.py": "31a9d41a62361da1f4a2eebdf6518b6353e90b27873702a762500ec85b1e3329",
-          "code/unified_resource_lease_v1.py": "0c057d348be913b7864bc953c0763f1771e95b6b663a907ffa5ea1862b4fc59d",
-          "completion_wake.py": "5832078da597d19e6b570d0bd4c5fb337d62f2b4f41039d9962eb7c1e9a996a6",
-          "consumer_watch.py": "40eca8d38c3f88e37f048073b98abfb6f96dcd687cafd295c404b821185eb326",
-          "entrypoint.sh": "d2967773268d3b4241debb608073a21af538921fc5ce3aeb5165ddc64e15b2b2",
-          "host.py": "0e712c64ba9113c3d9da28cb0ded1aceb97f763a509f9837e979179429b241f0",
-          "materialize.py": "56eb9c2a04e7ea9f27d90ce331ba3e98b75328b4aa16b138fc9dd8300bbccd8c",
-          "qualify.py": "2a15d8b146e1e92cd8d588df0f089ee523fe00a78d4a6558287a52e91b9ff03e",
-          "score.py": "a972a9ef8d11ca280a5b4f643f41023c7ec565183d5bb31277908e669def34c1"
-        },
-        "plan_sha256": "10f5a5d174a03e251e52bcf03734fda8277f20fdff0c99c8db4415c41fe5f9e2",
-        "protocol": {
-          "batch": 1,
-          "dtype": "float32",
-          "forwards": 9,
-          "full_width": 248320,
-          "hf32": false,
-          "image_sha256": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
-          "input_sha256": "d8ac23e54b44a6191158f35118d917d0eea2f2b25d7ea2bb54617ece4a0dbcc5",
-          "lengths": [
-            4097,
-            5296,
-            8192
-          ],
-          "ordered_sha256": "13cc2e3f2a259a8b9785fed315b01792618bc2d23ad9ac7d5bf2354850fa3c6a",
-          "test_read": false,
-          "tolerance": 0,
-          "variants": [
-            "reference",
-            "reference_repeat",
-            "adapter"
-          ]
-        },
-        "request": {
-          "config_sha256": "7d97d9525c09ef70176d89909998d3dd7a2028f75fbcc7423323216d42f94a49",
-          "pending_sha256": "eaadaccbc85102c972b5692d2f2cf448e05b097d3709d6ab7673bd4e201e5fa9",
-          "plan_sha256": "10f5a5d174a03e251e52bcf03734fda8277f20fdff0c99c8db4415c41fe5f9e2",
-          "policy_sha256": "a9c8db1e8d959c3cd363749347b54da3381be0b52cb9557a6c95a3dd2811e3cd",
-          "schema": "unified-resource-acceptance-request-v1",
-          "scope": "conditional Base RC1 synthetic long DEV; independent acceptance required; no claim",
-          "task_sha256": "d5acb18639f32e63ced954c74a855768fd39f72a12b7ccb433d8af46e9343ba4"
-        },
-        "request_files": {
-          "LEASE-DRAFT.json": "7d97d9525c09ef70176d89909998d3dd7a2028f75fbcc7423323216d42f94a49",
-          "PENDING-SNAPSHOT.json": "eaadaccbc85102c972b5692d2f2cf448e05b097d3709d6ab7673bd4e201e5fa9",
-          "POLICY.json": "a9c8db1e8d959c3cd363749347b54da3381be0b52cb9557a6c95a3dd2811e3cd",
-          "PRIORITY.json": "d3bf42adb2e960e60d18b2bd542293a5d6d42536345a4d0213ecd7a090ade63b",
-          "UNIFIED-ACCEPTANCE-REQUEST.json": "191a9d87dd6b0d9afcee05ef44c85b1c69611a5840cb79fb5966752f0248d31d"
-        },
-        "validation_sha256": "e98da3a471c3abc47054e3eb525ec4cba0f38b821517e1e05a0d8f9e2afedc42"
+        "config_sha256": "18efc574d94bbc072d983bf1177b3115c31e187b11186bbdb092a36bb8b3f04f",
+        "container_id": "26b80361957996117157b05f762f85ee8554bb1a41ec29c01e4a6ba90383bfd5",
+        "exit_code": 0,
+        "plan_sha256": "dbbc67b61b9bf27d20ab0d6e25b6750c35f868fe1b624d23d9ed876f69f3f7ed"
       },
       "9b": {
-        "config_sha256": "43d1ae4b210e36002aaedd0bcf4c086d5237568fbad088c5ba17afa5d97d6bb9",
-        "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base",
-        "model_manifest_digest": "e5155012784ee0a4bb59995749360fcf21b578858d58e62fe82376590ea8476f",
-        "original_baseline_manifest_sha256": "94dc3295beffe04b3ae2910c3add47832ba40207ff104ca708ce50321d872804",
-        "output": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-four-dev-stage-final-20261108-88798/9b/output",
-        "package": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-four-dev-stage-final-20261108-88798/9b/package",
-        "package_files": {
-          "assets/ASSET-REUSE-DECISION.json": "567be3332fc17428a3a74ce73d1dec94f5155c9a93db086ce39f39b5d8ad33de",
-          "assets/ASSET-REUSE-SOURCEPINS.json": "d9331a3a001dc2e11ceb16b771a32bd82b27d7f9bc14fcc10f323d2c13236ac2",
-          "assets/MODEL-MANIFEST.json": "94dc3295beffe04b3ae2910c3add47832ba40207ff104ca708ce50321d872804",
-          "assets/ORIGINAL-PLAN.json": "e02622855d73e05ab270777c0aeeb9f06b09ff0562360927256531b98e7a209e",
-          "code/bev_native_dev_probe.py": "c91223dd74373aa4804efea3edfc6cd9c63ad4b37d4082dd64983d6aeba18ffb",
-          "code/bev_native_dev_runner.py": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba",
-          "code/bev_native_panel_runner.py": "235aacea657ed7d7b6d85e16397634d3d3b19a983a6c33a5a8352786d038511d",
-          "code/bev_native_runtime.py": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460",
-          "code/r3_resource_adapter.py": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a",
-          "code/sol_verify.py": "31a9d41a62361da1f4a2eebdf6518b6353e90b27873702a762500ec85b1e3329",
-          "code/unified_resource_lease_v1.py": "0c057d348be913b7864bc953c0763f1771e95b6b663a907ffa5ea1862b4fc59d",
-          "completion_wake.py": "5832078da597d19e6b570d0bd4c5fb337d62f2b4f41039d9962eb7c1e9a996a6",
-          "consumer_watch.py": "40eca8d38c3f88e37f048073b98abfb6f96dcd687cafd295c404b821185eb326",
-          "entrypoint.sh": "d2967773268d3b4241debb608073a21af538921fc5ce3aeb5165ddc64e15b2b2",
-          "host.py": "0e712c64ba9113c3d9da28cb0ded1aceb97f763a509f9837e979179429b241f0",
-          "materialize.py": "56eb9c2a04e7ea9f27d90ce331ba3e98b75328b4aa16b138fc9dd8300bbccd8c",
-          "qualify.py": "2a15d8b146e1e92cd8d588df0f089ee523fe00a78d4a6558287a52e91b9ff03e",
-          "score.py": "a972a9ef8d11ca280a5b4f643f41023c7ec565183d5bb31277908e669def34c1"
-        },
-        "plan_sha256": "7811c5114fa2d4b430eaf4baaf342ff5e3b89160163cc4b4195dfd539adfd310",
-        "protocol": {
-          "batch": 1,
-          "dtype": "float32",
-          "forwards": 9,
-          "full_width": 248320,
-          "hf32": false,
-          "image_sha256": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
-          "input_sha256": "d8ac23e54b44a6191158f35118d917d0eea2f2b25d7ea2bb54617ece4a0dbcc5",
-          "lengths": [
-            4097,
-            5296,
-            8192
-          ],
-          "ordered_sha256": "13cc2e3f2a259a8b9785fed315b01792618bc2d23ad9ac7d5bf2354850fa3c6a",
-          "test_read": false,
-          "tolerance": 0,
-          "variants": [
-            "reference",
-            "reference_repeat",
-            "adapter"
-          ]
-        },
-        "request": {
-          "config_sha256": "2ce575de9a055e4a5f6d9fd3d11dcb78da363eb29997a53c1d40202d8b85d9a4",
-          "pending_sha256": "eaadaccbc85102c972b5692d2f2cf448e05b097d3709d6ab7673bd4e201e5fa9",
-          "plan_sha256": "7811c5114fa2d4b430eaf4baaf342ff5e3b89160163cc4b4195dfd539adfd310",
-          "policy_sha256": "a9c8db1e8d959c3cd363749347b54da3381be0b52cb9557a6c95a3dd2811e3cd",
-          "schema": "unified-resource-acceptance-request-v1",
-          "scope": "conditional Base RC1 synthetic long DEV; independent acceptance required; no claim",
-          "task_sha256": "43d1ae4b210e36002aaedd0bcf4c086d5237568fbad088c5ba17afa5d97d6bb9"
-        },
-        "request_files": {
-          "LEASE-DRAFT.json": "2ce575de9a055e4a5f6d9fd3d11dcb78da363eb29997a53c1d40202d8b85d9a4",
-          "PENDING-SNAPSHOT.json": "eaadaccbc85102c972b5692d2f2cf448e05b097d3709d6ab7673bd4e201e5fa9",
-          "POLICY.json": "a9c8db1e8d959c3cd363749347b54da3381be0b52cb9557a6c95a3dd2811e3cd",
-          "PRIORITY.json": "745479bb173912055c119528419051e6c87a4bdfd1761493d0675998220e0baf",
-          "UNIFIED-ACCEPTANCE-REQUEST.json": "7a23edecee66c98f07c6942b874ef7218c068459878cc5c8aa39b57aa39c9b4f"
-        },
-        "validation_sha256": "4e65059c7d8abab37469dc727e4d269607a8df839dcdb3421b23518f86bb14b0"
+        "config_sha256": "e6c91f1da0a9113ba4e9bc8257d196782175a1e29a8e57230197ec175cd809d0",
+        "container_id": "202c8012c644c44fb147a7c3aa51841be306b623663da30b337107ad5faa8300",
+        "exit_code": 0,
+        "plan_sha256": "3a429d0a3ad26ff9e117285cbd9b840ced2590ae226f20df245557a6f54d612e"
       }
     },
-    "producer_planpins": {
-      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/kev-hard-four-dev-stage-final-20261108/PLANPINS.json",
-      "sha256": "1fe4a2b011b97d7aa5091b0536923022bb040069125363af6f6b8f86d22378dd"
+    "all_checks_passed": true,
+    "artifacts": {
+      "CHECKS.json": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev-container-validation-fix-20261108-review/CHECKS.json",
+        "sha256": "79356e692461e6694a536c0bcf25dcb88446d90243cd9fb447bcdf337f8c1a56"
+      },
+      "HANDOFF.md": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev-container-validation-fix-20261108-review/HANDOFF.md",
+        "sha256": "c7907aa11bfc2f2ddd927f61c0f286b99506abefb698fb3dd4cc0411c8716111"
+      },
+      "PLANPINS.json": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev-container-validation-fix-20261108-review/PLANPINS.json",
+        "sha256": "b2044b188f5dfa6e1078785e570bbcd190f74ccef256ddb057865e5b9ebf8ec3"
+      },
+      "RESULT.md": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev-container-validation-fix-20261108-review/RESULT.md",
+        "sha256": "f0ee948f77502351af5ba90f814df7473383cf40e52015c6d6a9071b01697f55"
+      },
+      "SOURCEPINS.json": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev-container-validation-fix-20261108-review/SOURCEPINS.json",
+        "sha256": "b72cd6b41b77f992e250ac631d0e61741ed3abc841d9a27fb0a4790c65270070"
+      },
+      "audit_remote.py": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev-container-validation-fix-20261108-review/audit_remote.py",
+        "sha256": "ab878d53fd3e8f9342e622da10d539e638f1fc590320745744ce81eb97d0b2a8"
+      },
+      "evidence/REMOTE-AUDIT.json": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev-container-validation-fix-20261108-review/evidence/REMOTE-AUDIT.json",
+        "sha256": "6aa93bdc1cb61cf2a00ab2f72678220b8ade70bb1c064d6c113132078861c2a5"
+      },
+      "evidence/SUPPLEMENT.json": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-dev-container-validation-fix-20261108-review/evidence/SUPPLEMENT.json",
+        "sha256": "f65f80a849128d6eb35db6b6d44212b714851e367fc0543e37817a1334bc37e7"
+      }
     },
-    "producer_sourcepins": {
-      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/kev-hard-four-dev-stage-final-20261108/SOURCEPINS.json",
-      "sha256": "191ddbbad882b283c81579a45c060c65a103d7b71396183e0e80d8a65ee79cb8"
+    "blocking_package_findings": [],
+    "completed_utc": "2026-11-08T09:38:02.272999+00:00",
+    "current_payload_byte_identity_proven": false,
+    "current_pending_freshness_accepted": false,
+    "fresh_priority_admission_required": true,
+    "launch_authorized": false,
+    "npu_execution": false,
+    "old_lease_approval_transferred": false,
+    "package_accepted": true,
+    "production_lease_accepted": false,
+    "prospective_replacement_publication_required": true,
+    "request_bindings_accepted": true,
+    "resource_claim_authorized": false,
+    "review_complete": true,
+    "schema": "exact-container-boundary-four-dev-independent-review-v1",
+    "scientific_acceptance": false,
+    "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800",
+    "verdict": "ACCEPT_EXACT_CONTAINER_BOUNDARY_AND_FOUR_DEV_PACKAGE_REQUEST_BINDINGS",
+    "weights_rehashed": false
+  },
+  "packages": {
+    "08b": {
+      "CONFIG.json": "5ad062e7faa57cd8565c401ed3f0dcf3adb9a98917c3f0f598f6cf0236b92e0f",
+      "LEASE-DRAFT.json": "0ef3ce88eef141be35e58a21a6c4b2102ec562f06b5fac417f8bc96e564f29da",
+      "PENDING-SNAPSHOT.json": "eaadaccbc85102c972b5692d2f2cf448e05b097d3709d6ab7673bd4e201e5fa9",
+      "PLAN.json": "6785b62ed732ff8d3505470777547e076960f5b5a57c2a9afea1fdbbef6993da",
+      "POLICY.json": "a9c8db1e8d959c3cd363749347b54da3381be0b52cb9557a6c95a3dd2811e3cd",
+      "PRIORITY.json": "e38cdae8dd1e728881794ffee8abc06eea77661fc61403e78c9445ecddfa1989",
+      "UNIFIED-ACCEPTANCE-REQUEST.json": "f67a73de7ed4a6c4b0a969613c9bdcd80b4ba5ae1096a468d3695bd87b669db6"
     },
-    "review_scripts": {
-      "remote_audit.py": "720541a245d24a0f7d911c5c45de8429c141a6a90c32ed88e45211099c355720",
-      "replay_partial.py": "d184b79cd84d4f73b01c03815f9dca35c34ad3dfacf934a011e4e7ab1f564884",
-      "review_checks.py": "12e82b52ff5b70d0487aedddcc72dfe8b52d328c9060ea33469764f996828677"
+    "2b": {
+      "CONFIG.json": "15f51883a77a3b8822d2f1b522692224b9fef77d46fa0c2eb8ada6bcb4bac644",
+      "LEASE-DRAFT.json": "5e5115a8e6de1be19a726d8e1a1594ba97af76cf6f0b383dd8375808c6a37a58",
+      "PENDING-SNAPSHOT.json": "eaadaccbc85102c972b5692d2f2cf448e05b097d3709d6ab7673bd4e201e5fa9",
+      "PLAN.json": "d294802486178b8293d2d932aa8693a3543a6d2959fd5f45f196288cf70aac21",
+      "POLICY.json": "a9c8db1e8d959c3cd363749347b54da3381be0b52cb9557a6c95a3dd2811e3cd",
+      "PRIORITY.json": "5b34bd3c735760e24575549b93c6cc6a841c29fb40df3f9c5779390799566897",
+      "UNIFIED-ACCEPTANCE-REQUEST.json": "63f958884167a07c1bf998f29a95fac4c403e0f25085d3e1b80a31718af9055e"
     },
-    "schema": "exact-final-four-dev-review-planpins-v1",
-    "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-four-dev-stage-final-20261108-88798"
+    "4b": {
+      "CONFIG.json": "18efc574d94bbc072d983bf1177b3115c31e187b11186bbdb092a36bb8b3f04f",
+      "LEASE-DRAFT.json": "bf67e879cc1c52f56c079150f41aaf87979eab9f82d85e6698834b69cadb6161",
+      "PENDING-SNAPSHOT.json": "eaadaccbc85102c972b5692d2f2cf448e05b097d3709d6ab7673bd4e201e5fa9",
+      "PLAN.json": "dbbc67b61b9bf27d20ab0d6e25b6750c35f868fe1b624d23d9ed876f69f3f7ed",
+      "POLICY.json": "a9c8db1e8d959c3cd363749347b54da3381be0b52cb9557a6c95a3dd2811e3cd",
+      "PRIORITY.json": "65003dbab50a4df79e350dcd2760da62f593f5dac10a97859573f07065bcc2ea",
+      "UNIFIED-ACCEPTANCE-REQUEST.json": "183f9f6a389ddf70068d098a38d7799781275a24668290940cdda3f76beee63c"
+    },
+    "9b": {
+      "CONFIG.json": "e6c91f1da0a9113ba4e9bc8257d196782175a1e29a8e57230197ec175cd809d0",
+      "LEASE-DRAFT.json": "f34617132d53f03eddc33bee914e68e7893cd978821eee707de9f14af1c1fad6",
+      "PENDING-SNAPSHOT.json": "eaadaccbc85102c972b5692d2f2cf448e05b097d3709d6ab7673bd4e201e5fa9",
+      "PLAN.json": "3a429d0a3ad26ff9e117285cbd9b840ced2590ae226f20df245557a6f54d612e",
+      "POLICY.json": "a9c8db1e8d959c3cd363749347b54da3381be0b52cb9557a6c95a3dd2811e3cd",
+      "PRIORITY.json": "83b9312bccf27f644fa42e9deff53f1764c448ed769d2487108f223304f2c4f1",
+      "UNIFIED-ACCEPTANCE-REQUEST.json": "ed44bf40bcfb416cc81a28d118544c92312c5a358939137f17e5ccc58cf769d6"
+    }
+  },
+  "source_pins": {
+    "08b": {
+      "assets/ASSET-REUSE-DECISION.json": "567be3332fc17428a3a74ce73d1dec94f5155c9a93db086ce39f39b5d8ad33de",
+      "assets/ASSET-REUSE-SOURCEPINS.json": "d9331a3a001dc2e11ceb16b771a32bd82b27d7f9bc14fcc10f323d2c13236ac2",
+      "assets/MODEL-MANIFEST.json": "da5423321fff8321a4ffb592d6a625b64d20a779c855b87a19a30af4e76cd7ef",
+      "assets/ORIGINAL-PLAN.json": "e02622855d73e05ab270777c0aeeb9f06b09ff0562360927256531b98e7a209e",
+      "code/bev_native_dev_probe.py": "c91223dd74373aa4804efea3edfc6cd9c63ad4b37d4082dd64983d6aeba18ffb",
+      "code/bev_native_dev_runner.py": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba",
+      "code/bev_native_panel_runner.py": "235aacea657ed7d7b6d85e16397634d3d3b19a983a6c33a5a8352786d038511d",
+      "code/bev_native_runtime.py": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460",
+      "code/r3_resource_adapter.py": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a",
+      "code/sol_verify.py": "31a9d41a62361da1f4a2eebdf6518b6353e90b27873702a762500ec85b1e3329",
+      "code/unified_resource_lease_v1.py": "0c057d348be913b7864bc953c0763f1771e95b6b663a907ffa5ea1862b4fc59d",
+      "completion_wake.py": "5832078da597d19e6b570d0bd4c5fb337d62f2b4f41039d9962eb7c1e9a996a6",
+      "consumer_watch.py": "40eca8d38c3f88e37f048073b98abfb6f96dcd687cafd295c404b821185eb326",
+      "entrypoint.sh": "d2967773268d3b4241debb608073a21af538921fc5ce3aeb5165ddc64e15b2b2",
+      "host.py": "7d4d86d42c1267a66036b0dd71ad1ed0981d136c8c5f875f78a869cff50172ab",
+      "materialize.py": "56eb9c2a04e7ea9f27d90ce331ba3e98b75328b4aa16b138fc9dd8300bbccd8c",
+      "qualify.py": "6658dd6ca1f0999153dd7c4076a0ad9d22d26a42e245c54508240a27a2f48c1b",
+      "score.py": "a972a9ef8d11ca280a5b4f643f41023c7ec565183d5bb31277908e669def34c1"
+    },
+    "2b": {
+      "assets/ASSET-REUSE-DECISION.json": "567be3332fc17428a3a74ce73d1dec94f5155c9a93db086ce39f39b5d8ad33de",
+      "assets/ASSET-REUSE-SOURCEPINS.json": "d9331a3a001dc2e11ceb16b771a32bd82b27d7f9bc14fcc10f323d2c13236ac2",
+      "assets/MODEL-MANIFEST.json": "f156b12f3bb8ab0b2e8c3a58fd2fcd1735f10f97b3b33c622254db796d39bbc6",
+      "assets/ORIGINAL-PLAN.json": "e02622855d73e05ab270777c0aeeb9f06b09ff0562360927256531b98e7a209e",
+      "code/bev_native_dev_probe.py": "c91223dd74373aa4804efea3edfc6cd9c63ad4b37d4082dd64983d6aeba18ffb",
+      "code/bev_native_dev_runner.py": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba",
+      "code/bev_native_panel_runner.py": "235aacea657ed7d7b6d85e16397634d3d3b19a983a6c33a5a8352786d038511d",
+      "code/bev_native_runtime.py": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460",
+      "code/r3_resource_adapter.py": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a",
+      "code/sol_verify.py": "31a9d41a62361da1f4a2eebdf6518b6353e90b27873702a762500ec85b1e3329",
+      "code/unified_resource_lease_v1.py": "0c057d348be913b7864bc953c0763f1771e95b6b663a907ffa5ea1862b4fc59d",
+      "completion_wake.py": "5832078da597d19e6b570d0bd4c5fb337d62f2b4f41039d9962eb7c1e9a996a6",
+      "consumer_watch.py": "40eca8d38c3f88e37f048073b98abfb6f96dcd687cafd295c404b821185eb326",
+      "entrypoint.sh": "d2967773268d3b4241debb608073a21af538921fc5ce3aeb5165ddc64e15b2b2",
+      "host.py": "7d4d86d42c1267a66036b0dd71ad1ed0981d136c8c5f875f78a869cff50172ab",
+      "materialize.py": "56eb9c2a04e7ea9f27d90ce331ba3e98b75328b4aa16b138fc9dd8300bbccd8c",
+      "qualify.py": "6658dd6ca1f0999153dd7c4076a0ad9d22d26a42e245c54508240a27a2f48c1b",
+      "score.py": "a972a9ef8d11ca280a5b4f643f41023c7ec565183d5bb31277908e669def34c1"
+    },
+    "4b": {
+      "assets/ASSET-REUSE-DECISION.json": "567be3332fc17428a3a74ce73d1dec94f5155c9a93db086ce39f39b5d8ad33de",
+      "assets/ASSET-REUSE-SOURCEPINS.json": "d9331a3a001dc2e11ceb16b771a32bd82b27d7f9bc14fcc10f323d2c13236ac2",
+      "assets/MODEL-MANIFEST.json": "8c77db1398bdb9e63a3de7b50b363bcea916d6e99e4421248699c40d9f5c6395",
+      "assets/ORIGINAL-PLAN.json": "e02622855d73e05ab270777c0aeeb9f06b09ff0562360927256531b98e7a209e",
+      "code/bev_native_dev_probe.py": "c91223dd74373aa4804efea3edfc6cd9c63ad4b37d4082dd64983d6aeba18ffb",
+      "code/bev_native_dev_runner.py": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba",
+      "code/bev_native_panel_runner.py": "235aacea657ed7d7b6d85e16397634d3d3b19a983a6c33a5a8352786d038511d",
+      "code/bev_native_runtime.py": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460",
+      "code/r3_resource_adapter.py": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a",
+      "code/sol_verify.py": "31a9d41a62361da1f4a2eebdf6518b6353e90b27873702a762500ec85b1e3329",
+      "code/unified_resource_lease_v1.py": "0c057d348be913b7864bc953c0763f1771e95b6b663a907ffa5ea1862b4fc59d",
+      "completion_wake.py": "5832078da597d19e6b570d0bd4c5fb337d62f2b4f41039d9962eb7c1e9a996a6",
+      "consumer_watch.py": "40eca8d38c3f88e37f048073b98abfb6f96dcd687cafd295c404b821185eb326",
+      "entrypoint.sh": "d2967773268d3b4241debb608073a21af538921fc5ce3aeb5165ddc64e15b2b2",
+      "host.py": "7d4d86d42c1267a66036b0dd71ad1ed0981d136c8c5f875f78a869cff50172ab",
+      "materialize.py": "56eb9c2a04e7ea9f27d90ce331ba3e98b75328b4aa16b138fc9dd8300bbccd8c",
+      "qualify.py": "6658dd6ca1f0999153dd7c4076a0ad9d22d26a42e245c54508240a27a2f48c1b",
+      "score.py": "a972a9ef8d11ca280a5b4f643f41023c7ec565183d5bb31277908e669def34c1"
+    },
+    "9b": {
+      "assets/ASSET-REUSE-DECISION.json": "567be3332fc17428a3a74ce73d1dec94f5155c9a93db086ce39f39b5d8ad33de",
+      "assets/ASSET-REUSE-SOURCEPINS.json": "d9331a3a001dc2e11ceb16b771a32bd82b27d7f9bc14fcc10f323d2c13236ac2",
+      "assets/MODEL-MANIFEST.json": "94dc3295beffe04b3ae2910c3add47832ba40207ff104ca708ce50321d872804",
+      "assets/ORIGINAL-PLAN.json": "e02622855d73e05ab270777c0aeeb9f06b09ff0562360927256531b98e7a209e",
+      "code/bev_native_dev_probe.py": "c91223dd74373aa4804efea3edfc6cd9c63ad4b37d4082dd64983d6aeba18ffb",
+      "code/bev_native_dev_runner.py": "967496a106aae04a5ec54f5347e8ed1a9a577ad6ef4ee6c2842cd695de9b36ba",
+      "code/bev_native_panel_runner.py": "235aacea657ed7d7b6d85e16397634d3d3b19a983a6c33a5a8352786d038511d",
+      "code/bev_native_runtime.py": "25e1bd08d3fce43bc4d3b9827188e0329c62289bc7dcf4f12a09e4c37a0ea460",
+      "code/r3_resource_adapter.py": "f90ae21242b78c4c774ff5c12b5ff30d9e7b1bd927d42f910fc157c6538a574a",
+      "code/sol_verify.py": "31a9d41a62361da1f4a2eebdf6518b6353e90b27873702a762500ec85b1e3329",
+      "code/unified_resource_lease_v1.py": "0c057d348be913b7864bc953c0763f1771e95b6b663a907ffa5ea1862b4fc59d",
+      "completion_wake.py": "5832078da597d19e6b570d0bd4c5fb337d62f2b4f41039d9962eb7c1e9a996a6",
+      "consumer_watch.py": "40eca8d38c3f88e37f048073b98abfb6f96dcd687cafd295c404b821185eb326",
+      "entrypoint.sh": "d2967773268d3b4241debb608073a21af538921fc5ce3aeb5165ddc64e15b2b2",
+      "host.py": "7d4d86d42c1267a66036b0dd71ad1ed0981d136c8c5f875f78a869cff50172ab",
+      "materialize.py": "56eb9c2a04e7ea9f27d90ce331ba3e98b75328b4aa16b138fc9dd8300bbccd8c",
+      "qualify.py": "6658dd6ca1f0999153dd7c4076a0ad9d22d26a42e245c54508240a27a2f48c1b",
+      "score.py": "a972a9ef8d11ca280a5b4f643f41023c7ec565183d5bb31277908e669def34c1"
+    }
   },
   "operational_reuse": "Accepted unchanged-storage assumption; weight bytes not rehashed",
   "numerical_results": null,
+  "launch_allowed": false,
+  "supersedes": {
+    "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-four-dev-stage-final-20261108-88798",
+    "status": "HELD_DO_NOT_LAUNCH",
+    "published_commit": "55f2eba",
+    "reason": "Actual container hostname and authority-mount gap corrected only in new exact package"
+  },
+  "correction": {
+    "utc": "2026-11-08T09:39:00.128064+00:00",
+    "evidence": "Four actual fixed-RC1 no-device validation containers exit0; independent exact package review accepted. Not NPU numerical qualification."
+  },
   "launch_requires": [
-    "Correct hostname/authority visibility, validate four configs in actual fixed RC1 no-device containers, independently review new exact package and rebind resource request before launch.",
-    "Independent exact request and priority acceptance",
+    "Independent exact new request and priority acceptance",
     "Fresh pending/allocation/dispatch and predecessor/physical availability check",
     "Serial card5 execution; per-model release before next claim"
-  ],
-  "launch_allowed": false,
-  "correction": {
-    "utc": "2026-11-08T09:31:37.738865+00:00",
-    "supersedes_status": "EXACT_PACKAGES_ACCEPTED_RESOURCE_ADMISSION_PENDING",
-    "reason": "Host validation and fixture review do not establish container validation: hostname assumption and external authority paths fail the actual container boundary. Old package must not launch, including with its conditional resource acceptance.",
-    "preserved_evidence": "Historical source pins and limited reviews remain recorded; they are not actual container validation.",
-    "required": "Correct hostname/authority visibility, validate four configs in actual fixed RC1 no-device containers, independently review new exact package and rebind resource request before launch."
-  }
+  ]
 }
