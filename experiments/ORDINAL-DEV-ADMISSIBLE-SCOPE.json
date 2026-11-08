@@ -1,0 +1,296 @@
+{
+  "schema": "ordinal-dev-scientific-scope-v1",
+  "scientific_protocol": "ADMITTED_WITH_PINNED_PROSPECTIVE_ADDENDUM",
+  "preregistration": {
+    "path": "/home/xingchao/workspace/nga/.local/preparations/ordinal-dev-factorial-20261104-v1/PREREGISTRATION.md",
+    "sha256": "a4215c73f23bc760921752dba35c4fc7b230ef870abe6da3ee4f5badb8a8ab38"
+  },
+  "prospective_addendum": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108/PROTOCOL-ADDENDUM.md",
+    "sha256": "9421861503fc88d05e5d7b6200faf5b1d9f4acfe454d9f9f80cf819d28e7b3b1"
+  },
+  "source": {
+    "path": "/mnt/cephfs/xingchao/omni/datasets/jev/Praveenrajus__jev-bench/data/helpsteer2_verbosity/validation.jsonl",
+    "sha256": "670ce3195e74282dc64c63776056c63beaaba51c17e9341e0dc5af3616fac76e",
+    "evidence": "inherited source receipt; no source payload reread"
+  },
+  "split": {
+    "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/cpu/split.json",
+    "sha256": "785547ed892a45a10eabb286d99f58e2bcced6d38d796fecb8d0cb8c31a90600",
+    "seed": "nga-helpsteer2-ordinal-dev-20261104-v1",
+    "dev": 128,
+    "controls": 12,
+    "confirmation_locked": 372
+  },
+  "cells": [
+    {
+      "id": "ordinal_08b_chat_1_5",
+      "model": "08b",
+      "model_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base",
+      "model_manifest_sha256": "28783a11558cc6b99e9a045bae574d9c484fd3279572605268fd31f480b7e357",
+      "model_plan_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_hard_50k_08b_successor_20261104_v1/PLAN.json",
+        "sha256": "20f4ebb0155b0b0973cbedf39a3cce75eb8828ce0b5360ef4375ffb163737137"
+      },
+      "condition": "chat_1_5",
+      "requests": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/08b/chat_1_5/requests.jsonl",
+        "sha256": "60f32d467694286757e725dc820e55d1f94e744fc388f36682efcedd8615b08d"
+      },
+      "execution_config_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_execution_components_20261104_v2/08b-chat_1_5-CONFIG.json",
+        "sha256": "11d66d2792e90f1697d0e9cf7aefe3ee78681359dda8048499c40c2df722bc53"
+      },
+      "dev_items": 128,
+      "controls": 12,
+      "forwards": 140,
+      "display_first": 1,
+      "label_token_ids": [
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "max_tokens": 1553
+    },
+    {
+      "id": "ordinal_08b_chat_0_4",
+      "model": "08b",
+      "model_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base",
+      "model_manifest_sha256": "28783a11558cc6b99e9a045bae574d9c484fd3279572605268fd31f480b7e357",
+      "model_plan_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_hard_50k_08b_successor_20261104_v1/PLAN.json",
+        "sha256": "20f4ebb0155b0b0973cbedf39a3cce75eb8828ce0b5360ef4375ffb163737137"
+      },
+      "condition": "chat_0_4",
+      "requests": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/08b/chat_0_4/requests.jsonl",
+        "sha256": "ff3b778b1d73cef8b1f2e0f8a403aff3aef60f51c08ff6f200fcb871965c2f97"
+      },
+      "execution_config_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_execution_components_20261104_v2/08b-chat_0_4-CONFIG.json",
+        "sha256": "5bbae251ea991d24849ff162713e51a0600f5a7167eb513a10b2d067b7d3b308"
+      },
+      "dev_items": 128,
+      "controls": 12,
+      "forwards": 140,
+      "display_first": 0,
+      "label_token_ids": [
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "max_tokens": 1553
+    },
+    {
+      "id": "ordinal_08b_plain_1_5",
+      "model": "08b",
+      "model_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base",
+      "model_manifest_sha256": "28783a11558cc6b99e9a045bae574d9c484fd3279572605268fd31f480b7e357",
+      "model_plan_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_hard_50k_08b_successor_20261104_v1/PLAN.json",
+        "sha256": "20f4ebb0155b0b0973cbedf39a3cce75eb8828ce0b5360ef4375ffb163737137"
+      },
+      "condition": "plain_1_5",
+      "requests": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/08b/plain_1_5/requests.jsonl",
+        "sha256": "a435df2a016839526eb9ce6d63d5ba0416c0997a728285791661a55aa1574e91"
+      },
+      "execution_config_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_execution_components_20261104_v2/08b-plain_1_5-CONFIG.json",
+        "sha256": "09657636ebefa89216ce96981d8d2c7b5653609ea96d1efb4be5ea598ded443d"
+      },
+      "dev_items": 128,
+      "controls": 12,
+      "forwards": 140,
+      "display_first": 1,
+      "label_token_ids": [
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "max_tokens": 1540
+    },
+    {
+      "id": "ordinal_08b_plain_0_4",
+      "model": "08b",
+      "model_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base",
+      "model_manifest_sha256": "28783a11558cc6b99e9a045bae574d9c484fd3279572605268fd31f480b7e357",
+      "model_plan_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_hard_50k_08b_successor_20261104_v1/PLAN.json",
+        "sha256": "20f4ebb0155b0b0973cbedf39a3cce75eb8828ce0b5360ef4375ffb163737137"
+      },
+      "condition": "plain_0_4",
+      "requests": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/08b/plain_0_4/requests.jsonl",
+        "sha256": "90b9bf109c7488b8a0f2ba558870467b055d43330b2a5bf37b87c08386529a0e"
+      },
+      "execution_config_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_execution_components_20261104_v2/08b-plain_0_4-CONFIG.json",
+        "sha256": "5949413678afcb30158e5413eefab1291f8d070a7858b332682a0da760fccead"
+      },
+      "dev_items": 128,
+      "controls": 12,
+      "forwards": 140,
+      "display_first": 0,
+      "label_token_ids": [
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "max_tokens": 1540
+    },
+    {
+      "id": "ordinal_2b_chat_1_5",
+      "model": "2b",
+      "model_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base",
+      "model_manifest_sha256": "034f52ccb3d9c37438ee5ad882741b16bfa50ff63e79008d9fb48f4cc9469864",
+      "model_plan_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_hard_50k_2b_successor_20261104_v1/PLAN.json",
+        "sha256": "dea212eea854fdec455cd3ff32354d7910412ec6780f2cb59f27091e51b0f334"
+      },
+      "condition": "chat_1_5",
+      "requests": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/2b/chat_1_5/requests.jsonl",
+        "sha256": "60f32d467694286757e725dc820e55d1f94e744fc388f36682efcedd8615b08d"
+      },
+      "execution_config_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_execution_components_20261104_v2/2b-chat_1_5-CONFIG.json",
+        "sha256": "d7a559d883ba6b15f1e04d4f5b1538bfd4a0ea852039321a61982d1de5657538"
+      },
+      "dev_items": 128,
+      "controls": 12,
+      "forwards": 140,
+      "display_first": 1,
+      "label_token_ids": [
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "max_tokens": 1553
+    },
+    {
+      "id": "ordinal_2b_chat_0_4",
+      "model": "2b",
+      "model_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base",
+      "model_manifest_sha256": "034f52ccb3d9c37438ee5ad882741b16bfa50ff63e79008d9fb48f4cc9469864",
+      "model_plan_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_hard_50k_2b_successor_20261104_v1/PLAN.json",
+        "sha256": "dea212eea854fdec455cd3ff32354d7910412ec6780f2cb59f27091e51b0f334"
+      },
+      "condition": "chat_0_4",
+      "requests": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/2b/chat_0_4/requests.jsonl",
+        "sha256": "ff3b778b1d73cef8b1f2e0f8a403aff3aef60f51c08ff6f200fcb871965c2f97"
+      },
+      "execution_config_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_execution_components_20261104_v2/2b-chat_0_4-CONFIG.json",
+        "sha256": "b2f285a0d64dc45c46c0ed9c4dbe065bee1319b18fb1f36a0f2e97f48c7fb610"
+      },
+      "dev_items": 128,
+      "controls": 12,
+      "forwards": 140,
+      "display_first": 0,
+      "label_token_ids": [
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "max_tokens": 1553
+    },
+    {
+      "id": "ordinal_2b_plain_1_5",
+      "model": "2b",
+      "model_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base",
+      "model_manifest_sha256": "034f52ccb3d9c37438ee5ad882741b16bfa50ff63e79008d9fb48f4cc9469864",
+      "model_plan_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_hard_50k_2b_successor_20261104_v1/PLAN.json",
+        "sha256": "dea212eea854fdec455cd3ff32354d7910412ec6780f2cb59f27091e51b0f334"
+      },
+      "condition": "plain_1_5",
+      "requests": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/2b/plain_1_5/requests.jsonl",
+        "sha256": "a435df2a016839526eb9ce6d63d5ba0416c0997a728285791661a55aa1574e91"
+      },
+      "execution_config_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_execution_components_20261104_v2/2b-plain_1_5-CONFIG.json",
+        "sha256": "6322b3f0902d1695dd121adf80f7ba838a4308030608e3b4d89ad05ad19035d9"
+      },
+      "dev_items": 128,
+      "controls": 12,
+      "forwards": 140,
+      "display_first": 1,
+      "label_token_ids": [
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "max_tokens": 1540
+    },
+    {
+      "id": "ordinal_2b_plain_0_4",
+      "model": "2b",
+      "model_path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base",
+      "model_manifest_sha256": "034f52ccb3d9c37438ee5ad882741b16bfa50ff63e79008d9fb48f4cc9469864",
+      "model_plan_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/native_hard_50k_2b_successor_20261104_v1/PLAN.json",
+        "sha256": "dea212eea854fdec455cd3ff32354d7910412ec6780f2cb59f27091e51b0f334"
+      },
+      "condition": "plain_0_4",
+      "requests": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_factorial_20261104_v1/inference/2b/plain_0_4/requests.jsonl",
+        "sha256": "90b9bf109c7488b8a0f2ba558870467b055d43330b2a5bf37b87c08386529a0e"
+      },
+      "execution_config_receipt": {
+        "path": "/mnt/cephfs/xingchao/experiments/jev/r3_runs/ordinal_dev_execution_components_20261104_v2/2b-plain_0_4-CONFIG.json",
+        "sha256": "d0cce97d1600cf0abf089aab45bb8de3f21d416b379d6318767677a4b5d6e112"
+      },
+      "dev_items": 128,
+      "controls": 12,
+      "forwards": 140,
+      "display_first": 0,
+      "label_token_ids": [
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "max_tokens": 1540
+    }
+  ],
+  "total_forwards": 1120,
+  "dtype": "fp32",
+  "hf32": false,
+  "batch_size": 1,
+  "vocabulary": 248320,
+  "max_length": 8192,
+  "save": "full final-position fp32 logits + actual unpadded int64 IDs/mask + result + hash receipt written last",
+  "thresholds": {
+    "argmax_control_strict_min": 7,
+    "expected_control_strict_min": 7,
+    "control_pairs": 8,
+    "low_flip_max": 6,
+    "paired_dev_denominator": 128,
+    "low_flip_requires_both_cells_pass_both_control_tests": true,
+    "eligibility_requires_strict_mae_improvement_over_constant_grade2": true
+  },
+  "confirmation_access": false,
+  "test_access": false,
+  "activation_authorized": false,
+  "execution_blocked": true,
+  "no_model_numerical_qualification": true
+}

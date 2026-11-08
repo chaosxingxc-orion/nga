@@ -1,0 +1,93 @@
+{
+  "schema": "ordinal-dev-independent-scientific-admission-v1",
+  "created_utc": "2026-11-08T14:43:07.634925+00:00",
+  "task_directory": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108",
+  "reviewer": "sole direct Codex child; no delegation",
+  "verdict": "ADMITTED_WITH_PINNED_PROSPECTIVE_ADDENDUM",
+  "scientific_protocol_admitted": true,
+  "scientific_review_outstanding": false,
+  "scientific_admission_condition": "Original preregistration and this prospective addendum jointly govern exactly the pinned DEV scope; bind both before run. Unamended broad length-only/general definition-reading claims are not admitted.",
+  "original_preregistration": {
+    "path": "/home/xingchao/workspace/nga/.local/preparations/ordinal-dev-factorial-20261104-v1/PREREGISTRATION.md",
+    "sha256": "a4215c73f23bc760921752dba35c4fc7b230ef870abe6da3ee4f5badb8a8ab38"
+  },
+  "prospective_correction": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108/PROTOCOL-ADDENDUM.md",
+    "sha256": "9421861503fc88d05e5d7b6200faf5b1d9f4acfe454d9f9f80cf819d28e7b3b1"
+  },
+  "scope": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108/ADMISSIBLE-SCOPE.json",
+    "sha256": "2d3221067185927966122a34ac21fc8726fe4b3e0b58c8d7b3f94bc8f5be5dc5"
+  },
+  "cells": 8,
+  "requests_per_cell": 140,
+  "total_forwards": 1120,
+  "confirmation_locked": 372,
+  "confirmation_access_authorized": false,
+  "test_access_authorized": false,
+  "activation_authorized": false,
+  "npu_launched": false,
+  "resource_claimed": false,
+  "git_or_wiki_modified": false,
+  "independent_of": [
+    "H2 diagnostics",
+    "hard scientific publication"
+  ],
+  "engineering_verdict": "BLOCKED_B2_B3_AND_EXACT_EXECUTION_PACKAGE",
+  "accepted_B1": "PASS_REPRODUCED_B1_REPAIR retained; identity verified; arithmetic not reopened",
+  "numerical_qualification": "NOT_ISSUED; CPU fixtures are not model/NPU equivalence",
+  "engineering_blockers": [
+    {
+      "id": "B2",
+      "detail": "SERVICE publication failure leaves detached supervisor live without durable process identity"
+    },
+    {
+      "id": "B3",
+      "detail": "SIGTERM leaves no host reconciliation terminal and unmanaged local subprocess lifecycle"
+    },
+    {
+      "id": "EXECUTION_BINDING",
+      "detail": "Bind immutable RC1 image/runtime, existing weight manifests, resource-bound host package and retained detached Ceph lifecycle; complete already required prospective wiki and package review before a future authorized launch"
+    },
+    {
+      "id": "NUMERICAL_COVERAGE",
+      "detail": "Review existing exact-tuple numerical evidence scope; no numerical PASS inferred and no new blanket deployment gate"
+    }
+  ],
+  "data_or_threshold_changes": false,
+  "correction_type": "prospective interpretation/source-attribution/tie-contract clarification only",
+  "checks": {
+    "passed": true,
+    "count": 79,
+    "artifact": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108/CHECKS.json",
+      "sha256": "af8d298461d91a6a94b82ec7b267f4a39eddf9ef7c3a74a25b1a607dcd1364e2"
+    }
+  },
+  "artifacts": [
+    {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108/HANDOFF.md",
+      "sha256": "b9dd81e4aafd414ea318d3adb253456e6889305bd7bbffd9d79d5f2b7be193a3"
+    },
+    {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108/CHECKS.json",
+      "sha256": "af8d298461d91a6a94b82ec7b267f4a39eddf9ef7c3a74a25b1a607dcd1364e2"
+    },
+    {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108/SOURCEPINS.json",
+      "sha256": "60a3d482120674fa58450862e72304c1318e1f39471eba3b82d727db2663b810"
+    },
+    {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108/ADMISSIBLE-SCOPE.json",
+      "sha256": "2d3221067185927966122a34ac21fc8726fe4b3e0b58c8d7b3f94bc8f5be5dc5"
+    },
+    {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108/PROTOCOL-ADDENDUM.md",
+      "sha256": "9421861503fc88d05e5d7b6200faf5b1d9f4acfe454d9f9f80cf819d28e7b3b1"
+    },
+    {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/ordinal-dev-protocol-admission-20261108/check_scope.py",
+      "sha256": "433cbe71c33e21a3b8fc62804c13294c6a459bb32254a509049589018f9f4a7e"
+    }
+  ]
+}
