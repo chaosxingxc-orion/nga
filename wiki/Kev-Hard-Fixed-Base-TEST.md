@@ -7,3 +7,7 @@ Before any claim, the operator must confirm publication and repeat the specified
 ## 4B setup
 
 2026-11-08: The independently reviewed 4B attempt 1 package is accepted conditionally for pre-start publication. The exact [binding](../experiments/KEV-HARD-4B-EXECUTION-BINDING-2026-11-08.json) and [acceptance](../experiments/KEV-HARD-4B-EXECUTION-ACCEPTANCE-2026-11-08.json) pin the review, commands and supporting evidence. The package covers one finite 1,088-item attempt on chip 5. Before claim, the operator must confirm publication and repeat the specified harness, ownership, priority, predecessor and allocation checks; this is neither a reservation nor a scientific result.
+
+## 9B setup
+
+2026-11-08: The independently reviewed 9B attempt 1 package is accepted conditionally for pre-start publication. The exact [binding](../experiments/KEV-HARD-9B-EXECUTION-BINDING-2026-11-08.json) and [acceptance](../experiments/KEV-HARD-9B-EXECUTION-ACCEPTANCE-2026-11-08.json) pin the review and supporting evidence. The package covers one finite 1,088-item attempt on chip 5. Before claim, the operator must confirm publication and repeat the specified harness, ownership, priority, predecessor and allocation checks; this is neither a reservation nor a scientific result.
