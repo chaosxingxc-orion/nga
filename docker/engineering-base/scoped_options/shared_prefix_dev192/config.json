@@ -1,0 +1,135 @@
+{
+  "descriptor": {
+    "schema": "rc1-scoped-scorer-option-v1",
+    "status": "APPROVED_CONTRACT_PENDING_CPU_INTEGRATION",
+    "option_id": "rc1-shared-prefix-q35-9b-base-s2-t3116-dev192-fp32-hf32off-cap8-v1",
+    "opt_in_required": true,
+    "default_layout": "rightpad",
+    "layout": "shared_prefix",
+    "scorer": "diagnostic.score_encoded",
+    "scorer_sha256": "cd7a9c87937994b50fbd84508b16f7339a82544e3d3d81a30bb3c7a127ba451b",
+    "base_scorer": "scorer_r3.R3Scorer",
+    "base_scorer_sha256": "f1de708a28b47cdb513eb79c7306510df8312f6a92f96a75adcfe59ba0cf6a49",
+    "prompt_sha256": "84c99aec2817de3365e650c7c6c846aeddc1ec675b3321cf80be267a7557f0fc",
+    "accepted_runner_sha256": "4190a3ed7238eac3af4717cc77cc05570a681569ffaebb3a6df68ccad9b702a7",
+    "compare_sha256": "a32f76a83ad65f7ec2e558a153503ddbde348ed10b8a1a71f3d14b84755f3448",
+    "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+    "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base",
+    "adapter": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/functional-20261106/q9b-s2/result/adapter",
+    "adapter_merged": false,
+    "seed": 2,
+    "terminal_step": 3116,
+    "asset_identity": {
+      "basis": "Inherited accepted assets; paths alone are insufficient; bind the accepted manifest/tokenizer/CPU receipts and source-pin closure unchanged. No payload rehash is requested.",
+      "manifest": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/shared-prefix-result-analysis-20261108/evidence/shared-prefix-dev-requal-20261108-hostfix/receipts/DEV-MANIFEST.json",
+        "sha256": "66d02a54cef6a6d5e79f8d06c7774f9642f13940c150820d4bca3106c5a6870e"
+      },
+      "tokenizer_receipt": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/shared-prefix-result-analysis-20261108/evidence/shared-prefix-dev-requal-20261108-hostfix/receipts/TOKENIZER-IDENTITY-REUSE.json",
+        "sha256": "5c1ea3315e4605b87d3e7db5df67912140ed69f72aa6c431b21bfa5ce717895a"
+      },
+      "cpu_account": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/shared-prefix-result-analysis-20261108/evidence/shared-prefix-dev-requal-20261108-hostfix/receipts/CPU-ACCOUNT.json",
+        "sha256": "7d551f9d391d29f5cd80186dc30d69df8f5f008be99629ea4f7ef8430c5ca046"
+      },
+      "upstream_source_receipt": {
+        "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/shared-prefix-result-analysis-20261108/evidence/shared-prefix-dev-requal-20261108-hostfix/receipts/SOURCE-PINS.json",
+        "sha256": "902f0d26477a153ecb35a1d9cac5f9e4eb246e1a8714b93a5fed4efb4029cc9f"
+      }
+    },
+    "population": {
+      "dataset": "/mnt/cephfs/xingchao/experiments/jev/KEV/decision-v7/dev.jsonl",
+      "partition": "dev",
+      "physical_rows_inclusive": [
+        33,
+        96
+      ],
+      "questions": 64,
+      "conditions": 192,
+      "transforms": [
+        "clean",
+        "question_only",
+        "empty_input"
+      ],
+      "source_first96_sample_sha256": "565ec364d00e30b0422f27477f4fc398e1c63527cd0ab3b5ee69ceaf51d55ff0",
+      "all_candidates": true,
+      "selection": "exact accepted DEV-MANIFEST metadata; no score-dependent selection"
+    },
+    "dtype": "float32",
+    "hf32": {
+      "matmul": false,
+      "conv": false
+    },
+    "head_fp32": false,
+    "render": "record_name",
+    "dedup": true,
+    "rightpad_token_budget": 16384,
+    "score_chunk_questions": 32,
+    "budget_bytes": 8589934592,
+    "allowance_bytes": 2147483648,
+    "per_row_extra": 16777216,
+    "max_rows": 8,
+    "host": "175",
+    "physical_chip": 4,
+    "logical_device": 0,
+    "chips": 1,
+    "record_grade": false,
+    "claim_scope": "NOT_OF_RECORD_DEV192_ONLY",
+    "test_allowed": false,
+    "dispatch_enabled": false,
+    "output_policy": "fresh attempt namespace bound to complete descriptor SHA256; no old store writes or layout mixing",
+    "resume_policy": "fresh timing only; explicit same-binding numerical recovery may reuse validated chunks but timing_valid=false and lower_all_pairs=null",
+    "fallback": {
+      "layout": "rightpad",
+      "dispatch": "explicit separate fresh attempt; never substitute inside shared-prefix output"
+    },
+    "integration_runtime": "host /usr/bin/python3.12 -B -P; fixed Ascend image python3 -B -P with CANN PYTHONPATH preserved",
+    "implementation_status": "Contract only; selector and descriptor propagation are not implemented by this decision.",
+    "decision_sha256": "9606c1c972cd33c4b23259176cf67b64ebefe5716dd8072e596f593e433b8499",
+    "approved_config_sha256": "9b5e3e6736981f7e78414b1c98091ce680a6ad6a9056c7b1fccfacf7f17059ba",
+    "parent_pins_sha256": "e1e4b27f42aff989d0b2e244207f3b8fb8f9177c02023ef5b19fa169adc464af"
+  },
+  "descriptor_sha256": "3f1a5481a8ac5e6be11d2d0412de039c12322f8d9928804c21f0e0a4207256c0",
+  "package_pins": {
+    "source/compare.py": "a32f76a83ad65f7ec2e558a153503ddbde348ed10b8a1a71f3d14b84755f3448",
+    "source/diagnostic.py": "cd7a9c87937994b50fbd84508b16f7339a82544e3d3d81a30bb3c7a127ba451b",
+    "source/prompt.py": "84c99aec2817de3365e650c7c6c846aeddc1ec675b3321cf80be267a7557f0fc",
+    "source/runner.py": "4190a3ed7238eac3af4717cc77cc05570a681569ffaebb3a6df68ccad9b702a7",
+    "source/scorer_r3.py": "f1de708a28b47cdb513eb79c7306510df8312f6a92f96a75adcfe59ba0cf6a49",
+    "receipts/CPU-ACCOUNT.json": "7d551f9d391d29f5cd80186dc30d69df8f5f008be99629ea4f7ef8430c5ca046",
+    "receipts/DEV-MANIFEST.json": "66d02a54cef6a6d5e79f8d06c7774f9642f13940c150820d4bca3106c5a6870e",
+    "receipts/SOURCE-PINS.json": "902f0d26477a153ecb35a1d9cac5f9e4eb246e1a8714b93a5fed4efb4029cc9f",
+    "receipts/TOKENIZER-IDENTITY-REUSE.json": "5c1ea3315e4605b87d3e7db5df67912140ed69f72aa6c431b21bfa5ce717895a"
+  },
+  "historical_evidence": {
+    "review_verdict": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/shared-prefix-result-review-20261108/VERDICT.json",
+      "sha256": "631344f0666232434a0e4344ba7456081ee09a0d832074c80145e4ea9afe9026"
+    },
+    "review_handoff": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/shared-prefix-result-review-20261108/HANDOFF.md",
+      "sha256": "9b4e2bcd804de2e3fa454af6df56209574cd51fbd823fc12f04c5559df5dd04f"
+    },
+    "review_sourcepins": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/shared-prefix-result-review-20261108/SOURCEPINS.json",
+      "sha256": "b30ac0e14a20c24941462de35b1cb9b67187ac8d08ae5a9927019eb1552377b5"
+    },
+    "publication": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/execution/shared-prefix-reviewed-result-publication-20261108/PUBLICATION.json",
+      "sha256": "8db8e7ca3a71cb4e5a95cb832fa53198de5b01aede615467a6692a61a886ece5"
+    },
+    "parent_check": {
+      "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/evidence/current-execution/SHARED-PREFIX-WIKI-PARENT-CHECK.json",
+      "sha256": "ecac8b9cd4557a503ff72036522e61a372946dc9ea34e3f016012d56cff649ee"
+    },
+    "preregistration": {
+      "path": "/home/xingchao/workspace/nga/experiments/RC1-SHARED-PREFIX-DEV.md",
+      "sha256": "a716e7ac848758617c2d64fc9dc6dd5e087bf4edaef8685320ba91d0f577d203"
+    },
+    "wiki_commit": "15fa7fa996a085c188b2b659ca11ccd2652f6076",
+    "parent_verified_local_pins": 133,
+    "parent_verified_remote_artifacts": 5,
+    "reuse": "Parent and published review verification accepted; no new remote access or numerical recalculation."
+  }
+}

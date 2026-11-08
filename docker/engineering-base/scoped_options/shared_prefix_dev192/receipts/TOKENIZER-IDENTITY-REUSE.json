@@ -1,0 +1,26 @@
+{
+  "source": ".local/releases/engineering-base-rc1/tasks/science/test-identity-reuse-inventory/IDENTITY-REUSE.json",
+  "source_sha256": "3a1792fd8bd974339db4f63fe7336cfd9368e01eeb5e68c1d9ac81909d4342fc",
+  "model": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base",
+  "identity_sha256": "e24d5d10b1f4e6a0fb301bd11e7dfb6aea0eafb1adfe6ef59a37dda5c0cd16bc",
+  "base_revision": "68c46c4b3498877f3ef123c856ecfde50c39f404",
+  "tokenizer_asset_pin": {
+    "path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base/tokenizer.json",
+    "sha256": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+    "hash_origin": "accepted DEV config, not rehashed; snapshot stat recorded",
+    "stat": {
+      "st_ctime_ns": 1793326304877749220,
+      "st_dev": 54,
+      "st_ino": 1099559958029,
+      "st_mode": 33206,
+      "st_mtime_ns": 1793291707537749220,
+      "st_size": 12807196
+    }
+  },
+  "current_size_mtime_match": true,
+  "current_stat": {
+    "st_size": 12807196,
+    "st_mtime_ns": 1793291707537749220
+  },
+  "no_model_or_tokenizer_hash_recomputed": true
+}
