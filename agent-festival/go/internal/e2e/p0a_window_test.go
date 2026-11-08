@@ -73,6 +73,17 @@ func TestP0A_SixCellMatrix(t *testing.T) {
 			if cr.ok != c.wantVerifyGrantOK {
 				t.Fatalf("verify(grant-50000) ok=%v (%s), want %v — the seat diverges from the frozen matrix", cr.ok, cr.reason, c.wantVerifyGrantOK)
 			}
+			// R72 B-1 (fourth-round collision): the COMPOSED face — the
+			// system must accept the judge's OWN verdict. Asserting the two
+			// components separately (above) let them deadlock unnoticed:
+			// on cell1/7 the judge's correct "uncovered" answer was
+			// rejected by the seat, and all five kinds were rejected.
+			// Separate assertions are component evidence; only the
+			// composition is system evidence (R3: Accept_component ≠
+			// Accept_system, here inside a single file).
+			if cv := verify(v, spec, raw); !cv.ok {
+				t.Fatalf("COMPOSED face: judge says %q but the seat refuses it (%s) — the system cannot accept its own correct verdict (component guarantees do not add up)", v.kind, cv.reason)
+			}
 		})
 	}
 	// cell 6 (coverage-insufficient) lives on the E2 pre-judgment face:
@@ -132,8 +143,9 @@ func TestP0A_ScanRegenerated(t *testing.T) {
 	var b strings.Builder
 	b.WriteString("# P0-A scan — frozen generator (50 号 §一.4): durationMonths 1..6 x monthsAgo 0..30 x asset {0,5,35}\n")
 	b.WriteString("# veto = durationMonths > 3 (any time); windowDirty = monthsAgo <= 6 (any duration); s1Kind = s1Judge outcome\n")
+	b.WriteString("# R72 M-1: windowDirty counts INPUTS (arithmetic identity); windowDecisive (rows whose verdict changes when the event leaves the window) is the IMPLEMENTATION-relevant measure\n")
 	b.WriteString("durationMonths\tmonthsAgo\tasset\tvetoFires\twindowDirty\ts1Kind\n")
-	windowOnly, vetoCount, total := 0, 0, 0
+	windowOnly, vetoCount, total, windowDecisive := 0, 0, 0, 0
 	for d := 1; d <= 6; d++ {
 		for a := 0; a <= 30; a++ {
 			for _, asset := range []int{0, 5, 35} {
@@ -149,11 +161,27 @@ func TestP0A_ScanRegenerated(t *testing.T) {
 				if dirty && !veto {
 					windowOnly++
 				}
+				// R72 M-1 (fourth-round collision): windowOnly is an
+				// ARITHMETIC identity (3 durations x 7 recencies x 3
+				// assets) — it counts inputs, not implementation behaviour
+				// (asset=0 falls into the lower band, asset=5 into the
+				// between-bands route; neither ever consults the window).
+				// The implementation-relevant measure is DECISIVENESS:
+				// push the event out of the window and see whether the
+				// judge's verdict changes.
+				moved := []overdueEvent{{durationMonths: d, monthsAgo: 999}}
+				if s1Judge(creditEvidence{assetMillions: asset, assetReportOK: true, overdueOnRecord: moved}).kind != kind {
+					windowDecisive++
+				}
 			}
 		}
 	}
 	if windowOnly <= 0 {
 		t.Fatalf("P0-A scan: window-face-only rows = %d — the window face is again unreachable (R37's condition has returned)", windowOnly)
+	}
+	// R72 M-1: the claim that must hold is the IMPLEMENTATION-relevant one.
+	if windowDecisive <= 0 {
+		t.Fatalf("P0-A scan: window-DECISIVE rows = %d — the window predicate changes no verdict; the face is arithmetically present but behaviourally inert", windowDecisive)
 	}
 	out := b.String()
 	archived, err := os.ReadFile("testdata/p0a_scan.tsv")
@@ -164,7 +192,7 @@ func TestP0A_ScanRegenerated(t *testing.T) {
 		if err := os.WriteFile("testdata/p0a_scan.tsv", []byte(out), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		t.Logf("archived on first run: %d rows, windowOnly=%d, veto=%d", total, windowOnly, vetoCount)
+		t.Logf("archived on first run: %d rows, windowOnly=%d (inputs), windowDecisive=%d (implementation-relevant), veto=%d", total, windowOnly, windowDecisive, vetoCount)
 		return
 	}
 	if string(archived) != out {

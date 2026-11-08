@@ -501,11 +501,31 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 		return checkResult{ok: false, reason: "a grant-50000 verdict with assets in the closed between-bands zone or below it contradicts rule 1 (the level-band consistency face)"}
 	}
 	// R36 m-4: the on_undefined_rule MIRROR — a rule COVERS the assets
-	// point (35 > 30 is unambiguously rule 1), so answering
-	// on_undefined_rule there contradicts the rules just like a wrong
-	// grant does (the open-zone positive control below stays green).
+	// point, so answering on_undefined_rule there contradicts the rules
+	// just like a wrong grant does (the open-zone positive control below
+	// stays green).
+	//
+	// R72 B-1 (fourth-round collision, reproduced): since P0-A added the
+	// window premise to rule 1's coverage, "assets > upper bound" NO
+	// LONGER implies "rule 1 covers". With the window dirty (and the veto
+	// silent) NO rule covers — on_undefined_rule is the CORRECT verdict,
+	// and the old unconditional mirror rejected it (all five kinds
+	// rejected on P0-A cell1/cell7: the seat's domain was unsatisfiable
+	// on its own judge's answer). The mirror is now premise-conditioned:
+	// it fires only when rule 1's premise actually holds (clean window).
 	if kind == "on_undefined_rule" && raw.assetMillionsDeclared > hi {
-		return checkResult{ok: false, reason: "rule 1 covers this assets point (above the upper bound) — on_undefined_rule contradicts the rules instead of answering them"}
+		windowDirty := false
+		if w := anchorWindowMonths(spec); w > 0 {
+			for _, o := range raw.overdueOnRecord {
+				if o.monthsAgo <= w {
+					windowDirty = true
+					break
+				}
+			}
+		}
+		if !windowDirty {
+			return checkResult{ok: false, reason: "rule 1 covers this assets point (above the upper bound) with a clean window — on_undefined_rule contradicts the rules instead of answering them"}
+		}
 	}
 	// R38 B-1: the LOWER-half mirror — actually landed this time (the R37
 	// m-1 patch failed to match and the ledger claimed it anyway; this is
@@ -519,11 +539,14 @@ func verify(v s1Verdict, spec *fixtureSpec, raw rawEvidence) checkResult {
 	// strict subset", which held only inside the P3-narrowed ontology
 	// (the term absorbed the >3-month duration, so any in-window overdue
 	// was also a veto overdue). Under the split ontology the window face
-	// has its OWN reachable domain: 63 window-only rows exist in the
-	// archived scan (testdata/p0a_scan.tsv, vetoFires=0 && windowDirty=1),
-	// and the live check sits at the grant-50000 case above — a one-month
-	// recent overdue is refused BY rule 1 alone (rule 0 is silent at
-	// duration <= 3). E1's ② probe pins this carrier.
+	// has its OWN reachable domain: the archived scan (testdata/p0a_scan.tsv)
+	// shows 63 inputs with vetoFires=0 && windowDirty=1, of which **21 are
+	// window-DECISIVE** (the verdict changes when the event leaves the
+	// window; the other 42 sit in bands that never consult the window —
+	// R72 M-1 corrected the earlier "63 reachable" claim). The live check
+	// sits at the grant-50000 case above — a one-month recent overdue is
+	// refused BY rule 1 alone (rule 0 is silent at duration <= 3).
+	// E1's ② probe pins this carrier.
 	return checkResult{ok: true, reason: "verdict conforms to the raw evidence under the corrected spec"}
 }
 

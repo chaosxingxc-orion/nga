@@ -1,5 +1,6 @@
 # P0-A scan — frozen generator (50 号 §一.4): durationMonths 1..6 x monthsAgo 0..30 x asset {0,5,35}
 # veto = durationMonths > 3 (any time); windowDirty = monthsAgo <= 6 (any duration); s1Kind = s1Judge outcome
+# R72 M-1: windowDirty counts INPUTS (arithmetic identity); windowDecisive (rows whose verdict changes when the event leaves the window) is the IMPLEMENTATION-relevant measure
 durationMonths	monthsAgo	asset	vetoFires	windowDirty	s1Kind
 1	0	0	0	1	grant-10000
 1	0	5	0	1	on_undefined_rule
