@@ -1,0 +1,116 @@
+{
+  "schema": "kev-hard-base-asset-reuse-decision-v1",
+  "verdict": "ACCEPT_SCOPED_OPERATIONAL_REUSE_UNDER_DISCLOSED_UNCHANGED_STORAGE_ASSUMPTION",
+  "decided_utc": "2026-11-08T08:36:46.991628+00:00",
+  "scope": "Exactly Qwen3.5 Base 0.8B/2B/4B/9B at the four listed host175 paths for existing Base DEV engineering; no new dataset or model acceptance.",
+  "unchanged_storage_assumption": "These exact host175 CephFS paths remained the same assets after historical accepted hashing; no host-side rewrite, path replacement, storage rollback/remap, restored metadata, privileged timestamp manipulation, or out-of-band mutation occurred. CephFS supplies normal trustworthy change-time semantics.",
+  "residual_limit": "Undetected same-path replacement, rewrite, storage rollback/remap, metadata restoration, out-of-band mutation or nonstandard change-time behavior could invalidate inherited checkpoint identity. Read-only consumer mounts and old ctimes do not exclude that. Even a numerical pass on all three paths can occur on the same substituted checkpoint; it cannot establish historical byte identity.",
+  "current_payload_byte_identity_proven": false,
+  "new_weight_verification_required": false,
+  "D3_historical_proof_gap_closed": false,
+  "D3_operational_policy_accepted": true,
+  "numerical_requirement": {
+    "absolute_tolerance": 0,
+    "actual_base_rc1_numerical_receipts_supplied": false,
+    "batch_size": 1,
+    "cpu_label_projection_from_saved_full_vectors": true,
+    "dtype": "float32",
+    "forwards_per_model": 9,
+    "forwards_total": 36,
+    "full_width": 248320,
+    "hf32": false,
+    "image_sha256": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
+    "lengths": [
+      4097,
+      5296,
+      8192
+    ],
+    "no_extra_4758_probe": true,
+    "relative_tolerance": 0,
+    "required": true,
+    "same_base_required": true,
+    "variants": [
+      "reference",
+      "reference_repeat",
+      "adapter"
+    ]
+  },
+  "validator_requirements": [
+    {
+      "id": "R1",
+      "requirement": "Authenticate this exact VERDICT.json and its SOURCEPINS through the final independently reviewed package pins; bind a model_tag to exactly one of the four allowlisted model/path/manifest rows. A caller-supplied acceptance boolean or a caller-chosen receipt is not authority.",
+      "where": "qualify.validate before the current unconditional raise"
+    },
+    {
+      "id": "R2",
+      "requirement": "Require CONFIG model and model_sha256, MODEL-MANIFEST path/manifest_sha256/files, and PLAN model/manifest fields to match the selected row. Canonical manifest digest remains the existing N.digest(files). Bind the exact historical plan and acceptance pins, plan_sha256/model_sha256 and evidence map using the named references; for 9B preserve its actual schema/bridge, not an invented top-level model field. Inherited per-file SHA256 values remain historical values.",
+      "where": "existing manifest identity/digest checks"
+    },
+    {
+      "id": "R3",
+      "requirement": "Keep exact CONFIG, PLAN, package source, loader, runtime, upstream and small-asset pins. The small-asset receipt authenticates its source plan and config/index only; retain the existing non-safetensors checks for the finite manifest inventory, including tokenizer assets, without retokenization. Pin new decision metadata as package inputs and regenerate dependent CONFIG/PLAN/request pins. Do not hash weights or TEST data.",
+      "where": "existing package_files and upstream source checks"
+    },
+    {
+      "id": "R4",
+      "requirement": "Require the current inventory at the exact reviewed model path to equal the complete accepted file set; no missing or extra files, model substitutions, unreviewed mirror relocation or shard omission. Keep the exact [size,inode,mtime_ns,ctime_ns] checks against the pinned preparation baseline for every file. Do not create a fresh baseline to conceal drift. Use the saved host175 observation to label host and weight device identity; compare device/inode only in the same host/filesystem namespace. A changed namespace is unresolved identity, not proof of replacement. The saved observation is recent metadata, never historical stat-at-hash.",
+      "where": "existing model inventory and per-file stat loop"
+    },
+    {
+      "id": "R5",
+      "requirement": "Select this operational reuse mode explicitly and record its decision pin, selected manifest, historical authority pins, baseline/observation refs, checks and unchanged-storage assumption. Null historical-stat/immutable-version refs alone must not reject this mode. Any observed contradiction, changed/missing baseline, changed inventory, pin mismatch, known replacement/rewrite or small-file mismatch must reject the affected model before load. Do not claim a negative audit of all possible writers.",
+      "where": "asset policy result, before model load"
+    },
+    {
+      "id": "R6",
+      "requirement": "No numerical admission follows from asset reuse. Keep exact same-Base RC1 image, frozen inputs, three paths, full vectors, zero tolerances, generation identity, lifecycle/release and final independent package review gates. This decision supplies no lease, NPU launch, TEST, publication or scientific result approval.",
+      "where": "qualification/score/host unchanged scientific and lifecycle gates"
+    }
+  ],
+  "source_review": {
+    "path": "/home/xingchao/workspace/nga/.local/releases/engineering-base-rc1/tasks/science/kev-hard-base-asset-reuse-decision-20261108/VERDICT.json",
+    "sha256": "567be3332fc17428a3a74ce73d1dec94f5155c9a93db086ce39f39b5d8ad33de"
+  },
+  "models": [
+    {
+      "model_tag": "08b",
+      "path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-0.8B-Base",
+      "manifest_sha256": "28783a11558cc6b99e9a045bae574d9c484fd3279572605268fd31f480b7e357",
+      "manifest_file_count": 13,
+      "weight_shard_count": 1,
+      "historical_stat_continuity_proven": false,
+      "current_weight_content_verified": false
+    },
+    {
+      "model_tag": "2b",
+      "path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-2B-Base",
+      "manifest_sha256": "034f52ccb3d9c37438ee5ad882741b16bfa50ff63e79008d9fb48f4cc9469864",
+      "manifest_file_count": 13,
+      "weight_shard_count": 1,
+      "historical_stat_continuity_proven": false,
+      "current_weight_content_verified": false
+    },
+    {
+      "model_tag": "4b",
+      "path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-4B-Base",
+      "manifest_sha256": "866a92fd2e751f3221cc55d1d285d93d6285551cc50afe1a4bfb4772be1ff097",
+      "manifest_file_count": 14,
+      "weight_shard_count": 2,
+      "historical_stat_continuity_proven": false,
+      "current_weight_content_verified": false
+    },
+    {
+      "model_tag": "9b",
+      "path": "/mnt/cephfs/xingchao/models/jev/Qwen__Qwen3.5-9B-Base",
+      "manifest_sha256": "e5155012784ee0a4bb59995749360fcf21b578858d58e62fe82376590ea8476f",
+      "manifest_file_count": 16,
+      "weight_shard_count": 4,
+      "historical_stat_continuity_proven": false,
+      "current_weight_content_verified": false
+    }
+  ],
+  "status": "POLICY_ACCEPTED_IMPLEMENTATION_AND_FINAL_PACKAGE_PENDING",
+  "launch_authorized": false,
+  "resource_claim_authorized": false,
+  "scientific_acceptance": false
+}
