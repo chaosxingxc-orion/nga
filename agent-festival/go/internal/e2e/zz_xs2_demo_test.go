@@ -32,8 +32,15 @@ func xs2ParamCommit(h *xs2ScopeHead, brID, callerExpectedRev string) bool {
 func xs2InternalCommit(m *adopt.Machine, h *xs2ScopeHead, op string) bool {
 	// the machine exposes the op's adopted identity via its event record;
 	// State() alone doesn't expose identity, so this demonstration reads
-	// Events() — in the real N1 this is an O(1) in-memory check on
-	// opState.identity (which already exists, adopt.go:129).
+	// Events(). REPRESENTATIVENESS LIMIT (blank-sub verified): Events()
+	// scanning is equivalent to the production opState.identity path ONLY
+	// when no retry/conflict events exist for this op — a same-key retry
+	// appends an adoption event with Outcome "reused" carrying the
+	// RETRYER's identity, which this scan (no Outcome check, last match
+	// wins) would read instead of the adoption winner's. The production
+	// opState.identity path is immune (replay stamps only on
+	// Outcome.Status=="adopted"). This demo covers the no-retry regime
+	// only; the retry-regime check is N1's X1 matrix.
 	events, err := m.Events()
 	if err != nil {
 		return false
@@ -71,15 +78,9 @@ func TestXS2_ParameterFormTrustHole(t *testing.T) {
 
 func TestXS2_MachineInternalFormImmune(t *testing.T) {
 	// same setup, but with the real machine holding both ops
-	m := mustOpenAdopt(t, newLedgerPath(t))
-	if o := m.Adopt(adoptRequest(t, "old")); o.Status != "adopted" {
-		t.Fatal(o)
-	}
-	if o := m.Adopt(adoptRequest(t, "new")); o.Status != "adopted" {
-		t.Fatal(o)
-	}
-	// NOTE: adoptRequest assigns a fresh BusinessRequestID per call — we
-	// need both ops under the SAME br. Rebuild with explicit shared identity.
+	// NOTE: adoptRequest uses a FIXED identity (br-e4/er-1) per call —
+	// both ops would share the same er, so rebuild with explicit
+	// distinct revisions under the SAME br.
 	m2 := mustOpenAdopt(t, newLedgerPath(t))
 	reqOld := adoptRequest(t, "old")
 	reqOld.Identity.BusinessRequestID = "br-xs2"
