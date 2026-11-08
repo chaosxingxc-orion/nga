@@ -1,5 +1,5 @@
 {
-  "status": "CORRECTED_CONTAINER_PACKAGES_ACCEPTED_RESOURCE_ADMISSION_PENDING",
+  "status": "08B_DEV_RUNNING_OTHER_THREE_CONDITIONALLY_ADMITTED_SERIAL_CARD5",
   "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800",
   "image": "sha256:472672563b30226fbc012c3c15d3d35f2c74dac88775d4970c8fea834d10605d",
   "scope": "Four fixed Base synthetic long DEV qualifications; no TEST",
@@ -226,7 +226,7 @@
   },
   "operational_reuse": "Accepted unchanged-storage assumption; weight bytes not rehashed",
   "numerical_results": null,
-  "launch_allowed": false,
+  "launch_allowed": "Per-model only after exact conditional resource admission and fresh guard",
   "supersedes": {
     "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-four-dev-stage-final-20261108-88798",
     "status": "HELD_DO_NOT_LAUNCH",
@@ -241,5 +241,32 @@
     "Independent exact new request and priority acceptance",
     "Fresh pending/allocation/dispatch and predecessor/physical availability check",
     "Serial card5 execution; per-model release before next claim"
-  ]
+  ],
+  "execution": {
+    "08b": {
+      "observed_server_utc": "2026-11-08T09:41:11.305959+00:00",
+      "status": "RUNNING_CONTAINER_HOST_AND_CPU_WAITER",
+      "stage": "/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/kev-hard-container-validation-fix-20261108-108800",
+      "model": "08b",
+      "chip": 5,
+      "attempt": 1,
+      "config_sha256": "5ad062e7faa57cd8565c401ed3f0dcf3adb9a98917c3f0f598f6cf0236b92e0f",
+      "plan_sha256": "6785b62ed732ff8d3505470777547e076960f5b5a57c2a9afea1fdbbef6993da",
+      "container": "nga-base-rc1-longdev-containerfix-08b-20261108-a1",
+      "container_id": "73adec04492bc885f4d164c0ecc96b21c7eb9a167613eb5ade1d46a17182ce77",
+      "started_utc": "2026-11-08T09:41:04.76700442Z",
+      "host_pid": 3212286,
+      "cpu_waiter_pid": 3212287,
+      "cpu_waiter_start_ticks": "18090368",
+      "numerical_result": null,
+      "runner_heartbeat_observed": false,
+      "host_heartbeat_completed": 0,
+      "prospective_main": "8acc533",
+      "prospective_wiki": "34b6e3f",
+      "operational_review_task": "science/kev-hard-dev08b-live-launch-20261108"
+    },
+    "2b": "conditional_serial_successor",
+    "4b": "conditional_serial_successor",
+    "9b": "conditional_serial_successor"
+  }
 }
