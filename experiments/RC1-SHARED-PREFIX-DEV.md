@@ -42,3 +42,27 @@ Result decisions: (1) numerical failure -> no adoption; (2) numerical pass witho
 | source/runner.py | `4190a3ed7238eac3af4717cc77cc05570a681569ffaebb3a6df68ccad9b702a7` |
 
 Prepared receipts and the retained relaunch command remain in the durable stage. The dispatch record will identify this published preregistration and the exact integration review. Source/config changes after registration require a dated amendment before new device execution; changing resource assignment alone does not authorize numerical or population changes.
+
+
+## 2026-11-08 prospective amendment: configuration-bound DEV requalification
+
+Registered before this fresh attempt's device execution. The independently accepted result review of the previous attempt requires one explicit configuration-bound DEV requalification before any scoped scorer adoption. This amendment instantiates that minimum followup; it does not change the population, numerical criteria, timing order, model, adapter, precision, cache bounds or decision rules above. The prior result remains a distinct completed experiment.
+
+Use Qwen3.5-9B Base with the exact unmerged RC1 seed2 terminal3116 adapter, fixed image4726, DEV physical rows33–96 and all three transforms (192 conditions/path). Run on physical chip4 mapped to logical0, one chip. Keep budget8GiB, allowance2GiB, extra16MiB/row and cap8. One warmup per path precedes AB/BA/AB measured pairs; maximum score delta remains0.001nat and a flip at baseline margin>0.002nat fails. All three shared-prefix raw wall measurements must be lower; resumed timing is invalid. Rightpad remains the fallback. No TEST, global default or cross-model adoption is authorized.
+
+Fresh stage: `/mnt/cephfs/xingchao/experiments/jev/engineering-base-rc1/shared-prefix-dev-requal-20261108`.
+Retained container: `shared-prefix-dev-rc1-s2-requal-20261108`.
+No old output, timing, claim, authorization or container is reused. The only intended differences are the fresh stage/container identities and derived preparation/launch records. The accepted numerical runner is unchanged.
+
+| Fresh artifact | SHA-256 |
+| --- | --- |
+| config.json | `73bd0d807211f3ab9d0062989e4560c6e3e57e25615e62faa8129f9c337b427a` |
+| PREPARED.json | `e3b8bf3c56bfc0c9b221c8a9392bfa537c5d3f4ec4c82016cb7ecc3021e2c0ff` |
+| FINALIZED.json | `5c82b682f1b290903efdaa6c2e0f80e7c4dd9d291ad8463ecf53eae09012b89e` |
+| DOCKER-COMMAND.txt | `cad68a7ad256a42acbf2035471a7b8181dd6b7ed466b790d3ec2c16c23ab28f3` |
+| RELAUNCH.txt | `04e6fc567d570f9d501603ce4ac7d4028de82ba76d0dc4a90aeff0b30f2ab62b` |
+| source/runner.py | `4190a3ed7238eac3af4717cc77cc05570a681569ffaebb3a6df68ccad9b702a7` |
+
+At registration these files were read back from175 and their small-file hashes matched preparation. No claim, container, dispatch authorization or terminal existed for this attempt. Exact-package independent review is pending. This prospective registration grants no dispatch authority: the actual accepted review must be bound to a fresh DISPATCH-AUTHORIZATION.json, with exact PREPARED/FINALIZED hashes and this published amendment. Publish the prelaunch purpose/hypothesis/setup in the remote wiki before dispatch. Recheck current predecessor release, generation, pending priority and Docker occupancy through the existing allocator; protect H2 chips2/3 and the other project's0/1/6/7. No chip is reserved by this amendment.
+
+Use the existing retained detached supervisor with `/usr/bin/python3.12 -B -P` on host175. Preserve runner logs, heartbeat, terminal.marker, supervisor terminal and release. Reconcile uncertain execution before any relaunch. Inherited historical runtime suggests approximately6.14hours on one chip excluding load/lifecycle; this is a planning estimate, not a new measurement. Independent actual-result review is required before any adoption decision.
