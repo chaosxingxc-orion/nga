@@ -4,3 +4,4 @@ survey/.tr/
 
 # Local process archive; excluded from the Astra-facing repository surface.
 /.local/
+wiki-all
