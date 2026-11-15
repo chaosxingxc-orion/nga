@@ -17,8 +17,11 @@ position/then-0 fallback tiers of sec 5.1; question-only/empty-state as prompt t
 SAME scored model; uniform). sec 10.4(a): the gold-position distribution and the constant/uniform
 numbers are computed before any other Track K number.
 
-Test partitions: refuses unless --read-test is given, logging to TEST_READS.log (sec 8.4); this
-round has no FINAL.json yet, so --read-test always refuses (see note in main()).
+One command per model (every Track K and Track T number, pre-number checks, test lock): python3 -P eval_r3.py --full --model-path <dir>
+[--adapter <dir>] --arm K0 --out <run dir> ... ; see full_eval_r3.py (modules variants_r3, track_t_r3, select_r3, testlock_r3, prechecks_r3).
+Under --full the test lock is testlock_r3 (FINAL.json naming by path + sha256, one read per partition, TEST-READS.log). The older
+single-partition path below has no test lock of its own: it refuses the test partition outright (one lock only, sec 8.4;
+scorer_r3.guard_split is retired).
 """
 import argparse
 import datetime
@@ -28,14 +31,17 @@ import os
 import sys
 from collections import Counter, defaultdict
 
-R0_CODE = os.environ.get("NGA_R0_CODE", "/mnt/cephfs/xingchao/experiments/jev/r0_code")
+_HERE = os.path.dirname(os.path.abspath(__file__))
+R0_CODE = os.environ.get("NGA_R0_CODE", os.path.normpath(os.path.join(_HERE, "..", "..", "r0_code")))
 if R0_CODE not in sys.path:
     sys.path.insert(0, R0_CODE)
 import prompt as prompt_mod  # noqa: E402
 import scorer as scorer_mod  # noqa: E402
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+import scorer_r3  # noqa: E402  (admissible scorer, prereg 14.2; --scorer exact|fast)
 
-KEV_DIR = "/mnt/cephfs/xingchao/experiments/jev/KEV"
-TEST_READS_LOG = "/mnt/cephfs/xingchao/experiments/jev/r3_runs/TEST_READS.log"
+KEV_DIR = os.environ.get("NGA_KEV_DIR", os.path.normpath(os.path.join(_HERE, "..", "..", "KEV")))
 DEGENERATE = ("constant", "question_only", "empty_input", "uniform")
 
 
@@ -43,8 +49,11 @@ def utc():
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def load_rows(suite, split, limit=0):
-    path = os.path.join(KEV_DIR, suite, f"{split}.jsonl")
+def load_rows(suite, split, limit=0, data_path=None):
+    if data_path:
+        path = data_path
+    else:
+        path = os.path.join(KEV_DIR, suite, f"{split}.jsonl")
     rows = []
     with open(path, encoding="utf-8") as f:
         for line in f:
@@ -88,7 +97,7 @@ def fit_constant(train_rows):
     return score_one
 
 
-def score_degenerate(name, rows, train_rows=None, inner_model_path=None, device="cpu", adapter=None):
+def score_degenerate(name, rows, train_rows=None, inner_model_path=None, device="cpu", adapter=None, r3_mode=None):
     """Returns (list of raw-score lists, list of tier/notes)."""
     if name == "uniform":
         return [[1.0 / len(r["levels"])] * len(r["levels"]) for r in rows], ["uniform"] * len(rows)
@@ -100,6 +109,10 @@ def score_degenerate(name, rows, train_rows=None, inner_model_path=None, device=
             out.append(s)
             tiers.append(t)
         return out, tiers
+    if name in ("question_only", "empty_input") and r3_mode:
+        transform = prompt_mod.drop_input if name == "question_only" else prompt_mod.blank_input
+        sc = scorer_r3.R3Scorer(inner_model_path, adapter=adapter, device=device)
+        return sc.score_raw([transform(r) for r in rows], r3_mode), [name] * len(rows)
     if name in ("question_only", "empty_input"):
         if adapter:
             m, t = load_with_adapter(inner_model_path, adapter, device)
@@ -137,6 +150,8 @@ def load_with_adapter(model_path, adapter, device):
 
 
 def score_model(model_path, rows, device, chunk=32, token_budget=1, scorer_kind="hf", adapter=None):
+    if scorer_kind in ("exact", "fast"):      # scorer_r3: exact = token_budget=1 layout, fast = shared prompt + cached continuation
+        return scorer_r3.R3Scorer(model_path, adapter=adapter, device=device).score_raw(rows, scorer_kind)
     if scorer_kind == "rightpad":
         return score_rightpad(model_path, rows, device, chunk, token_budget, adapter)
     if adapter:
@@ -247,30 +262,196 @@ def gold_position_distribution(rows):
     return {str(k): v for k, v in sorted(c.items())}
 
 
+RECORD_TOKEN_BUDGET = 16384      # R3 sec 14.9 item 3: the token budget of the scorer of record
+
+
+def set_hf32_off(device):
+    """R3 sec 14.6 item 2: HF32 matmul and conv disabled for every readout of record (the NPU default for fp32 is ON)."""
+    if device.startswith("npu"):
+        import torch
+        import torch_npu  # noqa: F401
+        torch.npu.conv.allow_hf32 = False
+        torch.npu.matmul.allow_hf32 = False
+
+
+def hf32_state(device):
+    """{"matmul": bool, "conv": bool, "hf32": bool} as the NPU stack reports them now; None on CPU (no HF32 there)."""
+    if not device.startswith("npu"):
+        return None
+    import torch
+    import torch_npu  # noqa: F401
+    m, c = bool(torch.npu.matmul.allow_hf32), bool(torch.npu.conv.allow_hf32)
+    return {"matmul": m, "conv": c, "hf32": m or c}
+
+
+def record_grade_problems(mode, dtype, token_budget, hf32, device):
+    """R3 sec 14.9 item 3 + 14.6 item 2: what makes a readout NOT the scorer of record. Empty list = record grade."""
+    p = []
+    if mode != "rightpad":
+        p.append(f"scorer mode {mode!r} is not 'rightpad' (14.9 item 3; 'fast' is the retained check, 'exact' and 'r0' are not scorers of record)")
+    if dtype != "float32":
+        p.append(f"dtype {dtype!r} is not float32 (14.6 item 2: bf16 is not admissible for a readout of record)")
+    if token_budget != RECORD_TOKEN_BUDGET:
+        p.append(f"token_budget {token_budget} is not {RECORD_TOKEN_BUDGET} (14.9 item 3)")
+    if not device.startswith("npu"):
+        p.append(f"device {device!r} is not npu (the scorer of record was verified on the NPU)")
+    elif hf32 is None or hf32.get("hf32") is not False:
+        p.append(f"HF32 is not off ({hf32}); 14.6 item 2 requires it off")
+    return p
+
+
+NOT_OF_RECORD_KINDS = ("rightpad", "exact", "fast")      # R3-SFT-PREREG sec 14.11 item 22: the single-partition path refuses these without --not-of-record
+
+
+def _signature_default(cls, name):
+    import inspect
+    return inspect.signature(cls.__init__).parameters[name].default
+
+
+def explicit_options(argv):
+    """Option strings the caller actually typed (the part before '='), so a default is not mistaken for a request."""
+    return {t.split("=", 1)[0] for t in argv if t.startswith("--")}
+
+
+def single_partition_effective(a):
+    """What the single-partition path (no --full) APPLIES for the requested --scorer, read from the code that dispatches it (score_model), not assumed:
+    hf -> scorer.HFScorer, bfloat16 hard-coded, --token-budget honoured; exact / fast -> scorer_r3.R3Scorer built without dtype or token_budget (its constructor
+    defaults apply); rightpad -> eval_r3.score_rightpad (train_r3.row_logprob_sums), bfloat16 hard-coded, --token-budget reinterpreted as micro_tokens, no dedup."""
+    k = a.scorer
+    if k in ("exact", "fast"):
+        return {"implementation": "scorer_r3.R3Scorer", "dtype": _signature_default(scorer_r3.R3Scorer, "dtype"),
+                "token_budget": ("ignored: one row per forward" if k == "exact" else _signature_default(scorer_r3.R3Scorer, "token_budget")), "dedup": "scorer_r3 default"}
+    if k == "rightpad":
+        return {"implementation": "eval_r3.score_rightpad (train_r3.row_logprob_sums)", "dtype": "bfloat16", "token_budget": "micro_tokens=%s" % a.token_budget, "dedup": False}
+    return {"implementation": "scorer.HFScorer (R0)", "dtype": "bfloat16", "token_budget": a.token_budget, "dedup": False}
+
+
+def single_partition_gate(a, argv, full_only_options=()):
+    """sec 14.11 item 22. The single-partition path (no --full) refuses rightpad, exact and fast unless --not-of-record is passed, refuses --require-record-grade
+    outright (it cannot honour it), and returns the header block: effective dtype / hf32 / implementation, record_grade false, and EVERY flag it does not honour
+    reported as ignored or reinterpreted (including defaults of --full flags that would otherwise look like a request, e.g. --dtype float32)."""
+    typed = explicit_options(argv)
+    if getattr(a, "require_record_grade", False):
+        raise SystemExit("--require-record-grade cannot be honoured on the single-partition path (no --full): it applies bf16 or constructor defaults and no HF32 control; "
+                         "use --full for a readout of record (sec 14.11 item 22)")
+    if a.scorer in NOT_OF_RECORD_KINDS and not getattr(a, "not_of_record", False):
+        raise SystemExit("--scorer %s without --full is refused: on this path it is not the scorer of record (bf16 or constructor defaults, no HF32 control, no record-grade check, "
+                         "flags silently ignored; sec 14.11 item 22). Use --full for a readout of record, or pass --not-of-record to acknowledge a diagnostic, non-record run." % a.scorer)
+    eff = single_partition_effective(a)
+    ignored = []
+    if eff["dtype"] != a.dtype:
+        ignored.append({"flag": "--dtype", "requested": a.dtype, "typed": "--dtype" in typed, "applied": eff["dtype"], "status": "ignored"})
+    if a.scorer == "rightpad":
+        ignored.append({"flag": "--token-budget", "requested": a.token_budget, "typed": "--token-budget" in typed, "applied": eff["token_budget"], "status": "reinterpreted"})
+    elif a.scorer == "exact":
+        ignored.append({"flag": "--token-budget", "requested": a.token_budget, "typed": "--token-budget" in typed, "applied": eff["token_budget"], "status": "ignored"})
+    elif a.scorer == "fast" and a.token_budget != eff["token_budget"]:
+        ignored.append({"flag": "--token-budget", "requested": a.token_budget, "typed": "--token-budget" in typed, "applied": eff["token_budget"], "status": "ignored"})
+    if getattr(a, "no_hf32", False):
+        ignored.append({"flag": "--no-hf32", "requested": True, "typed": True, "applied": "no HF32 control on this path; the flags are read back, not set", "status": "ignored"})
+    for o in sorted(typed & set(full_only_options) - {"--dtype", "--no-hf32", "--require-record-grade", "--not-of-record"}):
+        ignored.append({"flag": o, "requested": "typed", "typed": True, "applied": "nothing: this flag belongs to --full", "status": "ignored"})
+    return {"not_of_record": True, "record_grade": False, "path": "single-partition (no --full)", "effective": eff, "flags_ignored": ignored}
+
+
+def make_score_fn(a):
+    """Scorer handle for full_eval_r3.run_full (the one-command evaluation, --full): score_fn(rows, input_mode) -> raw per-option
+    scores s_i, via scorer_r3.R3Scorer (loaded on first use, so the report-only stage never loads a model). input_mode 'blank' /
+    'drop' apply the R0 prompt transforms to the SAME scored model (prereg 5.2, 5.3). Replace this function to drop in another scorer.
+
+    The scorer of record is mode rightpad, float32, HF32 off, token_budget 16384 (sec 14.6 item 2, 14.9 item 3). `--no-hf32` turns the
+    NPU HF32 flags off before the model loads; the header records the flags as read back, not as requested. `--require-record-grade`
+    refuses to start unless the configuration IS the scorer of record. (Before 2026-10-30 this function silently mapped every
+    --scorer other than exact|fast to 'exact', so --scorer rightpad ran the exact layout.)"""
+    if a.model_path.startswith("mock"):          # pipeline checks without a model
+        import full_eval_r3
+        return full_eval_r3.mock_score_fn(a.model_path)
+    if a.scorer not in ("hf", "exact", "rightpad", "fast"):
+        raise SystemExit(f"--scorer {a.scorer!r} is not a scorer_r3 mode")
+    mode = "exact" if a.scorer == "hf" else a.scorer        # 'hf' (token_budget=1) is the exact layout
+    if getattr(a, "no_hf32", False):
+        set_hf32_off(a.device)
+    hf32 = hf32_state(a.device)
+    token_budget = a.token_budget if mode in ("rightpad", "fast") else None
+    if getattr(a, "require_record_grade", False):
+        problems = record_grade_problems(mode, a.dtype, token_budget, hf32, a.device)
+        if problems:
+            raise SystemExit("--require-record-grade: not the scorer of record: " + "; ".join(problems))
+    holder = {}
+
+    def score(rows, input_mode="full"):
+        if "sc" not in holder:
+            kw = {"token_budget": token_budget} if token_budget else {}
+            holder["sc"] = scorer_r3.R3Scorer(a.model_path, adapter=a.adapter, device=a.device, dtype=a.dtype, **kw)
+        if input_mode == "blank":
+            rows = [prompt_mod.blank_input(r) for r in rows]
+        elif input_mode == "drop":
+            rows = [prompt_mod.drop_input(r) for r in rows]
+        return holder["sc"].score_raw(rows, mode)
+    import full_eval_r3
+    layout = {"rightpad": "one row per candidate, right-padded with an explicit mask, LM head at the scored positions only; rows sorted by descending length "
+                          "and packed to token_budget per forward, per call of %d questions" % full_eval_r3.SCORE_CHUNK,
+              "exact": "one row per candidate, one forward each, no padding", "fast": "shared prompt + cached continuation (retained check, not a scorer of record)"}[mode]
+    score.describe = lambda: {"scorer": "scorer_r3.R3Scorer", "mode": mode, "dtype": a.dtype, "hf32": hf32, "token_budget": token_budget,
+                              "score_chunk_questions": full_eval_r3.SCORE_CHUNK, "layout": layout, "dedup": True, "render": "record_name",
+                              "model_path": a.model_path, "adapter": a.adapter,
+                              "record_grade": not record_grade_problems(mode, a.dtype, token_budget, hf32, a.device),
+                              "record_grade_problems": record_grade_problems(mode, a.dtype, token_budget, hf32, a.device)}
+
+    def token_stats():          # sec 10.2: cumulative token positions forwarded (padding included) and the padding part of them
+        st = holder["sc"].stats if "sc" in holder else {}
+        return {"forwarded": int(st.get("tokens", 0)), "padded": int(st.get("padded_tokens", 0)),
+                "unit": "model tokens: prompt and candidate positions forwarded (scorer_r3.R3Scorer.stats['tokens']), padding positions included"}
+    score.token_stats = token_stats
+
+    def dedup_stats():          # R3 sec 14.6 item 4: scorer-side counts of the duplicate-candidate safeguard
+        st = holder["sc"].stats if "sc" in holder else {}
+        return {"dup_questions": int(st.get("dup_questions", 0)), "dup_candidates_removed": int(st.get("dup_candidates_removed", 0))}
+    score.dedup_stats = dedup_stats
+    return score
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--model-path", required=True, help="HF dir, or one of: " + ", ".join(DEGENERATE))
     ap.add_argument("--suite", default="decision-v7", choices=("decision-v7", "transfer-v4"))
     ap.add_argument("--split", default="dev", choices=("train", "calibration", "dev", "test"))
     ap.add_argument("--out", required=True)
+    ap.add_argument("--data", default=None, help="path to a custom JSONL data file (mutually exclusive with --suite/--split); rows must have the same fields as KEV suite rows")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--device", default="npu")
     ap.add_argument("--chunk", type=int, default=32)
-    ap.add_argument("--token-budget", type=int, default=1, help="HFScorer token budget; 1 = one row per forward, exact (default)")
-    ap.add_argument("--scorer", choices=("hf", "rightpad"), default="hf")
+    ap.add_argument("--token-budget", type=int, default=1, help="HFScorer token budget; 1 = one row per forward, exact (default). Under --full with --scorer rightpad|fast: the R3Scorer token budget (record: 16384)")
+    ap.add_argument("--scorer", choices=("hf", "rightpad", "exact", "fast"), default="hf", help="under --full: the scorer_r3 mode; the scorer of record is rightpad (sec 14.9 item 3)")
     ap.add_argument("--adapter", default=None, help="LoRA adapter dir: score base (--model-path) + UNMERGED adapter (the model of record)")
-    ap.add_argument("--read-test", action="store_true")
     ap.add_argument("--inner-model-path", default=None, help="for question_only/empty_input: the model those transforms are applied to")
+    ap.add_argument("--full", action="store_true", help="one command per model: every Track K and Track T number (full_eval_r3.py); --suite/--split are ignored, see --partitions")
+    ap.add_argument("--not-of-record", action="store_true", help="single-partition path only (sec 14.11 item 22): acknowledge that --scorer rightpad|exact|fast without --full is a diagnostic, "
+                    "bf16 / constructor-default run, never a readout of record; required for those three scorer names there")
+    import full_eval_r3
+    before = set(ap._option_string_actions)
+    full_eval_r3.add_arguments(ap)
+    full_only_options = set(ap._option_string_actions) - before
     a = ap.parse_args()
+    if a.full:
+        if a.not_of_record:
+            raise SystemExit("--not-of-record belongs to the single-partition path; with --full the scorer is checked by --require-record-grade instead")
+        full_eval_r3.run_full_marked(a, make_score_fn(a))
+        return
 
-    if a.split == "test" and not a.read_test:
-        raise SystemExit("refusing to read a test partition without --read-test (sec 8.4)")
-    if a.read_test:
-        # sec 8.4: the scorer refuses a test partition unless the model is named in FINAL.json;
-        # no FINAL.json exists for this round yet (no arm has been adopted), so always refuse.
-        raise SystemExit("sec 8.4: no FINAL.json for this round yet; test partitions stay locked")
+    if a.split == "test":
+        # sec 8.4: the one lock is testlock_r3, reachable only through --full. This older path refuses test outright.
+        raise SystemExit("prereg 8.4: the single-partition path does not read the test partition; use --full (testlock_r3)")
 
-    rows, path = load_rows(a.suite, a.split, a.limit)
+    gate = single_partition_gate(a, sys.argv[1:], full_only_options)       # sec 14.11 item 22: refuses before any file is written or model loaded
+    for g in gate["flags_ignored"]:
+        print("NOT OF RECORD: %s %s -> %s (requested %r, applied %r)" % (g["flag"], "typed" if g["typed"] else "default", g["status"], g["requested"], g["applied"]), flush=True)
+    if a.data and a.suite != ap.get_default("suite"):
+        raise SystemExit("--data and --suite are mutually exclusive; omit --suite when using --data (--split is also ignored in that case)")
+    if a.data:
+        a.suite = "custom"
+        a.split = None
+    rows, path = load_rows(a.suite, a.split, a.limit, data_path=a.data)
     os.makedirs(a.out, exist_ok=True)
 
     if a.model_path in DEGENERATE:
@@ -278,7 +459,8 @@ def main():
         if a.model_path == "constant":
             train_rows, _ = load_rows("decision-v7", "train")
         raw, tiers = score_degenerate(a.model_path, rows, train_rows=train_rows,
-                                       inner_model_path=a.inner_model_path, device=a.device, adapter=a.adapter)
+                                       inner_model_path=a.inner_model_path, device=a.device, adapter=a.adapter,
+                                       r3_mode=a.scorer if a.scorer in ("exact", "fast") else None)
         model_desc = {"kind": "degenerate", "name": a.model_path, "inner_model_path": a.inner_model_path}
     else:
         raw = score_model(a.model_path, rows, a.device, a.chunk, a.token_budget, a.scorer, a.adapter)
@@ -290,7 +472,9 @@ def main():
         "header": {"utc": utc(), "suite": a.suite, "split": a.split, "n": len(rows), "task_file": path,
                    "model": model_desc, "prompt_version": prompt_mod.PROMPT_VERSION,
                    "declared_differences_from_kev": "see R3-SFT-PREREG sec 3.3",
-                   "scorer": a.scorer, "token_budget": a.token_budget},
+                   "scorer": a.scorer, "token_budget": a.token_budget,
+                   "dtype": ("n/a: no model forward" if a.model_path in ("constant", "uniform") else gate["effective"]["dtype"]),
+                   "hf32": (None if a.model_path in ("constant", "uniform") else hf32_state(a.device)), **gate},
         "gold_position_distribution": gold_position_distribution(rows),
         "track_k": metrics,
     }

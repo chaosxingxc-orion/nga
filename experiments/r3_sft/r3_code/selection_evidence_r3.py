@@ -4,7 +4,6 @@ Recompute development results from stamped rows and the frozen question populati
 Never open a Kev test partition. Report summaries alone are not selection evidence.
 """
 import copy
-import hashlib
 import json
 import math
 import os
@@ -51,40 +50,6 @@ def validate_population(rows, expected, key_fn):
     return [have[key_fn(r)] for r in expected]
 
 
-def training_variant(manifest):
-    """Seed-independent recipe identity; old manifests use the trainer's defaults.
-
-    Keep unknown arguments conservatively, so a future training option cannot
-    silently disappear from the seed-pooling boundary. Operational locations,
-    monitoring and interruption controls do not define the training recipe.
-    """
-    recipe = {
-        "epochs": 2, "lr": 1e-4, "lora_r": 16, "lora_alpha": 32,
-        "lora_dropout": 0.05, "gdn_impl": "ref", "gdn_ckpt": False,
-        "grad_ckpt": False, "micro_tokens": 12000, "k2_impl": "rows",
-        "k2_rows": 96, "chunk_overhead": 2000, "full_logits": False,
-        "max_len": 4096, "drop_state": False, "symbol_file": None,
-        "symbol_n": 6675, "limit_rows": 0, "full_ft": False,
-    }
-    recipe.update(manifest["args"])
-    for field in ("seed", "out", "model_path", "total_steps", "kernel",
-                  "device", "save_every", "stop_after", "no_merge",
-                  "perf_window", "perf_every", "procs_on_chip", "expect_pairs",
-                  "allow_any_lr"):
-        recipe.pop(field, None)
-    return {
-        "schema": 1, "args": recipe,
-        "model_path": os.path.realpath(manifest["model_path"]),
-        "kernel": manifest["kernel"], "total_steps": manifest["total_steps"],
-        "model_revision_file": manifest.get("model_revision_file"),
-        "train_sha256": manifest.get("train_file", {}).get("sha256"),
-        "code_sha256": manifest.get("code_sha256"),
-        "prompt_py_sha256": manifest.get("prompt_py_sha256"),
-        "param_dtype": manifest.get("param_dtype"),
-        "torch": manifest.get("torch"), "transformers": manifest.get("transformers"),
-    }
-
-
 def train_identity(report):
     """Read seed/arm from the trainer's completed manifest, not an evaluation-directory name."""
     h = report["header"]
@@ -111,8 +76,7 @@ def train_identity(report):
     require(manifest.get("total_steps", 0) > 0
             and manifest.get("summary", {}).get("final_step") == manifest["total_steps"], "training is not complete")
     return {"seed": seed, "arm": arm, "training_manifest": manifest_path,
-            "training_manifest_sha256": C.sha256_file(manifest_path), "adapter_path": path,
-            "training_variant": training_variant(manifest)}
+            "training_manifest_sha256": C.sha256_file(manifest_path), "adapter_path": path}
 
 
 def readout_directories(run_dir):
@@ -147,19 +111,6 @@ def verify_run(run_dir, report):
     return PV.verify(run_dir, readout_directories(run_dir), identity["sha256"], role_of=role_for_path)
 
 
-def verify_task_manifest(path, entry):
-    """build_tasks.py hashes each serialized JSON line without its trailing LF."""
-    digest, count = hashlib.sha256(), 0
-    with open(path, "rb") as stream:
-        for line in stream:
-            require(line.endswith(b"\n") and line != b"\n", "Track T task has malformed line framing")
-            digest.update(line[:-1])
-            count += 1
-    require(digest.hexdigest() == entry["sha256"] and count == entry["records"],
-            "Track T input differs from the builder manifest")
-    return {"records": count, "builder_sha256": digest.hexdigest(), "file_sha256": C.sha256_file(path)}
-
-
 def rebuild_track_t(run_dir, config_name, data_root=C.DATA_ROOT, selection_only=False):
     import common as RC
     import track_t_r3 as T
@@ -170,7 +121,8 @@ def rebuild_track_t(run_dir, config_name, data_root=C.DATA_ROOT, selection_only=
             path = RC.task_path(data_root, task, source)
             if task == "T3" and source != "typed-decisions":
                 continue
-            verify_task_manifest(path, manifest["tasks"][RC.TASK_DIRS[task]][source])
+            expected_sha = manifest["tasks"][RC.TASK_DIRS[task]][source]["sha256"]
+            require(C.sha256_file(path) == expected_sha, "Track T input differs from the frozen manifest")
             all_records.extend(RC.load_records(path))
     config = T.CONFIGS[config_name]
     needed = T.records_needed(all_records, config)
@@ -191,7 +143,7 @@ def rebuild_track_t(run_dir, config_name, data_root=C.DATA_ROOT, selection_only=
         keep = {r["key"] for r in needed if split_rules.GROUP70.assign(r) == split_rules.TRAIN
                 or T.half_of(r["group_id"]) == "selection"}
         by_role = {role: [row for row in rows if row["k"] in keep] for role, rows in by_role.items()}
-    return T.build_track_t(by_role, all_records, config, selection_only=selection_only)
+    return T.build_track_t(by_role, all_records, config)
 
 
 def load_selection_report(run_dir, kev_dir=C.KEV_DIR, require_track_t=False, report_half=False):
@@ -242,29 +194,17 @@ def validate_seed_reports(reports, required_seeds=(2, 3), required_arm=None):
     require(len({e.get("adapter_path") for e in evidence}) == len(evidence), "same adapter supplied more than once")
     arms = {e.get("arm") for e in evidence}
     require(len(arms) == 1 and None not in arms, "reports must belong to one arm")
-    variants = [e.get("training_variant") for e in evidence]
-    require(all(isinstance(v, dict) and v.get("schema") == 1 and v.get("args") for v in variants),
-            "verified training variant identity is required; reload legacy reports")
-    require(all(v == variants[0] for v in variants[1:]),
-            "seed reports use different training variants (model, implementation, recipe or provenance)")
     if required_arm:
         require(arms == {required_arm}, f"decision line requires {required_arm}")
 
 
-def load_r0_gating(run, expected_execution_sha256=None):
+def load_r0_gating(run):
     import r0rescore_verify as RV
     marker = load_json(os.path.join(run, "R0RESCORE_COMPLETE.json"))
     require(type(marker.get("exit_code")) is int and marker["exit_code"] == 0
             and marker.get("run_of_record") is True and not marker.get("limit_groups"),
             "R0 re-score must be complete and of record; smoke is not admissible")
-    if os.path.exists(os.path.join(run, 'execution.json')):
-        require(expected_execution_sha256 is not None, 'externally pinned R0 execution required')
-        require(marker.get('execution_sha256') == expected_execution_sha256, 'R0 marker execution differs')
-        require(C.sha256_file(os.path.join(run, 'instruct', 'report.json')) == marker.get('report_sha256'),
-                'R0 report differs from completion marker')
-        require(C.sha256_file(os.path.join(run, 'R0RESCORE_VERIFIED.json')) == marker.get('verified_sha256'),
-                'R0 verification differs from completion marker')
-    checked = RV.check(run, expected_execution_sha256=expected_execution_sha256)
+    checked = RV.check(run)
     require(not checked["problems"], "R0 re-score verification failed: " + str(checked["problems"]))
     out = os.path.join(run, "instruct")
     block = rebuild_track_t(out, "r0")

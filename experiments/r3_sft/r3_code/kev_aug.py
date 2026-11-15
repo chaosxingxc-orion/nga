@@ -2,7 +2,7 @@
 
 Everything here is pure Python (no torch), so it runs on the host and in tests.
 
-Source of truth: /mnt/cephfs/xingchao/repos/jev/jaredpalmer__kev, commit 2074cc44256200bb37540103fa4572901faa10f3.
+Source of truth: jaredpalmer__kev, commit 2074cc44256200bb37540103fa4572901faa10f3.
   kev/data.py:20-21    source_seed(seed, source)            -> the per-stream seed hash
   kev/data.py:51-56    NONE_OPTIONS, DISTRACTORS             -> the none-of-the-above texts and the distractors
   kev/data.py:320-343  augment(req, rng, p_none, p_none_distract, p_distract)

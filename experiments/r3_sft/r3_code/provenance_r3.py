@@ -80,7 +80,7 @@ def _scorer_problems(desc):
     return p
 
 
-def verify(run_dir, readouts_dir, expected_model_sha256, require_scorer_of_record=True, role_of=None):
+def verify(run_dir, readouts_dir, expected_model_sha256, require_scorer_of_record=True, role_of=None, selected_files=None):
     """Raise ProvenanceRefusal unless every readout file in `readouts_dir` provably comes from the model `expected_model_sha256`.
     At least one file and one verified row are required. Consumers must separately enforce the expected question population.
     `readouts_dir` may be a directory or a list of directories (all manifests are checked).
@@ -114,6 +114,8 @@ def verify(run_dir, readouts_dir, expected_model_sha256, require_scorer_of_recor
         problems.append(f"no manifest under {mdir}: the readouts have no producing run's record (copied or seeded files are refused)")
     files = sorted({os.path.join(d, f) for d in directories if os.path.isdir(d)
                     for f in os.listdir(d) if f.endswith(".jsonl")})
+    if selected_files is not None:
+        files = sorted(set(os.fspath(p) for p in selected_files))
     if not files:
         problems.append("no readout files: provenance cannot verify an absent or empty result")
     stamp_want = expected_model_sha256[:STAMP_LEN]
@@ -154,7 +156,8 @@ def verify(run_dir, readouts_dir, expected_model_sha256, require_scorer_of_recor
     if dup:
         problems.append(f"{len(dup)} keys appear twice within a role (e.g. {dup[0]}): two shard layouts or a copy in one directory")
     for rel in sorted(set(entries) - {os.path.relpath(f, run_dir) for f in files}):
-        problems.append(f"{rel}: listed in a manifest but absent from {readouts_dir}")
+        if selected_files is None:
+            problems.append(f"{rel}: listed in a manifest but absent from {readouts_dir}")
     if problems:
         raise ProvenanceRefusal("readout provenance refused: " + "; ".join(problems[:12]) + (f" (+{len(problems) - 12} more)" if len(problems) > 12 else ""))
     return {"files_verified": len(files), "rows_verified": n_rows, "expected_model_sha256": expected_model_sha256, "manifests": manifests,

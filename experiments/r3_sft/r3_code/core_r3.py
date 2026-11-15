@@ -18,17 +18,17 @@ import math
 import os
 import sys
 
-R0_CODE = "/mnt/cephfs/xingchao/experiments/jev/r0_code"
 HERE = os.path.dirname(os.path.abspath(__file__))
-for _p in (R0_CODE, HERE):
+_R0_CODE = os.environ.get("NGA_R0_CODE", os.path.normpath(os.path.join(HERE, "..", "..", "r0_code")))
+for _p in (_R0_CODE, HERE):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-KEV_DIR = "/mnt/cephfs/xingchao/experiments/jev/KEV"
-DATA_ROOT = "/mnt/cephfs/xingchao/experiments/jev"
-ROUND_DIR = "/mnt/cephfs/xingchao/experiments/jev/r3_runs"
-KEV_REPO = "/mnt/cephfs/xingchao/repos/jev/jaredpalmer__kev"
-KEV_RAW_TRAIN = "/mnt/cephfs/xingchao/datasets/jev/jaredpalmer__kev-suites/v7/decision-v7/train.jsonl"
+KEV_DIR = os.environ.get("NGA_KEV_DIR", os.path.join(HERE, "..", "..", "KEV"))
+DATA_ROOT = os.environ.get("NGA_DATA_ROOT", os.path.normpath(os.path.join(HERE, "..", "..")))
+ROUND_DIR = os.environ.get("NGA_ROUND_DIR", os.path.normpath(os.path.join(HERE, "..")))
+KEV_REPO = os.environ.get("NGA_KEV_REPO", None)
+KEV_RAW_TRAIN = os.environ.get("NGA_KEV_RAW_TRAIN", None)
 
 SUITES = ("decision-v7", "transfer-v4")
 INPUT_MODES = ("full", "blank", "drop")

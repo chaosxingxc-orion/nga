@@ -20,6 +20,8 @@ TEST-READS.log is tab-separated, one line per read: utc, path, sha256, suite, pa
 import fcntl
 import json
 import os
+import math
+import tempfile
 
 import core_r3 as C
 
@@ -174,10 +176,13 @@ def authorize_test_read(identity, suite, split, round_dir=C.ROUND_DIR):
     return TestTicket(identity, suite, split, _TOKEN)
 
 
-def record_test_read(ticket, n, headline_accuracy, round_dir=C.ROUND_DIR):
+def record_test_read(ticket, n, headline_accuracy, round_dir=C.ROUND_DIR, run_dir=None, kev_dir=C.KEV_DIR):
     """Append the sec 8.4 line (under an exclusive lock, re-checking that no earlier line exists). Returns the line."""
     if not isinstance(ticket, TestTicket):
         raise C.TestLockRefusal("sec 8.4: a TestTicket is required to log a test read")
+    if run_dir is None:
+        raise C.TestLockRefusal("test result requires its producing run directory and verified readouts")
+    verify_test_result(ticket, n, headline_accuracy, run_dir, kev_dir)
     os.makedirs(round_dir, exist_ok=True)
     path = os.path.join(round_dir, LOG_NAME)
     with open(path, "a+", encoding="utf-8") as f:
@@ -193,3 +198,36 @@ def record_test_read(ticket, n, headline_accuracy, round_dir=C.ROUND_DIR):
         finally:
             fcntl.flock(f, fcntl.LOCK_UN)
     return line
+
+
+def verify_test_result(ticket, n, headline_accuracy, run_dir, kev_dir=C.KEV_DIR):
+    """Verify the model, producer manifests, test population and headline before logging a read.
+
+    Test data is opened only with the already-issued ticket. Neither a supplied
+    accuracy nor a new manifest can substitute for matching the frozen population.
+    """
+    import provenance_r3 as PV
+    import prechecks_r3 as PC
+    import selection_evidence_r3 as E
+    m = ticket.identity
+    with tempfile.TemporaryDirectory(prefix="nga-test-read-hash-") as cache:
+        actual = model_identity(m["base_path"], m["path"] if m["kind"] == "lora-adapter-unmerged" else None, cache)
+    if actual["sha256"] != m["sha256"]:
+        raise C.TestLockRefusal("model content changed since the test ticket was issued")
+    PV.verify(run_dir, E.readout_directories(run_dir), actual["sha256"], role_of=E.role_for_path)
+    clean, clean_path = C.load_partition(ticket.suite, ticket.split, ticket=ticket, kev_dir=kev_dir)
+    variants, variant_path = C.load_partition(ticket.suite, ticket.split, variants=True, ticket=ticket, kev_dir=kev_dir)
+    PC.check_kev_manifest([clean_path, variant_path], kev_dir=kev_dir)
+    expected_n = {"decision-v7": 1200, "transfer-v4": 656}[ticket.suite]
+    if len(clean) != expected_n or type(n) is not int or n != expected_n or not variants:
+        raise C.TestLockRefusal("test population is partial or its declared count differs")
+    scores = None
+    for kind, population in (("clean", clean), ("variants", variants), ("question_only", clean), ("empty_input", clean)):
+        path = C.k_readout_path(run_dir, ticket.suite, ticket.split, kind)
+        rows = E.validate_population(C.read_jsonl(path), population, C.kev_key)
+        if kind == "clean":
+            scores = [r["s"] for r in rows]
+    measured = C.headline(clean, scores)["kev_rule_accuracy"]
+    if type(headline_accuracy) not in (int, float) or not math.isfinite(headline_accuracy) or abs(measured - headline_accuracy) > 1e-12:
+        raise C.TestLockRefusal("test headline differs from verified scores")
+    return {"n": n, "headline_accuracy": measured, "model_sha256": actual["sha256"]}
